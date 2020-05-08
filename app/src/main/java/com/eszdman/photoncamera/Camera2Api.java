@@ -43,11 +43,13 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -60,7 +62,9 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
@@ -125,6 +129,8 @@ public class Camera2Api extends Fragment
      * Camera state: Picture was taken.
      */
     private static final int STATE_PICTURE_TAKEN = 4;
+
+    private static final int STATE_CLOSED = 5;
 
     /**
      * Max preview width that is guaranteed by Camera2 API
@@ -252,7 +258,7 @@ public class Camera2Api extends Fragment
     /**
      * The current state of camera state for taking pictures.
      */
-    private int mState = STATE_PREVIEW;
+    public int mState = STATE_PREVIEW;
 
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
@@ -414,15 +420,18 @@ public class Camera2Api extends Fragment
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.main, container, false);
     }
-
+    ImageButton shot;
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-        ImageButton shot = view.findViewById(R.id.picture);
+        shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
         ImageButton flip = view.findViewById(R.id.flip_camera);
         flip.setOnClickListener(this);
         flip.setActivated(true);
+        Button settings = view.findViewById(R.id.settings);
+        settings.setOnClickListener(this);
+        settings.setActivated(true);
         //view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
@@ -693,7 +702,7 @@ public class Camera2Api extends Fragment
             mCameraId = cameraId;
     }
     @SuppressLint("MissingPermission")
-    private void restartCamera(){
+    public void restartCamera(){
         try {
             mCameraOpenCloseLock.acquire();
 
@@ -812,6 +821,7 @@ public class Camera2Api extends Fragment
                 mImageReader.close();
                 mImageReader = null;
             }
+            mState = STATE_CLOSED;
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
         } finally {
@@ -878,7 +888,8 @@ public class Camera2Api extends Fragment
                                 //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
                                 setAutoFlash(mPreviewRequestBuilder);
-                                mPreviewRequestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY);
+                                //mPreviewRequestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY);
+                                Settings.instance.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest,
@@ -1000,16 +1011,14 @@ public class Camera2Api extends Fragment
             captureBuilder.addTarget(mImageReader.getSurface());
 
             // Use the same AE and AF modes as the preview.
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE,
-                    CaptureRequest.NOISE_REDUCTION_MODE_OFF);
+            //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            //captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF);
+            Settings.instance.applyRes(captureBuilder);
             setAutoFlash(captureBuilder);
 
             // Orientation
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
-            showToast("Saving id:" + mCameraId);
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
 
@@ -1018,6 +1027,8 @@ public class Camera2Api extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     showToast("Saved: " + mFile);
+                    shot.setActivated(true);
+                    shot.setClickable(true);
                     Log.d(TAG, mFile.toString());
                     unlockFocus();
 
@@ -1067,20 +1078,27 @@ public class Camera2Api extends Fragment
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
+                shot.setActivated(false);
+                shot.setClickable(false);
                 takePicture();
                 break;
             }
             case R.id.flip_camera: {
                 mCameraId = cycler(mCameraId, mCameraIds);
-                showToast("CameraID: "+mCameraId);
                 restartCamera();
                 showToast("Afmodes:"+mCameraAfModes.length);
                // openCamera(mTextureView.getWidth(), mTextureView.getHeight());
                 break;
+            }
+            case R.id.settings: {
+                Activity activity = getActivity();
+                closeCamera();
+                Settings.instance.openSettings();
             }
         }
     }

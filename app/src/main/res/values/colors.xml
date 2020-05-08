@@ -3,10 +3,10 @@
     <color name="colorPrimary">#212121</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">#D81B60</color>
-    <color name="GreyDis">#919191</color>
+    <color name="GreyDis">#555555</color>
     <color name="BlueDis">#4b7ae6</color>
     <color name="Blue">#6594ff</color>
-    <color name="LightDis">#ebebeb</color>
-    <color name="Light">#dfdfdf</color>
+    <color name="LightDis">#CACACA</color>
+    <color name="Light">#F1F1F1</color>
 
 </resources>

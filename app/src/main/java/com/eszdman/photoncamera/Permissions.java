@@ -19,7 +19,6 @@ public class Permissions {
                 ActivityCompat.requestPermissions(Activity,
                         new String[]{permission},
                         requestID);
-
             }
             // Permission has already been granted
         } else {

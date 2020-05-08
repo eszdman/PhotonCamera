@@ -1,24 +1,46 @@
 package com.eszdman.photoncamera;
 
 import android.Manifest;
-import android.content.pm.PackageManager;
-import android.media.Image;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.view.View;
-import android.widget.CheckBox;
-import android.widget.ImageButton;
+import android.widget.Toast;
 
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
 public class MainActivity extends AppCompatActivity {
-CheckBox cs;
     static Camera2Api inst;
+    static MainActivity act;
+    public static void showToast(final String text) {
+        if (act != null) {
+            act.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(act, text, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+    @Override
+    public void onBackPressed()
+    {
+        if(inst.mState != 5)  super.onBackPressed(); // optional depending on your needs
+        else Settings.instance.getSettings();
+        // code here to show dialog
+        setContentView(R.layout.activity_camera);
+        inst = Camera2Api.newInstance();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container, inst)
+                .commit();
+
+        //inst.restartCamera();
+
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
+        act = this;
+        Settings settings = new Settings();
         setContentView(R.layout.activity_camera);
         inst = Camera2Api.newInstance();
         if (null == savedInstanceState) {
@@ -29,11 +51,4 @@ CheckBox cs;
 
         Permissions.RequestPermissions(MainActivity.this, 2,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
     }
-
-   View.OnClickListener k = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            cs.setChecked(true);
-        }
-    };
 }
