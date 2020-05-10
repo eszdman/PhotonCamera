@@ -139,7 +139,7 @@ public class Camera2Api extends Fragment
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     private static int mTargetFormat = ImageFormat.JPEG;
-    public static int mburstcount = 30;
+    public static int mburstcount = 1;
 
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
@@ -590,7 +590,7 @@ public class Camera2Api extends Fragment
             Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, /*maxImages*/2);
+                mTargetFormat, mburstcount+1);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
 
@@ -1001,12 +1001,7 @@ public class Camera2Api extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     mCaptureResult = result;
-                    //showToast("Saved: " + mFile);
                     lightcycle.setProgress(lightcycle.getProgress()+1);
-                    shot.setActivated(true);
-                    shot.setClickable(true);
-                    Log.d(TAG, mFile.toString());
-                    unlockFocus();
                 }
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
@@ -1019,6 +1014,9 @@ public class Camera2Api extends Fragment
                     lightcycle.setAlpha(0f);
                     lightcycle.setProgress(0);
                     mTextureView.setAlpha(1f);
+                    shot.setActivated(true);
+                    shot.setClickable(true);
+                    unlockFocus();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
             };
