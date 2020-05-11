@@ -121,11 +121,11 @@ public class ImageProcessing {
             }
             Camera2Api.loadingcycle.setProgress(i+1);
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
-            //imgsmat.add(cur);
+            imgsmat.add(cur);
             Scalar sc = new Scalar(2,2,2);
-            Core.divide(cur,sc,cur);
-            Core.divide(output,sc,output);
-            Core.add(output, cur, output);
+            //Core.divide(cur,sc,cur);
+            //Core.divide(output,sc,output);
+            //Core.add(output, cur, output);
             //Core.divide(output,sc,output);*/
         }
 
@@ -139,7 +139,8 @@ public class ImageProcessing {
             if(ind %2 != 0) ind+=1;
             int wins = ind/2;
             if(wins%2==0) wins-=1;*/
-            Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,32);
+            //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
+            Photo.denoise_TVL1(imgsmat,output);
             //Imgproc.bilateralFilter(output,outb, (int) (params*1.2),params*3.5,params*1.7);
             //Photo.detailEnhance(output,output);
             //Imgproc.cvtColor(output,output,Imgproc.Color);
