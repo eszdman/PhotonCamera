@@ -18,10 +18,8 @@ import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.Photo;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
 import static org.opencv.features2d.Features2d.drawMatches;

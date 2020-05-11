@@ -73,15 +73,12 @@ public class ImageSaver implements Runnable {
     public void run() {
         int format = mImage.getFormat();
         FileOutputStream output = null;
-
-        Log.e("ImageSaver","Hello From ImageSaver");
         switch (format){
             case ImageFormat.JPEG: {
                 File out =  new File(curDir(),curName()+".jpg");
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
                     output = new FileOutputStream(out);
-                    //output = new FileOutputStream(mFile);
                     imageBuffer.add(mImage);
                     Log.e("ImageSaver","ImageSaver imagebuffer size:"+imageBuffer.size());
                     bcnt++;
