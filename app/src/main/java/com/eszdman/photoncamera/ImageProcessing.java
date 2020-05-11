@@ -1,40 +1,25 @@
 package com.eszdman.photoncamera;
 
 import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
-import android.util.Rational;
-import android.util.Xml;
-
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.Photo;
-import org.opencv.ximgproc.Ximgproc;
-import org.opencv.xphoto.GrayworldWB;
-import org.opencv.xphoto.LearningBasedWB;
-import org.opencv.xphoto.TonemapDurand;
-import org.opencv.xphoto.Xphoto;
 
-import java.nio.ByteBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import static org.opencv.calib3d.Calib3d.RANSAC;
@@ -136,17 +121,17 @@ public class ImageProcessing {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
-        if(curimgs.size() > 10)for(int i =0; i<imgsmat.size()-1; i+=2) {
+        if(curimgs.size() > 6)for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
-        if(curimgs.size() > 16)for(int i =0; i<imgsmat.size()-1; i+=2) {
+        if(curimgs.size() > 11)for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
         if(!israw) {
             Mat outb = new Mat();
-            double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*15) + 4;
+            double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
             Log.d("ImageProcessing Denoise", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params,50);
             //Photo.fastNlMeansDenoisingColored(output,outb,1,15,10);
@@ -159,14 +144,19 @@ public class ImageProcessing {
             //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
             //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);
             imgsmat.set(ind,output);
-            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,15);
+            Mat outbil = new Mat();
 
+
+            //imgsmat.set(ind,outbil);
+            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,13);
+            Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
+            outb = outbil;
             //Ximgproc.bilateralTextureFilter(output,outb,1000,3,0.5,0.2);
             //Photo.denoise_TVL1(imgsmat,output);
             //Imgproc.bilateralFilter(output,outb, (int) (params*1.2),params*3.5,params*1.7);
             //Photo.detailEnhance(output,output);
             //Imgproc.cvtColor(output,output,Imgproc.Color);
-            Imgcodecs.imwrite(path+"t.jpg",imgsmat.get(ind));
+            //Imgcodecs.imwrite(path+"t.jpg",imgsmat.get(ind));
             Imgcodecs.imwrite(path,outb);
         }
         //short[] data = new short[ curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().capacity()];

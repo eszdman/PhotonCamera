@@ -3,16 +3,21 @@ package com.eszdman.photoncamera;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Build;
-import android.support.annotation.IdRes;
-import android.support.annotation.RequiresApi;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
-
+import androidx.annotation.IdRes;
+import androidx.annotation.RequiresApi;
+import com.eszdman.photoncamera.R;
 import static android.content.Context.MODE_PRIVATE;
-import static android.hardware.camera2.CameraMetadata.*;
-import static android.hardware.camera2.CaptureRequest.*;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
+import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
+import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
+import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 
 
 public class Settings {

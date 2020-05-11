@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera;
 
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 
 public class IsoExpoSelector {

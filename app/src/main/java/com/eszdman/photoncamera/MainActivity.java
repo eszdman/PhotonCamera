@@ -2,12 +2,11 @@ package com.eszdman.photoncamera;
 
 import android.Manifest;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import org.opencv.android.OpenCVLoader;
+
 
 public class MainActivity extends AppCompatActivity {
     static Camera2Api inst;

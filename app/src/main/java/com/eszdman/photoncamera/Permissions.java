@@ -1,9 +1,9 @@
 package com.eszdman.photoncamera;
-import android.Manifest;
+
 import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class Permissions {
     public static void RequestPermission(AppCompatActivity Activity, int requestID, String permission){
