@@ -130,11 +130,19 @@ public class ImageProcessing {
             Camera2Api.loadingcycle.setProgress(i+1);
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
             imgsmat.add(cur);
-            Scalar sc = new Scalar(2,2,2);
-            Core.divide(cur,sc,cur);
-            Core.divide(output,sc,output);
-            Core.add(output, cur, output);
-            //Core.divide(output,sc,output);*/
+            Core.addWeighted(output,0.5,cur,0.5,0,output);
+        }
+        for(int i =0; i<imgsmat.size()-1; i+=2) {
+            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            imgsmat.remove(i+1);
+        }
+        if(curimgs.size() > 10)for(int i =0; i<imgsmat.size()-1; i+=2) {
+            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            imgsmat.remove(i+1);
+        }
+        if(curimgs.size() > 16)for(int i =0; i<imgsmat.size()-1; i+=2) {
+            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            imgsmat.remove(i+1);
         }
         if(!israw) {
             Mat outb = new Mat();
@@ -151,13 +159,14 @@ public class ImageProcessing {
             //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
             //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);
             imgsmat.set(ind,output);
-            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,11);
+            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,15);
 
             //Ximgproc.bilateralTextureFilter(output,outb,1000,3,0.5,0.2);
             //Photo.denoise_TVL1(imgsmat,output);
             //Imgproc.bilateralFilter(output,outb, (int) (params*1.2),params*3.5,params*1.7);
             //Photo.detailEnhance(output,output);
             //Imgproc.cvtColor(output,output,Imgproc.Color);
+            Imgcodecs.imwrite(path+"t.jpg",imgsmat.get(ind));
             Imgcodecs.imwrite(path,outb);
         }
         //short[] data = new short[ curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().capacity()];
