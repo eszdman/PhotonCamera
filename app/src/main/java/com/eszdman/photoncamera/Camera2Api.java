@@ -139,8 +139,10 @@ public class Camera2Api extends Fragment
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     private static int mTargetFormat = ImageFormat.JPEG;
-    public static int mburstcount = 1;
-
+    public static int mburstcount = 3;
+    public static CaptureResult mPreviewResult;
+    long mPreviewExposuretime;
+    int mPreviewIso;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -197,7 +199,10 @@ public class Camera2Api extends Fragment
     private Size mPreviewSize;
 
     public static Camera2Api context;
-
+    public Camera2Api(){
+        super();
+        context = this;
+    }
     /**
      * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
      */
@@ -332,6 +337,9 @@ public class Camera2Api extends Fragment
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
+            mPreviewResult = partialResult;
+            //mPreviewExposuretime = partialResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            //mPreviewIso = partialResult.get(CaptureResult.SENSOR_SENSITIVITY);
             process(partialResult);
         }
 
@@ -421,6 +429,7 @@ public class Camera2Api extends Fragment
     }
     ImageButton shot;
     ProgressBar lightcycle;
+    static ProgressBar loadingcycle;
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -453,10 +462,15 @@ public class Camera2Api extends Fragment
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
+        mburstcount = Settings.instance.framecount;
+
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(mburstcount);
         lightcycle.setMin(0);
+        loadingcycle = view.findViewById(R.id.progressloading);
+        loadingcycle.setMax(mburstcount);
+
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
@@ -984,6 +998,7 @@ public class Camera2Api extends Fragment
             // Use the same AE and AF modes as the preview.
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             //captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF);
+            IsoExpoSelector.setExpo(captureBuilder);
             Settings.instance.applyRes(captureBuilder);
             //lightcycle.setVisibility(View.VISIBLE);
             setAutoFlash(captureBuilder);

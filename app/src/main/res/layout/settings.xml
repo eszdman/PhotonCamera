@@ -21,7 +21,57 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Turn On NR" />
+            android:text="@string/turn_on_system_nr" />
+
+        <Switch
+            android:id="@+id/setting_disablealign"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/disable_aligning"
+            android:textAlignment="center" />
+
+        <TextView
+            android:id="@+id/setting_framecounter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/frame_count" />
+
+        <SeekBar
+            android:id="@+id/setting_framecnt"
+            style="@style/Widget.AppCompat.SeekBar.Discrete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="35"
+            android:min="1"
+            android:progress="3" />
+
+        <TextView
+            android:id="@+id/setting_chroma"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/chroma_nr_count" />
+
+        <SeekBar
+            android:id="@+id/setting_chromacnt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="65"
+            android:min="1"
+            android:progress="35" />
+
+        <TextView
+            android:id="@+id/setting_luma"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/luma_nr_count" />
+
+        <SeekBar
+            android:id="@+id/setting_lumacnt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="65"
+            android:min="1"
+            android:progress="1" />
     </LinearLayout>
     <![CDATA[
 

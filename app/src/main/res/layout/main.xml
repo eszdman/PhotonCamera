@@ -27,8 +27,8 @@
         android:layout_height="446dp"
         android:layout_above="@+id/control"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="115dp"
-        android:layout_marginBottom="33dp"
+        android:layout_marginTop="113dp"
+        android:layout_marginBottom="36dp"
         android:layout_x="40dp"
         android:layout_y="74dp" />
 
@@ -46,9 +46,9 @@
 
         <ImageButton
             android:id="@+id/picture"
-            android:layout_width="101dp"
-            android:layout_height="101dp"
-            android:layout_gravity="center"
+            android:layout_width="111dp"
+            android:layout_height="105dp"
+            android:layout_gravity="center_horizontal|center_vertical"
             android:background="?attr/actionBarItemBackground"
             android:clickable="true"
             android:src="@drawable/roundbutton"
@@ -110,11 +110,28 @@
         android:layout_alignBottom="@+id/texture"
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="89dp"
-        android:layout_marginEnd="84dp"
+        android:layout_marginStart="91dp"
+        android:layout_marginEnd="82dp"
         android:layout_marginBottom="150dp"
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@drawable/circular_progress_bar" />
+
+    <ProgressBar
+        android:id="@+id/progressloading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="113dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="153dp"
+        android:layout_marginEnd="153dp"
+        android:layout_marginBottom="15dp"
+        android:indeterminate="false"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/circular_progress_bar2"
+        tools:visibility="visible" />
 
 </RelativeLayout>

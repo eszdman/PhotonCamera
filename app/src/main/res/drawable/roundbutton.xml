@@ -2,21 +2,21 @@
 <selector xmlns:tools="http://schemas.android.com/tools" xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_activated="true" android:state_pressed="false" >
         <shape android:shape="oval">
-            <stroke android:width="8dp" android:color="@android:color/background_light" />
+            <stroke android:width="7dp" android:color="@android:color/background_light" />
             <solid android:color="@android:color/darker_gray" />
             <size android:width="80dp" android:height="80dp"/>
         </shape>
 </item>
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <stroke android:width="8dp" android:color="@android:color/background_light" />
+            <stroke android:width="7dp" android:color="@android:color/background_light" />
             <solid android:color="@color/Blue" />
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_activated="false">
         <shape android:shape="oval">
-            <stroke android:width="8dp" android:color="@color/LightDis" />
+            <stroke android:width="7dp" android:color="@color/LightDis" />
             <solid android:color="@color/GreyDis" />
             <size android:width="80dp" android:height="80dp" />
         </shape>

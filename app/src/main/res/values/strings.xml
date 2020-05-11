@@ -5,11 +5,11 @@
     <string name="intro_message">
         <![CDATA[
 
-
-            This sample demonstrates the basic use of Camera2 API. Check the source code to see how
-            you can display camera preview and take pictures.
-
-
         ]]>
     </string>
+    <string name="luma_nr_count">Luma NR count:1</string>
+    <string name="frame_count">Frame count:3</string>
+    <string name="disable_aligning">Disable aligning</string>
+    <string name="turn_on_system_nr">Turn On System NR</string>
+    <string name="chroma_nr_count">Chroma NR count:35</string>
 </resources>
