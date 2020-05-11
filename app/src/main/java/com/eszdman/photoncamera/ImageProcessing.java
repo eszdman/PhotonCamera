@@ -25,6 +25,11 @@ import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.Photo;
+import org.opencv.ximgproc.Ximgproc;
+import org.opencv.xphoto.GrayworldWB;
+import org.opencv.xphoto.LearningBasedWB;
+import org.opencv.xphoto.TonemapDurand;
+import org.opencv.xphoto.Xphoto;
 
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
@@ -106,16 +111,19 @@ public class ImageProcessing {
         return h;
     }
     void ApplyStabilization(){
-        Mat[] imgs = EqualizeImages();
+        Mat[] imgs = null;
+        if(israw) imgs = EqualizeImages();
         Log.d("ImageProcessing Stab", "Curimgs size "+curimgs.size());
         Image outp =curimgs.get(curimgs.size()-1);
         Mat output = load_rawsensor(outp);
         boolean aligning = Settings.instance.align;
         ArrayList<Mat> imgsmat = new ArrayList<>();
-        for(int i =0; i<imgs.length-1;i++) {
+        for(int i =0; i<curimgs.size()-1;i++) {
             Mat cur = load_rawsensor(curimgs.get(i));
             if(aligning){
-                Mat h = findFrameHomography(imgs[imgs.length - 1], imgs[i]);
+                Mat h=null;
+                if(israw) h = findFrameHomography(imgs[imgs.length - 1], imgs[i]);
+                else h = findFrameHomography(output, cur);
                 if(h != null) Imgproc.warpPerspective(cur, cur, h, cur.size());
                 else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
             }
@@ -123,28 +131,34 @@ public class ImageProcessing {
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
             imgsmat.add(cur);
             Scalar sc = new Scalar(2,2,2);
-            //Core.divide(cur,sc,cur);
-            //Core.divide(output,sc,output);
-            //Core.add(output, cur, output);
+            Core.divide(cur,sc,cur);
+            Core.divide(output,sc,output);
+            Core.add(output, cur, output);
             //Core.divide(output,sc,output);*/
         }
-
         if(!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*15) + 4;
             Log.d("ImageProcessing Denoise", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params,50);
             //Photo.fastNlMeansDenoisingColored(output,outb,1,15,10);
-            /*int ind = imgsmat.size()/2;
-            if(ind %2 != 0) ind+=1;
-            int wins = ind/2;
-            if(wins%2==0) wins-=1;*/
+            if(imgsmat.size()%2 == 0) imgsmat.remove(0);
+            int ind = imgsmat.size()/2;
+            if(ind %2 == 0) ind+=1;
+            int wins = imgsmat.size()/2;
+            if(wins%2 ==0 ) wins-=1;
+            Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
             //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
-            Photo.denoise_TVL1(imgsmat,output);
+            //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);
+            imgsmat.set(ind,output);
+            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,11);
+
+            //Ximgproc.bilateralTextureFilter(output,outb,1000,3,0.5,0.2);
+            //Photo.denoise_TVL1(imgsmat,output);
             //Imgproc.bilateralFilter(output,outb, (int) (params*1.2),params*3.5,params*1.7);
             //Photo.detailEnhance(output,output);
             //Imgproc.cvtColor(output,output,Imgproc.Color);
-            Imgcodecs.imwrite(path,output);
+            Imgcodecs.imwrite(path,outb);
         }
         //short[] data = new short[ curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().capacity()];
         //output.get(0,0,data);
