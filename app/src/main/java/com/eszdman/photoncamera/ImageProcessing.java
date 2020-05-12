@@ -115,7 +115,8 @@ public class ImageProcessing {
             imgsmat.add(cur);
             Core.addWeighted(output,0.5,cur,0.5,0,output);
         }
-        if(curimgs.size() > 4)for(int i =0; i<imgsmat.size()-1; i+=2) {
+        Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
+        if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
@@ -127,13 +128,13 @@ public class ImageProcessing {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
+
         if(!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
             Log.d("ImageProcessing Denoise", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params,50);
             //Photo.fastNlMeansDenoisingColored(output,outb,1,15,10);
-            if(imgsmat.size()%2 == 0) imgsmat.remove(0);
             int ind = imgsmat.size()/2;
             if(ind %2 == 0) ind+=1;
             int wins = imgsmat.size()/2;
