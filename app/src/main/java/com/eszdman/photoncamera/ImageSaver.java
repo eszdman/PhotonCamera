@@ -84,9 +84,10 @@ public class ImageSaver implements Runnable {
                     output = new FileOutputStream(out);
                     imageBuffer.add(mImage);
                     bcnt++;
-                    if(bcnt == Camera2Api.mburstcount) {
-                        byte[] bytes = new byte[buffer.remaining()];
-                        buffer.duplicate().get(bytes);
+                    byte[] bytes = new byte[buffer.remaining()];
+                    buffer.duplicate().get(bytes);
+                    if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
+
                         output.write(bytes);
                         //output.close();
                         ExifInterface inter = new ExifInterface(out.getAbsolutePath());
@@ -100,7 +101,10 @@ public class ImageSaver implements Runnable {
                         //output.close();
                         mImage.close();
                     }
-
+                    if(Camera2Api.mburstcount == 1){
+                        output.write(bytes);
+                        mImage.close();
+                    }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } finally {
@@ -122,17 +126,19 @@ public class ImageSaver implements Runnable {
                 try {
                     output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     imageBuffer.add(mImage);
-                    Log.e("ImageSaver","imagebuffer size:"+imageBuffer.size());
                     bcnt++;
-                    dngCreator.writeImage(output, mImage);
-                    if(bcnt == Camera2Api.mburstcount) {
+                    if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
                         MainActivity.inst.showToast("Processing...");
                         done();
                         dngCreator.writeImage(output, mImage);
                         MainActivity.inst.showToast("Done!");
                         mImage.close();
                     }
-
+                    if(Camera2Api.mburstcount == 1) {
+                        dngCreator.writeImage(output, mImage);
+                        imageBuffer = new ArrayList<>();
+                        mImage.close();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {

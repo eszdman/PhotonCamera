@@ -71,8 +71,9 @@ public class Settings {
         chromacnt.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                chroma.setText("Chroma NR count:"+chromacnt.getProgress());
                 chromacount = chromacnt.getProgress();
+                chroma.setText("Chroma NR count:"+chromacount);
+
             }
 
             @Override
@@ -88,8 +89,8 @@ public class Settings {
         lumacnt.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                luma.setText("Luma NR count:"+lumacnt.getProgress());
                 lumacount = lumacnt.getProgress();
+                luma.setText("Luma NR count:"+lumacount);
             }
 
             @Override
@@ -105,8 +106,9 @@ public class Settings {
         framecnt.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                framestext.setText("Frame count:"+framecnt.getProgress());
                 framecount = framecnt.getProgress();
+                framestext.setText("Frame count:"+framecount);
+                if(framecount == 1) framestext.setText("Unprocessed Output");
             }
 
             @Override

@@ -47,14 +47,6 @@ public class ImageProcessing {
             out[i] = new Mat();
             if(israw)load_rawsensor(curimgs.get(i)).convertTo(out[i], CvType.CV_8UC1,0.6);
             else out[i] = load_rawsensor(curimgs.get(i));
-            //Core.divide(out[i],new Scalar(256),out[i]);
-            //Core.pow(out[i],0.5,out[i]);
-            //Core.multiply(out[i],new Scalar(256),out[i]);
-            //Core.multiply(out[i],new Scalar(1.3),out[i]);
-            //Core.subtract(out[i],new Scalar(256*0.3),out[i]);
-            //Mat temp = new Mat();
-            //Core.LUT(out[i],lut,temp);
-            //out[i] = temp;
         }
         return out;
     }
@@ -84,8 +76,6 @@ public class ImageProcessing {
                 keypoints1f.add(on1);
                 keypoints2f.add(on2);
             }
-            //points1.push_back( new MatOfPoint(keypoints1.get(arr[i].queryIdx).pt));
-            //points2.push_back( new MatOfPoint(keypoints2.get( arr[i].trainIdx).pt));
         }
         points1.fromArray(keypoints1f.toArray(new Point[keypoints1f.size()]));
         points2.fromArray(keypoints2f.toArray(new Point[keypoints2f.size()]));
@@ -132,49 +122,32 @@ public class ImageProcessing {
         if(!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
-            Log.d("ImageProcessing Denoise", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+            Log.d("ImageProcessing Denoise2", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params,50);
-            //Photo.fastNlMeansDenoisingColored(output,outb,1,15,10);
             int ind = imgsmat.size()/2;
-            if(ind %2 == 0) ind+=1;
-            int wins = imgsmat.size()/2;
+            if(ind %2 == 0) ind-=1;
+            int wins = imgsmat.size() - ind;
             if(wins%2 ==0 ) wins-=1;
             wins = Math.max(0,wins);
+            ind = Math.max(0,ind);
             Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
             //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
             //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);
             imgsmat.set(ind,output);
             Mat outbil = new Mat();
-
-
             //imgsmat.set(ind,outbil);
             Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,13);
             Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
             outb = outbil;
-            //Ximgproc.bilateralTextureFilter(output,outb,1000,3,0.5,0.2);
-            //Photo.denoise_TVL1(imgsmat,output);
-            //Imgproc.bilateralFilter(output,outb, (int) (params*1.2),params*3.5,params*1.7);
-            //Photo.detailEnhance(output,output);
-            //Imgproc.cvtColor(output,output,Imgproc.Color);
-            //Imgcodecs.imwrite(path+"t.jpg",imgsmat.get(ind));
             Imgcodecs.imwrite(path,outb);
         }
-        //short[] data = new short[ curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().capacity()];
-        //output.get(0,0,data);
-        //Core.multiply(out,new Scalar(100),out);
         Camera2Api.loadingcycle.setProgress(0);
 
     }
     public void Run(){
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         byte buffval = plane.getBuffer().get();
-        Image img = curimgs.get(0);
-        //Mat mat = loadPlane(img);
-        //Mat res = Imgcodecs.imdecode(mat,0);
-        //Mat mat = load_rawsensor(img);
-        //Core.multiply(mat,new Scalar(200),mat);
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
-
         CaptureResult res = Camera2Api.mCaptureResult;
         //RggbChannelVector rate = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         //Core.divide(mat,new Scalar(rate.getBlue(),rate.getGreenOdd()),mat);
@@ -182,18 +155,7 @@ public class ImageProcessing {
         //Core.divide(mat,new Scalar(rate.getGreenEven(),rate.getRed()),mat);
         //mat = mat.t();
         //Imgproc.cvtColor(mat,mat,Imgproc.COLOR_BayerBG2BGR);
-
         //Imgproc.demosaicing(mat,mat,Imgproc.COLOR_BayerBG2BGR);
-
-        /*ArrayList<Mat> rgb = new ArrayList<>();
-        Core.split(mat,rgb);
-        Core.divide(rgb.get(0),new Scalar(rate.getBlue()),rgb.get(0));
-        Core.divide(rgb.get(1),new Scalar(rate.getGreenEven()+rate.getGreenOdd()),rgb.get(1));
-        Core.divide(rgb.get(2),new Scalar(rate.getRed()),rgb.get(2));
-        Core.merge(rgb,mat);*/
-
-        //mat = Imgcodecs.imdecode(mat,Imgcodecs.IMREAD_UNCHANGED);
-        //Mat[] imgs = EqualizeImages();
         ApplyStabilization();
         //Imgcodecs.imwrite(ImageSaver.curDir()+"//"+ImageSaver.curName()+"_CV.jpg",imgs[0]);
         Log.d("ImageProcessing","buffer parameters:");
