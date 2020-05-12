@@ -2,7 +2,7 @@ package com.eszdman.photoncamera;
 
 import android.graphics.ImageFormat;
 import android.hardware.camera2.DngCreator;
-import android.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
@@ -22,15 +22,18 @@ import static android.content.ContentValues.TAG;
 public class ImageSaver implements Runnable {
 
     /**
-     * The JPEG image
+     * The Stream image
      */
     private final Image mImage;
-    /**
-     * The file we save the image into.
-     */
+
     static int bcnt = 0;
     private final File mFile;
+
+    /**
+     * Image frame buffer
+     */
     static ArrayList<Image> imageBuffer = new ArrayList<>();
+
     ImageSaver(Image image, File file) {
         mImage = image;
         mFile = file;
@@ -66,7 +69,7 @@ public class ImageSaver implements Runnable {
     }
     static String curDir(){
         File dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//EsCamera//");
-        dir.mkdirs();
+        if(!dir.exists()) dir.mkdirs();
         return dir.getAbsolutePath();
     }
     @Override
@@ -80,20 +83,21 @@ public class ImageSaver implements Runnable {
                 try {
                     output = new FileOutputStream(out);
                     imageBuffer.add(mImage);
-                    Log.e("ImageSaver","ImageSaver imagebuffer size:"+imageBuffer.size());
                     bcnt++;
-
                     if(bcnt == Camera2Api.mburstcount) {
                         byte[] bytes = new byte[buffer.remaining()];
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
-                        output.close();
+                        //output.close();
                         ExifInterface inter = new ExifInterface(out.getAbsolutePath());
                         MainActivity.inst.showToast("Processing...");
                         donejpg(out);
                         MainActivity.inst.showToast("Done!");
                         Thread.sleep(25);
                         inter.saveAttributes();
+                        //output = new FileOutputStream(new File(curDir(),"test.jpg"));
+                        //output.write(bytes);
+                        //output.close();
                         mImage.close();
                     }
 
@@ -111,13 +115,16 @@ public class ImageSaver implements Runnable {
                 }
                 break;
             }
+
             case ImageFormat.RAW_SENSOR: {
+                Log.e("ImageSaver","RawSensor:"+mImage);
                 DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
                 try {
                     output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     imageBuffer.add(mImage);
-                    Log.e("ImageSaver","ImageSaver imagebuffer size:"+imageBuffer.size());
+                    Log.e("ImageSaver","imagebuffer size:"+imageBuffer.size());
                     bcnt++;
+                    dngCreator.writeImage(output, mImage);
                     if(bcnt == Camera2Api.mburstcount) {
                         MainActivity.inst.showToast("Processing...");
                         done();
@@ -125,6 +132,7 @@ public class ImageSaver implements Runnable {
                         MainActivity.inst.showToast("Done!");
                         mImage.close();
                     }
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {

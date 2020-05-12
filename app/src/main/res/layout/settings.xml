@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
+
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/settview"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,8 +10,10 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/settings"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal|center_vertical"
         android:layout_marginLeft="30dp"
         android:layout_marginTop="30dp"
         android:layout_marginRight="30dp"
@@ -43,7 +47,6 @@
 
         <SeekBar
             android:id="@+id/setting_framecnt"
-            style="@style/Widget.AppCompat.SeekBar.Discrete"
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:max="20"
@@ -83,13 +86,28 @@
             android:max="65"
             android:min="1"
             android:progress="1" />
-    </LinearLayout>
-    <![CDATA[
+
+    </LinearLayout><![CDATA[
+
+
+
+
+
+
+
+
+
+
 
 
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
+
+
+
+
+
 
 ]]>
 </FrameLayout>

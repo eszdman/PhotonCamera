@@ -115,7 +115,7 @@ public class ImageProcessing {
             imgsmat.add(cur);
             Core.addWeighted(output,0.5,cur,0.5,0,output);
         }
-        for(int i =0; i<imgsmat.size()-1; i+=2) {
+        if(curimgs.size() > 4)for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
@@ -138,6 +138,7 @@ public class ImageProcessing {
             if(ind %2 == 0) ind+=1;
             int wins = imgsmat.size()/2;
             if(wins%2 ==0 ) wins-=1;
+            wins = Math.max(0,wins);
             Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
             //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
             //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);

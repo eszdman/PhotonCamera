@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         act = this;
+        Permissions.RequestPermissions(MainActivity.this, 2,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         Settings settings = new Settings();
         setContentView(R.layout.activity_camera);
         inst = Camera2Api.newInstance();
@@ -43,7 +44,5 @@ public class MainActivity extends AppCompatActivity {
                     .replace(R.id.container, inst)
                     .commit();
         }
-
-        Permissions.RequestPermissions(MainActivity.this, 2,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
     }
 }
