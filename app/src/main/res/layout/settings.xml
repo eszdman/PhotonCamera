@@ -19,28 +19,33 @@
         <Switch
             android:id="@+id/setting_turnNR"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
+            android:layout_height="50dp"
+            android:layout_marginStart="15dp"
+            android:gravity="center|start|center_horizontal"
             android:text="@string/turn_on_system_nr" />
 
         <Switch
             android:id="@+id/setting_disablealign"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
+            android:layout_marginStart="15dp"
             android:text="@string/disable_aligning"
-            android:textAlignment="center" />
+            android:textAlignment="textStart" />
 
         <TextView
             android:id="@+id/setting_framecounter"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/frame_count" />
+            android:layout_height="30dp"
+            android:layout_marginStart="15dp"
+            android:gravity="center_vertical"
+            android:text="@string/frame_count"
+            android:textColor="#FFFFFF" />
 
         <SeekBar
             android:id="@+id/setting_framecnt"
             style="@style/Widget.AppCompat.SeekBar.Discrete"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:max="20"
             android:min="1"
             android:progress="3" />
@@ -48,13 +53,16 @@
         <TextView
             android:id="@+id/setting_chroma"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/chroma_nr_count" />
+            android:layout_height="30dp"
+            android:layout_marginStart="15dp"
+            android:gravity="center_vertical"
+            android:text="@string/chroma_nr_count"
+            android:textColor="#FFFFFF" />
 
         <SeekBar
             android:id="@+id/setting_chromacnt"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:max="65"
             android:min="1"
             android:progress="35" />
@@ -62,13 +70,16 @@
         <TextView
             android:id="@+id/setting_luma"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/luma_nr_count" />
+            android:layout_height="30dp"
+            android:layout_marginStart="15dp"
+            android:gravity="center_vertical"
+            android:text="@string/luma_nr_count"
+            android:textColor="#FFFFFF" />
 
         <SeekBar
             android:id="@+id/setting_lumacnt"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:max="65"
             android:min="1"
             android:progress="1" />

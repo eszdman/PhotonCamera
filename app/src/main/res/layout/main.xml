@@ -63,7 +63,7 @@
             android:layout_gravity="center_vertical"
             android:background="?attr/actionBarItemBackground"
             android:clickable="true"
-            android:src="@drawable/rotate"
+            android:src="@drawable/checkbox_blank_circle_outline"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
             tools:text="Shot" />
@@ -81,12 +81,15 @@
         <Button
             android:id="@+id/settings"
             style="@style/Widget.AppCompat.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_marginTop="4dp"
+            android:layout_width="40dip"
+            android:layout_height="40dip"
+            android:layout_gravity="center_horizontal|center_vertical"
             android:layout_marginEnd="16dp"
-            android:text="Settings"
+            android:background="#00FFFFFF"
+            android:backgroundTint="#00FFFFFF"
+            android:drawableBottom="@drawable/ic_settings"
+            android:padding="5dip"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -94,9 +97,11 @@
             android:id="@+id/stacking"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="40dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
             android:text="HDR*"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
