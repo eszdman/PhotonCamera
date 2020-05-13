@@ -257,8 +257,8 @@ public class ImageProcessing {
                 Mat cur = cols2.get(i);
                 processingstep();
                 if(i==0) {
-                    Core.multiply(cur,new Scalar(1.2),cur);
-                    Core.add(cur,new Scalar(-0.1*127),cur);
+                    //Core.multiply(cur,new Scalar(1.0),cur);
+                    Core.add(cur,new Scalar(-0.1*64),cur);
                     Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
                 if(i!=0) Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));

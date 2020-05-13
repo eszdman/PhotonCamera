@@ -84,7 +84,7 @@ public class ImageSaver implements Runnable {
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = false;
-                        processing.path = curDir()+"/"+curName()+".jpg";
+                        processing.path = out.getAbsolutePath();
                         done(processing);
                         MainActivity.inst.showToast("Done!");
                         Thread.sleep(25);
@@ -129,7 +129,7 @@ public class ImageSaver implements Runnable {
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
                         processing.israw = false;
-                        processing.path = curDir()+"/"+curName()+".jpg";
+                        processing.path = out.getAbsolutePath();
                         done(processing);
                         MainActivity.inst.showToast("Done!");
                         Thread.sleep(25);
