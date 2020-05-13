@@ -7,9 +7,9 @@
 
         ]]>
     </string>
-    <string name="luma_nr_count">Luma NR count:3</string>
-    <string name="frame_count">Frame count:3</string>
+    <string name="luma_nr_count">Luma NR count:</string>
+    <string name="frame_count">Frame count:</string>
     <string name="disable_aligning">Disable aligning</string>
     <string name="turn_on_system_nr">Turn On System NR</string>
-    <string name="chroma_nr_count">Chroma NR count:12</string>
+    <string name="chroma_nr_count">Chroma NR count:</string>
 </resources>

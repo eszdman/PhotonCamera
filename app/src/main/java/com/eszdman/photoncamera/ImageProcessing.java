@@ -13,6 +13,7 @@ import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -289,16 +290,43 @@ public class ImageProcessing {
                 Mat cur = cols2.get(i);
                 processingstep();
                 if(i==0) {
-                    //Core.multiply(cur,new Scalar(1.0),cur);
-                    Core.add(cur,new Scalar(-0.1*32),cur);
+                    Core.multiply(cur,new Scalar(1.05),cur);
+                    Core.add(cur,new Scalar(-0.1*16),cur);
                     //Xphoto.oilPainting(cur,out,Settings.instance.lumacount,(int)(Settings.instance.lumacount*0.2 + 1));
+                    Mat sharp = new Mat();
+                    Mat struct = new Mat();
+                    Mat temp = new Mat();
+
+                    struct.release();
+                    temp.release();
+                    cur.copyTo(temp);
+                    Imgproc.pyrDown(temp,temp);
+                    Imgproc.pyrDown(temp,temp);
+                    Mat diff = new Mat();
+                    Imgproc.bilateralFilter(temp,diff,10,20,20);
+                    Core.subtract(temp,diff,diff);
+                    Imgproc.pyrUp(diff,diff);
+                    Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
+                    Core.addWeighted(cur,1,diff,-1,0,cur);
+
                     Photo.fastNlMeansDenoising(cur,out,Settings.instance.lumacount,9,15);
+
+
+                    out.copyTo(temp);
+                    Imgproc.blur(temp,temp,new Size(4,4));
+                    Core.subtract(out,temp,sharp);
+                    Imgproc.blur(temp,temp,new Size(8,8));
+                    Core.subtract(out,temp,struct);
+                    Core.addWeighted(out,1,struct,0.15,0,out);
+
+
+
                     //Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
                 if(i!=0) {
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur,cur);
-                    Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                    Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*3,Settings.instance.chromacount*3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
                     Imgproc.pyrUp(out,out,bef);
                 }
                 cur.release();
@@ -310,7 +338,7 @@ public class ImageProcessing {
             //Core.merge(cols,output);
             //Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
             outb = outbil;
-            Imgcodecs.imwrite(path,output);
+            Imgcodecs.imwrite(path,output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
         }
         Camera2Api.loadingcycle.setProgress(0);
 
