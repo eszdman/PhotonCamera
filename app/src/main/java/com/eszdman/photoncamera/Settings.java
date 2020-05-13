@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera;
 
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Build;
 import android.view.View;
@@ -63,6 +64,7 @@ public class Settings {
         saveSettings();
         saveViews();
     }
+    Resources res = MainActivity.act.getResources();
     void openSettings(){
         MainActivity.act.setContentView(R.layout.settings);
         views();
@@ -72,7 +74,7 @@ public class Settings {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 chromacount = chromacnt.getProgress();
-                chroma.setText("Chroma NR count:"+chromacount);
+                chroma.setText(res.getText(R.string.chroma_nr_count).toString()+chromacount);
 
             }
 
@@ -90,7 +92,7 @@ public class Settings {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 lumacount = lumacnt.getProgress();
-                luma.setText("Luma NR count:"+lumacount);
+                luma.setText(res.getText(R.string.luma_nr_count).toString()+lumacount);
             }
 
             @Override
@@ -107,7 +109,7 @@ public class Settings {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 framecount = framecnt.getProgress();
-                framestext.setText("Frame count:"+framecount);
+                framestext.setText(res.getText(R.string.frame_count).toString()+framecount);
                 if(framecount == 1) framestext.setText("Unprocessed Output");
             }
 
