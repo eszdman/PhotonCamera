@@ -65,6 +65,7 @@ public class ImageProcessing {
                 Imgproc.cvtColor(out[0][i],out[1][i],Imgproc.COLOR_BGR2GRAY);
                 Imgproc.resize(out[1][i],out[1][i],new Size(out[1][i].width(),out[1][i].height()));
             }
+            processingstep();
         }
         return out;
     }
@@ -109,7 +110,9 @@ public class ImageProcessing {
 
         return h;
     }
-
+    void processingstep(){
+        Camera2Api.loadingcycle.setProgress((Camera2Api.loadingcycle.getProgress()+1)%(Camera2Api.loadingcycle.getMax()+1));
+    }
     void ApplyStabilization(){
         Mat[] grey = null;
         Mat[] col = null;
@@ -139,8 +142,8 @@ public class ImageProcessing {
                 //if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
                 //else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
             }
-            Camera2Api.loadingcycle.setProgress(i+1);
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
+            processingstep();
             imgsmat.add(col[i]);
             Core.addWeighted(output,0.8,col[i],0.2,0,output);
         }
@@ -159,7 +162,7 @@ public class ImageProcessing {
             Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
-        Camera2Api.loadingcycle.setProgress(2);
+        processingstep();
         //merge.process(imgsmat,merging);
         //Core.convertScaleAbs(merging,output,255);
         if(!israw) {
@@ -185,6 +188,7 @@ public class ImageProcessing {
             for(int i =0; i<3; i++) {
                 Mat out = new Mat();
                 Mat cur = cols2.get(i);
+                processingstep();
                 if(i==0) {
                     Core.multiply(cur,new Scalar(1.2),cur);
                     Core.add(cur,new Scalar(-0.2*127),cur);
@@ -194,9 +198,9 @@ public class ImageProcessing {
                 cur.release();
                 cols2.set(i,out);
             }
-            Camera2Api.loadingcycle.setProgress(3);
             Core.merge(cols2,cols);
             Imgproc.cvtColor(cols,output,Imgproc.COLOR_YUV2BGR);
+            processingstep();
             //Core.merge(cols,output);
             //Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
             outb = outbil;
