@@ -137,7 +137,7 @@ public class Camera2Api extends Fragment
 
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
-    private static int mTargetFormat = ImageFormat.JPEG;
+    private static int mTargetFormat = ImageFormat.YUV_420_888;
     public static int mburstcount = 3;
     public static CaptureResult mPreviewResult;
     long mPreviewExposuretime;
@@ -454,7 +454,7 @@ public class Camera2Api extends Fragment
             case R.id.stacking: {
                 Switch sw = (Switch)view;
                 if(sw.isChecked()) mTargetFormat = ImageFormat.RAW_SENSOR;
-                else mTargetFormat= ImageFormat.JPEG;
+                else mTargetFormat= ImageFormat.YUV_420_888;
                 restartCamera();
                 break;
             }
@@ -1052,7 +1052,7 @@ public class Camera2Api extends Fragment
      * @param rotation The screen rotation.
      * @return The JPEG orientation (one of 0, 90, 270, and 360)
      */
-    private int getOrientation(int rotation) {
+    public int getOrientation(int rotation) {
         // Sensor orientation is 90 for most devices, or 270 for some devices (eg. Nexus 5X)
         // We have to take that into account and rotate JPEG properly.
         // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.

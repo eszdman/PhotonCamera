@@ -9,6 +9,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
@@ -28,6 +29,7 @@ import org.opencv.video.Video;
 import org.opencv.ximgproc.Ximgproc;
 import org.opencv.xphoto.Xphoto;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import static org.opencv.calib3d.Calib3d.RANSAC;
@@ -37,16 +39,80 @@ import static org.opencv.features2d.Features2d.drawMatches;
 public class ImageProcessing {
     ArrayList<Image> curimgs;
     Boolean israw;
+    Boolean isyuv;
     String path;
     ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
     }
+    public Mat convertYuv420888ToMat(Image image, boolean isGreyOnly) {
+        Image.Plane yPlane = image.getPlanes()[0];
+        int width = yPlane.getRowStride();
+        int ySize = yPlane.getBuffer().remaining();
+        int height = image.getHeight();
+        int error = yPlane.getRowStride()-image.getWidth(); //BufferFix
+        Log.d("ImageProcessing load_rawsensor()","height:"+height);
+        if (isGreyOnly) {
+            byte[] data = new byte[ySize];
+            yPlane.getBuffer().get(data, 0, ySize);
+            Mat greyMat = new Mat(height, width, CvType.CV_8UC1);
+            greyMat.put(0, 0, data);
+            Imgproc.cvtColor(greyMat,greyMat,Imgproc.COLOR_GRAY2BGR);
+            return greyMat;
+        }
+        Image.Plane uPlane = image.getPlanes()[1];
+        Image.Plane vPlane = image.getPlanes()[2];
+        // be aware that this size does not include the padding at the end, if there is any
+        // (e.g. if pixel stride is 2 the size is ySize / 2 - 1)
+        int uSize = uPlane.getBuffer().remaining();
+        int vSize = vPlane.getBuffer().remaining();
+        byte[] data = new byte[ySize + (ySize/2)];
+        //ArrayList<Mat> yuv = new ArrayList<>();
+        yPlane.getBuffer().get(data, 0, ySize);
+        ByteBuffer ub = uPlane.getBuffer();
+        ByteBuffer vb = vPlane.getBuffer();
+        /*yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));
+        yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));
+        yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));*/
+
+        int uvPixelStride = uPlane.getPixelStride(); //stride guaranteed to be the same for u and v planes
+        if (uvPixelStride == 1) {
+            uPlane.getBuffer().get(data, ySize+(error), uSize-error);
+            vPlane.getBuffer().get(data, ySize +uSize+(error), vSize-error);
+            Mat yuvMat = new Mat(height + (height / 2), image.getWidth(), CvType.CV_8UC1);
+            yuvMat.put(0, 0, data);
+            Mat rgbMat = new Mat(height, width, CvType.CV_8UC3);
+            Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2BGR_NV21, 3);
+            yuvMat.release();
+            return rgbMat;
+        }
+        // if pixel stride is 2 there is padding between each pixel
+        // converting it to NV21 by filling the gaps of the v plane with the u values
+        vb.get(data, ySize+(error), vSize-error);
+        for (int i = 0; i < uSize-error; i += 2) {
+            data[ySize + i + 1 + error] = ub.get(i);
+        }
+
+        Mat yuvMat = new Mat(height + (height / 2), width, CvType.CV_8UC1);
+        yuvMat.put(0, 0, data);
+        Mat rgbMat = new Mat(height, width, CvType.CV_8UC3);
+        Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2BGR_NV21, 3);
+        rgbMat = rgbMat.colRange(0,width-error);
+        yuvMat.release();
+        return rgbMat;
+    }
     Mat load_rawsensor(Image image){
         Image.Plane plane = image.getPlanes()[0];
-        Mat mat;
+        Mat mat = new Mat();
         if(israw) mat = new Mat(image.getHeight(),image.getWidth(),CvType.CV_16UC1,plane.getBuffer());
         else {
-            mat =  Imgcodecs.imdecode(new Mat(1,plane.getBuffer().remaining(), CvType.CV_8U,plane.getBuffer()),Imgcodecs.IMREAD_UNCHANGED);
+            if(!isyuv) mat =  Imgcodecs.imdecode(new Mat(1,plane.getBuffer().remaining(), CvType.CV_8U,plane.getBuffer()),Imgcodecs.IMREAD_UNCHANGED);
+        }
+        if(isyuv){
+            Log.d("ImageProcessing load_rawsensor()","image planes:"+image.getPlanes().length);
+            Log.d("ImageProcessing load_rawsensor()","image stride:"+image.getPlanes()[1].getPixelStride());
+            Log.d("ImageProcessing load_rawsensor()","row stride:"+image.getPlanes()[1].getRowStride());
+            mat = convertYuv420888ToMat(image,false);
+            //Imgproc.cvtColor(mat,mat,Imgproc.COLOR_YUV2RGB_NV21,3);
         }
         return mat;
     }
@@ -63,7 +129,6 @@ public class ImageProcessing {
             else {
                 out[0][i] = load_rawsensor(curimgs.get(i));
                 Imgproc.cvtColor(out[0][i],out[1][i],Imgproc.COLOR_BGR2GRAY);
-                Imgproc.resize(out[1][i],out[1][i],new Size(out[1][i].width(),out[1][i].height()));
             }
             processingstep();
         }
@@ -111,7 +176,9 @@ public class ImageProcessing {
         return h;
     }
     void processingstep(){
-        Camera2Api.loadingcycle.setProgress((Camera2Api.loadingcycle.getProgress()+1)%(Camera2Api.loadingcycle.getMax()+1));
+        int progress =(Camera2Api.loadingcycle.getProgress()+1)%(Camera2Api.loadingcycle.getMax()+1);
+        progress = Math.max(1,progress);
+        Camera2Api.loadingcycle.setProgress(progress);
     }
     void ApplyStabilization(){
         Mat[] grey = null;
@@ -191,7 +258,7 @@ public class ImageProcessing {
                 processingstep();
                 if(i==0) {
                     Core.multiply(cur,new Scalar(1.2),cur);
-                    Core.add(cur,new Scalar(-0.2*127),cur);
+                    Core.add(cur,new Scalar(-0.1*127),cur);
                     Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
                 if(i!=0) Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
