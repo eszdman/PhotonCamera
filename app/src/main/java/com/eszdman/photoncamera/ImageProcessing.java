@@ -4,6 +4,8 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
+
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
@@ -180,6 +182,40 @@ public class ImageProcessing {
         progress = Math.max(1,progress);
         Camera2Api.loadingcycle.setProgress(progress);
     }
+    Mat[][] getTiles(Mat[] input, int tilesize){
+        Mat[][] output = new Mat[input.length][];
+        ArrayList<Mat> out = new ArrayList<>();
+        int width = input[0].width();
+        int height = input[0].height();
+        int oversize = 0;
+        for(int i =0; i<input.length;i++){
+            for(int h =0; h<(height-tilesize+1)/tilesize;h++){//rows
+                for(int w =0;w<(width-tilesize+1)/tilesize;w++){//cols
+                    out.add(input[i].submat(h*tilesize,(h+1)*tilesize +oversize,w*tilesize,(w+1)*tilesize +oversize));
+                }
+            }
+            output[i] = out.toArray(new Mat[out.size()]);
+        }
+        return output;
+    }
+    Mat[] mergeFrames(Mat[][] tiles, Point[][]shifts, int tilesize, int width, int height){
+        ArrayList<Mat> out = new ArrayList<>();
+
+        int oversize = 0;
+        int cnt = 0;
+        for(int i =0; i<tiles.length;i++){
+            for(int h =0; h<(height-tilesize+1)/tilesize;h++){//rows
+                for(int w =0;w<(width-tilesize+1)/tilesize;w++){//cols
+                    //out.add(tiles[][])
+                    cnt++;
+                    //out.add(input[i].submat(h*tilesize,(h+1)*tilesize +oversize,w*tilesize,(w+1)*tilesize +oversize));
+                }
+            }
+            //output[i] = out.toArray(new Mat[out.size()]);
+        }
+        return null;
+    }
+
     void ApplyStabilization(){
         Mat[] grey = null;
         Mat[] col = null;
@@ -200,7 +236,6 @@ public class ImageProcessing {
                 Point shift = new Point();
                 if(israw) h = findFrameHomography(grey[grey.length - 1], grey[i]);
                 else {
-
                     //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
                     //h = findFrameHomography(grey[grey.length -1], grey[i]);
                     shift = align.calculateShift(grey[grey.length -1], grey[i]);
@@ -215,7 +250,6 @@ public class ImageProcessing {
             Core.addWeighted(output,0.8,col[i],0.2,0,output);
         }
         Mat merging = new Mat();
-
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
         if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
@@ -246,8 +280,6 @@ public class ImageProcessing {
             Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
             imgsmat.set(ind,output);
             Mat outbil = new Mat();
-            //imgsmat.set(ind,outbil);
-            //Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,13);
             Mat cols = new Mat();
             ArrayList<Mat> cols2 = new ArrayList<>();
             Imgproc.cvtColor(output,cols,Imgproc.COLOR_BGR2YUV);
@@ -258,10 +290,17 @@ public class ImageProcessing {
                 processingstep();
                 if(i==0) {
                     //Core.multiply(cur,new Scalar(1.0),cur);
-                    Core.add(cur,new Scalar(-0.1*64),cur);
-                    Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
+                    Core.add(cur,new Scalar(-0.1*32),cur);
+                    //Xphoto.oilPainting(cur,out,Settings.instance.lumacount,(int)(Settings.instance.lumacount*0.2 + 1));
+                    Photo.fastNlMeansDenoising(cur,out,Settings.instance.lumacount,9,15);
+                    //Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
-                if(i!=0) Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                if(i!=0) {
+                    Size bef = cur.size();
+                    Imgproc.pyrDown(cur,cur);
+                    Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                    Imgproc.pyrUp(out,out,bef);
+                }
                 cur.release();
                 cols2.set(i,out);
             }

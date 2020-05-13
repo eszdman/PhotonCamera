@@ -31,7 +31,7 @@ public class ParseExif {
         }
         inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
-        inter.setAttribute(TAG_RW2_ISO,result.get(SENSOR_SENSITIVITY).toString());
+        inter.setAttribute(TAG_ISO_SPEED,result.get(SENSOR_SENSITIVITY).toString());
         inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_EXPOSURE_TIME,result.get(SENSOR_EXPOSURE_TIME).toString());
         //inter.setAltitude(TAG_);
