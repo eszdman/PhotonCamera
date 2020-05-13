@@ -83,7 +83,7 @@
             android:id="@+id/setting_lumacnt"
             android:layout_width="match_parent"
             android:layout_height="30dp"
-            android:max="150"
+            android:max="65"
             android:min="1"
             android:progress="1" />
 

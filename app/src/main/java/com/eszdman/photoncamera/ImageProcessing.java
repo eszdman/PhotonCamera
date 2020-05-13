@@ -103,6 +103,27 @@ public class ImageProcessing {
         yuvMat.release();
         return rgbMat;
     }
+    Mat convertyuv(Image image){
+        byte[] nv21;
+
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+        int error = image.getPlanes()[0].getRowStride()-image.getWidth(); //BufferFix
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+        nv21 = new byte[ySize + uSize + vSize];
+        //U and V are swapped
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize+error, vSize-error);
+        uBuffer.get(nv21, ySize + vSize+error, uSize-error);
+        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth()+error, CvType.CV_8UC1);
+        mYuv.put(0, 0, nv21);
+        Imgproc.cvtColor(mYuv, mYuv, Imgproc.COLOR_YUV2BGR_NV21, 3);
+        mYuv = mYuv.colRange(0,image.getWidth()-error);
+    return mYuv;
+    }
     Mat load_rawsensor(Image image){
         Image.Plane plane = image.getPlanes()[0];
         Mat mat = new Mat();
@@ -111,10 +132,7 @@ public class ImageProcessing {
             if(!isyuv) mat =  Imgcodecs.imdecode(new Mat(1,plane.getBuffer().remaining(), CvType.CV_8U,plane.getBuffer()),Imgcodecs.IMREAD_UNCHANGED);
         }
         if(isyuv){
-            Log.d("ImageProcessing load_rawsensor()","image planes:"+image.getPlanes().length);
-            Log.d("ImageProcessing load_rawsensor()","image stride:"+image.getPlanes()[1].getPixelStride());
-            Log.d("ImageProcessing load_rawsensor()","row stride:"+image.getPlanes()[1].getRowStride());
-            mat = convertYuv420888ToMat(image,false);
+            mat = convertyuv(image);
             //Imgproc.cvtColor(mat,mat,Imgproc.COLOR_YUV2RGB_NV21,3);
         }
         return mat;
@@ -230,29 +248,40 @@ public class ImageProcessing {
         ArrayList<Mat> imgsmat = new ArrayList<>();
         MergeMertens merge = Photo.createMergeMertens();
         AlignMTB align = Photo.createAlignMTB();
-        for(int i =0; i<curimgs.size()-1;i++) {
+        Point shiftprev = new Point();
+        int alignopt = 2;
+        for(int i =0; i<curimgs.size()-1;i+=alignopt) {
             //Mat cur = load_rawsensor(curimgs.get(i));
             if(aligning){
                 Mat h=new Mat();
                 Point shift = new Point();
-                if(israw) h = findFrameHomography(grey[grey.length - 1], grey[i]);
+                if(israw) shift = align.calculateShift(grey[grey.length -1], grey[i]);
                 else {
                     //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
                     //h = findFrameHomography(grey[grey.length -1], grey[i]);
-                    shift = align.calculateShift(grey[grey.length -1], grey[i]);
+                    if(i == 0) shift = align.calculateShift(grey[grey.length -1], grey[i]);
+                    else {
+                        shift = align.calculateShift(grey[grey.length -1], grey[i]);
+                        Point calc = new Point((shift.x+shiftprev.x)/2,(shift.y+shiftprev.y)/2);
+                        align.shiftMat(col[i-1],col[i-1],calc);
+                        Core.addWeighted(output,0.7,col[i-1],0.3,0,output);
+                    }
+                    shiftprev = new Point(shift.x,shift.y);
                 }
                 align.shiftMat(col[i],col[i],shift);
+
                 //if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
                 //else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
+
             }
-            Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
             processingstep();
-            imgsmat.add(col[i]);
-            Core.addWeighted(output,0.8,col[i],0.2,0,output);
+            //imgsmat.add(col[i]);
+            Core.addWeighted(output,0.7,col[i],0.3,0,output);
+
         }
         Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
-        if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
+        /*if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
@@ -263,7 +292,7 @@ public class ImageProcessing {
         if(curimgs.size() > 11)for(int i =0; i<imgsmat.size()-1; i+=2) {
             Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
-        }
+        }*/
         processingstep();
         //merge.process(imgsmat,merging);
         //Core.convertScaleAbs(merging,output,255);
@@ -279,7 +308,7 @@ public class ImageProcessing {
             wins = Math.max(0,wins);
             ind = Math.max(0,ind);
             Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
-            imgsmat.set(ind,output);
+            //imgsmat.set(ind,output);
             Mat outbil = new Mat();
             Mat cols = new Mat();
             ArrayList<Mat> cols2 = new ArrayList<>();
@@ -303,13 +332,20 @@ public class ImageProcessing {
                     Imgproc.pyrDown(temp,temp);
                     Imgproc.pyrDown(temp,temp);
                     Mat diff = new Mat();
-                    Imgproc.bilateralFilter(temp,diff,10,20,20);
+                    //Imgproc.bilateralFilter(temp,diff,10,20,20);
+                    Photo.fastNlMeansDenoising(temp,diff,(float)(Settings.instance.lumacount)/10,7,15);
                     Core.subtract(temp,diff,diff);
                     Imgproc.pyrUp(diff,diff);
                     Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
                     Core.addWeighted(cur,1,diff,-1,0,cur);
+                    //Imgproc.pyrMeanShiftFiltering();
+                    //Imgproc.medianBlur(cur,out,Settings.instance.lumacount);
+                    if(!Settings.instance.enhancedprocess){
+                        Imgproc.blur(cur,cur,new Size(2,2));
+                        Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount/4,Settings.instance.lumacount,Settings.instance.lumacount);
 
-                    Photo.fastNlMeansDenoising(cur,out,Settings.instance.lumacount,9,15);
+                    }
+                    if(Settings.instance.enhancedprocess) Photo.fastNlMeansDenoising(cur,out,(float)(Settings.instance.lumacount)/6.5f,3,15);
 
 
                     out.copyTo(temp);
@@ -317,16 +353,29 @@ public class ImageProcessing {
                     Core.subtract(out,temp,sharp);
                     Imgproc.blur(temp,temp,new Size(8,8));
                     Core.subtract(out,temp,struct);
-                    Core.addWeighted(out,1,struct,0.15,0,out);
+                    //Core.addWeighted(out,1,struct,0.15,0,out);
 
 
 
                     //Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
                 if(i!=0) {
+                    Mat temp = new Mat();
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur,cur);
                     Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*3,Settings.instance.chromacount*3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                    //Imgproc.pyrUp(out,out,bef);
+
+                    out.copyTo(temp);
+                    Imgproc.pyrDown(temp,temp);
+                    Imgproc.pyrDown(temp,temp);
+                    Mat diff = new Mat();
+                    Imgproc.bilateralFilter(temp,diff,10,20,20);
+                    Core.subtract(temp,diff,diff);
+                    Imgproc.pyrUp(diff,diff);
+                    Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
+                    Core.addWeighted(out,1,diff,-1,0,out);
+
                     Imgproc.pyrUp(out,out,bef);
                 }
                 cur.release();
