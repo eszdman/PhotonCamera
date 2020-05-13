@@ -28,6 +28,7 @@ public class Settings {
     public int framecount = 3;
     public int lumacount = 3;
     public int chromacount = 12;
+    public boolean enhancedprocess = false;
     public boolean align = true;
     Switch turnNR;
     Switch disablealign;
@@ -37,6 +38,7 @@ public class Settings {
     SeekBar lumacnt;
     TextView chroma;
     SeekBar chromacnt;
+    Switch enhanced;
     Settings(){
         instance = this;
         getsavedSettings();
@@ -53,13 +55,14 @@ public class Settings {
         chromacnt = getView(R.id.setting_chromacnt);
         chroma = getView(R.id.setting_chroma);
         luma = getView(R.id.setting_luma);
+        enhanced = getView(R.id.setting_enhanced);
     }
     void getSettings(){
         views();
         if(turnNR.isChecked()) NoiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
         else NoiseReduction = NOISE_REDUCTION_MODE_OFF;
         align = !disablealign.isChecked();
-
+        enhancedprocess = enhanced.isChecked();
 
         saveSettings();
         saveViews();
@@ -146,6 +149,7 @@ public class Settings {
         putset(align);
         putset(lumacount);
         putset(chromacount);
+        putset(enhancedprocess);
         ed.apply();
         cnt = 0;
     }
@@ -157,6 +161,7 @@ public class Settings {
         align = getset(align);
         lumacount = getset(lumacount);
         chromacount = getset(chromacount);
+        enhancedprocess = getset(enhancedprocess);
         cnt =0;
     }
 
@@ -170,6 +175,7 @@ public class Settings {
         putview(chroma);
         putview(lumacnt);
         putview(luma);
+        putview(enhanced);
         ed.commit();
         cnt2 =0;
     }
@@ -183,7 +189,7 @@ public class Settings {
         getview(chroma);
         getview(lumacnt);
         getview(luma);
-
+        getview(enhanced);
         cnt2 =0;
     }
 

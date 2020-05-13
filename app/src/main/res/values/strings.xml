@@ -12,4 +12,5 @@
     <string name="disable_aligning">Disable aligning</string>
     <string name="turn_on_system_nr">Turn On System NR</string>
     <string name="chroma_nr_count">Chroma NR count:</string>
+    <string name="enhanced_processing">Enhanced Processing</string>
 </resources>
