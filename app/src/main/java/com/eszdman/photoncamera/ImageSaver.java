@@ -85,9 +85,8 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
-                    buffer.duplicate().get(bytes);
                     if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
-
+                        buffer.duplicate().get(bytes);
                         output.write(bytes);
                         //output.close();
                         ExifInterface inter = new ExifInterface(out.getAbsolutePath());
@@ -102,6 +101,7 @@ public class ImageSaver implements Runnable {
                         mImage.close();
                     }
                     if(Camera2Api.mburstcount == 1){
+                        buffer.get(bytes);
                         output.write(bytes);
                         mImage.close();
                     }

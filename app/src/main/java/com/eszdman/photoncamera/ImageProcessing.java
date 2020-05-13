@@ -13,11 +13,20 @@ import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Size;
+import org.opencv.core.TermCriteria;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.photo.AlignMTB;
+import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
+import org.opencv.tracking.Tracking;
+import org.opencv.video.Video;
+import org.opencv.ximgproc.Ximgproc;
+import org.opencv.xphoto.Xphoto;
+
 import java.util.ArrayList;
 import java.util.List;
 import static org.opencv.calib3d.Calib3d.RANSAC;
@@ -40,13 +49,21 @@ public class ImageProcessing {
         }
         return mat;
     }
-    Mat[] EqualizeImages(){
-        Mat[] out = new Mat[curimgs.size()];
+    Mat[][] EqualizeImages(){
+        Mat[][] out = new Mat[2][curimgs.size()];
         Mat lut = new Mat(1,256, CvType.CV_8U);
         for(int i =0; i<curimgs.size();i++){
-            out[i] = new Mat();
-            if(israw)load_rawsensor(curimgs.get(i)).convertTo(out[i], CvType.CV_8UC1,0.6);
-            else out[i] = load_rawsensor(curimgs.get(i));
+            out[0][i] = new Mat();
+            out[1][i] = new Mat();
+            if(israw){
+                out[0][i]=load_rawsensor(curimgs.get(i));
+                out[0][i].convertTo(out[1][i], CvType.CV_8UC1);
+            }
+            else {
+                out[0][i] = load_rawsensor(curimgs.get(i));
+                Imgproc.cvtColor(out[0][i],out[1][i],Imgproc.COLOR_BGR2GRAY);
+                Imgproc.resize(out[1][i],out[1][i],new Size(out[1][i].width(),out[1][i].height()));
+            }
         }
         return out;
     }
@@ -72,6 +89,10 @@ public class ImageProcessing {
         {
             Point on1 = keypoints1.get(arr[i].queryIdx).pt;
             Point on2 = keypoints2.get(arr[i].trainIdx).pt;
+            /*on1.x/=0.75;
+            on1.y/=0.75;
+            on2.x/=0.75;
+            on2.y/=0.75;*/
             if(arr[i].distance < 50) {
                 keypoints1f.add(on1);
                 keypoints2f.add(on2);
@@ -84,41 +105,53 @@ public class ImageProcessing {
         return h;
     }
     void ApplyStabilization(){
-        Mat[] imgs = null;
-        if(israw) imgs = EqualizeImages();
+        Mat[] grey = null;
+        Mat[] col = null;
+        Mat[][] readed = EqualizeImages();
+        col = readed[0];
+        grey = readed[1];
         Log.d("ImageProcessing Stab", "Curimgs size "+curimgs.size());
-        Image outp =curimgs.get(curimgs.size()-1);
-        Mat output = load_rawsensor(outp);
+        Mat output = new Mat();
+        col[col.length -1].copyTo(output);
         boolean aligning = Settings.instance.align;
         ArrayList<Mat> imgsmat = new ArrayList<>();
+        MergeMertens merge = Photo.createMergeMertens();
         for(int i =0; i<curimgs.size()-1;i++) {
-            Mat cur = load_rawsensor(curimgs.get(i));
+            //Mat cur = load_rawsensor(curimgs.get(i));
             if(aligning){
-                Mat h=null;
-                if(israw) h = findFrameHomography(imgs[imgs.length - 1], imgs[i]);
-                else h = findFrameHomography(output, cur);
-                if(h != null) Imgproc.warpPerspective(cur, cur, h, cur.size());
+                Mat h=new Mat();
+                if(israw) h = findFrameHomography(grey[grey.length - 1], grey[i]);
+                else {
+
+                    //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
+                    h = findFrameHomography(grey[grey.length -1], grey[i]);
+                }
+                if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
                 else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
             }
             Camera2Api.loadingcycle.setProgress(i+1);
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
-            imgsmat.add(cur);
-            Core.addWeighted(output,0.5,cur,0.5,0,output);
+            imgsmat.add(col[i]);
+            Core.addWeighted(output,0.8,col[i],0.2,0,output);
         }
+        Mat merging = new Mat();
+
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
         if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
         if(curimgs.size() > 6)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
         if(curimgs.size() > 11)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.5,imgsmat.get(i+1),0.5,0,imgsmat.get(i));
+            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
             imgsmat.remove(i+1);
         }
-
+        Camera2Api.loadingcycle.setProgress(2);
+        //merge.process(imgsmat,merging);
+        //Core.convertScaleAbs(merging,output,255);
         if(!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
@@ -131,15 +164,22 @@ public class ImageProcessing {
             wins = Math.max(0,wins);
             ind = Math.max(0,ind);
             Log.d("ImageProcessing Denoise", "index:"+ind + " wins:"+wins);
-            //Photo.fastNlMeansDenoisingColored(output,output,Settings.instance.lumacount,Settings.instance.chromacount,16);
-            //Imgproc.bilateralFilter(imgsmat.get(ind),imgs., (int) (params*1.2),params*3.5,params*1.7);
             imgsmat.set(ind,output);
             Mat outbil = new Mat();
             //imgsmat.set(ind,outbil);
-            Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,13);
-            Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
+            //Photo.fastNlMeansDenoisingColoredMulti(imgsmat,outb,ind,wins,Settings.instance.lumacount,Settings.instance.chromacount,7,13);
+            Mat cols = new Mat();
+            ArrayList<Mat> cols2 = new ArrayList<>();
+            Imgproc.cvtColor(output,cols,Imgproc.COLOR_BGR2YUV);
+            Core.split(cols,cols2);
+            for(int i =1; i<3; i++) Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+            Camera2Api.loadingcycle.setProgress(3);
+            Core.merge(cols2,cols);
+            Imgproc.cvtColor(cols,output,Imgproc.COLOR_YUV2BGR);
+            //Core.merge(cols,output);
+            //Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
             outb = outbil;
-            Imgcodecs.imwrite(path,outb);
+            Imgcodecs.imwrite(path,output);
         }
         Camera2Api.loadingcycle.setProgress(0);
 

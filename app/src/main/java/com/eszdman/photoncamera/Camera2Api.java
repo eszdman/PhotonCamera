@@ -295,6 +295,7 @@ public class Camera2Api extends Fragment
                 case STATE_WAITING_LOCK: {
                     Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
                     if (afState == null) {
+                        mPreviewResult = result;
                         captureStillPicture();
                     } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
                             CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
@@ -303,6 +304,7 @@ public class Camera2Api extends Fragment
                         if (aeState == null ||
                                 aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
                             mState = STATE_PICTURE_TAKEN;
+                            mPreviewResult = result;
                             captureStillPicture();
                         } else {
                             runPrecaptureSequence();
@@ -325,6 +327,7 @@ public class Camera2Api extends Fragment
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
                         mState = STATE_PICTURE_TAKEN;
+                        mPreviewResult = result;
                         captureStillPicture();
                     }
                     break;
@@ -336,7 +339,6 @@ public class Camera2Api extends Fragment
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
-            mPreviewResult = partialResult;
             //mPreviewExposuretime = partialResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             //mPreviewIso = partialResult.get(CaptureResult.SENSOR_SENSITIVITY);
             process(partialResult);
@@ -728,7 +730,7 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, /*maxImages*/2);
+                mTargetFormat, /*maxImages*/mburstcount);
 
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
