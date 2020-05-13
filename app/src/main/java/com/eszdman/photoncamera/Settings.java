@@ -26,7 +26,7 @@ public class Settings {
     int AfMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
     public int framecount = 3;
     public int lumacount = 3;
-    public int chromacount = 3;
+    public int chromacount = 12;
     public boolean align = true;
     Switch turnNR;
     Switch disablealign;

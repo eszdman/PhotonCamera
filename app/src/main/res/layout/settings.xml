@@ -68,7 +68,7 @@
             android:layout_height="30dp"
             android:max="65"
             android:min="1"
-            android:progress="35" />
+            android:progress="12" />
 
         <TextView
             android:id="@+id/setting_luma"
