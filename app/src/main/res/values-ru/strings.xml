@@ -12,4 +12,5 @@
     <string name="disable_aligning">Отключить выравнивание</string>
     <string name="turn_on_system_nr">Включить системный шумодав</string>
     <string name="chroma_nr_count">Цветовое шумоподавление:</string>
+    <string name="enhanced_processing">Расширенная обработка</string>
 </resources>
