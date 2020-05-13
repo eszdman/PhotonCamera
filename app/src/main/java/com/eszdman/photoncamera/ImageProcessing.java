@@ -13,6 +13,7 @@ import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.core.TermCriteria;
 import org.opencv.features2d.DescriptorMatcher;
@@ -67,22 +68,23 @@ public class ImageProcessing {
         }
         return out;
     }
+    ORB orb = ORB.create();
+    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
     Mat findFrameHomography(Mat need, Mat from){
         Mat descriptors1=new Mat(), descriptors2=new Mat();
         MatOfKeyPoint keyPoints1 = new MatOfKeyPoint();
         MatOfKeyPoint keyPoints2 = new MatOfKeyPoint();
-        ORB orb = ORB.create();
         orb.detectAndCompute(need,new Mat(),keyPoints1,descriptors1);
         orb.detectAndCompute(from,new Mat(),keyPoints2,descriptors2);
         MatOfDMatch matches = new MatOfDMatch();
-        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+        //DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
         matcher.match(descriptors1, descriptors2, matches, new Mat());
         MatOfPoint2f points1=new MatOfPoint2f(), points2=new MatOfPoint2f();
         DMatch[]arr =matches.toArray();
         List<KeyPoint> keypoints1 = keyPoints1.toList();
         List<KeyPoint> keypoints2 = keyPoints2.toList();
-        Mat imMatches = new Mat();
-        drawMatches(need, keyPoints1, from, keyPoints2, matches, imMatches);
+        //Mat imMatches = new Mat();
+        //drawMatches(need, keyPoints1, from, keyPoints2, matches, imMatches);
         ArrayList<Point> keypoints1f = new ArrayList<Point>();
         ArrayList<Point> keypoints2f = new ArrayList<Point>();
         for( int i = 0; i < arr.length; i++ )
@@ -102,8 +104,12 @@ public class ImageProcessing {
         points2.fromArray(keypoints2f.toArray(new Point[keypoints2f.size()]));
         Mat h = null;
         if(!points1.empty() && !points2.empty())h = findHomography(points2,points1,RANSAC);
+        keyPoints1.release();
+        keyPoints2.release();
+
         return h;
     }
+
     void ApplyStabilization(){
         Mat[] grey = null;
         Mat[] col = null;
@@ -116,18 +122,22 @@ public class ImageProcessing {
         boolean aligning = Settings.instance.align;
         ArrayList<Mat> imgsmat = new ArrayList<>();
         MergeMertens merge = Photo.createMergeMertens();
+        AlignMTB align = Photo.createAlignMTB();
         for(int i =0; i<curimgs.size()-1;i++) {
             //Mat cur = load_rawsensor(curimgs.get(i));
             if(aligning){
                 Mat h=new Mat();
+                Point shift = new Point();
                 if(israw) h = findFrameHomography(grey[grey.length - 1], grey[i]);
                 else {
 
                     //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
-                    h = findFrameHomography(grey[grey.length -1], grey[i]);
+                    //h = findFrameHomography(grey[grey.length -1], grey[i]);
+                    shift = align.calculateShift(grey[grey.length -1], grey[i]);
                 }
-                if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
-                else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
+                align.shiftMat(col[i],col[i],shift);
+                //if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
+                //else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
             }
             Camera2Api.loadingcycle.setProgress(i+1);
             Log.d("ImageProcessing Stab", "Curimgs iter:"+i);
@@ -172,7 +182,18 @@ public class ImageProcessing {
             ArrayList<Mat> cols2 = new ArrayList<>();
             Imgproc.cvtColor(output,cols,Imgproc.COLOR_BGR2YUV);
             Core.split(cols,cols2);
-            for(int i =1; i<3; i++) Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+            for(int i =0; i<3; i++) {
+                Mat out = new Mat();
+                Mat cur = cols2.get(i);
+                if(i==0) {
+                    Core.multiply(cur,new Scalar(1.2),cur);
+                    Core.add(cur,new Scalar(-0.2*127),cur);
+                    Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
+                }
+                if(i!=0) Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*2,Settings.instance.chromacount*2);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                cur.release();
+                cols2.set(i,out);
+            }
             Camera2Api.loadingcycle.setProgress(3);
             Core.merge(cols2,cols);
             Imgproc.cvtColor(cols,output,Imgproc.COLOR_YUV2BGR);
