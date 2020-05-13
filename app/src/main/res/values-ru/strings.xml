@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">PhotonCam</string>
+    <string name="request_permission">Эта камера требует разрешения.</string>
+    <string name="camera_error">Этот девайс не поддерживает Camera2 API.</string>
+    <string name="intro_message">
+        <![CDATA[
+
+        ]]>
+    </string>
+    <string name="luma_nr_count">Световое шумоподавление:</string>
+    <string name="frame_count">Кадры склейки:</string>
+    <string name="disable_aligning">Отключить выравнивание</string>
+    <string name="turn_on_system_nr">Включить системный шумодав</string>
+    <string name="chroma_nr_count">Цветовое шумоподавление:</string>
+</resources>
