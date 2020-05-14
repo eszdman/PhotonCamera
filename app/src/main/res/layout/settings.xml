@@ -25,6 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
             android:gravity="center|start|center_horizontal"
             android:text="@string/turn_on_system_nr" />
 
@@ -33,6 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
             android:text="@string/disable_aligning"
             android:textAlignment="textStart" />
 
@@ -41,6 +43,7 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/frame_count"
             android:textColor="#FFFFFF" />
@@ -58,6 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/chroma_nr_count"
             android:textColor="#FFFFFF" />
@@ -75,6 +79,7 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/luma_nr_count"
             android:textColor="#FFFFFF" />
@@ -90,8 +95,11 @@
         <Switch
             android:id="@+id/setting_enhanced"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/enhanced_processing" />
+            android:layout_height="50dp"
+            android:layout_marginStart="15dp"
+            android:fontFamily="sans-serif"
+            android:text="@string/enhanced_processing"
+            android:textColor="#FFFFFF" />
 
     </LinearLayout><![CDATA[
 
