@@ -45,18 +45,6 @@
         android:visibility="visible">
 
         <ImageButton
-            android:id="@+id/picture"
-            android:layout_width="111dp"
-            android:layout_height="105dp"
-            android:layout_gravity="center_horizontal|center_vertical"
-            android:background="?attr/actionBarItemBackground"
-            android:clickable="true"
-            android:src="@drawable/roundbutton"
-            android:textAppearance="@style/TextAppearance.AppCompat"
-            android:visibility="visible"
-            tools:text="Shot" />
-
-        <ImageButton
             android:id="@+id/flip_camera"
             android:layout_width="130dp"
             android:layout_height="84dp"
@@ -68,13 +56,55 @@
             android:visibility="visible"
             tools:text="Shot" />
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="145dp"
+            android:layout_height="121dp"
+            android:layout_gravity="center_horizontal|center_vertical">
+
+            <ImageButton
+                android:id="@+id/picture"
+                android:layout_width="111dp"
+                android:layout_height="105dp"
+                android:layout_gravity="center_horizontal|center_vertical"
+                android:background="?attr/actionBarItemBackground"
+                android:clickable="true"
+                android:src="@drawable/roundbutton"
+                android:textAppearance="@style/TextAppearance.AppCompat"
+                android:visibility="visible"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="Shot" />
+
+            <ProgressBar
+                android:id="@+id/progressloading"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="103dp"
+                android:layout_height="91dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/circular_progress_bar2"
+                app:layout_constraintBottom_toBottomOf="@+id/picture"
+                app:layout_constraintEnd_toEndOf="@+id/picture"
+                app:layout_constraintStart_toStartOf="@+id/picture"
+                app:layout_constraintTop_toTopOf="@+id/picture"
+                tools:visibility="visible" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </FrameLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="37dp"
+        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="0dp"
         android:layout_marginTop="30dp"
+        android:layout_marginEnd="0dp"
         android:alpha="128"
         android:background="@android:color/background_dark">
 
@@ -101,7 +131,8 @@
             android:textOff=" "
             android:textOn=" "
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -119,22 +150,5 @@
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@drawable/circular_progress_bar" />
-
-    <ProgressBar
-        android:id="@+id/progressloading"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="wrap_content"
-        android:layout_height="113dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="153dp"
-        android:layout_marginEnd="153dp"
-        android:layout_marginBottom="15dp"
-        android:indeterminate="false"
-        android:max="100"
-        android:progress="0"
-        android:progressDrawable="@drawable/circular_progress_bar2"
-        tools:visibility="visible" />
 
 </RelativeLayout>
