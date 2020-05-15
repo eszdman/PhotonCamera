@@ -102,7 +102,7 @@
             android:layout_width="56.25dp"
             android:layout_height="38dp"
             android:layout_gravity="bottom"
-            android:layout_marginTop="292dp"
+            android:layout_marginTop="184dp"
             android:background="@drawable/raw_button"
             android:textOff=" "
             android:textOn=" "
