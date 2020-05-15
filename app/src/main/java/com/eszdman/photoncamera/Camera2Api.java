@@ -60,6 +60,8 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.Toast;
+import android.widget.ToggleButton;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
@@ -454,7 +456,7 @@ public class Camera2Api extends Fragment
                 break;
             }
             case R.id.stacking: {
-                Switch sw = (Switch)view;
+                ToggleButton sw = (ToggleButton) view;
                 if(sw.isChecked()) mTargetFormat = ImageFormat.RAW_SENSOR;
                 else mTargetFormat= ImageFormat.YUV_420_888;
                 restartCamera();
@@ -483,7 +485,7 @@ public class Camera2Api extends Fragment
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
         settings.setActivated(true);
-        Switch hdrmul = view.findViewById(R.id.stacking);
+        ToggleButton hdrmul = view.findViewById(R.id.stacking);
         hdrmul.setOnClickListener(this);
         //view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);

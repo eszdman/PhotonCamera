@@ -1,9 +1,9 @@
 <resources>
     <string name="request_permission">Questa app richiede il permesso di accedere alla fotocamera.</string>
     <string name="camera_error">Questo dispositivo non supporta le API Camera2.</string>
-    <string name="luma_nr_count">Valore di riduzione del rumore di luminanza:</string>
+    <string name="luma_nr_count">Riduzione del rumore di luminanza:</string>
     <string name="frame_count">Numero di frame:</string>
     <string name="disable_aligning">Disattiva allineamento</string>
-    <string name="turn_on_system_nr">Attiva la riduzione del rumore di sistema</string>
-    <string name="chroma_nr_count">Valore di riduzione del rumore di crominanza:</string>
+    <string name="turn_on_system_nr">Attiva riduzione del rumore di sistema</string>
+    <string name="chroma_nr_count">Riduzione del rumore di crominanza:</string>
 </resources>
