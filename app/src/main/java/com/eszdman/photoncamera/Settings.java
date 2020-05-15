@@ -13,10 +13,14 @@ import androidx.annotation.RequiresApi;
 import com.eszdman.photoncamera.R;
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_HDR;
+import static android.hardware.camera2.CameraMetadata.EDGE_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
+import static android.hardware.camera2.CaptureRequest.CONTROL_SCENE_MODE;
+import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 
@@ -130,6 +134,8 @@ public class Settings {
     void applyRes(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(JPEG_QUALITY, (byte) 100);
         captureBuilder.set(NOISE_REDUCTION_MODE, NoiseReduction);
+        //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
+        captureBuilder.set(EDGE_MODE,EDGE_MODE_OFF);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }
     @RequiresApi(api = Build.VERSION_CODES.O)
