@@ -14,17 +14,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal|center_vertical"
-        android:layout_marginLeft="30dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginRight="30dp"
-        android:layout_marginBottom="30dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="20dp"
         android:orientation="vertical">
 
         <Switch
             android:id="@+id/setting_turnNR"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginStart="15dp"
+            android:drawableStart="@drawable/ic_gradient_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:gravity="center|start|center_horizontal"
             android:text="@string/turn_on_system_nr" />
@@ -33,7 +34,8 @@
             android:id="@+id/setting_disablealign"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginStart="15dp"
+            android:drawableStart="@drawable/ic_format_align_justify_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:text="@string/disable_aligning"
             android:textAlignment="textStart" />
@@ -41,8 +43,9 @@
         <TextView
             android:id="@+id/setting_framecounter"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_height="35dp"
+            android:drawableStart="@drawable/ic_burst_mode_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/frame_count"
@@ -52,7 +55,7 @@
             android:id="@+id/setting_framecnt"
             android:layout_width="match_parent"
             android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_marginStart="30dp"
             android:max="20"
             android:min="1"
             android:progress="3" />
@@ -60,8 +63,9 @@
         <TextView
             android:id="@+id/setting_chroma"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_height="35dp"
+            android:drawableStart="@drawable/ic_grain_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/chroma_nr_count"
@@ -71,7 +75,7 @@
             android:id="@+id/setting_chromacnt"
             android:layout_width="match_parent"
             android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_marginStart="30dp"
             android:max="65"
             android:min="1"
             android:progress="12" />
@@ -79,8 +83,9 @@
         <TextView
             android:id="@+id/setting_luma"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_height="35dp"
+            android:drawableStart="@drawable/ic_blur_on_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:gravity="center_vertical"
             android:text="@string/luma_nr_count"
@@ -90,7 +95,7 @@
             android:id="@+id/setting_lumacnt"
             android:layout_width="match_parent"
             android:layout_height="30dp"
-            android:layout_marginStart="15dp"
+            android:layout_marginStart="30dp"
             android:max="65"
             android:min="1"
             android:progress="1" />
@@ -99,7 +104,8 @@
             android:id="@+id/setting_enhanced"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:layout_marginStart="15dp"
+            android:drawableStart="@drawable/ic_tune_black_24dp"
+            android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
             android:text="@string/enhanced_processing"
             android:textColor="#FFFFFF" />

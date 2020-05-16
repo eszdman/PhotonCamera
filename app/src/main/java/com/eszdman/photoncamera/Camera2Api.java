@@ -58,7 +58,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
@@ -68,7 +67,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-import com.eszdman.photoncamera.R;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -401,7 +400,7 @@ public class Camera2Api extends Fragment
             if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
                     option.getHeight() == option.getWidth() * h / w) {
                 if (option.getWidth() >= textureViewWidth &&
-                    option.getHeight() >= textureViewHeight) {
+                        option.getHeight() >= textureViewHeight) {
                     bigEnough.add(option);
                 } else {
                     notBigEnough.add(option);
@@ -494,7 +493,7 @@ public class Camera2Api extends Fragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-       mFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//EsCamera//");
+        mFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//EsCamera//");
         //mFile = new File(getActivity().getExternalFilesDir(null), "pic.jpg");
     }
 
@@ -544,12 +543,12 @@ public class Camera2Api extends Fragment
     }
 
     Size getCameraOutputSize(Size[] in){
-       Collections.sort(Arrays.asList(in), new CompareSizesByArea());
+        Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size()-1;
-       if(sizes.get(s).getWidth()*sizes.get(s).getHeight() <= 40*1000000)
-           return sizes.get(s);
-       else return sizes.get(s-1);
+        if(sizes.get(s).getWidth()*sizes.get(s).getHeight() <= 40*1000000)
+            return sizes.get(s);
+        else return sizes.get(s-1);
     }
     /**
      * Sets up member variables related to camera.
@@ -594,121 +593,121 @@ public class Camera2Api extends Fragment
             e.printStackTrace();
         }
         mCameraCharacteristics = characteristics;
-            //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+        //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
-            StreamConfigurationMap map = characteristics.get(
-                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            if (map == null) {
-                return;
-            }
+        StreamConfigurationMap map = characteristics.get(
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        if (map == null) {
+            return;
+        }
 
-            // For still image captures, we use the largest available size.
-            Size largest = Collections.max(
-                    Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
-                    new CompareSizesByArea());
-            Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
+        // For still image captures, we use the largest available size.
+        Size largest = Collections.max(
+                Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
+                new CompareSizesByArea());
+        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mTargetFormat, mburstcount+1);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
 
-            // Find out if we need to swap dimension to get the preview size relative to sensor
-            // coordinate.
-            int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            //noinspection ConstantConditions
-            mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-            boolean swappedDimensions = false;
-            switch (displayRotation) {
-                case Surface.ROTATION_0:
-                case Surface.ROTATION_180:
-                    if (mSensorOrientation == 90 || mSensorOrientation == 270) {
-                        swappedDimensions = true;
-                    }
-                    break;
-                case Surface.ROTATION_90:
-                case Surface.ROTATION_270:
-                    if (mSensorOrientation == 0 || mSensorOrientation == 180) {
-                        swappedDimensions = true;
-                    }
-                    break;
-                default:
-                    Log.e(TAG, "Display rotation is invalid: " + displayRotation);
-            }
+        // Find out if we need to swap dimension to get the preview size relative to sensor
+        // coordinate.
+        int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        //noinspection ConstantConditions
+        mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        boolean swappedDimensions = false;
+        switch (displayRotation) {
+            case Surface.ROTATION_0:
+            case Surface.ROTATION_180:
+                if (mSensorOrientation == 90 || mSensorOrientation == 270) {
+                    swappedDimensions = true;
+                }
+                break;
+            case Surface.ROTATION_90:
+            case Surface.ROTATION_270:
+                if (mSensorOrientation == 0 || mSensorOrientation == 180) {
+                    swappedDimensions = true;
+                }
+                break;
+            default:
+                Log.e(TAG, "Display rotation is invalid: " + displayRotation);
+        }
 
-            mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
-            Point displaySize = new Point();
-            activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
-            int rotatedPreviewWidth = mPreviewwidth;
-            int rotatedPreviewHeight = mPreviewheight;
-            int maxPreviewWidth = displaySize.x;
-            int maxPreviewHeight = displaySize.y;
+        mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+        Point displaySize = new Point();
+        activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
+        int rotatedPreviewWidth = mPreviewwidth;
+        int rotatedPreviewHeight = mPreviewheight;
+        int maxPreviewWidth = displaySize.x;
+        int maxPreviewHeight = displaySize.y;
 
-            if (swappedDimensions) {
-                rotatedPreviewWidth = mPreviewheight;
-                rotatedPreviewHeight = mPreviewwidth;
-                maxPreviewWidth = displaySize.y;
-                maxPreviewHeight = displaySize.x;
-            }
+        if (swappedDimensions) {
+            rotatedPreviewWidth = mPreviewheight;
+            rotatedPreviewHeight = mPreviewwidth;
+            maxPreviewWidth = displaySize.y;
+            maxPreviewHeight = displaySize.x;
+        }
 
-            if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
-                maxPreviewWidth = MAX_PREVIEW_WIDTH;
-            }
+        if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
+            maxPreviewWidth = MAX_PREVIEW_WIDTH;
+        }
 
-            if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
-                maxPreviewHeight = MAX_PREVIEW_HEIGHT;
-            }
+        if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
+            maxPreviewHeight = MAX_PREVIEW_HEIGHT;
+        }
 
-            // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-            // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-            // garbage capture data.
-            mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                    rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                    maxPreviewHeight, largest);
+        // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
+        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
+        // garbage capture data.
+        mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
+                maxPreviewHeight, largest);
 
-            // We fit the aspect ratio of TextureView to the size of preview we picked.
-            int orientation = getResources().getConfiguration().orientation;
-            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                mTextureView.setAspectRatio(
-                        mPreviewSize.getWidth(), mPreviewSize.getHeight());
-            } else {
-                mTextureView.setAspectRatio(
-                        mPreviewSize.getHeight(), mPreviewSize.getWidth());
-            }
+        // We fit the aspect ratio of TextureView to the size of preview we picked.
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            mTextureView.setAspectRatio(
+                    mPreviewSize.getWidth(), mPreviewSize.getHeight());
+        } else {
+            mTextureView.setAspectRatio(
+                    mPreviewSize.getHeight(), mPreviewSize.getWidth());
+        }
 
-            // Check if the flash is supported.
-            Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-            mFlashSupported = available == null ? false : available;
+        // Check if the flash is supported.
+        Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+        mFlashSupported = available == null ? false : available;
 
-            mCameraId = cameraId;
+        mCameraId = cameraId;
     }
     @SuppressLint("MissingPermission")
     public void restartCamera(){
         try {
             mCameraOpenCloseLock.acquire();
 
-        if (mCaptureSession != null) {
-            mCaptureSession.close();
-            mCaptureSession = null;
-        }
-        if (null != mCameraDevice) {
-            mCameraDevice.close();
-            mCameraDevice = null;
-        }
-        if (null != mImageReader) {
-            mImageReader.close();
-            mImageReader = null;
-        }
-        if(null != mPreviewRequestBuilder){
-            mPreviewRequestBuilder = null;
-        }
-        stopBackgroundThread();
-        UpdateCameraCharacteristics(mCameraId);
-    } catch (Exception e) {
+            if (mCaptureSession != null) {
+                mCaptureSession.close();
+                mCaptureSession = null;
+            }
+            if (null != mCameraDevice) {
+                mCameraDevice.close();
+                mCameraDevice = null;
+            }
+            if (null != mImageReader) {
+                mImageReader.close();
+                mImageReader = null;
+            }
+            if(null != mPreviewRequestBuilder){
+                mPreviewRequestBuilder = null;
+            }
+            stopBackgroundThread();
+            UpdateCameraCharacteristics(mCameraId);
+        } catch (Exception e) {
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
-    } finally {
-        mCameraOpenCloseLock.release();
-    }
+        } finally {
+            mCameraOpenCloseLock.release();
+        }
 
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -1100,8 +1099,8 @@ public class Camera2Api extends Fragment
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
             if(mFlashEnabled)
-            requestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                requestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
+                        CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
         }
     }
 
