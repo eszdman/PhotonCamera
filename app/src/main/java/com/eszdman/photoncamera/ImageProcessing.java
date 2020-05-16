@@ -124,7 +124,7 @@ public class ImageProcessing {
         mYuv.put(0, 0, nv21);
         Imgproc.cvtColor(mYuv, mYuv, Imgproc.COLOR_YUV2BGR_NV21, 3);
         mYuv = mYuv.colRange(0,image.getWidth());
-    return mYuv;
+        return mYuv;
     }
     Mat load_rawsensor(Image image){
         Image.Plane plane = image.getPlanes()[0];
