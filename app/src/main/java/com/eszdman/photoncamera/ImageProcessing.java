@@ -121,7 +121,7 @@ public class ImageProcessing {
         Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth()+error, CvType.CV_8UC1);
         mYuv.put(0, 0, nv21);
         Imgproc.cvtColor(mYuv, mYuv, Imgproc.COLOR_YUV2BGR_NV21, 3);
-        mYuv = mYuv.colRange(0,image.getWidth()-error);
+        mYuv = mYuv.colRange(0,image.getWidth());
     return mYuv;
     }
     Mat load_rawsensor(Image image){
@@ -251,12 +251,10 @@ public class ImageProcessing {
         Point shiftprev = new Point();
         int alignopt = 2;
         for(int i =0; i<curimgs.size()-1;i+=alignopt) {
-            //Mat cur = load_rawsensor(curimgs.get(i));
             if(aligning){
-                Mat h=new Mat();
+                //Mat h=new Mat();
                 Point shift = new Point();
-                if(israw) shift = align.calculateShift(grey[grey.length -1], grey[i]);
-                else {
+                {
                     //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
                     //h = findFrameHomography(grey[grey.length -1], grey[i]);
                     if(i == 0) shift = align.calculateShift(grey[grey.length -1], grey[i]);
@@ -269,15 +267,10 @@ public class ImageProcessing {
                     shiftprev = new Point(shift.x,shift.y);
                 }
                 align.shiftMat(col[i],col[i],shift);
-
-                //if(h != null) Imgproc.warpPerspective(col[i], col[i], h, col[i].size());
-                //else Log.e("ImageProcessing ApplyStabilization","Can't find FrameHomography");
-
             }
             processingstep();
             //imgsmat.add(col[i]);
             Core.addWeighted(output,0.7,col[i],0.3,0,output);
-
         }
         Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
@@ -319,13 +312,12 @@ public class ImageProcessing {
                 Mat cur = cols2.get(i);
                 processingstep();
                 if(i==0) {
-                    Core.multiply(cur,new Scalar(1.05),cur);
-                    Core.add(cur,new Scalar(-0.1*16),cur);
+                    //Core.multiply(cur,new Scalar(1.05),cur);
+                    //Core.add(cur,new Scalar(-0.1*16),cur);
                     //Xphoto.oilPainting(cur,out,Settings.instance.lumacount,(int)(Settings.instance.lumacount*0.2 + 1));
                     Mat sharp = new Mat();
                     Mat struct = new Mat();
                     Mat temp = new Mat();
-
                     struct.release();
                     temp.release();
                     cur.copyTo(temp);
@@ -366,7 +358,7 @@ public class ImageProcessing {
                     Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*3,Settings.instance.chromacount*3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
                     //Imgproc.pyrUp(out,out,bef);
 
-                    out.copyTo(temp);
+                    /*out.copyTo(temp);
                     Imgproc.pyrDown(temp,temp);
                     Imgproc.pyrDown(temp,temp);
                     Mat diff = new Mat();
@@ -374,7 +366,7 @@ public class ImageProcessing {
                     Core.subtract(temp,diff,diff);
                     Imgproc.pyrUp(diff,diff);
                     Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
-                    Core.addWeighted(out,1,diff,-1,0,out);
+                    Core.addWeighted(out,1,diff,-1,0,out);*/
 
                     Imgproc.pyrUp(out,out,bef);
                 }
