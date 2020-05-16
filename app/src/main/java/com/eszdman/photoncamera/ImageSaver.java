@@ -153,6 +153,7 @@ public class ImageSaver implements Runnable {
             }
 
             case ImageFormat.RAW_SENSOR: {
+                File out =  new File(curDir(),curName()+".jpg");
                 Log.e("ImageSaver","RawSensor:"+mImage);
                 DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
                 try {
@@ -164,7 +165,10 @@ public class ImageSaver implements Runnable {
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = true;
+                        processing.path = out.getAbsolutePath();
                         done(processing);
+                        ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
+                        inter.saveAttributes();
                         dngCreator.writeImage(output, mImage);
                         MainActivity.inst.showToast("Done!");
                         mImage.close();

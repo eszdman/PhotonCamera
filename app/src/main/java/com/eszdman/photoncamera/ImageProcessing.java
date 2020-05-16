@@ -3,6 +3,7 @@ package com.eszdman.photoncamera;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
 
@@ -393,17 +394,20 @@ public class ImageProcessing {
         processingstep();
         Wrapper.setCFA(1);
         processingstep();
-        Wrapper.setBWLWB(64,1023,1,1,1,1);
+        ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
+        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue());
+        Wrapper.setCompGain(0.7,1.3);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
-        ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+
         processingstep();
         double ccm[] = new double[9];
         int c =0;
         for(int h=0; h<3;h++){
             for(int w=0; w<3;w++){
-                //ccm[c] = tr.getElement(h,w).doubleValue();
-                ccm[c] = 0.5;
+                ccm[c] = tr.getElement(h,w).doubleValue();
+                //ccm[c] = 0.5;
                 c++;
             }
         }
@@ -413,20 +417,22 @@ public class ImageProcessing {
         Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer());
         Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer());
         Wrapper.loadFrame(curimgs.get(2).getPlanes()[0].getBuffer());
+        //ByteBuffer out = curimgs.get(3).getPlanes()[0].getBuffer();
         Log.d(TAG,"Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
         Log.d(TAG,"Wrapper.processFrame()");
         processingstep();
-        Mat out = new Mat(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),CvType.CV_8UC3,output);
-        Imgcodecs.imwrite(ImageSaver.curDir()+"//"+ImageSaver.curName()+"_hdrp.jpg",out);
+        Mat out = new Mat(curimgs.get(0).getHeight(),curimgs.get(0).getWidth(),CvType.CV_8UC3,output);
+        Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
+        Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
     }
     public void Run(){
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         byte buffval = plane.getBuffer().get();
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
-        //ApplyHdrP();
-        ApplyStabilization();
+        if(israw)ApplyHdrP();
+        if(isyuv)ApplyStabilization();
         Log.d(TAG,"buffer parameters:");
         Log.d(TAG,"bufferpixelstride"+plane.getPixelStride());
         Log.d(TAG,"bufferrowstride"+plane.getRowStride());

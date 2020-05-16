@@ -2,9 +2,7 @@ package com.eszdman.photoncamera;
 
 import android.Manifest;
 import android.os.Bundle;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import org.opencv.android.OpenCVLoader;
 
 
