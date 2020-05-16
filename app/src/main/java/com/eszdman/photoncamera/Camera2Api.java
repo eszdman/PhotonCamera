@@ -423,7 +423,6 @@ public class Camera2Api extends Fragment
     public static Camera2Api newInstance() {
         return new Camera2Api();
     }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -474,7 +473,6 @@ public class Camera2Api extends Fragment
         lightcycle.setMin(0);
         loadingcycle = view.findViewById(R.id.progressloading);
         loadingcycle.setMax(mburstcount);
-
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
@@ -489,7 +487,6 @@ public class Camera2Api extends Fragment
         //view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
-
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -506,6 +503,7 @@ public class Camera2Api extends Fragment
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
+        if(mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
         } else {
@@ -763,6 +761,7 @@ public class Camera2Api extends Fragment
      * Opens the camera specified by {@link Camera2Api#mCameraId}.
      */
     private void openCamera(int width, int height) {
+        context = this;
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
@@ -792,7 +791,7 @@ public class Camera2Api extends Fragment
     /**
      * Closes the current {@link CameraDevice}.
      */
-    private void closeCamera() {
+    public void closeCamera() {
         try {
             mCameraOpenCloseLock.acquire();
             if (null != mCaptureSession) {

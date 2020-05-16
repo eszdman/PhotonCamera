@@ -389,7 +389,7 @@ public class ImageProcessing {
     }
     void ApplyHdrP(){
         CaptureResult res = Camera2Api.mCaptureResult;
-        Wrapper.init(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),3);
+        Wrapper.init(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),curimgs.size());
         Log.d(TAG,"Wrapper.init");
         processingstep();
         Wrapper.setCFA(1);
@@ -397,16 +397,14 @@ public class ImageProcessing {
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue());
-        Wrapper.setCompGain(0.7,1.3);
+        Wrapper.setCompGain(1.0,1.1,1.0,-7000);
         Log.d(TAG,"Wrapper.setBWLWB");
-        processingstep();
-
         processingstep();
         double ccm[] = new double[9];
         int c =0;
         for(int h=0; h<3;h++){
             for(int w=0; w<3;w++){
-                ccm[c] = tr.getElement(h,w).doubleValue();
+                ccm[c] = tr.getElement(w,h).doubleValue();
                 //ccm[c] = 0.5;
                 c++;
             }
@@ -414,9 +412,12 @@ public class ImageProcessing {
         Wrapper.setCCM(ccm);
         Log.d(TAG,"Wrapper.setCCM");
         processingstep();
-        Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer());
+        /*Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer());
         Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer());
-        Wrapper.loadFrame(curimgs.get(2).getPlanes()[0].getBuffer());
+        Wrapper.loadFrame(curimgs.get(2).getPlanes()[0].getBuffer());*/
+        for(int i =0; i<curimgs.size();i++) {
+            Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
+        }
         //ByteBuffer out = curimgs.get(3).getPlanes()[0].getBuffer();
         Log.d(TAG,"Wrapper.loadFrame");
         processingstep();

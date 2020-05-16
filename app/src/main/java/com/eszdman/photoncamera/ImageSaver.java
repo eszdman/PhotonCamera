@@ -136,18 +136,12 @@ public class ImageSaver implements Runnable {
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,processing.path);
                         inter.saveAttributes();
                         mImage.close();
+                        output.close();
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } finally {
                     //mImage.close();
-                    if (null != output) {
-                        try {
-                            output.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
                 }
                 break;
             }
@@ -157,7 +151,7 @@ public class ImageSaver implements Runnable {
                 Log.e("ImageSaver","RawSensor:"+mImage);
                 DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
                 try {
-                    output = new FileOutputStream(new File(curDir(),curName()+".dng"));
+                    //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     imageBuffer.add(mImage);
                     bcnt++;
                     if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
@@ -169,24 +163,22 @@ public class ImageSaver implements Runnable {
                         done(processing);
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
                         inter.saveAttributes();
-                        dngCreator.writeImage(output, mImage);
+                        //dngCreator.writeImage(output, mImage);
                         MainActivity.inst.showToast("Done!");
                         mImage.close();
+                        //output.close();
                     }
                     if(Camera2Api.mburstcount == 1) {
+                        output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                         dngCreator.writeImage(output, mImage);
                         imageBuffer = new ArrayList<>();
                         mImage.close();
+                        output.close();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
                     //mImage.close();
-                    try {
-                        output.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
                 break;
             }

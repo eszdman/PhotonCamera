@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera;
 
 import android.Manifest;
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import org.opencv.android.OpenCVLoader;
@@ -18,16 +19,23 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed()
     {
         if(inst.mState != 5)  super.onBackPressed(); // optional depending on your needs
-        else {Settings.instance.getSettings();}
+        else {//inst.closeCamera();
+        //inst.onPause();
+        Settings.instance.getSettings();}
         // code here to show dialog
-        setContentView(R.layout.activity_camera);
+        /*setContentView(R.layout.activity_camera);
         inst = Camera2Api.newInstance();
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.container, inst)
-                .commit();
+                .commit();*/
+        setContentView(R.layout.activity_camera);
+        Intent intent = this.getIntent();
+        this.finish();
+        this.startActivity(intent);
         //inst.onResume();
-        //inst.restartCamera();
-
+        /*getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container, inst)
+                .commit();*/
     }
     @Override
     protected void onCreate(Bundle savedInstanceState){
