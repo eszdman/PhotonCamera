@@ -6,4 +6,6 @@
     <string name="disable_aligning">Disattiva allineamento</string>
     <string name="turn_on_system_nr">Attiva riduzione del rumore di sistema</string>
     <string name="chroma_nr_count">Riduzione del rumore di crominanza:</string>
+    <string name="enhanced_processing">Processamento avanzato</string>
+    <string name="settings">Impostazioni</string>
 </resources>
