@@ -6,7 +6,7 @@
     android:id="@+id/settview"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimaryDark"
+    android:background="#121212"
     android:orientation="vertical">
 
     <LinearLayout
@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal|center_vertical"
         android:layout_marginLeft="20dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="40dp"
         android:layout_marginRight="20dp"
         android:layout_marginBottom="20dp"
         android:orientation="vertical">
@@ -23,7 +23,7 @@
         <Switch
             android:id="@+id/setting_turnNR"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="65dp"
             android:drawableStart="@drawable/ic_gradient_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -33,7 +33,7 @@
         <Switch
             android:id="@+id/setting_disablealign"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="65dp"
             android:drawableStart="@drawable/ic_format_align_justify_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -43,7 +43,7 @@
         <TextView
             android:id="@+id/setting_framecounter"
             android:layout_width="match_parent"
-            android:layout_height="35dp"
+            android:layout_height="45dp"
             android:drawableStart="@drawable/ic_burst_mode_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -63,7 +63,7 @@
         <TextView
             android:id="@+id/setting_chroma"
             android:layout_width="match_parent"
-            android:layout_height="35dp"
+            android:layout_height="45dp"
             android:drawableStart="@drawable/ic_grain_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -83,7 +83,7 @@
         <TextView
             android:id="@+id/setting_luma"
             android:layout_width="match_parent"
-            android:layout_height="35dp"
+            android:layout_height="45dp"
             android:drawableStart="@drawable/ic_blur_on_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -103,7 +103,7 @@
         <Switch
             android:id="@+id/setting_enhanced"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="65dp"
             android:drawableStart="@drawable/ic_tune_black_24dp"
             android:drawablePadding="20dp"
             android:fontFamily="sans-serif"
@@ -111,4 +111,14 @@
             android:textColor="#FFFFFF" />
 
     </LinearLayout>
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="#1c1c1c"
+        android:minHeight="?attr/actionBarSize"
+        android:paddingStart="64dp"
+        android:theme="?attr/actionBarTheme"
+        app:title="@string/settings"
+        app:titleMargin="6dp" />
 </FrameLayout>
