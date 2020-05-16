@@ -115,7 +115,7 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:background="#1c1c1c"
+        android:background="@color/ToolBar"
         android:minHeight="?attr/actionBarSize"
         android:paddingStart="64dp"
         android:theme="?attr/actionBarTheme"
