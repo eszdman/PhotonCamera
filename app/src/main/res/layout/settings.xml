@@ -110,27 +110,5 @@
             android:text="@string/enhanced_processing"
             android:textColor="#FFFFFF" />
 
-    </LinearLayout><![CDATA[
-
-
-
-
-
-
-
-
-
-
-
-
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-
-
-
-
-
-
-]]>
+    </LinearLayout>
 </FrameLayout>
