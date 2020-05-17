@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 public class Wrapper {
     Wrapper(){
-        System.loadLibrary("HdrPlus");
+        System.loadLibrary("HdrX");
     }
 
 public static native void init(int rows,int cols, int frames);
