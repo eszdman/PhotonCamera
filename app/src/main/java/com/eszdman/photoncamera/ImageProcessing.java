@@ -411,7 +411,7 @@ public class ImageProcessing {
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.94);
         Wrapper.setCompGain(1.0,1.0,1.15,0);
-        Wrapper.setSharpnessSaturation(1.5,20);
+        Wrapper.setSharpnessSaturation(1.5,12);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];

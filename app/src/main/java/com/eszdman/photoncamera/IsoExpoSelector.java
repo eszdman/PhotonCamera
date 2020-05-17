@@ -25,7 +25,7 @@ public class IsoExpoSelector {
            iso/=2;
        }
        //iso += iso*step/(Camera2Api.mburstcount*2);
-        iso*=0.9;
+        iso*=0.7;
        Log.d(TAG,"IsoSelected:"+iso+" ExpoSelected:"+exposuretime);
        builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME,exposuretime);
        builder.set(CaptureRequest.SENSOR_SENSITIVITY,iso);
