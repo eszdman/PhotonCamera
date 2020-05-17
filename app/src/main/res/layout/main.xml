@@ -49,7 +49,7 @@
             android:layout_width="130dp"
             android:layout_height="84dp"
             android:layout_gravity="center_vertical"
-            android:background="?attr/actionBarItemBackground"
+            android:background="#000000"
             android:clickable="true"
             android:src="@drawable/checkbox_blank_circle_outline"
             android:textAppearance="@style/TextAppearance.AppCompat"
@@ -66,7 +66,7 @@
                 android:layout_width="111dp"
                 android:layout_height="105dp"
                 android:layout_gravity="center_horizontal|center_vertical"
-                android:background="?attr/actionBarItemBackground"
+                android:background="#000000"
                 android:clickable="true"
                 android:src="@drawable/roundbutton"
                 android:textAppearance="@style/TextAppearance.AppCompat"
@@ -79,9 +79,9 @@
 
             <ProgressBar
                 android:id="@+id/progressloading"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="103dp"
-                android:layout_height="91dp"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="102dp"
+                android:layout_height="94dp"
                 android:indeterminate="false"
                 android:max="100"
                 android:progress="0"
@@ -128,6 +128,7 @@
             android:layout_height="38dp"
             android:layout_marginStart="16dp"
             android:background="@drawable/raw_button"
+            android:checked="true"
             android:textOff=" "
             android:textOn=" "
             app:layout_constraintStart_toStartOf="parent"
@@ -138,7 +139,7 @@
 
     <ProgressBar
         android:id="@+id/lightCycle"
-        style="?android:attr/progressBarStyleHorizontal"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:layout_width="238dp"
         android:layout_height="236dp"
         android:layout_alignBottom="@+id/texture"

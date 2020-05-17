@@ -149,7 +149,7 @@ public class ImageSaver implements Runnable {
             case ImageFormat.RAW_SENSOR: {
                 File out =  new File(curDir(),curName()+".jpg");
                 Log.e("ImageSaver","RawSensor:"+mImage);
-                DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
+
                 try {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     imageBuffer.add(mImage);
@@ -169,6 +169,7 @@ public class ImageSaver implements Runnable {
                         //output.close();
                     }
                     if(Camera2Api.mburstcount == 1) {
+                        DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
                         output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                         dngCreator.writeImage(output, mImage);
                         imageBuffer = new ArrayList<>();

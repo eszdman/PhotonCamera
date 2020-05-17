@@ -59,9 +59,9 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_marginStart="30dp"
-            android:max="20"
+            android:max="50"
             android:min="1"
-            android:progress="3" />
+            android:progress="10" />
 
         <TextView
             android:id="@+id/setting_chroma"
@@ -123,9 +123,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/ToolBar"
-        android:minHeight="?attr/actionBarSize"
-        android:paddingStart="64dp"
-        android:theme="?attr/actionBarTheme"
+        android:minHeight="@android:dimen/notification_large_icon_height"
+        android:paddingStart="?attr/actionBarSize"
         app:title="@string/settings"
-        app:titleMargin="6dp" />
+        app:titleMargin="6dp" /> <!--android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar" -->
 </FrameLayout>

@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera;
 
+import android.graphics.Paint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
@@ -387,24 +388,37 @@ public class ImageProcessing {
         Camera2Api.loadingcycle.setProgress(0);
 
     }
+    int GetCFAPattern(){
+        Object integ = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+        if(integ !=null) {
+            System.out.println("CFA pattern"+(int)integ);
+            switch ((int)(integ)) {
+                case 0: return 1;
+                case 1: return 2;
+                case 2: return 4;
+            }
+        }
+        return 3;
+    }
     void ApplyHdrP(){
         CaptureResult res = Camera2Api.mCaptureResult;
         Wrapper.init(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),curimgs.size());
         Log.d(TAG,"Wrapper.init");
         processingstep();
-        Wrapper.setCFA(1);
+        Wrapper.setCFA(GetCFAPattern());
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
-        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue());
-        Wrapper.setCompGain(1.0,1.1,1.0,-7000);
+        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.94);
+        Wrapper.setCompGain(1.0,1.0,1.15,0);
+        Wrapper.setSharpnessSaturation(1.5,20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];
         int c =0;
         for(int h=0; h<3;h++){
             for(int w=0; w<3;w++){
-                ccm[c] = tr.getElement(w,h).doubleValue();
+                ccm[c] = tr.getElement(h,w).doubleValue();
                 //ccm[c] = 0.5;
                 c++;
             }

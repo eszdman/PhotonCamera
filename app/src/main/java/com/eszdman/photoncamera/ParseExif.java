@@ -29,7 +29,7 @@ public class ParseExif {
         }
         //inter.setAttribute(TAG_MODEL,Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.));
         int rotation = Camera2Api.context.getOrientation(MainActivity.act.getWindowManager().getDefaultDisplay().getRotation());
-        int orientation = ORIENTATION_FLIP_HORIZONTAL;
+        int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:
                 orientation = ExifInterface.ORIENTATION_ROTATE_90;

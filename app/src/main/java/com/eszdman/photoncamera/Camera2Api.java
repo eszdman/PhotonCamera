@@ -138,7 +138,7 @@ public class Camera2Api extends Fragment
 
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
-    private static int mTargetFormat = ImageFormat.YUV_420_888;
+    private static int mTargetFormat = ImageFormat.RAW_SENSOR;
     public static int mburstcount = 3;
     public static CaptureResult mPreviewResult;
     long mPreviewExposuretime;
@@ -241,6 +241,7 @@ public class Camera2Api extends Fragment
     private Handler mBackgroundHandler;
     /*An {@link ImageReader} that handles still image capture.*/
     private ImageReader mImageReader;
+    private ImageReader mImageReaderRes;
     private File mFile;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
@@ -340,8 +341,7 @@ public class Camera2Api extends Fragment
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
-            //mPreviewExposuretime = partialResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-            //mPreviewIso = partialResult.get(CaptureResult.SENSOR_SENSITIVITY);
+
             process(partialResult);
         }
 
@@ -349,6 +349,8 @@ public class Camera2Api extends Fragment
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
+            mPreviewExposuretime = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            mPreviewIso = result.get(CaptureResult.SENSOR_SENSITIVITY);
             process(result);
         }
 
@@ -593,22 +595,16 @@ public class Camera2Api extends Fragment
         mCameraCharacteristics = characteristics;
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
-        StreamConfigurationMap map = characteristics.get(
+        StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        if (map == null) {
-            return;
-        }
-
-        // For still image captures, we use the largest available size.
-        Size largest = Collections.max(
-                Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
-                new CompareSizesByArea());
+        if (map == null) {return;}
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
-        largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mTargetFormat, mburstcount+1);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
+        mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+                ImageFormat.RAW_SENSOR, mburstcount+1);
 
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
@@ -661,7 +657,7 @@ public class Camera2Api extends Fragment
         // garbage capture data.
         mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                maxPreviewHeight, largest);
+                maxPreviewHeight, target);
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         int orientation = getResources().getConfiguration().orientation;
@@ -997,11 +993,13 @@ public class Camera2Api extends Fragment
             // This is the CaptureRequest.Builder that we use to take a picture.
             final CaptureRequest.Builder captureBuilder =
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(mImageReader.getSurface());
+
             // Use the same AE and AF modes as the preview.
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             //captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF);
-            IsoExpoSelector.setExpo(captureBuilder);
+            mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
+            //captureBuilder.addTarget(mImageReader.getSurface());
+            captureBuilder.addTarget(mImageReader.getSurface());
             Settings.instance.applyRes(captureBuilder);
             //lightcycle.setVisibility(View.VISIBLE);
             setAutoFlash(captureBuilder);
@@ -1010,6 +1008,7 @@ public class Camera2Api extends Fragment
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             for(int i =0; i<mburstcount; i++){
+                IsoExpoSelector.setExpo(captureBuilder,i-mburstcount/2);
                 captures.add(captureBuilder.build());
             }
             CameraCaptureSession.CaptureCallback CaptureCallback

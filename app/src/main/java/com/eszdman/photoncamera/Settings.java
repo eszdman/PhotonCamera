@@ -3,23 +3,18 @@ package com.eszdman.photoncamera;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.hardware.camera2.CaptureRequest;
-import android.os.Build;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import androidx.annotation.IdRes;
-import androidx.annotation.RequiresApi;
-import com.eszdman.photoncamera.R;
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_HDR;
 import static android.hardware.camera2.CameraMetadata.EDGE_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
-import static android.hardware.camera2.CaptureRequest.CONTROL_SCENE_MODE;
 import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
@@ -29,7 +24,7 @@ public class Settings {
     public static Settings instance;
     int NoiseReduction = NOISE_REDUCTION_MODE_OFF;
     int AfMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-    public int framecount = 3;
+    public int framecount = 10;
     public int lumacount = 3;
     public int chromacount = 12;
     public boolean enhancedprocess = false;
@@ -138,7 +133,6 @@ public class Settings {
         captureBuilder.set(EDGE_MODE,EDGE_MODE_OFF);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }
-    @RequiresApi(api = Build.VERSION_CODES.O)
     void applyPrev(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(CONTROL_ENABLE_ZSL,true);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
