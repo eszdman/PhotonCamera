@@ -9,4 +9,13 @@
     <string name="chroma_nr_count">Цветовое шумоподавление:</string>
     <string name="enhanced_processing">Расширенная обработка</string>
     <string name="settings">Настройки</string>
+
+    <string name="comp">Компрессор:</string>
+    <string name="gain">Усиление:</string>
+    <string name="contrmul">Кривая контраста:</string>
+    <string name="contrconst">Константа:</string>
+    <string name="saturation">Насыщенность:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Резкость:</string>
 </resources>

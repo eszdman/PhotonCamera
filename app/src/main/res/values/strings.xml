@@ -9,4 +9,13 @@
     <string name="chroma_nr_count">Chroma NR count:</string>
     <string name="enhanced_processing">Enhanced Processing</string>
     <string name="settings">Settings</string>
+
+    <string name="comp">Compressor:</string>
+    <string name="gain">Gain:</string>
+    <string name="contrmul">Contrast multiply:</string>
+    <string name="contrconst">Constant:</string>
+    <string name="saturation">Saturation:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Sharpness:</string>
 </resources>

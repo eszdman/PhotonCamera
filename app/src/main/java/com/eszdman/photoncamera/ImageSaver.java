@@ -57,7 +57,7 @@ public class ImageSaver implements Runnable {
         return "IMG_"+dateText;
     }
     static String curDir(){
-        File dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//EsCamera//");
+        File dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//Camera//");
         if(!dir.exists()) dir.mkdirs();
         return dir.getAbsolutePath();
     }

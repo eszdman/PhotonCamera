@@ -7,6 +7,7 @@ import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
+import android.widget.SeekBar;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -410,8 +411,8 @@ public class ImageProcessing {
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.94);
-        Wrapper.setCompGain(1.0,1.0,1.15,0);
-        Wrapper.setSharpnessSaturation(1.5,12);
+        Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,Settings.instance.contrast_mpy,Settings.instance.contrast_const);
+        Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];
