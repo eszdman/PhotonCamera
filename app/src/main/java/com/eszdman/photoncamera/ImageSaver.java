@@ -73,30 +73,29 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
+                    File out =  new File(curDir(),curName()+".jpg");
                     if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
-                        File out =  new File(curDir(),curName()+".jpg");
                         output = new FileOutputStream(out);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
-                        //output.close();
                         ExifInterface inter = new ExifInterface(out.getAbsolutePath());
-                        MainActivity.inst.showToast("Processing...");
+                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = false;
                         processing.path = out.getAbsolutePath();
                         done(processing);
-                        MainActivity.inst.showToast("Done!");
+                        Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         inter.saveAttributes();
-                        //output = new FileOutputStream(new File(curDir(),"test.jpg"));
-                        //output.write(bytes);
-                        //output.close();
                         mImage.close();
                     }
                     if(Camera2Api.mburstcount == 1){
+                        imageBuffer = new ArrayList<>();
+                        output = new FileOutputStream(out);
                         buffer.get(bytes);
                         output.write(bytes);
+                        bcnt = 0;
                         mImage.close();
                     }
                 } catch (IOException | InterruptedException e) {
@@ -125,18 +124,22 @@ public class ImageSaver implements Runnable {
                         //buffer.duplicate().get(bytes);
                         //output.write(bytes);
                         //ExifInterface inter = new ExifInterface(out.getAbsolutePath());
-                        MainActivity.inst.showToast("Processing...");
+                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
                         processing.israw = false;
                         processing.path = out.getAbsolutePath();
                         done(processing);
-                        MainActivity.inst.showToast("Done!");
+                        Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,processing.path);
                         inter.saveAttributes();
                         mImage.close();
                         output.close();
+                    }
+                    else {
+                        imageBuffer = new ArrayList<>();
+                        bcnt = 0;
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -155,7 +158,7 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     bcnt++;
                     if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
-                        MainActivity.inst.showToast("Processing...");
+                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = true;
@@ -164,7 +167,7 @@ public class ImageSaver implements Runnable {
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
-                        MainActivity.inst.showToast("Done!");
+                        Camera2Api.context.showToast("Done!");
                         mImage.close();
                         //output.close();
                     }

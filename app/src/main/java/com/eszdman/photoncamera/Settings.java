@@ -10,18 +10,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import androidx.annotation.IdRes;
 import static android.content.Context.MODE_PRIVATE;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.EDGE_MODE_OFF;
-import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
-import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
-import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
-import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
-import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
+import static android.hardware.camera2.CameraMetadata.*;
+import static android.hardware.camera2.CaptureRequest.*;
 
 
 public class Settings {
@@ -33,6 +23,7 @@ public class Settings {
     public int chromacount = 12;
     public boolean enhancedprocess = false;
     public boolean align = true;
+    public boolean hdrx = true;
     public double saturation = 1.3;
     public double sharpness = 1.1;
     public double contrast_mpy = 1.3;
@@ -229,12 +220,15 @@ public class Settings {
         captureBuilder.set(JPEG_QUALITY, (byte) 100);
         captureBuilder.set(NOISE_REDUCTION_MODE, NoiseReduction);
         captureBuilder.set(HOT_PIXEL_MODE,HOT_PIXEL_MODE_HIGH_QUALITY);
+        captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
         captureBuilder.set(EDGE_MODE,EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }
     void applyPrev(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(CONTROL_ENABLE_ZSL,true);
+        captureBuilder.set(EDGE_MODE,EDGE_MODE_HIGH_QUALITY);
+        captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }

@@ -8,7 +8,6 @@ import org.opencv.android.OpenCVLoader;
 
 
 public class MainActivity extends AppCompatActivity {
-    static Camera2Api inst;
     static MainActivity act;
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -18,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed()
     {
-        if(inst.mState != 5)  super.onBackPressed(); // optional depending on your needs
+        if(Camera2Api.context.mState != 5)  super.onBackPressed(); // optional depending on your needs
         else {//inst.closeCamera();
         //inst.onPause();
         Settings.instance.getSettings();}
@@ -45,10 +44,10 @@ public class MainActivity extends AppCompatActivity {
         Permissions.RequestPermissions(MainActivity.this, 2,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         Settings settings = new Settings();
         setContentView(R.layout.activity_camera);
-        inst = Camera2Api.newInstance();
+        Camera2Api.context = Camera2Api.newInstance();
         if (null == savedInstanceState) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container, inst)
+                    .replace(R.id.container, Camera2Api.context)
                     .commit();
         }
     }

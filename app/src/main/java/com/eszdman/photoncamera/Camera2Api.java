@@ -460,8 +460,14 @@ public class Camera2Api extends Fragment
             }
             case R.id.stacking: {
                 ToggleButton sw = (ToggleButton) view;
-                if(sw.isChecked()) mTargetFormat = rawFormat;
-                else mTargetFormat= ImageFormat.YUV_420_888;
+                if(sw.isChecked()) {
+                    mTargetFormat = rawFormat;
+                    Settings.instance.hdrx = true;
+                }
+                else {
+                    mTargetFormat= ImageFormat.YUV_420_888;
+                    Settings.instance.hdrx = false;
+                }
                 restartCamera();
                 break;
             }
@@ -489,6 +495,7 @@ public class Camera2Api extends Fragment
         settings.setActivated(true);
         ToggleButton hdrmul = view.findViewById(R.id.stacking);
         hdrmul.setOnClickListener(this);
+        //hdrmul.setChecked(Settings.instance.hdrx); TODO Urnyx fix ur togglebutton
         //view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
@@ -503,7 +510,6 @@ public class Camera2Api extends Fragment
     public void onResume() {
         super.onResume();
         startBackgroundThread();
-
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
@@ -843,7 +849,6 @@ public class Camera2Api extends Fragment
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
-
             // We configure the size of default buffer to be the size of camera preview we want.
             Log.d("createCameraPreviewSession() mTextureView",""+mTextureView);
             Log.d("createCameraPreviewSession() Texture",""+texture);
@@ -998,8 +1003,6 @@ public class Camera2Api extends Fragment
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
 
             // Use the same AE and AF modes as the preview.
-            //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            //captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF);
             mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             //captureBuilder.addTarget(mImageReader.getSurface());
             captureBuilder.addTarget(mImageReader.getSurface());
@@ -1040,10 +1043,8 @@ public class Camera2Api extends Fragment
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
             };
-
             mCaptureSession.stopRepeating();
             mCaptureSession.captureBurst(captures, CaptureCallback, null);
-            //lightcycle.setVisibility(View.INVISIBLE);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
