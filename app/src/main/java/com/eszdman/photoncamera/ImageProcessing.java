@@ -410,20 +410,26 @@ public class ImageProcessing {
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
-        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.94);
-        Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,Settings.instance.contrast_mpy,Settings.instance.contrast_const);
+        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93);
+        double contr = 0.8 + 1.5/(1+Settings.instance.contrast_mpy);
+        //double contr = 0.6;
+        Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,contr,Settings.instance.contrast_const);
         Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];
         int c =0;
-        for(int h=0; h<3;h++){
+        ccm[0] = 1.776;ccm[3] = -0.837;ccm[6] = 0.071;
+        ccm[1] = -0.163;ccm[4] = 1.406;ccm[7] = -0.242;
+        ccm[2] = 0.0331;ccm[5] = -0.526;ccm[8] = 1.492;
+        /*for(int h=0; h<3;h++){
             for(int w=0; w<3;w++){
                 ccm[c] = tr.getElement(h,w).doubleValue();
                 //ccm[c] = 0.5;
                 c++;
             }
-        }
+        }*/
+
         Wrapper.setCCM(ccm);
         Log.d(TAG,"Wrapper.setCCM");
         processingstep();

@@ -39,6 +39,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -138,7 +139,9 @@ public class Camera2Api extends Fragment
 
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
-    private static int mTargetFormat = ImageFormat.RAW_SENSOR;
+    private static final int rawFormat = ImageFormat.RAW_SENSOR;
+    private static int mTargetFormat = rawFormat;
+
     public static int mburstcount = 3;
     public static CaptureResult mPreviewResult;
     long mPreviewExposuretime;
@@ -457,7 +460,7 @@ public class Camera2Api extends Fragment
             }
             case R.id.stacking: {
                 ToggleButton sw = (ToggleButton) view;
-                if(sw.isChecked()) mTargetFormat = ImageFormat.RAW_SENSOR;
+                if(sw.isChecked()) mTargetFormat = rawFormat;
                 else mTargetFormat= ImageFormat.YUV_420_888;
                 restartCamera();
                 break;
@@ -1039,7 +1042,6 @@ public class Camera2Api extends Fragment
             };
 
             mCaptureSession.stopRepeating();
-            mCaptureSession.abortCaptures();
             mCaptureSession.captureBurst(captures, CaptureCallback, null);
             //lightcycle.setVisibility(View.INVISIBLE);
         } catch (CameraAccessException e) {
