@@ -61,6 +61,10 @@ public class ImageSaver implements Runnable {
         if(!dir.exists()) dir.mkdirs();
         return dir.getAbsolutePath();
     }
+    private static void end(){
+        Camera2Api.context.shot.setActivated(true);
+        Camera2Api.context.shot.setClickable(true);
+    }
     @Override
     public void run() {
         int format = mImage.getFormat();
@@ -89,6 +93,7 @@ public class ImageSaver implements Runnable {
                         Thread.sleep(25);
                         inter.saveAttributes();
                         mImage.close();
+                        end();
                     }
                     if(Camera2Api.mburstcount == 1){
                         imageBuffer = new ArrayList<>();
@@ -97,6 +102,7 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
+                        end();
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -116,11 +122,11 @@ public class ImageSaver implements Runnable {
                 File out =  new File(curDir(),curName()+".jpg");
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
-                    output = new FileOutputStream(out);
+                    //output = new FileOutputStream(out);
                     imageBuffer.add(mImage);
-                    bcnt++;
+
                     //byte[] bytes = new byte[buffer.remaining()];
-                    if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
+                    if(bcnt == Camera2Api.mburstcount-1 && Camera2Api.mburstcount != 1) {
                         //buffer.duplicate().get(bytes);
                         //output.write(bytes);
                         //ExifInterface inter = new ExifInterface(out.getAbsolutePath());
@@ -135,12 +141,16 @@ public class ImageSaver implements Runnable {
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,processing.path);
                         inter.saveAttributes();
                         mImage.close();
-                        output.close();
+                        Camera2Api.context.shot.setActivated(true);
+                        //output.close();
+                        end();
                     }
                     else {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
+                        end();
                     }
+                    bcnt++;
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } finally {
@@ -169,7 +179,8 @@ public class ImageSaver implements Runnable {
                         //dngCreator.writeImage(output, mImage);
                         Camera2Api.context.showToast("Done!");
                         mImage.close();
-                        //output.close();
+                        Camera2Api.context.shot.setActivated(true);
+                        end();
                     }
                     if(Camera2Api.mburstcount == 1) {
                         DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
@@ -178,6 +189,7 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
+                        end();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

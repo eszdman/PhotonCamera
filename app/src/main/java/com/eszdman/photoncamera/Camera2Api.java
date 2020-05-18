@@ -1037,8 +1037,6 @@ public class Camera2Api extends Fragment
                     lightcycle.setAlpha(0f);
                     lightcycle.setProgress(0);
                     mTextureView.setAlpha(1f);
-                    shot.setActivated(true);
-                    shot.setClickable(true);
                     unlockFocus();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
