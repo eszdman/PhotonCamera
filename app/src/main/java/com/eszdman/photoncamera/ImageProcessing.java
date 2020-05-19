@@ -338,15 +338,19 @@ public class ImageProcessing {
     }
     void ApplyHdrX(){
         CaptureResult res = Camera2Api.mCaptureResult;
-        Wrapper.init(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),curimgs.size());
+        int width =curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
+        int height = curimgs.get(0).getHeight();
+        Log.d(TAG,"APPLYHDRX: buffer:"+curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
+        Wrapper.init(width,height,curimgs.size());
         Log.d(TAG,"Wrapper.init");
         processingstep();
         Wrapper.setCFA(GetCFAPattern());
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
-        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93);
-        double contr = 0.8 + 1.5/(1+Settings.instance.contrast_mpy);
+        Log.d(TAG,"CCG:"+vec.toString());
+        Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
+        double contr = 0.8 + 1.8/(1+Settings.instance.contrast_mpy*20);
         Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,contr,Settings.instance.contrast_const);
         Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
@@ -373,7 +377,8 @@ public class ImageProcessing {
         ByteBuffer output = Wrapper.processFrame();
         Log.d(TAG,"Wrapper.processFrame()");
         processingstep();
-        Mat out = new Mat(curimgs.get(0).getHeight(),curimgs.get(0).getWidth(),CvType.CV_8UC3,output);
+        Mat out = new Mat(height,width,CvType.CV_8UC3,output);
+        //Imgproc.pyrDown();
         Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
     }

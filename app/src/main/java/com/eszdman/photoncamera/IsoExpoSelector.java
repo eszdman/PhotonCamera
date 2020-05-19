@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera;
 
+import android.graphics.Camera;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
@@ -27,7 +28,7 @@ public class IsoExpoSelector {
            iso/=2;
        }
        //iso += iso*step/(Camera2Api.mburstcount*2);
-       iso*=2;
+       if(Camera2Api.mTargetFormat == Camera2Api.rawFormat) iso*=0.9;
        iso = Math.max(getISOLOW(),iso);
        iso = Math.min(getISOHIGH(),iso);
        Log.d(TAG,"IsoSelected:"+iso+" ExpoSelected:"+exposuretime);

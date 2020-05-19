@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera;
 
 import android.graphics.ImageFormat;
+import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.DngCreator;
 import androidx.exifinterface.media.ExifInterface;
@@ -99,7 +100,8 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        end();
+                        Camera2Api.context.shot.setActivated(true);
+                        Camera2Api.context.shot.setClickable(true);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -137,7 +139,8 @@ public class ImageSaver implements Runnable {
                     if (Settings.instance.framecount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        end();
+                        Camera2Api.context.shot.setActivated(true);
+                        Camera2Api.context.shot.setClickable(true);
                     }
                     bcnt++;
                 } catch (IOException | InterruptedException e) {
@@ -162,6 +165,7 @@ public class ImageSaver implements Runnable {
                         processing.israw = true;
                         processing.path = out.getAbsolutePath();
                         done(processing);
+                        Thread.sleep(45);
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
@@ -180,9 +184,10 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        end();
+                        Camera2Api.context.shot.setActivated(true);
+                        Camera2Api.context.shot.setClickable(true);
                     }
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } finally {
                     //mImage.close();

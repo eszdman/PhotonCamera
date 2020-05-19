@@ -17,24 +17,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed()
     {
-        if(Camera2Api.context.mState != 5)  super.onBackPressed(); // optional depending on your needs
+        if(Camera2Api.context.mState != 5)  {super.onBackPressed(); return;} // optional depending on your needs
         else {//inst.closeCamera();
         //inst.onPause();
+        //Camera2Api.context.onPause();
         Settings.instance.getSettings();}
-        // code here to show dialog
-        /*setContentView(R.layout.activity_camera);
-        inst = Camera2Api.newInstance();
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, inst)
-                .commit();*/
         setContentView(R.layout.activity_camera);
         Intent intent = this.getIntent();
         this.finish();
         this.startActivity(intent);
-        //inst.onResume();
-        /*getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, inst)
-                .commit();*/
     }
     @Override
     protected void onCreate(Bundle savedInstanceState){

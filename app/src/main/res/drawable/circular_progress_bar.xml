@@ -26,7 +26,7 @@
                 android:shape="ring"
                 android:angle="0"
                 android:type="sweep"
-                android:thicknessRatio="20.0">
+                android:thicknessRatio="40.0">
                 <solid android:color="#DDDDDD"/>
             </shape>
         </rotate>

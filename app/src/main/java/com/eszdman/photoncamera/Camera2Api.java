@@ -140,8 +140,8 @@ public class Camera2Api extends Fragment
 
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
-    private static final int rawFormat = ImageFormat.RAW_SENSOR;
-    private static int mTargetFormat = rawFormat;
+    public static final int rawFormat = ImageFormat.RAW_SENSOR;
+    public static int mTargetFormat = rawFormat;
 
     //public static int Settings.instance.framecount = 3;
     public static CaptureResult mPreviewResult;
@@ -190,7 +190,7 @@ public class Camera2Api extends Fragment
     /**
      * A {@link CameraCaptureSession } for camera preview.
      */
-    private CameraCaptureSession mCaptureSession;
+    public CameraCaptureSession mCaptureSession;
 
     /**
      * A reference to the opened {@link CameraDevice}.
@@ -506,10 +506,6 @@ public class Camera2Api extends Fragment
     public void onResume() {
         super.onResume();
         startBackgroundThread();
-        // When the screen is turned off and turned back on, the SurfaceTexture is already
-        // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
-        // a camera and start preview from here (otherwise, we wait until the surface is ready in
-        // the SurfaceTextureListener).
         if(mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -524,16 +520,6 @@ public class Camera2Api extends Fragment
         stopBackgroundThread();
         super.onPause();
     }
-
-    /*private void requestCameraPermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
-        } else {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-        }
-    }*/
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -546,14 +532,30 @@ public class Camera2Api extends Fragment
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
+    private Rect mul(Rect in, double k){
+        in.bottom*=k;
+        in.left*=k;
+        in.right*=k;
+        in.top*=k;
+        return in;
+    }
     Size getCameraOutputSize(Size[] in){
         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size()-1;
         if(sizes.get(s).getWidth()*sizes.get(s).getHeight() <= 40*1000000)
             return sizes.get(s);
-        else return sizes.get(s-1);
+        else {
+            Size target = sizes.get(s-1);
+            Rect pre =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+            Rect act =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            double k = (double)(target.getHeight())/act.bottom;
+            pre = mul(pre,k);
+            act = mul(act,k);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+            return target;
+        }
     }
     /**
      * Sets up member variables related to camera.
@@ -605,13 +607,11 @@ public class Camera2Api extends Fragment
         if (map == null) {return;}
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Settings.instance.framecount+2);
+                mTargetFormat, Settings.instance.framecount+3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                ImageFormat.RAW_SENSOR, Settings.instance.framecount+2);
-        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, new Rect(0,0,target.getWidth(),target.getHeight()));
-        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, new Rect(0,0,target.getWidth(),target.getHeight()));
+                ImageFormat.RAW_SENSOR, Settings.instance.framecount+3);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -733,7 +733,7 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, /*maxImages*/Settings.instance.framecount+2);
+                mTargetFormat, /*maxImages*/Settings.instance.framecount+3);
 
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
@@ -1014,14 +1014,28 @@ public class Camera2Api extends Fragment
                 IsoExpoSelector.setExpo(captureBuilder,i-Settings.instance.framecount/2);
                 captures.add(captureBuilder.build());
             }
+            final int[] burstcount = {0,0, Settings.instance.framecount};
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    mCaptureResult = result;
                     lightcycle.setProgress(lightcycle.getProgress()+1);
+                    mCaptureResult = result;
+                    burstcount[0]++;
+                    if(burstcount[0] ==burstcount[2]+1 || ImageSaver.imageBuffer.size() == burstcount[2]){
+                        try {
+                            mCaptureSession.abortCaptures();
+                            lightcycle.setAlpha(0f);
+                            lightcycle.setProgress(0);
+                            mTextureView.setAlpha(1f);
+                            unlockFocus();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                 }
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
@@ -1036,6 +1050,24 @@ public class Camera2Api extends Fragment
                     mTextureView.setAlpha(1f);
                     unlockFocus();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
+                }
+
+                @Override
+                public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
+                    burstcount[1]++;
+                    if(burstcount[1] == burstcount[2]+1 || ImageSaver.imageBuffer.size() == burstcount[2]){
+                        try {
+                            mCaptureSession.abortCaptures();
+                            lightcycle.setAlpha(0f);
+                            lightcycle.setProgress(0);
+                            mTextureView.setAlpha(1f);
+                            unlockFocus();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    super.onCaptureProgressed(session, request, partialResult);
                 }
             };
             mCaptureSession.stopRepeating();
