@@ -1,29 +1,23 @@
 package com.eszdman.photoncamera;
 
-import android.graphics.Paint;
+import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
-import android.widget.SeekBar;
-
-import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.core.TermCriteria;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -31,17 +25,11 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
-import org.opencv.tracking.Tracking;
-import org.opencv.video.Video;
-import org.opencv.ximgproc.Ximgproc;
-import org.opencv.xphoto.Xphoto;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
-import static org.opencv.features2d.Features2d.drawMatches;
 
 public class ImageProcessing {
     static String TAG = "ImageProcessing";
@@ -51,62 +39,6 @@ public class ImageProcessing {
     String path;
     ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
-    }
-    public Mat convertYuv420888ToMat(Image image, boolean isGreyOnly) {
-        Image.Plane yPlane = image.getPlanes()[0];
-        int width = yPlane.getRowStride();
-        int ySize = yPlane.getBuffer().remaining();
-        int height = image.getHeight();
-        int error = yPlane.getRowStride()-image.getWidth(); //BufferFix
-        Log.d("ImageProcessing load_rawsensor()","height:"+height);
-        if (isGreyOnly) {
-            byte[] data = new byte[ySize];
-            yPlane.getBuffer().get(data, 0, ySize);
-            Mat greyMat = new Mat(height, width, CvType.CV_8UC1);
-            greyMat.put(0, 0, data);
-            Imgproc.cvtColor(greyMat,greyMat,Imgproc.COLOR_GRAY2BGR);
-            return greyMat;
-        }
-        Image.Plane uPlane = image.getPlanes()[1];
-        Image.Plane vPlane = image.getPlanes()[2];
-        // be aware that this size does not include the padding at the end, if there is any
-        // (e.g. if pixel stride is 2 the size is ySize / 2 - 1)
-        int uSize = uPlane.getBuffer().remaining();
-        int vSize = vPlane.getBuffer().remaining();
-        byte[] data = new byte[ySize + (ySize/2)];
-        //ArrayList<Mat> yuv = new ArrayList<>();
-        yPlane.getBuffer().get(data, 0, ySize);
-        ByteBuffer ub = uPlane.getBuffer();
-        ByteBuffer vb = vPlane.getBuffer();
-        /*yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));
-        yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));
-        yuv.add(new Mat(yh,width,CvType.CV_8UC1,yPlane.getBuffer()));*/
-
-        int uvPixelStride = uPlane.getPixelStride(); //stride guaranteed to be the same for u and v planes
-        if (uvPixelStride == 1) {
-            uPlane.getBuffer().get(data, ySize+(error), uSize-error);
-            vPlane.getBuffer().get(data, ySize +uSize+(error), vSize-error);
-            Mat yuvMat = new Mat(height + (height / 2), image.getWidth(), CvType.CV_8UC1);
-            yuvMat.put(0, 0, data);
-            Mat rgbMat = new Mat(height, width, CvType.CV_8UC3);
-            Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2BGR_NV21, 3);
-            yuvMat.release();
-            return rgbMat;
-        }
-        // if pixel stride is 2 there is padding between each pixel
-        // converting it to NV21 by filling the gaps of the v plane with the u values
-        vb.get(data, ySize+(error), vSize-error);
-        for (int i = 0; i < uSize-error; i += 2) {
-            data[ySize + i + 1 + error] = ub.get(i);
-        }
-
-        Mat yuvMat = new Mat(height + (height / 2), width, CvType.CV_8UC1);
-        yuvMat.put(0, 0, data);
-        Mat rgbMat = new Mat(height, width, CvType.CV_8UC3);
-        Imgproc.cvtColor(yuvMat, rgbMat, Imgproc.COLOR_YUV2BGR_NV21, 3);
-        rgbMat = rgbMat.colRange(0,width-error);
-        yuvMat.release();
-        return rgbMat;
     }
     Mat convertyuv(Image image){
         byte[] nv21;
@@ -132,7 +64,10 @@ public class ImageProcessing {
     Mat load_rawsensor(Image image){
         Image.Plane plane = image.getPlanes()[0];
         Mat mat = new Mat();
-        if(israw) mat = new Mat(image.getHeight(),image.getWidth(),CvType.CV_16UC1,plane.getBuffer());
+        if(israw) {
+            if(image.getFormat() == ImageFormat.RAW_SENSOR) mat = new Mat(image.getHeight(),image.getWidth(),CvType.CV_16UC1,plane.getBuffer());
+            if(image.getFormat() == ImageFormat.RAW10) mat = new Mat(image.getHeight(),image.getWidth(),CvType.CV_16UC1,plane.getBuffer());
+        }
         else {
             if(!isyuv) mat =  Imgcodecs.imdecode(new Mat(1,plane.getBuffer().remaining(), CvType.CV_8U,plane.getBuffer()),Imgcodecs.IMREAD_UNCHANGED);
         }
@@ -401,7 +336,7 @@ public class ImageProcessing {
         }
         return 3;
     }
-    void ApplyHdrP(){
+    void ApplyHdrX(){
         CaptureResult res = Camera2Api.mCaptureResult;
         Wrapper.init(curimgs.get(0).getWidth(),curimgs.get(0).getHeight(),curimgs.size());
         Log.d(TAG,"Wrapper.init");
@@ -412,7 +347,6 @@ public class ImageProcessing {
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93);
         double contr = 0.8 + 1.5/(1+Settings.instance.contrast_mpy);
-        //double contr = 0.6;
         Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,contr,Settings.instance.contrast_const);
         Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
@@ -423,19 +357,13 @@ public class ImageProcessing {
         ccm[1] = -0.163;ccm[4] = 1.406;ccm[7] = -0.242;
         ccm[2] = 0.0331;ccm[5] = -0.526;ccm[8] = 1.492;
         /*for(int h=0; h<3;h++){
-            for(int w=0; w<3;w++){
-                ccm[c] = tr.getElement(h,w).doubleValue();
-                //ccm[c] = 0.5;
+            for(int w=0; w<3;w++){ccm[c] = tr.getElement(h,w).doubleValue();//ccm[c] = 0.5;
                 c++;
             }
         }*/
-
         Wrapper.setCCM(ccm);
         Log.d(TAG,"Wrapper.setCCM");
         processingstep();
-        /*Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer());
-        Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer());
-        Wrapper.loadFrame(curimgs.get(2).getPlanes()[0].getBuffer());*/
         for(int i =0; i<curimgs.size();i++) {
             Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
         }
@@ -453,7 +381,14 @@ public class ImageProcessing {
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         byte buffval = plane.getBuffer().get();
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
-        if(israw)ApplyHdrP();
+        if(israw) {
+            /*Log.d(TAG,"RawProcessingHDRX: RowStride:"+curimgs.get(0).getPlanes()[0].getRowStride());
+            Log.d(TAG,"RawProcessingHDRX: PixelStride:"+curimgs.get(0).getPlanes()[0].getPixelStride());
+            Mat in = load_rawsensor(curimgs.get(0));
+            Imgproc.demosaicing(in,in,Imgproc.COLOR_BayerRG2RGB);
+            Imgcodecs.imwrite(path,in, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));*/
+            ApplyHdrX();
+        }
         if(isyuv)ApplyStabilization();
         Log.d(TAG,"buffer parameters:");
         Log.d(TAG,"bufferpixelstride"+plane.getPixelStride());

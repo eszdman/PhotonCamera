@@ -28,6 +28,7 @@ import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -142,7 +143,7 @@ public class Camera2Api extends Fragment
     private static final int rawFormat = ImageFormat.RAW_SENSOR;
     private static int mTargetFormat = rawFormat;
 
-    public static int mburstcount = 3;
+    //public static int Settings.instance.framecount = 3;
     public static CaptureResult mPreviewResult;
     long mPreviewExposuretime;
     int mPreviewIso;
@@ -245,7 +246,6 @@ public class Camera2Api extends Fragment
     /*An {@link ImageReader} that handles still image capture.*/
     private ImageReader mImageReader;
     private ImageReader mImageReaderRes;
-    private File mFile;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
@@ -255,7 +255,7 @@ public class Camera2Api extends Fragment
 
         @Override
         public void onImageAvailable(ImageReader reader) {
-            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
+            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 
     };
@@ -476,14 +476,12 @@ public class Camera2Api extends Fragment
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-        mburstcount = Settings.instance.framecount;
-
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
-        lightcycle.setMax(mburstcount);
+        lightcycle.setMax(Settings.instance.framecount);
         lightcycle.setMin(0);
         loadingcycle = view.findViewById(R.id.progressloading);
-        loadingcycle.setMax(mburstcount);
+        loadingcycle.setMax(Settings.instance.framecount);
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
@@ -495,15 +493,13 @@ public class Camera2Api extends Fragment
         settings.setActivated(true);
         ToggleButton hdrmul = view.findViewById(R.id.stacking);
         hdrmul.setOnClickListener(this);
-        //hdrmul.setChecked(Settings.instance.hdrx); TODO Urnyx fix ur togglebutton
-        //view.findViewById(R.id.info).setOnClickListener(this);
-        mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
+        //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
+        mTextureView = view.findViewById(R.id.texture);
     }
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//EsCamera//");
-        //mFile = new File(getActivity().getExternalFilesDir(null), "pic.jpg");
+        
     }
 
     @Override
@@ -609,12 +605,13 @@ public class Camera2Api extends Fragment
         if (map == null) {return;}
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, mburstcount+1);
+                mTargetFormat, Settings.instance.framecount+2);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                ImageFormat.RAW_SENSOR, mburstcount+1);
-
+                ImageFormat.RAW_SENSOR, Settings.instance.framecount+2);
+        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, new Rect(0,0,target.getWidth(),target.getHeight()));
+        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, new Rect(0,0,target.getWidth(),target.getHeight()));
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -736,7 +733,7 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, /*maxImages*/mburstcount);
+                mTargetFormat, /*maxImages*/Settings.instance.framecount+2);
 
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
@@ -1013,8 +1010,8 @@ public class Camera2Api extends Fragment
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
-            for(int i =0; i<mburstcount; i++){
-                IsoExpoSelector.setExpo(captureBuilder,i-mburstcount/2);
+            for(int i =0; i<Settings.instance.framecount; i++){
+                IsoExpoSelector.setExpo(captureBuilder,i-Settings.instance.framecount/2);
                 captures.add(captureBuilder.build());
             }
             CameraCaptureSession.CaptureCallback CaptureCallback

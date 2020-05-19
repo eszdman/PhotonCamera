@@ -1,8 +1,10 @@
 package com.eszdman.photoncamera;
 
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
+import android.util.Range;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
@@ -25,10 +27,25 @@ public class IsoExpoSelector {
            iso/=2;
        }
        //iso += iso*step/(Camera2Api.mburstcount*2);
-       //iso*=1;
-       //iso = Math.max(100,iso);
+       iso*=2;
+       iso = Math.max(getISOLOW(),iso);
+       iso = Math.min(getISOHIGH(),iso);
        Log.d(TAG,"IsoSelected:"+iso+" ExpoSelected:"+exposuretime);
        builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME,exposuretime);
        builder.set(CaptureRequest.SENSOR_SENSITIVITY,iso);
+    }
+    static int getISOHIGH(){
+        Object key = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        if(key == null) return 3200;
+        else {
+            return (int)((Range)(key)).getUpper();
+        }
+    }
+    static int getISOLOW(){
+        Object key = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        if(key == null) return 100;
+        else {
+            return (int)((Range)(key)).getLower();
+        }
     }
 }

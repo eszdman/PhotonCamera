@@ -226,7 +226,7 @@ public class Settings {
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }
     void applyPrev(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(CONTROL_ENABLE_ZSL,true);
+        //captureBuilder.set(CONTROL_ENABLE_ZSL,true);
         captureBuilder.set(EDGE_MODE,EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);

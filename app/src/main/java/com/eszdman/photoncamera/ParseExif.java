@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera;
 
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 import android.util.Rational;
@@ -13,11 +14,17 @@ import static androidx.exifinterface.media.ExifInterface.*;
 public class ParseExif {
     static String getTime(long exposuretime){
         String out;
+        CaptureResult res;
         long sec = 1000000000;
         double time = (double)(exposuretime)/sec;
         out = String.valueOf((time));
         //if(time < 1.0) out = "1/"+String.valueOf((int)(1.0/time));
         return out;
+    }
+    static public String resultget(CaptureResult res,Key key){
+        Object out = res.get(key);
+        if(out !=null) return out.toString();
+        else return "";
     }
     static String tag = "ParseExif";
     public static ExifInterface Parse(CaptureResult result, String path){
@@ -51,6 +58,7 @@ public class ParseExif {
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_EXPOSURE_TIME,getTime(result.get(SENSOR_EXPOSURE_TIME)));
+        //inter.setAttribute(TAG_LIGHT_SOURCE,resultget(result,CaptureResult.));
         //inter.setAltitude(TAG_);
         return inter;
     }

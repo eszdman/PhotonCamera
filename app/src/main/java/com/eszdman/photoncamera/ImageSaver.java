@@ -1,12 +1,12 @@
 package com.eszdman.photoncamera;
 
 import android.graphics.ImageFormat;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.DngCreator;
 import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,23 +27,21 @@ public class ImageSaver implements Runnable {
     private final Image mImage;
 
     static int bcnt = 0;
-    private final File mFile;
 
     /**
      * Image frame buffer
      */
     static ArrayList<Image> imageBuffer = new ArrayList<>();
 
-    ImageSaver(Image image, File file) {
+    ImageSaver(Image image) {
         mImage = image;
-        mFile = file;
     }
     public ImageProcessing processing(){
         return new ImageProcessing(imageBuffer);
     }
     public void done(ImageProcessing proc){
         proc.Run();
-        for(int i =0; i<imageBuffer.size()-1;i++){
+        for(int i =0; i<imageBuffer.size();i++){
             imageBuffer.get(i).close();
         }
         imageBuffer = new ArrayList<>();
@@ -78,7 +76,7 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     File out =  new File(curDir(),curName()+".jpg");
-                    if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
+                    if(bcnt == Settings.instance.framecount && Settings.instance.framecount != 1) {
                         output = new FileOutputStream(out);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
@@ -92,10 +90,9 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         inter.saveAttributes();
-                        mImage.close();
                         end();
                     }
-                    if(Camera2Api.mburstcount == 1){
+                    if(Settings.instance.framecount == 1){
                         imageBuffer = new ArrayList<>();
                         output = new FileOutputStream(out);
                         buffer.get(bytes);
@@ -119,17 +116,12 @@ public class ImageSaver implements Runnable {
                 break;
             }
             case ImageFormat.YUV_420_888: {
-                File out =  new File(curDir(),curName()+".jpg");
+                File out = new File(curDir(), curName() + ".jpg");
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
-                    //output = new FileOutputStream(out);
+                    Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
-
-                    //byte[] bytes = new byte[buffer.remaining()];
-                    if(bcnt == Camera2Api.mburstcount-1 && Camera2Api.mburstcount != 1) {
-                        //buffer.duplicate().get(bytes);
-                        //output.write(bytes);
-                        //ExifInterface inter = new ExifInterface(out.getAbsolutePath());
+                    if (imageBuffer.size() == Settings.instance.framecount && Settings.instance.framecount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
@@ -138,14 +130,11 @@ public class ImageSaver implements Runnable {
                         done(processing);
                         Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
-                        ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,processing.path);
+                        ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult, processing.path);
                         inter.saveAttributes();
-                        mImage.close();
-                        Camera2Api.context.shot.setActivated(true);
-                        //output.close();
                         end();
                     }
-                    else {
+                    if (Settings.instance.framecount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
                         end();
@@ -154,20 +143,19 @@ public class ImageSaver implements Runnable {
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } finally {
-                    //mImage.close();
+
                 }
                 break;
             }
-
+            case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR: {
                 File out =  new File(curDir(),curName()+".jpg");
                 Log.e("ImageSaver","RawSensor:"+mImage);
-
                 try {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
+                    Log.d(TAG,"start buffersize:"+imageBuffer.size());
                     imageBuffer.add(mImage);
-                    bcnt++;
-                    if(bcnt == Camera2Api.mburstcount && Camera2Api.mburstcount != 1) {
+                    if(imageBuffer.size() == Settings.instance.framecount && Settings.instance.framecount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
@@ -178,11 +166,14 @@ public class ImageSaver implements Runnable {
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
                         Camera2Api.context.showToast("Done!");
-                        mImage.close();
+                        //mImage.close();
                         Camera2Api.context.shot.setActivated(true);
                         end();
                     }
-                    if(Camera2Api.mburstcount == 1) {
+                    if(Settings.instance.framecount == 1) {
+                        Log.d(TAG,"activearr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"precorr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"image:"+mImage.getCropRect());
                         DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
                         output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                         dngCreator.writeImage(output, mImage);
