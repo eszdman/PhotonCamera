@@ -51,7 +51,7 @@
             android:layout_gravity="center_vertical"
             android:background="#000000"
             android:clickable="true"
-            android:src="@drawable/checkbox_blank_circle_outline"
+            android:src="@drawable/ic_flip_camera"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
             tools:text="Shot" />

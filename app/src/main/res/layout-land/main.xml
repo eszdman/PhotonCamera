@@ -88,12 +88,12 @@
 
         <ImageButton
             android:id="@+id/flip_camera"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="106dp"
+            android:layout_height="106dp"
             android:layout_gravity="bottom|center_horizontal"
             android:background="#000000"
             android:clickable="true"
-            android:src="@drawable/checkbox_blank_circle_outline"
+            android:src="@drawable/ic_flip_camera"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
             tools:text="Shot" />
