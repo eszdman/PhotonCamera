@@ -28,7 +28,7 @@
         android:layout_above="@+id/control"
         android:layout_alignParentTop="true"
         android:layout_marginTop="113dp"
-        android:layout_marginBottom="36dp"
+        android:layout_marginBottom="37dp"
         android:layout_x="40dp"
         android:layout_y="74dp" />
 
@@ -137,19 +137,25 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ProgressBar
-        android:id="@+id/lightCycle"
-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_width="238dp"
-        android:layout_height="236dp"
-        android:layout_alignBottom="@+id/texture"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="91dp"
-        android:layout_marginEnd="82dp"
-        android:layout_marginBottom="150dp"
-        android:indeterminate="false"
-        android:max="100"
-        android:progressDrawable="@drawable/circular_progress_bar" />
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/lightCycle"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="238dp"
+            android:layout_height="236dp"
+            android:indeterminate="false"
+            android:max="100"
+            android:progressDrawable="@drawable/circular_progress_bar"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.497"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.434" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </RelativeLayout>
