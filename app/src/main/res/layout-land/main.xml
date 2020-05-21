@@ -95,8 +95,6 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 android:layout_gravity="end|center_vertical"
-                app:border_color="#ffff0000"
-                app:border_width="7dp"
                 app:civ_border_color="@color/Light"
                 app:civ_border_width="5dp"
                 app:layout_constraintBottom_toBottomOf="parent"
