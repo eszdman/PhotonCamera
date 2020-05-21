@@ -1,13 +1,15 @@
 package com.eszdman.photoncamera;
 
 import android.graphics.ImageFormat;
-import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.DngCreator;
 import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
+
+import com.eszdman.photoncamera.Photos.Photo;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,7 +35,6 @@ public class ImageSaver implements Runnable {
      * Image frame buffer
      */
     static ArrayList<Image> imageBuffer = new ArrayList<>();
-
     ImageSaver(Image image) {
         mImage = image;
     }
@@ -61,6 +62,14 @@ public class ImageSaver implements Runnable {
         return dir.getAbsolutePath();
     }
     private static void end(){
+       /*if(lastdir != "") {
+           try {
+               Log.d("MediaStore","Trying to instert:"+lastdir);
+               MediaStore.Images.Media.insertImage(MainActivity.act.getContentResolver(),lastdir,curName(),"From PhotonCamera");
+           } catch (FileNotFoundException e) {
+               e.printStackTrace();
+           }
+       }*/
         Camera2Api.context.shot.setActivated(true);
         Camera2Api.context.shot.setClickable(true);
     }
@@ -91,6 +100,7 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         inter.saveAttributes();
+                        Photo.instance.SaveImg(out);
                         end();
                     }
                     if(Settings.instance.framecount == 1){
@@ -118,6 +128,7 @@ public class ImageSaver implements Runnable {
                 break;
             }
             case ImageFormat.YUV_420_888: {
+
                 File out = new File(curDir(), curName() + ".jpg");
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
@@ -134,6 +145,7 @@ public class ImageSaver implements Runnable {
                         Thread.sleep(25);
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult, processing.path);
                         inter.saveAttributes();
+                        Photo.instance.SaveImg(out);
                         end();
                     }
                     if (Settings.instance.framecount == 1) {
@@ -172,6 +184,7 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.showToast("Done!");
                         //mImage.close();
                         Camera2Api.context.shot.setActivated(true);
+                        Photo.instance.SaveImg(out);
                         end();
                     }
                     if(Settings.instance.framecount == 1) {

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#212121</color>
+    <color name="colorPrimaryColored">#6594ff</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">#ff0266</color>
     <color name="GreyDis">#555555</color>
@@ -10,4 +11,5 @@
     <color name="Light">#F1F1F1</color>
     <color name="White">#FFFFFF</color>
     <color name="ToolBar">#1c1c1c</color>
+
 </resources>

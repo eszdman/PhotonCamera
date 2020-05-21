@@ -47,7 +47,7 @@
         <ImageButton
             android:id="@+id/flip_camera"
             android:layout_width="130dp"
-            android:layout_height="84dp"
+            android:layout_height="match_parent"
             android:layout_gravity="center_vertical"
             android:background="#000000"
             android:clickable="true"
@@ -57,8 +57,8 @@
             tools:text="Shot" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="145dp"
-            android:layout_height="121dp"
+            android:layout_width="107dp"
+            android:layout_height="142dp"
             android:layout_gravity="center_horizontal|center_vertical">
 
             <ImageButton
@@ -92,6 +92,29 @@
                 app:layout_constraintTop_toTopOf="@+id/picture"
                 tools:visibility="visible" />
 
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="131dp"
+            android:layout_height="142dp"
+            android:layout_gravity="center_horizontal|end">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/ImageOut"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="end|center_vertical"
+                android:src="@drawable/round"
+                app:border_color="#ffff0000"
+                app:border_width="7dp"
+                app:civ_border_color="@color/Light"
+                app:civ_border_width="5dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.49"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </FrameLayout>

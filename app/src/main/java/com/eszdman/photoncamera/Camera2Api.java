@@ -40,13 +40,11 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
@@ -70,6 +68,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
+import com.eszdman.photoncamera.Photos.Photo;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,6 +78,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class Camera2Api extends Fragment
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
@@ -471,15 +473,17 @@ public class Camera2Api extends Fragment
                 restartCamera();
                 break;
             }
+            case R.id.ImageOut: {
+                Photo.instance.ShowPhoto();
+            }
         }
     }
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(Settings.instance.framecount);
-        lightcycle.setMin(0);
+        //lightcycle.setMin(0);
         loadingcycle = view.findViewById(R.id.progressloading);
         loadingcycle.setMax(Settings.instance.framecount);
         shot = view.findViewById(R.id.picture);
@@ -493,6 +497,9 @@ public class Camera2Api extends Fragment
         settings.setActivated(true);
         ToggleButton hdrmul = view.findViewById(R.id.stacking);
         hdrmul.setOnClickListener(this);
+        CircleImageView img = view.findViewById(R.id.ImageOut);
+        img.setOnClickListener(this);
+        img.setClickable(true);
         //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
         mTextureView = view.findViewById(R.id.texture);
     }

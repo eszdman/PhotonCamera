@@ -30,6 +30,7 @@ public class Settings {
     public int contrast_const = 0;
     public double compressor = 1.0;
     public double gain = 1.0;
+    public String lastpic = null;
 
     TextView luma;
     TextView framestext;
@@ -234,7 +235,7 @@ public class Settings {
     }
 
 
-    void saveSettings(){
+    public void saveSettings(){
         sPref = MainActivity.act.getPreferences(MODE_PRIVATE);
         ed = sPref.edit();
         putset(NoiseReduction);
@@ -250,6 +251,7 @@ public class Settings {
         putset(saturation);
         putset(compressor);
         putset(gain);
+        putset(lastpic);
         ed.commit();
         cnt = 0;
     }
@@ -268,6 +270,7 @@ public class Settings {
         saturation = getset(saturation);
         compressor = getset(compressor);
         gain = getset(gain);
+        lastpic = getset(lastpic);
         cnt =0;
     }
     void setViews(){
@@ -331,6 +334,12 @@ public class Settings {
     double getset(double cur){
         double result;
         result= (double)(sPref.getFloat("Settings:"+cnt,(float)(cur)));
+        cnt++;
+        return result;
+    }
+    String getset(String cur){
+        String result;
+        result= (sPref.getString("Settings:"+cnt,(cur)));
         cnt++;
         return result;
     }

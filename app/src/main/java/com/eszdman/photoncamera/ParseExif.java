@@ -21,12 +21,12 @@ public class ParseExif {
         //if(time < 1.0) out = "1/"+String.valueOf((int)(1.0/time));
         return out;
     }
-    static public String resultget(CaptureResult res,Key key){
+    static public String resultget(CaptureResult res,Key<Object> key){
         Object out = res.get(key);
         if(out !=null) return out.toString();
         else return "";
     }
-    static String tag = "ParseExif";
+    private static String tag = "ParseExif";
     public static ExifInterface Parse(CaptureResult result, String path){
         ExifInterface inter = null;
         try {
@@ -48,6 +48,7 @@ public class ParseExif {
                 orientation = ExifInterface.ORIENTATION_ROTATE_270;
                 break;
         }
+        assert inter != null;
         inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
         Log.d(tag, "sensivity:"+result.get(SENSOR_SENSITIVITY).toString());
