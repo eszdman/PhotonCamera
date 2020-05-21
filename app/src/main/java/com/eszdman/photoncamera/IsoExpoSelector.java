@@ -15,20 +15,21 @@ public class IsoExpoSelector {
         int iso = Camera2Api.context.mPreviewIso;
         builder.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
         Log.d("IsoExpoSelector","InputParams: expotime:"+exposuretime+" iso:"+iso);
-        if(exposuretime < sec/60 && iso > 1500) {
-            exposuretime*=2;
-            iso/=2;
-        }
-        if(exposuretime < sec/30 && iso > 1500) {
-            exposuretime*=2;
-            iso/=2;
-        }
        if(exposuretime < sec/8 && iso > 1500) {
-           exposuretime*=2;
+           exposuretime*=1.1;
            iso/=2;
        }
+       else {
+           iso*=1.1;
+       }
        //iso += iso*step/(Camera2Api.mburstcount*2);
-       if(Camera2Api.mTargetFormat == Camera2Api.rawFormat) iso*=0.9;
+        if(Camera2Api.mTargetFormat == Camera2Api.rawFormat)
+       if(iso >= 100*1.3) iso*=0.70;
+       else{
+           exposuretime*=0.70;
+       }
+       //if(step%3==1) iso*=1.1;
+       //if(step%3 ==2) iso*=0.35;
        iso = Math.max(getISOLOW(),iso);
        iso = Math.min(getISOHIGH(),iso);
        Log.d(TAG,"IsoSelected:"+iso+" ExpoSelected:"+exposuretime);

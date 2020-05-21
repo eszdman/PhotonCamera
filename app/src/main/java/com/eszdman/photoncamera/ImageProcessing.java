@@ -351,7 +351,9 @@ public class ImageProcessing {
         Log.d(TAG,"CCG:"+vec.toString());
         Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
         double contr = 0.8 + 1.8/(1+Settings.instance.contrast_mpy*20);
-        Wrapper.setCompGain(Settings.instance.compressor,Settings.instance.gain,contr,Settings.instance.contrast_const);
+        double compr = Settings.instance.compressor;
+        compr = Math.max(1,compr);
+        Wrapper.setCompGain(compr,Settings.instance.gain,contr,Settings.instance.contrast_const);
         Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();

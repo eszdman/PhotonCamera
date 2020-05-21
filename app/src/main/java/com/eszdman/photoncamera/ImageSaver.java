@@ -177,15 +177,18 @@ public class ImageSaver implements Runnable {
                         processing.israw = true;
                         processing.path = out.getAbsolutePath();
                         done(processing);
-                        Thread.sleep(45);
+                        //Thread.sleep(50);
+                        out = new File(out.getAbsolutePath());
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
-                        Camera2Api.context.showToast("Done!");
+                        out = new File(out.getAbsolutePath());
                         //mImage.close();
                         Camera2Api.context.shot.setActivated(true);
+                        //Thread.sleep(10);
                         Photo.instance.SaveImg(out);
                         end();
+                        Camera2Api.context.showToast("Done!");
                     }
                     if(Settings.instance.framecount == 1) {
                         Log.d(TAG,"activearr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
@@ -200,7 +203,7 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.shot.setActivated(true);
                         Camera2Api.context.shot.setClickable(true);
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
                     //mImage.close();

@@ -1018,7 +1018,7 @@ public class Camera2Api extends Fragment
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             for(int i =0; i<Settings.instance.framecount; i++){
-                IsoExpoSelector.setExpo(captureBuilder,i-Settings.instance.framecount/2);
+                IsoExpoSelector.setExpo(captureBuilder,i);
                 captures.add(captureBuilder.build());
             }
             final int[] burstcount = {0,0, Settings.instance.framecount};
