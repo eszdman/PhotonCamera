@@ -7,6 +7,9 @@ import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
+
+import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
@@ -373,6 +376,7 @@ public class ImageProcessing {
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
     }
     public void Run(){
+        Camera2ApiAutoFix.ApplyRes();
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         byte buffval = plane.getBuffer().get();
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
