@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.Parameters;
 
 import android.graphics.Camera;
 import android.hardware.camera2.CameraCharacteristics;
@@ -6,6 +6,8 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 import android.util.Range;
+
+import com.eszdman.photoncamera.Camera2Api;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";

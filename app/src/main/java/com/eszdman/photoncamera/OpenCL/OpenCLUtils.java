@@ -51,8 +51,12 @@ public class OpenCLUtils {
     public void EnqueueKer(){
         long[] gwork = new long[gworksize.size()];
         long[] lwork = new long[lworksize.size()];
-        for(int i =0; i<gworksize.size();i++){gwork[i] = (long)gworksize.get(i);}
-        for(int i =0; i<lworksize.size();i++){lwork[i] = (long)lworksize.get(i);}
+        for(int i =0; i<gworksize.size();i++){gwork[i] = (long)gworksize.get(i);
+        }
+        gworksize.clear();
+        for(int i =0; i<lworksize.size();i++){lwork[i] = (long)lworksize.get(i);
+        }
+        lworksize.clear();
         clEnqueueNDRangeKernel(commandQueue,kernel,gworksize.size(),null,
                 gwork,lwork,0,null,null);
     }

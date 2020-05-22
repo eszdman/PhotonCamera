@@ -7,9 +7,7 @@ import static org.jocl.CL.clSetKernelArg;
 public class Algorithm {
     int inNum;
     String programSource;
-    cl_command_queue commandQueue;
     cl_kernel kernel;
-    cl_context context;
     String name;
     Long start;
     public Algorithm(Program program){

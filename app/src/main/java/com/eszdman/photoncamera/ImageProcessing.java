@@ -34,10 +34,10 @@ import static org.opencv.calib3d.Calib3d.findHomography;
 public class ImageProcessing {
     static String TAG = "ImageProcessing";
     ArrayList<Image> curimgs;
-    Boolean israw;
-    Boolean isyuv;
-    String path;
-    ImageProcessing(ArrayList<Image> images) {
+    public Boolean israw;
+    public Boolean isyuv;
+    public String path;
+    public ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
     }
     Mat convertyuv(Image image){
@@ -214,18 +214,6 @@ public class ImageProcessing {
         }
         Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
-        /*if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }
-        if(curimgs.size() > 6)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }
-        if(curimgs.size() > 11)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }*/
         processingstep();
         //merge.process(imgsmat,merging);
         //Core.convertScaleAbs(merging,output,255);
