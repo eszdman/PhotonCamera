@@ -7,6 +7,9 @@ import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
+
+import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
@@ -34,10 +37,10 @@ import static org.opencv.calib3d.Calib3d.findHomography;
 public class ImageProcessing {
     static String TAG = "ImageProcessing";
     ArrayList<Image> curimgs;
-    Boolean israw;
-    Boolean isyuv;
-    String path;
-    ImageProcessing(ArrayList<Image> images) {
+    public Boolean israw;
+    public Boolean isyuv;
+    public String path;
+    public ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
     }
     Mat convertyuv(Image image){
@@ -214,18 +217,6 @@ public class ImageProcessing {
         }
         Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:"+imgsmat.size());
-        /*if(curimgs.size() > 4) for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }
-        if(curimgs.size() > 6)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }
-        if(curimgs.size() > 11)for(int i =0; i<imgsmat.size()-1; i+=2) {
-            Core.addWeighted(imgsmat.get(i),0.7,imgsmat.get(i+1),0.3,0,imgsmat.get(i));
-            imgsmat.remove(i+1);
-        }*/
         processingstep();
         //merge.process(imgsmat,merging);
         //Core.convertScaleAbs(merging,output,255);
@@ -385,6 +376,7 @@ public class ImageProcessing {
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
     }
     public void Run(){
+        Camera2ApiAutoFix.ApplyRes();
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         byte buffval = plane.getBuffer().get();
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));

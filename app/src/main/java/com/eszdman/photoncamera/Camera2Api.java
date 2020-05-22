@@ -68,6 +68,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
+import com.eszdman.photoncamera.Extra.CameraReflectionApi;
+import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.Photos.ImageSaver;
 import com.eszdman.photoncamera.Photos.Photo;
 
 import java.io.File;
@@ -147,8 +150,8 @@ public class Camera2Api extends Fragment
 
     //public static int Settings.instance.framecount = 3;
     public static CaptureResult mPreviewResult;
-    long mPreviewExposuretime;
-    int mPreviewIso;
+    public long mPreviewExposuretime;
+    public int mPreviewIso;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -435,7 +438,7 @@ public class Camera2Api extends Fragment
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.main, container, false);
     }
-    ImageButton shot;
+    public ImageButton shot;
     ProgressBar lightcycle;
     static ProgressBar loadingcycle;
     @Override
@@ -539,14 +542,13 @@ public class Camera2Api extends Fragment
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-    private Rect mul(Rect in, double k){
+    private void mul(Rect in, double k){
         in.bottom*=k;
         in.left*=k;
         in.right*=k;
         in.top*=k;
-        return in;
     }
-    Size getCameraOutputSize(Size[] in){
+    private Size getCameraOutputSize(Size[] in){
         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size()-1;
@@ -557,8 +559,8 @@ public class Camera2Api extends Fragment
             Rect pre =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
             Rect act =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
             double k = (double)(target.getHeight())/act.bottom;
-            pre = mul(pre,k);
-            act = mul(act,k);
+            mul(pre,k);
+            mul(act,k);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
             return target;

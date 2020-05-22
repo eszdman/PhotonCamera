@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.Photos;
 
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
@@ -7,9 +7,9 @@ import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
-
-import com.eszdman.photoncamera.Photos.Photo;
-
+import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ImageProcessing;
+import com.eszdman.photoncamera.Settings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -34,8 +34,8 @@ public class ImageSaver implements Runnable {
     /**
      * Image frame buffer
      */
-    static ArrayList<Image> imageBuffer = new ArrayList<>();
-    ImageSaver(Image image) {
+    public static ArrayList<Image> imageBuffer = new ArrayList<>();
+    public ImageSaver(Image image) {
         mImage = image;
     }
     public ImageProcessing processing(){
