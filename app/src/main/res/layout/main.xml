@@ -28,9 +28,18 @@
         android:layout_above="@+id/control"
         android:layout_alignParentTop="true"
         android:layout_marginTop="113dp"
-        android:layout_marginBottom="37dp"
-        android:layout_x="40dp"
-        android:layout_y="74dp" />
+        android:layout_marginBottom="37dp" />
+
+    <ImageView
+        android:id="@+id/grid"
+        android:layout_width="match_parent"
+        android:layout_height="489dp"
+        android:layout_alignStart="@+id/texture"
+        android:layout_alignEnd="@+id/texture"
+        android:layout_marginTop="113dp"
+        android:layout_marginEnd="0dp"
+        android:scaleType="fitXY"
+        app:srcCompat="@drawable/ic_grid" />
 
     <FrameLayout
         android:id="@+id/control"
@@ -46,7 +55,7 @@
 
         <ImageButton
             android:id="@+id/flip_camera"
-            android:layout_width="130dp"
+            android:layout_width="136dp"
             android:layout_height="match_parent"
             android:layout_gravity="center_vertical"
             android:background="#000000"
@@ -95,7 +104,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="131dp"
+            android:layout_width="137dp"
             android:layout_height="142dp"
             android:layout_gravity="center_horizontal|end">
 
@@ -177,5 +186,4 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.434" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </RelativeLayout>

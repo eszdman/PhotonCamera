@@ -58,6 +58,17 @@
                     android:min="1"
                     android:progress="0" />
 
+                <Switch
+                    android:id="@+id/setting_grid"
+                    android:layout_width="match_parent"
+                    android:layout_height="65dp"
+                    android:drawableStart="@drawable/ic_settings_grid"
+                    android:drawablePadding="20dp"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center|start|center_horizontal"
+                    android:text="@string/turn_on_grid"
+                    android:textSize="16sp" />
+
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"

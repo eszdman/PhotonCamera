@@ -18,4 +18,5 @@
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness:</string>
+    <string name="turn_on_grid">Show grid</string>
 </resources>

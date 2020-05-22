@@ -8,4 +8,5 @@
     <string name="chroma_nr_count">Riduzione del rumore di crominanza:</string>
     <string name="enhanced_processing">Processamento avanzato</string>
     <string name="settings">Impostazioni</string>
+    <string name="turn_on_grid">Mostra griglia</string>
 </resources>

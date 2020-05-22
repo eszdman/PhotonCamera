@@ -5,6 +5,7 @@ import android.content.res.Resources;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -22,6 +23,7 @@ public class Settings {
     public int lumacount = 3;
     public int chromacount = 12;
     public boolean enhancedprocess = false;
+    public boolean grid = false;
     public boolean align = true;
     public boolean hdrx = true;
     public double saturation = 0.7;
@@ -38,6 +40,7 @@ public class Settings {
     Switch turnNR;
     Switch disablealign;
     Switch enhanced;
+    Switch gridOnOff;
 
     SeekBar framecnt;
     SeekBar lumacnt;
@@ -65,6 +68,7 @@ public class Settings {
         return MainActivity.act.findViewById(id);
     }
     void views(){
+        gridOnOff = getView(R.id.setting_grid);
         turnNR = getView(R.id.setting_turnNR);
         disablealign = getView(R.id.setting_disablealign);
         framestext = getView(R.id.setting_framecounter);
@@ -92,7 +96,7 @@ public class Settings {
         else NoiseReduction = NOISE_REDUCTION_MODE_OFF;
         align = !disablealign.isChecked();
         enhancedprocess = enhanced.isChecked();
-
+        grid = gridOnOff.isChecked();
         saveSettings();
         saveViews();
     }
@@ -245,6 +249,7 @@ public class Settings {
         putset(lumacount);
         putset(chromacount);
         putset(enhancedprocess);
+        putset(grid);
         putset(sharpness);
         putset(contrast_mpy);
         putset(contrast_const);
@@ -264,6 +269,7 @@ public class Settings {
         lumacount = getset(lumacount);
         chromacount = getset(chromacount);
         enhancedprocess = getset(enhancedprocess);
+        grid = getset(grid);
         sharpness = getset(sharpness);
         contrast_mpy = getset(contrast_mpy);
         contrast_const = getset(contrast_const);
@@ -279,6 +285,7 @@ public class Settings {
         setv(chromacnt,chromacount);
         setv(lumacnt,lumacount);
         setv(enhanced,enhancedprocess);
+        setv(gridOnOff,grid);
         setv(sharp,sharpness);
         setv(contrastconst,contrast_const);
         setv(contrastmul,contrast_mpy);

@@ -57,6 +57,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -517,6 +518,9 @@ public class Camera2Api extends Fragment
         img.setClickable(true);
         //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
         mTextureView = view.findViewById(R.id.texture);
+        ImageView grid_icon = view.findViewById(R.id.grid);
+        if(Settings.instance.grid) grid_icon.setVisibility(View.VISIBLE);
+        else grid_icon.setVisibility(View.GONE);
     }
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
