@@ -146,7 +146,9 @@ public class Camera2Api extends Fragment
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
+    public static final int prevFormat = ImageFormat.YUV_420_888;
     public static int mTargetFormat = rawFormat;
+    public static int mPreviewTargetFormat = prevFormat;
 
     //public static int Settings.instance.framecount = 3;
     public static CaptureResult mPreviewResult;
@@ -260,6 +262,16 @@ public class Camera2Api extends Fragment
 
         @Override
         public void onImageAvailable(ImageReader reader) {
+            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
+        }
+
+    };
+    private final ImageReader.OnImageAvailableListener mOnRawImageAvailableListener
+            = new ImageReader.OnImageAvailableListener() {
+
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            //dequeueAndSaveImage(mRawResultQueue, mRawImageReader);
             mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 
@@ -616,11 +628,12 @@ public class Camera2Api extends Fragment
         if (map == null) {return;}
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Settings.instance.framecount+3);
+                mPreviewTargetFormat, Settings.instance.framecount+3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                ImageFormat.RAW_SENSOR, Settings.instance.framecount+3);
+                mTargetFormat, Settings.instance.framecount+3);
+        mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener,mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -706,6 +719,8 @@ public class Camera2Api extends Fragment
             if (null != mImageReader) {
                 mImageReader.close();
                 mImageReader = null;
+                mImageReaderRes.close();
+                mImageReaderRes = null;
             }
             if(null != mPreviewRequestBuilder){
                 mPreviewRequestBuilder = null;
@@ -742,10 +757,13 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, /*maxImages*/Settings.instance.framecount+3);
-
+                mPreviewTargetFormat, /*maxImages*/Settings.instance.framecount+3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
+        mImageReaderRes = ImageReader.newInstance(target.getWidth(),target.getHeight(),
+                mTargetFormat,Settings.instance.framecount+3);
+        mImageReaderRes.setOnImageAvailableListener(
+                mOnRawImageAvailableListener,mBackgroundHandler);
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
@@ -816,6 +834,8 @@ public class Camera2Api extends Fragment
             if (null != mImageReader) {
                 mImageReader.close();
                 mImageReader = null;
+                mImageReaderRes.close();
+                mImageReaderRes = null;
             }
             mState = STATE_CLOSED;
         } catch (InterruptedException e) {
@@ -869,7 +889,7 @@ public class Camera2Api extends Fragment
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()),
+            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface(),mImageReaderRes.getSurface()),
                     new CameraCaptureSession.StateCallback() {
 
                         @RequiresApi(api = Build.VERSION_CODES.O)
@@ -1009,9 +1029,10 @@ public class Camera2Api extends Fragment
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
 
             // Use the same AE and AF modes as the preview.
-            mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
+            //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
+            mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener,mBackgroundHandler);
             //captureBuilder.addTarget(mImageReader.getSurface());
-            captureBuilder.addTarget(mImageReader.getSurface());
+            captureBuilder.addTarget(mImageReaderRes.getSurface());
             Settings.instance.applyRes(captureBuilder);
             //lightcycle.setVisibility(View.VISIBLE);
             setAutoFlash(captureBuilder);
