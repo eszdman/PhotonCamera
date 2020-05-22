@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.Photos.Photo;
 
 import org.opencv.android.OpenCVLoader;
@@ -32,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = this.getIntent();
         this.finish();
         this.startActivity(intent);
+        Animatoo.animateShrink(this);
     }
     @Override
     protected void onCreate(Bundle savedInstanceState){
