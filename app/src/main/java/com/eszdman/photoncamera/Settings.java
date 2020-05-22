@@ -24,11 +24,11 @@ public class Settings {
     public boolean enhancedprocess = false;
     public boolean align = true;
     public boolean hdrx = true;
-    public double saturation = 0.65;
+    public double saturation = 0.7;
     public double sharpness = 0.3;
     public double contrast_mpy = 0.85;
     public int contrast_const = 0;
-    public double compressor = 1.0;
+    public double compressor = 2.13;
     public double gain = 1.0;
     public String lastpic = null;
 
