@@ -33,13 +33,18 @@
     <ImageView
         android:id="@+id/grid"
         android:layout_width="match_parent"
-        android:layout_height="489dp"
+        android:layout_height="557dp"
+        android:layout_above="@+id/control"
         android:layout_alignStart="@+id/texture"
         android:layout_alignEnd="@+id/texture"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="0dp"
         android:layout_marginTop="113dp"
         android:layout_marginEnd="0dp"
+        android:layout_marginBottom="37dp"
         android:scaleType="fitXY"
-        app:srcCompat="@drawable/ic_grid" />
+        app:srcCompat="@drawable/ic_grid"
+        tools:visibility="gone" />
 
     <FrameLayout
         android:id="@+id/control"
