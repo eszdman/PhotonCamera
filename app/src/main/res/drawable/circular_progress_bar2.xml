@@ -7,12 +7,12 @@
     android:toDegrees="140">
     <item android:id="@android:id/background">
         <shape
-            android:innerRadiusRatio="3"
+            android:innerRadiusRatio="2.7"
             android:shape="ring"
             android:useLevel="false"
             android:angle="0"
             android:type="sweep"
-            android:thicknessRatio="20.0">
+            android:thicknessRatio="39.0">
             <solid android:color="@color/White"/>
         </shape>
 
@@ -22,11 +22,11 @@
             android:fromDegrees="120"
             android:toDegrees="120">
             <shape
-                android:innerRadiusRatio="3"
+                android:innerRadiusRatio="2.7"
                 android:shape="ring"
                 android:angle="0"
                 android:type="sweep"
-                android:thicknessRatio="20.0">
+                android:thicknessRatio="39.0">
                 <solid android:color="@color/Blue"/>
             </shape>
         </rotate>

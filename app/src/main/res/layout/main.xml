@@ -94,16 +94,16 @@
             <ProgressBar
                 android:id="@+id/progressloading"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_width="102dp"
-                android:layout_height="94dp"
+                android:layout_width="100dp"
+                android:layout_height="91dp"
                 android:indeterminate="false"
                 android:max="100"
                 android:progress="0"
                 android:progressDrawable="@drawable/circular_progress_bar2"
-                app:layout_constraintBottom_toBottomOf="@+id/picture"
-                app:layout_constraintEnd_toEndOf="@+id/picture"
-                app:layout_constraintStart_toStartOf="@+id/picture"
-                app:layout_constraintTop_toTopOf="@+id/picture"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -120,7 +120,7 @@
                 android:layout_gravity="end|center_vertical"
                 android:src="@drawable/round"
                 app:civ_border_color="@color/Light"
-                app:civ_border_width="5dp"
+                app:civ_border_width="3dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.49"

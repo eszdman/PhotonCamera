@@ -66,8 +66,8 @@
 
             <ImageButton
                 android:id="@+id/picture"
-                android:layout_width="89dp"
-                android:layout_height="87dp"
+                android:layout_width="91dp"
+                android:layout_height="88dp"
                 android:layout_gravity="center_horizontal|center_vertical"
                 android:background="#000000"
                 android:clickable="true"
