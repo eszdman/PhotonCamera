@@ -101,8 +101,8 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ImageOut"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
+                android:layout_width="55.2dp"
+                android:layout_height="55.2dp"
                 android:layout_gravity="end|center_vertical"
                 android:src="@drawable/round"
                 app:civ_border_color="@color/Light"
@@ -111,8 +111,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.49"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                />
+                app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </FrameLayout>
