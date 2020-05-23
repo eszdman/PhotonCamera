@@ -226,6 +226,8 @@ public class Settings {
         captureBuilder.set(NOISE_REDUCTION_MODE, NoiseReduction);
         captureBuilder.set(HOT_PIXEL_MODE,HOT_PIXEL_MODE_HIGH_QUALITY);
         captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
+        captureBuilder.set(CONTROL_AE_MODE,CONTROL_AE_STATE_LOCKED);
+        captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
         captureBuilder.set(EDGE_MODE,EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
@@ -235,6 +237,7 @@ public class Settings {
         captureBuilder.set(EDGE_MODE,EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
+        captureBuilder.set(CONTROL_AE_MODE,CONTROL_AE_MODE_ON);
         captureBuilder.set(CONTROL_AF_MODE,AfMode);
     }
 

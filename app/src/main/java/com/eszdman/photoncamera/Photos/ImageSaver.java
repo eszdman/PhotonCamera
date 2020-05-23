@@ -44,7 +44,7 @@ public class ImageSaver implements Runnable {
     public void done(ImageProcessing proc){
         proc.Run();
         for(int i =0; i<imageBuffer.size();i++){
-            imageBuffer.get(i).close();
+            //imageBuffer.get(i).close();
         }
         imageBuffer = new ArrayList<>();
         Log.e("ImageSaver","ImageSaver Done!");
@@ -62,14 +62,7 @@ public class ImageSaver implements Runnable {
         return dir.getAbsolutePath();
     }
     private static void end(){
-       /*if(lastdir != "") {
-           try {
-               Log.d("MediaStore","Trying to instert:"+lastdir);
-               MediaStore.Images.Media.insertImage(MainActivity.act.getContentResolver(),lastdir,curName(),"From PhotonCamera");
-           } catch (FileNotFoundException e) {
-               e.printStackTrace();
-           }
-       }*/
+       imageBuffer.clear();
         Camera2Api.context.shot.setActivated(true);
         Camera2Api.context.shot.setClickable(true);
     }
@@ -170,6 +163,9 @@ public class ImageSaver implements Runnable {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
                     imageBuffer.add(mImage);
+                    if(imageBuffer.size() > Settings.instance.framecount){
+                        imageBuffer.get(imageBuffer.size()-1).close();
+                    }
                     if(imageBuffer.size() == Settings.instance.framecount && Settings.instance.framecount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
@@ -183,9 +179,7 @@ public class ImageSaver implements Runnable {
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
                         out = new File(out.getAbsolutePath());
-                        //mImage.close();
                         Camera2Api.context.shot.setActivated(true);
-                        //Thread.sleep(10);
                         Photo.instance.SaveImg(out);
                         end();
                         Camera2Api.context.showToast("Done!");
@@ -202,6 +196,10 @@ public class ImageSaver implements Runnable {
                         output.close();
                         Camera2Api.context.shot.setActivated(true);
                         Camera2Api.context.shot.setClickable(true);
+                    }
+                    if(imageBuffer.size() > Settings.instance.framecount) {
+                        imageBuffer.get(imageBuffer.size()-1).close();
+                        imageBuffer.remove(imageBuffer.size()-1);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

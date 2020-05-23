@@ -3,16 +3,18 @@ import android.util.Log;
 import android.util.Size;
 
 import org.jocl.*;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
 import static org.jocl.CL.*;
-import static org.jocl.Sizeof.*;
 
 public class OpenCLUtils {
     String TAG = "OpenCLUtils";
+    String kernelname = "PCamKernel";
     cl_mem memVar[] = null;
     public OpenCLUtils(int InNumber){
         memVar = new cl_mem[InNumber];
@@ -25,23 +27,18 @@ public class OpenCLUtils {
     String name2;
     String programSource;
     int cnt = 0;
-    public void CreateVar(Object[] in, Pointer in2, boolean rw){
-        int size = 0;
-        Class inc = in[0].getClass();
-        if(inc == Short.class){
-            size = Sizeof.cl_short;
-        }
-        if(inc == Double.class){
-            size = cl_double;
-        }
+    public void MemoryAdd(int size, Pointer in2, boolean rw){
         long flags = 0;
         flags = CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR;
         if(rw) {flags = CL_MEM_READ_WRITE; in2 = null;}
-        memVar[cnt] = clCreateBuffer(context, flags, size*in.length,in2,null);
+        memVar[cnt] = clCreateBuffer(context, flags, size,in2,null);
         cnt++;
     }
-    List<Object> gworksize = new ArrayList();
-    ArrayList<Object> lworksize = new ArrayList();
+    public void MemoryRead(int size, int number, Pointer buff){
+        clEnqueueReadBuffer(commandQueue,memVar[number-1],CL_TRUE,0,size,buff,0,null,null);
+    }
+    private ArrayList<Object> gworksize = new ArrayList();
+    private ArrayList<Object> lworksize = new ArrayList();
     public void addGWork(long size){
         gworksize.add(size);
     }
@@ -49,13 +46,12 @@ public class OpenCLUtils {
         lworksize.add(size);
     }
     public void EnqueueKer(){
+        setArg(cnt+1);
         long[] gwork = new long[gworksize.size()];
         long[] lwork = new long[lworksize.size()];
-        for(int i =0; i<gworksize.size();i++){gwork[i] = (long)gworksize.get(i);
-        }
+        for(int i =0; i<gworksize.size();i++){gwork[i] = (long)gworksize.get(i);}
         gworksize.clear();
-        for(int i =0; i<lworksize.size();i++){lwork[i] = (long)lworksize.get(i);
-        }
+        for(int i =0; i<lworksize.size();i++){lwork[i] = (long)lworksize.get(i);}
         lworksize.clear();
         clEnqueueNDRangeKernel(commandQueue,kernel,gworksize.size(),null,
                 gwork,lwork,0,null,null);
@@ -110,20 +106,20 @@ public class OpenCLUtils {
                 1, new String[]{ programSource }, null, null);
         // Build the program
         clBuildProgram(program, 0, null, null, null, null);
-
         // Create the kernel
-        kernel = clCreateKernel(program, "PCamKernel", null);
+        kernel = clCreateKernel(program, kernelname, null);
     }
-    public void setArg(int num) {
+    private void setArg(int num) {
         for(int i = 0; i<num; i++){
             clSetKernelArg(kernel, i,
                     Sizeof.cl_mem, Pointer.to(memVar[i]));
         }
     }
-    public void ReleaseAll(int num){
-        for(int i = 0; i<num; i++){
+    public void ReleaseAll(){
+        for(int i = 0; i<cnt; i++){
             clReleaseMemObject(memVar[i]);
         }
+        cnt = 0;
         clReleaseKernel(kernel);
         clReleaseProgram(program);
         clReleaseCommandQueue(commandQueue);

@@ -43,10 +43,12 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -454,6 +456,7 @@ public class Camera2Api extends Fragment
     public ImageButton shot;
     ProgressBar lightcycle;
     static ProgressBar loadingcycle;
+    public CircleImageView img;
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -513,7 +516,7 @@ public class Camera2Api extends Fragment
         settings.setActivated(true);
         ToggleButton hdrmul = view.findViewById(R.id.stacking);
         hdrmul.setOnClickListener(this);
-        CircleImageView img = view.findViewById(R.id.ImageOut);
+        img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
         //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
@@ -1031,16 +1034,12 @@ public class Camera2Api extends Fragment
             // This is the CaptureRequest.Builder that we use to take a picture.
             final CaptureRequest.Builder captureBuilder =
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener,mBackgroundHandler);
-            //captureBuilder.addTarget(mImageReader.getSurface());
             captureBuilder.addTarget(mImageReaderRes.getSurface());
             Settings.instance.applyRes(captureBuilder);
-            //lightcycle.setVisibility(View.VISIBLE);
             setAutoFlash(captureBuilder);
-            // Orientation
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
@@ -1048,6 +1047,7 @@ public class Camera2Api extends Fragment
                 IsoExpoSelector.setExpo(captureBuilder,i);
                 captures.add(captureBuilder.build());
             }
+            //img
             final int[] burstcount = {0,0, Settings.instance.framecount};
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {

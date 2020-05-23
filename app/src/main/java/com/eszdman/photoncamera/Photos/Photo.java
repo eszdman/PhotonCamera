@@ -4,9 +4,12 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.MainActivity;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Settings;
@@ -21,8 +24,16 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 public class Photo {
     public static Photo instance;
+    private Handler galleryhandl;
     public Photo(){
         instance = this;
+        galleryhandl = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                Uri uri = (Uri) msg.obj;
+                Camera2Api.context.img.setImageURI(uri);
+            }
+        };
     }
     Intent imgintent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
     public void ShowPhoto(File imageFile) {
@@ -66,21 +77,25 @@ public class Photo {
         }
     }
     public void SaveImg(File in){
+
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             boolean wasnull = Settings.instance.lastpic == null;
             Settings.instance.lastpic = in.getAbsolutePath();
             if(wasnull) Settings.instance.saveSettings();
             Uri contentUri = Uri.fromFile(in);
+            try {
+            //CircleImageView button = MainActivity.act.findViewById(R.id.ImageOut);
+                //Camera2Api.context.img.setImageURI(contentUri);
+            Message urim = new Message();
+            urim.obj = contentUri;
+            galleryhandl.sendMessage(urim);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
             mediaScanIntent.setData(contentUri);
             MainActivity.act.sendBroadcast(mediaScanIntent);
             File outputDir = MainActivity.act.getCacheDir();
             File outputFile = null;
-        try {    outputFile = File.createTempFile("bitmap", "jpg", outputDir);
-        } catch (IOException e) {e.printStackTrace();}
-        try {
-            CircleImageView button = MainActivity.act.findViewById(R.id.ImageOut);
-            button.setImageURI(contentUri);
 
-        } catch (Exception e){}
     }
 }

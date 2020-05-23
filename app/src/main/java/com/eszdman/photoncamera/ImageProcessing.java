@@ -3,12 +3,15 @@ package com.eszdman.photoncamera;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.LensShadingMap;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
 
 import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.OpenCL.ExampleUtil;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -28,9 +31,15 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
+import org.opencv.xphoto.Xphoto;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.xpath.XPath;
+
+import static android.hardware.camera2.CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL;
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
 
@@ -340,7 +349,10 @@ public class ImageProcessing {
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
         Log.d(TAG,"CCG:"+vec.toString());
-        Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
+        float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
+        int bl = 0;
+        for(int i =0; i<4;i++) bl = (int)(bl+level[i])/2;
+        Wrapper.setBWLWB(bl,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
         double contr = 0.8 + 1.8/(1+Settings.instance.contrast_mpy*20);
         double compr = Settings.instance.compressor;
         compr = Math.max(1,compr);
@@ -361,24 +373,38 @@ public class ImageProcessing {
         Wrapper.setCCM(ccm);
         Log.d(TAG,"Wrapper.setCCM");
         processingstep();
+        LensShadingMap lenss = res.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
+        Log.d(TAG,"LensShading Row:"+lenss.getRowCount());
+        Log.d(TAG,"LensShading Col:"+lenss.getColumnCount());
+        Log.d(TAG,"LensShading Count:"+lenss.getGainFactorCount());
         for(int i =0; i<curimgs.size();i++) {
             Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
+            curimgs.get(i).close();
         }
         //ByteBuffer out = curimgs.get(3).getPlanes()[0].getBuffer();
         Log.d(TAG,"Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
+        //ExampleUtil.Run(output,width,height);
         Log.d(TAG,"Wrapper.processFrame()");
         processingstep();
         Mat out = new Mat(height,width,CvType.CV_8UC3,output);
-        //Imgproc.pyrDown();
         Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
+        try {
+            Thread.sleep(25);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
     public void Run(){
-        Camera2ApiAutoFix.ApplyRes();
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
-        byte buffval = plane.getBuffer().get();
+        Log.d(TAG,"buffer parameters:");
+        Log.d(TAG,"bufferpixelstride"+plane.getPixelStride());
+        Log.d(TAG,"bufferrowstride"+plane.getRowStride());
+        Camera2ApiAutoFix.ApplyRes();
+
+
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
         if(israw) {
             /*Log.d(TAG,"RawProcessingHDRX: RowStride:"+curimgs.get(0).getPlanes()[0].getRowStride());
@@ -389,10 +415,7 @@ public class ImageProcessing {
             ApplyHdrX();
         }
         if(isyuv)ApplyStabilization();
-        Log.d(TAG,"buffer parameters:");
-        Log.d(TAG,"bufferpixelstride"+plane.getPixelStride());
-        Log.d(TAG,"bufferrowstride"+plane.getRowStride());
-        Log.d(TAG,"buffervalue"+buffval);
+
         Camera2Api.loadingcycle.setProgress(0);
     }
 }
