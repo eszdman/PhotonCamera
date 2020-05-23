@@ -39,13 +39,11 @@ public class Camera2ApiAutoFix {
     public void dynBL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         BlackLevelPattern ptr = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        int[] lvl = new int[4];
         if(ptr == null) return;
-        ptr.copyTo(lvl,0);
        if(level == null){
            level = new float[4];
            for(int i =0; i<4; i++){
-               level[i] = lvl[i];
+               level[i] = ptr.getOffsetForIndex(i%2,i/2);
            }
            CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
            return;
