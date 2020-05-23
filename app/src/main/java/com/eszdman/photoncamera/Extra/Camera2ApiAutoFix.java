@@ -50,10 +50,5 @@ public class Camera2ApiAutoFix {
            CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
            return;
        }
-       for(int i=0; i<4;i++){
-           if(level[i] == 0) {
-               level[i] = lvl[i];
-           }
-       }
     }
 }
