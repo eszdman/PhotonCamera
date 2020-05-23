@@ -43,12 +43,11 @@ public class Camera2ApiAutoFix {
         if(ptr == null) return;
         ptr.copyTo(lvl,0);
        if(level == null){
-           level = new float[4];
-           for(int i =0; i<4; i++){
-               level[i] = lvl[i];
+           float[] Arr = new float[4];
+           for (int i = 0; i < 4; i++) {
+               Arr[i] = (float) ptr.getOffsetForIndex(i % 2, i/ 2);
            }
            CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
-           return;
        }
     }
 }
