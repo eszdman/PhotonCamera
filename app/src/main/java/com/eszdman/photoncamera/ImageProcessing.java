@@ -351,9 +351,9 @@ public class ImageProcessing {
         Log.d(TAG,"CCG:"+vec.toString());
         float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         int bl = 0;
-        for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
-        bl/=4;
-        Wrapper.setBWLWB(bl,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
+        //for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
+        //bl/=4;
+        Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
         double contr = 0.8 + 1.8/(1+Settings.instance.contrast_mpy*20);
         double compr = Settings.instance.compressor;
         compr = Math.max(1,compr);

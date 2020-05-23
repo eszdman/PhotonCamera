@@ -33,11 +33,7 @@ public class Camera2ApiAutoFix {
         if(WB == null) return;
         RggbChannelVector rggbChannelVector = result.get(COLOR_CORRECTION_GAINS);
         if(rggbChannelVector == null){
-            CameraReflectionApi.set(COLOR_CORRECTION_GAINS,new RggbChannelVector(WB[0].floatValue(),1,1,WB[2].floatValue()));
-            return;
-        }
-        if(rggbChannelVector.getRed() == 0 || rggbChannelVector.getGreenEven() == 0 || rggbChannelVector.getGreenOdd() == 0 || rggbChannelVector.getBlue() == 0){
-            CameraReflectionApi.set(COLOR_CORRECTION_GAINS,new RggbChannelVector(WB[0].floatValue(),1,1,WB[2].floatValue()));
+            CameraReflectionApi.set(COLOR_CORRECTION_GAINS,new RggbChannelVector(WB[0].floatValue()*1.3f,WB[1].floatValue()/1.78f,WB[1].floatValue()/1.78f,WB[2].floatValue()*2f));
         }
     }
     public void dynBL(){
@@ -47,9 +43,12 @@ public class Camera2ApiAutoFix {
         if(ptr == null) return;
         ptr.copyTo(lvl,0);
        if(level == null){
+           level = new float[4];
            for(int i =0; i<4; i++){
                level[i] = lvl[i];
            }
+           CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
+           return;
        }
        for(int i=0; i<4;i++){
            if(level[i] == 0) {
