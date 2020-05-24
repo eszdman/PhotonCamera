@@ -3,7 +3,6 @@ package com.eszdman.photoncamera;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
 import android.hardware.camera2.params.RggbChannelVector;
@@ -11,7 +10,6 @@ import android.media.Image;
 import android.util.Log;
 
 import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
-import com.eszdman.photoncamera.OpenCL.ExampleUtil;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -31,13 +29,10 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
-import org.opencv.xphoto.Xphoto;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.xml.xpath.XPath;
 
 import static android.hardware.camera2.CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL;
 import static org.opencv.calib3d.Calib3d.RANSAC;

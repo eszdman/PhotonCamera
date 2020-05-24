@@ -69,7 +69,7 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="107dp"
-            android:layout_height="142dp"
+            android:layout_height="match_parent"
             android:layout_gravity="center_horizontal|center_vertical">
 
             <ImageButton
@@ -107,17 +107,19 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="137dp"
-            android:layout_height="142dp"
+            android:layout_height="match_parent"
             android:layout_gravity="center_horizontal|end">
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ImageOut"
-                android:layout_width="55.8dp"
-                android:layout_height="55.8dp"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
                 android:layout_gravity="end|center_vertical"
                 android:src="@drawable/round"
+                android:padding="9dp"
                 app:civ_border_color="@color/Light"
-                app:civ_border_width="3dp"
+                app:civ_border_width="0dp"
+                android:background="@drawable/ic_outer_circle"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.49"
