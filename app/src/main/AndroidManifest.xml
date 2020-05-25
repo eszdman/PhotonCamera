@@ -8,6 +8,7 @@
     <uses-feature android:name="android.hardware.camera"  android:required="true"/>
     <uses-feature android:name="android.hardware.camera.autofocus" />
     <application
+        android:requestLegacyExternalStorage="true"
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:largeHeap="true"
