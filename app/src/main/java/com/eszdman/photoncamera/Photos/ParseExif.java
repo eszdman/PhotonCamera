@@ -3,6 +3,8 @@ package com.eszdman.photoncamera.Photos;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.os.Build;
+import android.util.AndroidException;
 import android.util.Log;
 import android.util.Rational;
 
@@ -63,8 +65,10 @@ public class ParseExif {
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_EXPOSURE_TIME,getTime(result.get(SENSOR_EXPOSURE_TIME)));
-        //inter.setAttribute(TAG_LIGHT_SOURCE,resultget(result,CaptureResult.));
-        //inter.setAltitude(TAG_);
+        inter.setAttribute(TAG_MODEL, Build.MODEL);
+        inter.setAttribute(TAG_MAKE, Build.BRAND);
+        inter.setAttribute(TAG_EXIF_VERSION,"0231");
+
         return inter;
     }
 }

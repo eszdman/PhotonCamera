@@ -402,14 +402,7 @@ public class ImageProcessing {
 
 
         Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
-        if(israw) {
-            /*Log.d(TAG,"RawProcessingHDRX: RowStride:"+curimgs.get(0).getPlanes()[0].getRowStride());
-            Log.d(TAG,"RawProcessingHDRX: PixelStride:"+curimgs.get(0).getPlanes()[0].getPixelStride());
-            Mat in = load_rawsensor(curimgs.get(0));
-            Imgproc.demosaicing(in,in,Imgproc.COLOR_BayerRG2RGB);
-            Imgcodecs.imwrite(path,in, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));*/
-            ApplyHdrX();
-        }
+        if(israw) ApplyHdrX();
         if(isyuv)ApplyStabilization();
 
         Camera2Api.loadingcycle.setProgress(0);
