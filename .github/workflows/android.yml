@@ -22,7 +22,5 @@ jobs:
     - name: Download a Build Artifact
       uses: actions/download-artifact@v2
       with:
-    # Artifact name
         name: APK
-    # Destination path
-        path: ./app/build/outputs/apk/debug/app-debug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
