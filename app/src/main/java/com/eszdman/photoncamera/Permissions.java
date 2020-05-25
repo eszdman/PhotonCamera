@@ -7,10 +7,11 @@ import androidx.core.content.ContextCompat;
 public class Permissions {
     public static void RequestPermissions(AppCompatActivity Activity, int requestID, String[] permissions){
         boolean permGranted = true;
-        for(int k = 0; k<permissions.length;k++) {
+        for (String permission : permissions) {
             if (ContextCompat.checkSelfPermission(Activity,
-                    permissions[k])
-                    != PackageManager.PERMISSION_GRANTED) permGranted = false; //Permission not granted
+                    permission)
+                    != PackageManager.PERMISSION_GRANTED)
+                permGranted = false; //Permission not granted
         }
         if(!permGranted)
                 ActivityCompat.requestPermissions(Activity,
