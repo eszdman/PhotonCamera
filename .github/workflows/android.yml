@@ -39,3 +39,10 @@ jobs:
         with:
           name: app
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Build release APK
+        run: bash ./gradlew
+      - name: Upload APK
+        uses: actions/upload-artifact@v1
+        with:
+          name: app
+          path: app/build/outputs/apk/release/app-release.apk
