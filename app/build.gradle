@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
-    ndkVersion "major.minor.build"
+    ndkVersion "21.1.6352462"
     defaultConfig {
         applicationId 'com.eszdman.photoncamera'
         minSdkVersion 26
