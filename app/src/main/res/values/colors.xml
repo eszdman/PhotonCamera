@@ -11,4 +11,5 @@
     <color name="Light">#F1F1F1</color>
     <color name="White">#FFFFFF</color>
     <color name="ToolBar">#1c1c1c</color>
+    <color name="LauncherBackground">#9E9E9E</color>
 </resources>
