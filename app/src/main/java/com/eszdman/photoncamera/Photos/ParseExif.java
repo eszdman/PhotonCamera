@@ -7,7 +7,7 @@ import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.Camera2Api;
-import com.eszdman.photoncamera.MainActivity;
+import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.IOException;
 import static android.hardware.camera2.CaptureResult.*;

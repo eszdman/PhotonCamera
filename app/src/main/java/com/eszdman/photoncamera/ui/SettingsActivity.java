@@ -1,11 +1,10 @@
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.ui;
 
 import androidx.annotation.IdRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.SharedPreferences;
 import android.content.res.Resources;
-import android.hardware.camera2.CaptureRequest;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.SeekBar;
@@ -13,24 +12,12 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
+import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.ui.MainActivity;
 
-import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
-import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
-import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
-import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
-import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
-import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
-import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
-import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
-import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
 
 public class SettingsActivity extends AppCompatActivity {
     TextView luma;

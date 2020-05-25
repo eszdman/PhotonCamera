@@ -3,7 +3,7 @@ package com.eszdman.photoncamera;
 import java.nio.ByteBuffer;
 
 public class Wrapper {
-    Wrapper(){
+    public Wrapper(){
         System.loadLibrary("HdrX");
     }
 

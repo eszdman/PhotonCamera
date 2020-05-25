@@ -76,6 +76,8 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.Photos.ImageSaver;
 import com.eszdman.photoncamera.Photos.Photo;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.ui.MainActivity;
+import com.eszdman.photoncamera.ui.SettingsActivity;
 
 import java.io.File;
 import java.util.ArrayList;

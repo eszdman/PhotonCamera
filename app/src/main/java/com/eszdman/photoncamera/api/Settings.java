@@ -4,7 +4,7 @@ import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 
-import com.eszdman.photoncamera.MainActivity;
+import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;

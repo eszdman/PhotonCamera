@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.ui;
 
 import android.Manifest;
 import android.content.Intent;
@@ -7,8 +7,12 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
+import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.Photos.Photo;
+import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Permissions;
 
 import org.opencv.android.OpenCVLoader;
 

@@ -10,7 +10,6 @@ import android.util.Log;
 import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.SettingsActivity;
 import com.eszdman.photoncamera.api.Interface;
 
 import java.io.File;

@@ -1,6 +1,6 @@
 package com.eszdman.photoncamera.api;
 
-import com.eszdman.photoncamera.MainActivity;
+import com.eszdman.photoncamera.ui.MainActivity;
 
 public class Interface {
     public static Interface i;
