@@ -28,10 +28,10 @@ public class Settings {
     public boolean hdrx = true;
     public double saturation = 0.7;
     public double sharpness = 0.3;
-    public double contrast_mpy = 0.85;
+    public double contrast_mpy = 1.5;
     public int contrast_const = 0;
     public double compressor = 2.13;
-    public double gain = 1.0;
+    public double gain = 0.7;
     public String lastpic = null;
 
     TextView luma;

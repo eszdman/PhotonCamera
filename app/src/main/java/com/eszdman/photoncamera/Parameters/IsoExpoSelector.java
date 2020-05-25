@@ -27,15 +27,12 @@ public class IsoExpoSelector {
            exposuretime*=2.0;
            iso/=2;
        }
-       else {
-           //iso*=1.2;
-       }
        if(iso > 4000) exposuretime*=1.35;
        //iso += iso*step/(Camera2Api.mburstcount*2);
         if(Camera2Api.mTargetFormat == Camera2Api.rawFormat)
-      if(iso >= 100*1.35) iso*=0.70;
+      if(iso >= 100*1.35) iso*=0.80;
        else{
-           exposuretime*=0.70;
+           exposuretime*=0.80;
        }
        //if(step%3==1) iso*=1.1;
        //if(step%3 ==2) iso*=0.35;

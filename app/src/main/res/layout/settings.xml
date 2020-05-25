@@ -245,8 +245,8 @@
                     android:layout_height="30dp"
                     android:layout_marginStart="30dp"
                     android:max="200"
-                    android:min="100"
-                    android:progress="0" />
+                    android:min="0"
+                    android:progress="-1" />
 
             </LinearLayout>
         </LinearLayout>
