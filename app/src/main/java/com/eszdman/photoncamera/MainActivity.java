@@ -3,6 +3,7 @@ package com.eszdman.photoncamera;
 import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,14 +23,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onPause() {
+    protected void onPause() {
         super.onPause();
+        try {
+            Settings.instance.getSettings();
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
         if (Camera2Api.context.mState != 5) {
+            super.onBackPressed();
             return;
-        } // optional depending on your needs
-        else {//inst.closeCamera();
-            //inst.onPause();
-            //Camera2Api.context.onPause();
+        } else {
             try {
                 Settings.instance.getSettings();
             } catch (Exception ignored) {
