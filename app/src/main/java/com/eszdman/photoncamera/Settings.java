@@ -260,7 +260,7 @@ public class Settings {
         putset(compressor);
         putset(gain);
         putset(lastpic);
-        ed.commit();
+        ed.apply();
         cnt = 0;
     }
     void getsavedSettings(){
@@ -299,7 +299,7 @@ public class Settings {
     void saveViews(){
         ed = sPref.edit();
         putview(turnNR);
-        ed.commit();
+        ed.apply();
         cnt2 =0;
     }
     void getViews(){

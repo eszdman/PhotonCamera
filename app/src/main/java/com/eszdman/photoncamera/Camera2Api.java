@@ -213,10 +213,12 @@ public class Camera2Api extends Fragment
     private Size mPreviewSize;
 
     public static Camera2Api context;
-    public Camera2Api(){
+
+    public Camera2Api() {
         super();
         context = this;
     }
+
     /**
      * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
      */
@@ -448,15 +450,18 @@ public class Camera2Api extends Fragment
     public static Camera2Api newInstance() {
         return new Camera2Api();
     }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.main, container, false);
     }
+
     public ImageButton shot;
     ProgressBar lightcycle;
     static ProgressBar loadingcycle;
     public CircleImageView img;
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -468,10 +473,10 @@ public class Camera2Api extends Fragment
             }
             case R.id.flip_camera: {
                 ImageButton flip = view.findViewById(R.id.flip_camera);
-                flip.animate().rotation(flip.getRotation()-360).start();
+                flip.animate().rotation(flip.getRotation() - 360).start();
                 mCameraId = cycler(mCameraId, mCameraIds);
                 restartCamera();
-                showToast("Afmodes:"+mCameraAfModes.length);
+                showToast("Afmodes:" + mCameraAfModes.length);
                 break;
             }
             case R.id.settings: {
@@ -481,12 +486,11 @@ public class Camera2Api extends Fragment
             }
             case R.id.stacking: {
                 ToggleButton sw = (ToggleButton) view;
-                if(sw.isChecked()) {
+                if (sw.isChecked()) {
                     mTargetFormat = rawFormat;
                     Settings.instance.hdrx = true;
-                }
-                else {
-                    mTargetFormat= ImageFormat.YUV_420_888;
+                } else {
+                    mTargetFormat = ImageFormat.YUV_420_888;
                     Settings.instance.hdrx = false;
                 }
                 restartCamera();
@@ -497,6 +501,7 @@ public class Camera2Api extends Fragment
             }
         }
     }
+
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         lightcycle = view.findViewById(R.id.lightCycle);
@@ -522,9 +527,10 @@ public class Camera2Api extends Fragment
         //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
         mTextureView = view.findViewById(R.id.texture);
         ImageView grid_icon = view.findViewById(R.id.grid);
-        if(Settings.instance.grid) grid_icon.setVisibility(View.VISIBLE);
+        if (Settings.instance.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
     }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -535,7 +541,7 @@ public class Camera2Api extends Fragment
     public void onResume() {
         super.onResume();
         startBackgroundThread();
-        if(mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
+        if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
         } else {
@@ -549,6 +555,7 @@ public class Camera2Api extends Fragment
         stopBackgroundThread();
         super.onPause();
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -561,30 +568,33 @@ public class Camera2Api extends Fragment
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-    private void mul(Rect in, double k){
-        in.bottom*=k;
-        in.left*=k;
-        in.right*=k;
-        in.top*=k;
+
+    private void mul(Rect in, double k) {
+        in.bottom *= k;
+        in.left *= k;
+        in.right *= k;
+        in.top *= k;
     }
-    private Size getCameraOutputSize(Size[] in){
+
+    private Size getCameraOutputSize(Size[] in) {
         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size()-1;
-        if(sizes.get(s).getWidth()*sizes.get(s).getHeight() <= 40*1000000)
+        int s = sizes.size() - 1;
+        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
             return sizes.get(s);
         else {
-            Size target = sizes.get(s-1);
-            Rect pre =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-            Rect act =  mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            double k = (double)(target.getHeight())/act.bottom;
-            mul(pre,k);
-            mul(act,k);
+            Size target = sizes.get(s - 1);
+            Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+            Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            double k = (double) (target.getHeight()) / act.bottom;
+            mul(pre, k);
+            mul(act, k);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
             return target;
         }
     }
+
     /**
      * Sets up member variables related to camera.
      *
@@ -593,6 +603,7 @@ public class Camera2Api extends Fragment
      */
     int mPreviewwidth;
     int mPreviewheight;
+
     @SuppressWarnings("SuspiciousNameCombination")
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
@@ -617,6 +628,7 @@ public class Camera2Api extends Fragment
                     .show(getChildFragmentManager(), FRAGMENT_DIALOG);
         }
     }
+
     public void UpdateCameraCharacteristics(String cameraId) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -632,15 +644,17 @@ public class Camera2Api extends Fragment
 
         StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        if (map == null) {return;}
+        if (map == null) {
+            return;
+        }
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, Settings.instance.framecount+3);
+                mPreviewTargetFormat, Settings.instance.framecount + 3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Settings.instance.framecount+3);
-        mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener,mBackgroundHandler);
+                mTargetFormat, Settings.instance.framecount + 3);
+        mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -710,8 +724,9 @@ public class Camera2Api extends Fragment
 
         mCameraId = cameraId;
     }
+
     @SuppressLint("MissingPermission")
-    public void restartCamera(){
+    public void restartCamera() {
         try {
             mCameraOpenCloseLock.acquire();
 
@@ -729,7 +744,7 @@ public class Camera2Api extends Fragment
                 mImageReaderRes.close();
                 mImageReaderRes = null;
             }
-            if(null != mPreviewRequestBuilder){
+            if (null != mPreviewRequestBuilder) {
                 mPreviewRequestBuilder = null;
             }
             stopBackgroundThread();
@@ -764,13 +779,13 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, /*maxImages*/Settings.instance.framecount+3);
+                mPreviewTargetFormat, /*maxImages*/Settings.instance.framecount + 3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
-        mImageReaderRes = ImageReader.newInstance(target.getWidth(),target.getHeight(),
-                mTargetFormat,Settings.instance.framecount+3);
+        mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+                mTargetFormat, Settings.instance.framecount + 3);
         mImageReaderRes.setOnImageAvailableListener(
-                mOnRawImageAvailableListener,mBackgroundHandler);
+                mOnRawImageAvailableListener, mBackgroundHandler);
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
@@ -883,8 +898,8 @@ public class Camera2Api extends Fragment
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
             // We configure the size of default buffer to be the size of camera preview we want.
-            Log.d("createCameraPreviewSession() mTextureView",""+mTextureView);
-            Log.d("createCameraPreviewSession() Texture",""+texture);
+            Log.d("createCameraPreviewSession() mTextureView", "" + mTextureView);
+            Log.d("createCameraPreviewSession() Texture", "" + texture);
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
             // This is the output Surface we need to start preview.
@@ -896,7 +911,7 @@ public class Camera2Api extends Fragment
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface(),mImageReaderRes.getSurface()),
+            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface(), mImageReaderRes.getSurface()),
                     new CameraCaptureSession.StateCallback() {
 
                         @RequiresApi(api = Build.VERSION_CODES.O)
@@ -974,7 +989,7 @@ public class Camera2Api extends Fragment
      * Initiate a still image capture.
      */
     private void takePicture() {
-        if(mCameraAfModes.length > 1) lockFocus();
+        if (mCameraAfModes.length > 1) lockFocus();
         else {
             try {
                 mState = STATE_WAITING_NON_PRECAPTURE;
@@ -1036,29 +1051,29 @@ public class Camera2Api extends Fragment
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
-            mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener,mBackgroundHandler);
+            mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
             captureBuilder.addTarget(mImageReaderRes.getSurface());
             Settings.instance.applyRes(captureBuilder);
             setAutoFlash(captureBuilder);
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
-            for(int i =0; i<Settings.instance.framecount; i++){
-                IsoExpoSelector.setExpo(captureBuilder,i);
+            for (int i = 0; i < Settings.instance.framecount; i++) {
+                IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
             }
             //img
-            final int[] burstcount = {0,0, Settings.instance.framecount};
+            final int[] burstcount = {0, 0, Settings.instance.framecount};
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    lightcycle.setProgress(lightcycle.getProgress()+1);
+                    lightcycle.setProgress(lightcycle.getProgress() + 1);
                     mCaptureResult = result;
                     burstcount[0]++;
-                    if(burstcount[0] ==burstcount[2]+1 || ImageSaver.imageBuffer.size() == burstcount[2]){
+                    if (burstcount[0] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
                             lightcycle.setAlpha(0f);
@@ -1071,12 +1086,14 @@ public class Camera2Api extends Fragment
                     }
 
                 }
+
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
                     lightcycle.setAlpha(1.0f);
                     mTextureView.setAlpha(0.5f);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
                 }
+
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     lightcycle.setAlpha(0f);
@@ -1089,7 +1106,7 @@ public class Camera2Api extends Fragment
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    if(burstcount[1] == burstcount[2]+1 || ImageSaver.imageBuffer.size() == burstcount[2]){
+                    if (burstcount[1] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
                             lightcycle.setAlpha(0f);
@@ -1147,20 +1164,20 @@ public class Camera2Api extends Fragment
     }
 
 
-
-    public String cycler(String id, String[] ids){
+    public String cycler(String id, String[] ids) {
         //ids = new String[]{"0","1"};
         int n = 0;
-        for(int i =0; i<ids.length; i++){
-            if(id.equals(ids[i])) n = i;
+        for (int i = 0; i < ids.length; i++) {
+            if (id.equals(ids[i])) n = i;
         }
         n++;
-        n%=ids.length;
+        n %= ids.length;
         return ids[n];
     }
+
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
-            if(mFlashEnabled)
+            if (mFlashEnabled)
                 requestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
                         CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
         }
@@ -1184,6 +1201,7 @@ public class Camera2Api extends Fragment
         }
 
     }
+
     /**
      * Shows an error message dialog.
      */
