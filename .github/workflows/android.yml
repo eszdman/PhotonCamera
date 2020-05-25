@@ -25,4 +25,4 @@ jobs:
     # Artifact name
         name: APK
     # Destination path
-        path: ./app/build/
+        path: ./app/build/outputs/apk/debug/app-debug.apk
