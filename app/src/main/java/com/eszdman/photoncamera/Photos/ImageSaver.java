@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.util.Log;
 import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.ImageProcessing;
+import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Settings;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -79,7 +80,7 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     File out =  new File(curDir(),curName()+".jpg");
-                    if(bcnt == Settings.instance.framecount && Settings.instance.framecount != 1) {
+                    if(bcnt == FrameNumberSelector.framecount && FrameNumberSelector.framecount  != 1) {
                         output = new FileOutputStream(out);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
@@ -127,7 +128,7 @@ public class ImageSaver implements Runnable {
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
-                    if (imageBuffer.size() == Settings.instance.framecount && Settings.instance.framecount != 1) {
+                    if (imageBuffer.size() == FrameNumberSelector.framecount  && Settings.instance.framecount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
@@ -166,7 +167,7 @@ public class ImageSaver implements Runnable {
                     if(imageBuffer.size() > Settings.instance.framecount){
                         imageBuffer.get(imageBuffer.size()-1).close();
                     }
-                    if(imageBuffer.size() == Settings.instance.framecount && Settings.instance.framecount != 1) {
+                    if(imageBuffer.size() == FrameNumberSelector.framecount && Settings.instance.framecount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;

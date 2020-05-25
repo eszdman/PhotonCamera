@@ -12,7 +12,6 @@ import com.eszdman.photoncamera.Settings;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
-    private static final long sec = 1000000000;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         long exposuretime = Camera2Api.context.mPreviewExposuretime;
         int iso = Camera2Api.context.mPreviewIso;
@@ -23,7 +22,7 @@ public class IsoExpoSelector {
             iso/=2;
             //Settings.instance.framecount = 8;
         }
-       if(exposuretime < sec/8 && iso > 1500) {
+       if(exposuretime < ExposureIndex.sec/8 && iso > 1500) {
            exposuretime*=2.0;
            iso/=2;
        }

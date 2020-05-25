@@ -72,6 +72,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import com.eszdman.photoncamera.Extra.CameraReflectionApi;
+import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.Photos.ImageSaver;
 import com.eszdman.photoncamera.Photos.Photo;
@@ -1058,12 +1059,13 @@ public class Camera2Api extends Fragment
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
-            for (int i = 0; i < Settings.instance.framecount; i++) {
+            FrameNumberSelector.getFrames();
+            for (int i = 0; i < FrameNumberSelector.framecount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
             }
             //img
-            final int[] burstcount = {0, 0, Settings.instance.framecount};
+            final int[] burstcount = {0, 0, FrameNumberSelector.framecount};
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
