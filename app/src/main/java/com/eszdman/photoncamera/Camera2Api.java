@@ -466,7 +466,6 @@ public class Camera2Api extends Fragment
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                shot.setVisibility(View.GONE);
                 shot.setActivated(false);
                 shot.setClickable(false);
                 takePicture();
