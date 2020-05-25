@@ -3,12 +3,12 @@ package com.eszdman.photoncamera;
 import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.Photos.Photo;
+import com.eszdman.photoncamera.api.Interface;
 
 import org.opencv.android.OpenCVLoader;
 
@@ -21,26 +21,11 @@ public class MainActivity extends AppCompatActivity {
             // Handle initialization error
         }
     }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        try {
-            Settings.instance.getSettings();
-        } catch (Exception ignored) {
-        }
-    }
-
     @Override
     public void onBackPressed() {
         if (Camera2Api.context.mState != 5) {
             super.onBackPressed();
             return;
-        } else {
-            try {
-                Settings.instance.getSettings();
-            } catch (Exception ignored) {
-            }
         }
         setContentView(R.layout.activity_camera);
         Intent intent = this.getIntent();
@@ -55,8 +40,9 @@ public class MainActivity extends AppCompatActivity {
         Wrapper wp = new Wrapper();
         Photo photo = new Photo();
         act = this;
+        Interface inter = new Interface();
+        inter.m_activity = this;
         Permissions.RequestPermissions(MainActivity.this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
-        Settings settings = new Settings();
         setContentView(R.layout.activity_camera);
         Camera2Api.context = Camera2Api.newInstance();
         if (null == savedInstanceState) {

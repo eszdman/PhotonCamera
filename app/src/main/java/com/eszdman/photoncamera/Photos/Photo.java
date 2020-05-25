@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.Photos;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
@@ -11,16 +10,11 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.MainActivity;
-import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.Settings;
+import com.eszdman.photoncamera.SettingsActivity;
+import com.eszdman.photoncamera.api.Interface;
 
 import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Comparator;
-
-import de.hdodenhof.circleimageview.CircleImageView;
 
 public class Photo {
     public static Photo instance;
@@ -66,8 +60,8 @@ public class Photo {
         MainActivity.act.startActivity(intent);
     }
     public void ShowPhoto(){
-        if(Settings.instance.lastpic != null){
-            ShowPhoto(new File(Settings.instance.lastpic));
+        if(Interface.i.settings.lastPicture != null){
+            ShowPhoto(new File(Interface.i.settings.lastPicture));
         }
     }
     static class CompareFilesByDate implements Comparator<File> {
@@ -79,9 +73,9 @@ public class Photo {
     public void SaveImg(File in){
 
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            boolean wasnull = Settings.instance.lastpic == null;
-            Settings.instance.lastpic = in.getAbsolutePath();
-            if(wasnull) Settings.instance.saveSettings();
+            boolean wasnull = Interface.i.settings.lastPicture == null;
+            Interface.i.settings.lastPicture = in.getAbsolutePath();
+            if(wasnull) Interface.i.settings.save();
             Uri contentUri = Uri.fromFile(in);
             try {
             //CircleImageView button = MainActivity.act.findViewById(R.id.ImageOut);

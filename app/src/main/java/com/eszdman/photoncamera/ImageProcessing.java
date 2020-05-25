@@ -8,8 +8,10 @@ import android.hardware.camera2.params.LensShadingMap;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
+import android.util.Rational;
 
 import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.Interface;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -191,7 +193,7 @@ public class ImageProcessing {
         Log.d("ImageProcessing Stab", "Curimgs size "+curimgs.size());
         Mat output = new Mat();
         col[col.length -1].copyTo(output);
-        boolean aligning = Settings.instance.align;
+        boolean aligning = Interface.i.settings.align;
         ArrayList<Mat> imgsmat = new ArrayList<>();
         MergeMertens merge = Photo.createMergeMertens();
         AlignMTB align = Photo.createAlignMTB();
@@ -260,19 +262,19 @@ public class ImageProcessing {
                     Imgproc.pyrDown(temp,temp);
                     Mat diff = new Mat();
                     //Imgproc.bilateralFilter(temp,diff,10,20,20);
-                    Photo.fastNlMeansDenoising(temp,diff,(float)(Settings.instance.lumacount)/10,7,15);
+                    Photo.fastNlMeansDenoising(temp,diff,(float)(Interface.i.settings.lumenCount)/10,7,15);
                     Core.subtract(temp,diff,diff);
                     Imgproc.pyrUp(diff,diff);
                     Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
                     Core.addWeighted(cur,1,diff,-1,0,cur);
                     //Imgproc.pyrMeanShiftFiltering();
                     //Imgproc.medianBlur(cur,out,Settings.instance.lumacount);
-                    if(!Settings.instance.enhancedprocess){
+                    if(!Interface.i.settings.enhancedProcess){
                         Imgproc.blur(cur,cur,new Size(2,2));
-                        Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount/4,Settings.instance.lumacount,Settings.instance.lumacount);
+                        Imgproc.bilateralFilter(cur,out,Interface.i.settings.lumenCount/4,Interface.i.settings.lumenCount,Interface.i.settings.lumenCount);
 
                     }
-                    if(Settings.instance.enhancedprocess) Photo.fastNlMeansDenoising(cur,out,(float)(Settings.instance.lumacount)/6.5f,3,15);
+                    if(Interface.i.settings.enhancedProcess) Photo.fastNlMeansDenoising(cur,out,(float)(Interface.i.settings.lumenCount)/6.5f,3,15);
 
 
                     out.copyTo(temp);
@@ -290,7 +292,7 @@ public class ImageProcessing {
                     Mat temp = new Mat();
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur,cur);
-                    Imgproc.bilateralFilter(cur,out,Settings.instance.chromacount,Settings.instance.chromacount*3,Settings.instance.chromacount*3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                    Imgproc.bilateralFilter(cur,out,Interface.i.settings.chromaCount,Interface.i.settings.chromaCount*3,Interface.i.settings.chromaCount*3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
                     //Imgproc.pyrUp(out,out,bef);
 
                     /*out.copyTo(temp);
@@ -343,17 +345,21 @@ public class ImageProcessing {
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
+        Rational[] vec2 = res.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         Log.d(TAG,"CCG:"+vec.toString());
+        for (Rational rational : vec2) Log.d(TAG, "WBP:" + rational.toString());
+
         float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         int bl = 0;
         //for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
         //bl/=4;
-        Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
-        double contr = 0.8 + 2.5/(1+Settings.instance.contrast_mpy*20);
-        double compr = Settings.instance.compressor;
+        //Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
+        Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue());
+        double contr = 0.8 + 2.5/(1+Interface.i.settings.contrast_mpy*20);
+        double compr = Interface.i.settings.compressor;
         compr = Math.max(1,compr);
-        Wrapper.setCompGain(compr,Settings.instance.gain,contr,Settings.instance.contrast_const);
-        Wrapper.setSharpnessSaturation(Settings.instance.saturation,Settings.instance.sharpness*20);
+        Wrapper.setCompGain(compr,Interface.i.settings.gain,contr,Interface.i.settings.contrast_const);
+        Wrapper.setSharpnessSaturation(Interface.i.settings.saturation,Interface.i.settings.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];

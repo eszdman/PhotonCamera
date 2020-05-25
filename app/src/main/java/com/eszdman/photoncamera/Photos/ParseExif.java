@@ -1,12 +1,8 @@
 package com.eszdman.photoncamera.Photos;
 
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
-import android.util.AndroidException;
 import android.util.Log;
-import android.util.Rational;
 
 import androidx.exifinterface.media.ExifInterface;
 

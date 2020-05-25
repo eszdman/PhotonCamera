@@ -23,6 +23,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
@@ -43,12 +44,10 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Message;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -76,6 +75,7 @@ import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.Photos.ImageSaver;
 import com.eszdman.photoncamera.Photos.Photo;
+import com.eszdman.photoncamera.api.Interface;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -154,7 +154,7 @@ public class Camera2Api extends Fragment
     public static int mTargetFormat = rawFormat;
     public static int mPreviewTargetFormat = prevFormat;
 
-    //public static int Settings.instance.framecount = 3;
+    //public static int Interface.i.settings.framecount = 3;
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
@@ -455,7 +455,7 @@ public class Camera2Api extends Fragment
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.main, container, false);
+        return inflater.inflate(R.layout.activity_main, container, false);
     }
 
     public ImageButton shot;
@@ -481,18 +481,21 @@ public class Camera2Api extends Fragment
                 break;
             }
             case R.id.settings: {
-                closeCamera();
-                Settings.instance.openSettings();
+//                closeCamera();
+//                Interface.i.settings.openSettingsActivity();
+
+                Intent intent = new Intent(MainActivity.act, SettingsActivity.class);
+                startActivity(intent);
                 break;
             }
             case R.id.stacking: {
                 ToggleButton sw = (ToggleButton) view;
                 if (sw.isChecked()) {
                     mTargetFormat = rawFormat;
-                    Settings.instance.hdrx = true;
+                    Interface.i.settings.hdrx = true;
                 } else {
                     mTargetFormat = ImageFormat.YUV_420_888;
-                    Settings.instance.hdrx = false;
+                    Interface.i.settings.hdrx = false;
                 }
                 restartCamera();
                 break;
@@ -507,10 +510,10 @@ public class Camera2Api extends Fragment
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
-        lightcycle.setMax(Settings.instance.framecount);
+        lightcycle.setMax(Interface.i.settings.frameCount);
         //lightcycle.setMin(0);
         loadingcycle = view.findViewById(R.id.progressloading);
-        loadingcycle.setMax(Settings.instance.framecount);
+        loadingcycle.setMax(Interface.i.settings.frameCount);
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
@@ -525,10 +528,10 @@ public class Camera2Api extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        //hdrmul.setChecked(Settings.instance.hdrx); TODO @Urnyx05 fix ur togglebutton
+        //hdrmul.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix ur togglebutton
         mTextureView = view.findViewById(R.id.texture);
         ImageView grid_icon = view.findViewById(R.id.grid);
-        if (Settings.instance.grid) grid_icon.setVisibility(View.VISIBLE);
+        if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
     }
 
@@ -650,11 +653,11 @@ public class Camera2Api extends Fragment
         }
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, Settings.instance.framecount + 3);
+                mPreviewTargetFormat, Interface.i.settings.frameCount + 3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Settings.instance.framecount + 3);
+                mTargetFormat, Interface.i.settings.frameCount + 3);
         mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
@@ -780,11 +783,11 @@ public class Camera2Api extends Fragment
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, /*maxImages*/Settings.instance.framecount + 3);
+                mPreviewTargetFormat, /*maxImages*/Interface.i.settings.frameCount + 3);
         mImageReader.setOnImageAvailableListener(
                 mOnImageAvailableListener, mBackgroundHandler);
         mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Settings.instance.framecount + 3);
+                mTargetFormat, Interface.i.settings.frameCount + 3);
         mImageReaderRes.setOnImageAvailableListener(
                 mOnRawImageAvailableListener, mBackgroundHandler);
         try {
@@ -930,7 +933,7 @@ public class Camera2Api extends Fragment
                                 // Flash is automatically enabled when necessary.
                                 setAutoFlash(mPreviewRequestBuilder);
                                 //mPreviewRequestBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_HIGH_QUALITY);
-                                Settings.instance.applyPrev(mPreviewRequestBuilder);
+                                Interface.i.settings.applyPrev(mPreviewRequestBuilder);
                                 //lightcycle.setVisibility(View.INVISIBLE);
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
@@ -1054,18 +1057,18 @@ public class Camera2Api extends Fragment
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
             captureBuilder.addTarget(mImageReaderRes.getSurface());
-            Settings.instance.applyRes(captureBuilder);
+            Interface.i.settings.applyRes(captureBuilder);
             setAutoFlash(captureBuilder);
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
-            for (int i = 0; i < FrameNumberSelector.framecount; i++) {
+            for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
             }
             //img
-            final int[] burstcount = {0, 0, FrameNumberSelector.framecount};
+            final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override

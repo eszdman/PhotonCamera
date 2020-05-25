@@ -35,6 +35,13 @@ public class Camera2ApiAutoFix {
         if(rggbChannelVector == null){
             CameraReflectionApi.set(COLOR_CORRECTION_GAINS,new RggbChannelVector(WB[0].floatValue()*1.3f,WB[1].floatValue()/1.78f,WB[1].floatValue()/1.78f,WB[2].floatValue()*2f));
         }
+        try {
+            rggbChannelVector.getClass().getField("").set(rggbChannelVector, WB[0]);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
     }
     public void dynBL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);

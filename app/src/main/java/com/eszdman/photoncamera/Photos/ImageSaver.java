@@ -10,7 +10,9 @@ import android.util.Log;
 import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.Settings;
+import com.eszdman.photoncamera.SettingsActivity;
+import com.eszdman.photoncamera.api.Interface;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -80,7 +82,7 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     File out =  new File(curDir(),curName()+".jpg");
-                    if(bcnt == FrameNumberSelector.framecount && FrameNumberSelector.framecount  != 1) {
+                    if(bcnt == FrameNumberSelector.frameCount && FrameNumberSelector.frameCount != 1) {
                         output = new FileOutputStream(out);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
@@ -97,7 +99,7 @@ public class ImageSaver implements Runnable {
                         Photo.instance.SaveImg(out);
                         end();
                     }
-                    if(Settings.instance.framecount == 1){
+                    if(Interface.i.settings.frameCount == 1){
                         imageBuffer = new ArrayList<>();
                         output = new FileOutputStream(out);
                         buffer.get(bytes);
@@ -128,7 +130,7 @@ public class ImageSaver implements Runnable {
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
-                    if (imageBuffer.size() == FrameNumberSelector.framecount  && Settings.instance.framecount != 1) {
+                    if (imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
@@ -142,7 +144,7 @@ public class ImageSaver implements Runnable {
                         Photo.instance.SaveImg(out);
                         end();
                     }
-                    if (Settings.instance.framecount == 1) {
+                    if (Interface.i.settings.frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
                         Camera2Api.context.shot.setActivated(true);
@@ -164,10 +166,10 @@ public class ImageSaver implements Runnable {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
                     imageBuffer.add(mImage);
-                    if(imageBuffer.size() > Settings.instance.framecount){
+                    if(imageBuffer.size() > Interface.i.settings.frameCount){
                         imageBuffer.get(imageBuffer.size()-1).close();
                     }
-                    if(imageBuffer.size() == FrameNumberSelector.framecount && Settings.instance.framecount != 1) {
+                    if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
                         Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
@@ -185,7 +187,7 @@ public class ImageSaver implements Runnable {
                         end();
                         Camera2Api.context.showToast("Done!");
                     }
-                    if(Settings.instance.framecount == 1) {
+                    if(Interface.i.settings.frameCount == 1) {
                         Log.d(TAG,"activearr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"precorr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"image:"+mImage.getCropRect());
@@ -198,7 +200,7 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.shot.setActivated(true);
                         Camera2Api.context.shot.setClickable(true);
                     }
-                    if(imageBuffer.size() > Settings.instance.framecount) {
+                    if(imageBuffer.size() > Interface.i.settings.frameCount) {
                         imageBuffer.get(imageBuffer.size()-1).close();
                         imageBuffer.remove(imageBuffer.size()-1);
                     }
