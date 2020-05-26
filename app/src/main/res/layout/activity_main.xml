@@ -112,14 +112,14 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ImageOut"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="82dp"
+                android:layout_height="80dp"
                 android:layout_gravity="end|center_vertical"
-                android:src="@drawable/round"
                 android:padding="9dp"
+                android:src="@drawable/round"
                 app:civ_border_color="@color/Light"
-                app:civ_border_width="0dp"
-                android:background="@drawable/ic_outer_circle"
+                app:civ_border_overlay="true"
+                app:civ_border_width="3dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.49"
@@ -147,18 +147,18 @@
             android:layout_width="38dip"
             android:layout_height="38dip"
             android:layout_gravity="center_horizontal|center_vertical"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="36dp"
             android:background="@drawable/ic_settings"
             android:padding="5dip"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.666" />
+            app:layout_constraintVertical_bias="0.0" />
 
         <ToggleButton
             android:id="@+id/stacking"
-            android:layout_width="56.25dp"
-            android:layout_height="38dp"
+            android:layout_width="113dp"
+            android:layout_height="36dp"
             android:layout_marginStart="16dp"
             android:background="@drawable/raw_button"
             android:checked="true"

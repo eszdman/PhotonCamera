@@ -102,19 +102,18 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ImageOut"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="75dp"
+                android:layout_height="76dp"
                 android:layout_gravity="end|center_vertical"
+                android:padding="9dp"
+                android:src="@drawable/round"
                 app:civ_border_color="@color/Light"
                 app:civ_border_width="0dp"
-                android:background="@drawable/ic_outer_circle"
-                android:padding="9dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.49"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:src="@drawable/round" />
+                app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <ImageButton
@@ -145,8 +144,8 @@
             android:layout_width="38dip"
             android:layout_height="38dip"
             android:layout_gravity="bottom"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="24dp"
             android:background="#00FFFFFF"
             android:drawableBottom="@drawable/ic_settings"
             android:padding="5dip"
@@ -155,10 +154,10 @@
 
         <ToggleButton
             android:id="@+id/stacking"
-            android:layout_width="56.25dp"
-            android:layout_height="38dp"
+            android:layout_width="87dp"
+            android:layout_height="27dp"
             android:layout_gravity="bottom"
-            android:layout_marginTop="184dp"
+            android:layout_marginTop="240dp"
             android:background="@drawable/raw_button"
             android:checked="true"
             android:textOff=" "
