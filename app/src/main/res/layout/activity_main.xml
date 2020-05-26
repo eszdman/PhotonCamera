@@ -23,9 +23,13 @@
         android:layout_width="match_parent"
         android:layout_height="446dp"
         android:layout_above="@+id/control"
+        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="0dp"
         android:layout_marginTop="113dp"
-        android:layout_marginBottom="37dp" />
+        android:layout_marginEnd="0dp"
+        android:layout_marginBottom="0dp" />
 
     <ImageView
         android:id="@+id/grid"
@@ -41,7 +45,8 @@
         android:layout_marginBottom="37dp"
         android:scaleType="fitXY"
         app:srcCompat="@drawable/ic_grid"
-        tools:visibility="gone" />
+        tools:visibility="gone"
+        android:contentDescription="" />
 
     <FrameLayout
         android:id="@+id/control"
@@ -49,8 +54,7 @@
         android:layout_height="135dp"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="4dp"
-        android:layout_x="-4dp"
-        android:layout_y="514dp"
+        android:layout_x="4dp"
         android:alpha="128"
         android:background="@android:color/background_dark"
         android:visibility="visible">
@@ -65,7 +69,8 @@
             android:src="@drawable/ic_flip_camera"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
-            tools:text="Shot" />
+            tools:text="Shot"
+            android:contentDescription="" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="107dp"
@@ -86,7 +91,8 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="Shot" />
+                tools:text="Shot"
+                android:contentDescription="" />
 
             <ProgressBar
                 android:id="@+id/progressloading"
@@ -162,8 +168,8 @@
             android:layout_marginStart="16dp"
             android:background="@drawable/raw_button"
             android:checked="true"
-            android:textOff=" "
-            android:textOn=" "
+            android:textOff=""
+            android:textOn=""
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:visibility="visible" />
