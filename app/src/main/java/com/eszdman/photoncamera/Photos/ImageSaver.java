@@ -86,13 +86,11 @@ public class ImageSaver implements Runnable {
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
                         ExifInterface inter = new ExifInterface(out.getAbsolutePath());
-                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = false;
                         processing.path = out.getAbsolutePath();
                         done(processing);
-                        Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         inter.saveAttributes();
                         Photo.instance.SaveImg(out);
@@ -129,14 +127,15 @@ public class ImageSaver implements Runnable {
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
+                    if(imageBuffer.size() > Interface.i.settings.frameCount){
+                        imageBuffer.get(imageBuffer.size()-1).close();
+                    } else
                     if (imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
-                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
                         processing.israw = false;
                         processing.path = out.getAbsolutePath();
                         done(processing);
-                        Camera2Api.context.showToast("Done!");
                         Thread.sleep(25);
                         ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult, processing.path);
                         inter.saveAttributes();
@@ -167,9 +166,8 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     if(imageBuffer.size() > Interface.i.settings.frameCount){
                         imageBuffer.get(imageBuffer.size()-1).close();
-                    }
+                    } else
                     if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
-                        Camera2Api.context.showToast("Processing...");
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = true;
@@ -184,7 +182,6 @@ public class ImageSaver implements Runnable {
                         Camera2Api.context.shot.setActivated(true);
                         Photo.instance.SaveImg(out);
                         end();
-                        Camera2Api.context.showToast("Done!");
                     }
                     if(Interface.i.settings.frameCount == 1) {
                         Log.d(TAG,"activearr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));

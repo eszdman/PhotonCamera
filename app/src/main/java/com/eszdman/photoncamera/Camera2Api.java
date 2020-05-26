@@ -1057,7 +1057,7 @@ public class Camera2Api extends Fragment
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
-            mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
+            //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
             captureBuilder.addTarget(mImageReaderRes.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
             setAutoFlash(captureBuilder);
@@ -1080,7 +1080,7 @@ public class Camera2Api extends Fragment
                                                @NonNull TotalCaptureResult result) {
                     lightcycle.setProgress(lightcycle.getProgress() + 1);
                     mCaptureResult = result;
-                    burstcount[0]++;
+                    /*burstcount[0]++;
                     if (burstcount[0] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
@@ -1091,7 +1091,7 @@ public class Camera2Api extends Fragment
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
-                    }
+                    }*/
 
                 }
 

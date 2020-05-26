@@ -1,17 +1,20 @@
 package com.eszdman.photoncamera.Extra;
 
+import android.graphics.Camera;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.RggbChannelVector;
+import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
+import android.util.Range;
 import android.util.Rational;
 import com.eszdman.photoncamera.Camera2Api;
 
 import java.lang.reflect.Field;
 
 import static android.hardware.camera2.CaptureResult.*;
-
+import static android.hardware.camera2.CameraCharacteristics.*;
 public class Camera2ApiAutoFix {
     private String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;
@@ -32,6 +35,12 @@ public class Camera2ApiAutoFix {
         fix.gains();
         fix.dynBL();
     }
+    public void curve(){
+        CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);
+    }
+    boolean checkdouble(double in){
+        return (((int)in*100) %100 == 0);
+    }
     public void gains(){
         CameraReflectionApi.setVERBOSE(true);
         Rational[] WB = result.get(SENSOR_NEUTRAL_COLOR_POINT);
@@ -40,7 +49,8 @@ public class Camera2ApiAutoFix {
         if(rggbChannelVector == null){
             CameraReflectionApi.set(COLOR_CORRECTION_GAINS,new RggbChannelVector(WB[0].floatValue()*1.3f,WB[1].floatValue()/1.78f,WB[1].floatValue()/1.78f,WB[2].floatValue()*2f));
         }
-        if(rggbChannelVector.getRed() == 1.0f)
+        Log.d(TAG,"Initial channelVector:"+rggbChannelVector.toString());
+        if(checkdouble(rggbChannelVector.getRed()) && checkdouble(rggbChannelVector.getGreenEven()) && checkdouble(rggbChannelVector.getGreenOdd()) && checkdouble(rggbChannelVector.getBlue()))
         try {
             Field field = rggbChannelVector.getClass().getDeclaredField("mRed");
             field.setAccessible(true);

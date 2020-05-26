@@ -1,13 +1,19 @@
 package com.eszdman.photoncamera.api;
 
 import android.content.SharedPreferences;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 
+import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.Extra.CameraReflectionApi;
+import com.eszdman.photoncamera.Parameters.ExposureIndex;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
@@ -16,6 +22,8 @@ import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALIT
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_CONTRAST_CURVE;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
@@ -23,7 +31,11 @@ import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
+import static android.hardware.camera2.CaptureRequest.SENSOR_EXPOSURE_TIME;
+import static android.hardware.camera2.CaptureRequest.SENSOR_SENSITIVITY;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 
 public class Settings {
     private String TAG = "Settings";
@@ -38,10 +50,10 @@ public class Settings {
     public boolean hdrx = true;
     public double saturation = 0.7;
     public double sharpness = 0.3;
-    public double contrast_mpy = 1.5;
+    public double contrast_mpy = 1.0;
     public int contrast_const = 0;
-    public double compressor = 2.13;
-    public double gain = 0.7;
+    public double compressor = 3.0;
+    public double gain = 0.8;
     public String lastPicture = null;
 
     private int count = 0;
@@ -106,6 +118,7 @@ public class Settings {
     }
 
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
+        Camera2ApiAutoFix.Apply();
         //captureBuilder.set(CONTROL_ENABLE_ZSL,true);
         captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(COLOR_CORRECTION_MODE, COLOR_CORRECTION_MODE_HIGH_QUALITY);

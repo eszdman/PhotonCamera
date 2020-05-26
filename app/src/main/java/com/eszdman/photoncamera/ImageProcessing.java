@@ -392,6 +392,7 @@ public class ImageProcessing {
         processingstep();
         Mat out = new Mat(height,width,CvType.CV_8UC3,output);
         Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
+        //Imgproc.blur(out,out,new Size(1.5,1.5));
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
         try {
             Thread.sleep(25);

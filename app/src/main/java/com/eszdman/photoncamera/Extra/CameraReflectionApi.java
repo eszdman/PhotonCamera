@@ -16,7 +16,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = CameraCharacteristics.class.getDeclaredField("mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCameraCharacteristics);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCameraCharacteristics);//Ur camera Characteristics
             Method set = CameraMetadataNative.getClass().getDeclaredMethod("set", CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
@@ -29,7 +29,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = CaptureResult.class.getDeclaredField("mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCaptureResult);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCaptureResult);//Ur camera CaptureResult
             Method set = CameraMetadataNative.getClass().getDeclaredMethod("set", CaptureResult.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
@@ -39,7 +39,7 @@ public class CameraReflectionApi {
     }
 
     public static void setVERBOSE(boolean in) {
-        Object capres = Camera2Api.mCaptureResult;
+        Object capres = Camera2Api.mCaptureResult;//Ur camera CaptureResult
         Field verbose = null;
         try {
             verbose =  CaptureResult.class.getDeclaredField("VERBOSE");
