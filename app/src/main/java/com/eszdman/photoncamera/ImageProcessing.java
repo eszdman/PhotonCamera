@@ -12,6 +12,7 @@ import android.util.Rational;
 
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.ui.CameraFragment;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -146,9 +147,9 @@ public class ImageProcessing {
         return h;
     }
     void processingstep(){
-        int progress =(Camera2Api.loadingcycle.getProgress()+1)%(Camera2Api.loadingcycle.getMax()+1);
+        int progress =(CameraFragment.loadingcycle.getProgress()+1)%(CameraFragment.loadingcycle.getMax()+1);
         progress = Math.max(1,progress);
-        Camera2Api.loadingcycle.setProgress(progress);
+        CameraFragment.loadingcycle.setProgress(progress);
     }
     Mat[][] getTiles(Mat[] input, int tilesize){
         Mat[][] output = new Mat[input.length][];
@@ -228,8 +229,8 @@ public class ImageProcessing {
         //Core.convertScaleAbs(merging,output,255);
         if(!israw) {
             Mat outb = new Mat();
-            double params = Math.sqrt(Math.log(Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
-            Log.d("ImageProcessing Denoise2", "params:"+params + " iso:"+Camera2Api.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+            double params = Math.sqrt(Math.log(CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))*22) + 9;
+            Log.d("ImageProcessing Denoise2", "params:"+params + " iso:"+ CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params,50);
             int ind = imgsmat.size()/2;
             if(ind %2 == 0) ind-=1;
@@ -318,11 +319,11 @@ public class ImageProcessing {
             outb = outbil;
             Imgcodecs.imwrite(path,output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
         }
-        Camera2Api.loadingcycle.setProgress(0);
+        CameraFragment.loadingcycle.setProgress(0);
 
     }
     int GetCFAPattern(){
-        Object integ = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+        Object integ = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if(integ !=null) {
             System.out.println("CFA pattern"+(int)integ);
             switch ((int)(integ)) {
@@ -334,7 +335,7 @@ public class ImageProcessing {
         return 3;
     }
     void ApplyHdrX(){
-        CaptureResult res = Camera2Api.mCaptureResult;
+        CaptureResult res = CameraFragment.mCaptureResult;
         int width =curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();
         Log.d(TAG,"APPLYHDRX: buffer:"+curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
@@ -408,10 +409,10 @@ public class ImageProcessing {
         Camera2ApiAutoFix.ApplyRes();
 
 
-        Log.d("ImageProcessing", "Camera bayer:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
+        Log.d("ImageProcessing", "Camera bayer:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
         if(israw) ApplyHdrX();
         if(isyuv)ApplyStabilization();
 
-        Camera2Api.loadingcycle.setProgress(0);
+        CameraFragment.loadingcycle.setProgress(0);
     }
 }

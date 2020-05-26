@@ -8,7 +8,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;
@@ -24,7 +24,7 @@ public class Photo {
             @Override
             public void handleMessage(Message msg) {
                 Uri uri = (Uri) msg.obj;
-                Camera2Api.context.img.setImageURI(uri);
+                CameraFragment.context.img.setImageURI(uri);
             }
         };
     }

@@ -2,9 +2,8 @@ package com.eszdman.photoncamera.api;
 
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
-import android.util.Log;
 
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -16,7 +15,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = CameraCharacteristics.class.getDeclaredField("mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCameraCharacteristics);//Ur camera Characteristics
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCameraCharacteristics);//Ur camera Characteristics
             Method set = CameraMetadataNative.getClass().getDeclaredMethod("set", CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
@@ -29,7 +28,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = CaptureResult.class.getDeclaredField("mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(Camera2Api.mCaptureResult);//Ur camera CaptureResult
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCaptureResult);//Ur camera CaptureResult
             Method set = CameraMetadataNative.getClass().getDeclaredMethod("set", CaptureResult.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
@@ -39,7 +38,7 @@ public class CameraReflectionApi {
     }
 
     public static void setVERBOSE(boolean in) {
-        Object capres = Camera2Api.mCaptureResult;//Ur camera CaptureResult
+        Object capres = CameraFragment.mCaptureResult;//Ur camera CaptureResult
         Field verbose = null;
         try {
             verbose =  CaptureResult.class.getDeclaredField("VERBOSE");

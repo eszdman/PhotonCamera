@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -62,23 +62,20 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-
+import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.MainActivity;
-import com.eszdman.photoncamera.ui.SettingsActivity;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,7 +87,9 @@ import java.util.concurrent.TimeUnit;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class Camera2Api extends Fragment
+import static com.eszdman.photoncamera.ui.MainActivity.onCameraViewCreated;
+
+public class CameraFragment extends Fragment
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     /**
@@ -215,9 +214,9 @@ public class Camera2Api extends Fragment
      */
     private Size mPreviewSize;
 
-    public static Camera2Api context;
+    public static CameraFragment context;
 
-    public Camera2Api() {
+    public CameraFragment() {
         super();
         context = this;
     }
@@ -450,8 +449,8 @@ public class Camera2Api extends Fragment
         }
     }
 
-    public static Camera2Api newInstance() {
-        return new Camera2Api();
+    public static CameraFragment newInstance() {
+        return new CameraFragment();
     }
 
     @Override
@@ -461,8 +460,8 @@ public class Camera2Api extends Fragment
     }
 
     public ImageButton shot;
-    ProgressBar lightcycle;
-    static ProgressBar loadingcycle;
+    public ProgressBar lightcycle;
+    public static ProgressBar loadingcycle;
     public CircleImageView img;
 
     @Override
@@ -485,7 +484,6 @@ public class Camera2Api extends Fragment
             case R.id.settings: {
 //                closeCamera();
 //                Interface.i.settings.openSettingsActivity();
-
                 Intent intent = new Intent(MainActivity.act, SettingsActivity.class);
                 startActivity(intent);
                 break;
@@ -510,6 +508,7 @@ public class Camera2Api extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
+        onCameraViewCreated();
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(Interface.i.settings.frameCount);
@@ -532,9 +531,6 @@ public class Camera2Api extends Fragment
         img.setClickable(true);
         //hdrmul.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix ur togglebutton
         mTextureView = view.findViewById(R.id.texture);
-        ImageView grid_icon = view.findViewById(R.id.grid);
-        if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
-        else grid_icon.setVisibility(View.GONE);
     }
 
     @Override
@@ -546,6 +542,9 @@ public class Camera2Api extends Fragment
     @Override
     public void onResume() {
         super.onResume();
+        ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
+        if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
+        else grid_icon.setVisibility(View.GONE);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
@@ -815,7 +814,7 @@ public class Camera2Api extends Fragment
     }*/
 
     /**
-     * Opens the camera specified by {@link Camera2Api#mCameraId}.
+     * Opens the camera specified by {@link CameraFragment#mCameraId}.
      */
     private void openCamera(int width, int height) {
         context = this;

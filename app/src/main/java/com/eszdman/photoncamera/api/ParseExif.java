@@ -6,7 +6,7 @@ import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class ParseExif {
             e.printStackTrace();
         }
         //inter.setAttribute(TAG_MODEL,Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.));
-        int rotation = Camera2Api.context.getOrientation(MainActivity.act.getWindowManager().getDefaultDisplay().getRotation());
+        int rotation = CameraFragment.context.getOrientation(MainActivity.act.getWindowManager().getDefaultDisplay().getRotation());
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:

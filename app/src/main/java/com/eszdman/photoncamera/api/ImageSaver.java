@@ -7,7 +7,7 @@ import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
 import android.util.Log;
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 
@@ -64,8 +64,8 @@ public class ImageSaver implements Runnable {
     }
     private static void end(){
        imageBuffer.clear();
-        Camera2Api.context.shot.setActivated(true);
-        Camera2Api.context.shot.setClickable(true);
+        CameraFragment.context.shot.setActivated(true);
+        CameraFragment.context.shot.setClickable(true);
     }
     @Override
     public void run() {
@@ -102,8 +102,8 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        Camera2Api.context.shot.setActivated(true);
-                        Camera2Api.context.shot.setClickable(true);
+                        CameraFragment.context.shot.setActivated(true);
+                        CameraFragment.context.shot.setClickable(true);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -136,7 +136,7 @@ public class ImageSaver implements Runnable {
                         processing.path = out.getAbsolutePath();
                         done(processing);
                         Thread.sleep(25);
-                        ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult, processing.path);
+                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, processing.path);
                         inter.saveAttributes();
                         Photo.instance.SaveImg(out);
                         end();
@@ -144,8 +144,8 @@ public class ImageSaver implements Runnable {
                     if (Interface.i.settings.frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        Camera2Api.context.shot.setActivated(true);
-                        Camera2Api.context.shot.setClickable(true);
+                        CameraFragment.context.shot.setActivated(true);
+                        CameraFragment.context.shot.setClickable(true);
                     }
                     bcnt++;
                 } catch (IOException | InterruptedException e) {
@@ -174,26 +174,26 @@ public class ImageSaver implements Runnable {
                         done(processing);
                         //Thread.sleep(50);
                         out = new File(out.getAbsolutePath());
-                        ExifInterface inter = ParseExif.Parse(Camera2Api.mCaptureResult,out.getAbsolutePath());
+                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,out.getAbsolutePath());
                         inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
                         out = new File(out.getAbsolutePath());
-                        Camera2Api.context.shot.setActivated(true);
+                        CameraFragment.context.shot.setActivated(true);
                         Photo.instance.SaveImg(out);
                         end();
                     }
                     if(Interface.i.settings.frameCount == 1) {
-                        Log.d(TAG,"activearr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
-                        Log.d(TAG,"precorr:"+Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"activearr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"precorr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"image:"+mImage.getCropRect());
-                        DngCreator dngCreator = new DngCreator(Camera2Api.mCameraCharacteristics,Camera2Api.mCaptureResult);
+                        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
                         output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                         dngCreator.writeImage(output, mImage);
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        Camera2Api.context.shot.setActivated(true);
-                        Camera2Api.context.shot.setClickable(true);
+                        CameraFragment.context.shot.setActivated(true);
+                        CameraFragment.context.shot.setClickable(true);
                     }
                     if(imageBuffer.size() > Interface.i.settings.frameCount) {
                         imageBuffer.get(imageBuffer.size()-1).close();

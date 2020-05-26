@@ -5,14 +5,14 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
-        long exposuretime = Camera2Api.context.mPreviewExposuretime;
-        int iso = Camera2Api.context.mPreviewIso;
+        long exposuretime = CameraFragment.context.mPreviewExposuretime;
+        int iso = CameraFragment.context.mPreviewIso;
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         Log.d(TAG, "InputParams: expo time:" + exposuretime + " iso:" + iso);
         if (iso >= 12700) {
@@ -24,7 +24,7 @@ public class IsoExpoSelector {
             iso /= 2;
         }
         if (iso > 4000) exposuretime *= 1.35;
-        if (Camera2Api.mTargetFormat == Camera2Api.rawFormat)
+        if (CameraFragment.mTargetFormat == CameraFragment.rawFormat)
             if (iso >= 100 * 1.35) iso *= 0.80;
             else {
                 exposuretime *= 0.80;
@@ -37,7 +37,7 @@ public class IsoExpoSelector {
     }
 
     static int getISOHIGH() {
-        Object key = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 3200;
         else {
             return (int) ((Range) (key)).getUpper();
@@ -45,7 +45,7 @@ public class IsoExpoSelector {
     }
 
     static int getISOLOW() {
-        Object key = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 100;
         else {
             return (int) ((Range) (key)).getLower();

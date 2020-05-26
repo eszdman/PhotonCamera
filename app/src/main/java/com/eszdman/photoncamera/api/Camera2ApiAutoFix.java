@@ -6,7 +6,7 @@ import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Log;
 import android.util.Rational;
-import com.eszdman.photoncamera.Camera2Api;
+import com.eszdman.photoncamera.ui.CameraFragment;
 
 import java.lang.reflect.Field;
 
@@ -23,11 +23,11 @@ public class Camera2ApiAutoFix {
         result = res;
     }
     public static void Apply(){
-        CameraCharacteristics  characteristics= Camera2Api.mCameraCharacteristics;
+        CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
     }
     public static void ApplyRes(){
-        CaptureResult characteristics= Camera2Api.mCaptureResult;
+        CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         fix.gains();
         fix.dynBL();
@@ -70,7 +70,7 @@ public class Camera2ApiAutoFix {
     }
     public void dynBL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
-        BlackLevelPattern ptr = Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if(ptr == null) return;
        if(level == null){
            level = new float[4];
