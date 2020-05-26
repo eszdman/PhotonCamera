@@ -26,7 +26,7 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginStart="0dp"
-        android:layout_marginTop="90dp"
+        android:layout_marginTop="60dp"
         android:layout_marginEnd="0dp" />
 
     <ImageView
@@ -54,7 +54,7 @@
         android:layout_marginBottom="4dp"
         android:layout_x="4dp"
         android:alpha="128"
-        android:background="@android:color/background_dark"
+        android:background="#31000000"
         android:visibility="visible">
 
         <ImageButton
@@ -62,7 +62,7 @@
             android:layout_width="136dp"
             android:layout_height="match_parent"
             android:layout_gravity="center_vertical"
-            android:background="#000000"
+            android:background="#00000000"
             android:clickable="true"
             android:contentDescription=""
             android:src="@drawable/ic_flip_camera"
@@ -80,7 +80,7 @@
                 android:layout_width="111dp"
                 android:layout_height="105dp"
                 android:layout_gravity="center_horizontal|center_vertical"
-                android:background="#000000"
+                android:background="#00000000"
                 android:clickable="true"
                 android:contentDescription=""
                 android:src="@drawable/roundbutton"
@@ -163,7 +163,7 @@
             android:id="@+id/stacking"
             android:layout_width="113dp"
             android:layout_height="36dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="32dp"
             android:background="@drawable/raw_button"
             android:checked="true"
             android:textOff=""
