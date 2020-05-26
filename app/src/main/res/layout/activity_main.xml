@@ -54,7 +54,7 @@
         android:layout_marginBottom="4dp"
         android:layout_x="4dp"
         android:alpha="128"
-        android:background="#31000000"
+        android:background="@color/controlCol"
         android:visibility="visible">
 
         <ImageButton
