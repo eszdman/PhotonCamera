@@ -19,12 +19,10 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      
       - name: Build debug APK
         run: bash ./gradlew assembleDebug --stacktrace
       - name: Build release APK
         run: bash ./gradlew assembleRelease
-      
       - name: Upload debug APK
         uses: actions/upload-artifact@v1
         with:
@@ -35,9 +33,8 @@ jobs:
         with:
           name: app
           path: app/build/outputs/apk/release/app-release-unsigned.apk
-      
       - name: Sign Android release
-      - uses: r0adkll/sign-android-release@v1
+        uses: r0adkll/sign-android-release@v1
         with:
           releaseDirectory: app/build/outputs/apk/release/
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
