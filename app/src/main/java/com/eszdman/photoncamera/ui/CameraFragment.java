@@ -76,6 +76,8 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Settings;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -524,12 +526,12 @@ public class CameraFragment extends Fragment
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
         settings.setActivated(true);
-        ToggleButton hdrmul = view.findViewById(R.id.stacking);
-        hdrmul.setOnClickListener(this);
+        ToggleButton hdrX = view.findViewById(R.id.stacking);
+        hdrX.setOnClickListener(this);
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        //hdrmul.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix ur togglebutton
+        //hdrX.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix your togglebutton
         mTextureView = view.findViewById(R.id.texture);
     }
 
@@ -543,8 +545,10 @@ public class CameraFragment extends Fragment
     public void onResume() {
         super.onResume();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
+        ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
         if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
+        hdrX.setChecked(Interface.i.settings.hdrx);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {

@@ -47,7 +47,9 @@ public class Settings {
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
-
+    Settings(){
+        load();
+    }
     public void load() {
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
         noiseReduction = get(noiseReduction);
@@ -116,6 +118,7 @@ public class Settings {
         Log.d(TAG, "Saved gain:" + gain);
         put(lastPicture);
         Log.d(TAG, "Saved last picture:" + lastPicture);
+        put(hdrx);
         sharedPreferencesEditor.apply();
         count = 0;
     }

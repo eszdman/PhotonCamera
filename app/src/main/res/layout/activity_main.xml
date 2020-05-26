@@ -21,37 +21,35 @@
     <com.eszdman.photoncamera.AutoFitTextureView
         android:id="@+id/texture"
         android:layout_width="match_parent"
-        android:layout_height="446dp"
-        android:layout_above="@+id/control"
+        android:layout_height="573dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:layout_marginStart="0dp"
-        android:layout_marginTop="113dp"
-        android:layout_marginEnd="0dp"
-        android:layout_marginBottom="0dp" />
+        android:layout_marginTop="90dp"
+        android:layout_marginEnd="0dp" />
 
     <ImageView
         android:id="@+id/grid"
-        android:layout_width="match_parent"
-        android:layout_height="557dp"
-        android:layout_above="@+id/control"
-        android:layout_alignStart="@+id/texture"
-        android:layout_alignEnd="@+id/texture"
-        android:layout_alignParentTop="true"
+        android:layout_width="356dp"
+        android:layout_height="589dp"
+        android:layout_alignTop="@+id/texture"
+        android:layout_alignBottom="@+id/texture"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
         android:layout_marginStart="0dp"
-        android:layout_marginTop="113dp"
+        android:layout_marginTop="0dp"
         android:layout_marginEnd="0dp"
-        android:layout_marginBottom="37dp"
+        android:layout_marginBottom="0dp"
+        android:contentDescription=""
         android:scaleType="fitXY"
         app:srcCompat="@drawable/ic_grid"
-        tools:visibility="gone"
-        android:contentDescription="" />
+        tools:visibility="gone" />
 
     <FrameLayout
         android:id="@+id/control"
         android:layout_width="match_parent"
-        android:layout_height="135dp"
+        android:layout_height="132dp"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="4dp"
         android:layout_x="4dp"
@@ -66,11 +64,11 @@
             android:layout_gravity="center_vertical"
             android:background="#000000"
             android:clickable="true"
+            android:contentDescription=""
             android:src="@drawable/ic_flip_camera"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
-            tools:text="Shot"
-            android:contentDescription="" />
+            tools:text="Shot" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="107dp"
@@ -84,6 +82,7 @@
                 android:layout_gravity="center_horizontal|center_vertical"
                 android:background="#000000"
                 android:clickable="true"
+                android:contentDescription=""
                 android:src="@drawable/roundbutton"
                 android:textAppearance="@style/TextAppearance.AppCompat"
                 android:visibility="visible"
@@ -91,8 +90,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="Shot"
-                android:contentDescription="" />
+                tools:text="Shot" />
 
             <ProgressBar
                 android:id="@+id/progressloading"
@@ -141,9 +139,9 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="0dp"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="0dp"
+        android:layout_marginStart="-3dp"
+        android:layout_marginTop="17dp"
+        android:layout_marginEnd="3dp"
         android:alpha="128"
         android:background="@android:color/background_dark">
 
@@ -195,5 +193,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.434" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </RelativeLayout>
