@@ -10,7 +10,7 @@ import android.media.Image;
 import android.util.Log;
 import android.util.Rational;
 
-import com.eszdman.photoncamera.Extra.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
 
 import org.opencv.core.Core;
@@ -355,10 +355,10 @@ public class ImageProcessing {
         //bl/=4;
         //Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
         Wrapper.setBWLWB(64,1023,vec.getRed(),vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue());
-        double contr = 0.8 + 2.5/(1+Interface.i.settings.contrast_mpy*20);
+        double contr = 0.8 + 2.5/(1+Interface.i.settings.contrastMpy *20);
         double compr = Interface.i.settings.compressor;
         compr = Math.max(1,compr);
-        Wrapper.setCompGain(compr,Interface.i.settings.gain,contr,Interface.i.settings.contrast_const);
+        Wrapper.setCompGain(compr,Interface.i.settings.gain,contr,Interface.i.settings.contrastConst);
         Wrapper.setSharpnessSaturation(Interface.i.settings.saturation,Interface.i.settings.sharpness*20);
         Log.d(TAG,"Wrapper.setBWLWB");
         processingstep();

@@ -70,11 +70,11 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
-import com.eszdman.photoncamera.Extra.CameraReflectionApi;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.Photos.ImageSaver;
-import com.eszdman.photoncamera.Photos.Photo;
+import com.eszdman.photoncamera.api.ImageSaver;
+import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;

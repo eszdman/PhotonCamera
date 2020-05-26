@@ -14,7 +14,6 @@ import android.widget.TextView;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
@@ -112,8 +111,8 @@ public class SettingsActivity extends AppCompatActivity {
         contrastconst.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.i.settings.contrast_const = contrastconst.getProgress();
-                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrast_mpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrast_const);
+                Interface.i.settings.contrastConst = contrastconst.getProgress();
+                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrastConst);
             }
 
             @Override
@@ -127,8 +126,8 @@ public class SettingsActivity extends AppCompatActivity {
         contrastmul.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.i.settings.contrast_mpy = getDouble(contrastmul.getProgress());
-                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrast_mpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrast_const);
+                Interface.i.settings.contrastMpy = getDouble(contrastmul.getProgress());
+                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrastConst);
             }
 
             @Override
@@ -219,8 +218,8 @@ public class SettingsActivity extends AppCompatActivity {
         setv(enhanced, Interface.i.settings.enhancedProcess);
         setv(gridOnOff, Interface.i.settings.grid);
         setv(sharp, Interface.i.settings.sharpness);
-        setv(contrastconst, Interface.i.settings.contrast_const);
-        setv(contrastmul, Interface.i.settings.contrast_mpy);
+        setv(contrastconst, Interface.i.settings.contrastConst);
+        setv(contrastmul, Interface.i.settings.contrastMpy);
         setv(compress, Interface.i.settings.compressor);
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
@@ -252,8 +251,8 @@ public class SettingsActivity extends AppCompatActivity {
 
     void get() {
         views();
-        if (turnNR.isChecked()) Interface.i.settings.NoiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
-        else Interface.i.settings.NoiseReduction = NOISE_REDUCTION_MODE_OFF;
+        if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
+        else Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_OFF;
         Interface.i.settings.align = !disablealign.isChecked();
         Interface.i.settings.enhancedProcess = enhanced.isChecked();
         Interface.i.settings.grid = gridOnOff.isChecked();

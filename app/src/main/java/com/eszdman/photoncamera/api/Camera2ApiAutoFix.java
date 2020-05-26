@@ -1,13 +1,10 @@
-package com.eszdman.photoncamera.Extra;
+package com.eszdman.photoncamera.api;
 
-import android.graphics.Camera;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.RggbChannelVector;
-import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
-import android.util.Range;
 import android.util.Rational;
 import com.eszdman.photoncamera.Camera2Api;
 

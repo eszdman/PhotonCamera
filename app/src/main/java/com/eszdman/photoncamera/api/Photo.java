@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Photos;
+package com.eszdman.photoncamera.api;
 
 import android.content.Intent;
 import android.database.Cursor;
@@ -10,17 +10,17 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.Camera2Api;
 import com.eszdman.photoncamera.ui.MainActivity;
-import com.eszdman.photoncamera.api.Interface;
 
 import java.io.File;
 import java.util.Comparator;
 
 public class Photo {
     public static Photo instance;
-    private Handler galleryhandl;
-    public Photo(){
+    private Handler galleryHandler;
+
+    public Photo() {
         instance = this;
-        galleryhandl = new Handler() {
+        galleryHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 Uri uri = (Uri) msg.obj;
@@ -28,7 +28,8 @@ public class Photo {
             }
         };
     }
-    Intent imgintent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+
+    //Intent imageIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
     public void ShowPhoto(File imageFile) {
 
         String mediaId = "";
@@ -58,37 +59,37 @@ public class Photo {
         Intent intent = new Intent(Intent.ACTION_VIEW, mediaUri);
         MainActivity.act.startActivity(intent);
     }
-    public void ShowPhoto(){
-        if(Interface.i.settings.lastPicture != null){
+
+    public void ShowPhoto() {
+        if (Interface.i.settings.lastPicture != null) {
             ShowPhoto(new File(Interface.i.settings.lastPicture));
         }
     }
+
     static class CompareFilesByDate implements Comparator<File> {
         @Override
         public int compare(File lhs, File rhs) {
             return Long.signum(rhs.lastModified() - lhs.lastModified());
         }
     }
-    public void SaveImg(File in){
 
-            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-            boolean wasnull = Interface.i.settings.lastPicture == null;
-            Interface.i.settings.lastPicture = in.getAbsolutePath();
-            if(wasnull) Interface.i.settings.save();
-            Uri contentUri = Uri.fromFile(in);
-            try {
-            //CircleImageView button = MainActivity.act.findViewById(R.id.ImageOut);
-                //Camera2Api.context.img.setImageURI(contentUri);
-            Message urim = new Message();
-            urim.obj = contentUri;
-            galleryhandl.sendMessage(urim);
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-            mediaScanIntent.setData(contentUri);
-            MainActivity.act.sendBroadcast(mediaScanIntent);
-            File outputDir = MainActivity.act.getCacheDir();
-            File outputFile = null;
+    public void SaveImg(File in) {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        boolean wasNull = Interface.i.settings.lastPicture == null;
+        Interface.i.settings.lastPicture = in.getAbsolutePath();
+        if (wasNull) Interface.i.settings.save();
+        Uri contentUri = Uri.fromFile(in);
+        try {
+            Message uriMessage = new Message();
+            uriMessage.obj = contentUri;
+            galleryHandler.sendMessage(uriMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        mediaScanIntent.setData(contentUri);
+        MainActivity.act.sendBroadcast(mediaScanIntent);
+        File outputDir = MainActivity.act.getCacheDir();
+        File outputFile = null;
 
     }
 }

@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Extra;
+package com.eszdman.photoncamera.api;
 
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
