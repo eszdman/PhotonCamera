@@ -29,7 +29,7 @@ public class Settings {
     private String TAG = "Settings";
     public int NoiseReduction = NOISE_REDUCTION_MODE_OFF;
     public int AfMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-    public int frameCount = 15;
+    public int frameCount = 25;
     public int lumenCount = 3;
     public int chromaCount = 12;
     public boolean enhancedProcess = false;
