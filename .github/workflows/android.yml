@@ -40,7 +40,7 @@ jobs:
           name: app
           path: app/build/outputs/apk/debug/app-debug.apk
       - name: Build release APK
-        run: bash ./gradlew
+        run: bash ./gradlew assembleRelease
       - name: Upload APK
         uses: actions/upload-artifact@v1
         with:
