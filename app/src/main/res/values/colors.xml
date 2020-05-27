@@ -13,4 +13,5 @@
     <color name="ToolBar">#1c1c1c</color>
     <color name="controlCol">#33000000</color>
     <color name="LauncherBackground">#00000000</color>
+    <color name="colorText">#B794F6</color>
 </resources>

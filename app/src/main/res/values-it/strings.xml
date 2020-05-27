@@ -9,4 +9,9 @@
     <string name="enhanced_processing">Processamento avanzato</string>
     <string name="settings">Impostazioni</string>
     <string name="turn_on_grid">Mostra griglia</string>
+    <string name="comp">Compressore:</string>
+    <string name="contrmul">Moltiplicatore contrasto:</string>
+    <string name="contrconst">Costante:</string>
+    <string name="saturation">Saturazione:</string>
+    <string name="sharpness">Nitidezza:</string>
 </resources>
