@@ -30,7 +30,6 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginTop="40dp"
-            android:background="@android:color/black"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="0.75"
             app:layout_constraintEnd_toEndOf="parent"
@@ -41,14 +40,18 @@
 
         <ImageView
             android:id="@+id/grid"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="40dp"
             android:scaleType="fitXY"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="0.75"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toTopOf="@id/TopBar"
+            app:layout_constraintVertical_bias="0.0"
             app:srcCompat="@drawable/ic_grid"
+            tools:layout_constraintTop_toBottomOf="@id/TopBar"
             tools:visibility="gone" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
