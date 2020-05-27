@@ -40,8 +40,8 @@
 
         <ImageView
             android:id="@+id/grid"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
+            android:layout_width="414dp"
+            android:layout_height="550dp"
             android:layout_marginTop="40dp"
             android:scaleType="fitXY"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -52,7 +52,22 @@
             app:layout_constraintVertical_bias="0.0"
             app:srcCompat="@drawable/ic_grid"
             tools:layout_constraintTop_toBottomOf="@id/TopBar"
-            tools:visibility="gone" />
+            tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/edges"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="40dp"
+            android:scaleType="fitXY"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="0.75"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/TopBar"
+            app:layout_constraintVertical_bias="0.0"
+            app:srcCompat="@drawable/ic_round_edge"
+            tools:layout_constraintTop_toBottomOf="@id/TopBar" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/TopBar"

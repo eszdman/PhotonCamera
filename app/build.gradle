@@ -53,4 +53,5 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'org.jocl:jocl:2.0.2'
+    implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
 }
