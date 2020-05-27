@@ -380,10 +380,7 @@ public class ImageProcessing {
         Log.d(TAG,"LensShading Row:"+lenss.getRowCount());
         Log.d(TAG,"LensShading Col:"+lenss.getColumnCount());
         Log.d(TAG,"LensShading Count:"+lenss.getGainFactorCount());
-        for(int i =0; i<curimgs.size();i++) {
-            Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
-            curimgs.get(i).close();
-        }
+        for(int i =0; i<curimgs.size();i++)Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
         //ByteBuffer out = curimgs.get(3).getPlanes()[0].getBuffer();
         Log.d(TAG,"Wrapper.loadFrame");
         processingstep();
@@ -395,6 +392,7 @@ public class ImageProcessing {
         Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
         //Imgproc.blur(out,out,new Size(1.5,1.5));
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
+        for(int i =0; i<curimgs.size();i++) curimgs.get(i).close();
         try {
             Thread.sleep(25);
         } catch (InterruptedException e) {

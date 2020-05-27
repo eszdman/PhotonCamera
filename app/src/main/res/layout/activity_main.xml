@@ -44,15 +44,13 @@
         android:contentDescription=""
         android:scaleType="fitXY"
         app:srcCompat="@drawable/ic_grid"
-        tools:visibility="gone" />
+        tools:visibility="invisible" />
 
     <FrameLayout
         android:id="@+id/control"
         android:layout_width="match_parent"
         android:layout_height="132dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="4dp"
-        android:layout_x="4dp"
         android:alpha="128"
         android:background="@color/controlCol"
         android:visibility="visible">
@@ -135,39 +133,37 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="37dp"
+        android:layout_height="40dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginStart="-3dp"
-        android:layout_marginTop="17dp"
-        android:layout_marginEnd="3dp"
+        android:layout_marginTop="10dp"
         android:alpha="128"
         android:background="@android:color/background_dark">
 
         <Button
             android:id="@+id/settings"
             style="@style/Widget.AppCompat.Button"
-            android:layout_width="38dip"
-            android:layout_height="38dip"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="center_horizontal|center_vertical"
-            android:layout_marginEnd="36dp"
+            android:layout_marginEnd="32dp"
             android:background="@drawable/ic_settings"
             android:padding="5dip"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <ToggleButton
             android:id="@+id/stacking"
-            android:layout_width="113dp"
-            android:layout_height="36dp"
+            android:layout_width="110dp"
+            android:layout_height="40dp"
             android:layout_marginStart="32dp"
             android:background="@drawable/raw_button"
             android:checked="true"
             android:textOff=""
             android:textOn=""
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:visibility="visible" />
