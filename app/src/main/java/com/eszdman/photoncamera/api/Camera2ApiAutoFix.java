@@ -5,6 +5,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Log;
+import android.util.Range;
 import android.util.Rational;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
@@ -13,7 +14,7 @@ import java.lang.reflect.Field;
 import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
 public class Camera2ApiAutoFix {
-    private String TAG = "Camera2ApiAutoFix";
+    private static String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;
     private CaptureResult result;
     Camera2ApiAutoFix(CameraCharacteristics characteristic) {
@@ -25,6 +26,9 @@ public class Camera2ApiAutoFix {
     public static void Apply(){
         CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
+        Range isorang = characteristics.get(SENSOR_INFO_SENSITIVITY_RANGE);
+        CameraReflectionApi.set(SENSOR_INFO_SENSITIVITY_RANGE,new Range<>(100,20000));
+        Log.d(TAG,"New range:"+characteristics.get(SENSOR_INFO_SENSITIVITY_RANGE));
     }
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
