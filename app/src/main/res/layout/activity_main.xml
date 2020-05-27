@@ -52,18 +52,18 @@
         app:srcCompat="@drawable/ic_grid"
         tools:visibility="gone" />
 
-    <Spinner
-        android:id="@+id/BottomBar"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_below="@id/textureHolder"
-        android:layout_marginTop="-40dp"
-        android:background="#33333333" />
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/textureHolder">
+        android:layout_height="160dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="0dp"
+        android:background="@color/controlCol">
+
+        <Spinner
+            android:id="@+id/BottomBar"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            app:layout_constraintBottom_toTopOf="@+id/control" />
 
         <FrameLayout
             android:id="@+id/control"
@@ -72,12 +72,12 @@
             android:layout_x="0dp"
             android:layout_y="0dp"
             android:alpha="128"
-            android:background="color/controlCol"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1.0">
 
             <ImageButton
                 android:id="@+id/flip_camera"
@@ -104,8 +104,8 @@
                     android:layout_gravity="center_horizontal|center_vertical"
                     android:background="#00000000"
                     android:clickable="true"
-                    android:src="@drawable/roundbutton"
                     android:contentDescription=""
+                    android:src="@drawable/roundbutton"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
                     app:layout_constraintBottom_toBottomOf="parent"
