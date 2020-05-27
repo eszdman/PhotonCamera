@@ -392,12 +392,12 @@ public class ImageProcessing {
         Imgproc.cvtColor(out,out,Imgproc.COLOR_RGB2BGR);
         //Imgproc.blur(out,out,new Size(1.5,1.5));
         Imgcodecs.imwrite(path,out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY,100));
-        for(int i =0; i<curimgs.size();i++) curimgs.get(i).close();
         try {
             Thread.sleep(25);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        for(int i =0; i<curimgs.size();i++) curimgs.get(i).close();
     }
     public void Run(){
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
