@@ -18,126 +18,154 @@
     android:background="@color/colorPrimaryDark">
 
 
-    <com.eszdman.photoncamera.AutoFitTextureView
-        android:id="@+id/texture"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/textureHolder"
         android:layout_width="match_parent"
-        android:layout_height="573dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginStart="0dp"
-        android:layout_marginTop="60dp"
-        android:layout_marginEnd="0dp" />
+        android:layout_height="wrap_content"
+        android:layout_below="@id/TopBar"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp">
+
+        <com.eszdman.photoncamera.AutoFitTextureView
+            android:id="@+id/texture"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="H,3:4"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <ImageView
         android:id="@+id/grid"
-        android:layout_width="356dp"
-        android:layout_height="589dp"
-        android:layout_alignTop="@+id/texture"
-        android:layout_alignBottom="@+id/texture"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/BottomBar"
+        android:layout_alignStart="@id/textureHolder"
+        android:layout_alignEnd="@id/textureHolder"
+        android:layout_alignParentTop="true"
         android:layout_marginStart="0dp"
-        android:layout_marginTop="0dp"
+        android:layout_marginTop="113dp"
         android:layout_marginEnd="0dp"
-        android:layout_marginBottom="0dp"
-        android:contentDescription=""
+        android:layout_marginBottom="37dp"
         android:scaleType="fitXY"
         app:srcCompat="@drawable/ic_grid"
-        tools:visibility="invisible" />
+        tools:visibility="gone" />
 
-    <FrameLayout
-        android:id="@+id/control"
+    <Spinner
+        android:id="@+id/BottomBar"
         android:layout_width="match_parent"
-        android:layout_height="132dp"
-        android:layout_alignParentBottom="true"
-        android:alpha="128"
-        android:background="@color/controlCol"
-        android:visibility="visible">
+        android:layout_height="40dp"
+        android:layout_below="@id/textureHolder"
+        android:layout_marginTop="-40dp"
+        android:background="#33333333" />
 
-        <ImageButton
-            android:id="@+id/flip_camera"
-            android:layout_width="136dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_vertical"
-            android:background="#00000000"
-            android:clickable="true"
-            android:contentDescription=""
-            android:src="@drawable/ic_flip_camera"
-            android:textAppearance="@style/TextAppearance.AppCompat"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/textureHolder">
+
+        <FrameLayout
+            android:id="@+id/control"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_x="0dp"
+            android:layout_y="0dp"
+            android:alpha="128"
+            android:background="color/controlCol"
             android:visibility="visible"
-            tools:text="Shot" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="107dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_horizontal|center_vertical">
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
-                android:id="@+id/picture"
-                android:layout_width="111dp"
-                android:layout_height="105dp"
-                android:layout_gravity="center_horizontal|center_vertical"
+                android:id="@+id/flip_camera"
+                android:layout_width="136dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
                 android:background="#00000000"
                 android:clickable="true"
                 android:contentDescription=""
-                android:src="@drawable/roundbutton"
+                android:src="@drawable/ic_flip_camera"
                 android:textAppearance="@style/TextAppearance.AppCompat"
                 android:visibility="visible"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
                 tools:text="Shot" />
 
-            <ProgressBar
-                android:id="@+id/progressloading"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_width="130dp"
-                android:layout_height="115dp"
-                android:indeterminate="false"
-                android:max="100"
-                android:padding="15dp"
-                android:progressDrawable="@drawable/circular_progress_bar2"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible" />
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="107dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal|center_vertical">
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                <ImageButton
+                    android:id="@+id/picture"
+                    android:layout_width="111dp"
+                    android:layout_height="105dp"
+                    android:layout_gravity="center_horizontal|center_vertical"
+                    android:background="#00000000"
+                    android:clickable="true"
+                    android:src="@drawable/roundbutton"
+                    android:contentDescription=""
+                    android:textAppearance="@style/TextAppearance.AppCompat"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:text="Shot" />
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="137dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="center_horizontal|end">
+                <ProgressBar
+                    android:id="@+id/progressloading"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="130dp"
+                    android:layout_height="115dp"
+                    android:indeterminate="false"
+                    android:max="100"
+                    android:padding="15dp"
+                    android:progressDrawable="@drawable/circular_progress_bar2"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:visibility="visible" />
 
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/ImageOut"
-                android:layout_width="82dp"
-                android:layout_height="80dp"
-                android:layout_gravity="end|center_vertical"
-                android:padding="9dp"
-                android:src="@drawable/round"
-                app:civ_border_color="@color/Light"
-                app:civ_border_overlay="true"
-                app:civ_border_width="3dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.49"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </FrameLayout>
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="137dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal|end">
+
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/ImageOut"
+                    android:layout_width="82dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:padding="9dp"
+                    android:src="@drawable/round"
+                    app:civ_border_color="@color/Light"
+                    app:civ_border_overlay="true"
+                    app:civ_border_width="3dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.49"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </FrameLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/TopBar"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="10dp"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="0dp"
         android:alpha="128"
         android:background="@android:color/background_dark">
 
@@ -152,7 +180,8 @@
             android:padding="5dip"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
 
         <ToggleButton
             android:id="@+id/stacking"
@@ -191,4 +220,5 @@
             app:layout_constraintVertical_bias="0.434" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
 </RelativeLayout>
