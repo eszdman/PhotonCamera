@@ -157,7 +157,7 @@
         <ToggleButton
             android:id="@+id/stacking"
             android:layout_width="110dp"
-            android:layout_height="40dp"
+            android:layout_height="33dp"
             android:layout_marginStart="32dp"
             android:background="@drawable/raw_button"
             android:checked="true"
