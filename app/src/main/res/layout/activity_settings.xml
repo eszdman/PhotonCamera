@@ -73,9 +73,12 @@
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:paddingStart="44dp"
                     android:text="@string/jpg"
-                    android:textAlignment="center"
-                    android:textSize="30sp" />
+                    android:textAlignment="viewStart"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorText"/>
 
                 <Switch
                     android:id="@+id/setting_turnNR"
@@ -156,15 +159,20 @@
                     android:id="@+id/textView2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:paddingStart="44dp"
                     android:text="@string/hdrx"
-                    android:textAlignment="center"
-                    android:textSize="30sp" />
+                    android:textAlignment="viewStart"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorText"/>
 
                 <TextView
                     android:id="@+id/settings_sharpnesstext"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:gravity="center_vertical"
+                    android:drawableStart="@drawable/ic_straighten"
+                    android:drawablePadding="20dp"
                     android:text="@string/sharpness"
                     android:textColor="@color/White"
                     android:textSize="16sp" />
@@ -183,6 +191,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:gravity="center_vertical"
+                    android:drawableStart="@drawable/ic_contrast"
+                    android:drawablePadding="20dp"
                     android:textColor="@color/White"
                     android:textSize="16sp" />
 
@@ -209,6 +219,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
                     android:gravity="center_vertical"
+                    android:drawableStart="@drawable/ic_saturation"
+                    android:drawablePadding="20dp"
                     android:text="@string/saturation"
                     android:textColor="@color/White"
                     android:textSize="16sp" />
@@ -228,6 +240,8 @@
                     android:layout_height="45dp"
                     android:gravity="center_vertical"
                     android:textColor="@color/White"
+                    android:drawableStart="@drawable/ic_compressor"
+                    android:drawablePadding="20dp"
                     android:textSize="16sp" />
 
                 <SeekBar
