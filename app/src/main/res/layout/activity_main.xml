@@ -35,7 +35,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/TopBar"
-            app:layout_constraintVertical_bias="0.0"
+            app:layout_constraintVertical_bias="0.16000003"
             tools:layout_constraintTop_toBottomOf="@id/TopBar" />
 
         <ImageView
@@ -49,7 +49,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/TopBar"
-            app:layout_constraintVertical_bias="0.0"
+            app:layout_constraintVertical_bias="0.16000003"
             app:srcCompat="@drawable/ic_grid"
             tools:layout_constraintTop_toBottomOf="@id/TopBar"
             tools:visibility="visible" />
@@ -65,7 +65,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@id/TopBar"
-            app:layout_constraintVertical_bias="0.0"
+            app:layout_constraintVertical_bias="0.16000003"
             app:srcCompat="@drawable/ic_round_edge"
             tools:layout_constraintTop_toBottomOf="@id/TopBar" />
 
@@ -111,10 +111,11 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/BottomBarHolder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="395dp"
+            android:layout_height="167dp"
             android:background="@color/controlCol"
-            app:layout_constraintBottom_toBottomOf="parent">
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:layout_editor_absoluteX="-2dp">
 
             <Spinner
                 android:id="@+id/BottomBar"
