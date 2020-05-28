@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -16,12 +17,12 @@ import java.util.Comparator;
 
 public class Photo {
     public static Photo instance;
-    private Handler galleryHandler;
+    private static Handler galleryHandler;
 
+    @SuppressLint("HandlerLeak")
     public Photo() {
         instance = this;
         galleryHandler = new Handler() {
-            @Override
             public void handleMessage(Message msg) {
                 Uri uri = (Uri) msg.obj;
                 try {
@@ -92,8 +93,5 @@ public class Photo {
         }
         mediaScanIntent.setData(contentUri);
         MainActivity.act.sendBroadcast(mediaScanIntent);
-        File outputDir = MainActivity.act.getCacheDir();
-        File outputFile = null;
-
     }
 }
