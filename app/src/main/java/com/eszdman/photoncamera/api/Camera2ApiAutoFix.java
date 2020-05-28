@@ -13,7 +13,7 @@ import java.lang.reflect.Field;
 import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
 public class Camera2ApiAutoFix {
-    private String TAG = "Camera2ApiAutoFix";
+    private static String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;
     private CaptureResult result;
     Camera2ApiAutoFix(CameraCharacteristics characteristic) {
@@ -29,6 +29,7 @@ public class Camera2ApiAutoFix {
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
+        Log.d(TAG,"Get:"+characteristics.get(TONEMAP_CURVE));
         fix.gains();
         fix.dynBL();
     }

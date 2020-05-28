@@ -24,6 +24,7 @@ import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_PRESET_CURVE;
 
 public class Settings {
     private String TAG = "Settings";
@@ -143,8 +144,9 @@ public class Settings {
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
+        //Log.d(TAG,"Points:"+captureBuilder.get(TONEMAP_PRESET_CURVE));
+        captureBuilder.set(TONEMAP_PRESET_CURVE,0);
     }
-
 
     void put(int in) {
         sharedPreferencesEditor.putInt("Settings:" + count, in);
