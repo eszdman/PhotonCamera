@@ -24,7 +24,11 @@ public class Photo {
             @Override
             public void handleMessage(Message msg) {
                 Uri uri = (Uri) msg.obj;
-                CameraFragment.context.img.setImageURI(uri);
+                try {
+                    CameraFragment.context.img.setImageURI(uri);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
     }
