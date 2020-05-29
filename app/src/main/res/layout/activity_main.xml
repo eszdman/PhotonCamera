@@ -40,8 +40,8 @@
 
         <ImageView
             android:id="@+id/grid"
-            android:layout_width="414dp"
-            android:layout_height="550dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:layout_marginTop="40dp"
             android:scaleType="fitXY"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -124,7 +124,8 @@
                 app:layout_constraintBottom_toTopOf="@id/control"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                android:visibility="gone"/>
 
             <FrameLayout
                 android:id="@+id/control"
