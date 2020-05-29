@@ -24,6 +24,7 @@ import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.ORB;
@@ -347,7 +348,7 @@ public class ImageProcessing {
         clearProcessingCycle();
     }
 
-    int GetCFAPattern() {
+    /*int GetCFAPattern() {
         Object integ = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (integ != null) {
             System.out.println("CFA pattern" + (int) integ);
@@ -361,7 +362,7 @@ public class ImageProcessing {
             }
         }
         return 3;
-    }
+    }*/
 
     void ApplyHdrX() {
         CaptureResult res = CameraFragment.mCaptureResult;
@@ -371,7 +372,7 @@ public class ImageProcessing {
         Wrapper.init(width, height, curimgs.size());
         Log.d(TAG, "Wrapper.init");
         processingstep();
-        Wrapper.setCFA(GetCFAPattern());
+        //Wrapper.setCFA(GetCFAPattern());
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
@@ -384,12 +385,12 @@ public class ImageProcessing {
         //for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
         //bl/=4;
         //Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
-        Wrapper.setBWLWB(64, 1023, vec.getRed(), vec.getGreenEven(), vec.getGreenOdd(), vec.getBlue());
+        //Wrapper.setBWLWB(64, 1023, vec.getRed(), vec.getGreenEven(), vec.getGreenOdd(), vec.getBlue());
         double contr = 0.8 + 2.5 / (1 + Interface.i.settings.contrastMpy * 20);
         double compr = Interface.i.settings.compressor;
         compr = Math.max(1, compr);
-        Wrapper.setCompGain(compr, Interface.i.settings.gain, contr, Interface.i.settings.contrastConst);
-        Wrapper.setSharpnessSaturation(Interface.i.settings.saturation, Interface.i.settings.sharpness * 20);
+        //Wrapper.setCompGain(compr, Interface.i.settings.gain, contr, Interface.i.settings.contrastConst);
+        //Wrapper.setSharpnessSaturation(Interface.i.settings.saturation, Interface.i.settings.sharpness * 20);
         Log.d(TAG, "Wrapper.setBWLWB");
         processingstep();
         double ccm[] = new double[9];
@@ -408,7 +409,7 @@ public class ImageProcessing {
                 c++;
             }
         }*/
-        Wrapper.setCCM(ccm);
+        //Wrapper.setCCM(ccm);
         Log.d(TAG, "Wrapper.setCCM");
         processingstep();
         LensShadingMap lenss = res.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
@@ -424,8 +425,10 @@ public class ImageProcessing {
         //ExampleUtil.Run(output,width,height);
         Log.d(TAG, "Wrapper.processFrame()");
         processingstep();
-        Mat out = new Mat(height, width, CvType.CV_8UC3, output);
-        Imgproc.cvtColor(out, out, Imgproc.COLOR_RGB2BGR);
+        Mat out = new Mat(height, width, CvType.CV_16UC1, output);
+        Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
+        Core.multiply(out,new Scalar(1/vec.getBlue(),(1/(vec.getGreenOdd()+vec.getGreenEven())),1/vec.getRed()),out);
+        //Imgproc.cvtColor(out, out, Imgproc.COLOR_RGB2BGR);
         //Imgproc.blur(out,out,new Size(1.5,1.5));
         Imgcodecs.imwrite(path, out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
