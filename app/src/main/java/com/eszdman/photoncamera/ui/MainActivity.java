@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
 
@@ -46,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
     public static void onCameraViewCreated(){
 
     }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
         act = this;
         Interface inter = new Interface();
+        Wrapper.Test();
         inter.mainActivity = this;
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         CameraFragment.context = CameraFragment.newInstance();
