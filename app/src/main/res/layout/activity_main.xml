@@ -111,21 +111,22 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/BottomBarHolder"
-            android:layout_width="395dp"
-            android:layout_height="167dp"
+            android:layout_width="0dp"
+            android:layout_height="143dp"
             android:background="@color/controlCol"
             app:layout_constraintBottom_toBottomOf="parent"
-            tools:layout_editor_absoluteX="-2dp">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
             <Spinner
                 android:id="@+id/BottomBar"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
+                android:visibility="gone"
                 app:layout_constraintBottom_toTopOf="@id/control"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:visibility="gone"/>
+                app:layout_constraintTop_toTopOf="parent" />
 
             <FrameLayout
                 android:id="@+id/control"
