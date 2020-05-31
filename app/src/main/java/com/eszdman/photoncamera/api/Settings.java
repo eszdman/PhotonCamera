@@ -40,7 +40,7 @@ public class Settings {
     public boolean hdrx = true;
     public double saturation = 0.7;
     public double sharpness = 0.3;
-    public double contrastMpy = 1.0;
+    public double contrastMpy = 1.35;
     public int contrastConst = 0;
     public double compressor = 3.0;
     public double gain = 0.8;

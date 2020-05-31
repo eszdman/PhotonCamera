@@ -1,10 +1,13 @@
 package com.eszdman.photoncamera.Parameters;
 
+import android.hardware.SensorEventListener;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 
+import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class IsoExpoSelector {
@@ -29,6 +32,9 @@ public class IsoExpoSelector {
             else {
                 exposuretime *= 0.80;
             }
+
+
+
         iso = Math.max(getISOLOW(), iso);
         iso = Math.min(getISOHIGH(), iso);
         Log.d(TAG, "IsoSelected:" + iso + " ExpoSelected:" + exposuretime);

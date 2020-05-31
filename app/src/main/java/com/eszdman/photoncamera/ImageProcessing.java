@@ -373,6 +373,7 @@ public class ImageProcessing {
 
     void ApplyHdrX() {
         CaptureResult res = CameraFragment.mCaptureResult;
+        long startTime = System.currentTimeMillis();
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
@@ -417,6 +418,8 @@ public class ImageProcessing {
         Mat out = new Mat(height, width, CvType.CV_16UC1, output);
         int[] blarr = new int[4];
         level.copyTo(blarr,0);
+        //Contrast constant
+
         //BlackLevel
         Core.max(out,new Scalar(blarr[0]+1),out);
         Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
@@ -465,13 +468,15 @@ public class ImageProcessing {
         gemm(orig_img_linear,ccmMat.t(),1, new Mat(), 0, color_matrixed_linear);
         Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
         //tonemap using Mantiuk and apply saturation
-        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain);
+        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain*5+0.04f);
         Mat ldrMantiuk = new Mat();
         tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
         //return values to 0-1 -> 0-255
         Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
         //apply contrast
         ldrMantiuk = contrast(ldrMantiuk, (float) Interface.i.settings.contrastMpy);
+        //Photo.detailEnhance(ldrMantiuk,ldrMantiuk, (float) Interface.i.settings.sharpness,3);
+        Log.d(TAG,"HDRX: Time Elapsed ms:"+(System.currentTimeMillis()-startTime));
         Imgcodecs.imwrite(path, ldrMantiuk, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
             Thread.sleep(25);
@@ -483,7 +488,7 @@ public class ImageProcessing {
 
     Mat contrast(Mat input, float scale) {
         float level = 255;
-        float inner_constant = 3.141592f / (2.f * scale);
+        float inner_constant = 3.141592f / (2.f * (2f-scale+0.7f));
         float sin_constant = (float) Math.sin(inner_constant);
         float slope = level / (2.f * sin_constant);
         float constant = slope * sin_constant;
