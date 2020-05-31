@@ -7,7 +7,10 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -43,7 +46,7 @@ public class SettingsActivity extends AppCompatActivity {
     TextView sharptext;
     TextView contrasttext;
     TextView compgaintext;
-
+    Spinner cfaList;
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
@@ -199,6 +202,20 @@ public class SettingsActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+
+        cfaList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+              @Override
+              public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                  Interface.i.settings.cfaPatern = position;
+              }
+
+              @Override
+              public void onNothingSelected(AdapterView<?> parent) {
+                  Interface.i.settings.cfaPatern = 0;
+              }
+          }
+        );
+
         set();
     }
 
@@ -225,6 +242,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(compress, Interface.i.settings.compressor);
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
+        setv(cfaList,Interface.i.settings.cfaPatern);
     }
 
     void views() {
@@ -250,6 +268,7 @@ public class SettingsActivity extends AppCompatActivity {
         contrasttext = getView(R.id.settings_contrasttext);
         compgaintext = getView(R.id.setting_compgainrext);
         sattext = getView(R.id.setting_sattext);
+        cfaList = getView(R.id.setting_cfa);
     }
 
     void get() {
@@ -326,6 +345,10 @@ public class SettingsActivity extends AppCompatActivity {
         in.setProgress(val);
     }
 
+    void setv(Spinner in, int val)
+    {
+        in.setSelection(val);
+    }
     void setv(SeekBar in, double val) {
         val *= 100;
         setv(in, (int) val);

@@ -45,7 +45,7 @@ public class Settings {
     public double compressor = 3.58;
     public double gain = 0.8;
     public String lastPicture = null;
-
+    public int cfaPatern = 0;
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
@@ -86,6 +86,10 @@ public class Settings {
         Log.d(TAG, "Loaded gain:" + gain);
         lastPicture = get(lastPicture);
         Log.d(TAG, "Loaded last picture:" + lastPicture);
+        hdrx = get(hdrx);
+        cfaPatern = get(cfaPatern);
+        Log.d(TAG, "Loaded CFA:" + cfaPatern);
+
         count = 0;
     }
 
@@ -125,6 +129,8 @@ public class Settings {
         put(lastPicture);
         Log.d(TAG, "Saved last picture:" + lastPicture);
         put(hdrx);
+        Log.d(TAG, "Saved CFA:" + cfaPatern);
+        put(cfaPatern);
         sharedPreferencesEditor.apply();
         count = 0;
     }

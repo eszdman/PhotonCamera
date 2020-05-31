@@ -421,58 +421,93 @@ public class ImageProcessing {
         //Contrast constant
 
         //BlackLevel
-        Core.max(out,new Scalar(blarr[0]+1),out);
+
         Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
+        Core.max(out,new Scalar(0,0,0,0),out);
+        //whitelevel
+        Core.min(out,new Scalar(1023-blarr[0],1023-blarr[0],1023-blarr[0],1023-blarr[0]),out);
+
         //CFA PATERN
-        int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        switch (pattern)
+        if(Interface.i.settings.cfaPatern >0)
         {
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGB2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerRG2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGR2BGR);
-            break;
-        default:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
-            break;
+            switch (Interface.i.settings.cfaPatern)
+            {
+                case 1:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+                case 2:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerRG2BGR);
+                    break;
+                case 3:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGB2BGR);
+                    break;
+                case 4:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGR2BGR);
+                    break;
+                default:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+            }
+        }
+        else {
+            int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+            switch (pattern) {
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGB2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerRG2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGR2BGR);
+                    break;
+                default:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+            }
         }
         Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1/vec2[1].floatValue(),1/vec2[0].floatValue()),out);
         Mat MCMat = new Mat();
         //convert to 32bit float 3 colors
         out.convertTo(MCMat,CvType.CV_32FC3);
-        //whitelevel
-        Core.min(MCMat,new Scalar(1023,1023,1023,1023),MCMat);
+
+
         ColorSpaceTransform colorSpaceTransform = (ColorSpaceTransform)res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+
         ColorSpaceTransform a3 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
         Rational[] rationalArr = new Rational[9];
+
         float[] fArr = new float[9];
-        if(colorSpaceTransform!= null)
+        if(a3!= null)
         {
-            colorSpaceTransform.copyElements(rationalArr, 0);
+            a3.copyElements(rationalArr, 0);
             for (int i = 0; i < 9; i++) {
                 fArr[i] = rationalArr[i].floatValue();
             }
         }
+
         //CCM?
         Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
         ccmMat.put(0, 0, fArr);
+
         Mat color_matrixed_linear = new Mat();
         Mat orig_img_linear = MCMat.reshape(1, height*width);
+
         gemm(orig_img_linear,ccmMat.t(),1, new Mat(), 0, color_matrixed_linear);
+
         Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
+
         //tonemap using Mantiuk and apply saturation
         TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain*5+0.04f);
         Mat ldrMantiuk = new Mat();
         tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
+
         //return values to 0-1 -> 0-255
         Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
+
         //apply contrast
         ldrMantiuk = contrast(ldrMantiuk, (float) contr);
         //Photo.detailEnhance(ldrMantiuk,ldrMantiuk, (float) Interface.i.settings.sharpness,3);
