@@ -418,6 +418,7 @@ public class ImageProcessing {
         int[] blarr = new int[4];
         level.copyTo(blarr,0);
         //BlackLevel
+        Core.max(out,new Scalar(blarr[0]+1),out);
         Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
         //CFA PATERN
         int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
