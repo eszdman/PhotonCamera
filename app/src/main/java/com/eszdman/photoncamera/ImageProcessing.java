@@ -421,9 +421,9 @@ public class ImageProcessing {
         //Contrast constant
 
         //BlackLevel
-        Core.max(out,new Scalar(blarr[0]+1),out);
-        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
 
+        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
+        Core.max(out,new Scalar(0,0,0,0),out);
         //whitelevel
         Core.min(out,new Scalar(1023-blarr[0],1023-blarr[0],1023-blarr[0],1023-blarr[0]),out);
 
