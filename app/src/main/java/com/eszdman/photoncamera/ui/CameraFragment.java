@@ -477,7 +477,7 @@ public class CameraFragment extends Fragment
             }
             case R.id.flip_camera: {
                 ImageButton flip = view.findViewById(R.id.flip_camera);
-                flip.animate().rotation(flip.getRotation() - 360).start();
+                flip.animate().rotation(flip.getRotation() - 360).setDuration(400).start();
                 mCameraId = cycler(mCameraId, mCameraIds);
                 restartCamera();
                 showToast("Afmodes:" + mCameraAfModes.length);
