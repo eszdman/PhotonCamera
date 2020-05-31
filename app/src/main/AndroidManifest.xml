@@ -21,7 +21,8 @@
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@drawable/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        >
         <activity android:name=".ui.SettingsActivity" />
         <activity android:name=".ui.MainActivity">
             <intent-filter>
@@ -30,7 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <meta-data
             android:name="firebase_performance_logcat_enabled"
             android:value="true" />

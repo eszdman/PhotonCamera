@@ -35,7 +35,7 @@ public class Settings {
     public int chromaCount = 12;
     public boolean enhancedProcess = false;
     public boolean grid = false;
-    public boolean roundedge = false;
+    public boolean roundedge = true;
     public boolean align = true;
     public boolean hdrx = true;
     public double saturation = 0.7;
