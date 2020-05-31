@@ -474,7 +474,7 @@ public class ImageProcessing {
         //return values to 0-1 -> 0-255
         Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
         //apply contrast
-        ldrMantiuk = contrast(ldrMantiuk, (float) Interface.i.settings.contrastMpy);
+        ldrMantiuk = contrast(ldrMantiuk, (float) contr);
         //Photo.detailEnhance(ldrMantiuk,ldrMantiuk, (float) Interface.i.settings.sharpness,3);
         Log.d(TAG,"HDRX: Time Elapsed ms:"+(System.currentTimeMillis()-startTime));
         Imgcodecs.imwrite(path, ldrMantiuk, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
@@ -488,7 +488,7 @@ public class ImageProcessing {
 
     Mat contrast(Mat input, float scale) {
         float level = 255;
-        float inner_constant = 3.141592f / (2.f * (2f-scale+0.7f));
+        float inner_constant = 3.141592f / (2.f * (scale));
         float sin_constant = (float) Math.sin(inner_constant);
         float slope = level / (2.f * sin_constant);
         float constant = slope * sin_constant;
