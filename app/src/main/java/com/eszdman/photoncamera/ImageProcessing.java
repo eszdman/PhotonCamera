@@ -3,6 +3,7 @@ package com.eszdman.photoncamera;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
 import android.hardware.camera2.params.RggbChannelVector;
@@ -33,14 +34,19 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
+import org.opencv.photo.TonemapDrago;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.hardware.camera2.CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL;
+import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR;
+import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG;
+import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG;
+import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB;
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
+import static org.opencv.core.Core.gemm;
 
 public class ImageProcessing {
     static String TAG = "ImageProcessing";
@@ -379,31 +385,23 @@ public class ImageProcessing {
         Rational[] vec2 = res.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         Log.d(TAG, "CCG:" + vec.toString());
         for (Rational rational : vec2) Log.d(TAG, "WBP:" + rational.toString());
-
-        float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
+        BlackLevelPattern level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        //float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         int bl = 0;
         //for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
         //bl/=4;
         //Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
-        //Wrapper.setBWLWB(64, 1023, vec.getRed(), vec.getGreenEven(), vec.getGreenOdd(), vec.getBlue());
+        //Wrapper.setBWLWB((int)level[0], 1023, 1/vec2[0].floatValue(), vec.getGreenEven(), vec.getGreenOdd(), 1/vec2[2].floatValue());
         double contr = 0.8 + 2.5 / (1 + Interface.i.settings.contrastMpy * 20);
         double compr = Interface.i.settings.compressor;
         compr = Math.max(1, compr);
         //Wrapper.setCompGain(compr, Interface.i.settings.gain, contr, Interface.i.settings.contrastConst);
         //Wrapper.setSharpnessSaturation(Interface.i.settings.saturation, Interface.i.settings.sharpness * 20);
         Log.d(TAG, "Wrapper.setBWLWB");
+
         processingstep();
-        double ccm[] = new double[9];
         int c = 0;
-        ccm[0] = 1.776;
-        ccm[3] = -0.837;
-        ccm[6] = 0.071;
-        ccm[1] = -0.163;
-        ccm[4] = 1.406;
-        ccm[7] = -0.242;
-        ccm[2] = 0.0331;
-        ccm[5] = -0.526;
-        ccm[8] = 1.492;
+
         /*for(int h=0; h<3;h++){
             for(int w=0; w<3;w++){ccm[c] = tr.getElement(h,w).doubleValue();//ccm[c] = 0.5;
                 c++;
@@ -426,17 +424,108 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.processFrame()");
         processingstep();
         Mat out = new Mat(height, width, CvType.CV_16UC1, output);
-        Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
-        Core.multiply(out,new Scalar(1/vec.getBlue(),(1/(vec.getGreenOdd()+vec.getGreenEven())),1/vec.getRed()),out);
+
+        //CFA PATERN
+        int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+        switch (pattern)
+        {
+        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
+            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
+            break;
+        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
+            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGB2BGR);
+            break;
+        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
+            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerRG2BGR);
+            break;
+        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
+            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGR2BGR);
+            break;
+        default:
+            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
+            break;
+        }
+
+
+        Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1,1/vec2[0].floatValue()),out);
+        int[] blarr = new int[4];
+        level.copyTo(blarr,0);
+        //BlackLevel
+        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
+
+        Mat MCMat = new Mat();
+        //convert to 32bit float 3 colors
+        out.convertTo(MCMat,CvType.CV_32FC3);
+
+        //whitelevel
+        Core.min(MCMat,new Scalar(1023,1023,1023,1023),MCMat);
+        ColorSpaceTransform colorSpaceTransform = (ColorSpaceTransform)res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+
+        ColorSpaceTransform a3 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
+        Rational[] rationalArr = new Rational[9];
+
+        float[] fArr = new float[9];
+        if(a3!= null)
+        {
+            a3.copyElements(rationalArr, 0);
+            for (int i = 0; i < 9; i++) {
+                fArr[i] = rationalArr[i].floatValue();
+            }
+        }
+
+        //CCM?
+        Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
+        ccmMat.put(0, 0, fArr);
+
+        Mat color_matrixed_linear = new Mat();
+        Mat orig_img_linear = MCMat.reshape(1, height*width);
+
+        gemm(orig_img_linear,ccmMat.t(),1, new Mat(), 0, color_matrixed_linear);
+
+        Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
+
+
         //Imgproc.cvtColor(out, out, Imgproc.COLOR_RGB2BGR);
         //Imgproc.blur(out,out,new Size(1.5,1.5));
-        Imgcodecs.imwrite(path, out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
+
+        //tonemap using Mantiuk and apply saturation
+        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain);
+
+        Mat ldrMantiuk = new Mat();
+        tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
+
+        //return values to 0-1 -> 0-255
+        Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
+
+        //apply contrast
+        ldrMantiuk = contrast(ldrMantiuk, (float) Interface.i.settings.contrastMpy);
+
+        Imgcodecs.imwrite(path, ldrMantiuk, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
             Thread.sleep(25);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
+    }
+
+    Mat contrast(Mat input, float scale) {
+        float level = 255;
+        float inner_constant = 3.141592f / (2.f * scale);
+        float sin_constant = (float) Math.sin(inner_constant);
+        float slope = level / (2.f * sin_constant);
+        float constant = slope * sin_constant;
+        float factor = 3.141592f / (scale * level);
+        int frameSize = input.cols()*input.rows();
+        int numChannels = input.channels();
+        float[] byteBuffer= new float[frameSize*numChannels];
+        input.get(0,0,byteBuffer);
+        for (int i = 0; i < frameSize*numChannels; i++) {
+
+            byteBuffer[i]= (float) (slope * Math.sin(factor*byteBuffer[i] - inner_constant) + constant);
+        }
+        input.put(0,0,byteBuffer);
+        return input;
     }
 
     public void Run() {
