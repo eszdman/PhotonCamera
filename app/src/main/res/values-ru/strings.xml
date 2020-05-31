@@ -18,4 +18,6 @@
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Резкость:</string>
+    <string name="turn_on_grid">Сетка</string>
+    <string name="turn_on_round_edges">Скругления</string>
 </resources>

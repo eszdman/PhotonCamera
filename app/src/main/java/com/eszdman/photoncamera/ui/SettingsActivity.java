@@ -29,6 +29,7 @@ public class SettingsActivity extends AppCompatActivity {
     Switch disablealign;
     Switch enhanced;
     Switch gridOnOff;
+    Switch roundoption;
 
     SeekBar frameCount;
     SeekBar lumenCount;
@@ -234,6 +235,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(lumenCount, Interface.i.settings.lumenCount);
         setv(enhanced, Interface.i.settings.enhancedProcess);
         setv(gridOnOff, Interface.i.settings.grid);
+        setv(roundoption, Interface.i.settings.roundedge);
         setv(sharp, Interface.i.settings.sharpness);
         setv(contrastconst, Interface.i.settings.contrastConst);
         setv(contrastmul, Interface.i.settings.contrastMpy);
@@ -245,6 +247,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     void views() {
         gridOnOff = getView(R.id.setting_grid);
+        roundoption = getView(R.id.setting_roundedge);
         turnNR = getView(R.id.setting_turnNR);
         disablealign = getView(R.id.setting_disablealign);
         framestext = getView(R.id.setting_framecounter);
@@ -275,6 +278,7 @@ public class SettingsActivity extends AppCompatActivity {
         Interface.i.settings.align = !disablealign.isChecked();
         Interface.i.settings.enhancedProcess = enhanced.isChecked();
         Interface.i.settings.grid = gridOnOff.isChecked();
+        Interface.i.settings.roundedge = roundoption.isChecked();
         save();
     }
 

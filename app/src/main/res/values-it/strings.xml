@@ -14,4 +14,5 @@
     <string name="contrconst">Costante:</string>
     <string name="saturation">Saturazione:</string>
     <string name="sharpness">Nitidezza:</string>
+    <string name="turn_on_round_edges">Mostra angoli curvi</string>
 </resources>

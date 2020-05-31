@@ -545,9 +545,12 @@ public class CameraFragment extends Fragment
     public void onResume() {
         super.onResume();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
+        ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
         if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
+        if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
+        else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
