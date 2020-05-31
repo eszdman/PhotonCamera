@@ -262,6 +262,12 @@
                     android:min="0"
                     android:progress="-1" />
 
+                <Spinner
+                    android:entries="@array/cfapat"
+                    android:id="@+id/setting_cfa"
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp" />
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

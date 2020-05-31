@@ -425,43 +425,68 @@ public class ImageProcessing {
         processingstep();
         Mat out = new Mat(height, width, CvType.CV_16UC1, output);
 
-        //CFA PATERN
-        int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        switch (pattern)
-        {
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGB2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerRG2BGR);
-            break;
-        case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerGR2BGR);
-            break;
-        default:
-            Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
-            break;
-        }
 
-
-        Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1,1/vec2[0].floatValue()),out);
         int[] blarr = new int[4];
         level.copyTo(blarr,0);
         //BlackLevel
         Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
+
+        //CFA PATERN
+        if(Interface.i.settings.cfaPatern >0)
+        {
+            switch (Interface.i.settings.cfaPatern)
+            {
+                case 1:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+                case 2:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerRG2BGR);
+                    break;
+                case 3:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGB2BGR);
+                    break;
+                case 4:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGR2BGR);
+                    break;
+                default:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+            }
+        }
+        else {
+            int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+            switch (pattern) {
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGB2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerRG2BGR);
+                    break;
+                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerGR2BGR);
+                    break;
+                default:
+                    Imgproc.cvtColor(out, out, Imgproc.COLOR_BayerBG2BGR);
+                    break;
+            }
+        }
+
+
+        Core.multiply(out,new Scalar(1.0f/vec2[2].floatValue(),1.0f/(vec2[1].floatValue()),1.0f/vec2[0].floatValue()),out);
 
         Mat MCMat = new Mat();
         //convert to 32bit float 3 colors
         out.convertTo(MCMat,CvType.CV_32FC3);
 
         //whitelevel
-        Core.min(MCMat,new Scalar(1023,1023,1023,1023),MCMat);
+        Core.min(MCMat,new Scalar(1023-blarr[0],1023-blarr[0],1023-blarr[0],1023-blarr[0]),MCMat);
         ColorSpaceTransform colorSpaceTransform = (ColorSpaceTransform)res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
 
         ColorSpaceTransform a3 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
+        ColorSpaceTransform a4 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM1);
         Rational[] rationalArr = new Rational[9];
 
         float[] fArr = new float[9];
@@ -473,9 +498,24 @@ public class ImageProcessing {
             }
         }
 
+        float[] fArr2 = new float[9];
+        if(a3!= null)
+        {
+            a4.copyElements(rationalArr, 0);
+            for (int i = 0; i < 9; i++) {
+                fArr2[i] = rationalArr[i].floatValue();
+            }
+        }
+
         //CCM?
         Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
+        Mat ccmCMat = new Mat(3,3,CvType.CV_32FC1);
+        ccmCMat.put(0,0,fArr2);
         ccmMat.put(0, 0, fArr);
+
+        Core.gemm(ccmCMat,ccmMat,1,new Mat(), 0,ccmMat);
+        //ccmMat = ccmCMat.mul(ccmMat);
+
 
         Mat color_matrixed_linear = new Mat();
         Mat orig_img_linear = MCMat.reshape(1, height*width);

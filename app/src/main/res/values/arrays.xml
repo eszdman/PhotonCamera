@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="cfapat">
+        <item>AUTO</item>
+        <item>RGGB</item>
+        <item>BGGR</item>
+        <item>GRBG</item>
+        <item>GBRG</item>
+    </string-array>
+</resources>

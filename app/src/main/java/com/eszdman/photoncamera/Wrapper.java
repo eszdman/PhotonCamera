@@ -12,4 +12,5 @@ public static native void init(int rows,int cols, int frames);
 public static native void loadFrame(ByteBuffer bufferptr);
 public static native ByteBuffer processFrame();
 public static native void Test();
+
 }
