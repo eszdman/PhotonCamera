@@ -35,6 +35,7 @@ public class Settings {
     public int chromaCount = 12;
     public boolean enhancedProcess = false;
     public boolean grid = false;
+    public boolean roundedge = false;
     public boolean align = true;
     public boolean hdrx = true;
     public double saturation = 0.7;
@@ -69,6 +70,8 @@ public class Settings {
         Log.d(TAG, "Loaded enhanced process:" + enhancedProcess);
         grid = get(grid);
         Log.d(TAG, "Loaded grid:" + grid);
+        roundedge = get(roundedge);
+        Log.d(TAG, "Loaded round edges:" + roundedge);
         sharpness = get(sharpness);
         Log.d(TAG, "Loaded sharpness:" + sharpness);
         contrastMpy = get(contrastMpy);
@@ -105,6 +108,8 @@ public class Settings {
         Log.d(TAG, "Saved enhanced process:" + enhancedProcess);
         put(grid);
         Log.d(TAG, "Saved grid:" + grid);
+        put(roundedge);
+        Log.d(TAG, "Saved round edges:" + roundedge);
         put(sharpness);
         Log.d(TAG, "Saved sharpness:" + sharpness);
         put(contrastMpy);

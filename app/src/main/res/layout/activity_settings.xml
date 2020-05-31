@@ -69,6 +69,17 @@
                     android:text="@string/turn_on_grid"
                     android:textSize="16sp" />
 
+                <Switch
+                    android:id="@+id/setting_roundedge"
+                    android:layout_width="match_parent"
+                    android:layout_height="65dp"
+                    android:drawableStart="@drawable/ic_rounded_corner"
+                    android:drawablePadding="20dp"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center|start|center_horizontal"
+                    android:text="@string/turn_on_round_edges"
+                    android:textSize="16sp" />
+
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
