@@ -8,3 +8,9 @@ JNIEXPORT void JNICALL
 Java_com_eszdman_photoncamera_Wrapper_Test(JNIEnv *env, jclass clazz) {
     LOGD("Yeah, working");
 }
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_eszdman_photoncamera_Wrapper_ProcessOpenCL(JNIEnv *env, jclass clazz, jobject in) {
+    // TODO: implement ProcessOpenCL()
+    
+}
