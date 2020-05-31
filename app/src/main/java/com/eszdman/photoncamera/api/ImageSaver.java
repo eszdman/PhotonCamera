@@ -6,6 +6,8 @@ import android.hardware.camera2.DngCreator;
 import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ImageProcessing;
@@ -40,9 +42,11 @@ public class ImageSaver implements Runnable {
         mImage = image;
     }
     public ImageProcessing processing(){
-        return new ImageProcessing(imageBuffer);
+        return Interface.i.processing;
     }
     public void done(ImageProcessing proc){
+        //proc.Run();
+        Interface.i.processing.curimgs = imageBuffer;
         proc.Run();
         for(int i =0; i<imageBuffer.size();i++){
             //imageBuffer.get(i).close();

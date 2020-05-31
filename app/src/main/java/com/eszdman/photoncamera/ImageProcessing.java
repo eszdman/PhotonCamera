@@ -50,7 +50,7 @@ import static org.opencv.core.Core.gemm;
 
 public class ImageProcessing {
     static String TAG = "ImageProcessing";
-    ArrayList<Image> curimgs;
+    public ArrayList<Image> curimgs;
     public Boolean israw;
     public Boolean isyuv;
     public String path;
@@ -58,7 +58,8 @@ public class ImageProcessing {
     public ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
     }
-
+    public ImageProcessing() {
+    }
     Mat convertyuv(Image image) {
         byte[] nv21;
 
@@ -398,25 +399,15 @@ public class ImageProcessing {
         //Wrapper.setCompGain(compr, Interface.i.settings.gain, contr, Interface.i.settings.contrastConst);
         //Wrapper.setSharpnessSaturation(Interface.i.settings.saturation, Interface.i.settings.sharpness * 20);
         Log.d(TAG, "Wrapper.setBWLWB");
-
         processingstep();
         int c = 0;
-
-        /*for(int h=0; h<3;h++){
-            for(int w=0; w<3;w++){ccm[c] = tr.getElement(h,w).doubleValue();//ccm[c] = 0.5;
-                c++;
-            }
-        }*/
-        //Wrapper.setCCM(ccm);
         Log.d(TAG, "Wrapper.setCCM");
         processingstep();
         LensShadingMap lenss = res.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
         Log.d(TAG, "LensShading Row:" + lenss.getRowCount());
         Log.d(TAG, "LensShading Col:" + lenss.getColumnCount());
         Log.d(TAG, "LensShading Count:" + lenss.getGainFactorCount());
-        for (int i = 0; i < curimgs.size(); i++)
-            Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
-        //ByteBuffer out = curimgs.get(3).getPlanes()[0].getBuffer();
+        for (int i = 0; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
@@ -424,7 +415,10 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.processFrame()");
         processingstep();
         Mat out = new Mat(height, width, CvType.CV_16UC1, output);
-
+        int[] blarr = new int[4];
+        level.copyTo(blarr,0);
+        //BlackLevel
+        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
         //CFA PATERN
         int pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         switch (pattern)
@@ -445,61 +439,38 @@ public class ImageProcessing {
             Imgproc.cvtColor(out,out,Imgproc.COLOR_BayerBG2BGR);
             break;
         }
-
-
-        Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1,1/vec2[0].floatValue()),out);
-        int[] blarr = new int[4];
-        level.copyTo(blarr,0);
-        //BlackLevel
-        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
-
+        Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1/vec2[1].floatValue(),1/vec2[0].floatValue()),out);
         Mat MCMat = new Mat();
         //convert to 32bit float 3 colors
         out.convertTo(MCMat,CvType.CV_32FC3);
-
         //whitelevel
         Core.min(MCMat,new Scalar(1023,1023,1023,1023),MCMat);
         ColorSpaceTransform colorSpaceTransform = (ColorSpaceTransform)res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
-
         ColorSpaceTransform a3 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
         Rational[] rationalArr = new Rational[9];
-
         float[] fArr = new float[9];
-        if(a3!= null)
+        if(colorSpaceTransform!= null)
         {
-            a3.copyElements(rationalArr, 0);
+            colorSpaceTransform.copyElements(rationalArr, 0);
             for (int i = 0; i < 9; i++) {
                 fArr[i] = rationalArr[i].floatValue();
             }
         }
-
         //CCM?
         Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
         ccmMat.put(0, 0, fArr);
-
         Mat color_matrixed_linear = new Mat();
         Mat orig_img_linear = MCMat.reshape(1, height*width);
-
         gemm(orig_img_linear,ccmMat.t(),1, new Mat(), 0, color_matrixed_linear);
-
         Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
-
-
-        //Imgproc.cvtColor(out, out, Imgproc.COLOR_RGB2BGR);
-        //Imgproc.blur(out,out,new Size(1.5,1.5));
-
         //tonemap using Mantiuk and apply saturation
         TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain);
-
         Mat ldrMantiuk = new Mat();
         tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
-
         //return values to 0-1 -> 0-255
         Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
-
         //apply contrast
         ldrMantiuk = contrast(ldrMantiuk, (float) Interface.i.settings.contrastMpy);
-
         Imgcodecs.imwrite(path, ldrMantiuk, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
             Thread.sleep(25);
