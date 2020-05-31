@@ -481,13 +481,16 @@ public class ImageProcessing {
         Rational[] rationalArr = new Rational[9];
 
         float[] fArr = new float[9];
-        if(colorSpaceTransform!= null)
+        /*if(colorSpaceTransform!= null)
         {
             colorSpaceTransform.copyElements(rationalArr, 0);
             for (int i = 0; i < 9; i++) {
                 fArr[i] = rationalArr[i].floatValue();
             }
-        }
+        }*/
+        fArr[0] = 1.776f;fArr[1] = -0.837f;fArr[2] = 0.071f;
+        fArr[3] = -0.163f;fArr[4] = 1.406f;fArr[5] = -0.242f;
+        fArr[6] = 0.0331f;fArr[7] = -0.526f;fArr[8] = 1.492f;
 
         //CCM?
         Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
@@ -501,7 +504,7 @@ public class ImageProcessing {
         Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
 
         //tonemap using Mantiuk and apply saturation
-        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain*5+0.04f);
+        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.compressor+0.04f);
         Mat ldrMantiuk = new Mat();
         tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
 
