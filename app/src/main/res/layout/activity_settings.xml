@@ -181,12 +181,13 @@
                     android:id="@+id/settings_sharpnesstext"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
-                    android:gravity="center_vertical"
                     android:drawableStart="@drawable/ic_straighten"
                     android:drawablePadding="20dp"
+                    android:gravity="center_vertical"
                     android:text="@string/sharpness"
                     android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <SeekBar
                     android:id="@+id/setting_sharpcnt"
@@ -195,7 +196,8 @@
                     android:layout_marginStart="30dp"
                     android:max="200"
                     android:min="0"
-                    android:progress="-1" />
+                    android:progress="-1"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/settings_contrasttext"
@@ -223,7 +225,8 @@
                     android:layout_marginStart="30dp"
                     android:max="1024"
                     android:min="-700"
-                    android:progress="-10000" />
+                    android:progress="-10000"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/setting_sattext"
@@ -271,7 +274,8 @@
                     android:layout_marginStart="30dp"
                     android:max="200"
                     android:min="0"
-                    android:progress="-1" />
+                    android:progress="-1"
+                    android:visibility="gone" />
 
             </LinearLayout>
         </LinearLayout>
