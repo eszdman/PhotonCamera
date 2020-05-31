@@ -481,9 +481,9 @@ public class ImageProcessing {
         Rational[] rationalArr = new Rational[9];
 
         float[] fArr = new float[9];
-        if(a3!= null)
+        if(colorSpaceTransform!= null)
         {
-            a3.copyElements(rationalArr, 0);
+            colorSpaceTransform.copyElements(rationalArr, 0);
             for (int i = 0; i < 9; i++) {
                 fArr[i] = rationalArr[i].floatValue();
             }
