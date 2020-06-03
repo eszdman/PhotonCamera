@@ -43,9 +43,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     ImageView grid;
-
+    public void onCameraResume(){
+        Interface.i.swipedetection.RunDetection();
+    }
     public static void onCameraViewCreated(){
-
+        //Interface.i.swipedetection.RunDetection();
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         inter.mainActivity = this;
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         CameraFragment.context = CameraFragment.newInstance();
+        inter.camera = CameraFragment.context;
         setContentView(R.layout.activity_camera);
         if (null == savedInstanceState) {
             getSupportFragmentManager().beginTransaction()

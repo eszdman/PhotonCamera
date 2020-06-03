@@ -10,6 +10,7 @@ import org.chickenhook.restrictionbypass.RestrictionBypass;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -17,6 +18,7 @@ public class CameraManager2 {
     private static String TAG = "CameraManager2";
     Object manager = null;
     private ArrayMap<String, Integer> mDeviceStatus = new ArrayMap<>();
+    private ArrayList<String> mDeviceIdList;
     private Object mLock = new Object();
     boolean exposeAux = true;
     private void connectCameraServiceLocked(){
@@ -29,22 +31,52 @@ public class CameraManager2 {
             e.printStackTrace();
         }
     }
+    Object[] camsArr(Object icameraService) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        CameraReflectionApi.PrintMethods(icameraService);
+        Object[] cams = (Object[]) icameraService.getClass().getDeclaredMethods()[0].invoke(icameraService,manager);
+        for(int i =0; i<cams.length;i++){
+            Log.d(TAG,"Camera i"+i+":"+cams[i]);
+        }
+        return cams;
+    }
     public CameraManager2(CameraManager manag) {
         //manager = manag;
         Log.d(TAG,"Trying to get status");
         try {
+            Field devicelist = manag.getClass().getDeclaredField("mDeviceIdList");
+
+            devicelist.setAccessible(true);
+            mDeviceIdList = (ArrayList<String>) devicelist.get(manag);
             Class clazz = Class.forName("android.hardware.camera2.CameraManager$CameraManagerGlobal");
             Log.d(TAG,"Find class:"+clazz);
             Method getmanag = RestrictionBypass.getDeclaredMethod(clazz,"get");
             getmanag.setAccessible(true);
             manager = getmanag.invoke(null);
+            try {
+                Method[] methods = manager.getClass().getDeclaredMethods();
+                for(Method m : methods){
+                    Log.d(TAG,"Method:"+m);
+                }
+                Object service = manager.getClass().getDeclaredMethod("getCameraService").invoke(manager);
+                Object camser = service;
+                Object[] arr = camsArr(camser);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            Field[] fields = manager.getClass().getDeclaredFields();
+            Object[] objects = new Object[fields.length];
+            for(int i = 0;i<fields.length;i++) {
+                fields[i].setAccessible(true);
+                objects[i] = fields[i].get(manager);
+                Log.d(TAG,"CurrentField:"+objects[i]);
+            }
             Field stat = RestrictionBypass.getDeclaredField(manager.getClass(),"mDeviceStatus");
             stat.setAccessible(true);
             mDeviceStatus = (ArrayMap<String, Integer>) stat.get(manager);
             Field lock = RestrictionBypass.getDeclaredField(manager.getClass(), "mLock");
             lock.setAccessible(true);
             mLock = lock.get(manager);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | ClassNotFoundException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | ClassNotFoundException | NoSuchFieldException e) {
             e.printStackTrace();
         }
     }
@@ -73,6 +105,7 @@ public class CameraManager2 {
                 }
             }
             strArr = new String[i];
+            Log.d(TAG,"Devices:"+mDeviceIdList.size());
             Log.d(TAG,"Counter:"+i);
             int i4 = 0;
             while (true) {

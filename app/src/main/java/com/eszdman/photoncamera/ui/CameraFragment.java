@@ -199,7 +199,7 @@ public class CameraFragment extends Fragment
     /**
      * An {@link AutoFitTextureView} for camera preview.
      */
-    private AutoFitTextureView mTextureView;
+    public AutoFitTextureView mTextureView;
 
     /**
      * A {@link CameraCaptureSession } for camera preview.
@@ -544,6 +544,7 @@ public class CameraFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
+        MainActivity.act.onCameraResume();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
