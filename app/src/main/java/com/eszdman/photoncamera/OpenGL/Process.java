@@ -2,16 +2,22 @@ package com.eszdman.photoncamera.OpenGL;
 
 import android.content.Context;
 import android.graphics.Point;
+import android.opengl.EGL14;
+import android.opengl.EGLDisplay;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
+import android.util.AttributeSet;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-public class Process extends GLSurfaceView{
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+public class Process extends GLSurfaceView implements GLSurfaceView.Renderer{
     private static String TAG = "OpenGL_Process";
     final static String vs_source =
                     "#version 310 es\n" +
@@ -32,6 +38,13 @@ public class Process extends GLSurfaceView{
 
     public Process(Context context) {
         super(context);
+        setEGLContextClientVersion(3);
+        setPreserveEGLContextOnPause(true);
+        setDebugFlags(DEBUG_CHECK_GL_ERROR);
+        setRenderer(this);
+    }
+    public Process(Context context, AttributeSet set){
+        super(context,set);
     }
 
     public static void checkEglError(String op) {
@@ -121,5 +134,21 @@ public class Process extends GLSurfaceView{
         GLES30.glUseProgram(0);
         GLES30.glDisableVertexAttribArray(0);
         return TextureHelper.saveTexture(size,output);
+    }
+
+    @Override
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+            Log.d(TAG,"SurfaceCreated");
+        Process.Run(ByteBuffer.allocate(2),new Point(1,1));
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, int width, int height) {
+        Log.d(TAG,"SurfaceChanged");
+    }
+
+    @Override
+    public void onDrawFrame(GL10 gl) {
+        Log.d(TAG,"SurfaceDraw");
     }
 }

@@ -43,6 +43,18 @@ public class CameraReflectionApi {
             e.printStackTrace();
         }
     }
+    public static void PrintFields(Object in){
+        Log.d(TAG,"StartPrinting:"+in.getClass());
+        Field[] fields = in.getClass().getDeclaredFields();
+        int cnt = 0;
+        for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
+    }
+    public static void PrintMethods(Object in){
+        Log.d(TAG,"StartPrinting:"+in.getClass());
+        Method[] methods = in.getClass().getDeclaredMethods();
+        int cnt = 0;
+        for(Method m : methods) {Log.d(TAG,"["+cnt+"]"+m.toString());cnt++;}
+    }
     public static void setAuxOn(){
         Log.d(TAG,"Setting Aux ON");
         try {
