@@ -1,5 +1,4 @@
 package com.eszdman.photoncamera.Control;
-
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -7,11 +6,8 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
-
-import java.util.Objects;
 
 public class Swipe {
     private static String TAG = "Swipe";
@@ -54,7 +50,8 @@ public class Swipe {
             }
         });
         touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
-        Log.d(TAG,"input:"+Interface.i.mainActivity.findViewById(R.id.textureHolder));
-        Objects.requireNonNull((View)Interface.i.mainActivity.findViewById(R.id.textureHolder)).setOnTouchListener(touchListener);
+        View holder = Interface.i.mainActivity.findViewById(R.id.textureHolder);
+        Log.d(TAG,"input:"+holder);
+        if(holder != null) holder.setOnTouchListener(touchListener);
     }
 }
