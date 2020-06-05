@@ -59,6 +59,7 @@ public class Swipe {
                 return false;
             }
         });
+        touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
         View holder = Interface.i.mainActivity.findViewById(R.id.textureHolder);
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);
