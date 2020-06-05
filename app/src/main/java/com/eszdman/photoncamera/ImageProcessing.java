@@ -10,11 +10,11 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
 import android.util.Rational;
-
+import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
-
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
@@ -35,11 +35,9 @@ import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
 import org.opencv.photo.TonemapDrago;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG;
@@ -54,7 +52,6 @@ public class ImageProcessing {
     public Boolean israw;
     public Boolean isyuv;
     public String path;
-
     public ImageProcessing(ArrayList<Image> images) {
         curimgs = images;
     }
@@ -62,7 +59,6 @@ public class ImageProcessing {
     }
     Mat convertyuv(Image image) {
         byte[] nv21;
-
         ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
         ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
         ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
@@ -81,7 +77,6 @@ public class ImageProcessing {
         mYuv = mYuv.colRange(0, image.getWidth());
         return mYuv;
     }
-
     Mat load_rawsensor(Image image) {
         Image.Plane plane = image.getPlanes()[0];
         Mat mat = new Mat();
@@ -96,11 +91,9 @@ public class ImageProcessing {
         }
         if (isyuv) {
             mat = convertyuv(image);
-            //Imgproc.cvtColor(mat,mat,Imgproc.COLOR_YUV2RGB_NV21,3);
         }
         return mat;
     }
-
     Mat[][] EqualizeImages() {
         Mat[][] out = new Mat[2][curimgs.size()];
         Mat lut = new Mat(1, 256, CvType.CV_8U);
@@ -118,10 +111,8 @@ public class ImageProcessing {
         }
         return out;
     }
-
     ORB orb = ORB.create();
     DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-
     Mat findFrameHomography(Mat need, Mat from) {
         Mat descriptors1 = new Mat(), descriptors2 = new Mat();
         MatOfKeyPoint keyPoints1 = new MatOfKeyPoint();
@@ -129,23 +120,16 @@ public class ImageProcessing {
         orb.detectAndCompute(need, new Mat(), keyPoints1, descriptors1);
         orb.detectAndCompute(from, new Mat(), keyPoints2, descriptors2);
         MatOfDMatch matches = new MatOfDMatch();
-        //DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
         matcher.match(descriptors1, descriptors2, matches, new Mat());
         MatOfPoint2f points1 = new MatOfPoint2f(), points2 = new MatOfPoint2f();
         DMatch[] arr = matches.toArray();
         List<KeyPoint> keypoints1 = keyPoints1.toList();
         List<KeyPoint> keypoints2 = keyPoints2.toList();
-        //Mat imMatches = new Mat();
-        //drawMatches(need, keyPoints1, from, keyPoints2, matches, imMatches);
         ArrayList<Point> keypoints1f = new ArrayList<Point>();
         ArrayList<Point> keypoints2f = new ArrayList<Point>();
         for (int i = 0; i < arr.length; i++) {
             Point on1 = keypoints1.get(arr[i].queryIdx).pt;
             Point on2 = keypoints2.get(arr[i].trainIdx).pt;
-            /*on1.x/=0.75;
-            on1.y/=0.75;
-            on2.x/=0.75;
-            on2.y/=0.75;*/
             if (arr[i].distance < 50) {
                 keypoints1f.add(on1);
                 keypoints2f.add(on2);
@@ -160,7 +144,6 @@ public class ImageProcessing {
 
         return h;
     }
-
     void clearProcessingCycle(){
         try {
             CameraFragment.loadingcycle.setProgress(0);
@@ -168,7 +151,6 @@ public class ImageProcessing {
             e.printStackTrace();
         }
     }
-
     void incrementProcessingCycle(){
         try {
             int progress = (CameraFragment.loadingcycle.getProgress() + 1) % (CameraFragment.loadingcycle.getMax() + 1);
@@ -182,42 +164,6 @@ public class ImageProcessing {
     void processingstep() {
         incrementProcessingCycle();
     }
-
-    Mat[][] getTiles(Mat[] input, int tileSize) {
-        Mat[][] output = new Mat[input.length][];
-        ArrayList<Mat> out = new ArrayList<>();
-        int width = input[0].width();
-        int height = input[0].height();
-        int oversize = 0;
-        for (int i = 0; i < input.length; i++) {
-            for (int h = 0; h < (height - tileSize + 1) / tileSize; h++) {//rows
-                for (int w = 0; w < (width - tileSize + 1) / tileSize; w++) {//cols
-                    out.add(input[i].submat(h * tileSize, (h + 1) * tileSize + oversize, w * tileSize, (w + 1) * tileSize + oversize));
-                }
-            }
-            output[i] = out.toArray(new Mat[out.size()]);
-        }
-        return output;
-    }
-
-    Mat[] mergeFrames(Mat[][] tiles, Point[][] shifts, int tilesize, int width, int height) {
-        ArrayList<Mat> out = new ArrayList<>();
-
-        int oversize = 0;
-        int cnt = 0;
-        for (int i = 0; i < tiles.length; i++) {
-            for (int h = 0; h < (height - tilesize + 1) / tilesize; h++) {//rows
-                for (int w = 0; w < (width - tilesize + 1) / tilesize; w++) {//cols
-                    //out.add(tiles[][])
-                    cnt++;
-                    //out.add(input[i].submat(h*tilesize,(h+1)*tilesize +oversize,w*tilesize,(w+1)*tilesize +oversize));
-                }
-            }
-            //output[i] = out.toArray(new Mat[out.size()]);
-        }
-        return null;
-    }
-
     void ApplyStabilization() {
         Mat[] grey = null;
         Mat[] col = null;
@@ -238,8 +184,6 @@ public class ImageProcessing {
                 //Mat h=new Mat();
                 Point shift = new Point();
                 {
-                    //Video.findTransformECC(output,cur,h,Video.MOTION_HOMOGRAPHY, new TermCriteria(TermCriteria.COUNT+TermCriteria.EPS,20,1),new Mat(),5);
-                    //h = findFrameHomography(grey[grey.length -1], grey[i]);
                     if (i == 0) shift = align.calculateShift(grey[grey.length - 1], grey[i]);
                     else {
                         shift = align.calculateShift(grey[grey.length - 1], grey[i]);
@@ -252,14 +196,11 @@ public class ImageProcessing {
                 align.shiftMat(col[i], col[i], shift);
             }
             processingstep();
-            //imgsmat.add(col[i]);
             Core.addWeighted(output, 0.7, col[i], 0.3, 0, output);
         }
         Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:" + imgsmat.size());
         processingstep();
-        //merge.process(imgsmat,merging);
-        //Core.convertScaleAbs(merging,output,255);
         if (!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * 22) + 9;
@@ -283,9 +224,6 @@ public class ImageProcessing {
                 Mat cur = cols2.get(i);
                 processingstep();
                 if (i == 0) {
-                    //Core.multiply(cur,new Scalar(1.05),cur);
-                    //Core.add(cur,new Scalar(-0.1*16),cur);
-                    //Xphoto.oilPainting(cur,out,Settings.instance.lumacount,(int)(Settings.instance.lumacount*0.2 + 1));
                     Mat sharp = new Mat();
                     Mat struct = new Mat();
                     Mat temp = new Mat();
@@ -295,50 +233,28 @@ public class ImageProcessing {
                     Imgproc.pyrDown(temp, temp);
                     Imgproc.pyrDown(temp, temp);
                     Mat diff = new Mat();
-                    //Imgproc.bilateralFilter(temp,diff,10,20,20);
                     Photo.fastNlMeansDenoising(temp, diff, (float) (Interface.i.settings.lumenCount) / 10, 7, 15);
                     Core.subtract(temp, diff, diff);
                     Imgproc.pyrUp(diff, diff);
                     Imgproc.pyrUp(diff, diff, new Size(cur.width(), cur.height()));
                     Core.addWeighted(cur, 1, diff, -1, 0, cur);
-                    //Imgproc.pyrMeanShiftFiltering();
-                    //Imgproc.medianBlur(cur,out,Settings.instance.lumacount);
                     if (!Interface.i.settings.enhancedProcess) {
                         Imgproc.blur(cur, cur, new Size(2, 2));
                         Imgproc.bilateralFilter(cur, out, Interface.i.settings.lumenCount / 4, Interface.i.settings.lumenCount, Interface.i.settings.lumenCount);
-
                     }
                     if (Interface.i.settings.enhancedProcess)
                         Photo.fastNlMeansDenoising(cur, out, (float) (Interface.i.settings.lumenCount) / 6.5f, 3, 15);
-
-
                     out.copyTo(temp);
                     Imgproc.blur(temp, temp, new Size(4, 4));
                     Core.subtract(out, temp, sharp);
                     Imgproc.blur(temp, temp, new Size(8, 8));
                     Core.subtract(out, temp, struct);
-                    //Core.addWeighted(out,1,struct,0.15,0,out);
-
-
-                    //Imgproc.bilateralFilter(cur,out,Settings.instance.lumacount,Settings.instance.lumacount*2,Settings.instance.lumacount*2);
                 }
                 if (i != 0) {
                     Mat temp = new Mat();
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur, cur);
                     Imgproc.bilateralFilter(cur, out, Interface.i.settings.chromaCount, Interface.i.settings.chromaCount * 3, Interface.i.settings.chromaCount * 3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
-                    //Imgproc.pyrUp(out,out,bef);
-
-                    /*out.copyTo(temp);
-                    Imgproc.pyrDown(temp,temp);
-                    Imgproc.pyrDown(temp,temp);
-                    Mat diff = new Mat();
-                    Imgproc.bilateralFilter(temp,diff,10,20,20);
-                    Core.subtract(temp,diff,diff);
-                    Imgproc.pyrUp(diff,diff);
-                    Imgproc.pyrUp(diff,diff,new Size(cur.width(),cur.height()));
-                    Core.addWeighted(out,1,diff,-1,0,out);*/
-
                     Imgproc.pyrUp(out, out, bef);
                 }
                 cur.release();
@@ -347,29 +263,11 @@ public class ImageProcessing {
             Core.merge(cols2, cols);
             Imgproc.cvtColor(cols, output, Imgproc.COLOR_YUV2BGR);
             processingstep();
-            //Core.merge(cols,output);
-            //Imgproc.bilateralFilter(outb,outbil, (int) (params*1.2),params*1.5,params*3.5);
             outb = outbil;
             Imgcodecs.imwrite(path, output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         }
         clearProcessingCycle();
     }
-
-    /*int GetCFAPattern() {
-        Object integ = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        if (integ != null) {
-            System.out.println("CFA pattern" + (int) integ);
-            switch ((int) (integ)) {
-                case 0:
-                    return 1;
-                case 1:
-                    return 2;
-                case 2:
-                    return 4;
-            }
-        }
-        return 3;
-    }*/
     void ApplyHdrX() {
         CaptureResult res = CameraFragment.mCaptureResult;
         long startTime = System.currentTimeMillis();
@@ -379,7 +277,6 @@ public class ImageProcessing {
         Wrapper.init(width, height, curimgs.size());
         Log.d(TAG, "Wrapper.init");
         processingstep();
-        //Wrapper.setCFA(GetCFAPattern());
         processingstep();
         ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
@@ -387,17 +284,10 @@ public class ImageProcessing {
         Log.d(TAG, "CCG:" + vec.toString());
         for (Rational rational : vec2) Log.d(TAG, "WBP:" + rational.toString());
         BlackLevelPattern level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        //float[] level = res.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         int bl = 0;
-        //for(int i =0; i<4;i++) bl = (int)(bl+level[i]);
-        //bl/=4;
-        //Wrapper.setBWLWB(64,1023,vec.getRed()*1.13*0.931*1.021,vec.getGreenEven(),vec.getGreenOdd(),vec.getBlue()*0.93*1.13*0.917);
-        //Wrapper.setBWLWB((int)level[0], 1023, 1/vec2[0].floatValue(), vec.getGreenEven(), vec.getGreenOdd(), 1/vec2[2].floatValue());
         double contr = 0.8 + 2.5 / (1 + Interface.i.settings.contrastMpy * 20);
         double compr = Interface.i.settings.compressor;
         compr = Math.max(1, compr);
-        //Wrapper.setCompGain(compr, Interface.i.settings.gain, contr, Interface.i.settings.contrastConst);
-        //Wrapper.setSharpnessSaturation(Interface.i.settings.saturation, Interface.i.settings.sharpness * 20);
         Log.d(TAG, "Wrapper.setBWLWB");
         processingstep();
         int c = 0;
@@ -411,12 +301,25 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
-        //ExampleUtil.Run(output,width,height);
         Log.d(TAG, "Wrapper.processFrame()");
-        processingstep();
-        Mat out = new Mat(height, width, CvType.CV_16UC1, output);
         int[] blarr = new int[4];
         level.copyTo(blarr,0);
+        processingstep();
+        Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
+        params.path = path;
+        Pipeline.RunPipeline(output,params);
+        Mat out = new Mat(height, width, CvType.CV_8UC3, output);
+        //Imgcodecs.imwrite(path, out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
+        for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
+        if(true) return;//New GPU processing
+
+
+
+
+
+
+
+
         //Contrast constant
         //BlackLevel
         Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
@@ -446,8 +349,8 @@ public class ImageProcessing {
                 default:
                     bayer = Imgproc.COLOR_BayerBG2BGR;
                     break;
-            }
-            Imgproc.cvtColor(out,out,bayer);
+        }
+        Imgproc.cvtColor(out,out,bayer);
         Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1/vec2[1].floatValue(),1/vec2[0].floatValue()),out);
         Mat MCMat = new Mat();
         //convert to 32bit float 3 colors
@@ -498,10 +401,9 @@ public class ImageProcessing {
         int numChannels = input.channels();
         float[] byteBuffer= new float[frameSize*numChannels];
         input.get(0,0,byteBuffer);
-        for (int i = 0; i < frameSize*numChannels; i++) {
-
+        for (int i = 0; i < frameSize*numChannels; i++)
             byteBuffer[i]= (float) (slope * Math.sin(factor*byteBuffer[i] - inner_constant) + constant);
-        }
+
         input.put(0,0,byteBuffer);
         return input;
     }
@@ -512,12 +414,9 @@ public class ImageProcessing {
         Log.d(TAG, "bufferpixelstride" + plane.getPixelStride());
         Log.d(TAG, "bufferrowstride" + plane.getRowStride());
         Camera2ApiAutoFix.ApplyRes();
-
-
         Log.d("ImageProcessing", "Camera bayer:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
-
         clearProcessingCycle();
     }
 }

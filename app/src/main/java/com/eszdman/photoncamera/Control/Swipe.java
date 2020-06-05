@@ -6,6 +6,9 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 
@@ -18,6 +21,7 @@ public class Swipe {
     @SuppressLint("ClickableViewAccessibility")
     public void RunDetection(){
         Log.d(TAG,"SwipeDetection - ON");
+        ConstraintLayout manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
         gestureDetector = new GestureDetector(Interface.i.mainActivity, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -40,9 +44,11 @@ public class Swipe {
                     }
                 } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffY > 0) {
-                        Log.d(TAG, "Bottom");
+                        Log.d(TAG, "Bottom");//it swipes from top to bottom
+                        manualmode.setVisibility(View.GONE);
                     } else {
-                        Log.d(TAG, "Top");
+                        Log.d(TAG, "Top");//it swipes from bottom to top
+                        manualmode.setVisibility(View.VISIBLE);
                     }
                     return true;
                 }
