@@ -7,6 +7,9 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.SeekBar;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
@@ -31,6 +34,7 @@ public class Swipe {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                ConstraintLayout manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -44,9 +48,11 @@ public class Swipe {
                     }
                 } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffY > 0) {
-                        Log.d(TAG, "Bottom");
+                        Log.d(TAG, "Bottom");  //it swipes from top to bottom
+                        manualmode.setVisibility(View.GONE);    //seekbar ISO gone
                     } else {
-                        Log.d(TAG, "Top");
+                        Log.d(TAG, "Top");  //it swipes from bottom to top
+                        manualmode.setVisibility(View.VISIBLE);   //seekbar ISO visible
                     }
                     return true;
                 }
