@@ -29,6 +29,13 @@ public class Pipeline {
         nodes.initial.set_rawWidth(params.rawSize.x);
         nodes.initial.set_rawHeight(params.rawSize.y);
         nodes.initial.set_inputRawBuffer(input);
+        nodes.initial.set_blacklevel(params.blacklevel);
+        nodes.initial.set_whitelevel(params.whitelevel);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         nodes.startT();
         nodes.initial.forEach_demosaicing(imgout);
         nodes.endT("Initial");

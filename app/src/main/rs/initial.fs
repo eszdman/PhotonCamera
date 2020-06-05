@@ -23,18 +23,18 @@ static float3 demosaic(uint x, uint y, uint cfa) {
     uint index = (x & 1) | ((y & 1) << 1);
     index |= (cfa << 2);
     float inputArray[9];
-    ushort3 inlin = getraw(x,y-1);
-    inputArray[0] = (float)(inlin.x);
-    inputArray[1] = (float)(inlin.y);
-    inputArray[2] = (float)(inlin.z);
-    inlin = getraw(x,y);
-    inputArray[3] = (float)(inlin.x);
-    inputArray[4] = (float)(inlin.y);
-    inputArray[5] = (float)(inlin.z);
-    inlin = getraw(x,y+1);
-    inputArray[6] = (float)(inlin.x);
-    inputArray[7] = (float)(inlin.y);
-    inputArray[8] = (float)(inlin.z);
+    //ushort inlin = getraw(x,y-1);
+    inputArray[0] = (float)(getraw(x-1,y-1));
+    inputArray[1] = (float)(getraw(x,y-1));
+    inputArray[2] = (float)(getraw(x+1,y-1));
+    //inlin = getraw(x,y);
+    inputArray[4] = (float)(getraw(x-1,y));
+    inputArray[4] = (float)(getraw(x,y));
+    inputArray[5] = (float)(getraw(x+1,y));
+    //inlin = getraw(x,y+1);
+    inputArray[6] = (float)(getraw(x-1,y+1));
+    inputArray[7] = (float)(getraw(x,y+1));
+    inputArray[8] = (float)(getraw(x+1,y+1));
     float3 pRGB;
     switch (index) {
         case 0:
@@ -85,8 +85,8 @@ static float3 demosaic(uint x, uint y, uint cfa) {
     return pRGB;
 }
 static float3 BlackWhiteLevel(float3 in){
-//float whitefactor = 65535.0f / (whitelevel-blacklevel[0]);
-return (in-blacklevel[0]);
+float whitefactor = 1.0f / (whitelevel-blacklevel[0]);
+return (in-blacklevel[0])*whitefactor;
 }
 // Apply gamma correction using sRGB gamma curve
 static float gammaEncode(float x) {
@@ -102,8 +102,8 @@ static float3 gammaCorrectPixel(float3 rgb) {
 }
 static uchar4 PackInto8Bit(float3 in){
 uchar4 out;
-float limit = 255.f;
-in = clamp(in/limit,0.f,64.f);
+float limit = 1.f;
+in = clamp(in*limit,0.f,255.f);
 out.x = (uchar)(in.x);
 out.y = (uchar)(in.y);
 out.z = (uchar)(in.z);
@@ -118,9 +118,13 @@ uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     if (yP == 0) yP = 1;
     if (xP == rawWidth - 1) xP = rawWidth - 2;
     if (yP == rawHeight - 1) yP = rawHeight  - 2;
-    pRGB = demosaic(xP, yP, cfaPattern);
+    //pRGB = demosaic(xP, yP, cfaPattern);
+    ushort brightness = getraw(x,y);
+    pRGB.x = (float)(brightness);
+    pRGB.y = (float)(brightness);
+    pRGB.z = (float)(brightness);
     //pRGB = gammaCorrectPixel(pRGB);
-    //pRGB = BlackWhiteLevel(pRGB);
+    pRGB = BlackWhiteLevel(pRGB);
     uchar4 out = PackInto8Bit(pRGB);
     return out;
     //return (tRGB);
