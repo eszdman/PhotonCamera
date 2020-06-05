@@ -25,12 +25,14 @@ public class Pipeline {
         Allocation output = rUtils.allocateO(rUtils.BGR8);
         Allocation imgout = Allocation.createFromBitmap(rs,img);
         nodes.endT("Allocation");
-        nodes.initial.set_cfaPattern((byte) 1);
+        nodes.initial.set_cfaPattern(params.cfaPattern);
         nodes.initial.set_rawWidth(params.rawSize.x);
         nodes.initial.set_rawHeight(params.rawSize.y);
         nodes.initial.set_inputRawBuffer(input);
         nodes.initial.set_blacklevel(params.blacklevel);
         nodes.initial.set_whitelevel(params.whitelevel);
+        nodes.initial.set_whitepoint(params.whitepoint);
+        nodes.initial.set_ccm(params.ccm);
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {

@@ -21,10 +21,10 @@ public class RUtils {
     }
     public Allocation allocateIO(ByteBuffer in, Type type){
         Allocation allocate = Allocation.createTyped(rs,type);
-        ShortBuffer sb = in.asShortBuffer();
-        short[] input = new short[sb.remaining()];
-        sb.get(input);
-        allocate.copyFrom(input);
+        //ShortBuffer sb = in.asShortBuffer();
+        byte[] input = new byte[in.remaining()];
+        in.get(input);
+        allocate.copyFromUnchecked(input);
         return allocate;
     }
     public Allocation allocateO(Type type){

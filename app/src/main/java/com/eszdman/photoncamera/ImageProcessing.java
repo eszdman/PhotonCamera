@@ -308,7 +308,7 @@ public class ImageProcessing {
         Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         params.path = path;
         Pipeline.RunPipeline(output,params);
-        Mat out = new Mat(height, width, CvType.CV_8UC3, output);
+        Mat out = new Mat(height, width, CvType.CV_16U, output);
         //Imgcodecs.imwrite(path, out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
         if(true) return;//New GPU processing

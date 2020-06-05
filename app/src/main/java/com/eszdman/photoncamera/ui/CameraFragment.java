@@ -380,8 +380,10 @@ public class CameraFragment extends Fragment
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-            mPreviewExposuretime = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-            mPreviewIso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            if(exposure != null) mPreviewExposuretime = (long)exposure;
+            if(iso != null) mPreviewIso = (int)iso;
             process(result);
         }
 
