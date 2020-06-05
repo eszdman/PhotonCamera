@@ -26,8 +26,12 @@ public class Parameters {
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if(wlevel != null) whitelevel = (short)((int)wlevel);
         ccm[0] = 1.776f;ccm[1] = -0.837f;ccm[2] = 0.071f;
-        ccm[3] = -0.163f;ccm[4] = 1.356f;ccm[5] = -0.242f;
+        ccm[3] = -0.163f;ccm[4] = 1.396f;ccm[5] = -0.242f;
         ccm[6] = 0.0331f;ccm[7] = -0.526f;ccm[8] = 1.492f;
+        float normalize = 0.f;
+        for(float f : ccm) normalize+=f;
+        normalize/=9;
+        //for(int i =0; i<ccm.length;i++) ccm[i]/=normalize;
         Rational[] wpoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         if(wpoint != null)for(int i =0; i<3;i++) whitepoint[i] = wpoint[i].floatValue();
 
