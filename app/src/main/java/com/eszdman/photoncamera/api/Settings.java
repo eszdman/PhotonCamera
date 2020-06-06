@@ -42,8 +42,8 @@ public class Settings {
     public double sharpness = 0.3;
     public double contrastMpy = 1.2;
     public int contrastConst = 0;
-    public double compressor = 1.5;
-    public double gain = 1.0;
+    public double compressor = 1.3;
+    public double gain = 1.2;
     public String lastPicture = null;
     public int cfaPatern = 0;
     private int count = 0;

@@ -47,6 +47,7 @@ public class Pipeline {
         nodes.initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
+        nodes.initial.set_gain((float)Interface.i.settings.gain);
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
