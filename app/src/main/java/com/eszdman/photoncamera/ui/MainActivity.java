@@ -1,7 +1,9 @@
 package com.eszdman.photoncamera.ui;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -56,9 +58,9 @@ public class MainActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         act = this;
-        Interface inter = new Interface();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        Interface inter = new Interface(this);
         Wrapper.Test();
-        inter.mainActivity = this;
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         CameraFragment.context = CameraFragment.newInstance();
         inter.camera = CameraFragment.context;

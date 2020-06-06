@@ -2,9 +2,12 @@ package com.eszdman.photoncamera.api;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.renderscript.RenderScript;
 
+import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Swipe;
 import com.eszdman.photoncamera.ImageProcessing;
+import com.eszdman.photoncamera.Render.Nodes;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
@@ -20,8 +23,15 @@ public class Interface {
     public Wrapper wrapper;
     public ImageProcessing processing;
     public Swipe swipedetection;
-    public Interface() {
+    public RenderScript rs;
+    public Nodes nodes;
+    public Gravity gravity;
+    public Interface(MainActivity act) {
         i = this;
+        mainActivity = act;
+        rs = RenderScript.create(mainActivity);
+        gravity = new Gravity();
+        nodes = new Nodes(rs);
         settings = new Settings();
         photo = new Photo();
         wrapper = new Wrapper();

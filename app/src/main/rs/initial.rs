@@ -10,6 +10,7 @@ uint rawHeight; // Height of raw buffer
 float4 blacklevel;
 float3 whitepoint;
 float ccm[9];
+float gain;
 ushort whitelevel;
 
 uint gainMapWidth;  // The width of the gain map
@@ -52,8 +53,15 @@ static float4 getGain(uint x, uint y) {
             bl * invFracX * fracY + br * fracX * fracY;
 }
 // Apply gamma correction using sRGB gamma curve
-static float gammaEncode(float x) {
+#define x0 0.0648
+#define x1 2.8114
+#define x2 -3.5701
+#define x3 1.6807
+static float gammaEncode2(float x) {
     return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, 0.4166667f) - 0.055f;
+}
+static float gammaEncode(float x) {
+    return (x0+x1*x+x2*x*x+x3*x*x*x);
 }
 
 // Apply gamma correction to each color channel in RGB pixel
@@ -388,5 +396,6 @@ uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
+    sRGB*=gain;
     return rsPackColorTo8888(sRGB);
 }

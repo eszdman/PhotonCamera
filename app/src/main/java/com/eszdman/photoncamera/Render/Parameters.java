@@ -8,6 +8,8 @@ import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
 import android.util.Rational;
 
+import com.eszdman.photoncamera.api.Interface;
+
 public class Parameters {
     public byte cfaPattern;
     public Point rawSize;
@@ -28,6 +30,7 @@ public class Parameters {
     public Parameters(CaptureResult result, CameraCharacteristics characteristics, Point size){
         rawSize = size;
         for(int i =0; i<4; i++) blacklevel[i] = 64;
+        tonemapStrength = (float)Interface.i.settings.compressor;
         int[] blarr = new int[4];
         BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         level.copyTo(blarr,0);

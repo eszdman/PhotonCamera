@@ -21,10 +21,10 @@ import java.nio.ByteBuffer;
 
 public class Pipeline {
     public static void RunPipeline(ByteBuffer in, Parameters params){
-        RenderScript rs = RenderScript.create(Interface.i.mainActivity);
+        RenderScript rs = Interface.i.rs;
         RUtils rUtils = new RUtils(rs,params.rawSize);
         Bitmap img = Bitmap.createBitmap(params.rawSize.x,params.rawSize.y, Bitmap.Config.ARGB_8888);
-        Nodes nodes = new Nodes(rs);
+        Nodes nodes = Interface.i.nodes;
         nodes.startT();
         Allocation input = rUtils.allocateIO(in,rUtils.RawSensor);
         Allocation output = rUtils.allocateO(rUtils.BGR8);
@@ -42,11 +42,12 @@ public class Pipeline {
         nodes.initial.set_gainMapWidth(params.mapsize.x);
         nodes.initial.set_gainMapHeight(params.mapsize.y);
         nodes.initial.set_gainMap(rUtils.allocateIO(params.gainmap,Type.createXY(rs,Element.F32_4(rs),params.mapsize.x,params.mapsize.y)));
-        nodes.initial.set_saturationFactor(1.6f);
+        nodes.initial.set_saturationFactor((float)Interface.i.settings.saturation);
         nodes.initial.set_neutralPoint(new Float3(params.whitepoint[0],params.whitepoint[1],params.whitepoint[2]));
         nodes.initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
+        nodes.initial.set_gain((float)Interface.i.settings.gain);
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {

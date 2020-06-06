@@ -615,6 +615,7 @@ public class CameraFragment extends Fragment
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
+        Interface.i.gravity.run();
         if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
         if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
@@ -631,6 +632,7 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onPause() {
+        Interface.i.gravity.stop();
         closeCamera();
         stopBackgroundThread();
         super.onPause();
@@ -737,7 +739,8 @@ public class CameraFragment extends Fragment
         mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
-        int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        int displayRotation = Interface.i.gravity.getRotation();
+        //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         //noinspection ConstantConditions
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         boolean swappedDimensions = false;
@@ -1045,7 +1048,7 @@ public class CameraFragment extends Fragment
         if (null == mTextureView || null == mPreviewSize || null == activity) {
             return;
         }
-        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
         Matrix matrix = new Matrix();
         RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
@@ -1135,7 +1138,7 @@ public class CameraFragment extends Fragment
             captureBuilder.addTarget(mImageReaderRes.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
             setAutoFlash(captureBuilder);
-            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+            int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
