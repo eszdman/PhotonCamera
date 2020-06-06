@@ -253,8 +253,8 @@
             android:id="@+id/manual_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="@id/texture"
-            android:layout_marginBottom="0dp">
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/texture">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/iso"
@@ -267,12 +267,12 @@
                     android:id="@+id/isoText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="ISO"
                     android:layout_marginLeft="10dp"
-                    android:textStyle="bold"
+                    android:text="ISO"
                     android:textColor="@color/White"
                     android:textSize="25sp"
-                    app:layout_constraintStart_toStartOf="parent"/>
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent" />
 
                 <SeekBar
                     android:id="@+id/isoSlider"
@@ -297,13 +297,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginRight="10dp"
                     android:text="100"
-                    android:textStyle="bold"
                     android:textColor="@color/White"
                     android:textSize="20sp"
-                    app:layout_constraintStart_toEndOf="@id/isoSlider"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/isoSlider"
+                    app:layout_constraintTop_toTopOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -319,10 +319,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_marginStart="10dp"
-                    app:layout_constraintStart_toStartOf="parent"
                     android:src="@drawable/ic_exposure"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <SeekBar
                     android:id="@+id/expSlider"
@@ -347,13 +347,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginRight="10dp"
                     android:text="1"
-                    android:textStyle="bold"
                     android:textColor="@color/White"
                     android:textSize="20sp"
-                    app:layout_constraintStart_toEndOf="@id/expSlider"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/expSlider"
+                    app:layout_constraintTop_toTopOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -369,10 +369,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_marginStart="10dp"
-                    app:layout_constraintStart_toStartOf="parent"
                     android:src="@drawable/ic_focus"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <SeekBar
                     android:id="@+id/focusSlider"
@@ -397,13 +397,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginRight="10dp"
                     android:text="1.0cm"
-                    android:textStyle="bold"
                     android:textColor="@color/White"
                     android:textSize="20sp"
-                    app:layout_constraintStart_toEndOf="@id/focusSlider"
-                    app:layout_constraintEnd_toEndOf="parent"
+                    android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/focusSlider"
+                    app:layout_constraintTop_toTopOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -20,7 +20,6 @@ public class ParseExif {
         long sec = 1000000000;
         double time = (double)(exposuretime)/sec;
         out = String.valueOf((time));
-        //if(time < 1.0) out = "1/"+String.valueOf((int)(1.0/time));
         return out;
     }
     static public String resultget(CaptureResult res,Key<Object> key){
@@ -36,7 +35,6 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        //inter.setAttribute(TAG_MODEL,Camera2Api.mCameraCharacteristics.get(CameraCharacteristics.));
         int rotation = CameraFragment.context.getOrientation(MainActivity.act.getWindowManager().getDefaultDisplay().getRotation());
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
@@ -64,7 +62,6 @@ public class ParseExif {
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
-
         return inter;
     }
 }

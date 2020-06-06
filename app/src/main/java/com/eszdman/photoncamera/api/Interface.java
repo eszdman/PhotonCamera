@@ -19,7 +19,6 @@ public class Interface {
     public Photo photo;
     public Wrapper wrapper;
     public ImageProcessing processing;
-    public Handler processinghandler;
     public Swipe swipedetection;
     public Interface() {
         i = this;
@@ -28,6 +27,5 @@ public class Interface {
         wrapper = new Wrapper();
         processing = new ImageProcessing();
         swipedetection = new Swipe();
-        //processinghandler = new Handler(Looper.getMainLooper());
     }
 }

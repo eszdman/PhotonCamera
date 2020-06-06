@@ -1,5 +1,4 @@
 package com.eszdman.photoncamera.Control;
-
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -7,14 +6,11 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.widget.SeekBar;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
-
-import java.util.Objects;
 
 public class Swipe {
     private static String TAG = "Swipe";
@@ -25,6 +21,7 @@ public class Swipe {
     @SuppressLint("ClickableViewAccessibility")
     public void RunDetection(){
         Log.d(TAG,"SwipeDetection - ON");
+        ConstraintLayout manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
         gestureDetector = new GestureDetector(Interface.i.mainActivity, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -34,7 +31,6 @@ public class Swipe {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                ConstraintLayout manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -48,11 +44,11 @@ public class Swipe {
                     }
                 } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffY > 0) {
-                        Log.d(TAG, "Bottom");  //it swipes from top to bottom
-                        manualmode.setVisibility(View.GONE);    //seekbar ISO gone
+                        Log.d(TAG, "Bottom");//it swipes from top to bottom
+                        manualmode.setVisibility(View.GONE);
                     } else {
-                        Log.d(TAG, "Top");  //it swipes from bottom to top
-                        manualmode.setVisibility(View.VISIBLE);   //seekbar ISO visible
+                        Log.d(TAG, "Top");//it swipes from bottom to top
+                        manualmode.setVisibility(View.VISIBLE);
                     }
                     return true;
                 }
