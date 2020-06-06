@@ -203,11 +203,12 @@
                     android:id="@+id/settings_contrasttext"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
-                    android:gravity="center_vertical"
                     android:drawableStart="@drawable/ic_contrast"
                     android:drawablePadding="20dp"
+                    android:gravity="center_vertical"
                     android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <SeekBar
                     android:id="@+id/setting_contrmpy"
@@ -216,7 +217,8 @@
                     android:layout_marginStart="30dp"
                     android:max="200"
                     android:min="0"
-                    android:progress="-1" />
+                    android:progress="-1"
+                    android:visibility="gone" />
 
                 <SeekBar
                     android:id="@+id/setting_contrconst"
@@ -273,9 +275,8 @@
                     android:layout_height="30dp"
                     android:layout_marginStart="30dp"
                     android:max="200"
-                    android:min="0"
-                    android:progress="-1"
-                    android:visibility="gone" />
+                    android:min="50"
+                    android:progress="-1" />
 
                 <Spinner
                     android:entries="@array/cfapat"

@@ -52,8 +52,15 @@ static float4 getGain(uint x, uint y) {
             bl * invFracX * fracY + br * fracX * fracY;
 }
 // Apply gamma correction using sRGB gamma curve
-static float gammaEncode(float x) {
+#define x0 0.033
+#define x1 0.884
+#define x2 0.124
+#define x3 -0.041
+static float gammaEncode2(float x) {
     return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, 0.4166667f) - 0.055f;
+}
+static float gammaEncode(float x) {
+    return (x0+x1*x+x2*x*x+x3*x*x*x);
 }
 
 // Apply gamma correction to each color channel in RGB pixel

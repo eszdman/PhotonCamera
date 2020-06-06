@@ -11,7 +11,7 @@ public class Nodes {
     RenderScript rs;
     ScriptC_initial initial;
 
-    Nodes(RenderScript rs){
+    public Nodes(RenderScript rs){
         this.rs = rs;
         initial = new ScriptC_initial(rs);
     }

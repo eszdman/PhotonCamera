@@ -35,7 +35,7 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = CameraFragment.context.getOrientation(MainActivity.act.getWindowManager().getDefaultDisplay().getRotation());
+        int rotation = CameraFragment.context.getOrientation(Interface.i.gravity.getRotation());
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:

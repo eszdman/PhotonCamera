@@ -38,12 +38,12 @@ public class Settings {
     public boolean roundedge = true;
     public boolean align = true;
     public boolean hdrx = true;
-    public double saturation = 1.35;
+    public double saturation = 1.3;
     public double sharpness = 0.3;
     public double contrastMpy = 1.2;
     public int contrastConst = 0;
-    public double compressor = 3.58;
-    public double gain = 0.8;
+    public double compressor = 1.5;
+    public double gain = 1.0;
     public String lastPicture = null;
     public int cfaPatern = 0;
     private int count = 0;

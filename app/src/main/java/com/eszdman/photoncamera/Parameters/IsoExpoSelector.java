@@ -18,6 +18,7 @@ public class IsoExpoSelector {
         int iso = CameraFragment.context.mPreviewIso;
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         Log.d(TAG, "InputParams: expo time:" + exposuretime + " iso:" + iso);
+        iso*=Interface.i.settings.gain;
         if (iso >= 12700) {
             exposuretime *= 2.0;
             iso /= 2;
