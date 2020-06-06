@@ -42,9 +42,11 @@ public class Settings {
     public double sharpness = 0.3;
     public double contrastMpy = 1.2;
     public int contrastConst = 0;
-    public double compressor = 1.3;
-    public double gain = 1.2;
+    public double compressor = 0.5;
+    public double gain = 1.0;
+    public boolean rawSaver = false;
     public String lastPicture = null;
+    public boolean ManualMode = false;
     public int cfaPatern = 0;
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -89,7 +91,8 @@ public class Settings {
         hdrx = get(hdrx);
         cfaPatern = get(cfaPatern);
         Log.d(TAG, "Loaded CFA:" + cfaPatern);
-
+        rawSaver = get(rawSaver);
+        Log.d(TAG, "Loaded rawSaver:" + cfaPatern);
         count = 0;
     }
 
@@ -131,6 +134,8 @@ public class Settings {
         put(hdrx);
         Log.d(TAG, "Saved CFA:" + cfaPatern);
         put(cfaPatern);
+        Log.d(TAG, "Saved RawSaver:" + cfaPatern);
+        put(rawSaver);
         sharedPreferencesEditor.apply();
         count = 0;
     }
@@ -156,7 +161,6 @@ public class Settings {
         captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         //Log.d(TAG,"Points:"+captureBuilder.get(TONEMAP_PRESET_CURVE));
-        captureBuilder.set(TONEMAP_PRESET_CURVE,0);
     }
 
     void put(int in) {

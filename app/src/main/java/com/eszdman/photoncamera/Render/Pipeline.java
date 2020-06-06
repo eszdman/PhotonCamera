@@ -9,6 +9,7 @@ import android.renderscript.Float4;
 import android.renderscript.Int4;
 import android.renderscript.Matrix3f;
 import android.renderscript.RenderScript;
+import android.renderscript.Script;
 import android.renderscript.Short4;
 import android.renderscript.Type;
 
@@ -27,7 +28,6 @@ public class Pipeline {
         Nodes nodes = Interface.i.nodes;
         nodes.startT();
         Allocation input = rUtils.allocateIO(in,rUtils.RawSensor);
-        Allocation output = rUtils.allocateO(rUtils.BGR8);
         Allocation imgout = Allocation.createFromBitmap(rs,img);
         nodes.endT("Allocation");
         nodes.initial.set_cfaPattern(params.cfaPattern);
@@ -48,15 +48,17 @@ public class Pipeline {
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
         nodes.initial.set_gain((float)Interface.i.settings.gain);
+
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         nodes.startT();
-        nodes.initial.forEach_demosaicing(imgout);
+        nodes.initial.forEach_demosaicing(imgout, new Script.LaunchOptions().setX(4,params.rawSize.x-4).setY(4,params.rawSize.y-4));
         nodes.endT("Initial");
         imgout.copyTo(img);
+        //img = nodes.doSharpen(img,nodes.sharp1);
         File file = new File(params.path);
         try {
             FileOutputStream fOut = new FileOutputStream(file);
@@ -64,6 +66,8 @@ public class Pipeline {
             fOut.flush();
             fOut.close();
             img.recycle();
+            imgout.destroy();
+            input.destroy();
         } catch (Exception e) {
             e.printStackTrace();
         }

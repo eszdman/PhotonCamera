@@ -24,12 +24,19 @@ float saturationFactor;
 rs_allocation inputRawBuffer; // RAW16 buffer of dimensions (raw image stride) * (raw image height)
 rs_allocation gainMap; // Gainmap to apply to linearized raw sensor data.
 
+float power;
+rs_allocation inputjpg;
+rs_allocation inputblur;
+
 rs_matrix3x3 sensorToIntermediate; // Color transform from sensor to a wide-gamut colorspace
 rs_matrix3x3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
 
 #define RS_KERNEL __attribute__((kernel))
 #define gets3(x,y, alloc)(rsGetElementAt_ushort3(alloc,x,y))
 #define gets(x,y, alloc)(rsGetElementAt_ushort(alloc,x,y))
+#define getc(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
+#define getc4(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
+#define setc4(x,y, alloc,in)(rsSetElementAt_uchar4(alloc,in,x,y))
 #define getraw(x,y)(gets(x,y,inputRawBuffer))
 #define square(i,x,y)(getraw(x-1 + (i%3)*3,y-1 + i/3))
 
@@ -396,6 +403,6 @@ uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
-    sRGB*=gain;
+    sRGB=clamp(sRGB*gain - 0.08,0.f,1.f);
     return rsPackColorTo8888(sRGB);
 }

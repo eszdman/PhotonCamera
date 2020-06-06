@@ -1,10 +1,8 @@
 package com.eszdman.photoncamera.api;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.renderscript.RenderScript;
-
 import com.eszdman.photoncamera.Control.Gravity;
+import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.Control.Swipe;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Nodes;
@@ -26,6 +24,7 @@ public class Interface {
     public RenderScript rs;
     public Nodes nodes;
     public Gravity gravity;
+    public Manual manual;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;

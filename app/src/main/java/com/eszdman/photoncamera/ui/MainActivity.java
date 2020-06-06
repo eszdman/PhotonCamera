@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -12,9 +13,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ToggleButton;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
+import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Interface;
@@ -48,7 +51,10 @@ public class MainActivity extends AppCompatActivity {
     public void onCameraResume(){
         Interface.i.swipedetection.RunDetection();
     }
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public static void onCameraViewCreated(){
+        Interface.i.manual = new Manual();
+        Interface.i.manual.Init();
         //Interface.i.swipedetection.RunDetection();
     }
     @Override
