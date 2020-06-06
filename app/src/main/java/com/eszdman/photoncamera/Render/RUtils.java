@@ -27,6 +27,12 @@ public class RUtils {
         allocate.copyFromUnchecked(input);
         return allocate;
     }
+    public Allocation allocateIO(Object in, Type type){
+        Allocation allocate = Allocation.createTyped(rs,type);
+        //ShortBuffer sb = in.asShortBuffer();
+        allocate.copyFromUnchecked(in);
+        return allocate;
+    }
     public Allocation allocateO(Type type){
         Allocation allocate = Allocation.createTyped(rs,type);
         return allocate;

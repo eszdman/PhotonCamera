@@ -4,7 +4,12 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
+import android.renderscript.Float3;
+import android.renderscript.Float4;
+import android.renderscript.Int4;
+import android.renderscript.Matrix3f;
 import android.renderscript.RenderScript;
+import android.renderscript.Short4;
 import android.renderscript.Type;
 
 import com.eszdman.photoncamera.api.Interface;
@@ -29,10 +34,19 @@ public class Pipeline {
         nodes.initial.set_rawWidth(params.rawSize.x);
         nodes.initial.set_rawHeight(params.rawSize.y);
         nodes.initial.set_inputRawBuffer(input);
-        nodes.initial.set_blacklevel(params.blacklevel);
+        nodes.initial.set_blacklevel(new Float4(params.blacklevel[0],params.blacklevel[1],params.blacklevel[2],params.blacklevel[3]));
         nodes.initial.set_whitelevel(params.whitelevel);
-        nodes.initial.set_whitepoint(params.whitepoint);
+        nodes.initial.set_whitepoint(new Float3(params.whitepoint[0],params.whitepoint[1],params.whitepoint[2]));
         nodes.initial.set_ccm(params.ccm);
+        nodes.initial.set_hasGainMap(params.hasGainMap);
+        nodes.initial.set_gainMapWidth(params.mapsize.x);
+        nodes.initial.set_gainMapHeight(params.mapsize.y);
+        nodes.initial.set_gainMap(rUtils.allocateIO(params.gainmap,Type.createXY(rs,Element.F32_4(rs),params.mapsize.x,params.mapsize.y)));
+        nodes.initial.set_saturationFactor(1.6f);
+        nodes.initial.set_neutralPoint(new Float3(params.whitepoint[0],params.whitepoint[1],params.whitepoint[2]));
+        nodes.initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
+        nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
+        nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
         try {
             Thread.sleep(10);
         } catch (InterruptedException e) {
