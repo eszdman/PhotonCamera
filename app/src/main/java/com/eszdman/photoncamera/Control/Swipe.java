@@ -33,8 +33,8 @@ public class Swipe {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                Animation slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity.getApplicationContext(), R.anim.slide_up);
-                Animation slideDown = AnimationUtils.loadAnimation(Interface.i.mainActivity.getApplicationContext(), R.anim.animate_slide_down_exit);
+                Animation slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.slide_up);
+                Animation slideDown = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.animate_slide_down_exit);
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
