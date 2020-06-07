@@ -24,15 +24,22 @@ float saturationFactor;
 rs_allocation inputRawBuffer; // RAW16 buffer of dimensions (raw image stride) * (raw image height)
 rs_allocation gainMap; // Gainmap to apply to linearized raw sensor data.
 
+float power;
+rs_allocation inputjpg;
+rs_allocation inputblur;
+
 rs_matrix3x3 sensorToIntermediate; // Color transform from sensor to a wide-gamut colorspace
 rs_matrix3x3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
 
 #define RS_KERNEL __attribute__((kernel))
 #define gets3(x,y, alloc)(rsGetElementAt_ushort3(alloc,x,y))
 #define gets(x,y, alloc)(rsGetElementAt_ushort(alloc,x,y))
+#define getc(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
+#define getc4(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
+#define setc4(x,y, alloc,in)(rsSetElementAt_uchar4(alloc,in,x,y))
 #define getraw(x,y)(gets(x,y,inputRawBuffer))
-#define square(i,x,y)(getraw(x-1 + (i%3)*3,y-1 + i/3))
-
+#define square3(i,x,y)(getraw((x)-1 + (i%3),(y)-1 + i/3))
+#define square2(i,x,y)(getraw((x) + (i%2),(y) + i/2))
 
 static float4 getGain(uint x, uint y) {
     float interpX = (((float) x) / rawWidth) * gainMapWidth;
@@ -169,10 +176,31 @@ static float3 applyColorspace(float3 pRGB) {
 static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
         uint cfa) {
     uint kk = 0;
+    float inputArray[4];
+    for(int i = 0; i<4;i++) inputArray[i] = (square2(i,((x)*2 + cfa%2),((y)*2 + cfa/2)));
+    for(int i =0; i<4;i++) {
+            float bl = 0.f;
+            float g = 1.f;
+            float4 gains = 1.f;
+            if (hasGainMap) {
+                gains = getGain(x + i%2 + cfa%2, y + i/2 + cfa/2);
+            }
+            inputArray[i] = clamp(gains[i] * (inputArray[i] - blacklevel[i]) / (whiteLevel - blacklevel[i]), 0.f, 1.f);
+            kk++;
+     }
+    float3 pRGB;
+    pRGB.r = inputArray[0];
+    pRGB.g = (inputArray[1]+inputArray[2])/2.f;
+    pRGB.b = inputArray[3];
+    return pRGB;
+}
+static float3 linearizeAndGainmapStock(uint x, uint y, ushort whiteLevel,
+        uint cfa) {
+    uint kk = 0;
     float inputArray[9];
     uint index = (x & 1) | ((y & 1) << 1);
     index |= (cfa << 2);
-    for(int i = 0; i<9;i++) inputArray[i] = (square(i,x,y));
+    for(int i = 0; i<9;i++) inputArray[i] = (square3(i,x*2,y*2));
     for (uint j = y - 1; j <= y + 1; j++) {
         for (uint i = x - 1; i <= x + 1; i++) {
             uint index = (i & 1) | ((j & 1) << 1);  // bits [0,1] are blacklevel offset
@@ -306,7 +334,6 @@ static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
         }
         return pRGB;
 }
-
 const static float3 gMonoMult = {0.299f, 0.587f, 0.114f};
 
 #define BlackWhiteLevel(in)(clamp((in-blacklevel[0])/(((float)whitelevel-(float)blacklevel[0])),0.f,1.f))
@@ -314,7 +341,7 @@ static float3 demosaic(uint x, uint y, uint cfa) {
     uint index = (x & 1) | ((y & 1) << 1);
     index |= (cfa << 2);
     float inputArray[9];
-    for(int i = 0; i<9;i++) inputArray[i] = BlackWhiteLevel(square(i,x,y));
+    for(int i = 0; i<9;i++) inputArray[i] = BlackWhiteLevel(square3(i,x,y));
     //locality = gets3(x/4,yin-1,inputRawBuffer);inputArray[0] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
     //locality = gets3(x/4,yin,inputRawBuffer);inputArray[1] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
     //locality = gets3(x/4,yin+1,inputRawBuffer);inputArray[2] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
@@ -396,6 +423,6 @@ uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
-    sRGB*=gain;
+    sRGB=clamp(sRGB*gain - 0.08,0.f,1.f);
     return rsPackColorTo8888(sRGB);
 }

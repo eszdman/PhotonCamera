@@ -5,12 +5,14 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
 import com.eszdman.photoncamera.api.Interface;
 
 import java.nio.IntBuffer;
 
 public class Gravity {
+    private static String TAG = "Gravity";
     private SensorManager mSensorManager;
     private Sensor mGravitySensor;
     public float[] mGravity;
@@ -43,23 +45,24 @@ public class Gravity {
         public void onAccuracyChanged(Sensor sensor, int i) { }
     };
     public int getRotation() {
-        if (mGravity == null) {
-            return 0;
-        }
 
+        if (mGravity == null) {
+            return 90;
+        }
+        for(float f:mGravity) Log.d(TAG,"gravity:"+f);
         if (mGravity[2] > 9f) //pointing at the ground
-            return 0;
+            return 90;
 
         if (Math.abs(mGravity[0]) > Math.abs(mGravity[1])) {
             if (mGravity[0] > 0f)
-                return 90;
-            else
-                return 270;
-        } else {
-            if (mGravity[1] > 0f)
                 return 0;
             else
                 return 180;
+        } else {
+            if (mGravity[1] > 1.5f)
+                return 90;
+            else
+                return 270;
         }
     }
 }

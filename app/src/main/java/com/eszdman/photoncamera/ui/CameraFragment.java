@@ -310,7 +310,7 @@ public class CameraFragment extends Fragment
     /**
      * Orientation of the camera sensor
      */
-    private int mSensorOrientation;
+    public int mSensorOrientation;
     int[] mCameraAfModes;
 
     /**
@@ -535,71 +535,7 @@ public class CameraFragment extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        //hdrX.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix your togglebutton
         mTextureView = view.findViewById(R.id.texture);
-        SeekBar isoSlider = view.findViewById(R.id.isoSlider);
-        TextView isoValue = view.findViewById(R.id.isoValue);
-        isoSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                isoValue.setText(String.valueOf(progress * 100));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-        SeekBar expSlider = view.findViewById(R.id.expSlider);
-        TextView expValue = view.findViewById(R.id.expValue);
-        expSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                expValue.setText(String.valueOf(progress));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-        SeekBar focusSlider = view.findViewById(R.id.focusSlider);
-        TextView focusValue = view.findViewById(R.id.focusValue);
-        focusSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Float progressFloat = new Float(progress);
-                if(progressFloat == 1000f) {
-                    focusValue.setText("INF");
-                }
-                else if(progressFloat <= 100f) {
-                    focusValue.setText(progressFloat + "cm");
-                }
-                else {
-                    focusValue.setText(progressFloat / 100 + "m");
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
     }
 
     @Override

@@ -27,7 +27,7 @@ public class ParseExif {
         if(out !=null) return out.toString();
         else return "";
     }
-    private static String tag = "ParseExif";
+    private static String TAG = "ParseExif";
     public static ExifInterface Parse(CaptureResult result, String path){
         ExifInterface inter = null;
         try {
@@ -35,7 +35,9 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = CameraFragment.context.getOrientation(Interface.i.gravity.getRotation());
+        int rotation = (Interface.i.camera.mSensorOrientation+Interface.i.gravity.getRotation()+270) % 360;
+        Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
+        Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:
@@ -48,10 +50,13 @@ public class ParseExif {
                 orientation = ExifInterface.ORIENTATION_ROTATE_270;
                 break;
         }
+        Log.d(TAG,"rotation:"+rotation);
+        Log.d(TAG,"orientation:"+orientation);
+
         assert inter != null;
         inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
-        Log.d(tag, "sensivity:"+result.get(SENSOR_SENSITIVITY).toString());
+        Log.d(TAG, "sensivity:"+result.get(SENSOR_SENSITIVITY).toString());
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY,result.get(SENSOR_SENSITIVITY).toString());
         inter.setAttribute(TAG_F_NUMBER,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_FOCAL_LENGTH,result.get(LENS_FOCAL_LENGTH).toString());

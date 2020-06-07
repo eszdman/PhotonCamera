@@ -3,6 +3,7 @@ package com.eszdman.photoncamera;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
@@ -14,6 +15,7 @@ import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -35,6 +37,10 @@ import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
 import org.opencv.photo.TonemapDrago;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -204,7 +210,7 @@ public class ImageProcessing {
         if (!israw) {
             Mat outb = new Mat();
             double params = Math.sqrt(Math.log(CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * 22) + 9;
-            Log.d("ImageProcessing Denoise2", "params:" + params + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+            Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             params = Math.min(params, 50);
             int ind = imgsmat.size() / 2;
             if (ind % 2 == 0) ind -= 1;
@@ -301,6 +307,21 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
+        if(Interface.i.settings.rawSaver) {
+            curimgs.get(0).getPlanes()[0].getBuffer().clear();
+            curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+            DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+            FileOutputStream outB;
+            try {
+                outB = new FileOutputStream(new File(path));
+                dngCreator.writeImage(outB, curimgs.get(0));
+                curimgs.get(0).close();
+                outB.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
         Log.d(TAG, "Wrapper.processFrame()");
         int[] blarr = new int[4];
         level.copyTo(blarr,0);
@@ -308,85 +329,6 @@ public class ImageProcessing {
         Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         params.path = path;
         Pipeline.RunPipeline(output,params);
-        Mat out = new Mat(height, width, CvType.CV_16U, output);
-        //Imgcodecs.imwrite(path, out, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
-        for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
-        if(true) return;//New GPU processing
-
-
-
-
-
-
-
-
-        //Contrast constant
-        //BlackLevel
-        Core.subtract(out,new Scalar(blarr[0],blarr[1],blarr[2],blarr[3]),out);
-        Core.max(out,new Scalar(0,0,0,0),out);
-        //whitelevel
-        Core.min(out,new Scalar(1023-blarr[0],1023-blarr[0],1023-blarr[0],1023-blarr[0]),out);
-        Object ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        int bayer = Imgproc.COLOR_BayerBG2BGR;
-        int pattern = SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB;
-        if(ptr !=null) pattern = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
-        if(Interface.i.settings.cfaPatern >0) {
-            pattern = Interface.i.settings.cfaPatern;//CFA PATERN
-        }
-            switch (pattern) {
-                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB:
-                    bayer = Imgproc.COLOR_BayerBG2BGR;
-                    break;
-                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG:
-                    bayer = Imgproc.COLOR_BayerGB2BGR;
-                    break;
-                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_BGGR:
-                    bayer = Imgproc.COLOR_BayerRG2BGR;
-                    break;
-                case SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG:
-                    bayer = Imgproc.COLOR_BayerGR2BGR;
-                    break;
-                default:
-                    bayer = Imgproc.COLOR_BayerBG2BGR;
-                    break;
-        }
-        Imgproc.cvtColor(out,out,bayer);
-        Core.multiply(out,new Scalar(1/vec2[2].floatValue(),1/vec2[1].floatValue(),1/vec2[0].floatValue()),out);
-        Mat MCMat = new Mat();
-        //convert to 32bit float 3 colors
-        out.convertTo(MCMat,CvType.CV_32FC3);
-        ColorSpaceTransform colorSpaceTransform = (ColorSpaceTransform)res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
-        ColorSpaceTransform a3 = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
-        Rational[] rationalArr = new Rational[9];
-        float[] fArr = new float[9];
-        /*if(colorSpaceTransform!= null)
-        {
-            colorSpaceTransform.copyElements(rationalArr, 0);
-            for (int i = 0; i < 9; i++) {
-                fArr[i] = rationalArr[i].floatValue();
-            }
-        }*/
-        fArr[0] = 1.776f;fArr[1] = -0.837f;fArr[2] = 0.071f;
-        fArr[3] = -0.163f;fArr[4] = 1.356f;fArr[5] = -0.242f;
-        fArr[6] = 0.0331f;fArr[7] = -0.526f;fArr[8] = 1.492f;
-        //CCM?
-        Mat ccmMat = new Mat(3,3, CvType.CV_32FC1);
-        ccmMat.put(0, 0, fArr);
-        Mat color_matrixed_linear = new Mat();
-        Mat orig_img_linear = MCMat.reshape(1, height*width);
-        gemm(orig_img_linear,ccmMat.t(),1, new Mat(), 0, color_matrixed_linear);
-        Mat final_color_matrixed = color_matrixed_linear.reshape(3, height);
-        //tonemap using Mantiuk and apply saturation
-        TonemapDrago tonemapMantiuk = Photo.createTonemapDrago(2.4f, (float) Interface.i.settings.saturation, (float) Interface.i.settings.gain*5+0.04f);
-        Mat ldrMantiuk = new Mat();
-        tonemapMantiuk.process(final_color_matrixed,ldrMantiuk);
-        //return values to 0-1 -> 0-255
-        Core.multiply(ldrMantiuk,new Scalar(255,255,255),ldrMantiuk);
-        //apply contrast
-        ldrMantiuk = contrast(ldrMantiuk, (float) contr);
-        //Photo.detailEnhance(ldrMantiuk,ldrMantiuk, (float) Interface.i.settings.sharpness,3);
-        Log.d(TAG,"HDRX: Time Elapsed ms:"+(System.currentTimeMillis()-startTime));
-        Imgcodecs.imwrite(path, ldrMantiuk, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
     }
 

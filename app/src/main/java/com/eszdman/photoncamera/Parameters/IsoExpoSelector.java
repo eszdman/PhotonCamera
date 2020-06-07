@@ -32,9 +32,10 @@ public class IsoExpoSelector {
             else {
                 exposuretime *= 0.80;
             }
-
-
-
+        if(Interface.i.settings.ManualMode){
+            exposuretime = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
+            iso = Interface.i.manual.isovalue;
+        }
         iso = Math.max(getISOLOW(), iso);
         iso = Math.min(getISOHIGH(), iso);
         Log.d(TAG, "IsoSelected:" + iso + " ExpoSelected:" + exposuretime);

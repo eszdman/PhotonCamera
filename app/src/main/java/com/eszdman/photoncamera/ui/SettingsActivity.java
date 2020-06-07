@@ -22,6 +22,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 
 public class SettingsActivity extends AppCompatActivity {
+    //Here
     TextView luma;
     TextView framestext;
     TextView chroma;
@@ -30,6 +31,7 @@ public class SettingsActivity extends AppCompatActivity {
     Switch enhanced;
     Switch gridOnOff;
     Switch roundoption;
+    Switch rawSaving;
 
     SeekBar frameCount;
     SeekBar lumenCount;
@@ -59,6 +61,7 @@ public class SettingsActivity extends AppCompatActivity {
         return findViewById(id);
     }
 
+    //SeekBar listeners
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.frameCount = frameCount.getProgress();
                 framestext.setText(res.getText(R.string.frame_count).toString() + Interface.i.settings.frameCount);
-                if (FrameNumberSelector.frameCount == 1) framestext.setText("Unprocessed Output");
+                if (Interface.i.settings.frameCount == 1) framestext.setText("Unprocessed Output");
             }
 
             @Override
@@ -228,6 +231,7 @@ public class SettingsActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    //Here
     void set() {
         setv(disablealign, !Interface.i.settings.align);
         setv(frameCount, Interface.i.settings.frameCount);
@@ -236,6 +240,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(enhanced, Interface.i.settings.enhancedProcess);
         setv(gridOnOff, Interface.i.settings.grid);
         setv(roundoption, Interface.i.settings.roundedge);
+        setv(rawSaving,Interface.i.settings.rawSaver);
         setv(sharp, Interface.i.settings.sharpness);
         setv(contrastconst, Interface.i.settings.contrastConst);
         setv(contrastmul, Interface.i.settings.contrastMpy);
@@ -244,10 +249,11 @@ public class SettingsActivity extends AppCompatActivity {
         setv(satur, Interface.i.settings.saturation);
         setv(cfaList,Interface.i.settings.cfaPatern);
     }
-
+    //And here
     void views() {
         gridOnOff = getView(R.id.setting_grid);
         roundoption = getView(R.id.setting_roundedge);
+        rawSaving = getView(R.id.setting_raw);
         turnNR = getView(R.id.setting_turnNR);
         disablealign = getView(R.id.setting_disablealign);
         framestext = getView(R.id.setting_framecounter);
@@ -270,7 +276,7 @@ public class SettingsActivity extends AppCompatActivity {
         sattext = getView(R.id.setting_sattext);
         cfaList = getView(R.id.setting_cfa);
     }
-
+    //Also here
     void get() {
         views();
         if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
@@ -279,6 +285,7 @@ public class SettingsActivity extends AppCompatActivity {
         Interface.i.settings.enhancedProcess = enhanced.isChecked();
         Interface.i.settings.grid = gridOnOff.isChecked();
         Interface.i.settings.roundedge = roundoption.isChecked();
+        Interface.i.settings.rawSaver = rawSaving.isChecked();
         save();
     }
 

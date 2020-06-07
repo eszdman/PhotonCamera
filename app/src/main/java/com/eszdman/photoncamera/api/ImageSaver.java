@@ -8,6 +8,7 @@ import android.media.Image;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.se.omapi.SEService;
 import android.util.Log;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ImageProcessing;
@@ -161,7 +162,9 @@ public class ImageSaver implements Runnable {
             }
             case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR: {
-                File out =  new File(curDir(),curName()+".jpg");
+                String ext = ".jpg";
+                if(Interface.i.settings.rawSaver) ext = ".dng";
+                File out =  new File(curDir(),curName()+ext);
                 Log.e("ImageSaver","RawSensor:"+mImage);
                 try {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
@@ -179,7 +182,7 @@ public class ImageSaver implements Runnable {
                         //Thread.sleep(50);
                         out = new File(out.getAbsolutePath());
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,out.getAbsolutePath());
-                        inter.saveAttributes();
+                        if(!Interface.i.settings.rawSaver) inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
                         out = new File(out.getAbsolutePath());
                         CameraFragment.context.shot.setActivated(true);
