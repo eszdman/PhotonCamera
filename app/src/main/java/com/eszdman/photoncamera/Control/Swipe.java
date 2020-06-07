@@ -49,14 +49,14 @@ public class Swipe {
                 } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffY > 0) {
                         Log.d(TAG, "Bottom");//it swipes from top to bottom
+                        if(Interface.i.settings.ManualMode)manualmode.startAnimation(slideDown);
                         Interface.i.settings.ManualMode = false;
                         manualmode.setVisibility(View.GONE);
-                        manualmode.startAnimation(slideDown);
                     } else {
                         Log.d(TAG, "Top");//it swipes from bottom to top
+                        if(!Interface.i.settings.ManualMode)manualmode.startAnimation(slideUp);
                         Interface.i.settings.ManualMode = true;
                         manualmode.setVisibility(View.VISIBLE);
-                        manualmode.startAnimation(slideUp);
                     }
                     return true;
                 }
