@@ -35,6 +35,8 @@ public class ImageSaver implements Runnable {
 
     static int bcnt = 0;
 
+    public static File outimg;
+
     /**
      * Image frame buffer
      */
@@ -84,25 +86,25 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
-                    File out =  new File(curDir(),curName()+".jpg");
+                    outimg =  new File(curDir(),curName()+".jpg");
                     if(bcnt == FrameNumberSelector.frameCount && FrameNumberSelector.frameCount != 1) {
-                        output = new FileOutputStream(out);
+                        output = new FileOutputStream(outimg);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
-                        ExifInterface inter = new ExifInterface(out.getAbsolutePath());
+                        ExifInterface inter = new ExifInterface(outimg.getAbsolutePath());
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = false;
-                        processing.path = out.getAbsolutePath();
+                        processing.path = outimg.getAbsolutePath();
                         done(processing);
                         Thread.sleep(25);
                         inter.saveAttributes();
-                        Photo.instance.SaveImg(out);
+                        Photo.instance.SaveImg(outimg);
                         end();
                     }
                     if(Interface.i.settings.frameCount == 1){
                         imageBuffer = new ArrayList<>();
-                        output = new FileOutputStream(out);
+                        output = new FileOutputStream(outimg);
                         buffer.get(bytes);
                         output.write(bytes);
                         bcnt = 0;
@@ -126,7 +128,7 @@ public class ImageSaver implements Runnable {
             }
             case ImageFormat.YUV_420_888: {
 
-                File out = new File(curDir(), curName() + ".jpg");
+                outimg = new File(curDir(), curName() + ".jpg");
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
@@ -138,12 +140,12 @@ public class ImageSaver implements Runnable {
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
                         processing.israw = false;
-                        processing.path = out.getAbsolutePath();
+                        processing.path = outimg.getAbsolutePath();
                         done(processing);
                         Thread.sleep(25);
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, processing.path);
                         inter.saveAttributes();
-                        Photo.instance.SaveImg(out);
+                        Photo.instance.SaveImg(outimg);
                         end();
                     }
                     if (Interface.i.settings.frameCount == 1) {
@@ -164,7 +166,8 @@ public class ImageSaver implements Runnable {
             case ImageFormat.RAW_SENSOR: {
                 String ext = ".jpg";
                 if(Interface.i.settings.rawSaver) ext = ".dng";
-                File out =  new File(curDir(),curName()+ext);
+                outimg =  new File(curDir(),curName()+ext);
+                String path = curDir()+curName()+ext;
                 Log.e("ImageSaver","RawSensor:"+mImage);
                 try {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
@@ -177,16 +180,13 @@ public class ImageSaver implements Runnable {
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = true;
-                        processing.path = out.getAbsolutePath();
+                        processing.path = path;
                         done(processing);
-                        //Thread.sleep(50);
-                        out = new File(out.getAbsolutePath());
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,out.getAbsolutePath());
+                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,outimg.getAbsolutePath());
                         if(!Interface.i.settings.rawSaver) inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
-                        out = new File(out.getAbsolutePath());
                         CameraFragment.context.shot.setActivated(true);
-                        Photo.instance.SaveImg(out);
+                        Photo.instance.SaveImg(outimg);
                         end();
                     }
                     if(Interface.i.settings.frameCount == 1) {

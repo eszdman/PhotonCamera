@@ -14,6 +14,7 @@ import android.util.Rational;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.ui.CameraFragment;
@@ -284,12 +285,6 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.init");
         processingstep();
         processingstep();
-        ColorSpaceTransform tr = res.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
-        RggbChannelVector vec = res.get(CaptureResult.COLOR_CORRECTION_GAINS);
-        Rational[] vec2 = res.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-        Log.d(TAG, "CCG:" + vec.toString());
-        for (Rational rational : vec2) Log.d(TAG, "WBP:" + rational.toString());
-        BlackLevelPattern level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int bl = 0;
         double contr = 0.8 + 2.5 / (1 + Interface.i.settings.contrastMpy * 20);
         double compr = Interface.i.settings.compressor;
@@ -303,7 +298,8 @@ public class ImageProcessing {
         Log.d(TAG, "LensShading Row:" + lenss.getRowCount());
         Log.d(TAG, "LensShading Col:" + lenss.getColumnCount());
         Log.d(TAG, "LensShading Count:" + lenss.getGainFactorCount());
-        for (int i = 0; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer());
+        for (int i = 0; i < curimgs.size(); i++)
+            Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
@@ -311,9 +307,8 @@ public class ImageProcessing {
             curimgs.get(0).getPlanes()[0].getBuffer().clear();
             curimgs.get(0).getPlanes()[0].getBuffer().put(output);
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
-            FileOutputStream outB;
             try {
-                outB = new FileOutputStream(new File(path));
+                FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
                 dngCreator.writeImage(outB, curimgs.get(0));
                 curimgs.get(0).close();
                 outB.close();
@@ -323,13 +318,11 @@ public class ImageProcessing {
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        int[] blarr = new int[4];
-        level.copyTo(blarr,0);
         processingstep();
         Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         params.path = path;
-        Pipeline.RunPipeline(output,params);
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
+        Pipeline.RunPipeline(output,params);
     }
 
     Mat contrast(Mat input, float scale) {
