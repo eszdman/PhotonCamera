@@ -9,6 +9,7 @@ import android.renderscript.ScriptIntrinsicBlur;
 import android.renderscript.ScriptIntrinsicConvolve3x3;
 import android.util.Log;
 import com.eszdman.photoncamera.ScriptC_initial;
+import com.eszdman.photoncamera.api.Interface;
 
 public class Nodes {
     private static String TAG = "Nodes";
@@ -21,8 +22,8 @@ public class Nodes {
         initial = new ScriptC_initial(rs);
         blur = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
     }
-    public float[] sharp1 = { -0.60f, -0.60f, -0.60f, -0.60f, 5.81f, -0.60f,
-                -0.60f, -0.60f, -0.60f };
+    public float[] sharp1 = { -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,1.f+ 4.80f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
+                -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness};
     public float[] sharp2 = { 0.0f, -1.0f, 0.0f, -1.0f, 5.0f, -1.0f, 0.0f, -1.0f,
                 0.0f};
     public float[] sharp3 = { -0.15f, -0.15f, -0.15f, -0.15f, 2.2f, -0.15f, -0.15f,

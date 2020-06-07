@@ -21,16 +21,12 @@ public class Interface {
     public Wrapper wrapper;
     public ImageProcessing processing;
     public Swipe swipedetection;
-    public RenderScript rs;
-    public Nodes nodes;
     public Gravity gravity;
     public Manual manual;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
-        rs = RenderScript.create(mainActivity);
         gravity = new Gravity();
-        nodes = new Nodes(rs);
         settings = new Settings();
         photo = new Photo();
         wrapper = new Wrapper();

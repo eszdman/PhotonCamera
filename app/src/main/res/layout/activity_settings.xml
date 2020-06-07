@@ -197,8 +197,7 @@
                     android:gravity="center_vertical"
                     android:text="@string/sharpness"
                     android:textColor="@color/White"
-                    android:textSize="16sp"
-                    android:visibility="gone" />
+                    android:textSize="16sp" />
 
                 <SeekBar
                     android:id="@+id/setting_sharpcnt"
@@ -207,8 +206,7 @@
                     android:layout_marginStart="30dp"
                     android:max="200"
                     android:min="0"
-                    android:progress="-1"
-                    android:visibility="gone" />
+                    android:progress="-1" />
 
                 <TextView
                     android:id="@+id/settings_contrasttext"

@@ -9,6 +9,7 @@ import android.hardware.camera2.params.LensShadingMap;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class Parameters {
     public byte cfaPattern;

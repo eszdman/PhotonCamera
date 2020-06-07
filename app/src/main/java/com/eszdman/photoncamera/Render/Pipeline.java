@@ -11,6 +11,7 @@ import android.renderscript.Matrix3f;
 import android.renderscript.RenderScript;
 import android.renderscript.Script;
 import android.renderscript.ScriptIntrinsicBlur;
+import android.renderscript.ScriptIntrinsicResize;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Short4;
 import android.renderscript.Type;
@@ -24,16 +25,14 @@ import java.nio.ByteBuffer;
 
 public class Pipeline {
     public static void RunPipeline(ByteBuffer in, Parameters params){
-        //params.rawSize.x/=2;
-        //params.rawSize.y/=2;
-        RenderScript rs = Interface.i.rs;
+        RenderScript rs = RenderScript.create(Interface.i.mainActivity);
         RUtils rUtils = new RUtils(rs,params.rawSize);
         Bitmap img = Bitmap.createBitmap(params.rawSize.x,params.rawSize.y, Bitmap.Config.ARGB_8888);
-        Nodes nodes = Interface.i.nodes;
+        Nodes nodes = new Nodes(rs);
         nodes.startT();
         Allocation input = rUtils.allocateIO(in,rUtils.RawSensor);
         Allocation imgout = Allocation.createFromBitmap(rs,img);
-
+        params.rawSize = new Point(params.rawSize.x/2,params.rawSize.y/2);
         nodes.endT("Allocation");
         nodes.initial.set_cfaPattern(params.cfaPattern);
         nodes.initial.set_rawWidth(params.rawSize.x);
@@ -53,21 +52,27 @@ public class Pipeline {
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
         nodes.initial.set_gain((float)Interface.i.settings.gain);
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         nodes.startT();
-        nodes.initial.forEach_demosaicing(imgout, new Script.LaunchOptions().setX(4,params.rawSize.x-4).setY(4,params.rawSize.y-4));
+        nodes.initial.forEach_demosaicing(imgout, new Script.LaunchOptions().setX(1,params.rawSize.x-1).setY(1,params.rawSize.y-1));
         nodes.endT("Initial");
         imgout.copyTo(img);
+        img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
         //img = nodes.doSharpen(img,nodes.sharp1);
         img = nodes.doSharpen(img,nodes.sharp1);
         File file = new File(params.path);
+        File tes = new File(params.path+"t.jpg");
         try {
             FileOutputStream fOut = new FileOutputStream(file);
+            //FileOutputStream fOutT = new FileOutputStream(tes);
             img.compress(Bitmap.CompressFormat.JPEG,100,fOut);
+            //img.compress(Bitmap.CompressFormat.JPEG,100,fOutT);
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //fOutT.flush();
+            //fOutT.close();
             fOut.flush();
             fOut.close();
             img.recycle();
