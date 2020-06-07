@@ -23,6 +23,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 
+import static com.eszdman.photoncamera.api.ImageSaver.outimg;
+
 public class Pipeline {
     public static void RunPipeline(ByteBuffer in, Parameters params){
         RenderScript rs = RenderScript.create(Interface.i.mainActivity);
@@ -52,6 +54,7 @@ public class Pipeline {
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
         nodes.initial.set_gain((float)Interface.i.settings.gain);
+        nodes.initial.set_compression(1.2f);
         nodes.startT();
         nodes.initial.forEach_demosaicing(imgout, new Script.LaunchOptions().setX(1,params.rawSize.x-1).setY(1,params.rawSize.y-1));
         nodes.endT("Initial");
@@ -59,20 +62,13 @@ public class Pipeline {
         img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
         //img = nodes.doSharpen(img,nodes.sharp1);
         img = nodes.doSharpen(img,nodes.sharp1);
-        File file = new File(params.path);
-        File tes = new File(params.path+"t.jpg");
+
         try {
-            FileOutputStream fOut = new FileOutputStream(file);
+            outimg.createNewFile();
+            FileOutputStream fOut = new FileOutputStream(outimg);
             //FileOutputStream fOutT = new FileOutputStream(tes);
             img.compress(Bitmap.CompressFormat.JPEG,100,fOut);
             //img.compress(Bitmap.CompressFormat.JPEG,100,fOutT);
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            //fOutT.flush();
-            //fOutT.close();
             fOut.flush();
             fOut.close();
             img.recycle();

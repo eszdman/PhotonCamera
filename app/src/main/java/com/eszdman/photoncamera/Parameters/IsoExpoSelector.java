@@ -22,15 +22,19 @@ public class IsoExpoSelector {
             exposuretime *= 2.0;
             iso /= 2;
         }
+        if (exposuretime < ExposureIndex.sec / 8 && iso > 3000) {
+            exposuretime *= 2.0;
+            iso /= 2;
+        }
         if (exposuretime < ExposureIndex.sec / 8 && iso > 1500) {
             exposuretime *= 2.0;
             iso /= 2;
         }
-        if (iso > 4000) exposuretime *= 1.35;
+        //if (iso > 4000) exposuretime *= 1.35;
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat)
-            if (iso >= 100 * 1.35) iso *= 0.80;
+            if (iso >= 100 * 1.35) iso *= 0.65;
             else {
-                exposuretime *= 0.80;
+                exposuretime *= 0.65;
             }
         if(Interface.i.settings.ManualMode){
             exposuretime = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);

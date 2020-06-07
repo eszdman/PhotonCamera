@@ -20,6 +20,7 @@ bool hasGainMap; // Does gainmap exist?
 float3 neutralPoint; // The camera neutral
 float4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 float saturationFactor;
+float compression;
 
 rs_allocation inputRawBuffer; // RAW16 buffer of dimensions (raw image stride) * (raw image height)
 rs_allocation gainMap; // Gainmap to apply to linearized raw sensor data.
@@ -407,6 +408,13 @@ in.g/=whitepoint[1];
 in.b/=whitepoint[2];
 return in;
 }
+#define c1 0.9425f
+#define c2 -1.3116f
+#define c3 1.3576f
+static float3 ExposureCompression(float3 in){
+float3 in2 = in*c1 + in*in*c2 + in*in*in*c3;
+return (in*(1-compression)+in2*compression);
+}
 static uchar4 PackInto8Bit(float3 in){
 uchar4 out;
 in = clamp((in)*255.f,(float)0.f,(float)255.f);
@@ -423,6 +431,7 @@ uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
+    sRGB = ExposureCompression(sRGB);
     sRGB=clamp(sRGB*gain - 0.08,0.f,1.f);
     return rsPackColorTo8888(sRGB);
 }
