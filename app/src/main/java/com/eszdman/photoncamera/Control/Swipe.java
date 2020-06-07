@@ -6,6 +6,8 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -31,6 +33,7 @@ public class Swipe {
             }
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                Animation slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity.getApplicationContext(), R.anim.slide_up);
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -51,6 +54,7 @@ public class Swipe {
                         Log.d(TAG, "Top");//it swipes from bottom to top
                         Interface.i.settings.ManualMode = true;
                         manualmode.setVisibility(View.VISIBLE);
+                        manualmode.startAnimation(slideUp);
                     }
                     return true;
                 }
