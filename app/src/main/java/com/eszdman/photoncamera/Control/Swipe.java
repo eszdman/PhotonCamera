@@ -34,6 +34,7 @@ public class Swipe {
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 Animation slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity.getApplicationContext(), R.anim.slide_up);
+                Animation slideDown = AnimationUtils.loadAnimation(Interface.i.mainActivity.getApplicationContext(), R.anim.animate_slide_down_exit);
                 float diffY = e2.getY() - e1.getY();
                 float diffX = e2.getX() - e1.getX();
                 if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -50,6 +51,7 @@ public class Swipe {
                         Log.d(TAG, "Bottom");//it swipes from top to bottom
                         Interface.i.settings.ManualMode = false;
                         manualmode.setVisibility(View.GONE);
+                        manualmode.startAnimation(slideDown);
                     } else {
                         Log.d(TAG, "Top");//it swipes from bottom to top
                         Interface.i.settings.ManualMode = true;
