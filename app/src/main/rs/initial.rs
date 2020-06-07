@@ -38,8 +38,8 @@ rs_matrix3x3 intermediateToSRGB; // Color transform from wide-gamut colorspace t
 #define getc4(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
 #define setc4(x,y, alloc,in)(rsSetElementAt_uchar4(alloc,in,x,y))
 #define getraw(x,y)(gets(x,y,inputRawBuffer))
-#define square(i,x,y)(getraw(x-1 + (i%3)*3,y-1 + i/3))
-
+#define square3(i,x,y)(getraw(x-1 + (i%3),y-1 + i/3))
+#define square2(i,x,y)(getraw(x-1 + (i%2),y-1 + i/2))
 
 static float4 getGain(uint x, uint y) {
     float interpX = (((float) x) / rawWidth) * gainMapWidth;
@@ -179,7 +179,7 @@ static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
     float inputArray[9];
     uint index = (x & 1) | ((y & 1) << 1);
     index |= (cfa << 2);
-    for(int i = 0; i<9;i++) inputArray[i] = (square(i,x,y));
+    for(int i = 0; i<9;i++) inputArray[i] = (square3(i,x,y));
     for (uint j = y - 1; j <= y + 1; j++) {
         for (uint i = x - 1; i <= x + 1; i++) {
             uint index = (i & 1) | ((j & 1) << 1);  // bits [0,1] are blacklevel offset
@@ -321,7 +321,7 @@ static float3 demosaic(uint x, uint y, uint cfa) {
     uint index = (x & 1) | ((y & 1) << 1);
     index |= (cfa << 2);
     float inputArray[9];
-    for(int i = 0; i<9;i++) inputArray[i] = BlackWhiteLevel(square(i,x,y));
+    for(int i = 0; i<9;i++) inputArray[i] = BlackWhiteLevel(square3(i,x,y));
     //locality = gets3(x/4,yin-1,inputRawBuffer);inputArray[0] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
     //locality = gets3(x/4,yin,inputRawBuffer);inputArray[1] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
     //locality = gets3(x/4,yin+1,inputRawBuffer);inputArray[2] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);

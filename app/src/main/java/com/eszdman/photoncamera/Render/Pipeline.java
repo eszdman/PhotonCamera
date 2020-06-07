@@ -24,6 +24,8 @@ import java.nio.ByteBuffer;
 
 public class Pipeline {
     public static void RunPipeline(ByteBuffer in, Parameters params){
+        //params.rawSize.x/=2;
+        //params.rawSize.y/=2;
         RenderScript rs = Interface.i.rs;
         RUtils rUtils = new RUtils(rs,params.rawSize);
         Bitmap img = Bitmap.createBitmap(params.rawSize.x,params.rawSize.y, Bitmap.Config.ARGB_8888);
@@ -31,6 +33,7 @@ public class Pipeline {
         nodes.startT();
         Allocation input = rUtils.allocateIO(in,rUtils.RawSensor);
         Allocation imgout = Allocation.createFromBitmap(rs,img);
+
         nodes.endT("Allocation");
         nodes.initial.set_cfaPattern(params.cfaPattern);
         nodes.initial.set_rawWidth(params.rawSize.x);
@@ -60,7 +63,7 @@ public class Pipeline {
         nodes.endT("Initial");
         imgout.copyTo(img);
         //img = nodes.doSharpen(img,nodes.sharp1);
-        //img = nodes.doSharpen(img,nodes.sharp1);
+        img = nodes.doSharpen(img,nodes.sharp1);
         File file = new File(params.path);
         try {
             FileOutputStream fOut = new FileOutputStream(file);
