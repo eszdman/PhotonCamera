@@ -19,6 +19,6 @@
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness:</string>
     <string name="turn_on_grid">Show grid</string>
-    <string name="raw">Enable raw</string>
+    <string name="raw">Save RAW</string>
     <string name="turn_on_round_edges">Enable round edges</string>
 </resources>
