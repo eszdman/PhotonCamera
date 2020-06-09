@@ -23,7 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="60dp"
-        android:background="@color/colorPrimaryDark">
+        android:background="@color/colorPrimaryDark"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -83,7 +84,7 @@
                 <Switch
                     android:id="@+id/setting_raw"
                     android:layout_width="match_parent"
-                    android:drawableStart="@drawable/ic_gradient_black_24dp"
+                    android:drawableStart="@drawable/ic_raw"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
                     android:gravity="center|start|center_horizontal"
