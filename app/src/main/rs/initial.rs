@@ -61,24 +61,24 @@ static float4 getGain(uint x, uint y) {
             bl * invFracX * fracY + br * fracX * fracY;
 }
 // Apply gamma correction using sRGB gamma curve
-#define x0 0.0648
 #define x1 2.8114
 #define x2 -3.5701
 #define x3 1.6807
 static float gammaEncode2(float x) {
     return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, 0.4166667f) - 0.055f;
 }
-static float gammaEncode(float x) {
-    return (x0+x1*x+x2*x*x+x3*x*x*x);
+//Apply Gamma correction
+static float3 gammaCorrectPixel(float3 x) {
+float3 xx = x*x;
+float3 xxx = xx*x;
+return (x1*x+x2*xx+x3*xxx);
 }
 
-// Apply gamma correction to each color channel in RGB pixel
-static float3 gammaCorrectPixel(float3 rgb) {
-    float3 ret;
-    ret.x = gammaEncode(rgb.x);
-    ret.y = gammaEncode(rgb.y);
-    ret.z = gammaEncode(rgb.z);
-    return ret;
+static float3 gammaCorrectPixel2(float3 rgb) {
+    rgb.x = gammaEncode2(rgb.x);
+    rgb.y = gammaEncode2(rgb.y);
+    rgb.z = gammaEncode2(rgb.z);
+    return rgb;
 }
 
 static float3 tonemap(float3 rgb) {
@@ -415,6 +415,15 @@ static float3 ExposureCompression(float3 in){
 float3 in2 = in*c1 + in*in*c2 + in*in*in*c3;
 return (in*(1-compression)+in2*compression);
 }
+#define k1 2.8667f
+#define k2 -10.0000f
+#define k3 13.3333f
+#define decomp 0.15f
+static float3 ShadowDeCompression(float3 in){
+if(fast_length(in) > 0.4f) return in;
+float3 in2 = in*k1 + in*in*k2 + in*in*in*k3;
+return (in*(1-decomp)+in2*decomp);
+}
 static uchar4 PackInto8Bit(float3 in){
 uchar4 out;
 in = clamp((in)*255.f,(float)0.f,(float)255.f);
@@ -427,10 +436,12 @@ return out;
 uchar4 RS_KERNEL demosaicing(uint x, uint y) {
     float3 pRGB, sRGB;
     uchar4 tRGB;
+
     pRGB = linearizeAndGainmap(x, y, whitelevel, cfaPattern);
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
+    sRGB = ShadowDeCompression(sRGB);
     sRGB = ExposureCompression(sRGB);
     sRGB=clamp(sRGB*gain - 0.08,0.f,1.f);
     return rsPackColorTo8888(sRGB);

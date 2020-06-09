@@ -80,7 +80,6 @@ public class ImageSaver implements Runnable {
         FileOutputStream output = null;
         switch (format){
             case ImageFormat.JPEG: {
-
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
                     imageBuffer.add(mImage);

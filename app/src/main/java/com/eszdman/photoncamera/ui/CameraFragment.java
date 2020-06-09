@@ -484,7 +484,7 @@ public class CameraFragment extends Fragment
                 flip.animate().rotation(flip.getRotation() - 360).setDuration(400).start();
                 mCameraId = cycler(mCameraId, mCameraIds);
                 restartCamera();
-                showToast("Afmodes:" + mCameraAfModes.length);
+                //showToast("Afmodes:" + mCameraAfModes.length);
                 break;
             }
             case R.id.settings: {
@@ -602,13 +602,13 @@ public class CameraFragment extends Fragment
             return sizes.get(s);
         else {
             Size target = sizes.get(s - 1);
-            Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+            /*Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
             Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
             double k = (double) (target.getHeight()) / act.bottom;
             mul(pre, k);
             mul(act, k);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);*/
             return target;
         }
     }
@@ -1073,7 +1073,8 @@ public class CameraFragment extends Fragment
             //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
             captureBuilder.addTarget(mImageReaderRes.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
-            setAutoFlash(captureBuilder);
+            Log.d(TAG,"CaptureBuilderStarted!");
+            //setAutoFlash(captureBuilder);
             int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
             ArrayList<CaptureRequest> captures = new ArrayList<>();
@@ -1085,6 +1086,7 @@ public class CameraFragment extends Fragment
             }
             //img
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
+            Log.d(TAG,"CaptureStarted!");
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -1092,6 +1094,7 @@ public class CameraFragment extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     lightcycle.setProgress(lightcycle.getProgress() + 1);
+                    Log.d(TAG,"Completed!");
                     mCaptureResult = result;
                     /*burstcount[0]++;
                     if (burstcount[0] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
@@ -1110,16 +1113,25 @@ public class CameraFragment extends Fragment
 
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                    lightcycle.setAlpha(1.0f);
-                    mTextureView.setAlpha(0.5f);
+                    Log.d(TAG,"FrameCaptureStarted!");
+                    try {
+                        lightcycle.setAlpha(1.0f);
+                        mTextureView.setAlpha(0.5f);
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
                 }
 
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
-                    lightcycle.setAlpha(0f);
-                    lightcycle.setProgress(0);
-                    mTextureView.setAlpha(1f);
+                    try {
+                        lightcycle.setAlpha(0f);
+                        lightcycle.setProgress(0);
+                        mTextureView.setAlpha(1f);
+                    } catch (Exception e){
+                    e.printStackTrace();
+                    }
                     unlockFocus();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }

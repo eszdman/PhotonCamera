@@ -18,6 +18,11 @@ import android.renderscript.Type;
 
 import com.eszdman.photoncamera.api.Interface;
 
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
+import org.opencv.imgcodecs.Imgcodecs;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -54,7 +59,7 @@ public class Pipeline {
         nodes.initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         nodes.initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
         nodes.initial.set_gain((float)Interface.i.settings.gain);
-        nodes.initial.set_compression(1.2f);
+        nodes.initial.set_compression(0.8f);
         nodes.startT();
         nodes.initial.forEach_demosaicing(imgout, new Script.LaunchOptions().setX(1,params.rawSize.x-1).setY(1,params.rawSize.y-1));
         nodes.endT("Initial");
@@ -62,7 +67,8 @@ public class Pipeline {
         img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
         //img = nodes.doSharpen(img,nodes.sharp1);
         img = nodes.doSharpen(img,nodes.sharp1);
-
+        //Mat test = new Mat(params.rawSize.y,params.rawSize.x, CvType.CV_16U,in);
+        //Imgcodecs.imwrite(params.path+"_t2.jpg", test, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
             outimg.createNewFile();
             FileOutputStream fOut = new FileOutputStream(outimg);
@@ -74,6 +80,8 @@ public class Pipeline {
             img.recycle();
             imgout.destroy();
             input.destroy();
+            rs.destroy();
+            in.clear();
         } catch (Exception e) {
             e.printStackTrace();
         }

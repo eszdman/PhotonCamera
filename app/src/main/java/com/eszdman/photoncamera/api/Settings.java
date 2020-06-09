@@ -40,10 +40,10 @@ public class Settings {
     public boolean hdrx = true;
     public double saturation = 1.0;
     public double sharpness = 0.3;
-    public double contrastMpy = 1.2;
+    public double contrastMpy = 1.0;
     public int contrastConst = 0;
-    public double compressor = 1.27;
-    public double gain = 1.35;
+    public double compressor = 1.28;
+    public double gain = 1.6;
     public boolean rawSaver = false;
     public String lastPicture = null;
     public boolean ManualMode = false;

@@ -298,6 +298,8 @@ public class ImageProcessing {
         Log.d(TAG, "LensShading Row:" + lenss.getRowCount());
         Log.d(TAG, "LensShading Col:" + lenss.getColumnCount());
         Log.d(TAG, "LensShading Count:" + lenss.getGainFactorCount());
+        //Mat test2 = load_rawsensor(curimgs.get(0));
+        //Imgcodecs.imwrite(path+"_t0.jpg", test2, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         for (int i = 0; i < curimgs.size(); i++)
             Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Log.d(TAG, "Wrapper.loadFrame");

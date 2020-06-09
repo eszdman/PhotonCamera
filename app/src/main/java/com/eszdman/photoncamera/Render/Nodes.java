@@ -40,7 +40,6 @@ public class Nodes {
         convolution.setCoefficients(radius);
         convolution.forEach(allocOut);
         allocOut.copyTo(bitmap);
-        rs.destroy();
         return bitmap;
 
     }

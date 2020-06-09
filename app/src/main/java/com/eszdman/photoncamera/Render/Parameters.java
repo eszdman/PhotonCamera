@@ -22,8 +22,6 @@ public class Parameters {
     Point mapsize;
     float[] gainmap;
     public String path;
-
-
     float[] proPhotoToSRGB = new float[9];
     float[] sensorToProPhoto = new float[9];
     float tonemapStrength = 1.4f;
@@ -34,8 +32,10 @@ public class Parameters {
         tonemapStrength = (float)Interface.i.settings.compressor;
         int[] blarr = new int[4];
         BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        level.copyTo(blarr,0);
-        if(level != null) for(int i =0; i<4;i++) blacklevel[i] = blarr[i];
+        if(level != null) {
+            level.copyTo(blarr,0);
+            for(int i =0; i<4;i++) blacklevel[i] = blarr[i];
+        }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if(ptr !=null) cfaPattern = (byte)(int)ptr;
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
@@ -57,11 +57,11 @@ public class Parameters {
         }
         Rational[] neutral = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         ColorSpaceTransform calibr1 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
-        ColorSpaceTransform calibr2 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
+        ColorSpaceTransform calibr2 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM2);
         ColorSpaceTransform colmat1 = characteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM1);
         ColorSpaceTransform colmat2 = characteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM2);
         ColorSpaceTransform forwardt1= characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX1);
-        ColorSpaceTransform forwardt2= characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX1);
+        ColorSpaceTransform forwardt2= characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX2);
         float[] calibrationTransform1 = new float[9];
         float[] normalizedForwardTransform1 = new float[9];
         float[] normalizedColorMatrix1 = new float[9];
