@@ -9,7 +9,6 @@ import android.hardware.camera2.params.LensShadingMap;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class Parameters {
     public byte cfaPattern;
@@ -95,8 +94,10 @@ public class Parameters {
         Converter.calculateCameraToXYZD50Transform(normalizedForwardTransform1, normalizedForwardTransform2,
                 calibrationTransform1, calibrationTransform2, neutral,
                 interpolationFactor, /*out*/sensorToXYZ);
-        Converter.multiply(Converter.sXYZtoRGBBradford, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
+
+
+        Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
         //for(int i =0; i<ccm.length;i++) ccm[i]/=normalize;
         Rational[] wpoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         customTonemap = new float[] {

@@ -339,12 +339,12 @@ public class Converter {
             0.0f, 1.0f, 0.0f,
             0.0f, 0.0f, 1.0f
     };
-    public static final float[] sXYZtoRGBBradford33 = new float[] {
-            2.5641f, -1.2730f, -0.2911f,
-            -0.7421f, 1.5331f, 0.2091f,
-            0.0610f, -0.8709f, 1.8098f
+    public static final float[] HDRXCCM = new float[] {
+            2.7430f, -1.2980f, -0.4450f,
+            -0.8690f, 2.0887f, -0.2196f,
+            -0.1109f, -0.6662f, 1.7771f
     };
-    public static final float[] sXYZtoRGBBradford = new float[] {
+    public static final float[] sXYZtoRGBBradford3 = new float[] {
             2.7816f, -1.4023f, -0.3792f,
             -0.9694f, 2.1740f, -0.2046f,
             -0.0374f, -1.2347f, 2.2720f

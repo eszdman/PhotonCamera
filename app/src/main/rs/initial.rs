@@ -2,35 +2,36 @@
 #pragma rs java_package_name(com.eszdman.photoncamera)
 #pragma rs_fp_relaxed
 
-//Input Parameters
-char cfaPattern; // The Color Filter Arrangement pattern used
+//Main parameters
 uint rawWidth; // Width of raw buffer
 uint rawHeight; // Height of raw buffer
-
+//Input Parameters
+char cfaPattern; // The Color Filter Arrangement pattern used
 float4 blacklevel;
 float3 whitepoint;
 float ccm[9];
 float gain;
 ushort whitelevel;
-
 uint gainMapWidth;  // The width of the gain map
 uint gainMapHeight;  // The height of the gain map
 bool hasGainMap; // Does gainmap exist?
-
 float3 neutralPoint; // The camera neutral
 float4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 float saturationFactor;
 float compression;
-
 rs_allocation inputRawBuffer; // RAW16 buffer of dimensions (raw image stride) * (raw image height)
 rs_allocation gainMap; // Gainmap to apply to linearized raw sensor data.
-
-float power;
-rs_allocation inputjpg;
-rs_allocation inputblur;
-
 rs_matrix3x3 sensorToIntermediate; // Color transform from sensor to a wide-gamut colorspace
 rs_matrix3x3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
+float power;
+
+
+//IO buffer
+rs_allocation iobuffer;
+
+//Hist parameters
+rs_allocation hist;
+uchar histmin;
 
 #define RS_KERNEL __attribute__((kernel))
 #define gets3(x,y, alloc)(rsGetElementAt_ushort3(alloc,x,y))
@@ -38,6 +39,7 @@ rs_matrix3x3 intermediateToSRGB; // Color transform from wide-gamut colorspace t
 #define getc(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
 #define getc4(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
 #define setc4(x,y, alloc,in)(rsSetElementAt_uchar4(alloc,in,x,y))
+#define sets(x,y, alloc,in)(rsSetElementAt_ushort(alloc,in,x,y))
 #define getraw(x,y)(gets(x,y,inputRawBuffer))
 #define square3(i,x,y)(getraw((x)-1 + (i%3),(y)-1 + i/3))
 #define square2(i,x,y)(getraw((x) + (i%2),(y) + i/2))
@@ -433,16 +435,30 @@ out.y = (uchar)(in.y);
 out.z = (uchar)(in.z);
 return out;
 }
-uchar4 RS_KERNEL demosaicing(uint x, uint y) {
+void RS_KERNEL demosaicing(uint x, uint y) {
     float3 pRGB, sRGB;
     uchar4 tRGB;
 
     pRGB = linearizeAndGainmap(x, y, whitelevel, cfaPattern);
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
-    sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
+    sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor-0.35f*sRGB.r-0.35f*sRGB.b);
     sRGB = ShadowDeCompression(sRGB);
     sRGB = ExposureCompression(sRGB);
-    sRGB=clamp(sRGB*gain - 0.08,0.f,1.f);
-    return rsPackColorTo8888(sRGB);
+    sRGB=clamp(sRGB*gain,0.f,1.f);
+    setc4(x,y,iobuffer,rsPackColorTo8888(sRGB));
+}
+void RS_KERNEL histparams(uint x, uint y) {
+x*=4;
+y*=4;
+uchar4 in = getc4(x,y,iobuffer);
+short ind = (in.r+in.g+in.b)/3;
+uint32_t cnt = rsGetElementAt_uint(hist,ind);
+cnt++;
+rsSetElementAt_uint(hist,cnt,ind);
+}
+void RS_KERNEL histEQ(uint x, uint y) {
+uchar4 in = getc4(x,y,iobuffer);
+in-=(uchar)histmin;
+setc4(x,y,iobuffer,in);
 }
