@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.DngCreator;
@@ -74,6 +75,7 @@ public class ImageSaver implements Runnable {
         CameraFragment.context.shot.setActivated(true);
         CameraFragment.context.shot.setClickable(true);
     }
+    @SuppressLint("NewApi")
     @Override
     public void run() {
         int format = mImage.getFormat();
@@ -185,7 +187,9 @@ public class ImageSaver implements Runnable {
                         if(!Interface.i.settings.rawSaver) inter.saveAttributes();
                         //dngCreator.writeImage(output, mImage);
                         CameraFragment.context.shot.setActivated(true);
+                        Thread.sleep(15);
                         Photo.instance.SaveImg(outimg);
+                        Thread.sleep(15);
                         end();
                     }
                     if(Interface.i.settings.frameCount == 1) {
@@ -205,10 +209,8 @@ public class ImageSaver implements Runnable {
                         imageBuffer.get(imageBuffer.size()-1).close();
                         imageBuffer.remove(imageBuffer.size()-1);
                     }
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
-                } finally {
-                    //mImage.close();
                 }
                 break;
             }

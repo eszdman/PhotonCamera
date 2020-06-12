@@ -310,32 +310,32 @@ public class SettingsActivity extends AppCompatActivity {
     int cnt2 = 0;
 
     void putview(Switch in) {
-        sharedPreferencesEditor.putBoolean("SettingsView:" + cnt2, in.isChecked());
+        sharedPreferencesEditor.putBoolean(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.isChecked());
         cnt2++;
     }
 
     void putview(TextView in) {
-        sharedPreferencesEditor.putString("SettingsView:" + cnt2, in.getText().toString());
+        sharedPreferencesEditor.putString(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getText().toString());
         cnt2++;
     }
 
     void putview(SeekBar in) {
-        sharedPreferencesEditor.putInt("SettingsView:" + cnt2, in.getProgress());
+        sharedPreferencesEditor.putInt(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getProgress());
         cnt2++;
     }
 
     void getview(Switch in) {
-        in.setChecked(sharedPreferences.getBoolean("SettingsView:" + cnt2, in.isChecked()));
+        in.setChecked(sharedPreferences.getBoolean(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.isChecked()));
         cnt2++;
     }
 
     void getview(TextView in) {
-        in.setText(sharedPreferences.getString("SettingsView:" + cnt2, in.getText().toString()));
+        in.setText(sharedPreferences.getString(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getText().toString()));
         cnt2++;
     }
 
     void getview(SeekBar in) {
-        in.setProgress(sharedPreferences.getInt("SettingsView:" + cnt2, in.getProgress()));
+        in.setProgress(sharedPreferences.getInt(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getProgress()));
         cnt2++;
     }
 

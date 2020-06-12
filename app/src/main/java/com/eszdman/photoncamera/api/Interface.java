@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.api;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.renderscript.RenderScript;
 import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Manual;
@@ -12,6 +14,8 @@ import com.eszdman.photoncamera.ui.MainActivity;
 
 import org.opencv.img_hash.Img_hash;
 
+import static android.content.Context.ACTIVITY_SERVICE;
+
 public class Interface {
     public static Interface i;
     public MainActivity mainActivity;
@@ -23,6 +27,8 @@ public class Interface {
     public Swipe swipedetection;
     public Gravity gravity;
     public Manual manual;
+    public RenderScript rs;
+    public Nodes nodes;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
@@ -32,5 +38,14 @@ public class Interface {
         wrapper = new Wrapper();
         processing = new ImageProcessing();
         swipedetection = new Swipe();
+        rs = RenderScript.create(Interface.i.mainActivity,RenderScript.ContextType.DEBUG);
+        nodes = new Nodes(rs);
+    }
+    // Get a MemoryInfo object for the device's current memory status.
+    public ActivityManager.MemoryInfo getAvailableMemory() {
+        ActivityManager activityManager = (ActivityManager) mainActivity.getSystemService(ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+        activityManager.getMemoryInfo(memoryInfo);
+        return memoryInfo;
     }
 }

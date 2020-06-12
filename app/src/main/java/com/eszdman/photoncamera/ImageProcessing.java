@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera;
 
+import android.app.ActivityManager;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
@@ -300,8 +301,7 @@ public class ImageProcessing {
         Log.d(TAG, "LensShading Count:" + lenss.getGainFactorCount());
         //Mat test2 = load_rawsensor(curimgs.get(0));
         //Imgcodecs.imwrite(path+"_t0.jpg", test2, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
-        for (int i = 0; i < curimgs.size(); i++)
-            Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
+        for (int i = 0; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
@@ -324,27 +324,10 @@ public class ImageProcessing {
         Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         params.path = path;
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
-        Pipeline.RunPipeline(output,params);
+         // Do memory intensive work ...
+         Pipeline.RunPipeline(output,params);
+
     }
-
-    Mat contrast(Mat input, float scale) {
-        float level = 255;
-        float inner_constant = 3.141592f / (2.f * (scale));
-        float sin_constant = (float) Math.sin(inner_constant);
-        float slope = level / (2.f * sin_constant);
-        float constant = slope * sin_constant;
-        float factor = 3.141592f / (scale * level);
-        int frameSize = input.cols()*input.rows();
-        int numChannels = input.channels();
-        float[] byteBuffer= new float[frameSize*numChannels];
-        input.get(0,0,byteBuffer);
-        for (int i = 0; i < frameSize*numChannels; i++)
-            byteBuffer[i]= (float) (slope * Math.sin(factor*byteBuffer[i] - inner_constant) + constant);
-
-        input.put(0,0,byteBuffer);
-        return input;
-    }
-
     public void Run() {
         Image.Plane plane = curimgs.get(0).getPlanes()[0];
         Log.d(TAG, "buffer parameters:");

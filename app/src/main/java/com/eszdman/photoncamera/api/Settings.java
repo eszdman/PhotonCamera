@@ -18,6 +18,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
@@ -43,11 +44,12 @@ public class Settings {
     public double contrastMpy = 1.0;
     public int contrastConst = 0;
     public double compressor = 1.28;
-    public double gain = 1.6;
+    public double gain = 1.0;
     public boolean rawSaver = false;
     public String lastPicture = null;
     public boolean ManualMode = false;
     public int cfaPatern = 0;
+    public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
@@ -93,6 +95,8 @@ public class Settings {
         Log.d(TAG, "Loaded CFA:" + cfaPatern);
         rawSaver = get(rawSaver);
         Log.d(TAG, "Loaded rawSaver:" + cfaPatern);
+        mCameraID = get(mCameraID);
+        Log.d(TAG, "Loaded mCameraID:" + mCameraID);
         count = 0;
     }
 
@@ -136,10 +140,21 @@ public class Settings {
         put(cfaPatern);
         Log.d(TAG, "Saved RawSaver:" + cfaPatern);
         put(rawSaver);
+        Log.d(TAG, "Saved mCameraID:" + mCameraID);
+        put(mCameraID);
         sharedPreferencesEditor.apply();
         count = 0;
     }
 
+    public void saveID(){
+        count = -1;
+        sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
+        sharedPreferencesEditor = sharedPreferences.edit();
+        Log.d(TAG, "Saved mCameraID:" + mCameraID);
+        put(mCameraID);
+        sharedPreferencesEditor.apply();
+        count = 0;
+    }
     public void applyRes(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(JPEG_QUALITY, (byte) 100);
         captureBuilder.set(NOISE_REDUCTION_MODE, Interface.i.settings.noiseReduction);
@@ -164,48 +179,48 @@ public class Settings {
     }
 
     void put(int in) {
-        sharedPreferencesEditor.putInt("Settings:" + count, in);
+        sharedPreferencesEditor.putInt(mCameraID+"Settings:" + count, in);
         count++;
     }
 
     void put(double in) {
-        sharedPreferencesEditor.putFloat("Settings:" + count, (float) in);
+        sharedPreferencesEditor.putFloat(mCameraID+"Settings:" + count, (float) in);
         count++;
     }
 
     void put(String in) {
-        sharedPreferencesEditor.putString("Settings:" + count, in);
+        sharedPreferencesEditor.putString(mCameraID+"Settings:" + count, in);
         count++;
     }
 
     void put(boolean in) {
-        sharedPreferencesEditor.putBoolean("Settings:" + count, in);
+        sharedPreferencesEditor.putBoolean(mCameraID+"Settings:" + count, in);
         count++;
     }
 
     boolean get(boolean in) {
-        boolean result = sharedPreferences.getBoolean("Settings:" + count, in);
+        boolean result = sharedPreferences.getBoolean(mCameraID+"Settings:" + count, in);
         count++;
         return result;
     }
 
     int get(int cur) {
         int result;
-        result = sharedPreferences.getInt("Settings:" + count, cur);
+        result = sharedPreferences.getInt(mCameraID+"Settings:" + count, cur);
         count++;
         return result;
     }
 
     double get(double cur) {
         double result;
-        result = (double) (sharedPreferences.getFloat("Settings:" + count, (float) (cur)));
+        result = (double) (sharedPreferences.getFloat(mCameraID+"Settings:" + count, (float) (cur)));
         count++;
         return result;
     }
 
     String get(String cur) {
         String result;
-        result = (sharedPreferences.getString("Settings:" + count, (cur)));
+        result = (sharedPreferences.getString(mCameraID+"Settings:" + count, (cur)));
         count++;
         return result;
     }

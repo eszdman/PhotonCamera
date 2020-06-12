@@ -79,7 +79,7 @@ import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
-
+import com.eszdman.photoncamera.api.Interface.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -194,7 +194,6 @@ public class CameraFragment extends Fragment
     /**
      * ID of the current {@link CameraDevice}.
      */
-    public String mCameraId;
 
     public String[] mCameraIds;
 
@@ -482,7 +481,7 @@ public class CameraFragment extends Fragment
             case R.id.flip_camera: {
                 ImageButton flip = view.findViewById(R.id.flip_camera);
                 flip.animate().rotation(flip.getRotation() - 360).setDuration(400).start();
-                mCameraId = cycler(mCameraId, mCameraIds);
+                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
                 restartCamera();
                 //showToast("Afmodes:" + mCameraAfModes.length);
                 break;
@@ -570,6 +569,7 @@ public class CameraFragment extends Fragment
     public void onPause() {
         Interface.i.gravity.stop();
         closeCamera();
+        Interface.i.settings.saveID();
         stopBackgroundThread();
         super.onPause();
     }
@@ -602,13 +602,13 @@ public class CameraFragment extends Fragment
             return sizes.get(s);
         else {
             Size target = sizes.get(s - 1);
-            /*Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+            Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
             Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
             double k = (double) (target.getHeight()) / act.bottom;
             mul(pre, k);
             mul(act, k);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);*/
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
             return target;
         }
     }
@@ -627,16 +627,13 @@ public class CameraFragment extends Fragment
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         try {
-            for (String cameraId : manager.getCameraIdList()) {
                 CameraCharacteristics characteristics
-                        = manager.getCameraCharacteristics(cameraId);
+                        = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
                 mCameraCharacteristics = characteristics;
                 mPreviewwidth = width;
                 mPreviewheight = height;
-                UpdateCameraCharacteristics(cameraId);
-                mCameraId = cameraId;
+                UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
                 return;
-            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (NullPointerException e) {
@@ -740,8 +737,6 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
-
-        mCameraId = cameraId;
     }
 
     @SuppressLint("MissingPermission")
@@ -767,7 +762,7 @@ public class CameraFragment extends Fragment
                 mPreviewRequestBuilder = null;
             }
             stopBackgroundThread();
-            UpdateCameraCharacteristics(mCameraId);
+            UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
         } catch (Exception e) {
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
         } finally {
@@ -778,7 +773,7 @@ public class CameraFragment extends Fragment
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         StreamConfigurationMap map = null;
         try {
-            map = manager.getCameraCharacteristics(mCameraId).get(
+            map = manager.getCameraCharacteristics(Interface.i.settings.mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -809,14 +804,14 @@ public class CameraFragment extends Fragment
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to restart camera.", e);
         }
         //stopBackgroundThread();
-        UpdateCameraCharacteristics(mCameraId);
+        UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
         startBackgroundThread();
     }
     /*public void restartCamera2{
@@ -850,7 +845,7 @@ public class CameraFragment extends Fragment
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {

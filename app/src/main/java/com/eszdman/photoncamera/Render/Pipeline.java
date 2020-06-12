@@ -3,9 +3,12 @@ package com.eszdman.photoncamera.Render;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.renderscript.Allocation;
+import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.Script;
 import android.renderscript.ScriptIntrinsic;
+import android.renderscript.ScriptIntrinsicBlur;
+import android.util.Log;
 
 import com.eszdman.photoncamera.api.Interface;
 import java.io.FileOutputStream;
@@ -14,56 +17,51 @@ import java.nio.ByteBuffer;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class Pipeline {
+    private static String TAG = "Pipeline";
     public static void RunPipeline(ByteBuffer in, Parameters params){
-        RenderScript rs = RenderScript.create(Interface.i.mainActivity);
+        RenderScript rs = Interface.i.rs;
         RUtils rUtils = new RUtils(rs,params.rawSize);
         Bitmap img = Bitmap.createBitmap(params.rawSize.x,params.rawSize.y, Bitmap.Config.ARGB_8888);
-        Nodes nodes = new Nodes(rs);
+        Nodes nodes = Interface.i.nodes;
         nodes.startT();
         Allocation input = rUtils.allocateIO(in,rUtils.RawSensor);
         Allocation imgout = Allocation.createFromBitmap(rs,img);
-        Allocation hist = Allocation.createTyped(rs,rUtils.CreateU32(256));
         params.rawSize = new Point(params.rawSize.x/2,params.rawSize.y/2);
         nodes.initialParameters(params,rUtils);
         nodes.endT("Allocation");
-        nodes.startT();
         nodes.initial.set_inputRawBuffer(input);
         nodes.initial.set_iobuffer(imgout);
-        nodes.initial.set_hist(hist);
-        int max = params.rawSize.x*params.rawSize.y/16;
-        ScriptIntrinsic.LaunchOptions def = new Script.LaunchOptions().setX(1,params.rawSize.x-1).setY(1,params.rawSize.y-1);
-        nodes.initial.forEach_demosaicing(def);
-        nodes.initial.forEach_histparams(new Script.LaunchOptions().setX(1,params.rawSize.x/2 - 1).setY(1,params.rawSize.y/2 - 1));
-        hist = nodes.initial.get_hist();
-        int[] histarr = new int[256];
-        hist.copyTo(histarr);
-        short min = 0;
-        for(int i =0; i<histarr.length;i++) if(histarr[i] > max/18) {min = (short)i; break;}
-        //min = 0;
-        nodes.initial.set_histmin(min);
-        //nodes.initial.forEach_histEQ(def);
-        imgout = nodes.initial.get_iobuffer();
-        nodes.endT("Initial");
+        ScriptIntrinsic.LaunchOptions def = rUtils.Range(new Point(4,4), new Point(params.rawSize.x - params.rawSize.x%4 - 4,params.rawSize.y- params.rawSize.y%4 - 4));
+        Allocation demosaicout = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
+        Allocation remosaicIn1 = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
+        Bitmap remosimg = Bitmap.createBitmap(params.rawSize.x*2,params.rawSize.y*2, Bitmap.Config.ARGB_8888);
+        Allocation remosaicOut = Allocation.createFromBitmap(rs,remosimg);
+        nodes.initial.set_demosaicOut(demosaicout);
+        nodes.initial.set_remosaicIn1(remosaicIn1);
+        nodes.initial.set_remosaicOut(remosaicOut);
+        Allocation blurmosaic = Allocation.createTyped(rs,demosaicout.getType());
+        nodes.initial.set_remosaicIn1(blurmosaic);
+        nodes.startT();
+        nodes.initial.forEach_color(def);
+        input.destroy();
+        in.clear();
         imgout.copyTo(img);
-        img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
-
+        nodes.endT("Initial");
+        nodes.startT();
+        nodes.initial.forEach_blurdem(def);
+        nodes.initial.forEach_remosaic(rUtils.Range(new Point(1,1), new Point(params.rawSize.x*2,params.rawSize.y*2)));
+        remosaicOut.copyTo(remosimg);
+        nodes.endT("Remosaic");
+        //img = Bitmap.createBitmap(img,0,0,params.rawSize.x - params.rawSize.x%4,params.rawSize.y - params.rawSize.y%4);
         //img = nodes.doSharpen(img,nodes.sharp1);
-        img = nodes.doSharpen(img,nodes.sharp1);
-        //Mat test = new Mat(params.rawSize.y,params.rawSize.x, CvType.CV_16U,in);
-        //Imgcodecs.imwrite(params.path+"_t2.jpg", test, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         try {
             outimg.createNewFile();
             FileOutputStream fOut = new FileOutputStream(outimg);
-            //FileOutputStream fOutT = new FileOutputStream(tes);
-            img.compress(Bitmap.CompressFormat.JPEG,100,fOut);
-            //img.compress(Bitmap.CompressFormat.JPEG,100,fOutT);
+            remosimg.compress(Bitmap.CompressFormat.JPEG,100,fOut);
             fOut.flush();
             fOut.close();
-            img.recycle();
+            remosimg.recycle();
             imgout.destroy();
-            input.destroy();
-            rs.destroy();
-            in.clear();
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -20,11 +20,15 @@ public class Nodes {
     private long timer;
     RenderScript rs;
     ScriptC_initial initial;
+    //ScriptC_postproc postproc;
     ScriptIntrinsicBlur blur;
+    ScriptIntrinsicConvolve3x3 convolution;
     public Nodes(RenderScript rs){
         this.rs = rs;
         initial = new ScriptC_initial(rs);
+        //postproc = new ScriptC_postproc(rs);
         blur = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+        convolution = ScriptIntrinsicConvolve3x3.create(rs, Element.U8_4(rs));
     }
     public void initialParameters(Parameters params, RUtils rUtils){
         initial.set_cfaPattern(params.cfaPattern);
@@ -43,30 +47,38 @@ public class Nodes {
         initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
         initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
-        initial.set_gain((float)Interface.i.settings.gain);
-        initial.set_compression(0.8f);
+        initial.set_gain((float)Interface.i.settings.gain*2f);
+        initial.set_compression(-0.3f);
     }
-    public float[] sharp1 = { -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,1.f+ 4.80f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
-                -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness};
-    public float[] sharp2 = { 0.0f, -1.0f, 0.0f, -1.0f, 5.0f, -1.0f, 0.0f, -1.0f,
-                0.0f};
-    public float[] sharp3 = { -0.15f, -0.15f, -0.15f, -0.15f, 2.2f, -0.15f, -0.15f,
-                -0.15f, -0.15f};
-
+    public float[] sharp1 = {
+            -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
+            -0.60f*(float)Interface.i.settings.sharpness,1.f+ 4.80f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
+            -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness};
+    public float[] sharp11 = {
+            0f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness,
+            -0.60f*(float)Interface.i.settings.sharpness,1.f+ 4.80f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
+            0f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness};
     public Bitmap doSharpen(Bitmap original, float[] radius) {
         Bitmap bitmap = Bitmap.createBitmap(
                 original.getWidth(), original.getHeight(),
                 Bitmap.Config.ARGB_8888);
         Allocation allocIn = Allocation.createFromBitmap(rs, original);
         Allocation allocOut = Allocation.createFromBitmap(rs, bitmap);
-        ScriptIntrinsicConvolve3x3 convolution = ScriptIntrinsicConvolve3x3.create(rs, Element.U8_4(rs));
         convolution.setInput(allocIn);
         convolution.setCoefficients(radius);
         convolution.forEach(allocOut);
         allocOut.copyTo(bitmap);
         return bitmap;
-
     }
+    public Allocation doSharpentest(Allocation original, float[] radius) {
+        Allocation allocOut = Allocation.createTyped(rs, original.getType());
+        convolution.setInput(original);
+        convolution.setCoefficients(radius);
+        convolution.forEach(allocOut);
+        original.copyFrom(allocOut);
+        return original;
+    }
+
     public void startT(){
         timer = System.currentTimeMillis();
     }
