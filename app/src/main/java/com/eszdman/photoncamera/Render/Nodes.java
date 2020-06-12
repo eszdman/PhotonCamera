@@ -47,7 +47,7 @@ public class Nodes {
         initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
         initial.set_intermediateToSRGB(new Matrix3f(Converter.transpose(params.proPhotoToSRGB)));
         initial.set_toneMapCoeffs(new Float4(params.customTonemap[0],params.customTonemap[1],params.customTonemap[2],params.customTonemap[3]));
-        initial.set_gain((float)Interface.i.settings.gain*2f);
+        initial.set_gain((float)Interface.i.settings.gain);
         initial.set_compression(-0.3f);
     }
     public float[] sharp1 = {
@@ -58,6 +58,10 @@ public class Nodes {
             0f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness,
             -0.60f*(float)Interface.i.settings.sharpness,1.f+ 4.80f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness,
             0f*(float)Interface.i.settings.sharpness, -0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness};
+    public float[] unsharp = {
+            0f*(float)Interface.i.settings.sharpness, 0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness,
+            0.60f*(float)Interface.i.settings.sharpness,1.f+ -2.40f*(float)Interface.i.settings.sharpness, 0.60f*(float)Interface.i.settings.sharpness,
+            0f*(float)Interface.i.settings.sharpness, 0.60f*(float)Interface.i.settings.sharpness, 0f*(float)Interface.i.settings.sharpness};
     public Bitmap doSharpen(Bitmap original, float[] radius) {
         Bitmap bitmap = Bitmap.createBitmap(
                 original.getWidth(), original.getHeight(),

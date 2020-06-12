@@ -49,7 +49,7 @@ public class Pipeline {
         nodes.endT("Initial");
         nodes.startT();
         nodes.initial.forEach_blurdem(def);
-        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*4.f);
+        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*10.f);
         nodes.initial.forEach_remosaic(rUtils.Range(new Point(2,2), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
         remosaicOut.copyTo(remosimg);
         nodes.endT("Remosaic");
