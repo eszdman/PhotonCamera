@@ -49,11 +49,11 @@ public class Pipeline {
         nodes.endT("Initial");
         nodes.startT();
         nodes.initial.forEach_blurdem(def);
-        nodes.initial.forEach_remosaic(rUtils.Range(new Point(1,1), new Point(params.rawSize.x*2,params.rawSize.y*2)));
+        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*4.f);
+        nodes.initial.forEach_remosaic(rUtils.Range(new Point(2,2), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
         remosaicOut.copyTo(remosimg);
         nodes.endT("Remosaic");
         //img = Bitmap.createBitmap(img,0,0,params.rawSize.x - params.rawSize.x%4,params.rawSize.y - params.rawSize.y%4);
-        //img = nodes.doSharpen(img,nodes.sharp1);
         try {
             outimg.createNewFile();
             FileOutputStream fOut = new FileOutputStream(outimg);

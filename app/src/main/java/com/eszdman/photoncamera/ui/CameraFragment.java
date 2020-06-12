@@ -598,7 +598,7 @@ public class CameraFragment extends Fragment
         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
+        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() >= 40 * 1000000)
             return sizes.get(s);
         else {
             Size target = sizes.get(s - 1);

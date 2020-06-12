@@ -28,6 +28,7 @@ float power;
 rs_allocation demosaicOut;
 rs_allocation remosaicIn1;
 rs_allocation remosaicOut;
+float remosaicSharp;
 //IO buffer
 rs_allocation iobuffer;
 
@@ -494,6 +495,13 @@ void RS_KERNEL remosaic(uint x, uint y) {
     half mosin = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
     half3 blurred = geth3(x/2,y/2,remosaicIn1);
     half3 demosout = geth3(x/2,y/2,demosaicOut);
+    uchar4 input[5];
+     input[0] = getc4(x/2+1,y/2,iobuffer);
+     input[1] = getc4(x/2,y/2+1,iobuffer);
+     input[2] = getc4(x/2,y/2,iobuffer);
+     input[3] = getc4(x/2-1,y/2,iobuffer);
+     input[4] = getc4(x/2,y/2-1,iobuffer);
+     //Asterisk operator
     if(fact1 ==0 % fact2 == 0) {
         br = mosin - blurred.g;
     }
@@ -512,14 +520,15 @@ void RS_KERNEL remosaic(uint x, uint y) {
     if(br > c0) br *= norm;
     if(br < -c0) br *= norm2;
     //br+=blurred.r+blurred.g+blurred.b;
-    br*=3.0f;
+    br*=remosaicSharp;
     //br/=(blurred.r+blurred.g+blurred.b);
     //seth3(x,y,remosaicOut,(br-demosout.r,br-demosout.g,br-demosout.b));
-    uchar4 input = getc4(x/2,y/2,iobuffer);
     float3 infl;
-     infl.r = (float)(input.r)/255.f;
-     infl.g = (float)(input.g)/255.f;
-     infl.b = (float)(input.b)/255.f;
+    for(int i =0; i<5; i++) {
+     infl.r += (float)(input[i].r)/(255.f*5.f);
+     infl.g += (float)(input[i].g)/(255.f*5.f);
+     infl.b += (float)(input[i].b)/(255.f*5.f);
+     }
     uchar4 output;
     float3 in;
     in.r = (br+infl.r);
