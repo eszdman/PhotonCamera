@@ -80,7 +80,7 @@ static float4 getGain(uint x, uint y) {
 //#define x2 -3.1643f
 //#define x3 1.2899f
 static float gammaEncode2(float x) {
-    return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, 0.4166667f) - 0.055f;
+    return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, (1.f/gain)) - 0.055f;
 }
 //Apply Gamma correction
 static float3 gammaCorrectPixel(float3 x) {
@@ -185,7 +185,7 @@ static float3 applyColorspace(float3 pRGB) {
     pRGB.z = clamp(pRGB.z, 0.f, neutralPoint.z);
     float3 intermediate = rsMatrixMultiply(&sensorToIntermediate, pRGB);
     intermediate = tonemap(intermediate);
-    return gammaCorrectPixel(clamp(rsMatrixMultiply(&intermediateToSRGB, intermediate), 0.f, 1.f));
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(rsMatrixMultiply(&intermediateToSRGB, intermediate), 0.f, 1.f)));
 }
 // Blacklevel subtract, and normalize each pixel in the outputArray, and apply the
 // gain map.
@@ -464,7 +464,7 @@ void RS_KERNEL color(uint x, uint y) {
     pRGB = linearizeAndGainmap(x, y, whitelevel, cfaPattern);
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
-    sRGB = ExposureCompression(sRGB);
+    //sRGB = ExposureCompression(sRGB);
     sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
     setc4(x,y,iobuffer,rsPackColorTo8888(sRGB));
 }
@@ -503,22 +503,40 @@ void RS_KERNEL remosaic(uint x, uint y) {
     //half3 demosout = geth3(x/2,y/2,demosaicOut);
     uchar4 input[5];
      //input[0] = getc4(x/2 -1,y/2 -1,iobuffer);
-     //input[0] = getc4(x/2,y/2 -1,iobuffer);
+     input[0] = getc4(x/2,y/2 -1,iobuffer);
      //input[2] = getc4(x/2 +1,y/2 -1,iobuffer);
 
-     //input[1] = getc4(x/2 -1,y/2,iobuffer);
-     input[0] = getc4(x/2,y/2,iobuffer);
-     //input[3] = getc4(x/2 +1,y/2,iobuffer);
+     input[1] = getc4(x/2 -1,y/2,iobuffer);
+     input[2] = getc4(x/2,y/2,iobuffer);
+     input[3] = getc4(x/2 +1,y/2,iobuffer);
 
      //input[6] = getc4(x/2 -1,y/2 +1,iobuffer);
-     //input[4] = getc4(x/2,y/2 +1,iobuffer);
-     //input[8] = getc4(x/2 +1,y/2 +1,iobuffer);
-    //if(input[0].r - input[4].r > 10) { setc4(x,y,remosaicOut,input[2]);return;}
-    //if(input[0].g - input[4].g > 10) { setc4(x,y,remosaicOut,input[2]);return;}
-    //if(input[0].b - input[4].b > 10) { setc4(x,y,remosaicOut,input[2]);return;}
-    //if(input[1].r - input[3].r > 10) { setc4(x,y,remosaicOut,input[2]);return;}
-    //if(input[1].g - input[3].g > 10) { setc4(x,y,remosaicOut,input[2]);return;}
-    //if(input[1].b - input[3].b > 10) { setc4(x,y,remosaicOut,input[2]);return;}
+     input[4] = getc4(x/2,y/2 +1,iobuffer);
+     float3 t1,t2;
+             float3 infl;
+             for(int i =0; i<5; i++) {
+             float3 temp;
+              temp.r = ((float)input[i].r)/(255.f*(1.f));
+              temp.g = ((float)input[i].g)/(255.f*(1.f));
+              temp.b = ((float)input[i].b)/(255.f*(1.f));
+              infl+=temp;
+              if(i == 0) t1 = temp;
+              if(i == 4) t1 -=temp;
+              if(i == 1) t2 = temp;
+              if(i == 3) t2 -=temp;
+              }
+              infl/=5.f;
+             //float3 in;
+             //if(br>0.4f) br = 0.0f;
+             //if(br<-0.4f) br = -0.0f;
+             //in.r = (br+infl.r);
+             //in.g = (br+infl.g);
+             //in.b = (br+infl.b);
+
+             t1-=t2;
+
+             t1 = fabs(t1);
+             if(fabs(t1.r-t1.g-t1.b) > 0.15) {setc4(x,y,remosaicOut,(input[2]));return;}
     half mosin = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
     if(fact1 ==0 % fact2 == 0) {
         br = mosin - blurred.g;
@@ -533,28 +551,16 @@ void RS_KERNEL remosaic(uint x, uint y) {
         br = mosin - blurred.g;
     }
     float c0 = 0.45;
-    //float norm = 0.8f;
-    float norm = 0.7;
+    float norm = 0.8f;
+    float norm2 = 0.4f;
     //float norm2 = 0.5f;
-    float norm2 = 0.4;
+    //float norm2 = 0.4;
     if(br > c0) br *= norm;
     if(br < -c0) br *= norm2;
     //br+=blurred.r+blurred.g+blurred.b;
     br*=remosaicSharp;
     //br/=(blurred.r+blurred.g+blurred.b+0.5f);
     //seth3(x,y,remosaicOut,(br-demosout.r,br-demosout.g,br-demosout.b));
-    float3 infl;
-    for(int i =0; i<1; i++) {
-     infl.r += ((float)input[i].r)/(255.f*(1.f));
-     infl.g += ((float)input[i].g)/(255.f*(1.f));
-     infl.b += ((float)input[i].b)/(255.f*(1.f));
-     }
-    //float3 in;
-    //if(br>0.4f) br = 0.0f;
-    //if(br<-0.4f) br = -0.0f;
-    //in.r = (br+infl.r);
-    //in.g = (br+infl.g);
-    //in.b = (br+infl.b);
     infl+=br;
     setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
 }

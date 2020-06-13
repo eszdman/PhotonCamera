@@ -31,7 +31,7 @@ public class Pipeline {
         nodes.endT("Allocation");
         nodes.initial.set_inputRawBuffer(input);
         nodes.initial.set_iobuffer(imgout);
-        ScriptIntrinsic.LaunchOptions def = rUtils.Range(new Point(4,4), new Point(params.rawSize.x - params.rawSize.x%4 - 4,params.rawSize.y- params.rawSize.y%4 - 4));
+        ScriptIntrinsic.LaunchOptions def = rUtils.Range(new Point(2,2), new Point(params.rawSize.x - 2,params.rawSize.y - 2));
         Allocation demosaicout = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
         Allocation remosaicIn1 = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
         Bitmap remosimg = Bitmap.createBitmap(params.rawSize.x*2,params.rawSize.y*2, Bitmap.Config.ARGB_8888);
@@ -49,10 +49,11 @@ public class Pipeline {
         nodes.endT("Initial");
         nodes.startT();
         nodes.initial.forEach_blurdem(def);
-        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*10.f);
-        nodes.initial.forEach_remosaic(rUtils.Range(new Point(2,2), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
+        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*2.7f);
+        nodes.initial.forEach_remosaic(rUtils.Range(new Point(4,4), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
         remosaicOut.copyTo(remosimg);
         nodes.endT("Remosaic");
+
         //img = Bitmap.createBitmap(img,0,0,params.rawSize.x - params.rawSize.x%4,params.rawSize.y - params.rawSize.y%4);
         try {
             outimg.createNewFile();
