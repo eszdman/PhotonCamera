@@ -35,7 +35,7 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = (Interface.i.camera.mSensorOrientation+Interface.i.gravity.getRotation()+270) % 360;
+        int rotation = Interface.i.gravity.getCameraRotation();
         Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
         Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;

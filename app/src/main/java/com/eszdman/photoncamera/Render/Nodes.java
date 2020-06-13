@@ -10,6 +10,7 @@ import android.renderscript.RenderScript;
 import android.renderscript.ScriptC;
 import android.renderscript.ScriptIntrinsicBlur;
 import android.renderscript.ScriptIntrinsicConvolve3x3;
+import android.renderscript.ScriptIntrinsicResize;
 import android.renderscript.Type;
 import android.util.Log;
 import com.eszdman.photoncamera.ScriptC_initial;
@@ -23,12 +24,14 @@ public class Nodes {
     //ScriptC_postproc postproc;
     ScriptIntrinsicBlur blur;
     ScriptIntrinsicConvolve3x3 convolution;
+    ScriptIntrinsicResize resize;
     public Nodes(RenderScript rs){
         this.rs = rs;
         initial = new ScriptC_initial(rs);
         //postproc = new ScriptC_postproc(rs);
         blur = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
         convolution = ScriptIntrinsicConvolve3x3.create(rs, Element.U8_4(rs));
+        resize = ScriptIntrinsicResize.create(rs);
     }
     public void initialParameters(Parameters params, RUtils rUtils){
         initial.set_cfaPattern(params.cfaPattern);
@@ -71,6 +74,17 @@ public class Nodes {
         convolution.setInput(allocIn);
         convolution.setCoefficients(radius);
         convolution.forEach(allocOut);
+        allocOut.copyTo(bitmap);
+        return bitmap;
+    }
+    public Bitmap doResize(Bitmap original, float nsize) {
+        Bitmap bitmap = Bitmap.createBitmap(
+                (int)(original.getWidth()*nsize), (int)(original.getHeight()*nsize),
+                Bitmap.Config.ARGB_8888);
+        Allocation allocIn = Allocation.createFromBitmap(rs, original);
+        Allocation allocOut = Allocation.createFromBitmap(rs, bitmap);
+        resize.setInput(allocIn);
+        resize.forEach_bicubic(allocOut);
         allocOut.copyTo(bitmap);
         return bitmap;
     }

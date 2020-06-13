@@ -65,4 +65,7 @@ public class Gravity {
                 return 270;
         }
     }
+    public int getCameraRotation(){
+       return (Interface.i.camera.mSensorOrientation+Interface.i.gravity.getRotation()+270) % 360;
+    }
 }

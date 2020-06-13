@@ -22,6 +22,10 @@ public class IsoExpoSelector {
             exposuretime *= 2.0;
             iso /= 2;
         }
+        if (exposuretime < ExposureIndex.sec / 40 && iso > 300) {
+            exposuretime *= 2.0;
+            iso /= 2;
+        }
         if (exposuretime < ExposureIndex.sec / 8 && iso > 3000) {
             exposuretime *= 2.0;
             iso /= 2;

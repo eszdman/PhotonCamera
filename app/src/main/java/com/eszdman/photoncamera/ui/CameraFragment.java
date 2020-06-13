@@ -678,14 +678,14 @@ public class CameraFragment extends Fragment
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         boolean swappedDimensions = false;
         switch (displayRotation) {
-            case Surface.ROTATION_0:
-            case Surface.ROTATION_180:
+            case 0:
+            case 180:
                 if (mSensorOrientation == 90 || mSensorOrientation == 270) {
                     swappedDimensions = true;
                 }
                 break;
-            case Surface.ROTATION_90:
-            case Surface.ROTATION_270:
+            case 90:
+            case 270:
                 if (mSensorOrientation == 0 || mSensorOrientation == 180) {
                     swappedDimensions = true;
                 }
@@ -1070,8 +1070,8 @@ public class CameraFragment extends Fragment
             Interface.i.settings.applyRes(captureBuilder);
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
-            int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
+            //int rotation = Interface.i.gravity.getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.i.gravity.getCameraRotation());
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
             lightcycle.setMax(FrameNumberSelector.frameCount);
