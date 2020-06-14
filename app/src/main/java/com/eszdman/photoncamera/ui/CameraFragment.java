@@ -737,6 +737,7 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
+        MainActivity.onCameraInitialization();
     }
 
     @SuppressLint("MissingPermission")

@@ -51,7 +51,7 @@ public class IsoExpoSelector {
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, iso);
     }
 
-    static int getISOHIGH() {
+    public static int getISOHIGH() {
         Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 3200;
         else {
@@ -59,11 +59,25 @@ public class IsoExpoSelector {
         }
     }
 
-    static int getISOLOW() {
+    public static int getISOLOW() {
         Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 100;
         else {
             return (int) ((Range) (key)).getLower();
+        }
+    }
+    public static long getEXPHIGH() {
+        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
+        if (key == null) return ExposureIndex.sec;
+        else {
+            return (long) ((Range) (key)).getUpper();
+        }
+    }
+    public static long getEXPLOW() {
+        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
+        if (key == null) return ExposureIndex.sec/1000;
+        else {
+            return (long) ((Range) (key)).getLower();
         }
     }
 }

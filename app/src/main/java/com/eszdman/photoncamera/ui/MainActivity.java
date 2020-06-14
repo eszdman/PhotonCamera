@@ -44,11 +44,13 @@ public class MainActivity extends AppCompatActivity {
     public void onCameraResume(){
         Interface.i.swipedetection.RunDetection();
     }
-    @RequiresApi(api = Build.VERSION_CODES.O)
     public static void onCameraViewCreated(){
         Interface.i.manual = new Manual();
-        Interface.i.manual.Init();
+
         //Interface.i.swipedetection.RunDetection();
+    }
+    public static void onCameraInitialization(){
+        Interface.i.manual.Init();
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {

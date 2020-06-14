@@ -254,7 +254,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="@id/texture">
+            app:layout_constraintBottom_toBottomOf="@id/texture"
+            tools:visibility="visible">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/iso"
@@ -279,7 +280,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="50dp"
-                    android:layout_marginEnd="50dp"
+                    android:layout_marginEnd="70dp"
                     android:max="64"
                     android:min="1"
                     android:progress="1"
@@ -295,7 +296,7 @@
                     android:id="@+id/isoValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginRight="10dp"
+                    android:layout_marginRight="30dp"
                     android:text="100"
                     android:textColor="@color/White"
                     android:textSize="20sp"
@@ -329,7 +330,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="50dp"
-                    android:layout_marginEnd="50dp"
+                    android:layout_marginEnd="70dp"
                     android:max="64"
                     android:min="1"
                     android:progress="1"
@@ -345,7 +346,7 @@
                     android:id="@+id/expValue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginRight="10dp"
+                    android:layout_marginRight="30dp"
                     android:text="1.0"
                     android:textColor="@color/White"
                     android:textSize="20sp"
