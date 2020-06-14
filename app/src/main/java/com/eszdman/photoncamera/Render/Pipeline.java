@@ -20,8 +20,9 @@ import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class Pipeline {
     private static String TAG = "Pipeline";
-    public static void RunPipeline(ByteBuffer in, Parameters params){
+    public static void RunPipeline(ByteBuffer in){
         RenderScript rs = Interface.i.rs;
+        Parameters params = Interface.i.parameters;
         RUtils rUtils = new RUtils(rs,params.rawSize);
         Bitmap img = Bitmap.createBitmap(params.rawSize.x,params.rawSize.y, Bitmap.Config.ARGB_8888);
         Nodes nodes = Interface.i.nodes;

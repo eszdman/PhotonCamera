@@ -52,7 +52,6 @@ public class ParseExif {
         }
         Log.d(TAG,"rotation:"+rotation);
         Log.d(TAG,"orientation:"+orientation);
-
         assert inter != null;
         inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
@@ -67,6 +66,7 @@ public class ParseExif {
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
+        inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.i.parameters.toString());
         return inter;
     }
 }

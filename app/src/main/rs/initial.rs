@@ -219,148 +219,7 @@ static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
     pRGB.b = inputArray[3];
     return pRGB;
 }
-static float3 linearizeAndGainmapStock(uint x, uint y, ushort whiteLevel,
-        uint cfa) {
-    uint kk = 0;
-    float inputArray[9];
-    uint index = (x & 1) | ((y & 1) << 1);
-    index |= (cfa << 2);
-    for(int i = 0; i<9;i++) inputArray[i] = (square3(i,x*2,y*2));
-    for (uint j = y - 1; j <= y + 1; j++) {
-        for (uint i = x - 1; i <= x + 1; i++) {
-            uint index = (i & 1) | ((j & 1) << 1);  // bits [0,1] are blacklevel offset
-            index |= (cfa << 2);  // bits [2,3] are cfa
-            float bl = 0.f;
-            float g = 1.f;
-            float4 gains = 1.f;
-            if (hasGainMap) {
-                gains = getGain(i, j);
-            }
-            switch (index) {
-                // RGGB
-                case 0:
-                    bl = blacklevel.x;
-                    g = gains.x;
-                    break;
-                case 1:
-                    bl = blacklevel.y;
-                    g = gains.y;
-                    break;
-                case 2:
-                    bl = blacklevel.z;
-                    g = gains.z;
-                    break;
-                case 3:
-                    bl = blacklevel.w;
-                    g = gains.w;
-                    break;
-                // GRBG
-                case 4:
-                    bl = blacklevel.x;
-                    g = gains.y;
-                    break;
-                case 5:
-                    bl = blacklevel.y;
-                    g = gains.x;
-                    break;
-                case 6:
-                    bl = blacklevel.z;
-                    g = gains.w;
-                    break;
-                case 7:
-                    bl = blacklevel.w;
-                    g = gains.z;
-                    break;
-                // GBRG
-                case 8:
-                    bl = blacklevel.x;
-                    g = gains.y;
-                    break;
-                case 9:
-                    bl = blacklevel.y;
-                    g = gains.w;
-                    break;
-                case 10:
-                    bl = blacklevel.z;
-                    g = gains.x;
-                    break;
-                case 11:
-                    bl = blacklevel.w;
-                    g = gains.z;
-                    break;
-                // BGGR
-                case 12:
-                    bl = blacklevel.x;
-                    g = gains.w;
-                    break;
-                case 13:
-                    bl = blacklevel.y;
-                    g = gains.y;
-                    break;
-                case 14:
-                    bl = blacklevel.z;
-                    g = gains.z;
-                    break;
-                case 15:
-                    bl = blacklevel.w;
-                    g = gains.x;
-                    break;
-            }
-            inputArray[kk] = clamp(g * (inputArray[kk] - bl) / (whiteLevel - bl), 0.f, 1.f);
-            kk++;
-        }
-    }
-    float3 pRGB;
-        switch (index) {
-            case 0:
-            case 5:
-            case 10:
-            case 15:  // Red centered
-                      // B G B
-                      // G R G
-                      // B G B
-                pRGB.x = inputArray[4];
-                pRGB.y = (inputArray[1] + inputArray[3] + inputArray[5] + inputArray[7]) / 4.f;
-                pRGB.z = (inputArray[0] + inputArray[2] + inputArray[6] + inputArray[8]) / 4.f;
-                break;
-            case 1:
-            case 4:
-            case 11:
-            case 14: // Green centered w/ horizontally adjacent Red
-                     // G B G
-                     // R G R
-                     // G B G
-                pRGB.x = (inputArray[3] + inputArray[5]) / 2.f;
-                pRGB.y = inputArray[4];
-                pRGB.z = (inputArray[1] + inputArray[7]) / 2.f;
-                break;
-            case 2:
-            case 7:
-            case 8:
-            case 13: // Green centered w/ horizontally adjacent Blue
-                     // G R G
-                     // B G B
-                     // G R G
-                pRGB.x = (inputArray[1] + inputArray[7]) / 2.f;
-                pRGB.y = inputArray[4];
-                pRGB.z = (inputArray[3] + inputArray[5]) / 2.f;
-                break;
-            case 3:
-            case 6:
-            case 9:
-            case 12: // Blue centered
-                     // R G R
-                     // G B G
-                     // R G R
-                pRGB.x = (inputArray[0] + inputArray[2] + inputArray[6] + inputArray[8]) / 4.f;
-                pRGB.y = (inputArray[1] + inputArray[3] + inputArray[5] + inputArray[7]) / 4.f;
-                pRGB.z = inputArray[4];
-                break;
-        }
-        return pRGB;
-}
 const static float3 gMonoMult = {0.299f, 0.587f, 0.114f};
-
 #define BlackWhiteLevel(in)(clamp((in-blacklevel[0])/(((float)whitelevel-(float)blacklevel[0])),0.f,1.f))
 static float3 demosaic(uint x, uint y, uint cfa) {
     uint index = (x & 1) | ((y & 1) << 1);
@@ -472,23 +331,22 @@ void RS_KERNEL color(uint x, uint y) {
 void RS_KERNEL blurdem(uint x, uint y) {
     half3 in[9];
     half3 out;
-    in[0] = geth3(x,y-2,demosaicOut);
+    in[0] = geth3(x-1,y-1,demosaicOut);
     in[1] = geth3(x,y-1,demosaicOut);
-    in[2] = geth3(x,y,demosaicOut);
-    in[3] = geth3(x,y+1,demosaicOut);
-    in[4] = geth3(x,y+2,demosaicOut);
+    in[2] = geth3(x+1,y-1,demosaicOut);
+    in[3] = geth3(x-1,y,demosaicOut);
+    in[4] = geth3(x,y,demosaicOut);
+    in[5] = geth3(x+1,y,demosaicOut);
 
-    in[5] = geth3(x-2,y,demosaicOut);
-    in[6] = geth3(x-1,y,demosaicOut);
-
-    in[7] = geth3(x+1,y,demosaicOut);
-    in[8] = geth3(x+2,y,demosaicOut);
+    in[6] = geth3(x-1,y+1,demosaicOut);
+    in[7] = geth3(x,y+1,demosaicOut);
+    in[8] = geth3(x+1,y+1,demosaicOut);
 
 
-    out +=   (in[0]+in[1]+in[2])/9.f;
-    out +=   (in[3]+in[4]+in[5])/9.f;
-    out +=   (in[6]+in[7]+in[8])/9.f;
-
+    out +=   (in[0]*(-0.1f)+in[1]*1.2f+in[2]*(-0.1f))/5.f;
+    out +=   (in[3]*1.2f+in[4]*0.6f+in[5]*1.2f)/5.f;
+    out +=   (in[6]*(-0.1f)+in[7]*1.2f+in[8]*(-0.1f))/5.f;
+    //out = in[4];
     half3 diff1,diff2;
     seth3(x,y,remosaicIn1,out);
 }
@@ -580,9 +438,8 @@ void RS_KERNEL remosaic(uint x, uint y) {
              //in.b = (br+infl.b);
 
              t1-=t2;
-
              t1 = fabs(t1);
-             if(fabs(t1.r-t1.g-t1.b) > 0.2) {setc4(x,y,remosaicOut,(input[2]));return;}
+             //if(fabs(t1.r-t1.g-t1.b) > 0.2) {setc4(x,y,remosaicOut,(input[2]));return;}
     half mosin = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
     if(fact1 ==0 % fact2 == 0) {
         br = mosin - blurred.g;

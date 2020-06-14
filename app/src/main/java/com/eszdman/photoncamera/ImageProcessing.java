@@ -305,12 +305,15 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.loadFrame");
         processingstep();
         ByteBuffer output = Wrapper.processFrame();
+        Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         if(Interface.i.settings.rawSaver) {
             curimgs.get(0).getPlanes()[0].getBuffer().clear();
             curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
+                dngCreator.setDescription(Interface.i.parameters.toString());
                 dngCreator.writeImage(outB, curimgs.get(0));
                 curimgs.get(0).close();
                 outB.close();
@@ -321,11 +324,11 @@ public class ImageProcessing {
         }
         Log.d(TAG, "Wrapper.processFrame()");
         processingstep();
-        Parameters params = new Parameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
-        params.path = path;
+
+        Interface.i.parameters.path = path;
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
          // Do memory intensive work ...
-         Pipeline.RunPipeline(output,params);
+         Pipeline.RunPipeline(output);
 
     }
     public void Run() {

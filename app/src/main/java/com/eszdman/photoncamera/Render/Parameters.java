@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.Render;
 
+import android.annotation.SuppressLint;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
@@ -8,7 +9,11 @@ import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
 import android.util.Rational;
 
+import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Settings;
+
+import java.util.Arrays;
 
 public class Parameters {
     public byte cfaPattern;
@@ -25,7 +30,8 @@ public class Parameters {
     float[] sensorToProPhoto = new float[9];
     float tonemapStrength = 1.4f;
     float[] customTonemap;
-    public Parameters(CaptureResult result, CameraCharacteristics characteristics, Point size){
+
+    public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size){
         rawSize = size;
         for(int i =0; i<4; i++) blacklevel[i] = 64;
         tonemapStrength = (float)Interface.i.settings.compressor;
@@ -108,5 +114,23 @@ public class Parameters {
         };
         if(wpoint != null)for(int i =0; i<3;i++) whitepoint[i] = wpoint[i].floatValue();
 
+    }
+
+    @Override
+    public String toString() {
+        return "Parameters:" +
+                " rawSize=" + rawSize +
+                ", hasGainMap=" + hasGainMap +
+                ", tonemapStrength=" + FltFormat(tonemapStrength) +
+                ", framecount="+ FrameNumberSelector.frameCount +
+                ", CameraID="+ Interface.i.settings.mCameraID+
+                ", Satur="+ FltFormat(Interface.i.settings.saturation)+
+                ", Gain="+ FltFormat(Interface.i.settings.gain)+
+                ", Sharpness="+ FltFormat(Interface.i.settings.sharpness)+
+                '}';
+    }
+    @SuppressLint("DefaultLocale")
+    private String FltFormat(Object in){
+        return String.format("%.2f", in);
     }
 }

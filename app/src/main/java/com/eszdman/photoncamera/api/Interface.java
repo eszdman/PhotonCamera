@@ -8,6 +8,7 @@ import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.Control.Swipe;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Nodes;
+import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
@@ -29,6 +30,7 @@ public class Interface {
     public Manual manual;
     public RenderScript rs;
     public Nodes nodes;
+    public Parameters parameters;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
@@ -40,6 +42,7 @@ public class Interface {
         swipedetection = new Swipe();
         rs = RenderScript.create(Interface.i.mainActivity,RenderScript.ContextType.DEBUG);
         nodes = new Nodes(rs);
+        parameters = new Parameters();
     }
     // Get a MemoryInfo object for the device's current memory status.
     public ActivityManager.MemoryInfo getAvailableMemory() {
