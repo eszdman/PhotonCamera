@@ -11,6 +11,7 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class CameraReflectionApi {
@@ -54,6 +55,23 @@ public class CameraReflectionApi {
         Method[] methods = in.getClass().getDeclaredMethods();
         int cnt = 0;
         for(Method m : methods) {Log.d(TAG,"["+cnt+"]"+m.toString());cnt++;}
+    }
+    public static void native_set(String key, String val){
+        try {
+            Class SystemProperties = Class.forName("android.os.SystemProperties");
+            Method set = RestrictionBypass.getDeclaredMethod(SystemProperties,"set",String.class,String.class);
+            set.setAccessible(true);
+            set.invoke(null,key,val);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+
     }
     public static void setAuxOn(){
         Log.d(TAG,"Setting Aux ON");

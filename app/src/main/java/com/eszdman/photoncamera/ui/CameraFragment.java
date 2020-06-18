@@ -72,6 +72,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
@@ -601,18 +602,41 @@ public class CameraFragment extends Fragment
         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
             return sizes.get(s);
         else {
-            Size target = sizes.get(s - 1);
-            Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-            Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            double k = (double) (target.getHeight()) / act.bottom;
-            mul(pre, k);
-            mul(act, k);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
-            return target;
+            if(sizes.size()>1) {
+                Size target = sizes.get(s - 1);
+                Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                double k = (double) (target.getHeight()) / act.bottom;
+                mul(pre, k);
+                mul(act, k);
+                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+                return target;
+            }
         }
+        return null;
     }
-
+     private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
+         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
+         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
+         int s = sizes.size() - 1;
+         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
+             return sizes.get(s);
+         else {
+             if(sizes.size()> 1 ) {
+                 Size target = sizes.get(s - 1);
+                 Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                 Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                 double k = (double) (target.getHeight()) / act.bottom;
+                 mul(pre, k);
+                 mul(act, k);
+                 CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+                 CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+                 return target;
+             }
+         }
+         return mPreviewSize;
+     }
     /**
      * Sets up member variables related to camera.
      *
@@ -626,6 +650,8 @@ public class CameraFragment extends Fragment
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager2 manager2 = new CameraManager2(manager);
+         manager2.CameraArr(manager);
         try {
                 CameraCharacteristics characteristics
                         = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
@@ -662,7 +688,8 @@ public class CameraFragment extends Fragment
         if (map == null) {
             return;
         }
-        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
+        Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
+        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, 3);
         mImageReader.setOnImageAvailableListener(
@@ -791,7 +818,8 @@ public class CameraFragment extends Fragment
                 else sizes[i] = cur;
             }
         }*/
-        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
+        Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
+        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         //largest = target;
         mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, /*maxImages*/3);

@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
@@ -166,7 +167,7 @@ public class Settings {
         captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
     }
-
+    @SuppressLint("NewApi")
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
         //captureBuilder.set(CONTROL_ENABLE_ZSL,true);
@@ -175,6 +176,9 @@ public class Settings {
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
+       final CaptureRequest.Key<Boolean> EISV2 = new CaptureRequest.Key<Boolean>("com.qti.node.eisv2", boolean.class);
+        //captureBuilder.set(EISV2, true);
+        CameraReflectionApi.native_set("com.qti.node.eisv2","1");
         //Log.d(TAG,"Points:"+captureBuilder.get(TONEMAP_PRESET_CURVE));
     }
 

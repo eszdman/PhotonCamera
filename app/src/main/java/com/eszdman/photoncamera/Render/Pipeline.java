@@ -48,18 +48,18 @@ public class Pipeline {
         nodes.initial.forEach_color(def);
         input.destroy();
         in.clear();
-        imgout.copyTo(img);
+        /*imgout.copyTo(img);
         img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
         img = nodes.doSharpen(img,nodes.sharp1);
-        img = nodes.doResize(img,2.f);
+        img = nodes.doResize(img,2.f);*/
         nodes.endT("Initial");
         nodes.startT();
-        //nodes.initial.forEach_blurdem(def);
-        //nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*3.7f);
-        //nodes.initial.forEach_demosaicmask(rUtils.Range(new Point(4,4), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
-        //remosaicOut.copyTo(remosimg);
+        nodes.initial.forEach_blurdem(def);
+        nodes.initial.set_remosaicSharp((float)Interface.i.settings.sharpness*4.9f);
+        nodes.initial.forEach_remosaic(rUtils.Range(new Point(4,4), new Point(params.rawSize.x*2 - 4,params.rawSize.y*2 - 4)));
+        remosaicOut.copyTo(remosimg);
         nodes.endT("Remosaic");
-
+        img = remosimg;
         //img = Bitmap.createBitmap(img,0,0,params.rawSize.x - params.rawSize.x%4,params.rawSize.y - params.rawSize.y%4);
         try {
             outimg.createNewFile();

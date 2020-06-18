@@ -15,6 +15,7 @@ import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Wrapper;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
 
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         //Interface.i.swipedetection.RunDetection();
     }
     public static void onCameraInitialization(){
+        Camera2ApiAutoFix.Init();
         Interface.i.manual.Init();
     }
     @Override

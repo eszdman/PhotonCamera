@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraManager;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -33,11 +34,29 @@ public class CameraManager2 {
     }
     Object[] camsArr(Object icameraService) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         CameraReflectionApi.PrintMethods(icameraService);
-        Object[] cams = (Object[]) icameraService.getClass().getDeclaredMethods()[0].invoke(icameraService,manager);
+        Method m = icameraService.getClass().getDeclaredMethods()[0];
+        m.setAccessible(true);
+        Log.d(TAG,"Manager:"+manager);
+        Object[] cams = (Object[])m.invoke(icameraService,manager);
         for(int i =0; i<cams.length;i++){
             Log.d(TAG,"Camera i"+i+":"+cams[i]);
         }
         return cams;
+    }
+    @SuppressLint("BlockedPrivateApi")
+    public String[] CameraArr(CameraManager manag) {
+        try {
+            Method m = manag.getClass().getDeclaredMethod("isHiddenPhysicalCamera", String.class);
+            m.setAccessible(true);
+            int cameraid = 0;
+            for(int i =0; i<1000; i++) {
+                boolean phys = (boolean) m.invoke(null, String.valueOf(i));
+                Log.d(TAG, "Physical CameraID:" + i + " :" + phys);
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     public CameraManager2(CameraManager manag) {
         //manager = manag;
