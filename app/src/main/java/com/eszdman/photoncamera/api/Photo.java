@@ -18,20 +18,23 @@ import java.util.Comparator;
 public class Photo {
     public static Photo instance;
     private static Handler galleryHandler;
-
-    @SuppressLint("HandlerLeak")
+    static class GalleryHandler extends Handler {
+        GalleryHandler() {
+        }
+        @Override
+        public void handleMessage(Message msg)
+        {
+            Uri uri = (Uri) msg.obj;
+            try {
+                CameraFragment.context.img.setImageURI(uri);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
     public Photo() {
         instance = this;
-        galleryHandler = new Handler() {
-            public void handleMessage(Message msg) {
-                Uri uri = (Uri) msg.obj;
-                try {
-                    CameraFragment.context.img.setImageURI(uri);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        };
+        galleryHandler = new GalleryHandler();
     }
 
     //Intent imageIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);

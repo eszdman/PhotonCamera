@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.api;
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 
 import com.eszdman.photoncamera.ui.MainActivity;
@@ -17,6 +18,8 @@ import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALIT
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_PRESET_CURVE_SRGB;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
@@ -26,8 +29,10 @@ import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_GAMMA;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_PRESET_CURVE;
-
 public class Settings {
     private String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
@@ -50,6 +55,7 @@ public class Settings {
     public String lastPicture = null;
     public boolean ManualMode = false;
     public int cfaPatern = 0;
+    public boolean remosaic = false;
     public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -95,7 +101,9 @@ public class Settings {
         cfaPatern = get(cfaPatern);
         Log.d(TAG, "Loaded CFA:" + cfaPatern);
         rawSaver = get(rawSaver);
-        Log.d(TAG, "Loaded rawSaver:" + cfaPatern);
+        Log.d(TAG, "Loaded rawSaver:" + rawSaver);
+        remosaic = get(remosaic);
+        Log.d(TAG, "Loaded remosaic:" + remosaic);
         mCameraID = get(mCameraID);
         Log.d(TAG, "Loaded mCameraID:" + mCameraID);
         count = 0;
@@ -139,10 +147,13 @@ public class Settings {
         put(hdrx);
         Log.d(TAG, "Saved CFA:" + cfaPatern);
         put(cfaPatern);
-        Log.d(TAG, "Saved RawSaver:" + cfaPatern);
+        Log.d(TAG, "Saved RawSaver:" + rawSaver);
         put(rawSaver);
+        Log.d(TAG, "Saved remosaic:" + remosaic);
+        put(remosaic);
         Log.d(TAG, "Saved mCameraID:" + mCameraID);
         put(mCameraID);
+
         sharedPreferencesEditor.apply();
         count = 0;
     }
@@ -167,7 +178,7 @@ public class Settings {
         captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
     }
-    @SuppressLint("NewApi")
+    @SuppressLint("InlinedApi")
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
         //captureBuilder.set(CONTROL_ENABLE_ZSL,true);
@@ -176,9 +187,22 @@ public class Settings {
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
-       final CaptureRequest.Key<Boolean> EISV2 = new CaptureRequest.Key<Boolean>("com.qti.node.eisv2", boolean.class);
+        captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
+        float rgb[] = new float[64];
+        for(int i =0; i<64; i+=2){
+            float x = ((float)i)/64.f;
+            rgb[i] = x;
+            float output = 2.8114f*x+-3.5701f*x*x+1.6807f*x*x*x;
+            output = Math.max(output,0.f);
+            output = Math.min(output,1.f);
+            //Log.d(TAG,"Curve:"+output);
+            rgb[i+1] = output;
+        }
+        TonemapCurve tonemapCurve = new TonemapCurve(rgb,rgb,rgb);
+        captureBuilder.set(TONEMAP_CURVE,tonemapCurve);
+        //final CaptureRequest.Key<Boolean> EISV2 = new CaptureRequest.Key<Boolean>("com.qti.node.eisv2", boolean.class);
         //captureBuilder.set(EISV2, true);
-        CameraReflectionApi.native_set("com.qti.node.eisv2","1");
+        //CameraReflectionApi.native_set("com.qti.node.eisv2","1");
         //Log.d(TAG,"Points:"+captureBuilder.get(TONEMAP_PRESET_CURVE));
     }
 

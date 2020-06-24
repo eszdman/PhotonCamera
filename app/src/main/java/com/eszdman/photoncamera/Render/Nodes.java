@@ -11,7 +11,6 @@ import android.renderscript.ScriptC;
 import android.renderscript.ScriptIntrinsicBlur;
 import android.renderscript.ScriptIntrinsicConvolve3x3;
 import android.renderscript.ScriptIntrinsicResize;
-import android.renderscript.Type;
 import android.util.Log;
 import com.eszdman.photoncamera.ScriptC_initial;
 import com.eszdman.photoncamera.api.Interface;
@@ -40,11 +39,9 @@ public class Nodes {
         initial.set_blacklevel(new Float4(params.blacklevel[0],params.blacklevel[1],params.blacklevel[2],params.blacklevel[3]));
         initial.set_whitelevel(params.whitelevel);
         initial.set_whitepoint(new Float3(params.whitepoint[0],params.whitepoint[1],params.whitepoint[2]));
-        initial.set_ccm(params.ccm);
         initial.set_hasGainMap(params.hasGainMap);
         initial.set_gainMapWidth(params.mapsize.x);
         initial.set_gainMapHeight(params.mapsize.y);
-        initial.set_gainMap(rUtils.allocateIO(params.gainmap, Type.createXY(rs,Element.F32_4(rs),params.mapsize.x,params.mapsize.y)));
         initial.set_saturationFactor((float)Interface.i.settings.saturation);
         initial.set_neutralPoint(new Float3(params.whitepoint[0],params.whitepoint[1],params.whitepoint[2]));
         initial.set_sensorToIntermediate(new Matrix3f(Converter.transpose(params.sensorToProPhoto)));
@@ -75,6 +72,8 @@ public class Nodes {
         convolution.setCoefficients(radius);
         convolution.forEach(allocOut);
         allocOut.copyTo(bitmap);
+        allocIn.destroy();
+        allocOut.destroy();
         return bitmap;
     }
     public Bitmap doResize(Bitmap original, float nsize) {
@@ -86,6 +85,8 @@ public class Nodes {
         resize.setInput(allocIn);
         resize.forEach_bicubic(allocOut);
         allocOut.copyTo(bitmap);
+        allocIn.destroy();
+        allocOut.destroy();
         return bitmap;
     }
     public Allocation doSharpentest(Allocation original, float[] radius) {

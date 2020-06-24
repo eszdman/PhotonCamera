@@ -72,10 +72,9 @@ public class ImageSaver implements Runnable {
     }
     private static void end(){
        imageBuffer.clear();
-        CameraFragment.context.shot.setActivated(true);
-        CameraFragment.context.shot.setClickable(true);
+        Interface.i.camera.shot.setActivated(true);
+        Interface.i.camera.shot.setClickable(true);
     }
-    @SuppressLint("NewApi")
     @Override
     public void run() {
         int format = mImage.getFormat();
@@ -88,7 +87,7 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     outimg =  new File(curDir(),curName()+".jpg");
-                    if(bcnt == FrameNumberSelector.frameCount && FrameNumberSelector.frameCount != 1) {
+                    if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
                         output = new FileOutputStream(outimg);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
@@ -110,8 +109,12 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        CameraFragment.context.shot.setActivated(true);
-                        CameraFragment.context.shot.setClickable(true);
+                        Interface.i.camera.shot.setActivated(true);
+                        Interface.i.camera.shot.setClickable(true);
+                    }
+                    if(imageBuffer.size() > Interface.i.settings.frameCount) {
+                        imageBuffer.get(imageBuffer.size()-1).close();
+                        imageBuffer.remove(imageBuffer.size()-1);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -152,8 +155,12 @@ public class ImageSaver implements Runnable {
                     if (Interface.i.settings.frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        CameraFragment.context.shot.setActivated(true);
-                        CameraFragment.context.shot.setClickable(true);
+                        Interface.i.camera.shot.setActivated(true);
+                        Interface.i.camera.shot.setClickable(true);
+                    }
+                    if(imageBuffer.size() > Interface.i.settings.frameCount) {
+                        imageBuffer.get(imageBuffer.size()-1).close();
+                        imageBuffer.remove(imageBuffer.size()-1);
                     }
                     bcnt++;
                 } catch (IOException | InterruptedException e) {
@@ -174,9 +181,9 @@ public class ImageSaver implements Runnable {
                     //output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
                     imageBuffer.add(mImage);
-                    if(imageBuffer.size() > Interface.i.settings.frameCount){
-                        imageBuffer.get(imageBuffer.size()-1).close();
-                    } else
+                    //if(imageBuffer.size() > Interface.i.settings.frameCount){
+                    //    imageBuffer.get(imageBuffer.size()-1).close();
+                    //} else
                     if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
@@ -185,11 +192,8 @@ public class ImageSaver implements Runnable {
                         done(processing);
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,outimg.getAbsolutePath());
                         if(!Interface.i.settings.rawSaver) inter.saveAttributes();
-                        //dngCreator.writeImage(output, mImage);
-                        CameraFragment.context.shot.setActivated(true);
-                        Thread.sleep(15);
+                        Interface.i.camera.shot.setActivated(true);
                         Photo.instance.SaveImg(outimg);
-                        Thread.sleep(15);
                         end();
                     }
                     if(Interface.i.settings.frameCount == 1) {
@@ -202,14 +206,14 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        CameraFragment.context.shot.setActivated(true);
-                        CameraFragment.context.shot.setClickable(true);
+                        Interface.i.camera.shot.setActivated(true);
+                        Interface.i.camera.shot.setClickable(true);
                     }
                     if(imageBuffer.size() > Interface.i.settings.frameCount) {
                         imageBuffer.get(imageBuffer.size()-1).close();
                         imageBuffer.remove(imageBuffer.size()-1);
                     }
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
                 break;

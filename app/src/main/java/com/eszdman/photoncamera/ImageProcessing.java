@@ -12,6 +12,10 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.media.Image;
 import android.util.Log;
 import android.util.Rational;
+import android.view.animation.ScaleAnimation;
+
+import androidx.exifinterface.media.ExifInterface;
+
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
@@ -50,6 +54,7 @@ import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_A
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GBRG;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_GRBG;
 import static android.hardware.camera2.CameraMetadata.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT_RGGB;
+import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
 import static org.opencv.core.Core.gemm;
@@ -164,7 +169,7 @@ public class ImageProcessing {
             int progress = (CameraFragment.loadingcycle.getProgress() + 1) % (CameraFragment.loadingcycle.getMax() + 1);
             progress = Math.max(1, progress);
             CameraFragment.loadingcycle.setProgress(progress);
-        } catch (Exception e) {
+        } catch (Exception e){
             e.printStackTrace();
         }
     }
@@ -284,36 +289,34 @@ public class ImageProcessing {
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
         Wrapper.init(width, height, curimgs.size());
         Log.d(TAG, "Wrapper.init");
-        processingstep();
-        processingstep();
-        int bl = 0;
-        double contr = 0.8 + 2.5 / (1 + Interface.i.settings.contrastMpy * 20);
-        double compr = Interface.i.settings.compressor;
-        compr = Math.max(1, compr);
-        Log.d(TAG, "Wrapper.setBWLWB");
-        processingstep();
-        int c = 0;
-        Log.d(TAG, "Wrapper.setCCM");
-        processingstep();
-        LensShadingMap lenss = res.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
-        Log.d(TAG, "LensShading Row:" + lenss.getRowCount());
-        Log.d(TAG, "LensShading Col:" + lenss.getColumnCount());
-        Log.d(TAG, "LensShading Count:" + lenss.getGainFactorCount());
-        //Mat test2 = load_rawsensor(curimgs.get(0));
-        //Imgcodecs.imwrite(path+"_t0.jpg", test2, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         for (int i = 0; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Log.d(TAG, "Wrapper.loadFrame");
-        processingstep();
         ByteBuffer output = Wrapper.processFrame();
+        Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         if(Interface.i.settings.rawSaver) {
             curimgs.get(0).getPlanes()[0].getBuffer().clear();
             curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
                 dngCreator.setDescription(Interface.i.parameters.toString());
+                int rotation = Interface.i.gravity.getCameraRotation();
+                Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
+                Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
+                int orientation = ORIENTATION_NORMAL;
+                switch (rotation) {
+                    case 90:
+                        orientation = ExifInterface.ORIENTATION_ROTATE_90;
+                        break;
+                    case 180:
+                        orientation = ExifInterface.ORIENTATION_ROTATE_180;
+                        break;
+                    case 270:
+                        orientation = ExifInterface.ORIENTATION_ROTATE_270;
+                        break;
+                }
+                dngCreator.setOrientation(orientation);
                 dngCreator.writeImage(outB, curimgs.get(0));
                 curimgs.get(0).close();
                 outB.close();
@@ -323,13 +326,9 @@ public class ImageProcessing {
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        processingstep();
-
         Interface.i.parameters.path = path;
         for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
-         // Do memory intensive work ...
          Pipeline.RunPipeline(output);
-
     }
     public void Run() {
         Image.Plane plane = curimgs.get(0).getPlanes()[0];

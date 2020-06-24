@@ -7,20 +7,17 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
+import android.util.Log;
 import android.util.Rational;
-
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.api.Settings;
-
-import java.util.Arrays;
 
 public class Parameters {
+    private String TAG = "Parameters";
     public byte cfaPattern;
     public Point rawSize;
     public float[] blacklevel = new float[4];
-    public float[] whitepoint = new float[3];
-    public float[] ccm = new float[9];
+    public float[] whitepoint = new float[3];;
     public short whitelevel = 1023;
     boolean hasGainMap;
     Point mapsize;
@@ -45,12 +42,6 @@ public class Parameters {
         if(ptr !=null) cfaPattern = (byte)(int)ptr;
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if(wlevel != null) whitelevel = (short)((int)wlevel);
-        ccm[0] = 1.776f;ccm[1] = -0.837f;ccm[2] = 0.071f;
-        ccm[3] = -0.163f;ccm[4] = 1.396f;ccm[5] = -0.242f;
-        ccm[6] = 0.0331f;ccm[7] = -0.526f;ccm[8] = 1.492f;
-        float normalize = 0.f;
-        for(float f : ccm) normalize+=f;
-        normalize/=9;
         hasGainMap =false;
         mapsize = new Point(1,1);
         LensShadingMap lensmap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
@@ -59,6 +50,16 @@ public class Parameters {
             mapsize = new Point(lensmap.getColumnCount(),lensmap.getRowCount());
             lensmap.copyGainFactors(gainmap,0);
             hasGainMap = true;
+            if((gainmap[(gainmap.length/8) - (gainmap.length/8)%4]) == 1.0 &&
+               (gainmap[(gainmap.length/2) - (gainmap.length/2)%4]) == 1.0 &&
+               (gainmap[(gainmap.length/2 + gainmap.length/8) - (gainmap.length/2 + gainmap.length/8)%4]) == 1.0) {
+                Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
+                gainmap = new float[Const.gainmap.length];
+                for(int i = 0; i<Const.gainmap.length; i++){
+                    gainmap[i] = (float)Const.gainmap[i];
+                }
+                mapsize = Const.mapsize;
+            }
         }
         Rational[] neutral = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         ColorSpaceTransform calibr1 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
@@ -88,8 +89,9 @@ public class Parameters {
         float[] sensorToXYZ = new float[9];
         int ref1 = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT1);
         int ref2;
-        if (characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT2) != null) {
-            ref2 = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT2);
+        Object ref2obj = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT2);
+        if (ref2obj != null) {
+            ref2 = (byte)ref2obj;
         }
         else {
             ref2 = ref1;
@@ -104,7 +106,6 @@ public class Parameters {
 
 
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        //for(int i =0; i<ccm.length;i++) ccm[i]/=normalize;
         Rational[] wpoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         customTonemap = new float[] {
                 -2f + 2f * tonemapStrength,
@@ -118,6 +119,9 @@ public class Parameters {
 
     @Override
     public String toString() {
+        String gainmapstr = ", GainMapSamples=NoGainMap";
+        if(hasGainMap) gainmapstr = ", GainMapSamples=("+ FltFormat(gainmap[(gainmap.length/8) - (gainmap.length/8)%4])+" "
+                + FltFormat(gainmap[(gainmap.length/2) - (gainmap.length/2)%4])+" "+ FltFormat(gainmap[(gainmap.length/2 + gainmap.length/8) - (gainmap.length/2 + gainmap.length/8)%4])+")";
         return "Parameters:" +
                 " rawSize=" + rawSize +
                 ", hasGainMap=" + hasGainMap +
@@ -127,7 +131,8 @@ public class Parameters {
                 ", Satur="+ FltFormat(Interface.i.settings.saturation)+
                 ", Gain="+ FltFormat(Interface.i.settings.gain)+
                 ", Sharpness="+ FltFormat(Interface.i.settings.sharpness)+
-                '}';
+                gainmapstr
+                ;
     }
     @SuppressLint("DefaultLocale")
     private String FltFormat(Object in){

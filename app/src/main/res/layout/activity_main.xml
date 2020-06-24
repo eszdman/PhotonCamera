@@ -229,7 +229,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.42000002"
+            app:layout_constraintVertical_bias="0.44"
             tools:visibility="gone">
 
             <ProgressBar
@@ -256,7 +256,6 @@
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/texture"
             tools:visibility="visible">
-
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/iso"
                 android:layout_width="match_parent"
@@ -273,7 +272,8 @@
                     android:textColor="@color/White"
                     android:textSize="25sp"
                     android:textStyle="bold"
-                    app:layout_constraintStart_toStartOf="parent" />
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <SeekBar
                     android:id="@+id/isoSlider"

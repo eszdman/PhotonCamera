@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GayCam</string>
     <string name="request_permission">Denna app behöver rättigheter för att använda Kameran.</string>
     <string name="camera_error">Denna telefon stödjer ej Camera2 API.</string>
     <string name="frame_count">Antal Bilder:</string>

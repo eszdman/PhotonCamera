@@ -32,6 +32,7 @@ public class SettingsActivity extends AppCompatActivity {
     Switch gridOnOff;
     Switch roundoption;
     Switch rawSaving;
+    Switch remosaic;
 
     SeekBar frameCount;
     SeekBar lumenCount;
@@ -241,6 +242,8 @@ public class SettingsActivity extends AppCompatActivity {
         setv(gridOnOff, Interface.i.settings.grid);
         setv(roundoption, Interface.i.settings.roundedge);
         setv(rawSaving,Interface.i.settings.rawSaver);
+        setv(remosaic,Interface.i.settings.remosaic);
+
         setv(sharp, Interface.i.settings.sharpness);
         setv(contrastconst, Interface.i.settings.contrastConst);
         setv(contrastmul, Interface.i.settings.contrastMpy);
@@ -254,6 +257,7 @@ public class SettingsActivity extends AppCompatActivity {
         gridOnOff = getView(R.id.setting_grid);
         roundoption = getView(R.id.setting_roundedge);
         rawSaving = getView(R.id.setting_raw);
+        remosaic = getView(R.id.setting_remosaic);
         turnNR = getView(R.id.setting_turnNR);
         disablealign = getView(R.id.setting_disablealign);
         framestext = getView(R.id.setting_framecounter);
@@ -286,6 +290,7 @@ public class SettingsActivity extends AppCompatActivity {
         Interface.i.settings.grid = gridOnOff.isChecked();
         Interface.i.settings.roundedge = roundoption.isChecked();
         Interface.i.settings.rawSaver = rawSaving.isChecked();
+        Interface.i.settings.remosaic = remosaic.isChecked();
         save();
     }
 

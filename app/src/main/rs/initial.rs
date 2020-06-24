@@ -9,7 +9,6 @@ uint rawHeight; // Height of raw buffer
 char cfaPattern; // The Color Filter Arrangement pattern used
 float4 blacklevel;
 float3 whitepoint;
-float ccm[9];
 float gain;
 ushort whitelevel;
 uint gainMapWidth;  // The width of the gain map
@@ -37,19 +36,28 @@ rs_allocation iobuffer;
 #define RS_KERNEL __attribute__((kernel))
 #define gets3(x,y, alloc)(rsGetElementAt_ushort3(alloc,x,y))
 #define sets3(x,y, alloc,in)(rsSetElementAt_ushort3(alloc,in,x,y))
-#define gets(x,y, alloc)(rsGetElementAt_ushort(alloc,x,y))
+
+#define gets2(x,y, alloc)(rsGetElementAt_ushort(alloc,x,y))
+#define gets(x,y, alloc)(*((ushort*)rsGetElementAt(alloc,x,y)))
+
 #define getc(x,y, alloc)(rsGetElementAt_uchar(alloc,x,y))
 #define getc4(x,y, alloc)(rsGetElementAt_uchar4(alloc,x,y))
+#define getc3(x,y, alloc)(rsGetElementAt_uchar3(alloc,x,y))
 #define setc4(x,y, alloc,in)(rsSetElementAt_uchar4(alloc,in,x,y))
 #define sets(x,y, alloc,in)(rsSetElementAt_ushort(alloc,in,x,y))
 #define setf3(x,y, alloc,in)(rsSetElementAt_float3(alloc,in,x,y))
 #define getf3(x,y, alloc)(rsGetElementAt_float3(alloc,x,y))
+#define getf4(x,y, alloc)(rsGetElementAt_float4(alloc,x,y))
 #define seth3(x,y, alloc,in)(rsSetElementAt_half3(alloc,in,x,y))
 #define geth3(x,y, alloc)(rsGetElementAt_half3(alloc,x,y))
+
 #define getraw(x,y)(gets(x,y,inputRawBuffer))
+
+//rsGetElementAt
 #define square(size,i,in,x,y)(in((x) + (i%size),(y) + i/size))
 #define square3(i,x,y)(getraw((x)-1 + (i%3),(y)-1 + i/3))
 #define square2(i,x,y)(getraw((x) + (i%2),(y) + i/2))
+
 
 static float4 getGain(uint x, uint y) {
     float interpX = (((float) x) / rawWidth) * gainMapWidth;
@@ -62,6 +70,12 @@ static float4 getGain(uint x, uint y) {
     float4 tr = *((float4 *) rsGetElementAt(gainMap, gXNext, gY));
     float4 bl = *((float4 *) rsGetElementAt(gainMap, gX, gYNext));
     float4 br = *((float4 *) rsGetElementAt(gainMap, gXNext, gYNext));
+
+    //float4 tl = rsGetElementAt_float4(gainMap, gX, gY);
+    //float4 tr = rsGetElementAt_float4(gainMap, gXNext, gY);
+    //float4 bl = rsGetElementAt_float4(gainMap, gX, gYNext);
+    //float4 br = rsGetElementAt_float4(gainMap, gXNext, gYNext);
+
     float fracX = interpX - (float) gX;
     float fracY = interpY - (float) gY;
     float invFracX = 1.f - fracX;
@@ -70,15 +84,15 @@ static float4 getGain(uint x, uint y) {
             bl * invFracX * fracY + br * fracX * fracY;
 }
 // Apply gamma correction using sRGB gamma curve
-//#define x1 2.8114
-//#define x2 -3.5701
-//#define x3 1.6807
+#define x1 2.8114
+#define x2 -3.5701
+#define x3 1.6807
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
-#define x1 2.8586f
-#define x2 -3.1643f
-#define x3 1.2899f
+//#define x1 2.8586f
+//#define x2 -3.1643f
+//#define x3 1.2899f
 static float gammaEncode2(float x) {
     return (x <= 0.0031308f) ? x * 12.92f : 1.055f * pow((float)x, (1.f/gain)) - 0.055f;
 }
@@ -189,15 +203,15 @@ static float3 applyColorspace(float3 pRGB) {
 }
 // Blacklevel subtract, and normalize each pixel in the outputArray, and apply the
 // gain map.
-static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
-        uint cfa) {
-    uint kk = 0;
+static float3 linearizeAndGainmap(uint x, uint y) {
+    char cfa = cfaPattern;
+    float4 blevel = blacklevel;
     float inputArray[4];
     float3 pRGB;
     for(int i = 0; i<4;i++) inputArray[i] = (square2(i,((x)*2 + cfa%2),((y)*2 + cfa/2)));
-    pRGB.r = ((inputArray[0] - blacklevel[0])/(whitelevel - blacklevel[0]));
-    pRGB.g = ((inputArray[1] - blacklevel[0])/(whitelevel - blacklevel[0])+(inputArray[2] - blacklevel[0])/(whitelevel - blacklevel[0]))/2.f;
-    pRGB.b = (inputArray[3] - blacklevel[0])/(whitelevel - blacklevel[0]);
+    pRGB.r = ((inputArray[0] - blevel[0])/(whitelevel - blevel[0]));
+    pRGB.g = ((inputArray[1] - blevel[0])/(whitelevel - blevel[0])+(inputArray[2] - blevel[0])/(whitelevel - blevel[0]))/2.f;
+    pRGB.b = (inputArray[3] - blevel[0])/(whitelevel - blevel[0]);
     half3 dem;
     dem.r = (half)pRGB.r;
     dem.g = (half)pRGB.g;
@@ -210,81 +224,19 @@ static float3 linearizeAndGainmap(uint x, uint y, ushort whiteLevel,
             if (hasGainMap) {
                 gains = getGain(x + i%2 + cfa%2, y + i/2 + cfa/2);
             }
-            inputArray[i] = clamp(gains[i] * (inputArray[i] - blacklevel[i]) / (whiteLevel - blacklevel[i]), 0.f, 1.f);
-            kk++;
+            inputArray[i] = clamp(gains[i] * (inputArray[i] - blevel[i]) / (whitelevel - blevel[i]), 0.f, 1.f);
+            /*if(i == 0){
+            pRGB.r=clamp(gains[i] * ((square2(i,((x)*2 + cfa%2),((y)*2 + cfa/2))) - blevel[i]) / (whitelevel - blevel[i]), 0.f, 1.f);
+            } else if(i == 3){
+            pRGB.b=clamp(gains[i] * ((square2(i,((x)*2 + cfa%2),((y)*2 + cfa/2))) - blevel[i]) / (whitelevel - blevel[i]), 0.f, 1.f);
+            } else pRGB.g+=clamp(gains[i] * ((square2(i,((x)*2 + cfa%2),((y)*2 + cfa/2))) - blevel[i]) / (whitelevel - blevel[i]), 0.f, 1.f)/2.;*/
      }
-
     pRGB.r = inputArray[0];
     pRGB.g = (inputArray[1]+inputArray[2])/2.f;
     pRGB.b = inputArray[3];
     return pRGB;
 }
 const static float3 gMonoMult = {0.299f, 0.587f, 0.114f};
-#define BlackWhiteLevel(in)(clamp((in-blacklevel[0])/(((float)whitelevel-(float)blacklevel[0])),0.f,1.f))
-static float3 demosaic(uint x, uint y, uint cfa) {
-    uint index = (x & 1) | ((y & 1) << 1);
-    index |= (cfa << 2);
-    float inputArray[9];
-    for(int i = 0; i<9;i++) inputArray[i] = BlackWhiteLevel(square3(i,x,y));
-    //locality = gets3(x/4,yin-1,inputRawBuffer);inputArray[0] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
-    //locality = gets3(x/4,yin,inputRawBuffer);inputArray[1] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
-    //locality = gets3(x/4,yin+1,inputRawBuffer);inputArray[2] = (float3)((float)locality.x,(float)locality.y,(float)locality.z);
-    float3 pRGB;
-    switch (index) {
-        case 0:
-        case 5:
-        case 10:
-        case 15:  // Red centered
-                  // B G B
-                  // G R G
-                  // B G B
-            pRGB.x = inputArray[4];
-            pRGB.y = (inputArray[1] + inputArray[3] + inputArray[5] + inputArray[7]) / 4.f;
-            pRGB.z = (inputArray[0] + inputArray[2] + inputArray[6] + inputArray[8]) / 4.f;
-            break;
-        case 1:
-        case 4:
-        case 11:
-        case 14: // Green centered w/ horizontally adjacent Red
-                 // G B G
-                 // R G R
-                 // G B G
-            pRGB.x = (inputArray[3] + inputArray[5]) / 2.f;
-            pRGB.y = inputArray[4];
-            pRGB.z = (inputArray[1] + inputArray[7]) / 2.f;
-            break;
-        case 2:
-        case 7:
-        case 8:
-        case 13: // Green centered w/ horizontally adjacent Blue
-                 // G R G
-                 // B G B
-                 // G R G
-            pRGB.x = (inputArray[1] + inputArray[7]) / 2.f;
-            pRGB.y = inputArray[4];
-            pRGB.z = (inputArray[3] + inputArray[5]) / 2.f;
-            break;
-        case 3:
-        case 6:
-        case 9:
-        case 12: // Blue centered
-                 // R G R
-                 // G B G
-                 // R G R
-            pRGB.x = (inputArray[0] + inputArray[2] + inputArray[6] + inputArray[8]) / 4.f;
-            pRGB.y = (inputArray[1] + inputArray[3] + inputArray[5] + inputArray[7]) / 4.f;
-            pRGB.z = inputArray[4];
-            break;
-    }
-    return pRGB;
-}
-static float3 ApplyCCM(float3 in){
-in.r*= ccm[0]*in.r+ccm[3]*in.g+ccm[6]*in.b;
-in.g*= ccm[1]*in.r+ccm[4]*in.g+ccm[7]*in.b;
-in.b*= ccm[2]*in.r+ccm[5]*in.g+ccm[8]*in.b;
-in*=5.f;
-return in;
-}
 static float3 ColorPointCorrection(float3 in){
 in.r/=whitepoint[0];
 in.g/=whitepoint[1];
@@ -318,9 +270,7 @@ return out;
 }
 void RS_KERNEL color(uint x, uint y) {
     float3 pRGB, sRGB;
-    //sRGB=clamp(sRGB*gain,0.f,1.f);
-    //pRGB = linearizeAndGainmap(x, y, whitelevel, cfaPattern);
-    pRGB = linearizeAndGainmap(x, y, whitelevel, cfaPattern);
+    pRGB = linearizeAndGainmap(x, y);
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     //sRGB = ExposureCompression(sRGB);
@@ -328,73 +278,107 @@ void RS_KERNEL color(uint x, uint y) {
     setc4(x,y,iobuffer,rsPackColorTo8888(sRGB));
 }
 #define colthr 4.1f
+static int normx(int x){
+if(x<0) return 0;
+else {
+return min(x,(int)(rawWidth-1));
+}
+}
+static int normy(int y){
+if(y<0) return 0;
+else {
+return min(y,(int)(rawHeight-1));
+}
+}
 void RS_KERNEL blurdem(uint x, uint y) {
     half3 in[9];
     half3 out;
-    in[0] = geth3(x-1,y-1,demosaicOut);
-    in[1] = geth3(x,y-1,demosaicOut);
-    in[2] = geth3(x+1,y-1,demosaicOut);
-    in[3] = geth3(x-1,y,demosaicOut);
+    //in[0] = geth3(x-1,y-1,demosaicOut);
+    in[1] = geth3(x,normy(y-2),demosaicOut);
+    //in[2] = geth3(x+1,y-1,demosaicOut);
+    in[3] = geth3(normx(x-2),y,demosaicOut);
     in[4] = geth3(x,y,demosaicOut);
-    in[5] = geth3(x+1,y,demosaicOut);
+    in[5] = geth3(normx(x+2),y,demosaicOut);
 
-    in[6] = geth3(x-1,y+1,demosaicOut);
-    in[7] = geth3(x,y+1,demosaicOut);
-    in[8] = geth3(x+1,y+1,demosaicOut);
+    //in[6] = geth3(x-1,y+1,demosaicOut);
+    in[7] = geth3(x,normy(y+2),demosaicOut);
+    //in[8] = geth3(x+1,y+1,demosaicOut);
 
 
-    out +=   (in[0]+in[1]+in[2])/9.f;
-    out +=   (in[3]+in[4]+in[5])/9.f;
-    out +=   (in[6]+in[7]+in[8])/9.f;
+    out +=   (in[1])/5.f;
+    out +=   (in[3]+in[4]+in[5])/5.f;
+    out +=   (in[7])/5.f;
     //out = in[4];
     //half3 diff1,diff2;
     seth3(x,y,remosaicIn1,out);
 }
 
 void RS_KERNEL demosaicmask(uint x, uint y) {
-    half3 out;
     bool fact1 = (x%2 == 1);
     bool fact2 = (y%2 == 1);
-    half br;
-    half3 blurred = geth3(x/2,y/2,remosaicIn1);
-    uchar4 input[5];
-     input[0] = getc4(x/2,y/2 -1,iobuffer);
-     input[1] = getc4(x/2 -1,y/2,iobuffer);
-     input[2] = getc4(x/2,y/2,iobuffer);
-     input[3] = getc4(x/2 +1,y/2,iobuffer);
-     input[4] = getc4(x/2,y/2 +1,iobuffer);
-     float3 t1,t2;
+    half3 blurred = geth3(x/2,y/2,demosaicOut);
+    uchar4 input;
+     input = getc4(x/2,y/2,iobuffer);
      float3 infl;
-     for(int i =0; i<5; i++) {
-     float3 temp;
-     temp.r = ((float)input[i].r)/(255.f*(1.f));
-     temp.g = ((float)input[i].g)/(255.f*(1.f));
-     temp.b = ((float)input[i].b)/(255.f*(1.f));
-     infl+=temp;
-     }
-     infl/=5.f;
-    half mosin = clamp(((half)(getraw(x + cfaPattern%2 ,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    half mosin1 = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    half mosin2 = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    half mosin3 = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    if(fact1 ==0 % fact2 == 0) {
-        br = 0;//mosin+mosin1+mosin2+mosin3;
-    }
-    if(fact1 ==1 % fact2 == 0) {//b
-        br = mosin;
-    }
-    if(fact1 ==0 % fact2 == 1) {//r
-        br = 0;//mosin+mosin1+mosin2+mosin3;
-    }
-    if(fact1 == 1 % fact2 == 1) {
-        br = 0;//mosin+mosin1+mosin2+mosin3;
-    }
-    //br/=3.f;
-    //br-=blurred.r+blurred.g+blurred.b;
-    //br/=3.f;
-    br*=remosaicSharp*20.f;
-    infl=br;
-    setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+     infl.r = ((float)input.r)/255.;
+     infl.g = ((float)input.g)/255.;
+     infl.b = ((float)input.b)/255.;
+     half mosaic[4];
+     mosaic[0] = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+     mosaic[1] = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+     mosaic[2] = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+     mosaic[3] = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        float3 output;
+            if(fact1 ==0 % fact2 == 0) {
+                //befinfl = mosin;
+                output.b = mosaic[2];
+                output.g = (mosaic[0]+mosaic[3])/2.;
+                output.r = mosaic[1];
+            }
+            if(fact1 ==1 % fact2 == 0) {//b
+                output.b = mosaic[0];
+                output.g = (mosaic[2]+mosaic[1])/2.;
+                output.r = mosaic[3];
+            }
+            if(fact1 ==0 % fact2 == 1) {//r
+                output.b = mosaic[3];
+                output.g = (mosaic[1]+mosaic[2])/2.;
+                output.r = mosaic[0];
+            }
+            if(fact1 == 1 % fact2 == 1) {
+                output.b = mosaic[1];
+                output.g = (mosaic[0]+mosaic[3])/2.;
+                output.r = mosaic[2];
+            }
+            output.r-=blurred.r;
+            output.g-=blurred.g;
+            output.b-=blurred.b;
+            infl+=(output.r+output.g+output.b)*remosaicSharp/3.f;
+            //infl+=output*remosaicSharp;
+            setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+}
+void RS_KERNEL demosaicmask2(uint x, uint y) {
+    bool fact1 = (x%2 == 1);
+    bool fact2 = (y%2 == 1);
+    half3 blurred = geth3(x/2,y/2,demosaicOut);
+    uchar4 input;
+    input = getc4(x/2,y/2,iobuffer);
+    uchar3 demosaicked;
+    demosaicked = getc3(x,y,remosaicIn1);
+     float3 infl;
+     infl.r = ((float)input.r)/255.f;
+     infl.g = ((float)input.g)/255.f;
+     infl.b = ((float)input.b)/255.f;
+        float3 output;
+        output.r = ((float)demosaicked.r)/255.f;
+        output.g = ((float)demosaicked.g)/255.f;
+        output.b = ((float)demosaicked.b)/255.f;
+        output.r-=blurred.r;
+        output.g-=blurred.g;
+        output.b-=blurred.b;
+        infl+=(output.r+output.g+output.b)*remosaicSharp/3.f;
+        //infl+=output*remosaicSharp;
+        setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
 }
 void RS_KERNEL remosaic(uint x, uint y) {
     half3 out;
@@ -404,19 +388,24 @@ void RS_KERNEL remosaic(uint x, uint y) {
 
     half3 blurred = geth3(x/2,y/2,remosaicIn1);
     //half3 demosout = geth3(x/2,y/2,demosaicOut);
-    uchar4 input[5];
+     uchar4 input[5];
      //input[0] = getc4(x/2 -1,y/2 -1,iobuffer);
-     input[0] = getc4(x/2,y/2 -1,iobuffer);
+     input[0] = getc4(x/2,normy(y/2 -2),iobuffer);
      //input[2] = getc4(x/2 +1,y/2 -1,iobuffer);
 
-     input[1] = getc4(x/2 -1,y/2,iobuffer);
+     input[1] = getc4(normx(x/2 -2),y/2,iobuffer);
      input[2] = getc4(x/2,y/2,iobuffer);
-     input[3] = getc4(x/2 +1,y/2,iobuffer);
+     input[3] = getc4(normx(x/2 +2),y/2,iobuffer);
 
      //input[6] = getc4(x/2 -1,y/2 +1,iobuffer);
-     input[4] = getc4(x/2,y/2 +1,iobuffer);
+     input[4] = getc4(x/2,normy(y/2 +2),iobuffer);
+
      float3 t1,t2;
-             float3 infl;
+     float3 infl;
+     /*uchar4 tmp = getc4(x,y,iobuffer);
+     infl.r = ((float)tmp.r)/(255.f);
+     infl.g = ((float)tmp.g)/(255.f);
+     infl.b = ((float)tmp.b)/(255.f);*/
              for(int i =0; i<5; i++) {
              float3 temp;
               temp.r = ((float)input[i].r)/(255.f*(1.f));
@@ -437,37 +426,34 @@ void RS_KERNEL remosaic(uint x, uint y) {
              //in.b = (br+infl.b);
              t1/=t1.r+t1.g+t1.b;
              t2/=t2.r+t2.g+t2.b;
-             //t1-=t2;
-             //t1 = fabs(t1);
+             t1-=t2;
+             t1 = fabs(t1);
              //if(fabs(t1.r-t1.g-t1.b) > 0.2) {setc4(x,y,remosaicOut,(input[2]));return;}
-    half mosin = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    bool edge = false;
-    if( fabs(t2.r-t2.g-t2.b) > 0.15f*0.3f){
-    blurred = geth3((x/2) -1 ,y/2,remosaicIn1)+geth3((x/2) +1 ,y/2,remosaicIn1);
-    blurred/=2.f;
-    edge = true;
-    }
-    if( fabs(t1.r-t1.g-t1.b) > 0.15f*0.3f){
-        blurred = geth3((x/2) ,(y/2)-1,remosaicIn1)+geth3((x/2),(y/2)+1,remosaicIn1);
-        blurred/=2.f;
-        edge = true;
-        if(fabs(t2.r-t2.g-t2.b) > 0.15f*0.3f){
-              blurred += geth3((x/2) ,(y/2)-1,remosaicIn1)+geth3((x/2),(y/2)+1,remosaicIn1);
-              blurred/=3.f;
-        }
-    }
-
+             /*if(fabs(t1.r-t1.b-t1.g) > 0.2f){
+             blurred = geth3((x/2),(y/2) - 1,remosaicIn1)+geth3((x/2),(y/2) + 1,remosaicIn1);
+             blurred/= 2.f;
+             }
+             if(fabs(t2.r-t2.b-t2.g) > 0.2f){
+             blurred = geth3((x/2)-1,(y/2),remosaicIn1)+geth3((x/2)+1,(y/2),remosaicIn1);
+             blurred/= 2.f;
+             if(fabs(t1.r-t1.b-t1.g) > 0.2f){
+              blurred += geth3((x/2),(y/2) - 1,remosaicIn1)+geth3((x/2),(y/2) + 1,remosaicIn1);
+              blurred/= 3.f;
+              }
+             }*/
+             half mosaic[4];
+    mosaic[0] = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
     if(fact1 ==0 % fact2 == 0) {
-        br = mosin - blurred.g;
+        br = mosaic[0] - blurred.g;
     }
     if(fact1 ==1 % fact2 == 0) {//b
-        br = mosin - blurred.b;
+        br = mosaic[0] - blurred.b;
     }
     if(fact1 ==0 % fact2 == 1) {//r
-        br = mosin - blurred.r;
+        br = mosaic[0] - blurred.r;
     }
     if(fact1 == 1 % fact2 == 1) {
-        br = mosin - blurred.g;
+        br = mosaic[0] - blurred.g;
     }
     //br+=blurred.r+blurred.g+blurred.b;
     //br*=remosaicSharp;
@@ -479,47 +465,143 @@ void RS_KERNEL remosaic(uint x, uint y) {
     //infl+=br;
 
     //if(fabs(br) > 0.0075f*1.f || fabs(t1.r-t1.g-t1.b) > 0.15f*0.7f){
-    //if(fabs(br) > 0.0075f*2.8f || fabs(t1.r-t1.g-t1.b) > 0.15f*0.15f){
+    //if( fabs(t1.r-t1.g-t1.b) > 0.15f*0.75f){
     if(0){
-    //half mosin2 = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    //half mosin3 = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-    //half mosin4 = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+
+    //mosaic[1] = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+    //mosaic[2] = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+    //mosaic[3] = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+    float3 output;
         if(fact1 ==0 % fact2 == 0) {
             //befinfl = mosin;
-            setc4(x,y,remosaicOut,input[2]);
-                return;
+            output.r = mosaic[2];
+            output.g = (mosaic[0]+mosaic[3])/2.;
+            output.b = mosaic[1];
         }
         if(fact1 ==1 % fact2 == 0) {//b
-            //befinfl = mosin;
-            setc4(x,y,remosaicOut,((input[2]/2)+input[3]/2));
-            return;
+            output.r = mosaic[0];
+            output.g = (mosaic[2]+mosaic[1])/2.;
+            output.b = mosaic[3];
         }
         if(fact1 ==0 % fact2 == 1) {//r
-            //befinfl = mosin4;
-            setc4(x,y,remosaicOut,((input[2]/2)+input[4]/2));
-            return;
+            output.r = mosaic[3];
+            output.g = (mosaic[1]+mosaic[2])/2.;
+            output.b = mosaic[0];
         }
         if(fact1 == 1 % fact2 == 1) {
-            //befinfl = mosin;
-            setc4(x,y,remosaicOut,((input[2]/2)+(getc4(x/2 +1,y/2 +1,iobuffer)/2)));
-            return;
+            output.r = mosaic[1];
+            output.g = (mosaic[0]+mosaic[3])/2.;
+            output.b = mosaic[2];
         }
+        output.r-=blurred.r;
+        output.g-=blurred.g;
+        output.b-=blurred.b;
+        //infl+=output;
+        setc4(x,y,remosaicOut,input[2]);
         //befinfl.r-=blurred.r;
         //befinfl.g-=blurred.g;
         //befinfl.b-=blurred.b;
         //infl+=befinfl;
-    setc4(x,y,remosaicOut,input[2]);
+    //setc4(x,y,remosaicOut,input[2]);
     return;
     }
     float c0 = 0.45;
-    float norm = 0.8f;
-    float norm2 = 0.4f;
+    float norm = 0.4f;
+    float norm2 = 0.6f;
     //float norm2 = 0.5f;
     //float norm2 = 0.4;
     if(br > c0) br *= norm;
     if(br < -c0) br *= norm2;
-    if(edge) br*=0.8f;
+    if(fabs(br) > 0.5f){br/=fabs(br); br*=0.5f;}
     br*=remosaicSharp;
     infl+=br;
+    infl = clamp(infl, 0.f,1.f);
     setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+}
+#define remosaic2h 2
+#define remosaic2w 2
+#define grad(i)(bayerdebayered[x+(i/2)+2*(i%2)][y+(i/2)+2*((i+1)%2)])
+#define grad0 bayerdebayered[w][h+1].g
+#define grad1 bayerdebayered[w+1][h].g
+#define grad2 bayerdebayered[w+2][h+1].g
+#define grad3 bayerdebayered[w+1][h+2].g
+
+#define grad4 (bayerdebayered[w+1][h+1].r+bayerdebayered[w+1][h+1].g)
+#define getbayer(x,y)(bayerdebayered[x+1][y+1])
+void RS_KERNEL remosaic2(uint x, uint y) {
+    half3 out;
+    half br;
+    x*=remosaic2w;
+    y*=remosaic2h;
+    half3 lowresbuffer[remosaic2w/2 +1][remosaic2h/2 +1];
+    float3 colorbuffer[remosaic2w/2 +1][remosaic2h/2 +1];
+    float3 bayerdebayered[remosaic2w+2][remosaic2h+2];
+    //Read all arrays
+    for(int h = -1; h<remosaic2h+1;h++){
+        for(int w = -1; w<remosaic2w+1;w++){
+        int x0 = min((x+w),rawWidth-1);
+        if(x0<0) x0=0;
+        int y0 = min((y+h),rawHeight-1);
+        if(y0<0) y0=0;
+        bool fact1 = ((x+w)%2 == 1);
+        bool fact2 = ((y+h)%2 == 1);
+        if(fact1+fact2 == 0) {
+        lowresbuffer[w/2][h/2] = geth3(x0/2,y0/2,remosaicIn1);
+        uchar4 temp = getc4(x0/2,y0/2,iobuffer);
+        colorbuffer[w/2][h/2].r = ((float)temp.r)/255.f;
+        colorbuffer[w/2][h/2].g = ((float)temp.g)/255.f;
+        colorbuffer[w/2][h/2].b = ((float)temp.b)/255.f;
+        }
+        //bayerbuffer[h][w] =  clamp(((half)(getraw((x+w) + cfaPattern%2,(y+h) + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        h++;
+        w++;
+        //if(fact1+fact2 != 0) bayerdebayered[w][h].g = clamp(((half)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        if(fact1+fact2 == 0 || fact1+fact2 == 2) bayerdebayered[w][h].g = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        if(fact1 == 1 && fact2 == 0) bayerdebayered[w][h].b = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        if(fact1 == 0 && fact2 == 1) bayerdebayered[w][h].r = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+        bayerdebayered[w][h].g = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
+      }
+    }
+    for(int h = 0; h<remosaic2h;h++){
+    for(int w = 0; w<remosaic2w;w++){
+    int x0 = min((x+w),rawWidth-1);
+    if(x0<0) x0=0;
+    int y0 = min((y+h),rawHeight-1);
+    if(y0<0) y0=0;
+    bool fact1 = ((x+w)%2 == 1);
+    bool fact2 = ((y+h)%2 == 1);
+    if(0){
+    //if(fact1+fact2 == 0 || fact1+fact2 == 2){//Green Channel gradient interpolation
+    //if(fact1+fact2 != 0){//Green Channel gradient interpolation
+    float DH =fabs(grad0-grad2);
+    float DV =fabs(grad1-grad3);
+    float outpu;
+    float gradavr = (grad0+grad1+grad2+grad3)/4.;
+    if(DH > DV){
+          outpu = (grad1+grad3)/2.;
+        } else
+        if(DV > DH){
+          outpu = (grad0+grad2)/2.;
+        } else {
+            outpu = gradavr;
+        }
+    if(grad0*1. > gradavr && grad2*1.  > gradavr &&
+     grad1 < gradavr && grad3 < gradavr){
+         if(grad4>gradavr*2.4)outpu = (grad0+grad2)/2.;
+     }
+    if(grad1*1. > gradavr && grad3*1.  > gradavr &&
+      grad2 < gradavr && grad0 < gradavr){
+          if(grad4>gradavr*2.4)outpu = (grad1+grad3)/2.;
+    }
+    getbayer(w,h).g = outpu;
+    }
+
+   float3 infl;
+   float in = getbayer(w,h).g;
+   infl.r = in;
+   infl.g = in;
+   infl.b = in;
+   setc4(x0,y0,remosaicOut,rsPackColorTo8888(infl));
+   }
+  }
 }

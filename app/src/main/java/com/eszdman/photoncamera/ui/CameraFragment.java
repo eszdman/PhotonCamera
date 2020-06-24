@@ -617,6 +617,7 @@ public class CameraFragment extends Fragment
         return null;
     }
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
+        if(in == null) return mPreviewSize;
          Collections.sort(Arrays.asList(in), new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
@@ -651,7 +652,7 @@ public class CameraFragment extends Fragment
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
-         manager2.CameraArr(manager);
+        // manager2.CameraArr(manager);
         try {
                 CameraCharacteristics characteristics
                         = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
@@ -954,10 +955,12 @@ public class CameraFragment extends Fragment
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface(), mImageReaderRes.getSurface()),
+            List surfaces = Arrays.asList(surface, mImageReader.getSurface(), mImageReaderRes.getSurface());
+            if(mTargetFormat == mPreviewTargetFormat){
+                surfaces = Arrays.asList(surface, mImageReader.getSurface());
+            }
+            mCameraDevice.createCaptureSession(surfaces,
                     new CameraCaptureSession.StateCallback() {
-
-                        @RequiresApi(api = Build.VERSION_CODES.O)
                         @Override
                         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                             // The camera is already closed
@@ -1095,7 +1098,10 @@ public class CameraFragment extends Fragment
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
-            captureBuilder.addTarget(mImageReaderRes.getSurface());
+            if(mTargetFormat != mPreviewTargetFormat)captureBuilder.addTarget(mImageReaderRes.getSurface());
+            else {
+                captureBuilder.addTarget(mImageReader.getSurface());
+            }
             Interface.i.settings.applyRes(captureBuilder);
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
