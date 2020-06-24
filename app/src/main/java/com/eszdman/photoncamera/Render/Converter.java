@@ -1,13 +1,9 @@
 package com.eszdman.photoncamera.Render;
-
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.util.Log;
 import android.util.Rational;
 import android.util.SparseIntArray;
-
-import com.google.firebase.crashlytics.internal.stacktrace.StackTraceTrimmingStrategy;
-
 import java.util.Arrays;
 
 public class Converter {
@@ -332,29 +328,13 @@ public class Converter {
      */
     private static final float[] D50_XYZ = new float[] { 0.9642f, 1, 0.8249f };
     /**
-     * Matrix to convert from CIE XYZ colorspace to sRGB, Bradford-adapted to D65.
+     * Matrix to convert from HDRX output to sRGB space.
      */
-    public static final float[] sXYZtoRGBBradfordtest = new float[] {
-            1.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 1.0f
-    };
     public static final float[] HDRXCCM = new float[] {
             2.7430f, -1.2980f, -0.4450f,
             -0.8690f, 2.0887f, -0.2196f,
             -0.1109f, -0.6662f, 1.7771f
     };
-    public static final float[] sXYZtoRGBBradford3 = new float[] {
-            2.7816f, -1.4023f, -0.3792f,
-            -0.9694f, 2.1740f, -0.2046f,
-            -0.0374f, -1.2347f, 2.2720f
-    };
-    public static final float[] sXYZtoRGBBradford2 = new float[] {
-            3.1338561f, -1.6168667f, -0.4906146f,
-            -0.9787684f, 1.9161415f, 0.0334540f,
-            0.0719453f, -0.2289914f, 1.4052427f
-    };
-
     /**
      * Matrix to convert from the ProPhoto RGB colorspace to CIE XYZ colorspace.
      */
@@ -363,20 +343,9 @@ public class Converter {
             0.000000f, 1.000000f, 0.000000f,
             0.000000f, 0.000000f, 1.000000f
     };
-    public static final float[] sProPhotoToXYZ2 = new float[] {
-            0.797779f, 0.135213f, 0.031303f,
-            0.288000f, 0.711900f, 0.000100f,
-            0.000000f, 0.000000f, 0.825105f
-    };
-
     /**
      * Matrix to convert from CIE XYZ colorspace to ProPhoto RGB colorspace.
      */
-    public static final float[] sXYZtoProPhoto2 = new float[] {
-            1.0f, 0.000000f, 0.000000f,
-            0.000000f, 1.0f, 0.000000f,
-            0.000000f, 0.000000f, 1.0f
-    };
     public static final float[] sXYZtoProPhoto = new float[] {
             1.345753f, -0.255603f, -0.051025f,
             -0.544426f, 1.508096f, 0.020472f,
