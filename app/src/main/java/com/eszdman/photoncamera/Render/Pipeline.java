@@ -8,6 +8,8 @@ import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsic;
 import android.renderscript.Type;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Photo;
+
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 

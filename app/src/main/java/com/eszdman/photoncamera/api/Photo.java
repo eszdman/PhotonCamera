@@ -3,13 +3,16 @@ package com.eszdman.photoncamera.api;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
-
-import com.eszdman.photoncamera.ui.CameraFragment;
+import android.util.Size;
+import androidx.annotation.RequiresApi;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;
@@ -24,9 +27,19 @@ public class Photo {
         @Override
         public void handleMessage(Message msg)
         {
-            Uri uri = (Uri) msg.obj;
+            Uri uri = null;
+            Bitmap bmp = null;
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                bmp = (Bitmap) msg.obj;
+            } else{
+                uri = (Uri)msg.obj;
+            }
             try {
-                CameraFragment.context.img.setImageURI(uri);
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    Interface.i.camera.img.setImageBitmap(bmp);
+                } else {
+                    Interface.i.camera.img.setImageURI(uri);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -36,10 +49,8 @@ public class Photo {
         instance = this;
         galleryHandler = new GalleryHandler();
     }
-
     //Intent imageIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
     public void ShowPhoto(File imageFile) {
-
         String mediaId = "";
         String[] projection = new String[]{
                 MediaStore.Images.Media._ID,
@@ -80,7 +91,6 @@ public class Photo {
             return Long.signum(rhs.lastModified() - lhs.lastModified());
         }
     }
-
     public void SaveImg(File in) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         boolean wasNull = Interface.i.settings.lastPicture == null;
@@ -88,9 +98,16 @@ public class Photo {
         if (wasNull) Interface.i.settings.save();
         Uri contentUri = Uri.fromFile(in);
         try {
+            Bitmap thumb = null;
             Message uriMessage = new Message();
-            uriMessage.obj = contentUri;
-            galleryHandler.sendMessage(uriMessage);
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                thumb = ThumbnailUtils.createImageThumbnail(in, new Size(120, 120), null);
+                uriMessage.obj = thumb;
+                galleryHandler.sendMessage(uriMessage);
+            } else {
+                uriMessage.obj = contentUri;
+                galleryHandler.sendMessage(uriMessage);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

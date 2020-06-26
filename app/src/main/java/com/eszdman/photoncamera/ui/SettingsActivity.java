@@ -251,6 +251,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
         setv(cfaList,Interface.i.settings.cfaPatern);
+        load();
     }
     //And here
     void views() {

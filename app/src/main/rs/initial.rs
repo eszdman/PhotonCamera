@@ -66,15 +66,15 @@ static float4 getGain(uint x, uint y) {
     uint gY = (uint) interpY;
     uint gXNext = (gX + 1 < gainMapWidth) ? gX + 1 : gX;
     uint gYNext = (gY + 1 < gainMapHeight) ? gY + 1 : gY;
-    float4 tl = *((float4 *) rsGetElementAt(gainMap, gX, gY));
-    float4 tr = *((float4 *) rsGetElementAt(gainMap, gXNext, gY));
-    float4 bl = *((float4 *) rsGetElementAt(gainMap, gX, gYNext));
-    float4 br = *((float4 *) rsGetElementAt(gainMap, gXNext, gYNext));
+    //float4 tl = *((float4 *) rsGetElementAt(gainMap, gX, gY));
+    //float4 tr = *((float4 *) rsGetElementAt(gainMap, gXNext, gY));
+    //float4 bl = *((float4 *) rsGetElementAt(gainMap, gX, gYNext));
+    //float4 br = *((float4 *) rsGetElementAt(gainMap, gXNext, gYNext));
 
-    //float4 tl = rsGetElementAt_float4(gainMap, gX, gY);
-    //float4 tr = rsGetElementAt_float4(gainMap, gXNext, gY);
-    //float4 bl = rsGetElementAt_float4(gainMap, gX, gYNext);
-    //float4 br = rsGetElementAt_float4(gainMap, gXNext, gYNext);
+    float4 tl = rsGetElementAt_float4(gainMap, gX, gY);
+    float4 tr = rsGetElementAt_float4(gainMap, gXNext, gY);
+    float4 bl = rsGetElementAt_float4(gainMap, gX, gYNext);
+    float4 br = rsGetElementAt_float4(gainMap, gXNext, gYNext);
 
     float fracX = interpX - (float) gX;
     float fracY = interpY - (float) gY;
@@ -320,9 +320,9 @@ void RS_KERNEL demosaicmask(uint x, uint y) {
     uchar4 input;
      input = getc4(x/2,y/2,iobuffer);
      float3 infl;
-     infl.r = ((float)input.r)/255.;
-     infl.g = ((float)input.g)/255.;
-     infl.b = ((float)input.b)/255.;
+     infl.r = ((float)input.r)/255.f;
+     infl.g = ((float)input.g)/255.f;
+     infl.b = ((float)input.b)/255.f;
      half mosaic[4];
      mosaic[0] = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
      mosaic[1] = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
@@ -332,22 +332,22 @@ void RS_KERNEL demosaicmask(uint x, uint y) {
             if(fact1 ==0 % fact2 == 0) {
                 //befinfl = mosin;
                 output.b = mosaic[2];
-                output.g = (mosaic[0]+mosaic[3])/2.;
+                output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[1];
             }
             if(fact1 ==1 % fact2 == 0) {//b
                 output.b = mosaic[0];
-                output.g = (mosaic[2]+mosaic[1])/2.;
+                output.g = (mosaic[2]+mosaic[1])/2.f;
                 output.r = mosaic[3];
             }
             if(fact1 ==0 % fact2 == 1) {//r
                 output.b = mosaic[3];
-                output.g = (mosaic[1]+mosaic[2])/2.;
+                output.g = (mosaic[1]+mosaic[2])/2.f;
                 output.r = mosaic[0];
             }
             if(fact1 == 1 % fact2 == 1) {
                 output.b = mosaic[1];
-                output.g = (mosaic[0]+mosaic[3])/2.;
+                output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[2];
             }
             output.r-=blurred.r;
@@ -475,22 +475,22 @@ void RS_KERNEL remosaic(uint x, uint y) {
         if(fact1 ==0 % fact2 == 0) {
             //befinfl = mosin;
             output.r = mosaic[2];
-            output.g = (mosaic[0]+mosaic[3])/2.;
+            output.g = (mosaic[0]+mosaic[3])/2.f;
             output.b = mosaic[1];
         }
         if(fact1 ==1 % fact2 == 0) {//b
             output.r = mosaic[0];
-            output.g = (mosaic[2]+mosaic[1])/2.;
+            output.g = (mosaic[2]+mosaic[1])/2.f;
             output.b = mosaic[3];
         }
         if(fact1 ==0 % fact2 == 1) {//r
             output.r = mosaic[3];
-            output.g = (mosaic[1]+mosaic[2])/2.;
+            output.g = (mosaic[1]+mosaic[2])/2.f;
             output.b = mosaic[0];
         }
         if(fact1 == 1 % fact2 == 1) {
             output.r = mosaic[1];
-            output.g = (mosaic[0]+mosaic[3])/2.;
+            output.g = (mosaic[0]+mosaic[3])/2.f;
             output.b = mosaic[2];
         }
         output.r-=blurred.r;
@@ -505,7 +505,7 @@ void RS_KERNEL remosaic(uint x, uint y) {
     //setc4(x,y,remosaicOut,input[2]);
     return;
     }
-    float c0 = 0.45;
+    float c0 = 0.45f;
     float norm = 0.4f;
     float norm2 = 0.6f;
     //float norm2 = 0.5f;
@@ -576,22 +576,22 @@ void RS_KERNEL remosaic2(uint x, uint y) {
     float DH =fabs(grad0-grad2);
     float DV =fabs(grad1-grad3);
     float outpu;
-    float gradavr = (grad0+grad1+grad2+grad3)/4.;
+    float gradavr = (grad0+grad1+grad2+grad3)/4.f;
     if(DH > DV){
-          outpu = (grad1+grad3)/2.;
+          outpu = (grad1+grad3)/2.f;
         } else
         if(DV > DH){
-          outpu = (grad0+grad2)/2.;
+          outpu = (grad0+grad2)/2.f;
         } else {
             outpu = gradavr;
         }
-    if(grad0*1. > gradavr && grad2*1.  > gradavr &&
+    if(grad0*1.f > gradavr && grad2*1.f  > gradavr &&
      grad1 < gradavr && grad3 < gradavr){
-         if(grad4>gradavr*2.4)outpu = (grad0+grad2)/2.;
+         if(grad4>gradavr*2.4f)outpu = (grad0+grad2)/2.f;
      }
-    if(grad1*1. > gradavr && grad3*1.  > gradavr &&
+    if(grad1*1.f > gradavr && grad3*1.f  > gradavr &&
       grad2 < gradavr && grad0 < gradavr){
-          if(grad4>gradavr*2.4)outpu = (grad1+grad3)/2.;
+          if(grad4>gradavr*2.4f)outpu = (grad1+grad3)/2.f;
     }
     getbayer(w,h).g = outpu;
     }

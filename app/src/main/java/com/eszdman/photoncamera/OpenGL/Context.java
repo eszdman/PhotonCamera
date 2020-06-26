@@ -33,7 +33,6 @@ public class Context {
     private final EGLDisplay mDisplay;
     private final EGLContext mContext;
     private final EGLSurface mSurface;
-
     public Context(int surfaceWidth, int surfaceHeight) {
         int[] major = new int[2];
         int[] minor = new int[2];
@@ -51,9 +50,6 @@ public class Context {
                 EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
                 EGL_NONE
         };
-
-        // No error checking performed, minimum required code to elucidate logic
-        // Expand on this logic to be more selective in choosing a configuration
         int[] numConfig = new int[1];
         if (!eglChooseConfig(mDisplay, attribList2, 0,
                 null, 0, 0, numConfig, 0)

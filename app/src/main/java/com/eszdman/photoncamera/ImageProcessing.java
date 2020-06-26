@@ -283,6 +283,7 @@ public class ImageProcessing {
     }
     void ApplyHdrX() {
         CaptureResult res = CameraFragment.mCaptureResult;
+        processingstep();
         long startTime = System.currentTimeMillis();
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();

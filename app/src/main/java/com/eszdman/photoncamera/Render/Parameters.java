@@ -55,8 +55,13 @@ public class Parameters {
                (gainmap[(gainmap.length/2 + gainmap.length/8) - (gainmap.length/2 + gainmap.length/8)%4]) == 1.0) {
                 Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
                 gainmap = new float[Const.gainmap.length];
-                for(int i = 0; i<Const.gainmap.length; i++){
-                    gainmap[i] = (float)Const.gainmap[i];
+                for(int i = 0; i<Const.gainmap.length; i+=4){
+                    float in = (float)Const.gainmap[i]+(float)Const.gainmap[i+1]+(float)Const.gainmap[i+2]+(float)Const.gainmap[i+3];
+                    in/=4.f;
+                    gainmap[i] = in;
+                    gainmap[i+1] = in;
+                    gainmap[i+2] = in;
+                    gainmap[i+3] = in;
                 }
                 mapsize = Const.mapsize;
             }
