@@ -14,41 +14,46 @@ public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
-        long exposuretime = CameraFragment.context.mPreviewExposuretime;
-        int iso = CameraFragment.context.mPreviewIso;
+        ExpoPair pair = new ExpoPair();
+        pair.iso = CameraFragment.context.mPreviewIso;
+        pair.exposure = CameraFragment.context.mPreviewExposuretime;
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-        Log.d(TAG, "InputParams: expo time:" + exposuretime + " iso:" + iso);
-        if (iso >= 12700) {
-            exposuretime *= 2.0;
-            iso /= 2;
+        Log.d(TAG, "InputParams: expo time:" + pair.exposure + " iso:" + pair.iso);
+        if (pair.iso >= 12700) {
+            pair.ReduceIso();
         }
-        if (exposuretime < ExposureIndex.sec / 40 && iso > 300) {
-            exposuretime *= 2.0;
-            iso /= 2;
+        if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 300) {
+            pair.ReduceIso();
         }
-        if (exposuretime < ExposureIndex.sec / 8 && iso > 3000) {
-            exposuretime *= 2.0;
-            iso /= 2;
+        if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 3000) {
+            pair.ReduceIso();
         }
-        if (exposuretime < ExposureIndex.sec / 8 && iso > 1500) {
-            exposuretime *= 2.0;
-            iso /= 2;
+        if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
+            pair.ReduceIso();
         }
-        //if (iso > 4000) exposuretime *= 1.35;
-        if (CameraFragment.mTargetFormat == CameraFragment.rawFormat)
-            if (iso >= 100 * 1.35) iso *= 0.65;
-            else {
-                exposuretime *= 0.65;
+        if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
+        if(step == 0){
+            if(pair.iso < 500){
+                pair.ReduceExpo();
             }
-        if(Interface.i.settings.ManualMode){
-            exposuretime = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
-            iso = Interface.i.manual.isovalue;
+            if(pair.iso < 500*2.1){
+                pair.ReduceExpo();
+            }
         }
-        iso = Math.max(getISOLOW(), iso);
-        iso = Math.min(getISOHIGH(), iso);
-        Log.d(TAG, "IsoSelected:" + iso + " ExpoSelected:" + exposuretime);
-        builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, exposuretime);
-        builder.set(CaptureRequest.SENSOR_SENSITIVITY, iso);
+        if (pair.iso >= 100 * 1.35) pair.iso *= 0.65;
+            else {
+                pair.exposure *= 0.65;
+            }
+        }
+        if(Interface.i.settings.ManualMode){
+            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
+            pair.iso = Interface.i.manual.isovalue;
+        }
+        pair.iso = Math.max(getISOLOW(), pair.iso);
+        pair.iso = Math.min(getISOHIGH(), pair.iso);
+        Log.d(TAG, "IsoSelected:" + pair.iso + " ExpoSelected:" + pair.exposure + " step:"+step);
+        builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, pair.exposure);
+        builder.set(CaptureRequest.SENSOR_SENSITIVITY, pair.iso);
     }
 
     public static int getISOHIGH() {
@@ -78,6 +83,20 @@ public class IsoExpoSelector {
         if (key == null) return ExposureIndex.sec/1000;
         else {
             return (long) ((Range) (key)).getLower();
+        }
+    }
+    static class ExpoPair {
+        long exposure;
+        int iso;
+        public void ReduceIso(){
+            iso/=2;
+            exposure*=2;
+            if(iso < getISOLOW()) iso = getISOLOW();
+        }
+        public void ReduceExpo(){
+            iso*=2;
+            exposure/=2;
+            if(exposure <getEXPLOW()) exposure = getEXPLOW();
         }
     }
 }

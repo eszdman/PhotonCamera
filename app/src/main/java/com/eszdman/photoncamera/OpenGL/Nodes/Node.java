@@ -1,9 +1,11 @@
 package com.eszdman.photoncamera.OpenGL.Nodes;
 
-import com.eszdman.photoncamera.OpenGL.Texture;
+import com.eszdman.photoncamera.OpenGL.GLProg;
+import com.eszdman.photoncamera.OpenGL.GLTexture;
 
 public class Node {
-    public Texture WorkingTexture;
+    public GLTexture WorkingTexture;
+    public GLProg Program;
     public String Name = "Node";
     public Node previousNode;
     public Node(String name){

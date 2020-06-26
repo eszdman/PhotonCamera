@@ -64,7 +64,11 @@ public class ImageSaver implements Runnable {
         if(!dir.exists()) dir.mkdirs();
         return dir.getAbsolutePath();
     }
-    private static void end(ImageReader mReader){
+    private void unlock(){
+        Interface.i.camera.shot.setActivated(true);
+        Interface.i.camera.shot.setClickable(true);
+    }
+    private void end(ImageReader mReader){
         Image last = mReader.acquireLatestImage();
         try {
             for(int i = 0; i<mReader.getMaxImages();i++){
@@ -77,8 +81,7 @@ public class ImageSaver implements Runnable {
             e.printStackTrace();
         }
         imageBuffer.clear();
-        Interface.i.camera.shot.setActivated(true);
-        Interface.i.camera.shot.setClickable(true);
+        unlock();
     }
     public Handler ProcessCall;
     @Override
@@ -109,6 +112,7 @@ public class ImageSaver implements Runnable {
                     byte[] bytes = new byte[buffer.remaining()];
                     outimg =  new File(curDir(),curName()+".jpg");
                     if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
+                        //unlock();
                         output = new FileOutputStream(outimg);
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
@@ -153,6 +157,7 @@ public class ImageSaver implements Runnable {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
                     if (imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
+                        //unlock();
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
                         processing.israw = false;
@@ -187,6 +192,7 @@ public class ImageSaver implements Runnable {
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
                     imageBuffer.add(mImage);
                     if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
+                        //unlock();
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
                         processing.israw = true;

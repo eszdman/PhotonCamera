@@ -25,11 +25,11 @@ import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_2D;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
 
-public class Texture implements AutoCloseable {
+public class GLTexture implements AutoCloseable {
     Point mSize;
     int mGLFormat;
     int mTextureID;
-    Texture(Point size, int GL_InternalFormat, int GL_EXFormat, int GL_Type, Buffer pixels){
+    GLTexture(Point size, int GL_InternalFormat,GLFormat glFormat, Buffer pixels){
         this.mSize = size;
         this.mGLFormat = GL_InternalFormat;
         int TexID[] = new int[1];
@@ -37,7 +37,7 @@ public class Texture implements AutoCloseable {
         mTextureID = TexID[0];
         glActiveTexture(GL_TEXTURE16);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_InternalFormat, size.x, size.y, 0, GL_EXFormat, GL_Type, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

@@ -152,7 +152,8 @@ public class CameraFragment extends Fragment
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
-    public static final int prevFormat = ImageFormat.YUV_420_888;
+    public static final int yuvFormat = ImageFormat.YUV_420_888;
+    public static final int prevFormat = yuvFormat;
     public static int mTargetFormat = rawFormat;
     public static int mPreviewTargetFormat = prevFormat;
     public static CaptureResult mPreviewResult;
@@ -523,7 +524,7 @@ public class CameraFragment extends Fragment
                     mTargetFormat = rawFormat;
                     Interface.i.settings.hdrx = true;
                 } else {
-                    mTargetFormat = ImageFormat.YUV_420_888;
+                    mTargetFormat = yuvFormat;
                     Interface.i.settings.hdrx = false;
                 }
                 restartCamera();
@@ -1122,10 +1123,8 @@ public class CameraFragment extends Fragment
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
-            if(mTargetFormat != mPreviewTargetFormat)captureBuilder.addTarget(mImageReaderRaw.getSurface());
-            else {
-                captureBuilder.addTarget(mImageReaderYuv.getSurface());
-            }
+            if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
+            else captureBuilder.addTarget(mImageReaderYuv.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);

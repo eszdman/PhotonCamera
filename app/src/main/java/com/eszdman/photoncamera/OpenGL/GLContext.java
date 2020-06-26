@@ -29,16 +29,16 @@ import static android.opengl.EGL14.eglGetDisplay;
 import static android.opengl.EGL14.eglInitialize;
 import static android.opengl.EGL14.eglMakeCurrent;
 
-public class Context {
+public class GLContext {
     private final EGLDisplay mDisplay;
     private final EGLContext mContext;
     private final EGLSurface mSurface;
-    public Context(int surfaceWidth, int surfaceHeight) {
+    public GLContext(int surfaceWidth, int surfaceHeight) {
         int[] major = new int[2];
         int[] minor = new int[2];
         mDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
         eglInitialize(mDisplay, major, 0, minor, 0);
-        int[] attribList2 = {
+        int[] attribList = {
                 EGL_DEPTH_SIZE, 0,
                 EGL_STENCIL_SIZE, 0,
                 EGL_RED_SIZE, 8,
@@ -51,15 +51,14 @@ public class Context {
                 EGL_NONE
         };
         int[] numConfig = new int[1];
-        if (!eglChooseConfig(mDisplay, attribList2, 0,
+        if (!eglChooseConfig(mDisplay, attribList, 0,
                 null, 0, 0, numConfig, 0)
                 || numConfig[0] == 0) {
             throw new RuntimeException("OpenGL config count zero");
         }
-
         int configSize = numConfig[0];
         EGLConfig[] configs = new EGLConfig[configSize];
-        if (!eglChooseConfig(mDisplay, attribList2, 0,
+        if (!eglChooseConfig(mDisplay, attribList, 0,
                 configs, 0, configSize, numConfig, 0)) {
             throw new RuntimeException("OpenGL config loading failed");
         }
@@ -70,7 +69,6 @@ public class Context {
                 EGL_CONTEXT_CLIENT_VERSION, 3,
                 EGL_NONE
         }, 0);
-
         mSurface = eglCreatePbufferSurface(mDisplay, configs[0], new int[] {
                 EGL_WIDTH, surfaceWidth,
                 EGL_HEIGHT, surfaceHeight,
