@@ -7,13 +7,19 @@ public class Wrapper {
         System.loadLibrary("HdrX");
         System.loadLibrary("photon_accel");
     }
-
+    /**
+     * Function to create pointers for image buffers.
+     *
+     * @param rows Image rows.
+     * @param cols Image cols.
+     * @param frames Image count.
+     */
 public static native void init(int rows,int cols, int frames);
-public static native void setCompGain(double compression, double gain, double contrast, int contr_const);
-public static native void setBWLWB(int blackp, int whitep, double wbr,double wbg0,double wbg1,double wbb);
-public static native void setSharpnessSaturation(double saturation, double sharpness);
-public static native void setCFA(int CFA);
-public static native void setCCM(double[] CCM);
+    /**
+     * Function to load images.
+     *
+     * @param bufferptr Image buffer.
+     */
 public static native void loadFrame(ByteBuffer bufferptr);
 public static native ByteBuffer processFrame();
 public static native void Test();

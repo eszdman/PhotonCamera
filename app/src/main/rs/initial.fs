@@ -1,7 +1,6 @@
 #pragma version(1)
 #pragma rs java_package_name(com.eszdman.photoncamera)
 #pragma rs_fp_relaxed
-
 //Main parameters
 uint rawWidth; // Width of raw buffer
 uint rawHeight; // Height of raw buffer
@@ -84,9 +83,9 @@ static float4 getGain(uint x, uint y) {
             bl * invFracX * fracY + br * fracX * fracY;
 }
 // Apply gamma correction using sRGB gamma curve
-#define x1 2.8114
-#define x2 -3.5701
-#define x3 1.6807
+#define x1 2.8114f
+#define x2 -3.5701f
+#define x3 1.6807f
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
@@ -329,23 +328,23 @@ void RS_KERNEL demosaicmask(uint x, uint y) {
      mosaic[2] = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
      mosaic[3] = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
         float3 output;
-            if(fact1 ==0 % fact2 == 0) {
+            if(fact1 ==0 % fact2 == 0) {//grbg
                 //befinfl = mosin;
                 output.b = mosaic[2];
                 output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[1];
             }
-            if(fact1 ==1 % fact2 == 0) {//b
+            if(fact1 ==1 % fact2 == 0) {//bggr
                 output.b = mosaic[0];
                 output.g = (mosaic[2]+mosaic[1])/2.f;
                 output.r = mosaic[3];
             }
-            if(fact1 ==0 % fact2 == 1) {//r
+            if(fact1 ==0 % fact2 == 1) {//rggb
                 output.b = mosaic[3];
                 output.g = (mosaic[1]+mosaic[2])/2.f;
                 output.r = mosaic[0];
             }
-            if(fact1 == 1 % fact2 == 1) {
+            if(fact1 == 1 % fact2 == 1) {//gbrg
                 output.b = mosaic[1];
                 output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[2];
@@ -518,90 +517,88 @@ void RS_KERNEL remosaic(uint x, uint y) {
     infl = clamp(infl, 0.f,1.f);
     setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
 }
-#define remosaic2h 2
-#define remosaic2w 2
-#define grad(i)(bayerdebayered[x+(i/2)+2*(i%2)][y+(i/2)+2*((i+1)%2)])
-#define grad0 bayerdebayered[w][h+1].g
-#define grad1 bayerdebayered[w+1][h].g
-#define grad2 bayerdebayered[w+2][h+1].g
-#define grad3 bayerdebayered[w+1][h+2].g
-
-#define grad4 (bayerdebayered[w+1][h+1].r+bayerdebayered[w+1][h+1].g)
-#define getbayer(x,y)(bayerdebayered[x+1][y+1])
+#define readbayer(x,y)(clamp(((float)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f))
+#define mingreen (0.01f)
 void RS_KERNEL remosaic2(uint x, uint y) {
-    half3 out;
-    half br;
-    x*=remosaic2w;
-    y*=remosaic2h;
-    half3 lowresbuffer[remosaic2w/2 +1][remosaic2h/2 +1];
-    float3 colorbuffer[remosaic2w/2 +1][remosaic2h/2 +1];
-    float3 bayerdebayered[remosaic2w+2][remosaic2h+2];
-    //Read all arrays
-    for(int h = -1; h<remosaic2h+1;h++){
-        for(int w = -1; w<remosaic2w+1;w++){
-        int x0 = min((x+w),rawWidth-1);
-        if(x0<0) x0=0;
-        int y0 = min((y+h),rawHeight-1);
-        if(y0<0) y0=0;
-        bool fact1 = ((x+w)%2 == 1);
-        bool fact2 = ((y+h)%2 == 1);
-        if(fact1+fact2 == 0) {
-        lowresbuffer[w/2][h/2] = geth3(x0/2,y0/2,remosaicIn1);
-        uchar4 temp = getc4(x0/2,y0/2,iobuffer);
-        colorbuffer[w/2][h/2].r = ((float)temp.r)/255.f;
-        colorbuffer[w/2][h/2].g = ((float)temp.g)/255.f;
-        colorbuffer[w/2][h/2].b = ((float)temp.b)/255.f;
-        }
-        //bayerbuffer[h][w] =  clamp(((half)(getraw((x+w) + cfaPattern%2,(y+h) + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-        h++;
-        w++;
-        //if(fact1+fact2 != 0) bayerdebayered[w][h].g = clamp(((half)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-        if(fact1+fact2 == 0 || fact1+fact2 == 2) bayerdebayered[w][h].g = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-        if(fact1 == 1 && fact2 == 0) bayerdebayered[w][h].b = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-        if(fact1 == 0 && fact2 == 1) bayerdebayered[w][h].r = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-        bayerdebayered[w][h].g = clamp(((float)(getraw(x0 + cfaPattern%2,y0 + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
-      }
+    bool fact1 = ((x)%2 == 1);
+    bool fact2 = ((y)%2 == 1);
+    float3 infl;
+    if(fact1 == 0 && fact2 == 0) {//grbg
+    infl.b = (readbayer(x,y+1)+readbayer(x,y-1))/2.f;
+    infl.r = (readbayer(x+1,y)+readbayer(x-1,y))/2.f;
+    infl.g = readbayer(x,y);
+    setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+    return;
     }
-    for(int h = 0; h<remosaic2h;h++){
-    for(int w = 0; w<remosaic2w;w++){
-    int x0 = min((x+w),rawWidth-1);
-    if(x0<0) x0=0;
-    int y0 = min((y+h),rawHeight-1);
-    if(y0<0) y0=0;
-    bool fact1 = ((x+w)%2 == 1);
-    bool fact2 = ((y+h)%2 == 1);
-    if(0){
-    //if(fact1+fact2 == 0 || fact1+fact2 == 2){//Green Channel gradient interpolation
-    //if(fact1+fact2 != 0){//Green Channel gradient interpolation
-    float DH =fabs(grad0-grad2);
-    float DV =fabs(grad1-grad3);
-    float outpu;
-    float gradavr = (grad0+grad1+grad2+grad3)/4.f;
-    if(DH > DV){
-          outpu = (grad1+grad3)/2.f;
+    if(fact1 == 0 && fact2 == 0) {//bggr
+        float4 green;
+        green.r = readbayer(x-1,y);
+        green.g = readbayer(x+1,y);
+        green.b = readbayer(x,y-1);
+        green.a = readbayer(x,y+1);
+        float DH =fabs(green.r-green.b);//Horiz grad
+        float DV =fabs(green.g-green.a);//Vert grad
+        if(DH > DV){
+        infl.g = (green.g+green.a)/2.f;
+        //if((grad[1]+grad[3]) > grad[0]+grad[2] && grad[4]<avr){
+        //outpu = (grad[0]+grad[2])/2.;
+        //}
         } else
         if(DV > DH){
-          outpu = (grad0+grad2)/2.f;
+        infl.g = (green.r+green.b)/2.f;
+        //if((grad[1]+grad[3]) < grad[0]+grad[2] && grad[4]<avr){
+        //outpu = (grad[1]+grad[3])/2.;
+        //}
         } else {
-            outpu = gradavr;
+        infl.g = (green.r+green.g+green.b+green.a)/4.f;
         }
-    if(grad0*1.f > gradavr && grad2*1.f  > gradavr &&
-     grad1 < gradavr && grad3 < gradavr){
-         if(grad4>gradavr*2.4f)outpu = (grad0+grad2)/2.f;
-     }
-    if(grad1*1.f > gradavr && grad3*1.f  > gradavr &&
-      grad2 < gradavr && grad0 < gradavr){
-          if(grad4>gradavr*2.4f)outpu = (grad1+grad3)/2.f;
+        float4 red;
+        red.r = readbayer(x-1,y-1);
+        red.g = readbayer(x+1,y-1);
+        red.b = readbayer(x-1,y+1);
+        red.a = readbayer(x+1,y+1);
+        infl.r = (red.r+red.g+red.b+red.a)/4.f;
+        infl.b = readbayer(x,y);
+        setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+        return;
     }
-    getbayer(w,h).g = outpu;
+    if(fact1 == 0 && fact2 == 0) {//rggb
+        float4 green;
+        green.r = readbayer(x-1,y);
+        green.g = readbayer(x+1,y);
+        green.b = readbayer(x,y-1);
+        green.a = readbayer(x,y+1);
+        float DH =fabs(green.r-green.b);//Horiz grad
+        float DV =fabs(green.g-green.a);//Vert grad
+        if(DH > DV){
+        infl.g = (green.g+green.a)/2.f;
+        //if((grad[1]+grad[3]) > grad[0]+grad[2] && grad[4]<avr){
+        //outpu = (grad[0]+grad[2])/2.;
+        //}
+        } else
+        if(DV > DH){
+        infl.g = (green.r+green.b)/2.f;
+        //if((grad[1]+grad[3]) < grad[0]+grad[2] && grad[4]<avr){
+        //outpu = (grad[1]+grad[3])/2.;
+        //}
+        } else {
+        infl.g = (green.r+green.g+green.b+green.a)/4.f;
+        }
+        float4 red;
+        red.r = readbayer(x-1,y-1);
+        red.g = readbayer(x+1,y-1);
+        red.b = readbayer(x-1,y+1);
+        red.a = readbayer(x+1,y+1);
+        infl.b = (red.r+red.g+red.b+red.a)/4.f;
+        infl.r = readbayer(x,y);
+        setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+        return;
     }
-
-   float3 infl;
-   float in = getbayer(w,h).g;
-   infl.r = in;
-   infl.g = in;
-   infl.b = in;
-   setc4(x0,y0,remosaicOut,rsPackColorTo8888(infl));
-   }
-  }
+    if(fact1 == 0 && fact2 == 0) {//gbrg
+    infl.r = (readbayer(x,y+1)+readbayer(x,y-1))/2.f;
+    infl.b = (readbayer(x+1,y)+readbayer(x-1,y))/2.f;
+    infl.g = readbayer(x,y);
+    setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
+    return;
+    }
 }
