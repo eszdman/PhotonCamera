@@ -519,7 +519,7 @@ void RS_KERNEL remosaic(uint x, uint y) {
 }
 #define readbayer(x,y)(clamp(((float)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f))
 #define mingreen (0.01f)
-void RS_KERNEL remosaic2(uint x, uint y) {
+void RS_KERNEL demosaic2(uint x, uint y) {
     bool fact1 = ((x)%2 == 1);
     bool fact2 = ((y)%2 == 1);
     float3 infl;

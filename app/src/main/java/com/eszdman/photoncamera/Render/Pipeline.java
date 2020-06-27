@@ -58,7 +58,7 @@ public class Pipeline {
             //remosaicIn1 = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize),Allocation.USAGE_GRAPHICS_TEXTURE);
             //nodes.initial.set_remosaicIn1(remosaicIn1);
             //nodes.initial.forEach_blurdem(def);
-            nodes.initial.forEach_remosaic2(rUtils.Range(new Point(2,2), new Point((params.rawSize.x*2 - 2),(params.rawSize.y*2 - 2))));
+            nodes.initial.forEach_demosaic2(rUtils.Range(new Point(2,2), new Point((params.rawSize.x*2 - 2),(params.rawSize.y*2 - 2))));
         } else {
             //remosaicIn1 = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
             //ByteBuffer buff = ByteBuffer.allocate(params.rawSize.x*2*params.rawSize.y*2*4);
