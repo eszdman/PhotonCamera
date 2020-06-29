@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="request_permission">Denna app behöver rättigheter för att använda Kameran.</string>
+    <string name="camera_error">Denna telefon stödjer ej Camera2 API.</string>
+    <string name="frame_count">Antal Bilder:</string>
+    <string name="turn_on_system_nr">Sätt på System Denoise</string>
+    <string name="settings">Inställningar</string>
+    <string name="sharpness">Skarpa:</string>
+    <string name="turn_on_grid">Visa Grid Mönster</string>
+</resources>

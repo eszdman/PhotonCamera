@@ -7,7 +7,10 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -19,6 +22,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 
 public class SettingsActivity extends AppCompatActivity {
+    //Here
     TextView luma;
     TextView framestext;
     TextView chroma;
@@ -26,6 +30,9 @@ public class SettingsActivity extends AppCompatActivity {
     Switch disablealign;
     Switch enhanced;
     Switch gridOnOff;
+    Switch roundoption;
+    Switch rawSaving;
+    Switch remosaic;
 
     SeekBar frameCount;
     SeekBar lumenCount;
@@ -42,7 +49,7 @@ public class SettingsActivity extends AppCompatActivity {
     TextView sharptext;
     TextView contrasttext;
     TextView compgaintext;
-
+    Spinner cfaList;
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
@@ -55,6 +62,7 @@ public class SettingsActivity extends AppCompatActivity {
         return findViewById(id);
     }
 
+    //SeekBar listeners
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -97,7 +105,7 @@ public class SettingsActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.frameCount = frameCount.getProgress();
                 framestext.setText(res.getText(R.string.frame_count).toString() + Interface.i.settings.frameCount);
-                if (FrameNumberSelector.frameCount == 1) framestext.setText("Unprocessed Output");
+                if (Interface.i.settings.frameCount == 1) framestext.setText("Unprocessed Output");
             }
 
             @Override
@@ -198,6 +206,20 @@ public class SettingsActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+
+        cfaList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+              @Override
+              public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                  Interface.i.settings.cfaPatern = position;
+              }
+
+              @Override
+              public void onNothingSelected(AdapterView<?> parent) {
+                  Interface.i.settings.cfaPatern = 0;
+              }
+          }
+        );
+
         set();
     }
 
@@ -210,6 +232,7 @@ public class SettingsActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    //Here
     void set() {
         setv(disablealign, !Interface.i.settings.align);
         setv(frameCount, Interface.i.settings.frameCount);
@@ -217,16 +240,25 @@ public class SettingsActivity extends AppCompatActivity {
         setv(lumenCount, Interface.i.settings.lumenCount);
         setv(enhanced, Interface.i.settings.enhancedProcess);
         setv(gridOnOff, Interface.i.settings.grid);
+        setv(roundoption, Interface.i.settings.roundedge);
+        setv(rawSaving,Interface.i.settings.rawSaver);
+        setv(remosaic,Interface.i.settings.remosaic);
+
         setv(sharp, Interface.i.settings.sharpness);
         setv(contrastconst, Interface.i.settings.contrastConst);
         setv(contrastmul, Interface.i.settings.contrastMpy);
         setv(compress, Interface.i.settings.compressor);
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
+        setv(cfaList,Interface.i.settings.cfaPatern);
+        load();
     }
-
+    //And here
     void views() {
         gridOnOff = getView(R.id.setting_grid);
+        roundoption = getView(R.id.setting_roundedge);
+        rawSaving = getView(R.id.setting_raw);
+        remosaic = getView(R.id.setting_remosaic);
         turnNR = getView(R.id.setting_turnNR);
         disablealign = getView(R.id.setting_disablealign);
         framestext = getView(R.id.setting_framecounter);
@@ -247,8 +279,9 @@ public class SettingsActivity extends AppCompatActivity {
         contrasttext = getView(R.id.settings_contrasttext);
         compgaintext = getView(R.id.setting_compgainrext);
         sattext = getView(R.id.setting_sattext);
+        cfaList = getView(R.id.setting_cfa);
     }
-
+    //Also here
     void get() {
         views();
         if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
@@ -256,6 +289,9 @@ public class SettingsActivity extends AppCompatActivity {
         Interface.i.settings.align = !disablealign.isChecked();
         Interface.i.settings.enhancedProcess = enhanced.isChecked();
         Interface.i.settings.grid = gridOnOff.isChecked();
+        Interface.i.settings.roundedge = roundoption.isChecked();
+        Interface.i.settings.rawSaver = rawSaving.isChecked();
+        Interface.i.settings.remosaic = remosaic.isChecked();
         save();
     }
 
@@ -280,32 +316,32 @@ public class SettingsActivity extends AppCompatActivity {
     int cnt2 = 0;
 
     void putview(Switch in) {
-        sharedPreferencesEditor.putBoolean("SettingsView:" + cnt2, in.isChecked());
+        sharedPreferencesEditor.putBoolean(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.isChecked());
         cnt2++;
     }
 
     void putview(TextView in) {
-        sharedPreferencesEditor.putString("SettingsView:" + cnt2, in.getText().toString());
+        sharedPreferencesEditor.putString(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getText().toString());
         cnt2++;
     }
 
     void putview(SeekBar in) {
-        sharedPreferencesEditor.putInt("SettingsView:" + cnt2, in.getProgress());
+        sharedPreferencesEditor.putInt(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getProgress());
         cnt2++;
     }
 
     void getview(Switch in) {
-        in.setChecked(sharedPreferences.getBoolean("SettingsView:" + cnt2, in.isChecked()));
+        in.setChecked(sharedPreferences.getBoolean(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.isChecked()));
         cnt2++;
     }
 
     void getview(TextView in) {
-        in.setText(sharedPreferences.getString("SettingsView:" + cnt2, in.getText().toString()));
+        in.setText(sharedPreferences.getString(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getText().toString()));
         cnt2++;
     }
 
     void getview(SeekBar in) {
-        in.setProgress(sharedPreferences.getInt("SettingsView:" + cnt2, in.getProgress()));
+        in.setProgress(sharedPreferences.getInt(Interface.i.settings.mCameraID+"SettingsView:" + cnt2, in.getProgress()));
         cnt2++;
     }
 
@@ -322,6 +358,10 @@ public class SettingsActivity extends AppCompatActivity {
         in.setProgress(val);
     }
 
+    void setv(Spinner in, int val)
+    {
+        in.setSelection(val);
+    }
     void setv(SeekBar in, double val) {
         val *= 100;
         setv(in, (int) val);

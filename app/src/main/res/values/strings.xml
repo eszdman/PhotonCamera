@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PhotonCam</string>
+    <string name="app_name" translatable="false">Photon Camera</string>
     <string name="request_permission">This app needs camera permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
     <string name="luma_nr_count">Luma NR count:</string>
@@ -19,4 +19,7 @@
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness:</string>
     <string name="turn_on_grid">Show grid</string>
+    <string name="raw">Save RAW</string>
+    <string name="turn_on_round_edges">Enable round edges</string>
+    <string name="enable_remosaic">Enable Remosaic</string>
 </resources>

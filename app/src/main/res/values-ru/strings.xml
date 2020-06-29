@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">PhotonCam</string>
     <string name="request_permission">Эта камера требует разрешения.</string>
     <string name="camera_error">Этот девайс не поддерживает Camera2 API.</string>
     <string name="luma_nr_count">Световое шумоподавление:</string>
@@ -18,4 +17,7 @@
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Резкость:</string>
+    <string name="turn_on_grid">Сетка</string>
+    <string name="turn_on_round_edges">Скругления</string>
+    <string name="enable_remosaic">Включить ремозаик</string>
 </resources>

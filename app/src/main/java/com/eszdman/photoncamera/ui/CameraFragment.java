@@ -44,10 +44,11 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -63,7 +64,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
@@ -76,7 +76,6 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.api.Settings;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -153,11 +152,10 @@ public class CameraFragment extends Fragment
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
-    public static final int prevFormat = ImageFormat.YUV_420_888;
+    public static final int yuvFormat = ImageFormat.YUV_420_888;
+    public static final int prevFormat = yuvFormat;
     public static int mTargetFormat = rawFormat;
     public static int mPreviewTargetFormat = prevFormat;
-
-    //public static int Interface.i.settings.framecount = 3;
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
@@ -192,14 +190,13 @@ public class CameraFragment extends Fragment
     /**
      * ID of the current {@link CameraDevice}.
      */
-    public String mCameraId;
 
     public String[] mCameraIds;
 
     /**
      * An {@link AutoFitTextureView} for camera preview.
      */
-    private AutoFitTextureView mTextureView;
+    public AutoFitTextureView mTextureView;
 
     /**
      * A {@link CameraCaptureSession } for camera preview.
@@ -260,20 +257,24 @@ public class CameraFragment extends Fragment
     /*A {@link Handler} for running tasks in the background.*/
     private Handler mBackgroundHandler;
     /*An {@link ImageReader} that handles still image capture.*/
-    private ImageReader mImageReader;
-    private ImageReader mImageReaderRes;
+    private ImageReader mImageReaderYuv;
+    private ImageReader mImageReaderRaw;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
      */
-    private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
+    private ImageSaver imageSaver;
+    private final ImageReader.OnImageAvailableListener mOnYuvImageAvailableListener
             = new ImageReader.OnImageAvailableListener() {
-
         @Override
         public void onImageAvailable(ImageReader reader) {
-            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
+            //imageSaver.mImage = reader.acquireNextImage();
+            //imageSaver.Process(reader);
+            Message msg = new Message();
+            msg.obj = reader;
+            imageSaver.ProcessCall.sendMessage(msg);
+            //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
-
     };
     private final ImageReader.OnImageAvailableListener mOnRawImageAvailableListener
             = new ImageReader.OnImageAvailableListener() {
@@ -281,7 +282,11 @@ public class CameraFragment extends Fragment
         @Override
         public void onImageAvailable(ImageReader reader) {
             //dequeueAndSaveImage(mRawResultQueue, mRawImageReader);
-            mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
+            //imageSaver.mImage = reader.acquireNextImage();
+            Message msg = new Message();
+            msg.obj = reader;
+            imageSaver.ProcessCall.sendMessage(msg);
+            //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 
     };
@@ -293,6 +298,17 @@ public class CameraFragment extends Fragment
      * The current state of camera state for taking pictures.
      */
     public int mState = STATE_PREVIEW;
+
+    /**
+     * Timer to use with pre-capture sequence to ensure a timely capture if 3A convergence is
+     * taking too long.
+     */
+    private long mCaptureTimer;
+
+    /**
+     * Timeout for the pre-capture sequence.
+     */
+    private static final long PRECAPTURE_TIMEOUT_MS = 1000;
 
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
@@ -308,7 +324,7 @@ public class CameraFragment extends Fragment
     /**
      * Orientation of the camera sensor
      */
-    private int mSensorOrientation;
+    public int mSensorOrientation;
     int[] mCameraAfModes;
 
     /**
@@ -325,7 +341,16 @@ public class CameraFragment extends Fragment
                 }
                 case STATE_WAITING_LOCK: {
                     Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                    // If we haven't finished the pre-capture sequence but have hit our maximum
+                    // wait timeout, too bad! Begin capture anyway.
+                    if (hitTimeoutLocked()) {
+                        Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
+                        mState = STATE_PICTURE_TAKEN;
+                        mPreviewResult = result;
+                        captureStillPicture();
+                    }
                     if (afState == null) {
+                        mState = STATE_PICTURE_TAKEN;
                         mPreviewResult = result;
                         captureStillPicture();
                     } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
@@ -354,6 +379,7 @@ public class CameraFragment extends Fragment
                     break;
                 }
                 case STATE_WAITING_NON_PRECAPTURE: {
+
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
@@ -378,8 +404,10 @@ public class CameraFragment extends Fragment
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-            mPreviewExposuretime = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-            mPreviewIso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            if(exposure != null) mPreviewExposuretime = (long)exposure;
+            if(iso != null) mPreviewIso = (int)iso;
             process(result);
         }
 
@@ -477,10 +505,10 @@ public class CameraFragment extends Fragment
             }
             case R.id.flip_camera: {
                 ImageButton flip = view.findViewById(R.id.flip_camera);
-                flip.animate().rotation(flip.getRotation() - 360).start();
-                mCameraId = cycler(mCameraId, mCameraIds);
+                flip.animate().rotation(flip.getRotation() - 360).setDuration(400).start();
+                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
                 restartCamera();
-                showToast("Afmodes:" + mCameraAfModes.length);
+                //showToast("Afmodes:" + mCameraAfModes.length);
                 break;
             }
             case R.id.settings: {
@@ -496,7 +524,7 @@ public class CameraFragment extends Fragment
                     mTargetFormat = rawFormat;
                     Interface.i.settings.hdrx = true;
                 } else {
-                    mTargetFormat = ImageFormat.YUV_420_888;
+                    mTargetFormat = yuvFormat;
                     Interface.i.settings.hdrx = false;
                 }
                 restartCamera();
@@ -531,7 +559,6 @@ public class CameraFragment extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        //hdrX.setChecked(Interface.i.settings.hdrx); TODO @Urnyx05 fix your togglebutton
         mTextureView = view.findViewById(R.id.texture);
     }
 
@@ -544,10 +571,16 @@ public class CameraFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
+        Log.d(TAG,"CameraResume");
+        MainActivity.act.onCameraResume();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
+        ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
+        Interface.i.gravity.run();
         if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
+        if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
+        else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
@@ -560,7 +593,9 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onPause() {
+        Interface.i.gravity.stop();
         closeCamera();
+        Interface.i.settings.saveID();
         stopBackgroundThread();
         super.onPause();
     }
@@ -592,18 +627,42 @@ public class CameraFragment extends Fragment
         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
             return sizes.get(s);
         else {
-            Size target = sizes.get(s - 1);
-            Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-            Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            double k = (double) (target.getHeight()) / act.bottom;
-            mul(pre, k);
-            mul(act, k);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
-            return target;
+            if(sizes.size()>1) {
+                Size target = sizes.get(s - 1);
+                Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                double k = (double) (target.getHeight()) / act.bottom;
+                mul(pre, k);
+                mul(act, k);
+                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+                return target;
+            }
         }
+        return null;
     }
-
+     private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
+        if(in == null) return mPreviewSize;
+         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
+         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
+         int s = sizes.size() - 1;
+         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
+             return sizes.get(s);
+         else {
+             if(sizes.size()> 1 ) {
+                 Size target = sizes.get(s - 1);
+                 Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                 Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                 double k = (double) (target.getHeight()) / act.bottom;
+                 mul(pre, k);
+                 mul(act, k);
+                 CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+                 CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+                 return target;
+             }
+         }
+         return mPreviewSize;
+     }
     /**
      * Sets up member variables related to camera.
      *
@@ -617,17 +676,20 @@ public class CameraFragment extends Fragment
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        //CameraManager2 manager2 = new CameraManager2(manager);
+        // manager2.CameraArr(manager);
         try {
-            for (String cameraId : manager.getCameraIdList()) {
                 CameraCharacteristics characteristics
-                        = manager.getCameraCharacteristics(cameraId);
+                        = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
                 mCameraCharacteristics = characteristics;
                 mPreviewwidth = width;
                 mPreviewheight = height;
-                UpdateCameraCharacteristics(cameraId);
-                mCameraId = cameraId;
+                UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
+                imageSaver = new ImageSaver();
+                //Thread thr = new Thread(imageSaver);
+                //thr.start();
+                mBackgroundHandler.post(imageSaver);
                 return;
-            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (NullPointerException e) {
@@ -656,29 +718,33 @@ public class CameraFragment extends Fragment
         if (map == null) {
             return;
         }
-        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
-        mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, Interface.i.settings.frameCount + 3);
-        mImageReader.setOnImageAvailableListener(
-                mOnImageAvailableListener, mBackgroundHandler);
-        mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+        Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
+        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
+        int maxjpg = 3;
+        if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.i.settings.frameCount+3;
+        mImageReaderYuv = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+                mPreviewTargetFormat, maxjpg);
+        mImageReaderYuv.setOnImageAvailableListener(
+                mOnYuvImageAvailableListener, mBackgroundHandler);
+        mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mTargetFormat, Interface.i.settings.frameCount + 3);
-        mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
+        mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
-        int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        int displayRotation = Interface.i.gravity.getRotation();
+        //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         //noinspection ConstantConditions
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         boolean swappedDimensions = false;
         switch (displayRotation) {
-            case Surface.ROTATION_0:
-            case Surface.ROTATION_180:
+            case 0:
+            case 180:
                 if (mSensorOrientation == 90 || mSensorOrientation == 270) {
                     swappedDimensions = true;
                 }
                 break;
-            case Surface.ROTATION_90:
-            case Surface.ROTATION_270:
+            case 90:
+            case 270:
                 if (mSensorOrientation == 0 || mSensorOrientation == 180) {
                     swappedDimensions = true;
                 }
@@ -730,8 +796,7 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
-
-        mCameraId = cameraId;
+        MainActivity.onCameraInitialization();
     }
 
     @SuppressLint("MissingPermission")
@@ -747,17 +812,17 @@ public class CameraFragment extends Fragment
                 mCameraDevice.close();
                 mCameraDevice = null;
             }
-            if (null != mImageReader) {
-                mImageReader.close();
-                mImageReader = null;
-                mImageReaderRes.close();
-                mImageReaderRes = null;
+            if (null != mImageReaderYuv) {
+                mImageReaderYuv.close();
+                mImageReaderYuv = null;
+                mImageReaderRaw.close();
+                mImageReaderRaw = null;
             }
             if (null != mPreviewRequestBuilder) {
                 mPreviewRequestBuilder = null;
             }
             stopBackgroundThread();
-            UpdateCameraCharacteristics(mCameraId);
+            UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
         } catch (Exception e) {
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
         } finally {
@@ -768,46 +833,39 @@ public class CameraFragment extends Fragment
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         StreamConfigurationMap map = null;
         try {
-            map = manager.getCameraCharacteristics(mCameraId).get(
+            map = manager.getCameraCharacteristics(Interface.i.settings.mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        /*Size[] sizes = new Size[map.getOutputSizes(ImageFormat.JPEG).length];
-        Size largest = Collections.max(
-                Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
-                new CompareSizesByArea());
-        if(largest.getHeight()*largest.getWidth() >= 25000000){
-            for(int i = 0; i<sizes.length; i++)
-            {
-                Size cur = map.getOutputSizes(ImageFormat.JPEG)[i];
-                if(cur.getWidth()*cur.getHeight() >= 25000000) sizes[i] = new Size(0,0);
-                else sizes[i] = cur;
-            }
-        }*/
-        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat));
+        Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
+        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
+        int max = 3;
+        if(mTargetFormat == mPreviewTargetFormat) max = Interface.i.settings.frameCount + 3;
         //largest = target;
-        mImageReader = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mPreviewTargetFormat, /*maxImages*/Interface.i.settings.frameCount + 3);
-        mImageReader.setOnImageAvailableListener(
-                mOnImageAvailableListener, mBackgroundHandler);
-        mImageReaderRes = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+        mImageReaderYuv = ImageReader.newInstance(target.getWidth(), target.getHeight(),
+                mPreviewTargetFormat, /*maxImages*/max);
+        mImageReaderYuv.setOnImageAvailableListener(
+                mOnYuvImageAvailableListener, mBackgroundHandler);
+
+        mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mTargetFormat, Interface.i.settings.frameCount + 3);
-        mImageReaderRes.setOnImageAvailableListener(
+        mImageReaderRaw.setOnImageAvailableListener(
                 mOnRawImageAvailableListener, mBackgroundHandler);
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to restart camera.", e);
         }
         //stopBackgroundThread();
-        UpdateCameraCharacteristics(mCameraId);
+        UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
         startBackgroundThread();
+        mBackgroundHandler.post(imageSaver);
     }
     /*public void restartCamera2{
         Intent intent = new Intent(MainActivity.act, CameraActivity.class);
@@ -840,7 +898,7 @@ public class CameraFragment extends Fragment
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(mCameraId, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -862,11 +920,11 @@ public class CameraFragment extends Fragment
                 mCameraDevice.close();
                 mCameraDevice = null;
             }
-            if (null != mImageReader) {
-                mImageReader.close();
-                mImageReader = null;
-                mImageReaderRes.close();
-                mImageReaderRes = null;
+            if (null != mImageReaderYuv) {
+                mImageReaderYuv.close();
+                mImageReaderYuv = null;
+                mImageReaderRaw.close();
+                mImageReaderRaw = null;
             }
             mState = STATE_CLOSED;
         } catch (InterruptedException e) {
@@ -883,6 +941,7 @@ public class CameraFragment extends Fragment
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+        //mBackgroundHandler.post(imageSaver);
     }
 
     /**
@@ -920,10 +979,12 @@ public class CameraFragment extends Fragment
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface(), mImageReaderRes.getSurface()),
+            List surfaces = Arrays.asList(surface, mImageReaderYuv.getSurface(), mImageReaderRaw.getSurface());
+            if(mTargetFormat == mPreviewTargetFormat){
+                surfaces = Arrays.asList(surface, mImageReaderYuv.getSurface());
+            }
+            mCameraDevice.createCaptureSession(surfaces,
                     new CameraCaptureSession.StateCallback() {
-
-                        @RequiresApi(api = Build.VERSION_CODES.O)
                         @Override
                         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                             // The camera is already closed
@@ -974,7 +1035,7 @@ public class CameraFragment extends Fragment
         if (null == mTextureView || null == mPreviewSize || null == activity) {
             return;
         }
-        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
         Matrix matrix = new Matrix();
         RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
@@ -1015,6 +1076,7 @@ public class CameraFragment extends Fragment
      */
     private void lockFocus() {
         try {
+            startTimerLocked();
             // This is how to tell the camera to lock focus.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CameraMetadata.CONTROL_AF_TRIGGER_START);
@@ -1061,11 +1123,13 @@ public class CameraFragment extends Fragment
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
-            captureBuilder.addTarget(mImageReaderRes.getSurface());
+            if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
+            else captureBuilder.addTarget(mImageReaderYuv.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
-            setAutoFlash(captureBuilder);
-            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
+            Log.d(TAG,"CaptureBuilderStarted!");
+            //setAutoFlash(captureBuilder);
+            //int rotation = Interface.i.gravity.getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.i.gravity.getCameraRotation());
             ArrayList<CaptureRequest> captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
             lightcycle.setMax(FrameNumberSelector.frameCount);
@@ -1074,7 +1138,11 @@ public class CameraFragment extends Fragment
                 captures.add(captureBuilder.build());
             }
             //img
+            Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
+            Log.d(TAG,"CaptureStarted!");
+            lightcycle.setAlpha(1.0f);
+            mTextureView.setAlpha(0.5f);
             CameraCaptureSession.CaptureCallback CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -1082,6 +1150,7 @@ public class CameraFragment extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     lightcycle.setProgress(lightcycle.getProgress() + 1);
+                    Log.d(TAG,"Completed!");
                     mCaptureResult = result;
                     /*burstcount[0]++;
                     if (burstcount[0] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
@@ -1100,16 +1169,20 @@ public class CameraFragment extends Fragment
 
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                    lightcycle.setAlpha(1.0f);
-                    mTextureView.setAlpha(0.5f);
+                    Log.d(TAG,"FrameCaptureStarted! FrameNumber:"+frameNumber);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
                 }
 
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
-                    lightcycle.setAlpha(0f);
-                    lightcycle.setProgress(0);
-                    mTextureView.setAlpha(1f);
+                    Log.d(TAG,"SequenceCompleted");
+                    try {
+                        lightcycle.setAlpha(0f);
+                        lightcycle.setProgress(0);
+                        mTextureView.setAlpha(1f);
+                    } catch (Exception e){
+                    e.printStackTrace();
+                    }
                     unlockFocus();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
@@ -1133,6 +1206,7 @@ public class CameraFragment extends Fragment
                 }
             };
             mCaptureSession.stopRepeating();
+            //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
             mCaptureSession.captureBurst(captures, CaptureCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -1227,7 +1301,6 @@ public class CameraFragment extends Fragment
             dialog.setArguments(args);
             return dialog;
         }
-
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -1242,6 +1315,25 @@ public class CameraFragment extends Fragment
                     })
                     .create();
         }
+    }
 
+    /**
+     * Start the timer for the pre-capture sequence.
+     * <p/>
+     * Call this only with {@link #mCameraStateLock} held.
+     */
+    private void startTimerLocked() {
+        mCaptureTimer = SystemClock.elapsedRealtime();
+    }
+
+    /**
+     * Check if the timer for the pre-capture sequence has been hit.
+     * <p/>
+     * Call this only with {@link #mCameraStateLock} held.
+     *
+     * @return true if the timeout occurred.
+     */
+    private boolean hitTimeoutLocked() {
+        return (SystemClock.elapsedRealtime() - mCaptureTimer) > PRECAPTURE_TIMEOUT_MS;
     }
 }

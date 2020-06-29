@@ -23,7 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="60dp"
-        android:background="@color/colorPrimaryDark">
+        android:background="@color/colorPrimaryDark"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -40,7 +41,7 @@
                 <TextView
                     android:id="@+id/setting_framecounter"
                     android:layout_width="match_parent"
-                    android:layout_height="45dp"
+                    android:layout_height="@dimen/SettingSize2"
                     android:drawableStart="@drawable/ic_burst_mode_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -61,7 +62,7 @@
                 <Switch
                     android:id="@+id/setting_grid"
                     android:layout_width="match_parent"
-                    android:layout_height="65dp"
+                    android:layout_height="@dimen/SettingSize1"
                     android:drawableStart="@drawable/ic_settings_grid"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -69,18 +70,43 @@
                     android:text="@string/turn_on_grid"
                     android:textSize="16sp" />
 
+                <Switch
+                    android:id="@+id/setting_roundedge"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/SettingSize1"
+                    android:drawableStart="@drawable/ic_rounded_corner"
+                    android:drawablePadding="20dp"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center|start|center_horizontal"
+                    android:text="@string/turn_on_round_edges"
+                    android:textSize="16sp" />
+
+                <Switch
+                    android:id="@+id/setting_raw"
+                    android:layout_width="match_parent"
+                    android:drawableStart="@drawable/ic_raw"
+                    android:drawablePadding="20dp"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center|start|center_horizontal"
+                    android:text="@string/raw"
+                    android:textSize="16sp"
+                    android:layout_height="@dimen/SettingSize1" />
+
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:paddingStart="44dp"
                     android:text="@string/jpg"
-                    android:textAlignment="center"
-                    android:textSize="30sp" />
+                    android:textAlignment="viewStart"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorText"/>
 
                 <Switch
                     android:id="@+id/setting_turnNR"
                     android:layout_width="match_parent"
-                    android:layout_height="65dp"
+                    android:layout_height="@dimen/SettingSize1"
                     android:drawableStart="@drawable/ic_gradient_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -91,7 +117,7 @@
                 <Switch
                     android:id="@+id/setting_disablealign"
                     android:layout_width="match_parent"
-                    android:layout_height="65dp"
+                    android:layout_height="@dimen/SettingSize1"
                     android:drawableStart="@drawable/ic_format_align_justify_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -102,7 +128,7 @@
                 <TextView
                     android:id="@+id/setting_chroma"
                     android:layout_width="match_parent"
-                    android:layout_height="45dp"
+                    android:layout_height="@dimen/SettingSize2"
                     android:drawableStart="@drawable/ic_grain_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -123,7 +149,7 @@
                 <TextView
                     android:id="@+id/setting_luma"
                     android:layout_width="match_parent"
-                    android:layout_height="45dp"
+                    android:layout_height="@dimen/SettingSize2"
                     android:drawableStart="@drawable/ic_blur_on_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -144,7 +170,7 @@
                 <Switch
                     android:id="@+id/setting_enhanced"
                     android:layout_width="match_parent"
-                    android:layout_height="65dp"
+                    android:layout_height="@dimen/SettingSize1"
                     android:drawableStart="@drawable/ic_tune_black_24dp"
                     android:drawablePadding="20dp"
                     android:fontFamily="sans-serif"
@@ -156,14 +182,31 @@
                     android:id="@+id/textView2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:paddingStart="44dp"
                     android:text="@string/hdrx"
-                    android:textAlignment="center"
-                    android:textSize="30sp" />
+                    android:textAlignment="viewStart"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorText"/>
+
+                <Switch
+                    android:id="@+id/setting_remosaic"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/SettingSize1"
+                    android:drawableStart="@drawable/ic_gradient_black_24dp"
+                    android:drawablePadding="20dp"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center|start|center_horizontal"
+                    android:text="@string/enable_remosaic"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/settings_sharpnesstext"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
+                    android:drawableStart="@drawable/ic_straighten"
+                    android:drawablePadding="20dp"
                     android:gravity="center_vertical"
                     android:text="@string/sharpness"
                     android:textColor="@color/White"
@@ -182,9 +225,12 @@
                     android:id="@+id/settings_contrasttext"
                     android:layout_width="match_parent"
                     android:layout_height="45dp"
+                    android:drawableStart="@drawable/ic_contrast"
+                    android:drawablePadding="20dp"
                     android:gravity="center_vertical"
                     android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    android:visibility="gone" />
 
                 <SeekBar
                     android:id="@+id/setting_contrmpy"
@@ -193,21 +239,25 @@
                     android:layout_marginStart="30dp"
                     android:max="200"
                     android:min="0"
-                    android:progress="-1" />
+                    android:progress="-1"
+                    android:visibility="gone" />
 
                 <SeekBar
                     android:id="@+id/setting_contrconst"
                     android:layout_width="match_parent"
                     android:layout_height="30dp"
                     android:layout_marginStart="30dp"
-                    android:max="10000"
-                    android:min="-10000"
-                    android:progress="-10000" />
+                    android:max="1024"
+                    android:min="-700"
+                    android:progress="-10000"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/setting_sattext"
                     android:layout_width="match_parent"
-                    android:layout_height="45dp"
+                    android:layout_height="@dimen/SettingSize2"
+                    android:drawableStart="@drawable/ic_saturation"
+                    android:drawablePadding="20dp"
                     android:gravity="center_vertical"
                     android:text="@string/saturation"
                     android:textColor="@color/White"
@@ -225,7 +275,9 @@
                 <TextView
                     android:id="@+id/setting_compgainrext"
                     android:layout_width="match_parent"
-                    android:layout_height="45dp"
+                    android:layout_height="@dimen/SettingSize2"
+                    android:drawableStart="@drawable/ic_compressor"
+                    android:drawablePadding="20dp"
                     android:gravity="center_vertical"
                     android:textColor="@color/White"
                     android:textSize="16sp" />
@@ -235,8 +287,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="30dp"
                     android:layout_marginStart="30dp"
-                    android:max="1000"
-                    android:min="100"
+                    android:max="200"
+                    android:min="50"
                     android:progress="0" />
 
                 <SeekBar
@@ -245,8 +297,14 @@
                     android:layout_height="30dp"
                     android:layout_marginStart="30dp"
                     android:max="200"
-                    android:min="0"
+                    android:min="50"
                     android:progress="-1" />
+
+                <Spinner
+                    android:id="@+id/setting_cfa"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/SettingSize1"
+                    android:entries="@array/cfapat" />
 
             </LinearLayout>
         </LinearLayout>
