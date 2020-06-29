@@ -6,6 +6,7 @@ import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
+import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
@@ -55,8 +56,11 @@ public class ParseExif {
         assert inter != null;
         inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
-        Log.d(TAG, "sensivity:"+result.get(SENSOR_SENSITIVITY).toString());
-        inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY,result.get(SENSOR_SENSITIVITY).toString());
+        Object iso = result.get(SENSOR_SENSITIVITY);
+        int isonum = 100;
+        if(iso != null) isonum = (int)((int)(iso)*IsoExpoSelector.getMPY());
+        Log.d(TAG, "sensivity:"+isonum);
+        inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
         inter.setAttribute(TAG_F_NUMBER,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_FOCAL_LENGTH,result.get(LENS_FOCAL_LENGTH).toString());
         inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());

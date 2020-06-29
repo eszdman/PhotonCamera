@@ -21,9 +21,9 @@ public class Manual {
     public void Init() {
         SeekBar isoSlider = Interface.i.mainActivity.findViewById(R.id.isoSlider);
         TextView isoValue = Interface.i.mainActivity.findViewById(R.id.isoValue);
-        int miniso = IsoExpoSelector.getISOLOW();
+        int miniso = IsoExpoSelector.getISOLOWExt();
         isoSlider.setMin(1);
-        isoSlider.setMax(IsoExpoSelector.getISOHIGH()/miniso);
+        isoSlider.setMax(IsoExpoSelector.getISOHIGHExt()/miniso);
         isoSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

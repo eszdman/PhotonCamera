@@ -1,23 +1,21 @@
 package com.eszdman.photoncamera.Parameters;
 
-import android.hardware.SensorEventListener;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
-        ExpoPair pair = new ExpoPair();
-        pair.iso = CameraFragment.context.mPreviewIso;
-        pair.exposure = CameraFragment.context.mPreviewExposuretime;
+        ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
+                CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+        pair.normalizeiso100();
         Log.d(TAG, "InputParams: expo time:" + pair.exposure + " iso:" + pair.iso);
         if (pair.iso >= 12700) {
             pair.ReduceIso();
@@ -28,16 +26,16 @@ public class IsoExpoSelector {
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 3000) {
             pair.ReduceIso();
         }
-        if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
+        if (pair.exposure < ExposureIndex.sec / 13 && pair.iso > 1500) {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
-        if(step == 0){
-            if(pair.iso < 500){
-                pair.ReduceExpo();
+        if(step == 1){
+            if(pair.iso <= 150){
+                pair.ReduceExpo(2);
             }
-            if(pair.iso < 500*2.1){
-                pair.ReduceExpo();
+            if(pair.iso <= 310){
+                pair.ReduceExpo(1.5);
             }
         }
         if (pair.iso >= 100 * 1.35) pair.iso *= 0.65;
@@ -45,6 +43,7 @@ public class IsoExpoSelector {
                 pair.exposure *= 0.65;
             }
         }
+        pair.denormalizeSystem();
         if(Interface.i.settings.ManualMode){
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = Interface.i.manual.isovalue;
@@ -56,20 +55,32 @@ public class IsoExpoSelector {
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, pair.iso);
     }
 
-    public static int getISOHIGH() {
+
+    public static double getMPY(){
+        return 50.0/getISOLOW();
+    }
+    private static int mpyIso(int in){
+        return (int)(in*getMPY());
+    }
+    private static int getISOHIGH() {
         Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 3200;
         else {
             return (int) ((Range) (key)).getUpper();
         }
     }
-
-    public static int getISOLOW() {
+    public static int getISOHIGHExt() {
+        return mpyIso(getISOHIGH());
+    }
+    private static int getISOLOW() {
         Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 100;
         else {
             return (int) ((Range) (key)).getLower();
         }
+    }
+    public static int getISOLOWExt() {
+        return mpyIso(getISOLOW());
     }
     public static long getEXPHIGH() {
         Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
@@ -87,16 +98,44 @@ public class IsoExpoSelector {
     }
     static class ExpoPair {
         long exposure;
+        long exposurehigh,exposurelow;
         int iso;
+        int isolow,isohigh;
+        public ExpoPair(long expo,long expl,long exph,int is,int islow,int ishigh){
+            exposure = expo;
+            iso = is;
+            exposurehigh = exph;
+            exposurelow = expl;
+            isolow = islow;
+            isohigh = ishigh;
+        }
+        public void normalizeiso100(){
+            double mpy = 100.0/isolow;
+            iso*=mpy;
+        }
+        public void denormalizeSystem(){
+            double div = 100.0/isolow;
+            iso/=div;
+        }
+        public void normalize(){
+            if(iso > isohigh) iso = isohigh;
+            if(iso < isolow) iso = isolow;
+            if(exposure > exposurehigh) exposure = exposurehigh;
+            if(exposure < exposurelow) exposure = exposurelow;
+        }
         public void ReduceIso(){
             iso/=2;
             exposure*=2;
-            if(iso < getISOLOW()) iso = getISOLOW();
+            normalize();
         }
         public void ReduceExpo(){
-            iso*=2;
-            exposure/=2;
-            if(exposure <getEXPLOW()) exposure = getEXPLOW();
+            ReduceExpo(2);
         }
+        public void ReduceExpo(double k){
+            iso*=k;
+            exposure/=k;
+            normalize();
+        }
+
     }
 }

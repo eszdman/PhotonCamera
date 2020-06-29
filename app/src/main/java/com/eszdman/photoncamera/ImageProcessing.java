@@ -290,7 +290,9 @@ public class ImageProcessing {
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
         Wrapper.init(width, height, curimgs.size());
         Log.d(TAG, "Wrapper.init");
-        for (int i = 0; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
+        Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer().asReadOnlyBuffer());
+        Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer().asReadOnlyBuffer());
+        for (int i = 2; i < curimgs.size(); i++) Wrapper.loadFrame(curimgs.get(i).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Log.d(TAG, "Wrapper.loadFrame");
         ByteBuffer output = Wrapper.processFrame();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
