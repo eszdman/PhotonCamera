@@ -30,6 +30,15 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
+        if (pair.iso >= 100 * 1.35) pair.iso *= 0.65;
+            else {
+                pair.exposure *= 0.65;
+            }
+        }
+        if(Interface.i.settings.ManualMode){
+            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
+            pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
+        }
         if(step == 1){
             if(pair.iso <= 150){
                 pair.ReduceExpo(2);
@@ -37,19 +46,17 @@ public class IsoExpoSelector {
             if(pair.iso <= 310){
                 pair.ReduceExpo(1.5);
             }
-        }
-        if (pair.iso >= 100 * 1.35) pair.iso *= 0.65;
-            else {
-                pair.exposure *= 0.65;
+            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 2000){
+                pair.ReduceExpo(2.0);
+            }
+            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 2000){
+                pair.ReduceExpo(2.0);
+            }
+            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 3000){
+                pair.ReduceExpo(1.5);
             }
         }
         pair.denormalizeSystem();
-        if(Interface.i.settings.ManualMode){
-            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
-            pair.iso = Interface.i.manual.isovalue;
-        }
-        pair.iso = Math.max(getISOLOW(), pair.iso);
-        pair.iso = Math.min(getISOHIGH(), pair.iso);
         Log.d(TAG, "IsoSelected:" + pair.iso + " ExpoSelected:" + pair.exposure + " step:"+step);
         builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, pair.exposure);
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, pair.iso);
@@ -132,9 +139,11 @@ public class IsoExpoSelector {
             ReduceExpo(2);
         }
         public void ReduceExpo(double k){
+            Log.d(TAG,"ExpoReducing iso:"+iso+" expo:"+ exposure);
             iso*=k;
             exposure/=k;
             normalize();
+            Log.d(TAG,"ExpoReducing done iso:"+iso+" expo:"+ exposure);
         }
 
     }
