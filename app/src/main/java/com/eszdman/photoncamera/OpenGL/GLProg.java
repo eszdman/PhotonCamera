@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
 import static android.opengl.GLES20.glGetAttribLocation;
 import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES30.GL_COMPILE_STATUS;
@@ -59,11 +60,11 @@ public class GLProg {
 
     //TODO fix
     public void useProgram(int fragmentRes) {
-       // int program = createProgram(vertexShader);
-
-//        glLinkProgram(program);
-//        glUseProgram(program);
-//        currentProgramActive = program;
+        int nShader = compileShader(GL_FRAGMENT_SHADER,"");
+        int program = createProgram(vertexShader,nShader, new String[]{""});
+        glLinkProgram(program);
+        glUseProgram(program);
+        currentProgramActive = program;
 
         mTextureBinds.clear();
         mNewTextureId = 0;
@@ -114,7 +115,7 @@ public class GLProg {
      * @param attributes           Attributes that need to be bound to the program.
      * @return An OpenGL handle to the program.
      */
-    public void createProgram(final int vertexShaderHandle, final int fragmentShaderHandle, final String[] attributes) {
+    public int createProgram(final int vertexShaderHandle, final int fragmentShaderHandle, final String[] attributes) {
         int programHandle = glCreateProgram();
 
         if (programHandle != 0) {
@@ -152,6 +153,7 @@ public class GLProg {
         }
 
         mPrograms.add(programHandle);
+        return programHandle;
     }
 
     private int vPosition() {

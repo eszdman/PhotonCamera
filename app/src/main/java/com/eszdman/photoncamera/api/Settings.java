@@ -12,7 +12,9 @@ import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
 import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
@@ -36,7 +38,7 @@ import static android.hardware.camera2.CaptureRequest.TONEMAP_PRESET_CURVE;
 public class Settings {
     private String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
-    public int afMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+    public int afMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
     public int frameCount = 25;
     public int lumenCount = 3;
     public int chromaCount = 12;

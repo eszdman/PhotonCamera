@@ -20,13 +20,13 @@ public class IsoExpoSelector {
         if (pair.iso >= 12700) {
             pair.ReduceIso();
         }
-        if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 300) {
+        if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 3000) {
             pair.ReduceIso();
         }
-        if (pair.exposure < ExposureIndex.sec / 13 && pair.iso > 1500) {
+        if (pair.exposure < ExposureIndex.sec / 13 && pair.iso > 750) {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
@@ -40,20 +40,32 @@ public class IsoExpoSelector {
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
         if(step == 1){
-            if(pair.iso <= 150){
-                pair.ReduceExpo(2);
-            }
-            if(pair.iso <= 310){
-                pair.ReduceExpo(1.5);
-            }
-            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 2000){
+            if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70){
                 pair.ReduceExpo(2.0);
+                //Interface.i.camera.showToast("Base frame parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
+                if(pair.normalizeCheck()){
+                    pair.ReduceExpo(1.0/2.0);
+                }
             }
-            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 2000){
-                pair.ReduceExpo(2.0);
-            }
-            if(pair.exposure > ExposureIndex.sec/4 && pair.iso <= 3000){
+            if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50){
                 pair.ReduceExpo(1.5);
+                //Interface.i.camera.showToast("Base frame parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
+                if(pair.normalizeCheck()){
+                    pair.ReduceExpo(1.0/1.5);
+                }
+            }
+            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/6 && pair.iso*3.5 <= 2100){
+                pair.ReduceExpo(3.5);
+                if(pair.normalizeCheck()) Interface.i.camera.showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
+                else {
+                    //Interface.i.camera.showToast("Base frame parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
+                }
+                if(pair.normalizeCheck()){
+                    pair.ReduceExpo(1.0/3.5);
+                }
+                if(pair.normalizeCheck()){
+                    pair.ReduceExpo(1.0/2.0);
+                }
             }
         }
         pair.denormalizeSystem();
@@ -125,10 +137,20 @@ public class IsoExpoSelector {
             iso/=div;
         }
         public void normalize(){
-            if(iso > isohigh) iso = isohigh;
-            if(iso < isolow) iso = isolow;
+            double div = 100.0/isolow;
+            if(iso/div > isohigh) iso = isohigh;
+            if(iso/div < isolow) iso = isolow;
             if(exposure > exposurehigh) exposure = exposurehigh;
             if(exposure < exposurelow) exposure = exposurelow;
+        }
+        public boolean normalizeCheck(){
+            double div = 100.0/isolow;
+            boolean wrongparams = false;
+            if(iso/div > isohigh) wrongparams = true;
+            if(iso/div < isolow) wrongparams = true;
+            if(exposure > exposurehigh) wrongparams = true;
+            if(exposure < exposurelow) wrongparams = true;
+            return wrongparams;
         }
         public void ReduceIso(){
             iso/=2;
