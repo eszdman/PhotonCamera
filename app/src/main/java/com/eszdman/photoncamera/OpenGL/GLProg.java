@@ -1,17 +1,7 @@
 package com.eszdman.photoncamera.OpenGL;
 
-import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-
-import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
-import com.google.android.gms.common.util.IOUtils;
-
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +14,6 @@ import static android.opengl.GLES30.GL_COMPILE_STATUS;
 import static android.opengl.GLES30.GL_LINK_STATUS;
 import static android.opengl.GLES30.GL_VERTEX_SHADER;
 import static android.opengl.GLES30.glAttachShader;
-import static android.opengl.GLES30.glBindAttribLocation;
 import static android.opengl.GLES30.glCompileShader;
 import static android.opengl.GLES30.glCreateProgram;
 import static android.opengl.GLES30.glCreateShader;
@@ -58,9 +47,8 @@ public class GLProg {
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShader);
     }
 
-    //TODO fix
     public void useProgram(int fragmentRes) {
-        int nShader = compileShader(GL_FRAGMENT_SHADER,"");
+        int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
         int program = createProgram(vertexShader,nShader);
         glLinkProgram(program);
         glUseProgram(program);
