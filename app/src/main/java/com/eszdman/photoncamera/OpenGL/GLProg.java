@@ -1,11 +1,24 @@
 package com.eszdman.photoncamera.OpenGL;
 
+import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
+
+import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.Interface;
+import com.google.android.gms.common.util.IOUtils;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static android.opengl.GLES20.glGetAttribLocation;
+import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES30.GL_COMPILE_STATUS;
 import static android.opengl.GLES30.GL_LINK_STATUS;
 import static android.opengl.GLES30.GL_VERTEX_SHADER;
@@ -31,6 +44,8 @@ public class GLProg {
     private int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
     private int currentProgramActive;
+    private final Map<String, Integer> mTextureBinds = new HashMap<>();
+    private int mNewTextureId;
 
     public GLProg() {
         String vertexShader = "#version 300 es\n" +
@@ -40,6 +55,18 @@ public class GLProg {
                 "    gl_Position = vPosition;\n" +
                 "}\n";
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShader);
+    }
+
+    //TODO fix
+    public void useProgram(int fragmentRes) {
+       // int program = createProgram(vertexShader);
+
+//        glLinkProgram(program);
+//        glUseProgram(program);
+//        currentProgramActive = program;
+
+        mTextureBinds.clear();
+        mNewTextureId = 0;
     }
 
     /**
