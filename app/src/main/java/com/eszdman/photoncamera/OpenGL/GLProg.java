@@ -61,7 +61,7 @@ public class GLProg {
     //TODO fix
     public void useProgram(int fragmentRes) {
         int nShader = compileShader(GL_FRAGMENT_SHADER,"");
-        int program = createProgram(vertexShader,nShader, new String[]{""});
+        int program = createProgram(vertexShader,nShader);
         glLinkProgram(program);
         glUseProgram(program);
         currentProgramActive = program;
@@ -112,10 +112,9 @@ public class GLProg {
      *
      * @param vertexShaderHandle   An OpenGL handle to an already-compiled vertex shader.
      * @param fragmentShaderHandle An OpenGL handle to an already-compiled fragment shader.
-     * @param attributes           Attributes that need to be bound to the program.
      * @return An OpenGL handle to the program.
      */
-    public int createProgram(final int vertexShaderHandle, final int fragmentShaderHandle, final String[] attributes) {
+    public int createProgram(final int vertexShaderHandle, final int fragmentShaderHandle) {
         int programHandle = glCreateProgram();
 
         if (programHandle != 0) {
@@ -125,13 +124,6 @@ public class GLProg {
             // Bind the fragment shader to the program.
             glAttachShader(programHandle, fragmentShaderHandle);
 
-            // Bind attributes
-            if (attributes != null) {
-                final int size = attributes.length;
-                for (int i = 0; i < size; i++) {
-                    glBindAttribLocation(programHandle, i, attributes[i]);
-                }
-            }
 
             // Link the two shaders together into a program.
             glLinkProgram(programHandle);
