@@ -8,7 +8,7 @@ android {
     def versionBuild
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
-    ndkVersion "21.1.6352462"
+    ndkVersion "21.3.6528147"
     lintOptions {
         abortOnError false
     }
@@ -100,5 +100,5 @@ dependencies {
     implementation 'org.jocl:jocl:2.0.2'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.google.firebase:firebase-analytics:17.4.3'
-    implementation 'com.google.firebase:firebase-crashlytics-ndk:17.0.1'
+    implementation 'com.google.firebase:firebase-crashlytics-ndk:17.1.0'
 }

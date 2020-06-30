@@ -32,7 +32,7 @@ public class GLTexture implements AutoCloseable {
     GLTexture(Point size, int GL_InternalFormat,GLFormat glFormat, Buffer pixels){
         this.mSize = size;
         this.mGLFormat = GL_InternalFormat;
-        int TexID[] = new int[1];
+        int[] TexID = new int[1];
         glGenTextures(TexID.length, TexID, 0);
         mTextureID = TexID[0];
         glActiveTexture(GL_TEXTURE16);
