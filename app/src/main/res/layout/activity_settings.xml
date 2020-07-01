@@ -33,8 +33,10 @@
 
             <LinearLayout
                 android:id="@+id/settings"
-                android:layout_width="349dp"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
                 android:layout_gravity="center_horizontal|center_vertical"
                 android:orientation="vertical">
 
