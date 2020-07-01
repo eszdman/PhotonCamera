@@ -28,7 +28,7 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            pair.ReduceIso(1.5);
+            if(step != 1) pair.ReduceIso(1.5);
         }
         if (pair.iso >= 12700) {
             pair.ReduceIso();
@@ -45,17 +45,14 @@ public class IsoExpoSelector {
         }
         if(step == 1){
             if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70){
-                pair.FixedExpo(1.0/150);
+                pair.ReduceExpo();
             }
             if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50){
-                pair.FixedExpo(1.0/90);
+                pair.ReduceExpo();
             }
-            if(pair.exposure < ExposureIndex.sec*3.00 && pair.iso < 2100){
+            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3     && pair.iso < 2100){
                 pair.FixedExpo(1.0/8);
                 if(pair.normalizeCheck()) Interface.i.camera.showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
-                if(pair.normalizeCheck()){
-                    pair.ReduceExpo(1.0/2.0);
-                }
             }
         }
         pair.denormalizeSystem();
@@ -155,21 +152,23 @@ public class IsoExpoSelector {
         }
         public void ReduceIso(){
             ReduceIso(2.0);
+            if(normalizeCheck()){
+                ReduceIso(1.0/2);
+            }
         }
         public void ReduceIso(double k){
             iso/=k;
             exposure*=k;
-            normalize();
         }
         public void ReduceExpo(){
-            ReduceExpo(2);
+            ReduceExpo(2.0);
+            if(normalizeCheck()) ReduceExpo(1.0/2);
         }
         public void ReduceExpo(double k){
-            Log.d(TAG,"ExpoReducing iso:"+iso+" expo:"+ exposure);
+            Log.d(TAG,"ExpoReducing iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
             iso*=k;
             exposure/=k;
-            normalize();
-            Log.d(TAG,"ExpoReducing done iso:"+iso+" expo:"+ exposure);
+            Log.d(TAG,"ExpoReducing done iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
         }
         public void FixedExpo(double expo){
             long expol = ExposureIndex.sec2time(expo);
