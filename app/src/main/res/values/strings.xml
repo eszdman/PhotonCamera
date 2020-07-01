@@ -22,4 +22,5 @@
     <string name="raw">Save RAW</string>
     <string name="turn_on_round_edges">Enable round edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
+    <string name="general">General</string>
 </resources>

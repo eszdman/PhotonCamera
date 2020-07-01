@@ -16,4 +16,5 @@
     <string name="sharpness">Nitidezza:</string>
     <string name="turn_on_round_edges">Mostra angoli curvi</string>
     <string name="raw">Salva RAW</string>
+    <string name="general">Generali</string>
 </resources>

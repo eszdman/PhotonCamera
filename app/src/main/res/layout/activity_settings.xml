@@ -41,6 +41,17 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/textView0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="44dp"
+                    android:text="@string/general"
+                    android:textAlignment="viewStart"
+                    android:textColor="@color/colorText"
+                    android:textSize="15sp"
+                    android:textStyle="normal" />
+
+                <TextView
                     android:id="@+id/setting_framecounter"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/SettingSize2"
@@ -94,6 +105,14 @@
                     android:textSize="16sp"
                     android:layout_height="@dimen/SettingSize1" />
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.5dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:background="#CFD8DC"
+                    android:layout_marginBottom="15dp"/>
+
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
@@ -101,8 +120,8 @@
                     android:paddingStart="44dp"
                     android:text="@string/jpg"
                     android:textAlignment="viewStart"
-                    android:textSize="30sp"
-                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textStyle="normal"
                     android:textColor="@color/colorText"/>
 
                 <Switch
@@ -180,6 +199,14 @@
                     android:textColor="@color/White"
                     android:textSize="16sp" />
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.5dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:background="#CFD8DC"
+                    android:layout_marginBottom="15dp"/>
+
                 <TextView
                     android:id="@+id/textView2"
                     android:layout_width="match_parent"
@@ -187,8 +214,8 @@
                     android:paddingStart="44dp"
                     android:text="@string/hdrx"
                     android:textAlignment="viewStart"
-                    android:textSize="30sp"
-                    android:textStyle="bold"
+                    android:textSize="15sp"
+                    android:textStyle="normal"
                     android:textColor="@color/colorText"/>
 
                 <Switch

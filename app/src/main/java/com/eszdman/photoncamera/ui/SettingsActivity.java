@@ -74,7 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.chromaCount = chromaCount.getProgress();
-                chroma.setText(res.getText(R.string.chroma_nr_count).toString() + Interface.i.settings.chromaCount);
+                chroma.setText(res.getText(R.string.chroma_nr_count).toString() + " " + Interface.i.settings.chromaCount);
             }
 
             @Override
@@ -89,7 +89,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.lumenCount = lumenCount.getProgress();
-                luma.setText(res.getText(R.string.luma_nr_count).toString() + Interface.i.settings.lumenCount);
+                luma.setText(res.getText(R.string.luma_nr_count).toString() + " " + Interface.i.settings.lumenCount);
             }
 
             @Override
@@ -104,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.frameCount = frameCount.getProgress();
-                framestext.setText(res.getText(R.string.frame_count).toString() + Interface.i.settings.frameCount);
+                framestext.setText(res.getText(R.string.frame_count).toString() + " " + Interface.i.settings.frameCount);
                 if (Interface.i.settings.frameCount == 1) framestext.setText("Unprocessed Output");
             }
 
@@ -120,7 +120,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.contrastConst = contrastconst.getProgress();
-                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrastConst);
+                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
             }
 
             @Override
@@ -135,7 +135,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.contrastMpy = getDouble(contrastmul.getProgress());
-                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + Interface.i.settings.contrastConst);
+                contrasttext.setText(res.getText(R.string.contrmul) + " " + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
             }
 
             @Override
@@ -150,7 +150,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.sharpness = getDouble(sharp.getProgress());
-                sharptext.setText(res.getText(R.string.sharpness) + String.valueOf(Interface.i.settings.sharpness));
+                sharptext.setText(res.getText(R.string.sharpness) + " " + String.valueOf(Interface.i.settings.sharpness));
             }
 
             @Override
@@ -165,7 +165,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.saturation = getDouble(satur.getProgress());
-                sattext.setText(res.getText(R.string.saturation).toString() + Interface.i.settings.saturation);
+                sattext.setText(res.getText(R.string.saturation).toString() + " " + Interface.i.settings.saturation);
             }
 
             @Override
@@ -180,7 +180,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.compressor = getDouble(compress.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + String.valueOf(Interface.i.settings.gain));
+                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + " " + String.valueOf(Interface.i.settings.gain));
             }
 
             @Override
@@ -195,7 +195,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.gain = getDouble(gains.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + String.valueOf(Interface.i.settings.gain));
+                compgaintext.setText(res.getText(R.string.comp) + " " + String.valueOf(Interface.i.settings.compressor) + "  " + res.getText(R.string.gain) + " " + String.valueOf(Interface.i.settings.gain));
             }
 
             @Override
