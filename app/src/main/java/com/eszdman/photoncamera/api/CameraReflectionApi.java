@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.api;
 import android.Manifest;
 import android.app.Application;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 
@@ -19,11 +20,10 @@ public class CameraReflectionApi {
 
     public static <T> void set(CameraCharacteristics.Key<T> key, T value) {
         try {
-            //RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
-            Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");//= CameraCharacteristics.class.getDeclaredField("mProperties");
+            Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
             Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCameraCharacteristics);//Ur camera Characteristics
-            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set",CameraCharacteristics.Key.class, Object.class);//CameraMetadataNative.getClass().getDeclaredMethod("set", CameraCharacteristics.Key.class, Object.class);
+            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set",CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
         } catch (Exception e) {
@@ -33,11 +33,22 @@ public class CameraReflectionApi {
 
     public static <T> void set(CaptureResult.Key<T> key, T value) {
         try {
-            //Field CameraMetadataNativeField = CaptureResult.class.getDeclaredField("mResults");
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureResult.class,"mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCaptureResult);//Ur camera CaptureResult
-            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureResult.Key.class, Object.class);//CameraMetadataNative.getClass().getDeclaredMethod("set", CaptureResult.Key.class, Object.class);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCaptureResult);
+            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureResult.Key.class, Object.class);
+            set.setAccessible(true);
+            set.invoke(CameraMetadataNative, key, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public static <T> void set(CaptureRequest request,CaptureRequest.Key<T> key, T value) {
+        try {
+            Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureRequest.class,"mLogicalCameraSettings");
+            CameraMetadataNativeField.setAccessible(true);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(request);
+            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureRequest.Key.class, Object.class);
             set.setAccessible(true);
             set.invoke(CameraMetadataNative, key, value);
         } catch (Exception e) {
@@ -62,13 +73,7 @@ public class CameraReflectionApi {
             Method set = RestrictionBypass.getDeclaredMethod(SystemProperties,"set",String.class,String.class);
             set.setAccessible(true);
             set.invoke(null,key,val);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
 

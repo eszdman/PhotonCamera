@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
+import android.util.Range;
 
 import com.eszdman.photoncamera.ui.MainActivity;
 
@@ -15,6 +16,7 @@ import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
@@ -25,7 +27,9 @@ import static android.hardware.camera2.CameraMetadata.TONEMAP_PRESET_CURVE_SRGB;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
 import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
@@ -38,7 +42,10 @@ import static android.hardware.camera2.CaptureRequest.TONEMAP_PRESET_CURVE;
 public class Settings {
     private String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
-    public int afMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+    public int afMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+    public int aeModeOn = CONTROL_AE_MODE_ON;
+    public int aeModeLock = CONTROL_AE_STATE_LOCKED;
+    public int aeCurrentPrev = CONTROL_AE_MODE_ON;
     public int frameCount = 25;
     public int lumenCount = 3;
     public int chromaCount = 12;
@@ -170,24 +177,22 @@ public class Settings {
         count = 0;
     }
     public void applyRes(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(JPEG_QUALITY, (byte) 100);
         captureBuilder.set(NOISE_REDUCTION_MODE, Interface.i.settings.noiseReduction);
         captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
         captureBuilder.set(COLOR_CORRECTION_MODE, COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_STATE_LOCKED);
+        captureBuilder.set(CONTROL_AE_MODE, aeModeLock);
+        captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
         captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
-        captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
     }
     @SuppressLint("InlinedApi")
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
-        //captureBuilder.set(CONTROL_ENABLE_ZSL,true);
-        captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
-        captureBuilder.set(COLOR_CORRECTION_MODE, COLOR_CORRECTION_MODE_HIGH_QUALITY);
+        captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
-        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
+        captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
+        //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float rgb[] = new float[64];

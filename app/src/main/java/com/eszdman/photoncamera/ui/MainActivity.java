@@ -28,11 +28,10 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class MainActivity extends AppCompatActivity {
 
     private CustomOrientationEventListener customOrientationEventListener;
-    final int ROTATION_O    = 1;
-    final int ROTATION_90   = 2;
-    final int ROTATION_180  = 3;
-    final int ROTATION_270  = 4;
-
+    final int Rotation90  = 2;
+    final int Rotation180 = 3;
+    final int Rotation270 = 4;
+    final int RotationDur = 350;
     public static MainActivity act;
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -67,16 +66,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         act = this;
         Interface inter = new Interface(this);
 //        Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
+
         CameraFragment.context = CameraFragment.newInstance();
         inter.camera = CameraFragment.context;
         setContentView(R.layout.activity_camera);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (null == savedInstanceState) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container, CameraFragment.context)
@@ -97,61 +96,31 @@ public class MainActivity extends AppCompatActivity {
                         TextView isoValue = findViewById(R.id.isoValue);
                         ImageView focusText = findViewById(R.id.focusText);
                         TextView focusValue = findViewById(R.id.focusValue);
+                        int rot = 0;
                         switch(orientation){
-                            case ROTATION_O:
-                                //rotate as on portrait
-                                stacking.animate().rotation(0).setDuration(350).start();
-                                settings.animate().rotation(0).setDuration(350).start();
-                                flipcam.animate().rotation(0).setDuration(350).start();
-                                gallery.animate().rotation(0).setDuration(350).start();
-                                expText.animate().rotation(0).setDuration(350).start();
-                                expValue.animate().rotation(0).setDuration(350).start();
-                                isoText.animate().rotation(0).setDuration(350).start();
-                                isoValue.animate().rotation(0).setDuration(350).start();
-                                focusText.animate().rotation(0).setDuration(350).start();
-                                focusValue.animate().rotation(0).setDuration(350).start();
-                                break;
-                            case ROTATION_90:
+                            case Rotation90:
+                                rot = -90;
                                 //rotate as left on top
-                                stacking.animate().rotation(-90).setDuration(350).start();
-                                settings.animate().rotation(-90).setDuration(350).start();
-                                flipcam.animate().rotation(-90).setDuration(350).start();
-                                gallery.animate().rotation(-90).setDuration(350).start();
-                                expText.animate().rotation(-90).setDuration(350).start();
-                                expValue.animate().rotation(-90).setDuration(350).start();
-                                isoText.animate().rotation(-90).setDuration(350).start();
-                                isoValue.animate().rotation(-90).setDuration(350).start();
-                                focusText.animate().rotation(-90).setDuration(350).start();
-                                focusValue.animate().rotation(-90).setDuration(350).start();
                                 break;
-                            case ROTATION_270:
+                            case Rotation270:
                                 //rotate as right on top
-                                stacking.animate().rotation(90).setDuration(350).start();
-                                settings.animate().rotation(90).setDuration(350).start();
-                                flipcam.animate().rotation(90).setDuration(350).start();
-                                gallery.animate().rotation(90).setDuration(350).start();
-                                expText.animate().rotation(90).setDuration(350).start();
-                                expValue.animate().rotation(90).setDuration(350).start();
-                                isoText.animate().rotation(90).setDuration(350).start();
-                                isoValue.animate().rotation(90).setDuration(350).start();
-                                focusText.animate().rotation(90).setDuration(350).start();
-                                focusValue.animate().rotation(90).setDuration(350).start();
+                                rot = 90;
                                 break;
-                            case ROTATION_180:
+                            case Rotation180:
                                 //rotate as upside down
-                                stacking.animate().rotation(180).setDuration(350).start();
-                                settings.animate().rotation(180).setDuration(350).start();
-                                flipcam.animate().rotation(180).setDuration(350).start();
-                                gallery.animate().rotation(180).setDuration(350).start();
-                                expText.animate().rotation(180).setDuration(350).start();
-                                expValue.animate().rotation(180).setDuration(350).start();
-                                isoText.animate().rotation(180).setDuration(350).start();
-                                isoValue.animate().rotation(180).setDuration(350).start();
-                                focusText.animate().rotation(180).setDuration(350).start();
-                                focusValue.animate().rotation(180).setDuration(350).start();
+                                rot = 180;
                                 break;
-
                         }
+                        stacking.animate().rotation(rot).setDuration(RotationDur).start();
+                        settings.animate().rotation(rot).setDuration(RotationDur).start();
+                        flipcam.animate().rotation(rot).setDuration(RotationDur).start();
+                        gallery.animate().rotation(rot).setDuration(RotationDur).start();
+                        expText.animate().rotation(rot).setDuration(RotationDur).start();
+                        expValue.animate().rotation(rot).setDuration(RotationDur).start();
+                        isoText.animate().rotation(rot).setDuration(RotationDur).start();
+                        isoValue.animate().rotation(rot).setDuration(RotationDur).start();
+                        focusText.animate().rotation(rot).setDuration(RotationDur).start();
+                        focusValue.animate().rotation(rot).setDuration(RotationDur).start();
                     }
                 };
     }

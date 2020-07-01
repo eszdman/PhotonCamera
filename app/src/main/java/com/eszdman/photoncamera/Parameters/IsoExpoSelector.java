@@ -25,7 +25,7 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            pair.ReduceIso();
+            if(step != 1) pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
             if(step != 1) pair.ReduceIso(1.5);
@@ -50,7 +50,7 @@ public class IsoExpoSelector {
             if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50){
                 pair.ReduceExpo();
             }
-            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3     && pair.iso < 2100){
+            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3 && pair.iso < 2100){
                 pair.FixedExpo(1.0/8);
                 if(pair.normalizeCheck()) Interface.i.camera.showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
             }
@@ -171,9 +171,11 @@ public class IsoExpoSelector {
             Log.d(TAG,"ExpoReducing done iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
         }
         public void FixedExpo(double expo){
+
             long expol = ExposureIndex.sec2time(expo);
             double k = (double)exposure/expol;
             ReduceExpo(k);
+            Log.d(TAG,"ExpoFixating iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
             if(normalizeCheck()) ReduceExpo(1/k);
         }
     }

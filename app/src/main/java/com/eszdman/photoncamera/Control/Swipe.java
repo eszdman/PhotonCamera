@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.Control;
 import android.annotation.SuppressLint;
+import android.graphics.Paint;
+import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -12,14 +14,13 @@ import android.view.animation.AnimationUtils;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
 
 public class Swipe {
     private static String TAG = "Swipe";
     private GestureDetector gestureDetector;
     private View.OnTouchListener touchListener;
-    private TextureView.SurfaceTextureListener textureListener;
-    public Surface previewSurface;
     @SuppressLint("ClickableViewAccessibility")
     public void RunDetection(){
         Log.d(TAG,"SwipeDetection - ON");
@@ -49,13 +50,16 @@ public class Swipe {
                 } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffY > 0) {
                         Log.d(TAG, "Bottom");//it swipes from top to bottom
-                        if(Interface.i.settings.ManualMode)manualmode.startAnimation(slideDown);
+                        if(Interface.i.settings.ManualMode) manualmode.startAnimation(slideDown);
                         Interface.i.settings.ManualMode = false;
+                        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.i.settings.aeModeOn);
+                        Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.GONE);
                     } else {
                         Log.d(TAG, "Top");//it swipes from bottom to top
-                        if(!Interface.i.settings.ManualMode)manualmode.startAnimation(slideUp);
+                        if(!Interface.i.settings.ManualMode) manualmode.startAnimation(slideUp);
                         Interface.i.settings.ManualMode = true;
+                        Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.VISIBLE);
                     }
                     return true;
