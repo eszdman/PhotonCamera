@@ -51,8 +51,12 @@ public class Camera2ApiAutoFix {
         Range exprange = characteristics.get(SENSOR_INFO_EXPOSURE_TIME_RANGE);
         if(exprange == null) return;
         if((long)exprange.getUpper() < ExposureIndex.sec/7){
-            Log.d(TAG,"Applied Fix ExposureTime");
+            Log.d(TAG,"Applied Fix ExposureTime no CIT");
             Range nrange = new Range(exprange.getLower(),ExposureIndex.sec/3);
+            CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE,nrange);
+        } else if((long)exprange.getUpper() > ExposureIndex.sec*5/6 && (long)exprange.getUpper() < ExposureIndex.sec*2){
+            Log.d(TAG,"Applied Fix ExposureTime2 CIT SHIFT");
+            Range nrange = new Range(exprange.getLower(),(long)(ExposureIndex.sec*5.2));
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE,nrange);
         }
     }

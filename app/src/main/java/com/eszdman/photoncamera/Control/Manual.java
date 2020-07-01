@@ -41,6 +41,7 @@ public class Manual {
 
             }
         });
+        isoSlider.setProgress(isoSlider.getMin());
         isoSlider.setProgress(isoSlider.getMax()/2);
         SeekBar expSlider = Interface.i.mainActivity.findViewById(R.id.expSlider);
         TextView expValue = Interface.i.mainActivity.findViewById(R.id.expValue);
@@ -70,7 +71,8 @@ public class Manual {
 
             }
         });
-        expSlider.setProgress(expSlider.getMax()/2);
+        expSlider.setProgress(expSlider.getMin());
+        expSlider.setProgress(expSlider.getMax()/4);
         SeekBar focusSlider = Interface.i.mainActivity.findViewById(R.id.focusSlider);
         TextView focusValue = Interface.i.mainActivity.findViewById(R.id.focusValue);
         focusSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
