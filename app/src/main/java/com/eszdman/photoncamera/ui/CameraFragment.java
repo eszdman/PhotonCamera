@@ -330,7 +330,7 @@ public class CameraFragment extends Fragment
      */
     public int mSensorOrientation;
     int[] mCameraAfModes;
-
+    public boolean is30Fps = true;
     /**
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
@@ -414,21 +414,26 @@ public class CameraFragment extends Fragment
             if(iso != null) mPreviewIso = (int)iso;
             process(result);
         }
-        boolean is30Fps = true;
+
+        //Automatic 60fps preview
         @Override
         public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
             super.onCaptureStarted(session, request, timestamp, frameNumber);
             if(frameNumber % 20 == 19){
-                if(ExposureIndex.index()+0.7 > 8.0){
+                if(ExposureIndex.index()+0.9 > 8.0){
                     if(!is30Fps) {
-                        CameraReflectionApi.set(mPreviewRequest, CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(24, 30));
+                        Log.d(TAG,"Changed preview target 30fps");
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(15, 30));
+                        mPreviewRequest = mPreviewRequestBuilder.build();
                         rebuildPreview();
                         is30Fps = true;
                     }
                 } else {
                     if(is30Fps)
                     {
-                        CameraReflectionApi.set(mPreviewRequest, CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(24, 60));
+                        Log.d(TAG,"Changed preview target 60fps");
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(15, 60));
+                        mPreviewRequest = mPreviewRequestBuilder.build();
                         rebuildPreview();
                         is30Fps = false;
                     }
@@ -997,7 +1002,6 @@ public class CameraFragment extends Fragment
 
             // This is the output Surface we need to start preview.
             Surface surface = new Surface(texture);
-
             // We set up a CaptureRequest.Builder with the output Surface.
             mPreviewRequestBuilder
                     = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
@@ -1024,9 +1028,16 @@ public class CameraFragment extends Fragment
                                 // Flash is automatically enabled when necessary.
                                 setAutoFlash(mPreviewRequestBuilder);
                                 Interface.i.settings.applyPrev(mPreviewRequestBuilder);
+
                                 //lightcycle.setVisibility(View.INVISIBLE);
                                 // Finally, we start displaying the camera preview.
+                                if(Interface.i.camera.is30Fps){
+                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,30));
+                                } else {
+                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
+                                }
                                 mPreviewRequest = mPreviewRequestBuilder.build();
+
                                 //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest,
                                         mCaptureCallback, mBackgroundHandler);
@@ -1143,6 +1154,7 @@ public class CameraFragment extends Fragment
      * Capture a still picture. This method should be called when we get a response in
      * {@link #mCaptureCallback} from both {@link #lockFocus()}.
      */
+    private boolean FixPreview = false;
     private void captureStillPicture() {
         try {
             final Activity activity = getActivity();
@@ -1155,6 +1167,8 @@ public class CameraFragment extends Fragment
             // Use the same AE and AF modes as the preview.
             //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
             //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
+            mCaptureSession.stopRepeating();
+            FixPreview = true;
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderYuv.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
@@ -1216,6 +1230,7 @@ public class CameraFragment extends Fragment
                     e.printStackTrace();
                     }
                     unlockFocus();
+                    FixPreview = false;
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
 
@@ -1229,6 +1244,7 @@ public class CameraFragment extends Fragment
                             lightcycle.setProgress(0);
                             mTextureView.setAlpha(1f);
                             unlockFocus();
+                            FixPreview = false;
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
@@ -1237,7 +1253,7 @@ public class CameraFragment extends Fragment
                     super.onCaptureProgressed(session, request, partialResult);
                 }
             };
-            mCaptureSession.stopRepeating();
+
             //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
             mCaptureSession.captureBurst(captures, CaptureCallback, null);
         } catch (CameraAccessException e) {

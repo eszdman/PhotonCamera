@@ -69,9 +69,10 @@ public class Pipeline {
             //Imgproc.demosaicing(inp,out,Imgproc.COLOR_BayerBG2RGB);
             //remosaicIn1 = rUtils.allocateIO(out,rUtils.CreateBgr8(new Point(params.rawSize.x*2,params.rawSize.y*2)));
             //nodes.initial.set_remosaicIn1(remosaicIn1);
+            nodes.initial.forEach_blurdem(def);
             nodes.initial.set_rawWidth(params.rawSize.x * 2);
             nodes.initial.set_rawHeight(params.rawSize.y * 2);
-            nodes.initial.forEach_demosaicmask(rUtils.Range(new Point(2, 2), new Point((params.rawSize.x * 2 - 2), (params.rawSize.y * 2 - 2))));
+            nodes.initial.forEach_demosaicmask(rUtils.Range(new Point(8, 8), new Point((params.rawSize.x * 2 - 8), (params.rawSize.y * 2 - 8))));
         }
         //nodes.initial.forEach_remosaic2(rUtils.Range(new Point(0,0), new Point((params.rawSize.x*2)/2,(params.rawSize.y*2)/2)));
         //nodes.initial.forEach_remosaic2nopt(rUtils.Range(new Point(1,1), new Point(((params.rawSize.x*2 - 2)/4),((params.rawSize.y*2 - 2))/4)));

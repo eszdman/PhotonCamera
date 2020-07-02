@@ -28,7 +28,7 @@ public class IsoExpoSelector {
             if(step != 1) pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if(step != 1) pair.ReduceIso(1.5);
+            if(step != 1) pair.ReduceIso(1.25);
         }
         if (pair.iso >= 12700) {
             pair.ReduceIso();

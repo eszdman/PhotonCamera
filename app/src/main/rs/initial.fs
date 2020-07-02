@@ -196,9 +196,9 @@ static float3 applyColorspace(float3 pRGB) {
     pRGB.x = clamp(pRGB.x, 0.f, neutralPoint.x);
     pRGB.y = clamp(pRGB.y, 0.f, neutralPoint.y);
     pRGB.z = clamp(pRGB.z, 0.f, neutralPoint.z);
-    float3 intermediate = rsMatrixMultiply(&sensorToIntermediate, pRGB);
-    intermediate = tonemap(intermediate);
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(rsMatrixMultiply(&intermediateToSRGB, intermediate), 0.f, 1.f)));
+    pRGB = rsMatrixMultiply(&sensorToIntermediate, pRGB);
+    pRGB = tonemap(pRGB);
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(rsMatrixMultiply(&intermediateToSRGB, pRGB), 0.f, 1.f)));
 }
 // Blacklevel subtract, and normalize each pixel in the outputArray, and apply the
 // gain map.
@@ -273,7 +273,7 @@ void RS_KERNEL color(uint x, uint y) {
     sRGB = applyColorspace(pRGB);
     //Apply additional saturation
     //sRGB = ExposureCompression(sRGB);
-    sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor);
+    sRGB = mix(dot(sRGB.rgb, gMonoMult), sRGB.rgb, saturationFactor+sRGB.g*0.2f+sRGB.b*0.2f);
     setc4(x,y,iobuffer,rsPackColorTo8888(sRGB));
 }
 #define colthr 4.1f
@@ -303,10 +303,10 @@ void RS_KERNEL blurdem(uint x, uint y) {
     in[7] = geth3(x,normy(y+2),demosaicOut);
     //in[8] = geth3(x+1,y+1,demosaicOut);
 
-
-    out +=   (in[1])/5.f;
-    out +=   (in[3]+in[4]+in[5])/5.f;
-    out +=   (in[7])/5.f;
+    out =   (in[1]);
+    out +=(in[3]+in[4]+in[5]);
+    out +=   (in[7]);
+    out/=5.f;
     //out = in[4];
     //half3 diff1,diff2;
     seth3(x,y,remosaicIn1,out);
@@ -315,36 +315,52 @@ void RS_KERNEL blurdem(uint x, uint y) {
 void RS_KERNEL demosaicmask(uint x, uint y) {
     bool fact1 = (x%2 == 1);
     bool fact2 = (y%2 == 1);
-    half3 blurred = geth3(x/2,y/2,demosaicOut);
-    uchar4 input;
-     input = getc4(x/2,y/2,iobuffer);
-     float3 infl;
-     infl.r = ((float)input.r)/255.f;
-     infl.g = ((float)input.g)/255.f;
-     infl.b = ((float)input.b)/255.f;
+    half3 blurred = geth3(x/2,y/2,remosaicIn1);
+    float3 infl;
+    uchar4 input = getc4(x/2,(y/2-2),iobuffer);
+    infl.r = ((float)input.r);
+    infl.g = ((float)input.g);
+    infl.b = ((float)input.b);
+    input = getc4((x/2-2),y/2,iobuffer);
+    infl.r += ((float)input.r);
+    infl.g += ((float)input.g);
+    infl.b += ((float)input.b);
+    input = getc4(x/2,y/2,iobuffer);
+    infl.r += ((float)input.r);
+    infl.g += ((float)input.g);
+    infl.b += ((float)input.b);
+    input = getc4((x/2+2),y/2,iobuffer);
+    infl.r += ((float)input.r);
+    infl.g += ((float)input.g);
+    infl.b += ((float)input.b);
+    input = getc4(x/2,(y/2+2),iobuffer);
+    infl.r += ((float)input.r);
+    infl.g += ((float)input.g);
+    infl.b += ((float)input.b);
+    infl/=255.f*(5.f);
      half mosaic[4];
      mosaic[0] = clamp(((half)(getraw(x + cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
      mosaic[1] = clamp(((half)(getraw(x +1+ cfaPattern%2,y + cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
      mosaic[2] = clamp(((half)(getraw(x + cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
      mosaic[3] = clamp(((half)(getraw(x +1+ cfaPattern%2,y +1+ cfaPattern/2)) - blacklevel[0]) / (whitelevel - blacklevel[0]), 0.f, 1.f);
         float3 output;
-            if(fact1 ==0 % fact2 == 0) {//grbg
+            if(fact1 ==0 && fact2 == 0) {//grbg
                 //befinfl = mosin;
                 output.b = mosaic[2];
                 output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[1];
-            }
-            if(fact1 ==1 % fact2 == 0) {//bggr
+            } else
+            if(fact1 ==1 && fact2 == 0) {//bggr
                 output.b = mosaic[0];
                 output.g = (mosaic[2]+mosaic[1])/2.f;
                 output.r = mosaic[3];
-            }
-            if(fact1 ==0 % fact2 == 1) {//rggb
+            } else
+            if(fact1 ==0 && fact2 == 1) {//rggb
                 output.b = mosaic[3];
                 output.g = (mosaic[1]+mosaic[2])/2.f;
                 output.r = mosaic[0];
             }
-            if(fact1 == 1 % fact2 == 1) {//gbrg
+            else  {//gbrg
                 output.b = mosaic[1];
                 output.g = (mosaic[0]+mosaic[3])/2.f;
                 output.r = mosaic[2];
@@ -352,7 +368,14 @@ void RS_KERNEL demosaicmask(uint x, uint y) {
             output.r-=blurred.r;
             output.g-=blurred.g;
             output.b-=blurred.b;
-            infl+=(output.r+output.g+output.b)*remosaicSharp/3.f;
+            float outp = (output.r+output.g+output.b);
+            outp/=3.f;
+            if((outp)>0.03f) outp = 0.03f;
+            else if(outp<-0.03f) outp = -0.03f;
+            //outp*=1.5f-(infl.r+infl.g+infl.b)/3.f;
+            //if(outp > 0.5f) outp=(outp+0.5f)*0.3f;
+            //if(outp < -0.5f) outp=(outp-0.5f)*0.3f;
+            infl+=outp*remosaicSharp;
             //infl+=output*remosaicSharp;
             setc4(x,y,remosaicOut,rsPackColorTo8888(infl));
 }
