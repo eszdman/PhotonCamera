@@ -35,8 +35,6 @@
                 android:id="@+id/settings"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginLeft="15dp"
-                android:layout_marginRight="15dp"
                 android:layout_gravity="center_horizontal|center_vertical"
                 android:orientation="vertical">
 
@@ -44,296 +42,333 @@
                     android:id="@+id/textView0"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="44dp"
+                    android:paddingStart="59dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/general"
                     android:textAlignment="viewStart"
                     android:textColor="@color/colorText"
-                    android:textSize="15sp"
+                    android:textSize="18sp"
                     android:textStyle="normal" />
 
-                <TextView
-                    android:id="@+id/setting_framecounter"
+                <LinearLayout
+                    android:id="@+id/settingsGeneral"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize2"
-                    android:drawableStart="@drawable/ic_burst_mode_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center_vertical"
-                    android:text="@string/frame_count"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:paddingLeft="15dp"
+                    android:paddingRight="15dp"
+                    android:layout_gravity="center_horizontal|center_vertical"
+                    android:background="@drawable/card_layout"
+                    android:orientation="vertical">
 
-                <SeekBar
-                    android:id="@+id/setting_framecnt"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="50"
-                    android:min="1"
-                    android:progress="0" />
+                    <TextView
+                        android:id="@+id/setting_framecounter"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize2"
+                        android:drawableStart="@drawable/ic_burst_mode_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center_vertical"
+                        android:text="@string/frame_count"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <Switch
-                    android:id="@+id/setting_grid"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_settings_grid"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center|start|center_horizontal"
-                    android:text="@string/turn_on_grid"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/setting_framecnt"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="50"
+                        android:min="1"
+                        android:progress="0" />
 
-                <Switch
-                    android:id="@+id/setting_roundedge"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_rounded_corner"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center|start|center_horizontal"
-                    android:text="@string/turn_on_round_edges"
-                    android:textSize="16sp" />
+                    <Switch
+                        android:id="@+id/setting_grid"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_settings_grid"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/turn_on_grid"
+                        android:textSize="16sp" />
 
-                <Switch
-                    android:id="@+id/setting_raw"
-                    android:layout_width="match_parent"
-                    android:drawableStart="@drawable/ic_raw"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center|start|center_horizontal"
-                    android:text="@string/raw"
-                    android:textSize="16sp"
-                    android:layout_height="@dimen/SettingSize1" />
+                    <Switch
+                        android:id="@+id/setting_roundedge"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_rounded_corner"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/turn_on_round_edges"
+                        android:textSize="16sp" />
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.5dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginEnd="5dp"
-                    android:background="@color/colorSeparator"
-                    android:layout_marginBottom="15dp"/>
+                    <Switch
+                        android:id="@+id/setting_raw"
+                        android:layout_width="match_parent"
+                        android:drawableStart="@drawable/ic_raw"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/raw"
+                        android:textSize="16sp"
+                        android:layout_height="@dimen/SettingSize1" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="44dp"
+                    android:paddingStart="59dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/jpg"
                     android:textAlignment="viewStart"
-                    android:textSize="15sp"
+                    android:textSize="18sp"
                     android:textStyle="normal"
                     android:textColor="@color/colorText"/>
 
-                <Switch
-                    android:id="@+id/setting_turnNR"
+                <LinearLayout
+                    android:id="@+id/settingsJPG"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_gradient_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center|start|center_horizontal"
-                    android:text="@string/turn_on_system_nr"
-                    android:textSize="16sp" />
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:paddingLeft="15dp"
+                    android:paddingRight="15dp"
+                    android:layout_gravity="center_horizontal|center_vertical"
+                    android:background="@drawable/card_layout"
+                    android:orientation="vertical">
 
-                <Switch
-                    android:id="@+id/setting_disablealign"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_format_align_justify_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:text="@string/disable_aligning"
-                    android:textAlignment="textStart"
-                    android:textSize="16sp" />
+                    <Switch
+                        android:id="@+id/setting_turnNR"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_gradient_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/turn_on_system_nr"
+                        android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/setting_chroma"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize2"
-                    android:drawableStart="@drawable/ic_grain_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center_vertical"
-                    android:text="@string/chroma_nr_count"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <Switch
+                        android:id="@+id/setting_disablealign"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_format_align_justify_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:text="@string/disable_aligning"
+                        android:textAlignment="textStart"
+                        android:textSize="16sp" />
 
-                <SeekBar
-                    android:id="@+id/setting_chromacnt"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="65"
-                    android:min="1"
-                    android:progress="0" />
+                    <TextView
+                        android:id="@+id/setting_chroma"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize2"
+                        android:drawableStart="@drawable/ic_grain_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center_vertical"
+                        android:text="@string/chroma_nr_count"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/setting_luma"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize2"
-                    android:drawableStart="@drawable/ic_blur_on_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center_vertical"
-                    android:text="@string/luma_nr_count"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/setting_chromacnt"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="65"
+                        android:min="1"
+                        android:progress="0" />
 
-                <SeekBar
-                    android:id="@+id/setting_lumacnt"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="65"
-                    android:min="1"
-                    android:progress="0" />
+                    <TextView
+                        android:id="@+id/setting_luma"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize2"
+                        android:drawableStart="@drawable/ic_blur_on_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center_vertical"
+                        android:text="@string/luma_nr_count"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <Switch
-                    android:id="@+id/setting_enhanced"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_tune_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:text="@string/enhanced_processing"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/setting_lumacnt"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="65"
+                        android:min="1"
+                        android:progress="0" />
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="0.5dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginEnd="5dp"
-                    android:background="@color/colorSeparator"
-                    android:layout_marginBottom="15dp"/>
+                    <Switch
+                        android:id="@+id/setting_enhanced"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_tune_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:text="@string/enhanced_processing"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/textView2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingStart="44dp"
+                    android:paddingStart="59dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
                     android:text="@string/hdrx"
                     android:textAlignment="viewStart"
-                    android:textSize="15sp"
+                    android:textSize="18sp"
                     android:textStyle="normal"
                     android:textColor="@color/colorText"/>
 
-                <Switch
-                    android:id="@+id/setting_remosaic"
+                <LinearLayout
+                    android:id="@+id/settingsHDRX"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:drawableStart="@drawable/ic_gradient_black_24dp"
-                    android:drawablePadding="20dp"
-                    android:fontFamily="sans-serif"
-                    android:gravity="center|start|center_horizontal"
-                    android:text="@string/enable_remosaic"
-                    android:textSize="16sp"
-                    android:visibility="gone" />
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:paddingLeft="15dp"
+                    android:paddingRight="15dp"
+                    android:layout_gravity="center_horizontal|center_vertical"
+                    android:background="@drawable/card_layout"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/settings_sharpnesstext"
-                    android:layout_width="match_parent"
-                    android:layout_height="45dp"
-                    android:drawableStart="@drawable/ic_straighten"
-                    android:drawablePadding="20dp"
-                    android:gravity="center_vertical"
-                    android:text="@string/sharpness"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <Switch
+                        android:id="@+id/setting_remosaic"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_gradient_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/enable_remosaic"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
 
-                <SeekBar
-                    android:id="@+id/setting_sharpcnt"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="200"
-                    android:min="0"
-                    android:progress="-1" />
+                    <TextView
+                        android:id="@+id/settings_sharpnesstext"
+                        android:layout_width="match_parent"
+                        android:layout_height="45dp"
+                        android:drawableStart="@drawable/ic_straighten"
+                        android:drawablePadding="20dp"
+                        android:gravity="center_vertical"
+                        android:text="@string/sharpness"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/settings_contrasttext"
-                    android:layout_width="match_parent"
-                    android:layout_height="45dp"
-                    android:drawableStart="@drawable/ic_contrast"
-                    android:drawablePadding="20dp"
-                    android:gravity="center_vertical"
-                    android:textColor="@color/White"
-                    android:textSize="16sp"
-                    android:visibility="gone" />
+                    <SeekBar
+                        android:id="@+id/setting_sharpcnt"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="200"
+                        android:min="0"
+                        android:progress="-1" />
 
-                <SeekBar
-                    android:id="@+id/setting_contrmpy"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="200"
-                    android:min="0"
-                    android:progress="-1"
-                    android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/settings_contrasttext"
+                        android:layout_width="match_parent"
+                        android:layout_height="45dp"
+                        android:drawableStart="@drawable/ic_contrast"
+                        android:drawablePadding="20dp"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/White"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
 
-                <SeekBar
-                    android:id="@+id/setting_contrconst"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="1024"
-                    android:min="-700"
-                    android:progress="-10000"
-                    android:visibility="gone" />
+                    <SeekBar
+                        android:id="@+id/setting_contrmpy"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="200"
+                        android:min="0"
+                        android:progress="-1"
+                        android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/setting_sattext"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize2"
-                    android:drawableStart="@drawable/ic_saturation"
-                    android:drawablePadding="20dp"
-                    android:gravity="center_vertical"
-                    android:text="@string/saturation"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/setting_contrconst"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="1024"
+                        android:min="-700"
+                        android:progress="-10000"
+                        android:visibility="gone" />
 
-                <SeekBar
-                    android:id="@+id/setting_saturation"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="200"
-                    android:min="0"
-                    android:progress="-1" />
+                    <TextView
+                        android:id="@+id/setting_sattext"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize2"
+                        android:drawableStart="@drawable/ic_saturation"
+                        android:drawablePadding="20dp"
+                        android:gravity="center_vertical"
+                        android:text="@string/saturation"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <TextView
-                    android:id="@+id/setting_compgainrext"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize2"
-                    android:drawableStart="@drawable/ic_compressor"
-                    android:drawablePadding="20dp"
-                    android:gravity="center_vertical"
-                    android:textColor="@color/White"
-                    android:textSize="16sp" />
+                    <SeekBar
+                        android:id="@+id/setting_saturation"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="200"
+                        android:min="0"
+                        android:progress="-1" />
 
-                <SeekBar
-                    android:id="@+id/setting_compressor"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="200"
-                    android:min="50"
-                    android:progress="0" />
+                    <TextView
+                        android:id="@+id/setting_compgainrext"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize2"
+                        android:drawableStart="@drawable/ic_compressor"
+                        android:drawablePadding="20dp"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/White"
+                        android:textSize="16sp" />
 
-                <SeekBar
-                    android:id="@+id/setting_gain"
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"
-                    android:layout_marginStart="30dp"
-                    android:max="200"
-                    android:min="50"
-                    android:progress="-1" />
+                    <SeekBar
+                        android:id="@+id/setting_compressor"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="200"
+                        android:min="50"
+                        android:progress="0" />
 
-                <Spinner
-                    android:id="@+id/setting_cfa"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/SettingSize1"
-                    android:entries="@array/cfapat" />
+                    <SeekBar
+                        android:id="@+id/setting_gain"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="30dp"
+                        android:max="200"
+                        android:min="50"
+                        android:progress="-1" />
+
+                    <Spinner
+                        android:id="@+id/setting_cfa"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:entries="@array/cfapat" />
+
+                </LinearLayout>
 
             </LinearLayout>
         </LinearLayout>

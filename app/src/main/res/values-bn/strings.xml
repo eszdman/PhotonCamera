@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ফটোনক্যাম</string>
+    <string name="request_permission">এই অ্যাপ এর ক্যামেরা অনুমতি প্রয়োজন</string>
+    <string name="camera_error">এই ডিভাইসে ক্যামেরা ২ এপিআই সাপোর্ট নেই</string>
+    <string name="luma_nr_count">লুমা নয়েজ কমানোর মাত্রাঃ</string>
+    <string name="frame_count">ফ্রেম এর মাত্রাঃ</string>
+    <string name="disable_aligning">অ্যালাইনিং বন্ধ করুন</string>
+    <string name="turn_on_system_nr">সিস্টেম নয়েজ কমানোর জন্য ক্লিক করুন</string>
+    <string name="chroma_nr_count">কালার নয়েজ কমানোর মাত্রা:</string>
+    <string name="enhanced_processing">উচ্চতর প্রসেসিং</string>
+    <string name="settings">সেটিংস</string>
+    <string name="comp">কম্প্রেসর:</string>
+    <string name="gain">গেইন:</string>
+    <string name="contrmul">কন্ট্র্যাস্ট গুনিতক :</string>
+    <string name="contrconst">ধ্রুবক:</string>
+    <string name="saturation">রঙের ঘনত্ব:</string>
+    <string name="jpg">জেপিজি</string>
+    <string name="hdrx">এইচডিআরএক্স</string>
+    <string name="sharpness">সূক্ষ্মতা:</string>
+    <string name="turn_on_grid">গ্রিড দেখুন</string>
+</resources>
