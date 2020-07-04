@@ -649,13 +649,14 @@ public class CameraFragment extends Fragment
         in.right *= k;
         in.top *= k;
     }
-
     private Size getCameraOutputSize(Size[] in) {
         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
-            return sizes.get(s);
+        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
+            Size target = sizes.get(s);
+            return target;
+        }
         else {
             if(sizes.size()>1) {
                 Size target = sizes.get(s - 1);
@@ -676,8 +677,17 @@ public class CameraFragment extends Fragment
          Collections.sort(Arrays.asList(in), new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
-         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000)
-             return sizes.get(s);
+         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
+             Size target = sizes.get(s);
+             Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+             Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+             double k = (double) (target.getHeight()) / act.bottom;
+             mul(pre, k);
+             mul(act, k);
+             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
+             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+             return target;
+         }
          else {
              if(sizes.size()> 1 ) {
                  Size target = sizes.get(s - 1);

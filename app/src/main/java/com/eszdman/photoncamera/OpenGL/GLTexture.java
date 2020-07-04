@@ -26,12 +26,12 @@ import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
 
 public class GLTexture implements AutoCloseable {
-    Point mSize;
-    int mGLFormat;
-    int mTextureID;
-    GLTexture(Point size, int GL_InternalFormat,GLFormat glFormat, Buffer pixels){
+    public Point mSize;
+    public int mGLFormat;
+    public int mTextureID;
+    public GLTexture(Point size,GLFormat glFormat, Buffer pixels){
         this.mSize = size;
-        this.mGLFormat = GL_InternalFormat;
+        this.mGLFormat = glFormat.getGLFormatInternal();
         int[] TexID = new int[1];
         glGenTextures(TexID.length, TexID, 0);
         mTextureID = TexID[0];
@@ -49,6 +49,10 @@ public class GLTexture implements AutoCloseable {
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer[0]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureID, 0);
         glViewport(0, 0, mSize.x,mSize.y);
+    }
+    void bind(int slot) {
+        glActiveTexture(slot);
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
     }
     @Override
     public void close() {

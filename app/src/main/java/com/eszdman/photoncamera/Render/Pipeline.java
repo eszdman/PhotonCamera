@@ -28,8 +28,8 @@ public class Pipeline {
         Nodes nodes = Interface.i.nodes;
         nodes.startT();
         Allocation input = rUtils.allocateIO(in, rUtils.RawSensor);
-        //Allocation imgout = Allocation.createFromBitmap(rs,img);
-        Allocation imgout = Allocation.createTyped(rs, rUtils.CreateRGBA8888(new Point(params.rawSize.x, params.rawSize.y)), Allocation.USAGE_GRAPHICS_TEXTURE);
+        Allocation imgout = Allocation.createFromBitmap(rs,img);
+        //Allocation imgout = Allocation.createTyped(rs, rUtils.CreateRGBA8888(new Point(params.rawSize.x, params.rawSize.y)), Allocation.USAGE_GRAPHICS_TEXTURE);
         params.rawSize = new Point(params.rawSize.x / 2, params.rawSize.y / 2);
         nodes.initialParameters(params, rUtils);
         nodes.endT("Allocation");
@@ -48,10 +48,10 @@ public class Pipeline {
         nodes.initial.set_gainMap(gainmap);
         nodes.startT();
         nodes.initial.forEach_color(def);
-        /*imgout.copyTo(img);
-        img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
-        img = nodes.doResize(img,2.f);
-        img = nodes.doSharpen(img,nodes.sharp1);*/
+        //imgout.copyTo(img);
+        //img = Bitmap.createBitmap(img,0,0,params.rawSize.x,params.rawSize.y);
+        //img = nodes.doResize(img,2.f);
+        //img = nodes.doSharpen(img,nodes.sharp1);
         nodes.endT("Initial");
         nodes.startT();
         //nodes.initial.forEach_blurdem(def);
@@ -61,7 +61,7 @@ public class Pipeline {
             //nodes.initial.set_remosaicIn1(remosaicIn1);
             //nodes.initial.forEach_blurdem(def);
             nodes.initial.forEach_demosaic2(rUtils.Range(new Point(2, 2), new Point((params.rawSize.x * 2 - 2), (params.rawSize.y * 2 - 2))));
-        } else {
+        } else if(true) {
             //remosaicIn1 = Allocation.createTyped(rs,rUtils.CreateF16_3(params.rawSize));
             //ByteBuffer buff = ByteBuffer.allocate(params.rawSize.x*2*params.rawSize.y*2*4);
             //Mat inp = new Mat(params.rawSize.y*2,params.rawSize.x*2, CvType.CV_16U,in);
@@ -76,9 +76,9 @@ public class Pipeline {
         }
         //nodes.initial.forEach_remosaic2(rUtils.Range(new Point(0,0), new Point((params.rawSize.x*2)/2,(params.rawSize.y*2)/2)));
         //nodes.initial.forEach_remosaic2nopt(rUtils.Range(new Point(1,1), new Point(((params.rawSize.x*2 - 2)/4),((params.rawSize.y*2 - 2))/4)));
-        remosaicOut.copyTo(remosimg);
-        nodes.endT("Remosaic");
-        img.recycle();
+        //remosaicOut.copyTo(remosimg);
+        nodes.endT("Demosaic");
+        //img.recycle();
         img = remosimg;
         img = Bitmap.createBitmap(img, 4, 4, params.rawSize.x * 2 - 8, params.rawSize.y * 2 - 8);
         in.clear();

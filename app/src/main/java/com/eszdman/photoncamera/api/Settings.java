@@ -63,6 +63,9 @@ public class Settings {
     public boolean rawSaver = false;
     public String lastPicture = null;
     public boolean ManualMode = false;
+    //TODO Add button for QuadResolution, if supported
+    public boolean QuadBayer = false;
+
     public int cfaPatern = 0;
     public boolean remosaic = false;
     public String mCameraID = "0";

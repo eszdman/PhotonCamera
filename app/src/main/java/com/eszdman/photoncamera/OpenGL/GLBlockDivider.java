@@ -1,15 +1,14 @@
 package com.eszdman.photoncamera.OpenGL;
 
-public class BlockDivider {
+public class GLBlockDivider {
     private final int mSize;
     private final int mBlock;
     private int mPassed;
 
-    public BlockDivider(int size, int block) {
+    public GLBlockDivider(int size, int block) {
         mSize = size;
         mBlock = block;
     }
-
     // Out: pos, size
     public boolean nextBlock(int[] out) {
         final int remaining = mSize - mPassed;

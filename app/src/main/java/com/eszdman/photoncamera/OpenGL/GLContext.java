@@ -33,6 +33,7 @@ public class GLContext {
     private final EGLDisplay mDisplay;
     private final EGLContext mContext;
     private final EGLSurface mSurface;
+    public GLProg mProgram;
     public GLContext(int surfaceWidth, int surfaceHeight) {
         int[] major = new int[2];
         int[] minor = new int[2];
@@ -75,5 +76,6 @@ public class GLContext {
                 EGL_NONE
         }, 0);
         eglMakeCurrent(mDisplay, mSurface, mSurface, mContext);
+        mProgram = new GLProg();
     }
 }

@@ -13,16 +13,14 @@ import static android.opengl.GLES20.glVertexAttribPointer;
 
 class GLSquareModel {
     private static final int COORDS_PER_VERTEX = 3;
-    private static final float[] COORDS = {
+    private static final float[] COORDS = {//Default square coords
             -1, 1, 0,
             -1, -1, 0,
             1, 1, 0,
             1, -1, 0
     };
     private static final int STRIDE = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
-
     private final FloatBuffer mVertexBuffer;
-
     GLSquareModel() {
         // (# of coordinate values * 4 bytes per float)
         ByteBuffer bb = ByteBuffer.allocateDirect(COORDS.length * 4);
@@ -32,7 +30,6 @@ class GLSquareModel {
         mVertexBuffer.put(COORDS);
         mVertexBuffer.position(0);
     }
-
     void draw(int posHandle) {
         glEnableVertexAttribArray(posHandle);
         glVertexAttribPointer(
