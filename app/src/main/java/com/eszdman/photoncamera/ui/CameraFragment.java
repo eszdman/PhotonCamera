@@ -261,8 +261,8 @@ public class CameraFragment extends Fragment
     /*A {@link Handler} for running tasks in the background.*/
     public Handler mBackgroundHandler;
     /*An {@link ImageReader} that handles still image capture.*/
-    private ImageReader mImageReaderYuv;
-    private ImageReader mImageReaderRaw;
+    public ImageReader mImageReaderYuv;
+    public ImageReader mImageReaderRaw;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
@@ -423,7 +423,7 @@ public class CameraFragment extends Fragment
                 if(ExposureIndex.index()+0.9 > 8.0){
                     if(!is30Fps) {
                         Log.d(TAG,"Changed preview target 30fps");
-                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(15, 30));
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(3, 30));
                         mPreviewRequest = mPreviewRequestBuilder.build();
                         rebuildPreview();
                         is30Fps = true;
@@ -432,7 +432,7 @@ public class CameraFragment extends Fragment
                     if(is30Fps)
                     {
                         Log.d(TAG,"Changed preview target 60fps");
-                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(15, 60));
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(3, 60));
                         mPreviewRequest = mPreviewRequestBuilder.build();
                         rebuildPreview();
                         is30Fps = false;
@@ -660,13 +660,6 @@ public class CameraFragment extends Fragment
         else {
             if(sizes.size()>1) {
                 Size target = sizes.get(s - 1);
-                Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-                Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-                double k = (double) (target.getHeight()) / act.bottom;
-                mul(pre, k);
-                mul(act, k);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
                 return target;
             }
         }
@@ -679,18 +672,7 @@ public class CameraFragment extends Fragment
          int s = sizes.size() - 1;
          if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
              Size target = sizes.get(s);
-             Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-             Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-             double k = (double) (target.getHeight()) / act.bottom;
-             mul(pre, k);
-             mul(act, k);
-             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-             CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
-             return target;
-         }
-         else {
-             if(sizes.size()> 1 ) {
-                 Size target = sizes.get(s - 1);
+             if(Interface.i.settings.QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
                  double k = (double) (target.getHeight()) / act.bottom;
@@ -698,6 +680,12 @@ public class CameraFragment extends Fragment
                  mul(act, k);
                  CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
                  CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+             }
+             return target;
+         }
+         else {
+             if(sizes.size()> 1 ) {
+                 Size target = sizes.get(s - 1);
                  return target;
              }
          }

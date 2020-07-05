@@ -9,6 +9,7 @@ import android.renderscript.RenderScript;
 import android.renderscript.Script;
 import android.renderscript.ScriptIntrinsic;
 import android.renderscript.Type;
+import android.util.Log;
 
 import org.opencv.core.Mat;
 
@@ -16,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 
 public class RUtils {
+    private static String TAG = "RUtils";
     private RenderScript rs;
     public Type RawSensor;
     public Type BGR16;
@@ -30,6 +32,7 @@ public class RUtils {
     }
     public Allocation allocateIO(ByteBuffer in, Type type){
         Allocation allocate = Allocation.createTyped(rs,type,Allocation.USAGE_GRAPHICS_RENDER_TARGET);
+        Log.d(TAG,"Allocation:"+in.remaining());
         byte[] input = new byte[in.remaining()];
         in.get(input);
         allocate.copyFromUnchecked(input);

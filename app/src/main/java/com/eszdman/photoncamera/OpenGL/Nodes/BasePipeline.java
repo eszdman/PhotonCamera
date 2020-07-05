@@ -17,7 +17,7 @@ public class BasePipeline {
             Nodes.get(i).Compile();
             Nodes.get(i).Run(this);
         }
-        GLInterface.i.glProc.drawBlocksToOutput(new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
+        GLInterface.i.glProc.drawBlocksToOutput();
         return GLInterface.i.glProc.mOut;
     }
     ByteBuffer runAllRaw(){
@@ -25,7 +25,7 @@ public class BasePipeline {
             Nodes.get(i).Compile();
             Nodes.get(i).Run(this);
         }
-        GLInterface.i.glProc.drawBlocksToOutput(new GLFormat(GLFormat.DataType.UNSIGNED_16));
+        GLInterface.i.glProc.drawBlocksToOutput();
         return GLInterface.i.glProc.mOutBuffer;
     }
 }

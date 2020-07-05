@@ -43,10 +43,10 @@ public class IsoExpoSelector {
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
-        if(step % 4 == 3 && false){
+        if(step % 4 == 3 && true){
             pair.ExpoCompensateLower(0.5);
         }
-        if(step % 4 == 2 && false){
+        if(step % 4 == 2 && true){
             pair.ExpoCompensateLower(2.0);
         }
 

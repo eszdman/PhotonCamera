@@ -29,6 +29,7 @@ public class Camera2ApiAutoFix {
     public static void Init(){
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraFragment.mCameraCharacteristics);
         fix.ExposureTime();
+        fix.MaxRegionsAF();
     }
     public static void Apply(){
         CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
@@ -37,7 +38,6 @@ public class Camera2ApiAutoFix {
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
-        Log.d(TAG,"Get:"+characteristics.get(TONEMAP_CURVE));
         fix.gains();
         fix.dynBL();
     }
@@ -59,6 +59,9 @@ public class Camera2ApiAutoFix {
             Range nrange = new Range(exprange.getLower(),(long)(ExposureIndex.sec*5.2));
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE,nrange);
         }
+    }
+    private void MaxRegionsAF(){
+        CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
     }
     public void gains(){
         CameraReflectionApi.setVERBOSE(true);

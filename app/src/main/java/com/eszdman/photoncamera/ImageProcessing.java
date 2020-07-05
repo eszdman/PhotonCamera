@@ -8,6 +8,10 @@ import android.hardware.camera2.DngCreator;
 import android.media.Image;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
+
+import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
+import com.eszdman.photoncamera.OpenGL.GLFormat;
+import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
@@ -273,17 +277,22 @@ public class ImageProcessing {
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
-
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(new android.graphics.Point(width,height), new GLFormat(GLFormat.DataType.UNSIGNED_16));
+        rawPipeline.glproc = glproc;
         Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         for (int i = 2; i < curimgs.size(); i++) {
             ByteBuffer byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
-            if(i%4 == 3 && false){
+            if(i%2 == 3 && true){
                 rawPipeline.sensivity = 0.5f;
                 rawPipeline.rawInput = byteBuffer;
-                byteBuffer = rawPipeline.Run(Interface.i.parameters);
+                ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
+                Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
+                byteBuffer.clear();
+                byteBuffer.put(buff);
+                //byteBuffer = buff;
             }
-            if(i%4 == 2 && false){
+            if(i%4 == 2 && true){
                 rawPipeline.sensivity = 2.0f;
                 rawPipeline.rawInput = byteBuffer;
                 ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
@@ -297,15 +306,16 @@ public class ImageProcessing {
         //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
         //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
         ByteBuffer output = Wrapper.processFrame();
-        //Wrapper.processFrame(output);
-        //output.put(outp);
-        //outp.put(output);
-        //outp.clear();
+        //ByteBuffer outb = output.duplicate();
+        curimgs.get(0).getPlanes()[0].getBuffer().clear();
+        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+        //curimgs.get(0).getPlanes()[0].getBuffer().clear();
+        //curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
 
         if(Interface.i.settings.rawSaver) {
-            curimgs.get(0).getPlanes()[0].getBuffer().clear();
-            curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+            //curimgs.get(0).getPlanes()[0].getBuffer().clear();
+            //curimgs.get(0).getPlanes()[0].getBuffer().put(output);
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
@@ -336,10 +346,13 @@ public class ImageProcessing {
         }
         Log.d(TAG, "Wrapper.processFrame()");
         Interface.i.parameters.path = path;
-        for (int i = 0; i < curimgs.size(); i++) curimgs.get(i).close();
-        Pipeline.RunPipeline(output);
-        //Pipeline pipeline = new Pipeline();
-        //pipeline.Run(output,Interface.i.parameters);
+        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
+
+        //PostPipeline pipeline = new PostPipeline();
+        //curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+        //pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
+        curimgs.get(0).close();
     }
     public void Run() {
         Image.Plane plane = curimgs.get(0).getPlanes()[0];

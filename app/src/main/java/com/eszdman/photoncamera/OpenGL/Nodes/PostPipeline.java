@@ -2,22 +2,26 @@ package com.eszdman.photoncamera.OpenGL.Nodes;
 
 import android.graphics.Bitmap;
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
+import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
-public class Pipeline extends BasePipeline {
+public class PostPipeline extends BasePipeline {
     public void Run(ByteBuffer inBuffer, Parameters parameters){
         Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         GLInterface glint = new GLInterface(glproc);
         glint.inputRaw = inBuffer;
         glint.parameters = parameters;
-        add(new DemosaicAndColor(R.raw.initial,"DemosaicAndColor"));
+        add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));
+        add(new DebugRaw(R.raw.debugraw,"Debug Raw 1ch"));
+        //add(new DemosaicPart2(R.raw.demosaicp1,"Demosaic Part 2"));
+        //add(new Initial(R.raw.initial,"Initial"));
         Bitmap img = runAll();
         try {
             outimg.createNewFile();

@@ -2,10 +2,15 @@ package com.eszdman.photoncamera.api;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
+import android.util.Size;
 
 import com.eszdman.photoncamera.ui.MainActivity;
 
@@ -29,6 +34,7 @@ import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
 import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
@@ -195,7 +201,14 @@ public class Settings {
         captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
+        Point size = new Point(Interface.i.camera.mImageReaderYuv.getWidth(),Interface.i.camera.mImageReaderYuv.getHeight());
+        double sizex = size.x;
+        double sizey = size.y;
         //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
+        MeteringRectangle rectm8[] = new MeteringRectangle[2];
+        rectm8[0] = new MeteringRectangle(new Rect((int)(sizex/3.0),(int)(sizey/3.0),(int)(sizex*2.0/3.0),(int)(sizey*2.0/3.0)),10);
+        rectm8[1] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),30);
+        captureBuilder.set(CONTROL_AF_REGIONS,rectm8);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float rgb[] = new float[64];

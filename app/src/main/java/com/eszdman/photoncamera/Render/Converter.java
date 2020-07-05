@@ -13,17 +13,17 @@ public class Converter {
      * Matrix to convert from HDRX output to sRGB space.
      */
     public static final float[] HDRXCCM = new float[]{
-            2.7430f, -1.2980f, -0.4450f,
-            -0.8690f, 2.0887f, -0.2196f,
-            -0.1109f, -0.6662f, 1.7771f
+            3.1338561f, -1.6168667f, -0.4906146f,
+            -0.9787684f, 1.9161415f, 0.0334540f,
+            0.0719453f, -0.2289914f, 1.4052427f
     };
     /**
      * Matrix to convert from the ProPhoto RGB colorspace to CIE XYZ colorspace.
      */
     public static final float[] sProPhotoToXYZ = new float[]{
-            1.000000f, 0.000000f, 0.000000f,
-            0.000000f, 1.000000f, 0.000000f,
-            0.000000f, 0.000000f, 1.000000f
+            0.797779f, 0.135213f, 0.031303f,
+            0.288000f, 0.711900f, 0.000100f,
+            0.000000f, 0.000000f, 0.825105f
     };
     /**
      * Matrix to convert from CIE XYZ colorspace to ProPhoto RGB colorspace.

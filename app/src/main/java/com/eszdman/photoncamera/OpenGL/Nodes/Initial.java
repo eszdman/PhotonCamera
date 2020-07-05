@@ -7,8 +7,8 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 
-public class DemosaicAndColor extends Node {
-    public DemosaicAndColor(int rid, String name) {
+public class Initial extends Node {
+    public Initial(int rid, String name) {
         super(rid, name);
     }
     @Override
@@ -19,10 +19,9 @@ public class DemosaicAndColor extends Node {
         GLTexture glTexture;
         Parameters params = GLInterface.i.parameters;
         glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),GLInterface.i.inputRaw);
-        glProg.setTexture("RawBuffer",glTexture);
+        glProg.setTexture("Fullbuffer",super.previousNode.WorkingTexture);
         glProg.servar("RawSizeX",params.rawSize.x);
         glProg.servar("RawSizeY",params.rawSize.y);
-        glProg.servar("CfaPattern",params.cfaPattern);
         glProg.servar("whiteLevel",(float)params.whitelevel);
         glProg.servar("blackLevel",params.blacklevel);
         //super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_8,4),null);
