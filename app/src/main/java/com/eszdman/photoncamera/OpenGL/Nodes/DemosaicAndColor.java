@@ -7,11 +7,13 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 
-public class Demosaic extends Node {
+public class DemosaicAndColor extends Node {
+    public DemosaicAndColor(int rid, String name) {
+        super(rid, name);
+    }
     @Override
-    public void Run() {
-        super.Name="Demosaic";
-        super.Rid = R.raw.demosaic;
+    public void Run(BasePipeline pipeline) {
+        startT();
         Node Previous = super.previousNode;
         GLProg glProg = GLInterface.i.glprogram;
         GLTexture glTexture;
@@ -21,7 +23,9 @@ public class Demosaic extends Node {
         glProg.servar("RawSizeX",params.rawSize.x);
         glProg.servar("RawSizeY",params.rawSize.y);
         glProg.servar("CfaPattern",params.cfaPattern);
-        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16,3),null);
-        glProg.drawBlocks(super.WorkingTexture);
+        glProg.servar("whiteLevel",(float)params.whitelevel);
+        glProg.servar("blackLevel",params.blacklevel);
+        //super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_8,4),null);
+        endT();
     }
 }

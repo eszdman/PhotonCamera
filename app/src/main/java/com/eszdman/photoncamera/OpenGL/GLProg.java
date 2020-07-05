@@ -8,20 +8,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
-import static android.opengl.GLES20.GL_TEXTURE0;
-import static android.opengl.GLES20.glGetAttribLocation;
-import static android.opengl.GLES20.glGetUniformLocation;
-import static android.opengl.GLES20.glUniform1f;
-import static android.opengl.GLES20.glUniform1i;
-import static android.opengl.GLES20.glUniform2f;
-import static android.opengl.GLES20.glUniform2i;
-import static android.opengl.GLES20.glUniform3f;
-import static android.opengl.GLES20.glUniform3i;
-import static android.opengl.GLES20.glUniform4f;
-import static android.opengl.GLES20.glUniform4i;
-import static android.opengl.GLES20.glUniformMatrix3fv;
-import static android.opengl.GLES20.glUseProgram;
+import static android.opengl.GLES30.GL_FRAGMENT_SHADER;
+import static android.opengl.GLES30.GL_TEXTURE0;
+import static android.opengl.GLES30.glGetAttribLocation;
+import static android.opengl.GLES30.glGetUniformLocation;
+import static android.opengl.GLES30.glUniform1f;
+import static android.opengl.GLES30.glUniform1i;
+import static android.opengl.GLES30.glUniform2f;
+import static android.opengl.GLES30.glUniform2i;
+import static android.opengl.GLES30.glUniform3f;
+import static android.opengl.GLES30.glUniform3i;
+import static android.opengl.GLES30.glUniform4f;
+import static android.opengl.GLES30.glUniform4i;
+import static android.opengl.GLES30.glUniformMatrix3fv;
+import static android.opengl.GLES30.glUseProgram;
 import static android.opengl.GLES30.GL_COMPILE_STATUS;
 import static android.opengl.GLES30.GL_LINK_STATUS;
 import static android.opengl.GLES30.GL_VERTEX_SHADER;
@@ -45,7 +45,7 @@ import static android.opengl.GLES30.glUniform4ui;
 import static android.opengl.GLES30.glViewport;
 
 public class GLProg {
-    private static String TAG = "ProgramLoader";
+    private static String TAG = "GLProgram";
     private final List<Integer> mPrograms = new ArrayList<>();
     private int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
@@ -58,7 +58,7 @@ public class GLProg {
                 "precision mediump float;\n" +
                 "in vec4 vPosition;\n" +
                 "void main() {\n" +
-                "    gl_Position = vPosition;\n" +
+                "gl_Position = vPosition;\n" +
                 "}\n";
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShader);
     }

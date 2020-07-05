@@ -1,6 +1,9 @@
 package com.eszdman.photoncamera.OpenGL;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
+
+import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import static android.opengl.GLES20.GL_RGBA;
 import static android.opengl.GLES20.GL_UNSIGNED_BYTE;
@@ -8,19 +11,22 @@ import static android.opengl.GLES20.glReadPixels;
 import static android.opengl.GLES20.glViewport;
 
 public class GLCoreBlockProcessing extends GLContext {
-    public final Bitmap mOut;
+    public Bitmap mOut = null;
     private final int mOutWidth, mOutHeight;
-    private final IntBuffer mBlockBuffer;
-    private final IntBuffer mOutBuffer;
-    public GLCoreBlockProcessing(Bitmap out) {
-        super(out.getWidth(), GLConst.TileSize);
+    public final ByteBuffer mBlockBuffer;
+    public final ByteBuffer mOutBuffer;
+    public GLCoreBlockProcessing(Point size,Bitmap out) {
+        this(size);
         mOut = out;
-        mOutWidth = out.getWidth();
-        mOutHeight = out.getHeight();
-        mBlockBuffer = IntBuffer.allocate(mOutWidth * GLConst.TileSize);
-        mOutBuffer = IntBuffer.allocate(mOutWidth * mOutHeight);
     }
-    public void drawBlocksToOutput() {
+    public GLCoreBlockProcessing(Point size) {
+        super(size.x, GLConst.TileSize);
+        mOutWidth = size.x;
+        mOutHeight = size.y;
+        mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLConst.TileSize*4);
+        mOutBuffer = ByteBuffer.allocate(mOutWidth * mOutHeight*4);
+    }
+    public void drawBlocksToOutput(GLFormat glFormat) {
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLConst.TileSize);
         int[] row = new int[2];
@@ -33,18 +39,17 @@ public class GLCoreBlockProcessing extends GLContext {
             program.draw();
 
             mBlockBuffer.position(0);
-            glReadPixels(0, 0, mOutWidth, height, GL_RGBA, GL_UNSIGNED_BYTE, mBlockBuffer);
+            glReadPixels(0, 0, mOutWidth, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffer);
             if (height < GLConst.TileSize) {
                 // This can only happen once
-                int[] data = new int[mOutWidth * height];
-                mBlockBuffer.get(data);
-                mOutBuffer.put(data);
+                short[] data = new short[mOutWidth * height];
+                mBlockBuffer.asShortBuffer().get(data);
+                mOutBuffer.asShortBuffer().put(data);
             } else {
                 mOutBuffer.put(mBlockBuffer);
             }
         }
-
         mOutBuffer.position(0);
-        mOut.copyPixelsFromBuffer(mOutBuffer);
+        if(mOut !=null) mOut.copyPixelsFromBuffer(mOutBuffer);
     }
 }

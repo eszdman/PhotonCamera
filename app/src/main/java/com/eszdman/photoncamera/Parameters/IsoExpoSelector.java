@@ -43,6 +43,13 @@ public class IsoExpoSelector {
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
+        if(step % 4 == 3 && false){
+            pair.ExpoCompensateLower(0.5);
+        }
+        if(step % 4 == 2 && false){
+            pair.ExpoCompensateLower(2.0);
+        }
+
         if(step == 1){
             if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70){
                 pair.ReduceExpo();
@@ -149,6 +156,16 @@ public class IsoExpoSelector {
             if(exposure > exposurehigh) wrongparams = true;
             if(exposure < exposurelow) wrongparams = true;
             return wrongparams;
+        }
+        public void ExpoCompensateLower(double k){
+            iso/=k;
+            if(normalizeCheck()){
+                iso*=k;
+                exposure/=k;
+                if(normalizeCheck()){
+                    exposure*=k;
+                }
+            }
         }
         public void ReduceIso(){
             ReduceIso(2.0);

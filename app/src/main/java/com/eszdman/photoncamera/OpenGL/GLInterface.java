@@ -15,6 +15,7 @@ public class GLInterface {
     public ByteBuffer inputRaw;
     public GLCoreBlockProcessing glProc;
     public GLInterface(GLCoreBlockProcessing processing){
+        i = this;
         glProc = processing;
         glprogram = glProc.mProgram;
     }
@@ -24,7 +25,7 @@ public class GLInterface {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.i.mainActivity.getResources().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
-            source.append((String) line);
+            source.append((String) line+"\n");
         }
         return source.toString();
     }

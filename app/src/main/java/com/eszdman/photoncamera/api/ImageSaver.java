@@ -26,13 +26,7 @@ import java.util.Locale;
 
 public class ImageSaver implements Runnable {
     private final String TAG = "ImageSaver";
-    /**
-     * The Stream image
-     */
-    //public Image mImage;
-
     static int bcnt = 0;
-
     public static File outimg;
 
     /**
@@ -75,7 +69,6 @@ public class ImageSaver implements Runnable {
                 Image cur = mReader.acquireNextImage();
                 if(cur == null) break;
                 cur.close();
-                if(cur == last) break;
             }
         } catch (Exception e){
             e.printStackTrace();
@@ -91,13 +84,6 @@ public class ImageSaver implements Runnable {
             Process((ImageReader) msg.obj);
             return true;
         });
-        /*while (true){
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }*/
     }
     public void Process(ImageReader mReader){
         Image mImage = mReader.acquireNextImage();

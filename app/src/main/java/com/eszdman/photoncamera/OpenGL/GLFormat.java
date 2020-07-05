@@ -1,9 +1,5 @@
 package com.eszdman.photoncamera.OpenGL;
-
-import android.graphics.Point;
-
 import static android.opengl.GLES30.*;
-
 public class GLFormat {
     int mChannels;
     DataType mFormat;
@@ -106,17 +102,18 @@ public class GLFormat {
             case FLOAT_16:
             case FLOAT_32:
             case FLOAT_64:
+            case SIGNED_8:
+            case UNSIGNED_8:
                 switch (mChannels) {
                     case 1: return GL_RED;
                     case 2: return GL_RG;
                     case 3: return GL_RGB;
                     case 4: return GL_RGBA;
                 }
-            case UNSIGNED_8:
+
             case UNSIGNED_16:
             case UNSIGNED_32:
             case UNSIGNED_64:
-            case SIGNED_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
