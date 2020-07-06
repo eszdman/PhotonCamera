@@ -283,7 +283,7 @@ public class ImageProcessing {
         Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer().asReadOnlyBuffer());
         for (int i = 2; i < curimgs.size(); i++) {
             ByteBuffer byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
-            if(i%2 == 3 && true){
+            if(i%2 == 3 && false){
                 rawPipeline.sensivity = 0.5f;
                 rawPipeline.rawInput = byteBuffer;
                 ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
@@ -292,7 +292,7 @@ public class ImageProcessing {
                 byteBuffer.put(buff);
                 //byteBuffer = buff;
             }
-            if(i%4 == 2 && true){
+            if(i%4 == 2 && false){
                 rawPipeline.sensivity = 2.0f;
                 rawPipeline.rawInput = byteBuffer;
                 ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
@@ -349,7 +349,6 @@ public class ImageProcessing {
         for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
-        
         //PostPipeline pipeline = new PostPipeline();
         //pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
         curimgs.get(0).close();
