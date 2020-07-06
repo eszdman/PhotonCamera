@@ -347,10 +347,10 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.processFrame()");
         Interface.i.parameters.path = path;
         for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
-
+        
         //PostPipeline pipeline = new PostPipeline();
-        //curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         //pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
         curimgs.get(0).close();
     }
