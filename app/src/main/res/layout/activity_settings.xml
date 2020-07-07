@@ -87,8 +87,7 @@
                         android:progress="0"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp" />
+                        android:thumbTint="@android:color/transparent" />
 
                     <Switch
                         android:id="@+id/setting_grid"
@@ -195,8 +194,7 @@
                         android:progress="0"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <TextView
                         android:id="@+id/setting_luma"
@@ -220,8 +218,7 @@
                         android:progress="0"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <Switch
                         android:id="@+id/setting_enhanced"
@@ -296,8 +293,7 @@
                         android:progress="-1"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <TextView
                         android:id="@+id/settings_contrasttext"
@@ -321,8 +317,7 @@
                         android:visibility="gone"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <SeekBar
                         android:id="@+id/setting_contrconst"
@@ -335,8 +330,7 @@
                         android:visibility="gone"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <TextView
                         android:id="@+id/setting_sattext"
@@ -359,8 +353,7 @@
                         android:progress="-1"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <TextView
                         android:id="@+id/setting_compgainrext"
@@ -382,8 +375,7 @@
                         android:progress="0"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <SeekBar
                         android:id="@+id/setting_gain"
@@ -395,8 +387,7 @@
                         android:progress="-1"
                         android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumb="@drawable/custom_thumb"
-                        android:thumbOffset="3dp"/>
+                        android:thumbTint="@android:color/transparent"/>
 
                     <Spinner
                         android:id="@+id/setting_cfa"
