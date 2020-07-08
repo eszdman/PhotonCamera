@@ -8,26 +8,26 @@ uniform int WhiteLevel;
 uniform int yOffset;
 uniform int CfaPattern;
 
-#define greenmin (0.15)
+#define greenmin (0.04)
 #define greenmax (0.95)
 out vec4 Output;
 
 float interpolateColor(ivec2 coords){
     bool usegreen = true;
-    float green[4];
+    float green[5];
     green[0] = float(texelFetch(GreenBuffer, (coords+ivec2(-1,-1)), 0).x);
     green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(1,-1)),  0).x);
     green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(-1,1)),  0).x);
     green[3] = float(texelFetch(GreenBuffer, (coords+ivec2(1,1)),   0).x);
-    //for(int i = 0; i<4; i++)if(green[i] > greenmax) usegreen = false;
+    green[4] = float(texelFetch(GreenBuffer, (coords),              0).x);
+    for(int i = 0; i<5; i++)if(green[i] < greenmin) usegreen = false;
     if(usegreen){
         float coeff[4];
         coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)/(float(WhiteLevel)*green[0]);
         coeff[1] = float(texelFetch(RawBuffer, (coords+ivec2(1,-1)),  0).x)/(float(WhiteLevel)*green[1]);
         coeff[2] = float(texelFetch(RawBuffer, (coords+ivec2(-1,1)),  0).x)/(float(WhiteLevel)*green[2]);
         coeff[3] = float(texelFetch(RawBuffer, (coords+ivec2(1,1)),   0).x)/(float(WhiteLevel)*green[3]);
-        float greencenter = float(texelFetch(GreenBuffer, (coords), 0).x);
-        return (greencenter*(coeff[0]+coeff[1]+coeff[2]+coeff[3])/4.);
+        return (green[4]*(coeff[0]+coeff[1]+coeff[2]+coeff[3])/4.);
     } else {
         return ((float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)
         +float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x))/(4.*float(WhiteLevel)));
@@ -39,6 +39,7 @@ float interpolateColorx(ivec2 coords){
     green[0] = float(texelFetch(GreenBuffer, (coords+ivec2(-1,0)), 0).x);
     green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(0,0)),  0).x);
     green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(1,0)),  0).x);
+    for(int i = 0; i<3; i++)if(green[i] < greenmin) usegreen = false;
     if(usegreen){
         float coeff[2];
         coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(-1,0)), 0).x)/(float(WhiteLevel)*green[0]);
@@ -54,6 +55,7 @@ float interpolateColory(ivec2 coords){
     green[0] = float(texelFetch(GreenBuffer, (coords+ivec2(0,-1)), 0).x);
     green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(0,0)),  0).x);
     green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(0,1)),  0).x);
+    for(int i = 0; i<3; i++)if(green[i] < greenmin) usegreen = false;
     if(usegreen){
         float coeff[2];
         coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(0,-1)), 0).x)/(float(WhiteLevel)*green[0]);
