@@ -184,6 +184,7 @@ public class GLProg implements AutoCloseable  {
             case 2: glUniform2f(addr, vars[0], vars[1]); break;
             case 3: glUniform3f(addr, vars[0], vars[1], vars[2]); break;
             case 4: glUniform4f(addr, vars[0], vars[1], vars[2], vars[3]); break;
+            case 9: glUniformMatrix3fv(addr, 1, true, vars, 0); break;
             default: throw new RuntimeException("Wrong var size " + name);
         }
     }

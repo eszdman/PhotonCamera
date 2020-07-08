@@ -40,7 +40,7 @@ float interpolateColorx(ivec2 coords){
     green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(0,0)),  0).x);
     green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(1,0)),  0).x);
     if(usegreen){
-        float coeff[4];
+        float coeff[2];
         coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(-1,0)), 0).x)/(float(WhiteLevel)*green[0]);
         coeff[1] = float(texelFetch(RawBuffer, (coords+ivec2(1,0)),  0).x)/(float(WhiteLevel)*green[2]);
         return (green[1]*(coeff[0]+coeff[1])/2.);
@@ -55,7 +55,7 @@ float interpolateColory(ivec2 coords){
     green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(0,0)),  0).x);
     green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(0,1)),  0).x);
     if(usegreen){
-        float coeff[4];
+        float coeff[2];
         coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(0,-1)), 0).x)/(float(WhiteLevel)*green[0]);
         coeff[1] = float(texelFetch(RawBuffer, (coords+ivec2(0,1)),  0).x)/(float(WhiteLevel)*green[2]);
         return (green[1]*(coeff[0]+coeff[1])/2.);

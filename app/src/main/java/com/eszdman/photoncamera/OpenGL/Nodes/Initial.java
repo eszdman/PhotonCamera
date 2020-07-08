@@ -6,6 +6,7 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.api.Interface;
 
 import java.nio.FloatBuffer;
 
@@ -27,6 +28,11 @@ public class Initial extends Node {
         glProg.setTexture("GainMap",GainMapTex);
         glProg.servar("RawSizeX",params.rawSize.x);
         glProg.servar("RawSizeY",params.rawSize.y);
+        glProg.servar("sensorToIntermediate",params.sensorToProPhoto);
+        glProg.servar("intermediateToSRGB",params.proPhotoToSRGB);
+        glProg.servar("gain", (float)Interface.i.settings.gain);
+        glProg.servar("neutralPoint",params.whitepoint);
+        glProg.servar("saturation",(float)Interface.i.settings.saturation);
         for(int i =0; i<4;i++){
             params.blacklevel[i]/=params.whitelevel;
         }

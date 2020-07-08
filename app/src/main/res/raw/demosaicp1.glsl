@@ -12,23 +12,23 @@ void main() {
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
     float outp = 0.0;
-    if(fact1+fact2 == 2){
+    if(fact1+fact2 != 1){
         float grad[4];
         grad[0] = float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x);
         grad[1] = float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x);
         grad[2] = float(texelFetch(RawBuffer, (xy+ivec2(0,-1)), 0).x);
         grad[3] = float(texelFetch(RawBuffer, (xy+ivec2(-1,0)), 0).x);
         float dgrad = float(texelFetch(RawBuffer, (xy), 0).x);
-        float dv;
-        float dh;
+        float dv = abs(grad[0]-grad[2]);
+        float dh = abs(grad[1]-grad[3]);
         float avr = (grad[0]+grad[1]+grad[2]+grad[3])/4.;
-        if(dh>dv){
+        if(dv>dh){
             outp = (grad[0]+grad[2])/2.;
             if((grad[1]+grad[3]) > grad[0]+grad[2] && dgrad<avr){
                 outp = (grad[0]+grad[2])/2.;
             }
         } else
-        if(dv>dh){
+        if(dh>dv){
             outp = (grad[1]+grad[3])/2.;
             if((grad[1]+grad[3]) < (grad[0]+grad[2]) && dgrad<avr){
                 outp = (grad[1]+grad[3])/2.;

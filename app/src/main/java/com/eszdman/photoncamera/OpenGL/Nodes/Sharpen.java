@@ -15,7 +15,7 @@ public class Sharpen extends Node {
         startT();
         Node Previous = super.previousNode;
         GLProg glProg = GLInterface.i.glprogram;
-        glProg.servar("strength", (float)Interface.i.settings.sharpness);
+        glProg.servar("strength", (float)Interface.i.settings.sharpness*10.f);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
         endT();
