@@ -106,28 +106,48 @@
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible" />
 
-            <CheckBox
+            <ToggleButton
                 android:id="@+id/eisPhoto"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="eis"
-                app:layout_constraintEnd_toStartOf="@+id/quadRes" />
-
-            <CheckBox
-                android:id="@+id/quadRes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="quad"
-                app:layout_constraintEnd_toStartOf="@+id/fpsPreview" />
-
-            <CheckBox
-                android:id="@+id/fpsPreview"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="60fps"
+                android:layout_width="36.580257dp"
+                android:layout_height="30dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/eis_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/settings"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintEnd_toStartOf="@+id/fpsPreview"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible" />
+
+            <ToggleButton
+                android:id="@+id/fpsPreview"
+                android:layout_width="39.477776dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="20dp"
+                android:background="@drawable/fps_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible" />
+
+            <ToggleButton
+                android:id="@+id/quadRes"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="20dp"
+                android:background="@drawable/quad_button"
+                android:checked="false"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/fpsPreview"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

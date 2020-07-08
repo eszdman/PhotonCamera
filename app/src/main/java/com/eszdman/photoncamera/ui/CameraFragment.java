@@ -588,11 +588,11 @@ public class CameraFragment extends Fragment
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
-        CheckBox fpsPreview = view.findViewById(R.id.fpsPreview);
+        ToggleButton fpsPreview = view.findViewById(R.id.fpsPreview);
         fpsPreview.setChecked(Interface.i.settings.fpsPreview);
-        CheckBox quadResolution = view.findViewById(R.id.quadRes);
+        ToggleButton quadResolution = view.findViewById(R.id.quadRes);
         quadResolution.setChecked(Interface.i.settings.QuadBayer);
-        CheckBox eisPhoto = view.findViewById(R.id.eisPhoto);
+        ToggleButton eisPhoto = view.findViewById(R.id.eisPhoto);
         eisPhoto.setChecked(Interface.i.settings.eisPhoto);
         eisPhoto.setOnClickListener(new View.OnClickListener() {
             @Override

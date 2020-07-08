@@ -96,6 +96,9 @@ public class MainActivity extends AppCompatActivity {
                         TextView isoValue = findViewById(R.id.isoValue);
                         ImageView focusText = findViewById(R.id.focusText);
                         TextView focusValue = findViewById(R.id.focusValue);
+                        ToggleButton eis = findViewById(R.id.eisPhoto);
+                        ToggleButton fpsPreview = findViewById(R.id.fpsPreview);
+                        ToggleButton quadres = findViewById(R.id.quadRes);
                         int rot = 0;
                         switch(orientation){
                             case Rotation90:
@@ -121,6 +124,9 @@ public class MainActivity extends AppCompatActivity {
                         isoValue.animate().rotation(rot).setDuration(RotationDur).start();
                         focusText.animate().rotation(rot).setDuration(RotationDur).start();
                         focusValue.animate().rotation(rot).setDuration(RotationDur).start();
+                        eis.animate().rotation(rot).setDuration(RotationDur).start();
+                        fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
+                        quadres.animate().rotation(rot).setDuration(RotationDur).start();
                     }
                 };
     }
