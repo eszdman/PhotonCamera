@@ -19,9 +19,9 @@ public class PostPipeline extends BasePipeline {
         glint.inputRaw = inBuffer;
         glint.parameters = parameters;
         add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));
-        add(new DebugRaw(R.raw.debugraw,"Debug Raw 1ch"));
-        //add(new DemosaicPart2(R.raw.demosaicp1,"Demosaic Part 2"));
-        //add(new Initial(R.raw.initial,"Initial"));
+        add(new DemosaicPart2(R.raw.demosaicp2,"Demosaic Part 2"));
+        add(new Initial(R.raw.initial,"Initial"));
+        add(new Sharpen(R.raw.sharpen,"Sharpening"));
         Bitmap img = runAll();
         try {
             outimg.createNewFile();

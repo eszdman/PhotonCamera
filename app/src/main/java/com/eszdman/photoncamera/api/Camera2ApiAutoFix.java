@@ -29,11 +29,12 @@ public class Camera2ApiAutoFix {
     public static void Init(){
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraFragment.mCameraCharacteristics);
         fix.ExposureTime();
-        fix.MaxRegionsAF();
+
     }
     public static void Apply(){
         CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
+        fix.MaxRegionsAF();
     }
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
@@ -61,7 +62,7 @@ public class Camera2ApiAutoFix {
         }
     }
     private void MaxRegionsAF(){
-        CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
+        //CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
     }
     public void gains(){
         CameraReflectionApi.setVERBOSE(true);

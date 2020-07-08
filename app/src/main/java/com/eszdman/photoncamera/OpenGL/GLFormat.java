@@ -128,6 +128,8 @@ public class GLFormat {
     }
     public int getGLType(){
         switch (mFormat) {
+            case FLOAT_32:
+            case FLOAT_64:
             case FLOAT_16: return GL_FLOAT;
             case UNSIGNED_8: return GL_UNSIGNED_BYTE;
             case UNSIGNED_16: return GL_UNSIGNED_SHORT;
@@ -137,5 +139,13 @@ public class GLFormat {
             case SIGNED_32: return GL_INT;
         }
         return 0;
+    }
+
+    @Override
+    public String toString() {
+        return "GLFormat{" +
+                "mChannels=" + mChannels +
+                ", mFormat=" + mFormat +
+                '}';
     }
 }

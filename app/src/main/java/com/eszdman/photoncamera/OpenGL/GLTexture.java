@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.OpenGL;
 import android.graphics.Point;
 
 import java.nio.Buffer;
+import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
@@ -29,7 +30,12 @@ public class GLTexture implements AutoCloseable {
     public Point mSize;
     public int mGLFormat;
     public int mTextureID;
+    public GLFormat mFormat;
     public GLTexture(Point size,GLFormat glFormat, Buffer pixels){
+        this(size,glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
+    }
+    public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper) {
+        mFormat = glFormat;
         this.mSize = size;
         this.mGLFormat = glFormat.getGLFormatInternal();
         int[] TexID = new int[1];
@@ -38,11 +44,12 @@ public class GLTexture implements AutoCloseable {
         glActiveTexture(GL_TEXTURE16);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexImage2D(GL_TEXTURE_2D, 0, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
     }
+
     void BufferLoad(){
         int[] frameBuffer = new int[1];
         glGenFramebuffers(1, frameBuffer, 0);
@@ -53,6 +60,16 @@ public class GLTexture implements AutoCloseable {
     void bind(int slot) {
         glActiveTexture(slot);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
+    }
+
+    @Override
+    public String toString() {
+        return "GLTexture{" +
+                "mSize=" + mSize +
+                ", mGLFormat=" + mGLFormat +
+                ", mTextureID=" + mTextureID +
+                ", mFormat=" + mFormat +
+                '}';
     }
     @Override
     public void close() {

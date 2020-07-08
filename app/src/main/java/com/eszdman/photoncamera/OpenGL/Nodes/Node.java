@@ -6,12 +6,18 @@ import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 
+import static android.opengl.GLES20.GL_FRAMEBUFFER;
+import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
+import static android.opengl.GLES20.glBindFramebuffer;
+import static android.opengl.GLES20.glGetIntegerv;
+
 public class Node {
     public GLTexture WorkingTexture;
     public String Name = "Node";
     public Node previousNode;
     public int Rid;
     private long timestart;
+    public boolean LastNode = false;
     public void startT(){
         timestart = System.currentTimeMillis();
     }

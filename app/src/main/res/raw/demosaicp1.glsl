@@ -4,15 +4,15 @@ precision mediump usampler2D;
 uniform usampler2D RawBuffer;
 uniform int yOffset;
 uniform int CfaPattern;
-
-out uint Output;
+uniform int WhiteLevel;
+out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
     float outp = 0.0;
-    if(fact1+fact2 == 1){
+    if(fact1+fact2 == 2){
         float grad[4];
         grad[0] = float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x);
         grad[1] = float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x);
@@ -58,9 +58,10 @@ void main() {
                 if(i == 1 && dgrad*1.5>avr)outp = (grad[(i%4)]+grad[((i+2)%4)])/2.;
             }
         }
-        Output = uint(255);
+        Output = (outp/float(WhiteLevel));
     }
     else {
-    Output = uint(255);
+    Output = (float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel));
     }
+
 }

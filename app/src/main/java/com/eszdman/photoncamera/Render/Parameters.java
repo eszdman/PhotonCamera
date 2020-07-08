@@ -19,15 +19,15 @@ public class Parameters {
     public Point rawSize;
     public float[] blacklevel = new float[4];
     public float[] whitepoint = new float[3];
-    public short whitelevel = 1023;
-    boolean hasGainMap;
-    Point mapsize;
-    float[] gainmap;
+    public int whitelevel = 1023;
+    public boolean hasGainMap;
+    public Point mapsize;
+    public float[] gainmap;
     public String path;
-    float[] proPhotoToSRGB = new float[9];
-    float[] sensorToProPhoto = new float[9];
-    float tonemapStrength = 1.4f;
-    float[] customTonemap;
+    public float[] proPhotoToSRGB = new float[9];
+    public float[] sensorToProPhoto = new float[9];
+    public float tonemapStrength = 1.4f;
+    public float[] customTonemap;
 
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
@@ -48,6 +48,8 @@ public class Parameters {
         if (wlevel != null) whitelevel = (short) ((int) wlevel);
         hasGainMap = false;
         mapsize = new Point(1, 1);
+        gainmap = new float[1];
+        gainmap[0] = 1.f;
         LensShadingMap lensmap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
         if (lensmap != null) {
             gainmap = new float[lensmap.getGainFactorCount()];

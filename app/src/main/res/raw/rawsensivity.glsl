@@ -7,7 +7,7 @@ ivec2 HotPixelMapSize;
 uniform int yOffset;
 float PostRawSensivity;
 
-out uint Output;
+out float Output;
 
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -15,5 +15,5 @@ void main() {
     float rawIn = float(texelFetch(RawBuffer, (xy), 0).x);
     rawIn*=PostRawSensivity;
     rawIn = clamp(rawIn,0.0,65535.0);
-    Output = uint(rawIn);
+    Output = float(rawIn);
 }

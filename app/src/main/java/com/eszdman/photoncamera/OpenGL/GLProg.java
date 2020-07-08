@@ -44,7 +44,7 @@ import static android.opengl.GLES30.glUniform3ui;
 import static android.opengl.GLES30.glUniform4ui;
 import static android.opengl.GLES30.glViewport;
 
-public class GLProg {
+public class GLProg implements AutoCloseable  {
     private static String TAG = "GLProgram";
     private final List<Integer> mPrograms = new ArrayList<>();
     private int vertexShader;
@@ -52,18 +52,18 @@ public class GLProg {
     private int mCurrentProgramActive;
     private final Map<String, Integer> mTextureBinds = new HashMap<>();
     private int mNewTextureId;
-
+    String vertexShaderSource = "#version 300 es\n" +
+            "precision mediump float;\n" +
+            "in vec4 vPosition;\n" +
+            "void main() {\n" +
+            "gl_Position = vPosition;\n" +
+            "}\n";
     public GLProg() {
-        String vertexShader = "#version 300 es\n" +
-                "precision mediump float;\n" +
-                "in vec4 vPosition;\n" +
-                "void main() {\n" +
-                "gl_Position = vPosition;\n" +
-                "}\n";
-        this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShader);
+        this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
     }
     public void useProgram(int fragmentRes) {
         int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
+        //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader,nShader);
         glLinkProgram(program);
         glUseProgram(program);
@@ -198,4 +198,10 @@ public class GLProg {
         }
     }
 
+    @Override
+    public void close() {
+        for(int prog : mPrograms){
+            glDeleteProgram(prog);
+        }
+    }
 }

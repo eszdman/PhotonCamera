@@ -7,6 +7,11 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 
+import java.nio.FloatBuffer;
+
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_LINEAR;
+
 public class Initial extends Node {
     public Initial(int rid, String name) {
         super(rid, name);
@@ -16,15 +21,17 @@ public class Initial extends Node {
         startT();
         Node Previous = super.previousNode;
         GLProg glProg = GLInterface.i.glprogram;
-        GLTexture glTexture;
         Parameters params = GLInterface.i.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),GLInterface.i.inputRaw);
+        GLTexture GainMapTex = new GLTexture(params.mapsize, new GLFormat(GLFormat.DataType.FLOAT_16,4),FloatBuffer.wrap(params.gainmap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("Fullbuffer",super.previousNode.WorkingTexture);
+        glProg.setTexture("GainMap",GainMapTex);
         glProg.servar("RawSizeX",params.rawSize.x);
         glProg.servar("RawSizeY",params.rawSize.y);
-        glProg.servar("whiteLevel",(float)params.whitelevel);
+        for(int i =0; i<4;i++){
+            params.blacklevel[i]/=params.whitelevel;
+        }
         glProg.servar("blackLevel",params.blacklevel);
-        //super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_8,4),null);
+        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         endT();
     }
 }

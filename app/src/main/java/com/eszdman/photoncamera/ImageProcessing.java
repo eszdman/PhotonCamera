@@ -15,6 +15,7 @@ import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
@@ -279,29 +280,34 @@ public class ImageProcessing {
         RawPipeline rawPipeline = new RawPipeline();
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(new android.graphics.Point(width,height), new GLFormat(GLFormat.DataType.UNSIGNED_16));
         rawPipeline.glproc = glproc;
-        Wrapper.loadFrame(curimgs.get(1).getPlanes()[0].getBuffer().asReadOnlyBuffer());
-        Wrapper.loadFrame(curimgs.get(0).getPlanes()[0].getBuffer().asReadOnlyBuffer());
-        for (int i = 2; i < curimgs.size(); i++) {
-            ByteBuffer byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
+        float fakelevel = 1023.0f;
+        for (int i = 0; i < curimgs.size(); i++) {
+            float k = fakelevel/Interface.i.parameters.whitelevel;
+            ByteBuffer byteBuffer = null;
+            if(i == 0){
+                byteBuffer = curimgs.get(1).getPlanes()[0].getBuffer();
+            } else
+            if(i == 1){
+                byteBuffer = curimgs.get(0).getPlanes()[0].getBuffer();
+            } else {
+                byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
+            }
+            rawPipeline.sensivity = 1.0f;
             if(i%2 == 3 && false){
-                rawPipeline.sensivity = 0.5f;
-                rawPipeline.rawInput = byteBuffer;
-                ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
-                Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
-                byteBuffer.clear();
-                byteBuffer.put(buff);
-                //byteBuffer = buff;
+                rawPipeline.sensivity = k*0.5f;
             }
             if(i%4 == 2 && false){
-                rawPipeline.sensivity = 2.0f;
-                rawPipeline.rawInput = byteBuffer;
-                ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
-                Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
-                byteBuffer.clear();
-                byteBuffer.put(buff);
+                rawPipeline.sensivity = k*2.0f;
             }
+            rawPipeline.rawInput = byteBuffer;
+            //ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
+            //Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
+            //byteBuffer.clear();
+            //byteBuffer.put(buff);
             Wrapper.loadFrame(byteBuffer);
         }
+        //Interface.i.parameters.whitelevel = (int)fakelevel;
+        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
         //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
         //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
@@ -348,9 +354,10 @@ public class ImageProcessing {
         Interface.i.parameters.path = path;
         for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
-        //PostPipeline pipeline = new PostPipeline();
-        //pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
+        //Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
+        PostPipeline pipeline = new PostPipeline();
+
+        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
         curimgs.get(0).close();
     }
     public void Run() {
