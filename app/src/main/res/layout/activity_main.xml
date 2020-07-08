@@ -106,6 +106,29 @@
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible" />
 
+            <CheckBox
+                android:id="@+id/eisPhoto"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="eis"
+                app:layout_constraintEnd_toStartOf="@+id/quadRes" />
+
+            <CheckBox
+                android:id="@+id/quadRes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="quad"
+                app:layout_constraintEnd_toStartOf="@+id/fpsPreview" />
+
+            <CheckBox
+                android:id="@+id/fpsPreview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="60fps"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/settings"
+                app:layout_constraintTop_toTopOf="parent" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
 

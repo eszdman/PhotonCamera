@@ -11,7 +11,7 @@ import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 
-public class BasePipeline {
+public class BasePipeline implements AutoCloseable {
     ArrayList<Node> Nodes = new ArrayList<Node>();
     private final int[] bind = new int[1];
     void add(Node in){
@@ -54,5 +54,10 @@ public class BasePipeline {
         lastr();
         GLInterface.i.glProc.drawBlocksToOutput();
         return GLInterface.i.glProc.mOutBuffer;
+    }
+
+    @Override
+    public void close() throws Exception {
+        GLInterface.i.glProc.close();
     }
 }

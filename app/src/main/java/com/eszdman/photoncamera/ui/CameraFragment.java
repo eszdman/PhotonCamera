@@ -60,6 +60,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -414,13 +415,12 @@ public class CameraFragment extends Fragment
             if(iso != null) mPreviewIso = (int)iso;
             process(result);
         }
-
         //Automatic 60fps preview
         @Override
         public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
             super.onCaptureStarted(session, request, timestamp, frameNumber);
             if(frameNumber % 20 == 19){
-                if(ExposureIndex.index()+0.9 > 8.0){
+                if(ExposureIndex.index() > 8.0){
                     if(!is30Fps) {
                         Log.d(TAG,"Changed preview target 30fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(3, 30));
@@ -428,8 +428,9 @@ public class CameraFragment extends Fragment
                         rebuildPreview();
                         is30Fps = true;
                     }
-                } else {
-                    if(is30Fps)
+                }
+                if(ExposureIndex.index()+0.9 < 8.0) {
+                    if(is30Fps && Interface.i.settings.fpsPreview)
                     {
                         Log.d(TAG,"Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(3, 60));
@@ -563,6 +564,15 @@ public class CameraFragment extends Fragment
             case R.id.ImageOut: {
                 Photo.instance.ShowPhoto();
             }
+            case R.id.quadRes:{
+                Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
+                restartCamera();
+                Interface.i.settings.save();
+            }
+            case R.id.eisPhoto:{
+                Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
+                Interface.i.settings.save();
+            }
         }
     }
 
@@ -578,12 +588,31 @@ public class CameraFragment extends Fragment
         shot = view.findViewById(R.id.picture);
         shot.setOnClickListener(this);
         shot.setActivated(true);
+        CheckBox fpsPreview = view.findViewById(R.id.fpsPreview);
+        fpsPreview.setChecked(Interface.i.settings.fpsPreview);
+        CheckBox quadResolution = view.findViewById(R.id.quadRes);
+        quadResolution.setChecked(Interface.i.settings.QuadBayer);
+        CheckBox eisPhoto = view.findViewById(R.id.eisPhoto);
+        eisPhoto.setChecked(Interface.i.settings.eisPhoto);
+        eisPhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
+            }
+        });
+        fpsPreview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
+                Interface.i.settings.save();
+            }
+        });
+        quadResolution.setOnClickListener(this);
+        eisPhoto.setOnClickListener(this);
         ImageButton flip = view.findViewById(R.id.flip_camera);
         flip.setOnClickListener(this);
-        flip.setActivated(true);
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
-        settings.setActivated(true);
         ToggleButton hdrX = view.findViewById(R.id.stacking);
         hdrX.setOnClickListener(this);
         img = view.findViewById(R.id.ImageOut);

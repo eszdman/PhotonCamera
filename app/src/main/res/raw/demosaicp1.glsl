@@ -54,8 +54,8 @@ void main() {
         for(int i =0; i<2;i++){
             if(grad[(i%4)]*1. > avr && grad[((i+2)%4)]*1.  > avr &&
             grad[((i+1)%4)] < avr && grad[((i+3)%4)] < avr){
-                if(i == 0 && dgrad*1.5>avr)outp = (grad[(i%4)]+grad[((i+2)%4)])/2.;
-                if(i == 1 && dgrad*1.5>avr)outp = (grad[(i%4)]+grad[((i+2)%4)])/2.;
+                if(i == 0 && dgrad*1.7>avr)outp = (grad[(i%4)]+grad[((i+2)%4)])/2.;
+                if(i == 1 && dgrad*1.7>avr)outp = (grad[(i%4)]+grad[((i+2)%4)])/2.;
             }
         }
         Output = (outp/float(WhiteLevel));

@@ -25,6 +25,7 @@ import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MA
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
@@ -63,6 +64,8 @@ public class Settings {
     public boolean QuadBayer = false;
     public int cfaPattern = -1;
     public boolean remosaic = false;
+    public boolean eisPhoto = true;
+    public boolean fpsPreview = true;
     public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -111,6 +114,13 @@ public class Settings {
         Log.d(TAG, "Loaded rawSaver:" + rawSaver);
         remosaic = get(remosaic);
         Log.d(TAG, "Loaded remosaic:" + remosaic);
+        eisPhoto = get(eisPhoto);
+        Log.d(TAG, "Loaded eisPhoto:" + eisPhoto);
+        QuadBayer = get(QuadBayer);
+        Log.d(TAG, "Loaded QuadBayer:" + QuadBayer);
+        fpsPreview = get(fpsPreview);
+        Log.d(TAG, "Loaded fpsPreview:" + fpsPreview);
+        count = -1;
         mCameraID = get(mCameraID);
         Log.d(TAG, "Loaded mCameraID:" + mCameraID);
         count = 0;
@@ -158,6 +168,14 @@ public class Settings {
         put(rawSaver);
         Log.d(TAG, "Saved remosaic:" + remosaic);
         put(remosaic);
+        Log.d(TAG, "Saved eisPhoto:" + eisPhoto);
+        put(eisPhoto);
+        Log.d(TAG, "Saved QuadBayer:" + QuadBayer);
+        put(QuadBayer);
+        Log.d(TAG, "Saved fpsPreview:" + fpsPreview);
+        put(fpsPreview);
+
+        count = -1;
         Log.d(TAG, "Saved mCameraID:" + mCameraID);
         put(mCameraID);
 
@@ -198,6 +216,7 @@ public class Settings {
         rectm8[0] = new MeteringRectangle(new Rect((int)(sizex/3.0),(int)(sizey/3.0),(int)(sizex*2.0/3.0),(int)(sizey*2.0/3.0)),10);
         rectm8[1] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),30);
         captureBuilder.set(CONTROL_AF_REGIONS,rectm8);
+        captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float rgb[] = new float[64];

@@ -3,7 +3,7 @@ precision mediump float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int yOffset;
-float strength;
+uniform float strength;
 
 out vec4 Output;
 void main() {
@@ -18,7 +18,8 @@ void main() {
        }
     }
     mask/=9.;
-    mask = (cur-mask)*strength;
+    mask =(cur-mask);
+    mask*=strength;
     cur+=mask;
     Output = cur;
 }

@@ -123,12 +123,12 @@ vec3 gammaCorrectPixel2(vec3 rgb) {
     return clamp(finalRGB, 0.f, 1.f);
 }*/
 vec3 applyColorSpace(vec3 pRGB){
-    pRGB.x = clamp(pRGB.x, 0.f, neutralPoint.x);
-    pRGB.y = clamp(pRGB.y, 0.f, neutralPoint.y);
-    pRGB.z = clamp(pRGB.z, 0.f, neutralPoint.z);
+    pRGB.x = clamp(pRGB.x, 0., neutralPoint.x);
+    pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
+    pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
     pRGB = sensorToIntermediate*pRGB;
     //pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB, 0.f, 1.f)));
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB, 0., 1.)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {
@@ -141,9 +141,9 @@ vec3 rgb2hsv(vec3 c) {
     return vec3(abs(q.z + (q.w - q.y) / (6.f * d + e)), d / (q.x + e), q.x);
 }
 vec3 hsv2rgb(vec3 c) {
-    vec4 K = vec4(1.f, 2.f / 3.f, 1.f / 3.f, 3.f);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6.f - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.f, 1.f), c.y);
+    vec4 K = vec4(1., 2. / 3., 1. / 3., 3.);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
 }
 
 vec3 linearizeAndGainMap(ivec2 coords){
@@ -158,7 +158,7 @@ vec3 linearizeAndGainMap(ivec2 coords){
 }
 vec3 saturate(vec3 rgb) {
    vec3 hsv = rgb2hsv(rgb);
-   hsv.g *= (saturation+rgb.g*0.3+rgb.b*0.3);
+   hsv.g = clamp(hsv.g*(saturation+rgb.g*0.3+rgb.b*0.3),0.,1.);
    rgb = hsv2rgb(hsv);
     return rgb;
 }

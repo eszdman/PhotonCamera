@@ -7,15 +7,19 @@ import android.opengl.EGLSurface;
 import static android.opengl.EGL14.EGL_HEIGHT;
 import static android.opengl.EGL14.EGL_NONE;
 import static android.opengl.EGL14.EGL_NO_CONTEXT;
+import static android.opengl.EGL14.EGL_NO_SURFACE;
 import static android.opengl.EGL14.EGL_WIDTH;
 import static android.opengl.EGL14.eglChooseConfig;
 import static android.opengl.EGL14.eglCreateContext;
 import static android.opengl.EGL14.eglCreatePbufferSurface;
+import static android.opengl.EGL14.eglDestroyContext;
+import static android.opengl.EGL14.eglDestroySurface;
 import static android.opengl.EGL14.eglGetDisplay;
 import static android.opengl.EGL14.eglInitialize;
 import static android.opengl.EGL14.eglMakeCurrent;
+import static android.opengl.EGL14.eglTerminate;
 
-public class GLContext {
+public class GLContext implements AutoCloseable {
     private final EGLDisplay mDisplay;
     private final EGLContext mContext;
     private final EGLSurface mSurface;
@@ -48,5 +52,14 @@ public class GLContext {
         }, 0);
         eglMakeCurrent(mDisplay, mSurface, mSurface, mContext);
         mProgram = new GLProg();
+    }
+
+    @Override
+    public void close(){
+        mProgram.close();
+        eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglDestroyContext(mDisplay, mContext);
+        eglDestroySurface(mDisplay, mSurface);
+        eglTerminate(mDisplay);
     }
 }
