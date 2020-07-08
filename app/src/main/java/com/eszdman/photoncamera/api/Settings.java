@@ -5,11 +5,9 @@ import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
-import android.util.Range;
 import android.util.Size;
 
 import com.eszdman.photoncamera.ui.MainActivity;
@@ -18,33 +16,25 @@ import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
-import static android.hardware.camera2.CameraMetadata.TONEMAP_PRESET_CURVE_SRGB;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
 import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
-import static android.hardware.camera2.CaptureRequest.JPEG_QUALITY;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
-import static android.hardware.camera2.CaptureRequest.TONEMAP_GAMMA;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
-import static android.hardware.camera2.CaptureRequest.TONEMAP_PRESET_CURVE;
+
 public class Settings {
     private String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
@@ -71,8 +61,7 @@ public class Settings {
     public boolean ManualMode = false;
     //TODO Add button for QuadResolution, if supported
     public boolean QuadBayer = false;
-
-    public int cfaPatern = 0;
+    public int cfaPattern = -1;
     public boolean remosaic = false;
     public String mCameraID = "0";
     private int count = 0;
@@ -116,8 +105,8 @@ public class Settings {
         lastPicture = get(lastPicture);
         Log.d(TAG, "Loaded last picture:" + lastPicture);
         hdrx = get(hdrx);
-        cfaPatern = get(cfaPatern);
-        Log.d(TAG, "Loaded CFA:" + cfaPatern);
+        cfaPattern = get(cfaPattern);
+        Log.d(TAG, "Loaded CFA:" + cfaPattern);
         rawSaver = get(rawSaver);
         Log.d(TAG, "Loaded rawSaver:" + rawSaver);
         remosaic = get(remosaic);
@@ -163,8 +152,8 @@ public class Settings {
         put(lastPicture);
         Log.d(TAG, "Saved last picture:" + lastPicture);
         put(hdrx);
-        Log.d(TAG, "Saved CFA:" + cfaPatern);
-        put(cfaPatern);
+        Log.d(TAG, "Saved CFA:" + cfaPattern);
+        put(cfaPattern);
         Log.d(TAG, "Saved RawSaver:" + rawSaver);
         put(rawSaver);
         Log.d(TAG, "Saved remosaic:" + remosaic);

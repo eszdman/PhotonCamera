@@ -8,9 +8,9 @@ uniform int WhiteLevel;
 out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
+    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     float outp = 0.0;
     if(fact1+fact2 != 1){
         float grad[4];

@@ -41,8 +41,8 @@ public class Parameters {
         }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
-        if(Interface.i.settings.cfaPatern != 0){
-            cfaPattern = (byte)Interface.i.settings.cfaPatern;
+        if(Interface.i.settings.cfaPattern != -1){
+            cfaPattern = (byte)Interface.i.settings.cfaPattern;
         }
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (wlevel != null) whitelevel = (short) ((int) wlevel);

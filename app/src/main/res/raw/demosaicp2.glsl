@@ -65,9 +65,9 @@ float interpolateColory(ivec2 coords){
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
+    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     vec4 outp;
     if(fact1 ==0 && fact2 == 0) {//rggb
         outp.g = texelFetch(GreenBuffer, (xy), 0).x;

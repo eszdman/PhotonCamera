@@ -6,15 +6,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 
@@ -210,12 +209,18 @@ public class SettingsActivity extends AppCompatActivity {
         cfaList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
               @Override
               public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                  Interface.i.settings.cfaPatern = position;
+                  Log.d("Settings","Position:"+position);
+                  switch (position){
+                      case(0):Interface.i.settings.cfaPattern = -1; break;
+                      case(1):Interface.i.settings.cfaPattern = 0; break;
+                      case(2):Interface.i.settings.cfaPattern = 3; break;
+                      case(3):Interface.i.settings.cfaPattern = 1; break;
+                      case(4):Interface.i.settings.cfaPattern = 2; break;
+                  }
               }
-
               @Override
               public void onNothingSelected(AdapterView<?> parent) {
-                  Interface.i.settings.cfaPatern = 0;
+                  Interface.i.settings.cfaPattern = -1;
               }
           }
         );
@@ -250,7 +255,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(compress, Interface.i.settings.compressor);
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
-        setv(cfaList,Interface.i.settings.cfaPatern);
+        setv(cfaList,Interface.i.settings.cfaPattern);
         load();
     }
     //And here
