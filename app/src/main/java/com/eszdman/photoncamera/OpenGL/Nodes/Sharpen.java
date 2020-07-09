@@ -11,10 +11,11 @@ public class Sharpen extends Node {
     }
 
     @Override
-    public void Run(BasePipeline basePipeline) {
+    public void Run() {
         startT();
+        GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
-        GLProg glProg = GLInterface.i.glprogram;
+        GLProg glProg = glint.glprogram;
         glProg.servar("strength", (float)Interface.i.settings.sharpness);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);

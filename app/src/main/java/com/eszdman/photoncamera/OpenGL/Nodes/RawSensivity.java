@@ -12,14 +12,13 @@ public class RawSensivity extends Node {
         super(rid, name);
     }
     @Override
-    public void Run(BasePipeline basePipeline) {
+    public void Run() {
         RawPipeline rawPipeline = (RawPipeline)basePipeline;
         startT();
-        Node Previous = super.previousNode;
-        GLProg glProg = GLInterface.i.glprogram;
-        GLTexture glTexture;
-        Parameters params = GLInterface.i.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
+        GLInterface glint = rawPipeline.glint;
+        GLProg glProg = glint.glprogram;
+        Parameters params = glint.parameters;
+        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
         glProg.setTexture("RawBuffer",glTexture);
         glProg.servar("PostRawSensivity",rawPipeline.sensivity);
         endT();

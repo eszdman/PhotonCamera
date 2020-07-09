@@ -9,13 +9,11 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 
 public class GLInterface {
-    public static GLInterface i;
     public GLProg glprogram;
     public Parameters parameters;
     public ByteBuffer inputRaw;
     public GLCoreBlockProcessing glProc;
     public GLInterface(GLCoreBlockProcessing processing){
-        i = this;
         glProc = processing;
         glprogram = glProc.mProgram;
     }

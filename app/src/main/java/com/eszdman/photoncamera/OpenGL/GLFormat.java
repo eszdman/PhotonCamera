@@ -110,7 +110,6 @@ public class GLFormat {
                     case 3: return GL_RGB;
                     case 4: return GL_RGBA;
                 }
-
             case UNSIGNED_16:
             case UNSIGNED_32:
             case UNSIGNED_64:

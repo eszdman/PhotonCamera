@@ -18,11 +18,12 @@ public class Initial extends Node {
         super(rid, name);
     }
     @Override
-    public void Run(BasePipeline pipeline) {
+    public void Run() {
         startT();
         Node Previous = super.previousNode;
-        GLProg glProg = GLInterface.i.glprogram;
-        Parameters params = GLInterface.i.parameters;
+        GLInterface glint = basePipeline.glint;
+        GLProg glProg = glint.glprogram;
+        Parameters params = glint.parameters;
         GLTexture GainMapTex = new GLTexture(params.mapsize, new GLFormat(GLFormat.DataType.FLOAT_16,4),FloatBuffer.wrap(params.gainmap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("Fullbuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("GainMap",GainMapTex);

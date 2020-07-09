@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.media.Image;
+import android.renderscript.RenderScript;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
@@ -304,6 +305,7 @@ public class ImageProcessing {
             //Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
             //byteBuffer.clear();
             //byteBuffer.put(buff);
+            //byteBuffer.position(0);
             Wrapper.loadFrame(byteBuffer);
         }
         //Interface.i.parameters.whitelevel = (int)fakelevel;

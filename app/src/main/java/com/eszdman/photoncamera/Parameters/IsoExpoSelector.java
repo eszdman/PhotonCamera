@@ -34,12 +34,12 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
-        if (pair.iso >= 100/0.65) pair.iso *= 0.65;
+        if (pair.iso >= 100/0.65) pair.iso *= 0.7;
             else {
-                pair.exposure *= 0.65;
+                pair.exposure *= 0.7;
             }
         }
-        if(Interface.i.settings.ManualMode){
+        if(Interface.i.manual.exposure){
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
@@ -57,7 +57,7 @@ public class IsoExpoSelector {
             if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50 && Interface.i.settings.eisPhoto){
                 pair.ReduceExpo();
             }
-            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3 && pair.iso < 2100 && Interface.i.settings.eisPhoto){
+            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3 && pair.iso < 3200 && Interface.i.settings.eisPhoto){
                 pair.FixedExpo(1.0/8);
                 if(pair.normalizeCheck()) Interface.i.camera.showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
             }

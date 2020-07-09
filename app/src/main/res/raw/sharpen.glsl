@@ -6,6 +6,7 @@ uniform int yOffset;
 uniform float strength;
 
 out vec4 Output;
+#define depthMin (0.01)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -19,6 +20,7 @@ void main() {
     }
     mask/=9.;
     mask =(cur-mask);
+    if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
     mask*=strength;
     cur+=mask;
     Output = cur;

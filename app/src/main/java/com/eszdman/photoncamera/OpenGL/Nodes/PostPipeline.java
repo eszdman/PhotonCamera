@@ -8,14 +8,13 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
-
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends BasePipeline {
     public void Run(ByteBuffer inBuffer, Parameters parameters){
         Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
-        GLInterface glint = new GLInterface(glproc);
+        glint = new GLInterface(glproc);
         glint.inputRaw = inBuffer;
         glint.parameters = parameters;
         add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));

@@ -1,6 +1,8 @@
 package com.eszdman.photoncamera.OpenGL.Nodes;
 
 import android.graphics.Bitmap;
+import android.util.Log;
+
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import java.nio.ByteBuffer;
@@ -13,10 +15,14 @@ import static android.opengl.GLES20.glGetIntegerv;
 
 public class BasePipeline implements AutoCloseable {
     ArrayList<Node> Nodes = new ArrayList<Node>();
+    GLInterface glint = null;
+    private static String TAG = "BasePipeline";
     private final int[] bind = new int[1];
     void add(Node in){
         if(Nodes.size() != 0) in.previousNode = Nodes.get(Nodes.size()-1);
+        in.basePipeline = this;
         Nodes.add(in);
+        Log.d(TAG,"Added:"+in.Name+"Nodes size:"+Nodes.size());
     }
     private void lasti(){
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, bind, 0);
@@ -31,13 +37,14 @@ public class BasePipeline implements AutoCloseable {
             if(i == Nodes.size()-1) {
                 lastr();
             }
-            Nodes.get(i).Run(this);
+            Nodes.get(i).Run();
             if(i != Nodes.size()-1) {
-                GLInterface.i.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
+                glint.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
             }
         }
-        GLInterface.i.glProc.drawBlocksToOutput();
-        return GLInterface.i.glProc.mOut;
+        glint.glProc.drawBlocksToOutput();
+        Nodes.clear();
+        return glint.glProc.mOut;
     }
     ByteBuffer runAllRaw(){
         lasti();
@@ -46,18 +53,19 @@ public class BasePipeline implements AutoCloseable {
             if(i == Nodes.size()-1) {
                 lastr();
             }
-            Nodes.get(i).Run(this);
+            Nodes.get(i).Run();
             if(i != Nodes.size()-1) {
-                GLInterface.i.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
+                Log.d(TAG,"i:"+i+" size:"+Nodes.size());
+                glint.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
             }
         }
-        lastr();
-        GLInterface.i.glProc.drawBlocksToOutput();
-        return GLInterface.i.glProc.mOutBuffer;
+        glint.glProc.drawBlocksToOutput();
+        Nodes.clear();
+        return glint.glProc.mOutBuffer;
     }
 
     @Override
-    public void close() throws Exception {
-        GLInterface.i.glProc.close();
+    public void close() {
+        glint.glProc.close();
     }
 }

@@ -135,7 +135,6 @@ vec3 rgb2hsv(vec3 c) {
     vec4 K = vec4(0.f, -1.f / 3.f, 2.f / 3.f, -1.f);
     vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
     vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
     float d = q.x - min(q.w, q.y);
     float e = 1.0e-10;
     return vec3(abs(q.z + (q.w - q.y) / (6.f * d + e)), d / (q.x + e), q.x);
@@ -158,7 +157,7 @@ vec3 linearizeAndGainMap(ivec2 coords){
 }
 vec3 saturate(vec3 rgb) {
    vec3 hsv = rgb2hsv(rgb);
-   hsv.g = clamp(hsv.g*(saturation+rgb.g*0.3+rgb.b*0.3),0.,1.);
+   hsv.g = clamp(hsv.g*(saturation+rgb.g*0.2+rgb.b*0.2),0.,1.);
    rgb = hsv2rgb(hsv);
     return rgb;
 }

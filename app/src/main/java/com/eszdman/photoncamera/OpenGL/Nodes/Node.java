@@ -17,6 +17,7 @@ public class Node {
     public Node previousNode;
     public int Rid;
     private long timestart;
+    public BasePipeline basePipeline;
     public boolean LastNode = false;
     public void startT(){
         timestart = System.currentTimeMillis();
@@ -29,8 +30,8 @@ public class Node {
         Rid = rid;
         Name = name;
     }
-    public void Run(BasePipeline basePipeline){}
+    public void Run(){}
     public void Compile(){
-        GLInterface.i.glprogram.useProgram(Rid);
+        basePipeline.glint.glprogram.useProgram(Rid);
     }
 }
