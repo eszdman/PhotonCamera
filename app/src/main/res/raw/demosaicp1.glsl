@@ -14,11 +14,13 @@ float dyf(ivec2 coords){
 }
 float dxdf(ivec2 coords){
     return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)))/1.41421;
+    //return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)),0).x))/2.82842;
 }
 float dydf(ivec2 coords){
     return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)))/1.41421;
+    //return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)),0).x))/2.82842;
 }
-#define demosw (1.5)
+#define demosw (1.0)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     int fact1 = xy.x%2;
@@ -39,20 +41,20 @@ void main() {
         float E[8];
         //t = dydf(xy+ivec2(-1,-1));
         //E[0] = 1.0/sqrt(1 + dyd*dyd + t*t);
-        t = dydf(xy+ivec2(0,-1));
+        t = dyf(xy+ivec2(0,-1));
         E[1] = 1.0/sqrt(demosw + dy*dy + t*t);
         //t = dydf(xy+ivec2(1,-1));
         //E[2] = 1.0/sqrt(1 + dxd*dxd + t*t);
-        t = dydf(xy+ivec2(-1,0));
+        t = dxf(xy+ivec2(-1,0));
         E[3] = 1.0/sqrt(demosw + dx*dx + t*t);
 
         //t = dydf(xy+ivec2(1,0));
         //E[4] = 1.0/sqrt(1 + dx*dx + t*t);
-        t = dydf(xy+ivec2(-1,1));
+        t = dxf(xy+ivec2(1,0));
         E[5] = 1.0/sqrt(demosw + dx*dx + t*t);
         //t = dydf(xy+ivec2(0,1));
         //E[6] = 1.0/sqrt(1 + dy*dy + t*t);
-        t = dydf(xy+ivec2(1,1));
+        t = dyf(xy+ivec2(0,1));
         E[7] = 1.0/sqrt(demosw + dy*dy + t*t);
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/(E[1]+E[3]+E[5]+E[7]);
         Output = (outp/float(WhiteLevel));

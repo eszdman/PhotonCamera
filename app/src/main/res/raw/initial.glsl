@@ -126,6 +126,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB.x = clamp(pRGB.x, 0., neutralPoint.x);
     pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
     pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
+    pRGB.x*=1.08;
     pRGB = sensorToIntermediate*pRGB;
     //pRGB = tonemap(pRGB);
     return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB, 0., 1.)));
