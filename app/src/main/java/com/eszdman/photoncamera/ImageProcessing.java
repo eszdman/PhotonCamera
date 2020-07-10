@@ -359,6 +359,7 @@ public class ImageProcessing {
         //Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
         PostPipeline pipeline = new PostPipeline();
         pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
+        pipeline.close();
         curimgs.get(0).close();
     }
     public void Run() {

@@ -40,9 +40,11 @@ public class BasePipeline implements AutoCloseable {
             Nodes.get(i).Run();
             if(i != Nodes.size()-1) {
                 glint.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
+                glint.glprogram.close();
             }
         }
         glint.glProc.drawBlocksToOutput();
+        glint.glprogram.close();
         Nodes.clear();
         return glint.glProc.mOut;
     }
@@ -57,9 +59,11 @@ public class BasePipeline implements AutoCloseable {
             if(i != Nodes.size()-1) {
                 Log.d(TAG,"i:"+i+" size:"+Nodes.size());
                 glint.glprogram.drawBlocks(Nodes.get(i).WorkingTexture);
+                glint.glprogram.close();
             }
         }
         glint.glProc.drawBlocksToOutput();
+        glint.glprogram.close();
         Nodes.clear();
         return glint.glProc.mOutBuffer;
     }
@@ -67,5 +71,6 @@ public class BasePipeline implements AutoCloseable {
     @Override
     public void close() {
         glint.glProc.close();
+        glint.inputRaw.clear();
     }
 }

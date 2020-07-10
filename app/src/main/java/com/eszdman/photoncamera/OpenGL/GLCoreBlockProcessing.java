@@ -28,8 +28,10 @@ public class GLCoreBlockProcessing extends GLContext {
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLConst.TileSize);
         int[] row = new int[2];
-        mOutBuffer.clear();
-        mBlockBuffer.clear();
+        //mOutBuffer.clear();
+        mOutBuffer.position(0);
+        //mBlockBuffer.clear();
+        mBlockBuffer.position(0);
         while (divider.nextBlock(row)) {
             int y = row[0];
             int height = row[1];
