@@ -23,7 +23,7 @@ public class DemosaicPart1 extends Node {
         glProg.servar("CfaPattern",params.cfaPattern);
         //glProg.servar("RawSizeX",params.rawSize.x);
         //glProg.servar("RawSizeY",params.rawSize.y);
-        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
+        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         endT();
     }
 }
