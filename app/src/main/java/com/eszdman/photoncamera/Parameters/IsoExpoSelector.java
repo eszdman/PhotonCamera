@@ -39,7 +39,7 @@ public class IsoExpoSelector {
                 pair.exposure *= 0.7;
             }
         }
-        if(Interface.i.manual.exposure){
+        if(Interface.i.settings.ManualMode){
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }

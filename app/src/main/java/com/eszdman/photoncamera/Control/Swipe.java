@@ -55,13 +55,11 @@ public class Swipe {
                         Interface.i.settings.ManualMode = false;
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.i.settings.aeModeOn);
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.i.settings.afMode);
-                        Interface.i.manual.exposure = false;
                         Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.GONE);
                     } else {
                         Log.d(TAG, "Top");//it swipes from bottom to top
                         if(!Interface.i.settings.ManualMode) manualmode.startAnimation(slideUp);
-                        Interface.i.settings.ManualMode = true;
                         Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.VISIBLE);
                     }

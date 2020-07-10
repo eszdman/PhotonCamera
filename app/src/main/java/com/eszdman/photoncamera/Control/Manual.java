@@ -23,6 +23,7 @@ public class Manual {
         int miniso = IsoExpoSelector.getISOLOWExt();
         isoSlider.setMin(1);
         isoSlider.setMax(IsoExpoSelector.getISOHIGHExt()/miniso);
+        isoSlider.setProgress(isoSlider.getMax()/2);
         isoSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -33,8 +34,9 @@ public class Manual {
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,(int)(isovalue/IsoExpoSelector.getMPY()));
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_EXPOSURE_TIME,Interface.i.camera.mPreviewExposuretime);
+                    Interface.i.settings.ManualMode = true;
                     Interface.i.camera.rebuildPreview();
-                    if(!exposure)exposure = true;
+
                 } catch (Exception ignored){}
             }
 
@@ -46,14 +48,13 @@ public class Manual {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
-        isoSlider.setProgress(isoSlider.getMin());
-        isoSlider.setProgress(isoSlider.getMax()/2);
         SeekBar expSlider = Interface.i.mainActivity.findViewById(R.id.expSlider);
         TextView expValue = Interface.i.mainActivity.findViewById(R.id.expValue);
         long minexp = IsoExpoSelector.getEXPLOW();
         long maxexp = IsoExpoSelector.getEXPHIGH();
         expSlider.setMin((int)(Math.log((double)(minexp)/ ExposureIndex.sec)/Math.log(2))-1);
         expSlider.setMax((int)(Math.log((double)(maxexp)/ ExposureIndex.sec)/Math.log(2))+1);
+        expSlider.setProgress(-4);
         expSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @SuppressLint({"DefaultLocale", "SetTextI18n"})
             @Override
@@ -68,7 +69,7 @@ public class Manual {
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,Interface.i.camera.mPreviewIso);
-                        if(!exposure)exposure = true;
+                        Interface.i.settings.ManualMode = true;
                         Interface.i.camera.rebuildPreview();
                     } catch (Exception ignored){}
                 } else expValue.setText(String.valueOf((int)expvalue));
@@ -80,8 +81,6 @@ public class Manual {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
-        expSlider.setProgress(expSlider.getMin());
-        expSlider.setProgress(-5);
         SeekBar focusSlider = Interface.i.mainActivity.findViewById(R.id.focusSlider);
         TextView focusValue = Interface.i.mainActivity.findViewById(R.id.focusValue);
         float min = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
