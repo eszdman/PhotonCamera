@@ -208,7 +208,7 @@ public class Settings {
         captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
-        Point size = new Point(Interface.i.camera.mImageReaderYuv.getWidth(),Interface.i.camera.mImageReaderYuv.getHeight());
+        Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;
         //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));

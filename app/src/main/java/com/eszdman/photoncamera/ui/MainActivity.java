@@ -40,13 +40,15 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     public void onBackPressed() {
-        if (CameraFragment.context.mState != 5) {
+        /*if (CameraFragment.context.mState != 5) {
             super.onBackPressed();
             return;
         }
         Intent intent = this.getIntent();
         this.finish();
         this.startActivity(intent);
+        */
+        super.onBackPressed();
         Animatoo.animateShrink(this);
     }
 
