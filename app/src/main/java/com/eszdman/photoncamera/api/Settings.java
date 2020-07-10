@@ -13,6 +13,7 @@ import android.util.Size;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.content.Context.MODE_PRIVATE;
+import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
@@ -24,6 +25,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
 import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
@@ -208,6 +210,7 @@ public class Settings {
         captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
+        //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,1);
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;

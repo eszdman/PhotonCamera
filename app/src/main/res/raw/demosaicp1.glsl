@@ -28,7 +28,7 @@ void main() {
     xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     float outp = 0.0;
     if(fact1+fact2 != 1){
-        //Alexey Lukin, Denis Kubasov demosaicing
+        //Alexey Lukin, Denis Kubasov demosaicing with an eszdman's upgrade
         float P[9];
         for(int i =0; i<9;i++){
             P[i] = float(texelFetch(RawBuffer, (xy+ivec2(i%3 - 1,i/3 - 1)), 0).x);
@@ -39,24 +39,26 @@ void main() {
         float dyd = dydf(xy);
         float t;
         float E[8];
-        //t = dydf(xy+ivec2(-1,-1));
-        //E[0] = 1.0/sqrt(1 + dyd*dyd + t*t);
+        t = dydf(xy+ivec2(-1,-1));
+        E[0] = 1.0/sqrt(demosw + dyd*dyd + t*t);
         t = dyf(xy+ivec2(0,-1));
         E[1] = 1.0/sqrt(demosw + dy*dy + t*t);
-        //t = dydf(xy+ivec2(1,-1));
-        //E[2] = 1.0/sqrt(1 + dxd*dxd + t*t);
+        t = dydf(xy+ivec2(1,-1));
+        E[2] = 1.0/sqrt(demosw + dxd*dxd + t*t);
         t = dxf(xy+ivec2(-1,0));
         E[3] = 1.0/sqrt(demosw + dx*dx + t*t);
 
-        //t = dydf(xy+ivec2(1,0));
-        //E[4] = 1.0/sqrt(1 + dx*dx + t*t);
+        t = dydf(xy+ivec2(1,1));
+        E[4] = 1.0/sqrt(demosw + dx*dx + t*t);
+
         t = dxf(xy+ivec2(1,0));
         E[5] = 1.0/sqrt(demosw + dx*dx + t*t);
-        //t = dydf(xy+ivec2(0,1));
-        //E[6] = 1.0/sqrt(1 + dy*dy + t*t);
+
+        t = dydf(xy+ivec2(-1,1));
+        E[6] = 1.0/sqrt(demosw + dy*dy + t*t);
         t = dyf(xy+ivec2(0,1));
         E[7] = 1.0/sqrt(demosw + dy*dy + t*t);
-        outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/(E[1]+E[3]+E[5]+E[7]);
+        outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/(E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
         Output = (outp/float(WhiteLevel));
     }
     else {
