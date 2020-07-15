@@ -1033,13 +1033,10 @@ public class CameraFragment extends Fragment
             // Here, we create a CameraCaptureSession for camera preview.
             List surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             if(burst){
-                surfaces = Arrays.asList(surface, mImageReaderRaw.getSurface());
+                surfaces = Arrays.asList(mImageReaderPreview.getSurface(),mImageReaderRaw.getSurface());
             }
             if(mTargetFormat == mPreviewTargetFormat){
                 surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-                if(burst){
-                    surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-                }
             }
             mCameraDevice.createCaptureSession(surfaces,
                     new CameraCaptureSession.StateCallback() {
