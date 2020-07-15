@@ -39,30 +39,28 @@ void main() {
         float dyd = dydf(xy);
         float t;
         float E[8];
-        t = dydf(xy+ivec2(-1,-1));
-        E[0] = 1.0/sqrt(demosw + dyd*dyd + t*t);
         t = dyf(xy+ivec2(0,-1));
         E[1] = 1.0/sqrt(demosw + dy*dy + t*t);
-        t = dydf(xy+ivec2(1,-1));
-        E[2] = 1.0/sqrt(demosw + dxd*dxd + t*t);
         t = dxf(xy+ivec2(-1,0));
         E[3] = 1.0/sqrt(demosw + dx*dx + t*t);
-
-        t = dydf(xy+ivec2(1,1));
-        E[4] = 1.0/sqrt(demosw + dx*dx + t*t);
-
         t = dxf(xy+ivec2(1,0));
         E[5] = 1.0/sqrt(demosw + dx*dx + t*t);
-
-        t = dydf(xy+ivec2(-1,1));
-        E[6] = 1.0/sqrt(demosw + dy*dy + t*t);
         t = dyf(xy+ivec2(0,1));
         E[7] = 1.0/sqrt(demosw + dy*dy + t*t);
+
+        t = dxdf(xy+ivec2(-1,-1));
+        E[0] = 1.0/sqrt(demosw + dxd*dxd + t*t);
+        t = dydf(xy+ivec2(1,-1));
+        E[2] = 1.0/sqrt(demosw + dyd*dyd + t*t);
+        t = dxdf(xy+ivec2(1,1));
+        E[4] = 1.0/sqrt(demosw + dxd*dxd + t*t);
+        t = dydf(xy+ivec2(-1,1));
+        E[6] = 1.0/sqrt(demosw + dyd*dyd + t*t);
+
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/(E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
-        Output = (outp/float(WhiteLevel));
+        Output = clamp(outp/float(WhiteLevel),0.,1.);
     }
     else {
-    Output = (float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel));
+    Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
     }
-
 }

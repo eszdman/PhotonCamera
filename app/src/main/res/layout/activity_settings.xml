@@ -288,12 +288,12 @@
                         android:layout_width="match_parent"
                         android:layout_height="30dp"
                         android:layout_marginStart="30dp"
-                        android:max="200"
+                        android:max="250"
                         android:min="0"
                         android:progress="-1"
-                        android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumbTint="@android:color/transparent"/>
+                        android:splitTrack="false"
+                        android:thumbTint="@android:color/transparent" />
 
                     <TextView
                         android:id="@+id/settings_contrasttext"

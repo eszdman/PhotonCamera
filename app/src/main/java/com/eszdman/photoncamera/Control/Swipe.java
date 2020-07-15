@@ -59,7 +59,10 @@ public class Swipe {
                         manualmode.setVisibility(View.GONE);
                     } else {
                         Log.d(TAG, "Top");//it swipes from bottom to top
-                        if(!Interface.i.settings.ManualMode) manualmode.startAnimation(slideUp);
+                        if(!Interface.i.settings.ManualMode) {
+                            manualmode.startAnimation(slideUp);
+                            Interface.i.settings.ManualMode = true;
+                        }
                         Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.VISIBLE);
                     }

@@ -34,7 +34,7 @@ public class Manual {
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,(int)(isovalue/IsoExpoSelector.getMPY()));
                     CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_EXPOSURE_TIME,Interface.i.camera.mPreviewExposuretime);
-                    Interface.i.settings.ManualMode = true;
+                    exposure = true;
                     Interface.i.camera.rebuildPreview();
 
                 } catch (Exception ignored){}
@@ -69,7 +69,7 @@ public class Manual {
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,Interface.i.camera.mPreviewIso);
-                        Interface.i.settings.ManualMode = true;
+                        exposure = true;
                         Interface.i.camera.rebuildPreview();
                     } catch (Exception ignored){}
                 } else expValue.setText(String.valueOf((int)expvalue));

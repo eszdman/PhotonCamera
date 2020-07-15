@@ -26,7 +26,7 @@ void main() {
     xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
     float outp = 0.0;
     if(fact1+fact2 != 1){
-        //Alexey Lukin, Denis Kubasov demosaicing
+        //Hybrid color filter array demosaicking for effective artifact suppression
         float C[5];
         float G[4];
         C[0] = float(texelFetch(RawBuffer, (xy+ivec2(-2,0)), 0).x);

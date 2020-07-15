@@ -4,9 +4,10 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int yOffset;
 uniform float strength;
-
 out vec4 Output;
-#define depthMin (3.01)
+#define depthMin (0.012)
+#define depthMax (0.790)
+#define colour (0.2)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -20,8 +21,12 @@ void main() {
     }
     mask/=9.;
     mask =(cur-mask);
+    mask=clamp(mask,-depthMax,depthMax);
     if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
     mask*=strength;
-    cur+=mask;
+    if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
+    else {
+        cur+=(mask.r+mask.g+mask.b)/3.;
+    }
     Output = cur;
 }

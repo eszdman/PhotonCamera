@@ -10,7 +10,8 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
-
+    public static final int baseFrame = 1;
+    public static final double mpy = 0.75;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
@@ -25,21 +26,21 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if(step != 1 || !Interface.i.settings.eisPhoto) pair.ReduceIso();
+            if(step != baseFrame || !Interface.i.settings.eisPhoto) pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if(step != 1 || !Interface.i.settings.eisPhoto) pair.ReduceIso(1.25);
+            if(step != baseFrame || !Interface.i.settings.eisPhoto) pair.ReduceIso(1.25);
         }
         if (pair.iso >= 12700) {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
-        if (pair.iso >= 100/0.65) pair.iso *= 0.7;
+        if (pair.iso >= 100/0.65) pair.iso *= mpy;
             else {
-                pair.exposure *= 0.7;
+                pair.exposure *= mpy;
             }
         }
-        if(Interface.i.settings.ManualMode){
+        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
@@ -50,7 +51,7 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLower(2.0);
         }
 
-        if(step == 1){
+        if(step == baseFrame){
             if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70 && Interface.i.settings.eisPhoto){
                 pair.ReduceExpo();
             }

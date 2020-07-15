@@ -39,7 +39,7 @@ public class Camera2ApiAutoFix {
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
-        fix.gains();
+        //fix.gains();
         fix.dynBL();
     }
     public void curve(){

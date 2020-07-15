@@ -54,7 +54,7 @@ public class Settings {
     public boolean align = true;
     public boolean hdrx = true;
     public double saturation = 1.0;
-    public double sharpness = 0.3;
+    public double sharpness = 1.0;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;
     public double compressor = 1.6;
@@ -210,7 +210,7 @@ public class Settings {
         captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
-        //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,1);
+        //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;

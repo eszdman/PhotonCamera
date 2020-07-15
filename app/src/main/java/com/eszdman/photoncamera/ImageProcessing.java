@@ -43,6 +43,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
+import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
 import static org.opencv.calib3d.Calib3d.RANSAC;
 import static org.opencv.calib3d.Calib3d.findHomography;
 
@@ -286,9 +287,9 @@ public class ImageProcessing {
             float k = fakelevel/Interface.i.parameters.whitelevel;
             ByteBuffer byteBuffer = null;
             if(i == 0){
-                byteBuffer = curimgs.get(1).getPlanes()[0].getBuffer();
+                byteBuffer = curimgs.get(baseFrame).getPlanes()[0].getBuffer();
             } else
-            if(i == 1){
+            if(i == baseFrame){
                 byteBuffer = curimgs.get(0).getPlanes()[0].getBuffer();
             } else {
                 byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();

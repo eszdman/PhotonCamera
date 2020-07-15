@@ -1,6 +1,8 @@
 package com.eszdman.photoncamera.OpenGL.Nodes;
 
 import android.graphics.Bitmap;
+import android.media.MediaCodec;
+
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
@@ -20,12 +22,13 @@ public class PostPipeline extends BasePipeline {
         add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));
         add(new DemosaicPart2(R.raw.demosaicp2,"Demosaic Part 2"));
         add(new Initial(R.raw.initial,"Initial"));
+        add(new Bilateral(R.raw.bilateral,"Bilateral"));
         add(new Sharpen(R.raw.sharpen,"Sharpening"));
         Bitmap img = runAll();
         try {
             outimg.createNewFile();
             FileOutputStream fOut = new FileOutputStream(outimg);
-            img.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            img.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
             fOut.flush();
             fOut.close();
             img.recycle();

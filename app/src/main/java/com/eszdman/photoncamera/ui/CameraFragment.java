@@ -155,7 +155,7 @@ public class CameraFragment extends Fragment
     public static CaptureResult mCaptureResult;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
     public static final int yuvFormat = ImageFormat.YUV_420_888;
-    public static final int prevFormat = ImageFormat.JPEG;
+    public static final int prevFormat = ImageFormat.YUV_420_888;
     public static int mTargetFormat = rawFormat;
     public static int mPreviewTargetFormat = prevFormat;
     public static CaptureResult mPreviewResult;
