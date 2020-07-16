@@ -44,7 +44,8 @@ void main() {
         float br = length(brp)/4.;
         br+=0.25;
         sigX*= (1.0-br)*(1.0-br);
-        sigX+=0.84;
+        sigX+=0.7;
+        sigX = clamp(sigX,0.5,5.);
         //create the 1-D kernel
         float Z = 0.0;
         for (int j = 0; j <= kSize; ++j)

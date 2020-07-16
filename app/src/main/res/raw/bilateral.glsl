@@ -40,6 +40,7 @@ void main() {
         br = clamp(br,0.,0.6);
         sigX*=(0.6-br)*(0.6-br);
         sigX+=0.5;
+        sigX = clamp(sigX,0.2,7.);
         //create the 1-D kernel
         float Z = 0.0;
         for (int j = 0; j <= kSize; ++j)
