@@ -11,7 +11,7 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
-    public static final double mpy = 0.75;
+    public static final double mpy = 0.8;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
