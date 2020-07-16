@@ -427,7 +427,7 @@ public class CameraFragment extends Fragment
                     }
                 }
                 if(ExposureIndex.index()+0.9 < 8.0) {
-                    if(is30Fps && Interface.i.settings.fpsPreview)
+                    if(is30Fps && Interface.i.settings.fpsPreview && mCameraDevice.getId() != "1")
                     {
                         Log.d(TAG,"Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(3, 60));
