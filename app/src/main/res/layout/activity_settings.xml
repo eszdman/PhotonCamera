@@ -98,7 +98,10 @@
                         android:fontFamily="sans-serif"
                         android:gravity="center|start|center_horizontal"
                         android:text="@string/turn_on_grid"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                     <Switch
                         android:id="@+id/setting_roundedge"
@@ -109,7 +112,10 @@
                         android:fontFamily="sans-serif"
                         android:gravity="center|start|center_horizontal"
                         android:text="@string/turn_on_round_edges"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                     <Switch
                         android:id="@+id/setting_raw"
@@ -120,7 +126,10 @@
                         android:gravity="center|start|center_horizontal"
                         android:text="@string/raw"
                         android:textSize="16sp"
-                        android:layout_height="@dimen/SettingSize1" />
+                        android:layout_height="@dimen/SettingSize1"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -159,7 +168,10 @@
                         android:fontFamily="sans-serif"
                         android:gravity="center|start|center_horizontal"
                         android:text="@string/turn_on_system_nr"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                     <Switch
                         android:id="@+id/setting_disablealign"
@@ -170,7 +182,10 @@
                         android:fontFamily="sans-serif"
                         android:text="@string/disable_aligning"
                         android:textAlignment="textStart"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                     <TextView
                         android:id="@+id/setting_chroma"
@@ -229,7 +244,10 @@
                         android:fontFamily="sans-serif"
                         android:text="@string/enhanced_processing"
                         android:textColor="@color/White"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                 </LinearLayout>
 
@@ -270,7 +288,10 @@
                         android:gravity="center|start|center_horizontal"
                         android:text="@string/enable_remosaic"
                         android:textSize="16sp"
-                        android:visibility="gone" />
+                        android:visibility="gone"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
 
                     <TextView
                         android:id="@+id/settings_sharpnesstext"

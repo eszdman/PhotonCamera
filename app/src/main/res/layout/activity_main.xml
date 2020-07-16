@@ -449,8 +449,17 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <ImageView
+            android:id="@+id/open_close_manual"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/chevron_up"
+            app:layout_constraintBottom_toBottomOf="@id/manual_mode"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

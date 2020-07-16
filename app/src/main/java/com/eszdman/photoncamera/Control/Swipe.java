@@ -11,6 +11,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -26,6 +27,7 @@ public class Swipe {
     public void RunDetection(){
         Log.d(TAG,"SwipeDetection - ON");
         ConstraintLayout manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
+        ImageView ocmanual = Interface.i.mainActivity.findViewById(R.id.open_close_manual);
         gestureDetector = new GestureDetector(Interface.i.mainActivity, new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -53,6 +55,7 @@ public class Swipe {
                         Log.d(TAG, "Bottom");//it swipes from top to bottom
                         if(Interface.i.settings.ManualMode) manualmode.startAnimation(slideDown);
                         Interface.i.settings.ManualMode = false;
+                        ocmanual.animate().rotation(ocmanual.getRotation() - 180).setDuration(350).start();
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.i.settings.aeModeOn);
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.i.settings.afMode);
                         Interface.i.camera.rebuildPreview();
@@ -62,6 +65,7 @@ public class Swipe {
                         if(!Interface.i.settings.ManualMode) {
                             manualmode.startAnimation(slideUp);
                             Interface.i.settings.ManualMode = true;
+                            ocmanual.animate().rotation(ocmanual.getRotation() + 180).setDuration(350).start();
                         }
                         Interface.i.camera.rebuildPreview();
                         manualmode.setVisibility(View.VISIBLE);
