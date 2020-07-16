@@ -36,9 +36,9 @@ void main() {
         float sigX = sigma.x;
         vec3 brp = vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
         vec3(texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb)+c;
-        float br = length(brp)/4.;
-        br+=0.25;
-        sigX*= (1.0-br)*(1.0-br);
+        float br = (length(brp))/4.;
+        br = clamp(br,0.,0.6);
+        sigX*=(0.6-br)*(0.6-br);
         sigX+=0.5;
         //create the 1-D kernel
         float Z = 0.0;

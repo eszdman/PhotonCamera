@@ -22,6 +22,7 @@ public class PostPipeline extends BasePipeline {
         add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));
         add(new DemosaicPart2(R.raw.demosaicp2,"Demosaic Part 2"));
         add(new Initial(R.raw.initial,"Initial"));
+        add(new BilateralColor(R.raw.bilateralcolor,"BilateralColor"));
         add(new Bilateral(R.raw.bilateral,"Bilateral"));
         add(new Sharpen(R.raw.sharpen,"Sharpening"));
         Bitmap img = runAll();
