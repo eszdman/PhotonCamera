@@ -25,14 +25,14 @@ float lum(in vec4 color) {
 }
 vec3 getCol(in ivec2 xy){
     vec3 inp = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    return inp/length(inp);
+    return inp/((inp.r+inp.g+inp.b+0.0001));
+    //return inp;
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    float clen = length(c);
-    c/=clen;
+    float clen = c.r+c.g+c.b+0.0001;
     {
         //declare stuff
         const int kSize = (MSIZE-1)/2;
@@ -41,13 +41,16 @@ void main() {
         float sigX = sigma.x;
         vec3 brp = vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
         vec3(texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb)+c;
-        float br = length(brp)/4.;
-        br+=0.25;
-        sigX*= (1.0-br)*(1.0-br);
+        float br = length(brp)/6.;
+        br = clamp(br,0.,1.0);
+        sigX*=(1.0-br)*(1.0-br);
         sigX+=0.7;
         sigX = clamp(sigX,0.5,5.);
         //create the 1-D kernel
         float Z = 0.0;
+
+        //c/=clen;
+
         for (int j = 0; j <= kSize; ++j)
         {
             kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), sigX);

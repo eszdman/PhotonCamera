@@ -207,7 +207,6 @@ public class Settings {
     @SuppressLint("InlinedApi")
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
-        captureBuilder.set(CONTROL_ENABLE_ZSL,false);
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
@@ -216,9 +215,11 @@ public class Settings {
         double sizey = size.y;
         //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
         MeteringRectangle rectm8[] = new MeteringRectangle[2];
-        rectm8[0] = new MeteringRectangle(new Rect((int)(sizex/3.0),(int)(sizey/3.0),(int)(sizex*2.0/3.0),(int)(sizey*2.0/3.0)),10);
+        rectm8[0] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex*2.0/4.0),(int)(sizey*2.0/4.0)),10);
         rectm8[1] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),30);
-        captureBuilder.set(CONTROL_AF_REGIONS,rectm8);
+        MeteringRectangle rectaf[] = new MeteringRectangle[1];
+        rectaf[0] =  new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),10);
+        captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);

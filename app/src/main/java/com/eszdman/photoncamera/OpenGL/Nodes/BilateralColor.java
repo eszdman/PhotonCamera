@@ -21,9 +21,10 @@ public class BilateralColor extends Node {
         Node Previous = super.previousNode;
         GLProg glProg = glint.glprogram;
         //glProg.servar("size", 5);
-        float denoiseLevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY())/4.2f;
+        float denoiseLevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/6.2f;
         denoiseLevel+=0.25;
         Log.d("PostNode:"+Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        denoiseLevel = Math.min(5.0f,denoiseLevel);
         glProg.servar("sigma", denoiseLevel,denoiseLevel*2.f);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
