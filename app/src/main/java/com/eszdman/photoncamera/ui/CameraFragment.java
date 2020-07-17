@@ -44,6 +44,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -65,6 +66,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
@@ -522,6 +524,7 @@ public class CameraFragment extends Fragment
     public static ProgressBar loadingcycle;
     public CircleImageView img;
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -589,6 +592,7 @@ public class CameraFragment extends Fragment
             }
         });
         quadResolution.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onClick(View v) {
                 Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
@@ -598,9 +602,10 @@ public class CameraFragment extends Fragment
         });
         ImageButton flip = view.findViewById(R.id.flip_camera);
         flip.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onClick(View v) {
-                    flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
+                    flip.animate().rotation(flip.getRotation() - 180).setDuration(550).start();
                     Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
                     restartCamera();
                 }
@@ -621,6 +626,7 @@ public class CameraFragment extends Fragment
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onResume() {
         super.onResume();
@@ -688,6 +694,7 @@ public class CameraFragment extends Fragment
         }
         return null;
     }
+     @RequiresApi(api = Build.VERSION_CODES.M)
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
         if(in == null) return mPreviewSize;
          Collections.sort(Arrays.asList(in), new CompareSizesByArea());
@@ -723,6 +730,7 @@ public class CameraFragment extends Fragment
     int mPreviewwidth;
     int mPreviewheight;
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressWarnings("SuspiciousNameCombination")
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
@@ -751,6 +759,7 @@ public class CameraFragment extends Fragment
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void UpdateCameraCharacteristics(String cameraId) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -850,6 +859,7 @@ public class CameraFragment extends Fragment
         MainActivity.onCameraInitialization();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         try {
@@ -929,6 +939,7 @@ public class CameraFragment extends Fragment
     /**
      * Opens the camera specified by {@link CameraFragment#mCameraId}.
      */
+    @RequiresApi(api = Build.VERSION_CODES.M)
     private void openCamera(int width, int height) {
         context = this;
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
@@ -1013,6 +1024,7 @@ public class CameraFragment extends Fragment
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
     private boolean burst = false;
+    @SuppressLint("LongLogTag")
     private void createCameraPreviewSession() {
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
