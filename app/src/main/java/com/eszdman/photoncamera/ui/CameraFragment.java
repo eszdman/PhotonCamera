@@ -531,14 +531,6 @@ public class CameraFragment extends Fragment
                 takePicture();
                 break;
             }
-            case R.id.flip_camera: {
-                ImageButton flip = view.findViewById(R.id.flip_camera);
-                flip.animate().rotation(flip.getRotation() - 360).setDuration(450).start();
-                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
-                restartCamera();
-                //showToast("Afmodes:" + mCameraAfModes.length);
-                break;
-            }
             case R.id.settings: {
 //                closeCamera();
 //                Interface.i.settings.openSettingsActivity();
@@ -605,7 +597,15 @@ public class CameraFragment extends Fragment
             }
         });
         ImageButton flip = view.findViewById(R.id.flip_camera);
-        flip.setOnClickListener(this);
+        flip.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                    ImageButton flip = view.findViewById(R.id.flip_camera);
+                    flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
+                    Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
+                    restartCamera();
+                }
+            });
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
         ToggleButton hdrX = view.findViewById(R.id.stacking);
