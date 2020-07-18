@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.OpenGL.Nodes;
 
 import android.graphics.Bitmap;
-import android.media.MediaCodec;
 
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
@@ -13,6 +12,12 @@ import java.nio.ByteBuffer;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends BasePipeline {
+    public int selectSharp(){
+        long resolution = glint.parameters.rawSize.x*glint.parameters.rawSize.y;
+        int output = R.raw.sharpen33;
+        if(resolution >= 16000000) output = R.raw.sharpen55;
+        return output;
+    }
     public void Run(ByteBuffer inBuffer, Parameters parameters){
         Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
@@ -24,7 +29,8 @@ public class PostPipeline extends BasePipeline {
         add(new Initial(R.raw.initial,"Initial"));
         add(new BilateralColor(R.raw.bilateralcolor,"BilateralColor"));
         add(new Bilateral(R.raw.bilateral,"Bilateral"));
-        add(new Sharpen(R.raw.sharpen,"Sharpening"));
+
+        add(new Sharpen(selectSharp(),"Sharpening"));
         Bitmap img = runAll();
         try {
             outimg.createNewFile();
