@@ -90,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
                     public void onSimpleOrientationChanged(int orientation) {
                         ToggleButton stacking = findViewById(R.id.stacking);
                         Button settings = findViewById(R.id.settings);
-                        ImageButton flipcam = findViewById(R.id.flip_camera);
                         CircleImageView gallery = findViewById(R.id.ImageOut);
                         ImageView expText = findViewById(R.id.expText);
                         TextView expValue = findViewById(R.id.expValue);
@@ -118,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                         stacking.animate().rotation(rot).setDuration(RotationDur).start();
                         settings.animate().rotation(rot).setDuration(RotationDur).start();
-                        flipcam.animate().rotation(rot).setDuration(RotationDur).start();
                         gallery.animate().rotation(rot).setDuration(RotationDur).start();
                         expText.animate().rotation(rot).setDuration(RotationDur).start();
                         expValue.animate().rotation(rot).setDuration(RotationDur).start();
