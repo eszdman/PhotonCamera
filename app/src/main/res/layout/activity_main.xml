@@ -292,7 +292,7 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/texture"
-            tools:visibility="visible">
+            tools:visibility="invisible">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/iso"
