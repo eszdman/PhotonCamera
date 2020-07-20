@@ -74,6 +74,7 @@ import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
@@ -951,11 +952,8 @@ public class CameraFragment extends Fragment
         configureTransform(width, height);
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
-        try {
-            mCameraIds = manager.getCameraIdList();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+        CameraManager2 manager2 = new CameraManager2(manager);
+        mCameraIds = manager2.getCameraIdList();
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
@@ -1049,54 +1047,55 @@ public class CameraFragment extends Fragment
             if(mTargetFormat == mPreviewTargetFormat){
                 surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             }
-            mCameraDevice.createCaptureSession(surfaces,
-                    new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            // The camera is already closed
-                            if (null == mCameraDevice) {
-                                return;
-                            }
-                            // When the session is ready, we start displaying the preview.
-                            mCaptureSession = cameraCaptureSession;
-                            try {
-                                // Auto focus should be continuous for camera preview.
-                                //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-                                // Flash is automatically enabled when necessary.
-                                setAutoFlash(mPreviewRequestBuilder);
-                                Interface.i.settings.applyPrev(mPreviewRequestBuilder);
-
-                                //lightcycle.setVisibility(View.INVISIBLE);
-                                // Finally, we start displaying the camera preview.
-                                if(Interface.i.camera.is30Fps){
-                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,30));
-                                } else {
-                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
+                mCameraDevice.createCaptureSession(surfaces,
+                        new CameraCaptureSession.StateCallback() {
+                            @Override
+                            public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                                // The camera is already closed
+                                if (null == mCameraDevice) {
+                                    return;
                                 }
-                                mPreviewRequest = mPreviewRequestBuilder.build();
+                                // When the session is ready, we start displaying the preview.
+                                mCaptureSession = cameraCaptureSession;
+                                try {
+                                    // Auto focus should be continuous for camera preview.
+                                    //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+                                    // Flash is automatically enabled when necessary.
+                                    setAutoFlash(mPreviewRequestBuilder);
+                                    Interface.i.settings.applyPrev(mPreviewRequestBuilder);
 
-                                //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
-                                if(!burst) {
-                                    unlockFocus();
-                                    mCaptureSession.setRepeatingRequest(mPreviewRequest,
-                                        mCaptureCallback, mBackgroundHandler);
+                                    //lightcycle.setVisibility(View.INVISIBLE);
+                                    // Finally, we start displaying the camera preview.
+                                    if (Interface.i.camera.is30Fps) {
+                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(24, 30));
+                                    } else {
+                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<>(24, 60));
+                                    }
+                                    mPreviewRequest = mPreviewRequestBuilder.build();
 
-                                } else {
-                                    mCaptureSession.captureBurst(captures, CaptureCallback, null);
-                                    burst = false;
+                                    //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
+                                    if (!burst) {
+                                        unlockFocus();
+                                        mCaptureSession.setRepeatingRequest(mPreviewRequest,
+                                                mCaptureCallback, mBackgroundHandler);
+
+                                    } else {
+                                        mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                        burst = false;
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
                                 }
-                            } catch (CameraAccessException e) {
-                                e.printStackTrace();
                             }
-                        }
-                        @Override
-                        public void onConfigureFailed(
-                                @NonNull CameraCaptureSession cameraCaptureSession) {
-                            showToast("Failed");
-                        }
-                    }, null
-            );
-        } catch (CameraAccessException e) {
+
+                            @Override
+                            public void onConfigureFailed(
+                                    @NonNull CameraCaptureSession cameraCaptureSession) {
+                                showToast("Failed");
+                            }
+                        }, null
+                );
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

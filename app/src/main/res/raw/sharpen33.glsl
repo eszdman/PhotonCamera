@@ -27,12 +27,12 @@ void main() {
     for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size);
     for (int i=-kSize; i <= kSize; ++i){
        for (int j=-kSize; j <= kSize; ++j){
-           mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*TRANSPOSE,j*TRANSPOSE)), 0))*1.4;
+           mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*TRANSPOSE,j*TRANSPOSE)), 0))*1.5;
        }
     }
     for (int i=-kSize; i <= kSize; ++i){
         for (int j=-kSize; j <= kSize; ++j){
-            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*TRANSPOSE*2,j*TRANSPOSE*2)), 0))*0.6;
+            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*TRANSPOSE*2,j*TRANSPOSE*2)), 0))*0.5;
         }
     }
     mask/=float(MSIZE1*MSIZE1*2);

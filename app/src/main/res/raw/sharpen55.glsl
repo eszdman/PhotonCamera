@@ -24,7 +24,7 @@ void main() {
     vec4 cur = (texelFetch(InputBuffer, (xy), 0));
     const int kSize = (MSIZE1-1)/2;
     float kernel[MSIZE1];
-    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size*1.8);
+    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size*2.2);
     for (int i=-kSize; i <= kSize; ++i){
        for (int j=-kSize; j <= kSize; ++j){
            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*TRANSPOSE,j*TRANSPOSE)), 0))*1.4;
