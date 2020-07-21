@@ -114,21 +114,7 @@
                 android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@id/stacking"
-                app:layout_constraintEnd_toStartOf="@+id/fpsPreview"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible" />
-
-            <ToggleButton
-                android:id="@+id/fpsPreview"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:background="@drawable/fps_button"
-                android:checked="true"
-                android:textOff=""
-                android:textOn=""
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/quadRes"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible" />
 
@@ -141,8 +127,22 @@
                 android:textOff=""
                 android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/fpsPreview"
-                app:layout_constraintEnd_toStartOf="@id/settings"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible" />
+
+            <ToggleButton
+                android:id="@+id/fpsPreview"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:background="@drawable/fps_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/quadRes"
+                app:layout_constraintEnd_toStartOf="@+id/settings"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible" />
 
