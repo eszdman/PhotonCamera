@@ -104,24 +104,24 @@ public class GLFormat {
             case FLOAT_64:
             case SIGNED_8:
             case UNSIGNED_8:
-                switch (mChannels) {
-                    case 1: return GL_RED;
-                    case 2: return GL_RG;
-                    case 3: return GL_RGB;
-                    case 4: return GL_RGBA;
-                }
+            switch (mChannels) {
+                case 1: return GL_RED;
+                case 2: return GL_RG;
+                case 3: return GL_RGB;
+                case 4: return GL_RGBA;
+            }
             case UNSIGNED_16:
             case UNSIGNED_32:
             case UNSIGNED_64:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
-                switch (mChannels) {
-                    case 1: return GL_RED_INTEGER;
-                    case 2: return GL_RG_INTEGER;
-                    case 3: return GL_RGB_INTEGER;
-                    case 4: return GL_RGBA_INTEGER;
-                }
+            switch (mChannels) {
+               case 1: return GL_RED_INTEGER;
+               case 2: return GL_RG_INTEGER;
+               case 3: return GL_RGB_INTEGER;
+               case 4: return GL_RGBA_INTEGER;
+            }
         }
         return 0;
     }

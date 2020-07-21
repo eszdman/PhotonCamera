@@ -12,6 +12,7 @@ import static android.opengl.GLES20.GL_FRAMEBUFFER;
 import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
+import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 
 public class BasePipeline implements AutoCloseable {
     ArrayList<Node> Nodes = new ArrayList<Node>();
@@ -26,9 +27,11 @@ public class BasePipeline implements AutoCloseable {
     }
     private void lasti(){
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, bind, 0);
+        checkEglError("glGetIntegerv");
     }
     private void lastr(){
         glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
+        checkEglError("glBindFramebuffer");
     }
     Bitmap runAll(){
         lasti();

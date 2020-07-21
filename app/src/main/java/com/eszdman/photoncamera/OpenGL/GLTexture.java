@@ -22,6 +22,7 @@ import static android.opengl.GLES20.glGenTextures;
 import static android.opengl.GLES20.glTexImage2D;
 import static android.opengl.GLES20.glTexParameteri;
 import static android.opengl.GLES20.glViewport;
+import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_2D;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
@@ -48,6 +49,7 @@ public class GLTexture implements AutoCloseable {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
+        checkEglError("Tex glTexParameteri");
     }
 
     void BufferLoad(){
@@ -56,10 +58,12 @@ public class GLTexture implements AutoCloseable {
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer[0]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureID, 0);
         glViewport(0, 0, mSize.x,mSize.y);
+        checkEglError("Tex BufferLoad");
     }
     void bind(int slot) {
         glActiveTexture(slot);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
+        checkEglError("Tex bind");
     }
 
     @Override

@@ -301,30 +301,34 @@ public class ImageProcessing {
             if(i%4 == 2 && false){
                 rawPipeline.sensivity = k*2.0f;
             }
-            rawPipeline.rawInput = byteBuffer;
-            //ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
-            //Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
-            //byteBuffer.clear();
-            //byteBuffer.put(buff);
-            //byteBuffer.position(0);
+            /*rawPipeline.rawInput = byteBuffer;
+            ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
+            Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
+            byteBuffer.clear();
+            byteBuffer.put(buff);
+            byteBuffer.position(0);*/
             Wrapper.loadFrame(byteBuffer);
         }
-        //Interface.i.parameters.whitelevel = (int)fakelevel;
-        //CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,Interface.i.parameters.whitelevel);
+
+
         Log.d(TAG, "Wrapper.loadFrame");
-        //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
-        //ByteBuffer output = ByteBuffer.allocate(curimgs.get(0).getPlanes()[0].getBuffer().remaining());
+
         ByteBuffer output = Wrapper.processFrame();
-        //ByteBuffer outb = output.duplicate();
+
+        /*rawPipeline.rawInput = output;
+        ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
+        Log.d(TAG,"Buffer1 size:"+output.remaining()+" Buffer2 size:"+buff.remaining());
+        output.clear();
+        output.put(buff);
+        output.position(0);*/
+
+
         curimgs.get(0).getPlanes()[0].getBuffer().clear();
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-        //curimgs.get(0).getPlanes()[0].getBuffer().clear();
-        //curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
 
         if(Interface.i.settings.rawSaver) {
-            //curimgs.get(0).getPlanes()[0].getBuffer().clear();
-            //curimgs.get(0).getPlanes()[0].getBuffer().put(output);
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
