@@ -92,11 +92,8 @@ public class MainActivity extends AppCompatActivity {
                         Button settings = findViewById(R.id.settings);
                         CircleImageView gallery = findViewById(R.id.ImageOut);
                         ImageView expText = findViewById(R.id.expText);
-                        TextView expValue = findViewById(R.id.expValue);
-                        TextView isoText = findViewById(R.id.isoText);
-                        TextView isoValue = findViewById(R.id.isoValue);
+                        ImageView isoText = findViewById(R.id.isoText);
                         ImageView focusText = findViewById(R.id.focusText);
-                        TextView focusValue = findViewById(R.id.focusValue);
                         ToggleButton eis = findViewById(R.id.eisPhoto);
                         ToggleButton fpsPreview = findViewById(R.id.fpsPreview);
                         ToggleButton quadres = findViewById(R.id.quadRes);
@@ -119,11 +116,8 @@ public class MainActivity extends AppCompatActivity {
                         settings.animate().rotation(rot).setDuration(RotationDur).start();
                         gallery.animate().rotation(rot).setDuration(RotationDur).start();
                         expText.animate().rotation(rot).setDuration(RotationDur).start();
-                        expValue.animate().rotation(rot).setDuration(RotationDur).start();
                         isoText.animate().rotation(rot).setDuration(RotationDur).start();
-                        isoValue.animate().rotation(rot).setDuration(RotationDur).start();
                         focusText.animate().rotation(rot).setDuration(RotationDur).start();
-                        focusValue.animate().rotation(rot).setDuration(RotationDur).start();
                         eis.animate().rotation(rot).setDuration(RotationDur).start();
                         fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
                         quadres.animate().rotation(rot).setDuration(RotationDur).start();

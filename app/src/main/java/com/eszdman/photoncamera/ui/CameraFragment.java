@@ -606,7 +606,7 @@ public class CameraFragment extends Fragment
             @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onClick(View v) {
-                    flip.animate().rotation(flip.getRotation() - 180).setDuration(550).start();
+                    flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
                     Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
                     restartCamera();
                 }
