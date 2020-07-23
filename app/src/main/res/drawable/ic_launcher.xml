@@ -38,16 +38,16 @@
         </path>
         <path
             android:fillColor="#1E1E1E"
-            android:pathData="M50 131c0-27.61 22.39-50 50-50h0c27.61 0 50 22.39 50 50v110c0 27.61-22.39 50-50 50h0c-27.61 0-50-22.39-50-50z"/>
+            android:pathData="M51 171c0-27.61 22.39-50 50-50h0c27.61 0 50 22.39 50 50v110c0 27.61-22.39 50-50 50h0c-27.61 0-50-22.39-50-50z"/>
         <path
             android:fillColor="#FAB262"
-            android:pathData="M100 196a45 45 0 1 0 0 90a45 45 0 1 0 0-90z"/>
+            android:pathData="M101 236a45 45 0 1 0 0 90a45 45 0 1 0 0-90z"/>
         <path
             android:fillColor="#56A9CD"
-            android:pathData="M100 86a45 45 0 1 0 0 90a45 45 0 1 0 0-90z"/>
+            android:pathData="M101 126a45 45 0 1 0 0 90a45 45 0 1 0 0-90z"/>
         <path
             android:strokeColor="#1E1E1E"
             android:strokeWidth="10"
-            android:pathData="M50 131c0-27.61 22.39-50 50-50h0c27.61 0 50 22.39 50 50v110c0 27.61-22.39 50-50 50h0c-27.61 0-50-22.39-50-50z"/>
+            android:pathData="M51 171c0-27.61 22.39-50 50-50h0c27.61 0 50 22.39 50 50v110c0 27.61-22.39 50-50 50h0c-27.61 0-50-22.39-50-50z"/>
     </group>
 </vector>
