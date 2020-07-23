@@ -292,6 +292,8 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/texture"
+            android:background="@drawable/manual_background"
+            android:paddingTop="10dp"
             tools:visibility="invisible">
 
             <androidx.constraintlayout.widget.ConstraintLayout
@@ -301,15 +303,13 @@
                 android:layout_marginBottom="30dp"
                 app:layout_constraintBottom_toBottomOf="parent">
 
-                <TextView
+                <ImageView
                     android:id="@+id/isoText"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="10dp"
-                    android:text="ISO"
-                    android:textColor="@color/White"
-                    android:textSize="25sp"
-                    android:textStyle="bold"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_iso"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
