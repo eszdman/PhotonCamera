@@ -3,8 +3,10 @@ package com.eszdman.photoncamera.ui;
 import androidx.annotation.IdRes;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -370,5 +372,10 @@ public class SettingsActivity extends AppCompatActivity {
     void setv(SeekBar in, double val) {
         val *= 100;
         setv(in, (int) val);
+    }
+
+    public void telega(View view) {
+        Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/PhotonCamera"));
+        startActivity(browserint);
     }
 }

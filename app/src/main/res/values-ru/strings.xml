@@ -20,4 +20,5 @@
     <string name="turn_on_grid">Сетка</string>
     <string name="turn_on_round_edges">Скругления</string>
     <string name="enable_remosaic">Включить ремозаик</string>
+    <string name="telegram">Группа телеграм</string>
 </resources>
