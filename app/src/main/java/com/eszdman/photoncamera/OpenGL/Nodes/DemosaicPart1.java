@@ -12,7 +12,6 @@ public class DemosaicPart1 extends Node {
     }
     @Override
     public void Run() {
-        startT();
         GLInterface glint = basePipeline.glint;
         GLProg glProg = glint.glprogram;
         GLTexture glTexture;
@@ -24,6 +23,5 @@ public class DemosaicPart1 extends Node {
         //glProg.servar("RawSizeX",params.rawSize.x);
         //glProg.servar("RawSizeY",params.rawSize.y);
         super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
-        endT();
     }
 }

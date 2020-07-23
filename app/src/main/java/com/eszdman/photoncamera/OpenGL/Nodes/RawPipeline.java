@@ -20,6 +20,7 @@ public class RawPipeline extends BasePipeline {
         //GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16));
         glint = new GLInterface(glproc);
         glint.parameters = parameters;
+        //add(new Debug(R.raw.debugraw,"DebugRaw"));
         add(new RawSensivity(R.raw.rawsensivity,"RawSensivity"));
         return runAllRaw();
     }

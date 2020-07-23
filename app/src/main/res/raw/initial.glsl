@@ -157,7 +157,8 @@ vec3 linearizeAndGainMap(ivec2 coords){
 }
 vec3 saturate(vec3 rgb) {
    vec3 hsv = rgb2hsv(rgb);
-   hsv.g = clamp(hsv.g*(saturation+rgb.g*0.2+rgb.b*0.2),0.,1.);
+   //beautiful **red** and saturation by eszdman
+   hsv.g = clamp(hsv.g*(saturation),0.,1.);
    rgb = hsv2rgb(hsv);
     return rgb;
 }

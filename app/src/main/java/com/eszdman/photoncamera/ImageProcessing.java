@@ -301,6 +301,7 @@ public class ImageProcessing {
             if(i%4 == 2 && false){
                 rawPipeline.sensivity = k*2.0f;
             }
+            byteBuffer.position(0);
             /*rawPipeline.rawInput = byteBuffer;
             ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
             Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+buff.remaining());
@@ -314,18 +315,15 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.loadFrame");
 
         ByteBuffer output = Wrapper.processFrame();
-
-        /*rawPipeline.rawInput = output;
+        curimgs.get(0).getPlanes()[0].getBuffer().clear();
+        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+        /*rawPipeline.rawInput = curimgs.get(0).getPlanes()[0].getBuffer();
         ByteBuffer buff = rawPipeline.Run(Interface.i.parameters);
         Log.d(TAG,"Buffer1 size:"+output.remaining()+" Buffer2 size:"+buff.remaining());
         output.clear();
         output.put(buff);
         output.position(0);*/
-
-
-        curimgs.get(0).getPlanes()[0].getBuffer().clear();
-        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
 
         if(Interface.i.settings.rawSaver) {

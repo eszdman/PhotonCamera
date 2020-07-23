@@ -6,9 +6,9 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.Render.Parameters;
 
-public class RawSensivity extends Node {
+public class Debug extends Node {
 
-    public RawSensivity(int rid, String name) {
+    public Debug(int rid, String name) {
         super(rid, name);
     }
     @Override
@@ -18,7 +18,6 @@ public class RawSensivity extends Node {
         GLProg glProg = glint.glprogram;
         Parameters params = glint.parameters;
         GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
-        glProg.setTexture("RawBuffer",glTexture);
-        glProg.servar("PostRawSensivity",rawPipeline.sensivity);
+        glProg.setTexture("InputBuffer",glTexture);
     }
 }

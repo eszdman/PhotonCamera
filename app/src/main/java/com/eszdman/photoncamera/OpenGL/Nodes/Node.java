@@ -19,12 +19,6 @@ public class Node {
     private long timestart;
     public BasePipeline basePipeline;
     public boolean LastNode = false;
-    public void startT(){
-        timestart = System.currentTimeMillis();
-    }
-    public void endT(){
-        Log.d("Pipeline","Node:"+Name+" elapsed:"+(System.currentTimeMillis()-timestart)+ " ms");
-    }
     private Node(){}
     public Node(int rid, String name){
         Rid = rid;

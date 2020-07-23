@@ -57,12 +57,12 @@ public class GLCoreBlockProcessing extends GLContext {
             program.draw();
             checkEglError("program");
             mBlockBuffer.position(0);
-            Log.d(TAG,"ReadParams:"+"width:"+mOutWidth+" height:"+height+" buffer:"+mBlockBuffer);
+            //Log.d(TAG,"ReadParams:"+"width:"+mOutWidth+" height:"+height+" buffer:"+mBlockBuffer);
             glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), mBlockBuffer);
             checkEglError("glReadPixels");
             if (height < GLConst.TileSize) {
                 // This can only happen 2 times at edges
-                byte[] data = new byte[mOutWidth * height*mglFormat.mFormat.mSize*mglFormat.mChannels];
+                byte[] data = new byte[mOutWidth*height*mglFormat.mFormat.mSize*mglFormat.mChannels];
                 mBlockBuffer.get(data);
                 mOutBuffer.put(data);
             } else {

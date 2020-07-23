@@ -17,7 +17,6 @@ public class Bilateral extends Node {
 
     @Override
     public void Run() {
-        startT();
         GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
         GLProg glProg = glint.glprogram;
@@ -29,6 +28,5 @@ public class Bilateral extends Node {
         glProg.servar("sigma", denoiseLevel,0.12f);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
-        endT();
     }
 }

@@ -19,7 +19,6 @@ public class Initial extends Node {
     }
     @Override
     public void Run() {
-        startT();
         Node Previous = super.previousNode;
         GLInterface glint = basePipeline.glint;
         GLProg glProg = glint.glprogram;
@@ -39,6 +38,5 @@ public class Initial extends Node {
         }
         glProg.servar("blackLevel",params.blacklevel);
         super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
-        endT();
     }
 }

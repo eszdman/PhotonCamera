@@ -20,7 +20,7 @@
         android:largeHeap="true"
         android:isGame="true"
         android:requestLegacyExternalStorage="true"
-        android:roundIcon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         >
@@ -34,7 +34,6 @@
         </activity>
         <meta-data
             android:name="firebase_performance_logcat_enabled"
-            android:value="true" />
+            android:value="false" />
     </application>
-
 </manifest>

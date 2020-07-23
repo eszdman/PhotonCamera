@@ -43,6 +43,7 @@ import static android.opengl.GLES30.glUniform2ui;
 import static android.opengl.GLES30.glUniform3ui;
 import static android.opengl.GLES30.glUniform4ui;
 import static android.opengl.GLES30.glViewport;
+import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 
 public class GLProg implements AutoCloseable  {
     private static String TAG = "GLProgram";
@@ -66,7 +67,9 @@ public class GLProg implements AutoCloseable  {
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader,nShader);
         glLinkProgram(program);
+        checkEglError("glLinkProgram");
         glUseProgram(program);
+        checkEglError("glUseProgram");
         mCurrentProgramActive = program;
         mTextureBinds.clear();
         mNewTextureId = 0;
