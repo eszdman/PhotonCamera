@@ -52,6 +52,7 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Range;
+import android.util.Rational;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
@@ -164,6 +165,7 @@ public class CameraFragment extends Fragment
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
+    public Rational[] mPreviewTemp;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
