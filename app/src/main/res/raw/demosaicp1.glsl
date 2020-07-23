@@ -13,12 +13,12 @@ float dyf(ivec2 coords){
     return abs(float(texelFetch(RawBuffer, (coords+ivec2(0,-1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(0,1)), 0).x))/2.;
 }
 float dxdf(ivec2 coords){
-    return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)))/1.41421;
-    //return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)),0).x))/2.82842;
+    //return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)))/1.41421;
+    return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)),0).x))/2.82842;
 }
 float dydf(ivec2 coords){
-    return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)))/1.41421;
-    //return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)),0).x))/2.82842;
+    //return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)))/1.41421;
+    return abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)),0).x))/2.82842;
 }
 #define demosw (1.0)
 void main() {
@@ -56,8 +56,10 @@ void main() {
         E[4] = 1.0/sqrt(demosw + dxd*dxd + t*t);
         t = dydf(xy+ivec2(-1,1));
         E[6] = 1.0/sqrt(demosw + dyd*dyd + t*t);
-
-        outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/(E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
+        float all = (E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
+        if(all > 0.0001)
+        outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/all;
+        else outp = (P[1] + P[3] + P[5] + P[7])/4.;
         Output = clamp(outp/float(WhiteLevel),0.,1.);
     }
     else {

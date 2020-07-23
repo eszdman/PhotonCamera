@@ -73,7 +73,14 @@ public class Settings {
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
     Settings(){
-        load();
+        try {
+            load();
+        }catch (Exception e){
+            SharedPreferences.Editor ed = sharedPreferences.edit();
+            ed.clear();
+            ed.commit();
+            load();
+        }
     }
     public void load() {
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
