@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.Switch;
@@ -68,6 +69,25 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        if(Interface.i.settings.hdrx){
+            LinearLayout jpg = findViewById(R.id.settingsJPG);
+            TextView jpgt = findViewById(R.id.textjpgset);
+            jpgt.setVisibility(View.GONE);
+            jpg.setVisibility(View.GONE);
+            LinearLayout hdrx = findViewById(R.id.settingsHDRX);
+            TextView hdrxt = findViewById(R.id.texthdrxset);
+            hdrxt.setVisibility(View.VISIBLE);
+            hdrx.setVisibility(View.VISIBLE);
+        } else {
+            LinearLayout jpg = findViewById(R.id.settingsJPG);
+            jpg.setVisibility(View.VISIBLE);
+            TextView jpgt = findViewById(R.id.textjpgset);
+            jpgt.setVisibility(View.VISIBLE);
+            LinearLayout hdrx = findViewById(R.id.settingsHDRX);
+            TextView hdrxt = findViewById(R.id.texthdrxset);
+            hdrxt.setVisibility(View.GONE);
+            hdrx.setVisibility(View.GONE);
+        }
         Interface.i.settings.load();
         views();
         sharedPreferences = getPreferences(MODE_PRIVATE);

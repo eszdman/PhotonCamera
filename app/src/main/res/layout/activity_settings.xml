@@ -133,7 +133,7 @@
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/textView"
+                    android:id="@+id/textjpgset"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="59dp"
@@ -252,7 +252,7 @@
                 </LinearLayout>
 
                 <TextView
-                    android:id="@+id/textView2"
+                    android:id="@+id/texthdrxset"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingStart="59dp"
