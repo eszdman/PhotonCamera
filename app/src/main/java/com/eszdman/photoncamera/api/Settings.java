@@ -117,6 +117,7 @@ public class Settings {
         lastPicture = get(lastPicture);
         Log.d(TAG, "Loaded last picture:" + lastPicture);
         hdrx = get(hdrx);
+        Log.d(TAG, "Loaded hdrx:" + hdrx);
         cfaPattern = get(cfaPattern);
         Log.d(TAG, "Loaded CFA:" + cfaPattern);
         rawSaver = get(rawSaver);
@@ -171,6 +172,7 @@ public class Settings {
         put(lastPicture);
         Log.d(TAG, "Saved last picture:" + lastPicture);
         put(hdrx);
+        Log.d(TAG, "Saved hdrx:" + hdrx);
         Log.d(TAG, "Saved CFA:" + cfaPattern);
         put(cfaPattern);
         Log.d(TAG, "Saved RawSaver:" + rawSaver);
