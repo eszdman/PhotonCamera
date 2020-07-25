@@ -41,6 +41,7 @@ public class SettingsActivity extends AppCompatActivity {
     SeekBar chromaCount;
 
     //HDRX
+    Switch hdrxNR;
     SeekBar sharp;
     SeekBar contrastmul;
     SeekBar contrastconst;
@@ -238,6 +239,7 @@ public class SettingsActivity extends AppCompatActivity {
                       case(2):Interface.i.settings.cfaPattern = 3; break;
                       case(3):Interface.i.settings.cfaPattern = 1; break;
                       case(4):Interface.i.settings.cfaPattern = 2; break;
+                      case(5):Interface.i.settings.cfaPattern = -2; break;
                   }
               }
               @Override
@@ -271,6 +273,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(rawSaving,Interface.i.settings.rawSaver);
         setv(remosaic,Interface.i.settings.remosaic);
 
+        setv(hdrxNR,Interface.i.settings.hdrxNR);
         setv(sharp, Interface.i.settings.sharpness);
         setv(contrastconst, Interface.i.settings.contrastConst);
         setv(contrastmul, Interface.i.settings.contrastMpy);
@@ -296,6 +299,7 @@ public class SettingsActivity extends AppCompatActivity {
         luma = getView(R.id.setting_luma);
         enhanced = getView(R.id.setting_enhanced);
         //HDRX
+        hdrxNR = getView(R.id.setting_hdrxNR);
         sharp = getView(R.id.setting_sharpcnt);
         contrastmul = getView(R.id.setting_contrmpy);
         contrastconst = getView(R.id.setting_contrconst);
@@ -313,6 +317,7 @@ public class SettingsActivity extends AppCompatActivity {
         views();
         if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
         else Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_OFF;
+        Interface.i.settings.hdrxNR = hdrxNR.isChecked();
         Interface.i.settings.align = !disablealign.isChecked();
         Interface.i.settings.enhancedProcess = enhanced.isChecked();
         Interface.i.settings.grid = gridOnOff.isChecked();

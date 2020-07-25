@@ -53,8 +53,9 @@ public class Settings {
     public boolean roundedge = true;
     public boolean align = true;
     public boolean hdrx = true;
-    public double saturation = 1.0;
-    public double sharpness = 1.0;
+    public boolean hdrxNR = true;
+    public double saturation = 1.2;
+    public double sharpness = 1.5;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;
     public double compressor = 1.6;
@@ -62,12 +63,11 @@ public class Settings {
     public boolean rawSaver = false;
     public String lastPicture = null;
     public boolean ManualMode = false;
-    //TODO Add button for QuadResolution, if supported
     public boolean QuadBayer = false;
     public int cfaPattern = -1;
     public boolean remosaic = false;
     public boolean eisPhoto = true;
-    public boolean fpsPreview = true;
+    public boolean fpsPreview = false;
     public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -130,6 +130,10 @@ public class Settings {
         Log.d(TAG, "Loaded QuadBayer:" + QuadBayer);
         fpsPreview = get(fpsPreview);
         Log.d(TAG, "Loaded fpsPreview:" + fpsPreview);
+        hdrxNR = get(hdrxNR);
+        Log.d(TAG,"Loaded hdrxNR:"+hdrxNR);
+
+
         count = -1;
         mCameraID = get(mCameraID);
         Log.d(TAG, "Loaded mCameraID:" + mCameraID);
@@ -185,6 +189,8 @@ public class Settings {
         put(QuadBayer);
         Log.d(TAG, "Saved fpsPreview:" + fpsPreview);
         put(fpsPreview);
+        Log.d(TAG,"Saved hdrxNR:"+hdrxNR);
+        put(hdrxNR);
 
         count = -1;
         Log.d(TAG, "Saved mCameraID:" + mCameraID);
@@ -227,7 +233,7 @@ public class Settings {
         rectm8[0] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex*2.0/4.0),(int)(sizey*2.0/4.0)),10);
         rectm8[1] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),30);
         MeteringRectangle rectaf[] = new MeteringRectangle[1];
-        rectaf[0] =  new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),10);
+        rectaf[0] =  new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/4),(int)(sizey/4)),10);
         captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);

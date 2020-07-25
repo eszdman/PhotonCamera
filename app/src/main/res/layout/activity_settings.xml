@@ -292,7 +292,19 @@
                         android:track="@drawable/custom_switch_track_selector"
                         android:thumb="@drawable/custom_switch_thumb"
                         android:paddingEnd="18dp"/>
-
+                    <Switch
+                        android:id="@+id/setting_hdrxNR"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_gradient_black_24dp"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/hdrxNR"
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
                     <TextView
                         android:id="@+id/settings_sharpnesstext"
                         android:layout_width="match_parent"
@@ -394,9 +406,10 @@
                         android:max="200"
                         android:min="50"
                         android:progress="0"
-                        android:splitTrack="false"
                         android:progressDrawable="@drawable/custom_seekbar"
-                        android:thumbTint="@android:color/transparent"/>
+                        android:splitTrack="false"
+                        android:thumbTint="@android:color/transparent"
+                        android:visibility="gone" />
 
                     <SeekBar
                         android:id="@+id/setting_gain"

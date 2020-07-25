@@ -7,6 +7,8 @@ import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.api.Interface;
+
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
@@ -24,11 +26,17 @@ public class PostPipeline extends BasePipeline {
         glint = new GLInterface(glproc);
         glint.inputRaw = inBuffer;
         glint.parameters = parameters;
-        add(new DemosaicPart1(R.raw.demosaicp1,"Demosaic Part 1"));
-        add(new DemosaicPart2(R.raw.demosaicp2,"Demosaic Part 2"));
+        if(Interface.i.settings.cfaPattern != -2) {
+            add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
+            add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
+        } else {
+            add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+        }
         add(new Initial(R.raw.initial,"Initial"));
-        add(new BilateralColor(R.raw.bilateralcolor,"BilateralColor"));
-        add(new Bilateral(R.raw.bilateral,"Bilateral"));
+        if(Interface.i.settings.hdrxNR) {
+            add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
+            add(new Bilateral(R.raw.bilateral, "Bilateral"));
+        }
 
         add(new Sharpen(selectSharp(),"Sharpening"));
         Bitmap img = runAll();

@@ -6,5 +6,6 @@
         <item>BGGR</item>
         <item>GRBG</item>
         <item>GBRG</item>
+        <item>MONO</item>
     </string-array>
 </resources>

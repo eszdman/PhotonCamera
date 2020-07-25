@@ -32,11 +32,13 @@ public class Initial extends Node {
         glProg.servar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.servar("gain", (float)Interface.i.settings.gain);
         glProg.servar("neutralPoint",params.whitepoint);
-        glProg.servar("saturation",(float)Interface.i.settings.saturation);
+        float sat =(float)Interface.i.settings.saturation;
+        if(Interface.i.settings.cfaPattern == -2) sat = 0.f;
+        glProg.servar("saturation",sat);
         for(int i =0; i<4;i++){
             params.blacklevel[i]/=params.whitelevel;
         }
         glProg.servar("blackLevel",params.blacklevel);
-        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
+        super.WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
     }
 }

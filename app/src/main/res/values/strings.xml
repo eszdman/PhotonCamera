@@ -24,4 +24,5 @@
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>
     <string name="telegram">Telegram group</string>
+    <string name="hdrxNR">HDRX Noise Reduction</string>
 </resources>
