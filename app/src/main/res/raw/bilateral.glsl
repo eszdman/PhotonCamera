@@ -35,8 +35,8 @@ void main() {
         vec3 final_colour = vec3(0.0);
         float sigX = sigma.x;
         vec3 brp = vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
-        vec3(texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb)+c;
-        float br = (length(brp))/4.;
+        vec3(texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb)+vec3(texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb)+c*2.0;
+        float br = (length(brp))/5.;
         br = clamp(br,0.,0.6);
         sigX*=(0.6-br)*(0.6-br);
         sigX+=0.5;

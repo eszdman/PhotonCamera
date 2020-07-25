@@ -400,7 +400,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void telega(View view) {
-        Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/PhotonCamera"));
+        Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
         startActivity(browserint);
     }
 }
