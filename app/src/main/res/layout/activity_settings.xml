@@ -423,15 +423,35 @@
                         android:progressDrawable="@drawable/custom_seekbar"
                         android:thumbTint="@android:color/transparent"/>
 
-                    <Spinner
-                        android:id="@+id/setting_cfa"
+                    <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/SettingSize1"
-                        android:entries="@array/cfapat" />
+                        android:layout_height="match_parent">
+
+                        <ImageView
+                            android:id="@+id/bayer_icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_bayer"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            />
+
+                        <Spinner
+                            android:id="@+id/setting_cfa"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/SettingSize1"
+                            android:entries="@array/cfapat"
+                            app:layout_constraintStart_toEndOf="@id/bayer_icon"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            android:layout_marginStart="44dp"/>
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
                 </LinearLayout>
 
-                <LinearLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/reklama"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -439,22 +459,40 @@
                     android:layout_marginLeft="10dp"
                     android:layout_marginRight="10dp"
                     android:background="@drawable/card_layout"
-                    android:gravity="center_horizontal|center_vertical"
                     android:orientation="vertical"
                     android:paddingLeft="15dp"
                     android:paddingTop="10dp"
                     android:paddingRight="15dp"
                     android:paddingBottom="10dp">
 
+                    <ImageView
+                        android:id="@+id/tg_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/ic_telegram"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        />
+
                     <Button
                         android:id="@+id/button"
-                        android:layout_width="375dp"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="#00FFFFFF"
-                        android:gravity="center_horizontal|center_vertical"
                         android:onClick="telega"
-                        android:text="@string/telegram" />
-                </LinearLayout>
+                        android:text="@string/telegram"
+                        android:textAlignment="viewStart"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tg_icon"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginStart="44dp"
+                        android:textAllCaps="false"
+                        android:textSize="16sp"
+                        android:textStyle="normal"/>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
             </LinearLayout>
         </LinearLayout>
