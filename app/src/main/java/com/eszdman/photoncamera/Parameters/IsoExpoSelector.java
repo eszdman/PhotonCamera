@@ -11,14 +11,15 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
-    public static final double mpy = 0.8;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
+        double mpy = 0.8;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         ExpoPair startPair = new ExpoPair(pair);
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         pair.normalizeiso100();
-        Log.d(TAG, "InputParams: expo time:" + pair.exposure + " iso:" + pair.iso);
+        Log.d(TAG, "InputParams: expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " iso:" + pair.iso);
+        if(Interface.i.settings.nightMode) mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }

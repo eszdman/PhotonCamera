@@ -155,11 +155,17 @@ vec3 linearizeAndGainMap(ivec2 coords){
     pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
     return pRGB;
 }
+const float redcorr = 0.1;
+const float bluecorr = 0.2;
 vec3 saturate(vec3 rgb) {
-   vec3 hsv = rgb2hsv(rgb);
-   //color wide filter
-   hsv.g = clamp(hsv.g*(saturation-rgb.r*0.15+rgb.g*0.2+rgb.b*0.1),0.,1.);
-   rgb = hsv2rgb(hsv);
+    float r = rgb.r;
+    float b = rgb.b;
+    vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
+    //color wide filter
+    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
+    rgb = hsv2rgb(hsv);
+    rgb.r+=r*redcorr*saturation;
+    rgb.b-=b*bluecorr*saturation;
     return rgb;
 }
 void main() {

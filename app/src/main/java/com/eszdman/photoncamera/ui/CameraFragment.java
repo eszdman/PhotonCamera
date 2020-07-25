@@ -41,6 +41,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -169,6 +170,8 @@ public class CameraFragment extends Fragment
     public Rational[] mPreviewTemp;
     Range FpsRangeDef;
     Range FpsRangeHigh;
+    private float mFocus;
+    RggbChannelVector mGains;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -416,8 +419,16 @@ public class CameraFragment extends Fragment
                                        @NonNull TotalCaptureResult result) {
             Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            Object focus = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
+            RggbChannelVector gains = result.get(CaptureResult.COLOR_CORRECTION_GAINS);
             if(exposure != null) mPreviewExposuretime = (long)exposure;
             if(iso != null) mPreviewIso = (int)iso;
+            if(focus != null) mFocus = (float)focus; else focus = 0.f;
+            if(gains != null) mGains = gains; else {
+                Rational[] wb = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+                RggbChannelVector nvector = new RggbChannelVector(1.f/wb[0].floatValue(),1.f/wb[1].floatValue(),1.f/wb[1].floatValue(),1.f/wb[2].floatValue());
+                mGains = nvector;
+            }
             process(result);
         }
         //Automatic 60fps preview
@@ -1116,10 +1127,9 @@ public class CameraFragment extends Fragment
 
                                     //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                                     if (!burst) {
-                                        unlockFocus();
                                         mCaptureSession.setRepeatingRequest(mPreviewRequest,
                                                 mCaptureCallback, mBackgroundHandler);
-
+                                        unlockFocus();
                                     } else {
                                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         burst = false;
@@ -1258,6 +1268,10 @@ public class CameraFragment extends Fragment
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderPreview.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
+            captureBuilder.set(CaptureRequest.COLOR_CORRECTION_MODE,CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX);
+            captureBuilder.set(CaptureRequest.COLOR_CORRECTION_GAINS,mGains);
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.i.gravity.getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
