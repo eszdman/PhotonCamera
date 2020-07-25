@@ -258,6 +258,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraintLayout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="411dp"
@@ -455,6 +456,18 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             tools:visibility="visible" />
+
+        <Switch
+            android:id="@+id/nightMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Night mode"
+            app:layout_constraintBottom_toBottomOf="@+id/BottomBarHolder"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.501"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.101" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -10,9 +10,11 @@ import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Size;
 
+import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.content.Context.MODE_PRIVATE;
+import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP;
 import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
@@ -68,6 +70,7 @@ public class Settings {
     public boolean remosaic = false;
     public boolean eisPhoto = true;
     public boolean fpsPreview = false;
+    public boolean nightMode = false;
     public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -191,6 +194,7 @@ public class Settings {
         put(fpsPreview);
         Log.d(TAG,"Saved hdrxNR:"+hdrxNR);
         put(hdrxNR);
+        put(nightMode);
 
         count = -1;
         Log.d(TAG, "Saved mCameraID:" + mCameraID);
@@ -225,6 +229,8 @@ public class Settings {
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
+        //CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
+        if(nightMode) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,10);
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;

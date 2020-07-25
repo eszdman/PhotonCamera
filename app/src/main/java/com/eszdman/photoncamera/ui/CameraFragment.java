@@ -64,6 +64,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
@@ -563,6 +564,11 @@ public class CameraFragment extends Fragment
             case R.id.ImageOut: {
                 Photo.instance.ShowPhoto();
             }
+            case R.id.nightMode: {
+                Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
+                Interface.i.settings.save();
+                restartCamera();
+            }
         }
     }
 
@@ -625,6 +631,9 @@ public class CameraFragment extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
+        Switch night = view.findViewById(R.id.nightMode);
+        night.setChecked(Interface.i.settings.nightMode);
+        night.setOnClickListener(this);
         mTextureView = view.findViewById(R.id.texture);
     }
 
@@ -649,6 +658,8 @@ public class CameraFragment extends Fragment
         if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
+        Switch night = Interface.i.mainActivity.findViewById(R.id.nightMode);
+        night.setChecked(Interface.i.settings.nightMode);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
