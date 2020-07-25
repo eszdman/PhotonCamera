@@ -700,7 +700,7 @@ public class CameraFragment extends Fragment
         in.top *= k;
     }
     private Size getCameraOutputSize(Size[] in) {
-        Collections.sort(Arrays.asList(in), new CompareSizesByArea());
+        Arrays.sort(in, new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
@@ -718,7 +718,7 @@ public class CameraFragment extends Fragment
      @RequiresApi(api = Build.VERSION_CODES.M)
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
         if(in == null) return mPreviewSize;
-         Collections.sort(Arrays.asList(in), new CompareSizesByArea());
+         Arrays.sort(in, new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
          if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
@@ -752,7 +752,6 @@ public class CameraFragment extends Fragment
     int mPreviewheight;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    @SuppressWarnings("SuspiciousNameCombination")
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -769,7 +768,6 @@ public class CameraFragment extends Fragment
                 //Thread thr = new Thread(imageSaver);
                 //thr.start();
                 mBackgroundHandler.post(imageSaver);
-                return;
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (NullPointerException e) {

@@ -14,11 +14,7 @@ public class GLBlockDivider {
         final int remaining = mSize - mPassed;
         if (remaining > 0) {
             out[0] = mPassed;
-            if (remaining >= mBlock) {
-                out[1] = mBlock;
-            } else {
-                out[1] = remaining;
-            }
+            out[1] = Math.min(remaining, mBlock);
             mPassed += out[1];
             return true;
         }

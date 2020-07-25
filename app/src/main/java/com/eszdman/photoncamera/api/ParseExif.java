@@ -28,7 +28,7 @@ public class ParseExif {
         if(out !=null) return out.toString();
         else return "";
     }
-    private static String TAG = "ParseExif";
+
     public static ExifInterface Parse(CaptureResult result, String path){
         ExifInterface inter = null;
         try {
@@ -37,6 +37,7 @@ public class ParseExif {
             e.printStackTrace();
         }
         int rotation = Interface.i.gravity.getCameraRotation();
+        String TAG = "ParseExif";
         Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
         Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;

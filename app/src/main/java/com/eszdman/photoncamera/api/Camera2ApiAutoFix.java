@@ -105,7 +105,6 @@ public class Camera2ApiAutoFix {
                level[i] = ptr.getOffsetForIndex(i%2,i/2);
            }
            CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
-           return;
        }
     }
 }

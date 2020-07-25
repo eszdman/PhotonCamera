@@ -14,7 +14,6 @@ import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.Interface;
 
 public class Parameters {
-    private String TAG = "Parameters";
     public byte cfaPattern;
     public Point rawSize;
     public float[] blacklevel = new float[4];
@@ -59,6 +58,7 @@ public class Parameters {
             if ((gainmap[(gainmap.length / 8) - (gainmap.length / 8) % 4]) == 1.0 &&
                     (gainmap[(gainmap.length / 2) - (gainmap.length / 2) % 4]) == 1.0 &&
                     (gainmap[(gainmap.length / 2 + gainmap.length / 8) - (gainmap.length / 2 + gainmap.length / 8) % 4]) == 1.0) {
+                String TAG = "Parameters";
                 Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
                 gainmap = new float[Const.gainmap.length];
                 for (int i = 0; i < Const.gainmap.length; i += 4) {

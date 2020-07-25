@@ -23,7 +23,6 @@ import com.eszdman.photoncamera.api.Interface;
 public class Swipe {
     private static String TAG = "Swipe";
     private GestureDetector gestureDetector;
-    private View.OnTouchListener touchListener;
     ConstraintLayout manualmode;
     ImageView ocmanual;
     Animation slideUp;
@@ -72,7 +71,7 @@ public class Swipe {
                 return false;
             }
         });
-        touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
+        View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
         View holder = Interface.i.mainActivity.findViewById(R.id.textureHolder);
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);

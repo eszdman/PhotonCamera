@@ -157,7 +157,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.contrastMpy = getDouble(contrastmul.getProgress());
-                contrasttext.setText(res.getText(R.string.contrmul) + " " + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
+                contrasttext.setText(res.getText(R.string.contrmul) + " " + Interface.i.settings.contrastMpy + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
             }
 
             @Override
@@ -172,7 +172,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.sharpness = getDouble(sharp.getProgress());
-                sharptext.setText(res.getText(R.string.sharpness) + " " + String.valueOf(Interface.i.settings.sharpness));
+                sharptext.setText(res.getText(R.string.sharpness) + " " + Interface.i.settings.sharpness);
             }
 
             @Override
@@ -202,7 +202,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.compressor = getDouble(compress.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + " " + String.valueOf(Interface.i.settings.gain));
+                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + " " + Interface.i.settings.gain);
             }
 
             @Override
@@ -217,7 +217,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.gain = getDouble(gains.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + " " + String.valueOf(Interface.i.settings.compressor) + "  " + res.getText(R.string.gain) + " " + String.valueOf(Interface.i.settings.gain));
+                compgaintext.setText(res.getText(R.string.comp) + " " + Interface.i.settings.compressor + "  " + res.getText(R.string.gain) + " " + Interface.i.settings.gain);
             }
 
             @Override

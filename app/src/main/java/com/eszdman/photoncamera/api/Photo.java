@@ -103,11 +103,10 @@ public class Photo {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 thumb = ThumbnailUtils.createImageThumbnail(in, new Size(120, 120), null);
                 uriMessage.obj = thumb;
-                galleryHandler.sendMessage(uriMessage);
             } else {
                 uriMessage.obj = contentUri;
-                galleryHandler.sendMessage(uriMessage);
             }
+            galleryHandler.sendMessage(uriMessage);
         } catch (Exception e) {
             e.printStackTrace();
         }

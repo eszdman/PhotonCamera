@@ -91,7 +91,7 @@ public class Manual {
         focusSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float progressf = (float)(progress*k + min);
+                float progressf = progress*k + min;
                 CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
                 CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.LENS_FOCUS_DISTANCE,progressf);
                 Interface.i.camera.rebuildPreview();

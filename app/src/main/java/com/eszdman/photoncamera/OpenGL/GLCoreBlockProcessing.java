@@ -14,7 +14,6 @@ import static android.opengl.GLES20.glReadPixels;
 import static android.opengl.GLES20.glViewport;
 
 public class GLCoreBlockProcessing extends GLContext {
-    private static String TAG = "GLCoreBlockProcessing";
     public Bitmap mOut = null;
     private final int mOutWidth, mOutHeight;
     public ByteBuffer mBlockBuffer;
@@ -24,6 +23,7 @@ public class GLCoreBlockProcessing extends GLContext {
         int error = GLES30.glGetError();
         if (error != GLES30.GL_NO_ERROR) {
             String msg = op + ": glError: " + GLUtils.getEGLErrorString(error) + " (" + Integer.toHexString(error) + ")";
+            String TAG = "GLCoreBlockProcessing";
             Log.e(TAG, msg);
         }
     }

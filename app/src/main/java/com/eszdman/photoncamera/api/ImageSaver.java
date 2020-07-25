@@ -163,8 +163,6 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                 } catch (IOException e) {
                     e.printStackTrace();
-                } finally {
-
                 }
                 break;
             }

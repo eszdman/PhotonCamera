@@ -12,7 +12,6 @@ import com.eszdman.photoncamera.api.Interface;
 import java.nio.IntBuffer;
 
 public class Gravity {
-    private static String TAG = "Gravity";
     private SensorManager mSensorManager;
     private Sensor mGravitySensor;
     public float[] mGravity;
@@ -49,6 +48,7 @@ public class Gravity {
         if (mGravity == null) {
             return 90;
         }
+        String TAG = "Gravity";
         for(float f:mGravity) Log.d(TAG,"gravity:"+f);
         if (mGravity[2] > 9f) //pointing at the ground
             return 90;

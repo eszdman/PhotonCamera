@@ -11,10 +11,6 @@ public abstract class CustomOrientationEventListener  extends OrientationEventLi
     private static final String TAG = "CustomOrientationEvent";
     private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
     private Context context;
-    private final int ROTATION_O    = 1;
-    private final int ROTATION_90   = 2;
-    private final int ROTATION_180  = 3;
-    private final int ROTATION_270  = 4;
     private int rotation = 0;
 
     public CustomOrientationEventListener(Context context) {
@@ -28,6 +24,10 @@ public abstract class CustomOrientationEventListener  extends OrientationEventLi
         if (android.provider.Settings.System.getInt(context.getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, 0) == 0) // 0 = Auto Rotate Disabled
             return;
         int currentOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
+        int ROTATION_O = 1;
+        int ROTATION_90 = 2;
+        int ROTATION_180 = 3;
+        int ROTATION_270 = 4;
         if (orientation >= 340 || orientation < 20 && rotation != ROTATION_O) {
             currentOrientation = Surface.ROTATION_0;
             rotation = ROTATION_O;
