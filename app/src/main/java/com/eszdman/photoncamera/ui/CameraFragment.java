@@ -564,11 +564,6 @@ public class CameraFragment extends Fragment
             case R.id.ImageOut: {
                 Photo.instance.ShowPhoto();
             }
-            case R.id.nightMode: {
-                Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
-                Interface.i.settings.save();
-                restartCamera();
-            }
         }
     }
 
@@ -633,7 +628,14 @@ public class CameraFragment extends Fragment
         img.setClickable(true);
         Switch night = view.findViewById(R.id.nightMode);
         night.setChecked(Interface.i.settings.nightMode);
-        night.setOnClickListener(this);
+        night.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
+                Interface.i.settings.save();
+                restartCamera();
+            }
+        });
         mTextureView = view.findViewById(R.id.texture);
     }
 
