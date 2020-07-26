@@ -14,6 +14,7 @@ import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline;
+import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
@@ -313,8 +314,9 @@ public class ImageProcessing {
 
 
         Log.d(TAG, "Wrapper.loadFrame");
-
-        ByteBuffer output = Wrapper.processFrame();
+        float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
+        Log.d(TAG,"Deghosting level:"+deghostlevel);
+        ByteBuffer output = Wrapper.processFrame(1.f+deghostlevel);
         curimgs.get(0).getPlanes()[0].getBuffer().clear();
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);

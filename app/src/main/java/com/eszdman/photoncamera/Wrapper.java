@@ -21,7 +21,7 @@ public static native void init(int rows,int cols, int frames);
      * @param bufferptr Image buffer.
      */
 public static native void loadFrame(ByteBuffer bufferptr);
-public static native ByteBuffer processFrame();
+public static native ByteBuffer processFrame(float ghosting);
 //public static native void Test();
 //public static native ByteBuffer ProcessOpenCL(ByteBuffer in);
 }
