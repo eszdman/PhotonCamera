@@ -9,7 +9,7 @@ uniform int yOffset;
 uniform int CfaPattern;
 
 #define greenmin (0.04)
-#define greenmax (0.90)
+#define greenmax (0.9)
 out vec4 Output;
 
 float interpolateColor(ivec2 coords){
@@ -100,5 +100,6 @@ void main() {
         outp.b = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
         outp.r = interpolateColor(xy);
     }
+    //Output = clamp(outp,0.0,1.0);
     Output = outp;
 }

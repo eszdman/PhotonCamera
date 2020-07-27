@@ -171,7 +171,6 @@ public class CameraFragment extends Fragment
     Range FpsRangeDef;
     Range FpsRangeHigh;
     private float mFocus;
-    RggbChannelVector mGains;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -420,15 +419,11 @@ public class CameraFragment extends Fragment
             Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
             Object focus = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
-            RggbChannelVector gains = result.get(CaptureResult.COLOR_CORRECTION_GAINS);
+            Rational[] mtemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
             if(exposure != null) mPreviewExposuretime = (long)exposure;
             if(iso != null) mPreviewIso = (int)iso;
             if(focus != null) mFocus = (float)focus; else focus = 0.f;
-            if(gains != null) mGains = gains; else {
-                Rational[] wb = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-                RggbChannelVector nvector = new RggbChannelVector(1.f/wb[0].floatValue(),1.f/wb[1].floatValue(),1.f/wb[1].floatValue(),1.f/wb[2].floatValue());
-                mGains = nvector;
-            }
+            mPreviewTemp = mtemp;
             process(result);
         }
         //Automatic 60fps preview
@@ -1270,8 +1265,10 @@ public class CameraFragment extends Fragment
             Interface.i.settings.applyRes(captureBuilder);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
+            captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+            captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             captureBuilder.set(CaptureRequest.COLOR_CORRECTION_MODE,CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX);
-            captureBuilder.set(CaptureRequest.COLOR_CORRECTION_GAINS,mGains);
+            Log.d(TAG,"Temperature:"+mPreviewTemp);
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.i.gravity.getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();

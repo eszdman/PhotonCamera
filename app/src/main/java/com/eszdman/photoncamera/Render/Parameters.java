@@ -44,7 +44,7 @@ public class Parameters {
             cfaPattern = (byte)Interface.i.settings.cfaPattern;
         }
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
-        if (wlevel != null) whitelevel = (short) ((int) wlevel);
+        if (wlevel != null) whitelevel = ((int)wlevel);
         hasGainMap = false;
         mapsize = new Point(1, 1);
         gainmap = new float[1];

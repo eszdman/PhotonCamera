@@ -33,6 +33,11 @@ public class GLCoreBlockProcessing extends GLContext {
     }
     public GLCoreBlockProcessing(Point size,GLFormat glFormat) {
         super(size.x, GLConst.TileSize);
+        //Hack for 16 bits from gpu with shifts
+        if(glFormat.mFormat == GLFormat.DataType.UNSIGNED_16){
+            glFormat = new GLFormat(GLFormat.DataType.UNSIGNED_8,4);
+            size = new Point(size.x/2,size.y);
+        }
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;

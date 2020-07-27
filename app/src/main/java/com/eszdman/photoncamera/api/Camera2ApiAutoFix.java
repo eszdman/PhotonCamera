@@ -29,7 +29,6 @@ public class Camera2ApiAutoFix {
     public static void Init(){
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraFragment.mCameraCharacteristics);
         fix.ExposureTime();
-
     }
     public static void Apply(){
         CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
@@ -41,6 +40,10 @@ public class Camera2ApiAutoFix {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         //fix.gains();
         fix.dynBL();
+        fix.whitePoint();
+    }
+    private void whitePoint(){
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT,Interface.i.camera.mPreviewTemp);
     }
     public void curve(){
         CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);

@@ -46,10 +46,10 @@ public class IsoExpoSelector {
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
         if(step % 4 == 3 && false){
-            pair.ExpoCompensateLower(0.5);
+            pair.ExpoCompensateLower(0.7);
         }
         if(step % 4 == 2 && false){
-            pair.ExpoCompensateLower(2.0);
+            pair.ExpoCompensateLower(6.0);
         }
 
         if(step == baseFrame){

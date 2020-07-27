@@ -1,5 +1,19 @@
 package com.eszdman.photoncamera.OpenGL;
 
+import android.graphics.Bitmap;
+import android.util.Log;
+
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+
+import static android.opengl.GLES20.GL_FRAMEBUFFER;
+import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
+import static android.opengl.GLES20.glBindFramebuffer;
+import static android.opengl.GLES20.glGetIntegerv;
+import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
+
 public class GLBlockDivider {
     private final int mSize;
     private final int mBlock;
@@ -20,4 +34,5 @@ public class GLBlockDivider {
         }
         return false;
     }
+
 }

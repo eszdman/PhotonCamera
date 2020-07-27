@@ -5,12 +5,14 @@ import android.app.Application;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.params.BlackLevelPattern;
 import android.util.Log;
 
 import com.eszdman.photoncamera.ui.CameraFragment;
 
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -43,6 +45,18 @@ public class CameraReflectionApi {
             e.printStackTrace();
         }
     }
+    public static <T> void set(CaptureResult.Key<T> key, T value,CaptureResult res) {
+        try {
+            Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureResult.class,"mResults");
+            CameraMetadataNativeField.setAccessible(true);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(res);
+            Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureResult.Key.class, Object.class);
+            set.setAccessible(true);
+            set.invoke(CameraMetadataNative, key, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     public static <T> void set(CaptureRequest request,CaptureRequest.Key<T> key, T value) {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureRequest.class,"mLogicalCameraSettings");
@@ -54,6 +68,19 @@ public class CameraReflectionApi {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    public static void PatchBL(BlackLevelPattern pattern, int[] bl){
+        try {
+            Field mCfaOffsetsField = pattern.getClass().getDeclaredField("mCfaOffsets");
+            mCfaOffsetsField.setAccessible(true);
+            Object mCfaOffsets = mCfaOffsetsField.get(pattern);
+            for(int i =0; i<4;i++){
+                Array.set(mCfaOffsets,i,bl[i]);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
     }
     public static void PrintFields(Object in){
         Log.d(TAG,"StartPrinting:"+in.getClass());

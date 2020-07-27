@@ -9,8 +9,6 @@ out vec4 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    uvec3 inp = texelFetch(InputBuffer,xy,0);
-    Output.r = float(inp.r);
-    Output.g = float(inp.g);
-    Output.b = float(inp.b);
+    uint inp = texelFetch(InputBuffer,xy,0).x;
+    Output = vec4(float(inp)/65535.0);
 }

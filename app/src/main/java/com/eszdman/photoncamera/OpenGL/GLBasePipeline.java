@@ -1,10 +1,10 @@
-package com.eszdman.photoncamera.OpenGL.Nodes;
+package com.eszdman.photoncamera.OpenGL;
 
 import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.eszdman.photoncamera.OpenGL.GLFormat;
-import com.eszdman.photoncamera.OpenGL.GLInterface;
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -14,9 +14,9 @@ import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 
-public class BasePipeline implements AutoCloseable {
-    ArrayList<Node> Nodes = new ArrayList<Node>();
-    GLInterface glint = null;
+public class GLBasePipeline implements AutoCloseable {
+    public ArrayList<Node> Nodes = new ArrayList<Node>();
+    public GLInterface glint = null;
     private long timestart;
     private static String TAG = "BasePipeline";
     private final int[] bind = new int[1];
@@ -26,7 +26,7 @@ public class BasePipeline implements AutoCloseable {
     public void endT(String Name){
         Log.d("Pipeline","Node:"+Name+" elapsed:"+(System.currentTimeMillis()-timestart)+ " ms");
     }
-    void add(Node in){
+    public void add(Node in){
         if(Nodes.size() != 0) in.previousNode = Nodes.get(Nodes.size()-1);
         in.basePipeline = this;
         Nodes.add(in);
@@ -40,7 +40,7 @@ public class BasePipeline implements AutoCloseable {
         glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
         checkEglError("glBindFramebuffer");
     }
-    Bitmap runAll(){
+    public Bitmap runAll(){
         lasti();
         for(int i = 0; i<Nodes.size();i++){
             Nodes.get(i).Compile();
@@ -60,7 +60,7 @@ public class BasePipeline implements AutoCloseable {
         Nodes.clear();
         return glint.glProc.mOut;
     }
-    ByteBuffer runAllRaw(){
+    public ByteBuffer runAllRaw(){
         lasti();
         for(int i = 0; i<Nodes.size();i++){
             Nodes.get(i).Compile();
