@@ -3,45 +3,48 @@ package com.eszdman.photoncamera.OpenGL;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
-import android.util.Size;
+
 import java.nio.ByteBuffer;
 
-import static android.opengl.GLES20.GL_FRAMEBUFFER;
-import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
-import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
-import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 
 public class GLOneScript implements AutoCloseable {
     public GLTexture WorkingTexture;
     public GLOneParams glOne;
-    public String Name = "Script";
+    public String Name;
     public ByteBuffer Output;
     public int Rid;
     private long timestart;
-    private final int[] bind = new int[1];
     public Point size;
     public Object additionalParams;
+    public boolean hiddenScript = false;
     public GLOneScript(Point size, Bitmap output, GLFormat glFormat, int rid, String name){
         this.size = size;
-        glOne = new GLOneParams(size,output,glFormat);
+        if(glFormat == null){
+            hiddenScript = true;
+            glFormat = new GLFormat(GLFormat.DataType.UNSIGNED_8,4);
+            glOne = new GLOneParams(new Point(1,1),output,glFormat);
+        } else {
+            glOne = new GLOneParams(size,output,glFormat);
+        }
+
         Name = name;
         Rid = rid;
     }
+    public void StartScript() {}
     public void Run(){
-        //glGetIntegerv(GL_FRAMEBUFFER_BINDING, bind, 0);
-        checkEglError("glGetIntegerv");
         Compile();
         startT();
-        //glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
-        checkEglError("glBindFramebuffer");
         StartScript();
-        glOne.glProc.drawBlocksToOutput();
+        if(!hiddenScript) {
+            glOne.glProc.drawBlocksToOutput();
+        } else {
+            glOne.glprogram.drawBlocks(WorkingTexture);
+        }
         glOne.glprogram.close();
         endT();
         Output = glOne.glProc.mOutBuffer;
     }
-    public void StartScript(){}
     public void startT(){
         timestart = System.currentTimeMillis();
     }
