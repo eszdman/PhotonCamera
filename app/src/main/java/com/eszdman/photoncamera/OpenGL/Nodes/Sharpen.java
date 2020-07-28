@@ -20,8 +20,8 @@ public class Sharpen extends Node {
         GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
         GLProg glProg = glint.glprogram;
-        float sharpnessLevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/9.2f;
-        sharpnessLevel = Math.max(0.8f,sharpnessLevel);
+        float sharpnessLevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/14.2f;
+        sharpnessLevel = Math.max(0.5f,sharpnessLevel);
         sharpnessLevel = Math.min(2.0f, sharpnessLevel);
         Log.d("PostNode:"+Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.servar("size", sharpnessLevel);

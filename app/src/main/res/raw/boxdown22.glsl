@@ -8,5 +8,5 @@ out vec4 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-
+    xy*=2;
 }

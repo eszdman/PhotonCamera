@@ -117,19 +117,6 @@
                         android:thumb="@drawable/custom_switch_thumb"
                         android:paddingEnd="18dp"/>
 
-                    <Switch
-                        android:id="@+id/setting_raw"
-                        android:layout_width="match_parent"
-                        android:drawableStart="@drawable/ic_raw"
-                        android:drawablePadding="20dp"
-                        android:fontFamily="sans-serif"
-                        android:gravity="center|start|center_horizontal"
-                        android:text="@string/raw"
-                        android:textSize="16sp"
-                        android:layout_height="@dimen/SettingSize1"
-                        android:track="@drawable/custom_switch_track_selector"
-                        android:thumb="@drawable/custom_switch_thumb"
-                        android:paddingEnd="18dp"/>
                 </LinearLayout>
 
                 <TextView
@@ -292,6 +279,21 @@
                         android:track="@drawable/custom_switch_track_selector"
                         android:thumb="@drawable/custom_switch_thumb"
                         android:paddingEnd="18dp"/>
+
+                    <Switch
+                        android:id="@+id/setting_raw"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_raw"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:paddingEnd="18dp"
+                        android:text="@string/raw"
+                        android:textSize="16sp"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:track="@drawable/custom_switch_track_selector" />
+
                     <Switch
                         android:id="@+id/setting_hdrxNR"
                         android:layout_width="match_parent"

@@ -216,10 +216,9 @@ public class Settings {
         count = 0;
     }
     public void applyRes(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(NOISE_REDUCTION_MODE, Interface.i.settings.noiseReduction);
         captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
         //captureBuilder.set(COLOR_CORRECTION_MODE, COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        captureBuilder.set(CONTROL_AE_MODE, aeModeLock);
+        captureBuilder.set(CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         //captureBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
         //captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
