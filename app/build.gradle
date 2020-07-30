@@ -14,7 +14,7 @@ android {
     }
 
     if (versionPropsFile.canRead()) {
-        def Properties versionProps = new Properties()
+        Properties versionProps = new Properties()
         versionProps.load(new FileInputStream(versionPropsFile))
         versionBuild = versionProps['VERSION_BUILD'].toInteger()
     } else {
@@ -23,7 +23,7 @@ android {
 
     ext.autoIncrementBuildNumber = {
         if (versionPropsFile.canRead()) {
-            def Properties versionProps = new Properties()
+            Properties versionProps = new Properties()
             versionProps.load(new FileInputStream(versionPropsFile))
             versionBuild = versionProps['VERSION_BUILD'].toInteger() + 1
             versionProps['VERSION_BUILD'] = versionBuild.toString()
