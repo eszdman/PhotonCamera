@@ -14,8 +14,16 @@ void main() {
     xy*=4;
     const int kSize = (MSIZE1-1)/2;
     float kernel[MSIZE1];
+    vec4 mask = vec4(0.0);
     float pdfsize = 0.0;
     for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), 1.5);
-
-
+    for (int i=-kSize; i <= kSize; ++i){
+        for (int j=-kSize; j <= kSize; ++j){
+            float pdf = kernel[kSize+j]*kernel[kSize+i];
+            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0))*pdf;
+            pdfsize+=pdf;
+        }
+    }
+    mask/=pdfsize;
+    Output = mask;
 }

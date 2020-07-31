@@ -153,7 +153,8 @@ vec3 linearizeAndGainMap(ivec2 coords){
     pRGB.r = gains.r*float(inbuff.r-blackLevel.r);
     pRGB.g = ((gains.g+gains.b)/2.)*float(inbuff.g-(blackLevel.g+blackLevel.b)/2.);
     pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
-    pRGB = clamp(pRGB/(1.0-blackLevel.g),0.0,1.0);
+    pRGB/=(1.0-blackLevel.g);
+
     return pRGB;
 }
 const float redcorr = 0.1;
