@@ -353,9 +353,9 @@ public class ImageProcessing {
         Log.d(TAG,"WhiteLevel:"+Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
         float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
-        deghostlevel = Math.min(0.35f,deghostlevel);
+        deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
-        ByteBuffer output = Wrapper.processFrame(1.f+deghostlevel);
+        ByteBuffer output = Wrapper.processFrame(0.9f+deghostlevel);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);

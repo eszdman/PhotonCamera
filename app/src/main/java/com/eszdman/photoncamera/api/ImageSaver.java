@@ -54,8 +54,11 @@ public class ImageSaver implements Runnable {
         return "IMG_"+dateText;
     }
     static String curDir(){
-        File dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//Camera//");
+        File dir= null;
+        dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//Camera//");
+        if(Interface.i.settings.rawSaver) dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Raw//");
         if(!dir.exists()) dir.mkdirs();
+
         return dir.getAbsolutePath();
     }
     private void unlock(){

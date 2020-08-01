@@ -3,7 +3,7 @@ precision mediump float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int yOffset;
-out float Output;
+out vec4 Output;
 #define size1 (1.2)
 #define MSIZE1 3
 #define resize (4)
@@ -14,13 +14,13 @@ void main() {
     xy*=resize;
     const int kSize = (MSIZE1-1)/2;
     float kernel[MSIZE1];
-    float mask = 0.0;
+    vec4 mask = vec4(0.0);
     float pdfsize = 0.0;
     for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), 1.5);
     for (int i=-kSize; i <= kSize; ++i){
         for (int j=-kSize; j <= kSize; ++j){
             float pdf = kernel[kSize+j]*kernel[kSize+i];
-            mask+=float(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0).x)*pdf;
+            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0))*pdf;
             pdfsize+=pdf;
         }
     }

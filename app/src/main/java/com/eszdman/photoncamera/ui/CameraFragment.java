@@ -1255,9 +1255,6 @@ public class CameraFragment extends Fragment
             // This is the CaptureRequest.Builder that we use to take a picture.
             final CaptureRequest.Builder captureBuilder =
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            // Use the same AE and AF modes as the preview.
-            //mImageReader.setOnImageAvailableListener(mOnImageAvailableListener,mBackgroundHandler);
-            //mImageReaderRes.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
             mCaptureSession.stopRepeating();
             FixPreview = true;
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
@@ -1337,7 +1334,7 @@ public class CameraFragment extends Fragment
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    if (burstcount[1] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
+                    if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
                             lightcycle.setAlpha(0f);
