@@ -31,6 +31,12 @@ public class GLOneScript implements AutoCloseable {
         Name = name;
         Rid = rid;
     }
+    public GLOneScript(Point size, GLCoreBlockProcessing glCoreBlockProcessing, int rid, String name){
+        this.size = size;
+        glOne = new GLOneParams(glCoreBlockProcessing);
+        Name = name;
+        Rid = rid;
+    }
     public void StartScript() {}
     public void Run(){
         Compile();

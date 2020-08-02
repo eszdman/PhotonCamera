@@ -4,16 +4,19 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 
+import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLOneScript;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 
 public class GaussianResize extends GLOneScript {
-    public GaussianResize(Point size,int rid, String name) {
-        super(size, null, null, rid, name);
+    public GaussianResize(Point size, GLCoreBlockProcessing glCoreBlockProcessing,int rid, String name) {
+        super(size, glCoreBlockProcessing, rid, name);
     }
-
+    public GaussianResize(Point size, int rid, String name) {
+        super(size, null,null, rid, name);
+    }
     @Override
     public void StartScript() {
         ScriptParams scriptParams = (ScriptParams)additionalParams;

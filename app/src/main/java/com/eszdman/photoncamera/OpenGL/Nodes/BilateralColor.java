@@ -16,6 +16,7 @@ public class BilateralColor extends Node {
 
     @Override
     public void Run() {
+        PostPipeline postPipeline = ((PostPipeline)basePipeline);
         GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
         GLProg glProg = glint.glprogram;
@@ -24,8 +25,10 @@ public class BilateralColor extends Node {
         denoiseLevel+=0.25;
         Log.d("PostNode:"+Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         denoiseLevel = Math.min(5.0f,denoiseLevel);
-        glProg.servar("sigma", denoiseLevel,denoiseLevel*2.f);
+        glProg.setvar("sigma", denoiseLevel,denoiseLevel*2.f);
+        glProg.setvar("mapsize",(float)Previous.WorkingTexture.mSize.x,(float)Previous.WorkingTexture.mSize.y);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
+        glProg.setTexture("NoiseMap",((PostPipeline)basePipeline).noiseMap);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
     }
 }

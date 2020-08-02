@@ -8,8 +8,6 @@ import android.util.Log;
 
 import java.nio.ByteBuffer;
 
-import static android.opengl.GLES20.GL_LUMINANCE;
-import static android.opengl.GLES20.GL_RGBA;
 import static android.opengl.GLES20.glReadPixels;
 import static android.opengl.GLES20.glViewport;
 
@@ -58,7 +56,7 @@ public class GLCoreBlockProcessing extends GLContext {
 
             glViewport(0, 0, mOutWidth, height);
             checkEglError("glViewport");
-            program.servar("yOffset", y);
+            program.setvar("yOffset", y);
             program.draw();
             checkEglError("program");
             mBlockBuffer.position(0);

@@ -21,8 +21,8 @@ public class DemosaicPart2 extends Node {
         glProg.setTexture("RawBuffer",glTexture);
         Log.d(Name,"Texture format:"+super.previousNode.WorkingTexture);
         glProg.setTexture("GreenBuffer",super.previousNode.WorkingTexture);
-        glProg.servar("WhiteLevel",params.whitelevel);
-        glProg.servar("CfaPattern",params.cfaPattern);
+        glProg.setvar("WhiteLevel",params.whitelevel);
+        glProg.setvar("CfaPattern",params.cfaPattern);
         //glProg.servar("RawSizeX",params.rawSize.x);
         //glProg.servar("RawSizeY",params.rawSize.y);
         super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);

@@ -15,6 +15,6 @@ public static GLTexture[] Run(Point size, GLTexture input){
     resizer.additionalParams = parameters;
     resizer.Run();
     Output[0] = resizer.WorkingTexture;
-return null;
-}
+    return Output;
+    }
 }

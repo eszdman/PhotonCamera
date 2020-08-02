@@ -129,20 +129,13 @@ public class Parameters {
 
     @Override
     public String toString() {
-        String gainmapstr = ", GainMapSamples=NoGainMap";
-        if (hasGainMap)
-            gainmapstr = ", GainMapSamples=(" + FltFormat(gainmap[(gainmap.length / 8) - (gainmap.length / 8) % 4]) + " "
-                    + FltFormat(gainmap[(gainmap.length / 2) - (gainmap.length / 2) % 4]) + " " + FltFormat(gainmap[(gainmap.length / 2 + gainmap.length / 8) - (gainmap.length / 2 + gainmap.length / 8) % 4]) + ")";
         return "Parameters:" +
-                " rawSize=" + rawSize +
                 ", hasGainMap=" + hasGainMap +
-                ", tonemapStrength=" + FltFormat(tonemapStrength) +
                 ", framecount=" + FrameNumberSelector.frameCount +
                 ", CameraID=" + Interface.i.settings.mCameraID +
                 ", Satur=" + FltFormat(Interface.i.settings.saturation) +
                 ", Gain=" + FltFormat(Interface.i.settings.gain) +
-                ", Sharpness=" + FltFormat(Interface.i.settings.sharpness) +
-                gainmapstr;
+                ", Sharpness=" + FltFormat(Interface.i.settings.sharpness);
     }
 
     @SuppressLint("DefaultLocale")

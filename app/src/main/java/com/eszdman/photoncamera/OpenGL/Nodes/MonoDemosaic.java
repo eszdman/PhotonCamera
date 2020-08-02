@@ -18,7 +18,7 @@ public class MonoDemosaic extends Node{
         Parameters params = glint.parameters;
         glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),glint.inputRaw);
         glProg.setTexture("RawBuffer",glTexture);
-        glProg.servar("WhiteLevel",params.whitelevel);
+        glProg.setvar("WhiteLevel",params.whitelevel);
         super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
     }
 }

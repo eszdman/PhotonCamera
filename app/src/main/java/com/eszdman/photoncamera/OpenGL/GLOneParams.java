@@ -15,6 +15,10 @@ public class GLOneParams {
         glProc = new GLCoreBlockProcessing(size,out,glFormat);
         glprogram = glProc.mProgram;
     }
+    public GLOneParams(GLCoreBlockProcessing glCoreBlockProcessing){
+        glProc = glCoreBlockProcessing;
+        glprogram = glProc.mProgram;
+    }
     @SuppressLint("NewApi")
     static public String loadShader(int fragment) {
         StringBuilder source = new StringBuilder();

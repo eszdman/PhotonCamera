@@ -22,4 +22,7 @@ public class Node {
     public void Compile(){
         basePipeline.glint.glprogram.useProgram(Rid);
     }
+    public GLTexture GetProgTex(){
+        return WorkingTexture;
+    }
 }

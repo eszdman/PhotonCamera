@@ -5,6 +5,7 @@ import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
+import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
@@ -14,6 +15,7 @@ import java.nio.ByteBuffer;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends GLBasePipeline {
+    GLTexture noiseMap;
     public int selectSharp(){
         long resolution = glint.parameters.rawSize.x*glint.parameters.rawSize.y;
         int output = R.raw.sharpen33;
@@ -35,6 +37,9 @@ public class PostPipeline extends GLBasePipeline {
         }
         add(new Initial(R.raw.initial,"Initial"));
         if(Interface.i.settings.hdrxNR) {
+            add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
+            add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
+            add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
             add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
             add(new Bilateral(R.raw.bilateral, "Bilateral"));
         }

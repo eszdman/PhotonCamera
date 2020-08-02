@@ -19,6 +19,6 @@ public class RawSensivity extends Node {
         Parameters params = glint.parameters;
         GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
         glProg.setTexture("RawBuffer",glTexture);
-        glProg.servar("PostRawSensivity",rawPipeline.sensivity);
+        glProg.setvar("PostRawSensivity",rawPipeline.sensivity);
     }
 }

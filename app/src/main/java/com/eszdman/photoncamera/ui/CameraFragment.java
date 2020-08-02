@@ -1260,10 +1260,10 @@ public class CameraFragment extends Fragment
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderPreview.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+            //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+            //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG,"Focus:"+mFocus);
-            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
-            captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+            //captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             for(int i =0; i<3;i++){
                 Log.d(TAG,"Temperature:"+mPreviewTemp[i]);
@@ -1277,6 +1277,9 @@ public class CameraFragment extends Fragment
             lightcycle.setMax(FrameNumberSelector.frameCount);
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
+                CaptureRequest request = captureBuilder.build();
+                CameraReflectionApi.set(request,CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+                CameraReflectionApi.set(request,CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
                 captures.add(captureBuilder.build());
             }
             //img

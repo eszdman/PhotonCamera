@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.OpenGL;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,10 +166,10 @@ public class GLProg implements AutoCloseable  {
             mTextureBinds.put(var, textureId);
             mNewTextureId += 2;
         }
-        servar(var, textureId);
+        setvar(var, textureId);
         tex.bind(GL_TEXTURE0 + textureId);
     }
-    public void servar(String name, int ...vars){
+    public void setvar(String name, int ...vars){
         int addr = glGetUniformLocation(mCurrentProgramActive,name);
         switch (vars.length) {
             case 1: glUniform1i(addr, vars[0]); break;
@@ -180,7 +179,7 @@ public class GLProg implements AutoCloseable  {
             default: throw new RuntimeException("Wrong var size " + name);
         }
     }
-    public void servar(String name, float ...vars){
+    public void setvar(String name, float ...vars){
         int addr = glGetUniformLocation(mCurrentProgramActive,name);
         switch (vars.length) {
             case 1: glUniform1f(addr, vars[0]); break;
