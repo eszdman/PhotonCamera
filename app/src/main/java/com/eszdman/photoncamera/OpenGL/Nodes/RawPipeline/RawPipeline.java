@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline;
 
+import android.media.Image;
+
 import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
@@ -15,6 +17,7 @@ public class RawPipeline extends GLBasePipeline {
     public float sensivity = 1.f;
     public ByteBuffer rawInput;
     public ArrayList<ByteBuffer> images;
+    public ArrayList<Image> imageobj;
     public ByteBuffer Run(){
         Parameters parameters = Interface.i.parameters;
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16));

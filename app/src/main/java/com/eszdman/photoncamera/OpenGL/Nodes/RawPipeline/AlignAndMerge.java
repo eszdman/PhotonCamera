@@ -71,8 +71,8 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex88);
         glProg.setTexture("MainBuffer",main88);
         glProg.setvar("Mpy", 8);
-        glProg.setvar("minSize", (int)(brTex88.mSize.x*0.15),(int)(brTex88.mSize.y*0.15));
-        glProg.setvar("maxSize", (int)(brTex88.mSize.x*0.85),(int)(brTex88.mSize.y*0.85));
+        glProg.setvar("minSize", (int)(brTex88.mSize.x*0.08),(int)(brTex88.mSize.y*0.08));
+        glProg.setvar("maxSize", (int)(brTex88.mSize.x*(1.0-0.08)),(int)(brTex88.mSize.y*(1.0-0.08)));
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -129,6 +129,8 @@ public class AlignAndMerge extends Node {
         time = System.currentTimeMillis();
         for(int i =1; i<images.size();i++){
             GLTexture inputraw = CorrectedRaw(images.get(i));
+            //Less memory consumption
+            rawPipeline.imageobj.get(i).close();
             GLTexture brTex22 = BoxDown22(inputraw);
             GLTexture brTex88 = GaussDown44(brTex22);
             GLTexture brTex3232 = GaussDown44(brTex88);
@@ -136,6 +138,6 @@ public class AlignAndMerge extends Node {
             Output = Merge(Output,inputraw,AlignVectors,BaseFrame,brTex22);
         }
         Log.d("AlignAndMerge","AlignmentAndMerge elapsed time:"+(System.currentTimeMillis()-time)+" ms");
-        WorkingTexture = RawOutput(BaseFrame);
+        WorkingTexture = RawOutput(Output);
     }
 }

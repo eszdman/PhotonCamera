@@ -339,6 +339,7 @@ public class ImageProcessing {
             byteBuffer.position(0);
             images.add(byteBuffer);
         }
+        rawPipeline.imageobj = curimgs;
         rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
@@ -346,16 +347,17 @@ public class ImageProcessing {
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
         ByteBuffer output = rawPipeline.Run();//Wrapper.processFrame(0.9f+deghostlevel);
-        output.position(0);
-        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        //output.position(0);
+        //Black shot fix
+        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+        //for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
         rawPipeline.close();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         if(Interface.i.settings.rawSaver) {
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
-                curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-                curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-                curimgs.get(0).getPlanes()[0].getBuffer().position(0);
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
                 dngCreator.setDescription(Interface.i.parameters.toString());
                 int rotation = Interface.i.gravity.getCameraRotation();
@@ -385,7 +387,7 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.processFrame()");
         Interface.i.parameters.path = path;
         PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(output,Interface.i.parameters);
+        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
         pipeline.close();
         curimgs.get(0).close();
     }
