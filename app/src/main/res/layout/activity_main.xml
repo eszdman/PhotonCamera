@@ -69,6 +69,19 @@
             app:srcCompat="@drawable/ic_round_edge"
             tools:layout_constraintTop_toBottomOf="@id/TopBar" />
 
+        <ImageView
+            android:id="@+id/touchFocus"
+            android:layout_width="100dp"
+            android:layout_height="97dp"
+            android:layout_marginStart="156dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.431"
+            app:srcCompat="@drawable/ic_touch_focus"
+            tools:visibility="visible" />
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/TopBar"
             android:layout_width="match_parent"

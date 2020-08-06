@@ -3,11 +3,14 @@ precision mediump float;
 precision mediump sampler2D;
 precision mediump usampler2D;
 uniform sampler2D OutputBuffer;
+
 uniform sampler2D InputBuffer;
 uniform sampler2D MainBuffer;
 uniform sampler2D InputBuffer22;
 uniform sampler2D MainBuffer22;
+
 uniform usampler2D AlignVectors;
+
 uniform int yOffset;
 uniform uvec2 rawsize;
 uniform int CfaPattern;
@@ -42,9 +45,14 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec2 tilexy = vec2(xy - TILESIZE*(xy/TILESIZE));
+    tilexy/=float(TILESIZE);
+    tilexy-=0.5;
+    float dist = tilexy.x*tilexy.x+tilexy.y*tilexy.y;
     ivec2 align = ivec2(texelFetch(AlignVectors, (xy/TILESIZE), 0).xy);
     vec2 alignf = vec2(align);
-    float windoww = 0.5;
+    alignf/=float(TILESIZE);
+    float dist2 = alignf.x*alignf.x+alignf.y*alignf.y;
+    float windoww = 1.0 - dist2*dist*30.0;
     windoww = clamp(windoww,0.0,1.0);
     float outp = (float(texelFetch(InputBuffer, (xy+align), 0).x)*windoww+float(texelFetch(OutputBuffer, (xy), 0).x)*(1.0-windoww));
     Output = outp;

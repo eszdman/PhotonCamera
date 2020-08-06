@@ -19,7 +19,7 @@ public class Parameters {
     public float[] blacklevel = new float[4];
     public float[] whitepoint = new float[3];
     public int whitelevel = 1023;
-    public int realWL = 0;
+    public int realWL = -1;
     public boolean hasGainMap;
     public Point mapsize;
     public float[] gainmap;

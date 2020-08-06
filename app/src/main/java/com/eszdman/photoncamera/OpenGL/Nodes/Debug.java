@@ -18,8 +18,8 @@ public class Debug extends Node {
         GLInterface glint = rawPipeline.glint;
         GLProg glProg = glint.glprogram;
         Parameters params = glint.parameters;
-        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
+        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.images.get(0));
         glProg.setTexture("InputBuffer",glTexture);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.rawInput);
+        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.images.get(0));
     }
 }

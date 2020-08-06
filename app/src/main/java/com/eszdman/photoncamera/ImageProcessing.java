@@ -274,20 +274,20 @@ public class ImageProcessing {
         clearProcessingCycle();
     }
     void ApplyHdrX() {
+        boolean debugAlignment = false;
         CaptureResult res = CameraFragment.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        //Wrapper.init(width, height, curimgs.size());
+        Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        if(!debugAlignment) Wrapper.init(width, height, curimgs.size());
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
-        float fakelevel = 65535.f;//(float)Math.pow(2,16)-1.f;//bits raw
+        float fakelevel = 1023;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
-        RawParams params = new RawParams(res);
-        params.oldwhitelevel = (float)levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
         BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelarr = new int[4];
@@ -315,12 +315,11 @@ public class ImageProcessing {
         Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG,"Api Blacklevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
-        Interface.i.parameters.realWL = levell;
+        if(Interface.i.parameters.realWL == -1) Interface.i.parameters.realWL = levell;
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ByteBuffer> images = new ArrayList<>();
         for (int i = 0; i < curimgs.size(); i++) {
-            params.sensivity = k;
             ByteBuffer byteBuffer = null;
             if(i == 0){
                 byteBuffer = curimgs.get(baseFrame).getPlanes()[0].getBuffer();
@@ -338,6 +337,7 @@ public class ImageProcessing {
             }
             byteBuffer.position(0);
             images.add(byteBuffer);
+            if(!debugAlignment) Wrapper.loadFrame(byteBuffer);
         }
         rawPipeline.imageobj = curimgs;
         rawPipeline.images = images;
@@ -346,14 +346,16 @@ public class ImageProcessing {
         float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
-        ByteBuffer output = rawPipeline.Run();//Wrapper.processFrame(0.9f+deghostlevel);
-        //output.position(0);
+        //ByteBuffer output = images.get(0);
+        ByteBuffer output = null;
+        if(!debugAlignment) output = Wrapper.processFrame(0.9f+deghostlevel);
+        else output = rawPipeline.Run();
         //Black shot fix
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        //for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
-        rawPipeline.close();
+        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        if(debugAlignment) rawPipeline.close();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         if(Interface.i.settings.rawSaver) {
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);

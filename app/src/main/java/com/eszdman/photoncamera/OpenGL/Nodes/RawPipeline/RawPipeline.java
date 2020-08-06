@@ -15,7 +15,6 @@ import java.util.ArrayList;
 
 public class RawPipeline extends GLBasePipeline {
     public float sensivity = 1.f;
-    public ByteBuffer rawInput;
     public ArrayList<ByteBuffer> images;
     public ArrayList<Image> imageobj;
     public ByteBuffer Run(){
@@ -26,7 +25,6 @@ public class RawPipeline extends GLBasePipeline {
         glint.parameters = parameters;
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
         add(new AlignAndMerge(R.raw.boxdown22,"AlignAndMerge"));
-        //add(new RawSensivity(R.raw.rawsensivity,"RawSensivity"));
         return runAllRaw();
     }
 }

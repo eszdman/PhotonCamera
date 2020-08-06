@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.Control;
 import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureRequest.Builder;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
@@ -66,11 +67,15 @@ public class Manual {
                     expValue.setText("1/"+(int)(1.0 / expvalue));
                     try{
                         //Interface.i.camera.mPreviewRequestBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
-                        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
+                        Builder builder = Interface.i.camera.mPreviewRequestBuilder;
+                        builder.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
+                        builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
+                        builder.set(CaptureRequest.SENSOR_SENSITIVITY,Interface.i.camera.mPreviewIso);
+                        /*CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
                         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
-                        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,Interface.i.camera.mPreviewIso);
+                        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.SENSOR_SENSITIVITY,Interface.i.camera.mPreviewIso);*/
                         exposure = true;
-                        Interface.i.camera.rebuildPreview();
+                        Interface.i.camera.rebuildPreviewBuilder();
                     } catch (Exception ignored){}
                 } else expValue.setText(String.valueOf((int)expvalue));
             }
@@ -92,9 +97,12 @@ public class Manual {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float progressf = progress*k + min;
-                CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
-                CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.LENS_FOCUS_DISTANCE,progressf);
-                Interface.i.camera.rebuildPreview();
+                Builder builder = Interface.i.camera.mPreviewRequestBuilder;
+                builder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+                builder.set(CaptureRequest.LENS_FOCUS_DISTANCE,progressf);
+                //CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+                //CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.LENS_FOCUS_DISTANCE,progressf);
+                Interface.i.camera.rebuildPreviewBuilder();
                 if((float)progress == 1000f) {
                     focusValue.setText("INF");
                 }

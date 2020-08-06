@@ -108,7 +108,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",input);
         glProg.setvar("whitelevel", (float)Interface.i.parameters.whitelevel);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
-        glProg.drawBlocks(output);
+        //glProg.drawBlocks(output);
         glProg.close();
         return output;
     }
@@ -136,6 +136,11 @@ public class AlignAndMerge extends Node {
             GLTexture brTex3232 = GaussDown44(brTex88);
             GLTexture AlignVectors = Align(brTex22,brTex88,brTex3232,BaseFrame22,BaseFrame88,BaseFrame3232);
             Output = Merge(Output,inputraw,AlignVectors,BaseFrame,brTex22);
+            /*AlignVectors.close();
+            inputraw.close();
+            brTex22.close();
+            brTex88.close();
+            brTex3232.close();*/
         }
         Log.d("AlignAndMerge","AlignmentAndMerge elapsed time:"+(System.currentTimeMillis()-time)+" ms");
         WorkingTexture = RawOutput(Output);

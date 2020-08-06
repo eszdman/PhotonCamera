@@ -55,7 +55,7 @@ public class ParseExif {
         Log.d(TAG,"rotation:"+rotation);
         Log.d(TAG,"orientation:"+orientation);
         assert inter != null;
-        inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
+        //inter.setAttribute(TAG_ORIENTATION,Integer.toString(orientation));
         inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
         Object iso = result.get(SENSOR_SENSITIVITY);
         int isonum = 100;

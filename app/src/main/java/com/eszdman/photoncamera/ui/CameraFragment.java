@@ -576,6 +576,7 @@ public class CameraFragment extends Fragment
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         onCameraViewCreated();
+        Interface.i.touchFocus.ReInit();
         lightcycle = view.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(Interface.i.settings.frameCount);
@@ -655,8 +656,10 @@ public class CameraFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
+
         Log.d(TAG,"CameraResume");
         MainActivity.act.onCameraResume();
+        Interface.i.touchFocus.ReInit();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
@@ -1149,6 +1152,15 @@ public class CameraFragment extends Fragment
         try {
             mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequest,
+                    mCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+    public void rebuildPreviewBuilder(){
+        try {
+            mCaptureSession.stopRepeating();
+            mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
