@@ -21,7 +21,7 @@ public class GLCoreBlockProcessing extends GLContext {
         if (error != GLES30.GL_NO_ERROR) {
             String msg = op + ": glError: " + GLUtils.getEGLErrorString(error) + " (" + Integer.toHexString(error) + ")";
             String TAG = "GLCoreBlockProcessing";
-            Log.e(TAG, msg);
+            Log.v(TAG, msg);
         }
     }
     public GLCoreBlockProcessing(Point size,Bitmap out,GLFormat glFormat) {
