@@ -277,7 +277,7 @@ public class ImageProcessing {
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Wrapper.init(width, height, curimgs.size());
+        //Wrapper.init(width, height, curimgs.size());
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
@@ -314,8 +314,6 @@ public class ImageProcessing {
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
-        //rawPipeline.glproc = new GLCoreBlockProcessing(new android.graphics.Point(width,height), new GLFormat(GLFormat.DataType.UNSIGNED_16));
-        RawSensivity sense = new RawSensivity(new android.graphics.Point(width,height),null);
         ArrayList<ByteBuffer> images = new ArrayList<>();
         for (int i = 0; i < curimgs.size(); i++) {
             params.sensivity = k;
@@ -329,27 +327,14 @@ public class ImageProcessing {
                 byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
             }
             if(i%4 == 3 && false){
-                rawPipeline.sensivity = k*0.7f;
+                //rawPipeline.sensivity = k*0.7f;
             }
             if(i%4 == 2 && false){
-                rawPipeline.sensivity = k*6.0f;
+                //rawPipeline.sensivity = k*6.0f;
             }
             byteBuffer.position(0);
             images.add(byteBuffer);
-            /*//byteBuffer.position(0);
-            rawPipeline = new RawPipeline();
-            rawPipeline.images = images;
-            rawPipeline.sensivity = 1.0f;
-            rawPipeline.rawInput= byteBuffer;
-
-            ByteBuffer outp = rawPipeline.Run(Interface.i.parameters);
-            Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+outp.remaining());
-            byteBuffer.position(0);
-            byteBuffer.put(outp);
-            byteBuffer.position(0);
-            Wrapper.loadFrame(byteBuffer);*/
         }
-        rawPipeline = new RawPipeline();
         rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
@@ -357,23 +342,16 @@ public class ImageProcessing {
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
         ByteBuffer output = rawPipeline.Run();//Wrapper.processFrame(0.9f+deghostlevel);
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+        output.position(0);
+        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
         rawPipeline.close();
-        /*params.input = curimgs.get(0).getPlanes()[0].getBuffer();
-        params.sensivity = 1.f;
-        RawSensivity sense = new RawSensivity(new android.graphics.Point(width,height),null);
-        sense.additionalParams = params;
-        sense.Run();
-        Log.d(TAG,"Buffer1 size:"+curimgs.get(0).getPlanes()[0].getBuffer().remaining()+" Buffer2 size:"+sense.Output.remaining());
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        curimgs.get(0).getPlanes()[0].getBuffer().put(sense.Output);
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);*/
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         if(Interface.i.settings.rawSaver) {
             DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
             try {
+                curimgs.get(0).getPlanes()[0].getBuffer().position(0);
+                curimgs.get(0).getPlanes()[0].getBuffer().put(output);
+                curimgs.get(0).getPlanes()[0].getBuffer().position(0);
                 FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
                 dngCreator.setDescription(Interface.i.parameters.toString());
                 int rotation = Interface.i.gravity.getCameraRotation();
@@ -402,11 +380,8 @@ public class ImageProcessing {
         }
         Log.d(TAG, "Wrapper.processFrame()");
         Interface.i.parameters.path = path;
-        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        //Pipeline.RunPipeline(curimgs.get(0).getPlanes()[0].getBuffer());
         PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
+        pipeline.Run(output,Interface.i.parameters);
         pipeline.close();
         curimgs.get(0).close();
     }

@@ -41,6 +41,7 @@ public class AlignAndMerge extends Node {
     private GLTexture BoxDown22(GLTexture input){
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer",input);
+        glProg.setvar("CfaPattern",Interface.i.parameters.cfaPattern);
         GLTexture output = new GLTexture(new Point(rawsize.x/2,rawsize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -70,7 +71,8 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex88);
         glProg.setTexture("MainBuffer",main88);
         glProg.setvar("Mpy", 8);
-        glProg.setvar("maxSize", brTex88.mSize.x - 100,brTex88.mSize.y - 100);
+        glProg.setvar("minSize", (int)(brTex88.mSize.x*0.15),(int)(brTex88.mSize.y*0.15));
+        glProg.setvar("maxSize", (int)(brTex88.mSize.x*0.85),(int)(brTex88.mSize.y*0.85));
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -79,8 +81,8 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex22);
         glProg.setTexture("MainBuffer",main22);
         glProg.setvar("Mpy", 2);
-        glProg.setvar("minSize", 100,100);
-        glProg.setvar("maxSize", brTex22.mSize.x - 100,brTex22.mSize.y - 100);
+        glProg.setvar("minSize", (int)(brTex22.mSize.x*0.15),(int)(brTex22.mSize.y*0.15));
+        glProg.setvar("maxSize", (int)(brTex22.mSize.x*0.85),(int)(brTex22.mSize.y*0.85));
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
