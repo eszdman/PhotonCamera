@@ -24,6 +24,15 @@ public class AlignAndMerge extends Node {
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
         glProg.setvar("WhiteLevel",(float)Interface.i.parameters.whitelevel);
+        GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
+        glProg.drawBlocks(output);
+        glProg.close();
+        return output;
+    }
+    private GLTexture CorrectedRaw32(ByteBuffer input){
+        glProg.useProgram(R.raw.precorrection);
+        glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
+        glProg.setvar("WhiteLevel",(float)Interface.i.parameters.whitelevel);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_32),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -46,12 +55,13 @@ public class AlignAndMerge extends Node {
         return output;
     }
     private GLTexture Align(GLTexture brTex22,GLTexture brTex88,GLTexture brTex3232,GLTexture main22,GLTexture main88,GLTexture main3232){
-
+        startT();
         glProg.useProgram(R.raw.pyramidalign);
         glProg.setTexture("InputBuffer",brTex3232);
         glProg.setTexture("MainBuffer",main3232);
         glProg.setvar("Mpy", 32);
-        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.UNSIGNED_8,2),null);
+        glProg.setvar("maxSize", brTex3232.mSize.x,brTex3232.mSize.y);
+        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.SIGNED_16,2),null);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -60,6 +70,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex88);
         glProg.setTexture("MainBuffer",main88);
         glProg.setvar("Mpy", 8);
+        glProg.setvar("maxSize", brTex88.mSize.x - 100,brTex88.mSize.y - 100);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -68,13 +79,16 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex22);
         glProg.setTexture("MainBuffer",main22);
         glProg.setvar("Mpy", 2);
+        glProg.setvar("minSize", 100,100);
+        glProg.setvar("maxSize", brTex22.mSize.x - 100,brTex22.mSize.y - 100);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
-
+        endT("Alignment");
         return alignVectors;
     }
     private GLTexture Merge(GLTexture Output,GLTexture inputraw,GLTexture alignVectors, GLTexture mainFrame22,GLTexture brTex22){
+        startT();
         glProg.useProgram(R.raw.spatialmerge);
         glProg.setTexture("InputBuffer",inputraw);
         glProg.setTexture("AlignVectors",alignVectors);
@@ -84,6 +98,7 @@ public class AlignAndMerge extends Node {
         //GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(Output);
         glProg.close();
+        endT("Merge");
         return Output;
     }
     private GLTexture RawOutput(GLTexture input){
@@ -102,7 +117,7 @@ public class AlignAndMerge extends Node {
         rawsize = rawPipeline.glint.parameters.rawSize;
         ArrayList<ByteBuffer> images = rawPipeline.images;
         long time = System.currentTimeMillis();
-        GLTexture BaseFrame = CorrectedRaw(images.get(0));
+        GLTexture BaseFrame = CorrectedRaw32(images.get(0));
         Log.d("AlignAndMerge","Corrected raw elapsed time:"+(System.currentTimeMillis()-time)+" ms");
         GLTexture BaseFrame22 = BoxDown22(BaseFrame);
         GLTexture BaseFrame88 = GaussDown44(BaseFrame22);

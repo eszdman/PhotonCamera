@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.OpenGL.Nodes;
 
+import android.util.Log;
+
 import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 
@@ -17,6 +19,12 @@ public class Node {
     public Node(int rid, String name){
         Rid = rid;
         Name = name;
+    }
+    public void startT(){
+        timestart = System.currentTimeMillis();
+    }
+    public void endT(String name){
+        Log.d(Name,name+" elapsed:"+(System.currentTimeMillis()-timestart)+" ms");
     }
     public void Run(){}
     public void Compile(){
