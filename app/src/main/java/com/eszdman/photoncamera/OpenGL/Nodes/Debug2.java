@@ -4,6 +4,7 @@ import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
 import com.eszdman.photoncamera.Render.Parameters;
 
 public class Debug2 extends Node {

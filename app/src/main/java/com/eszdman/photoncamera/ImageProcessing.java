@@ -7,18 +7,14 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
-import android.renderscript.RenderScript;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
-import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
-import com.eszdman.photoncamera.OpenGL.GLFormat;
-import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
-import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline;
+import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
+import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline.RawPipeline;
 import com.eszdman.photoncamera.OpenGL.Scripts.RawParams;
 import com.eszdman.photoncamera.OpenGL.Scripts.RawSensivity;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.Render.Pipeline;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
@@ -318,10 +314,9 @@ public class ImageProcessing {
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
-        //GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(new android.graphics.Point(width,height), new GLFormat(GLFormat.DataType.UNSIGNED_16));
-        //rawPipeline.glproc = glproc;
-
+        //rawPipeline.glproc = new GLCoreBlockProcessing(new android.graphics.Point(width,height), new GLFormat(GLFormat.DataType.UNSIGNED_16));
         RawSensivity sense = new RawSensivity(new android.graphics.Point(width,height),null);
+        ArrayList<ByteBuffer> images = new ArrayList<>();
         for (int i = 0; i < curimgs.size(); i++) {
             params.sensivity = k;
             ByteBuffer byteBuffer = null;
@@ -339,27 +334,33 @@ public class ImageProcessing {
             if(i%4 == 2 && false){
                 rawPipeline.sensivity = k*6.0f;
             }
-            /*byteBuffer.position(0);
-            params.input = byteBuffer;
-            sense.additionalParams = params;
-            sense.Run();
-            Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+sense.Output.remaining());
             byteBuffer.position(0);
-            byteBuffer.put(sense.Output);
-            byteBuffer.position(0);*/
+            images.add(byteBuffer);
+            /*//byteBuffer.position(0);
+            rawPipeline = new RawPipeline();
+            rawPipeline.images = images;
+            rawPipeline.sensivity = 1.0f;
+            rawPipeline.rawInput= byteBuffer;
 
-            Wrapper.loadFrame(byteBuffer);
+            ByteBuffer outp = rawPipeline.Run(Interface.i.parameters);
+            Log.d(TAG,"Buffer1 size:"+byteBuffer.remaining()+" Buffer2 size:"+outp.remaining());
+            byteBuffer.position(0);
+            byteBuffer.put(outp);
+            byteBuffer.position(0);
+            Wrapper.loadFrame(byteBuffer);*/
         }
+        rawPipeline = new RawPipeline();
+        rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
         float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
-        ByteBuffer output = Wrapper.processFrame(0.9f+deghostlevel);
+        ByteBuffer output = rawPipeline.Run();//Wrapper.processFrame(0.9f+deghostlevel);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-
+        rawPipeline.close();
         /*params.input = curimgs.get(0).getPlanes()[0].getBuffer();
         params.sensivity = 1.f;
         RawSensivity sense = new RawSensivity(new android.graphics.Point(width,height),null);

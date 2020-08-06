@@ -157,8 +157,8 @@ vec3 linearizeAndGainMap(ivec2 coords){
 
     return pRGB;
 }
-const float redcorr = 0.1;
-const float bluecorr = 0.2;
+const float redcorr = 0.2;
+const float bluecorr = 0.4;
 vec3 saturate(vec3 rgb) {
     float r = rgb.r;
     float b = rgb.b;

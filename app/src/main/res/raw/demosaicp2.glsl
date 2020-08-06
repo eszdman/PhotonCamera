@@ -12,7 +12,7 @@ uniform int CfaPattern;
 #define greenmax (0.9)
 out vec4 Output;
 
-float interpolateColor(ivec2 coords){
+float interpolateColor(in ivec2 coords){
     bool usegreen = true;
     float green[5];
     ivec2 shift = ivec2(CfaPattern%2,CfaPattern/2);
@@ -34,7 +34,7 @@ float interpolateColor(ivec2 coords){
         +float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x))/(4.*float(WhiteLevel)));
         }
 }
-float interpolateColorx(ivec2 coords){
+float interpolateColorx(in ivec2 coords){
     bool usegreen = true;
     float green[3];
     ivec2 shift = ivec2(CfaPattern%2,CfaPattern/2);
@@ -51,7 +51,7 @@ float interpolateColorx(ivec2 coords){
         return ((float(texelFetch(RawBuffer, (coords+ivec2(-1,0)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,0)), 0).x))/(2.*float(WhiteLevel)));
     }
 }
-float interpolateColory(ivec2 coords){
+float interpolateColory(in ivec2 coords){
     bool usegreen = true;
     float green[3];
     ivec2 shift = ivec2(CfaPattern%2,CfaPattern/2);

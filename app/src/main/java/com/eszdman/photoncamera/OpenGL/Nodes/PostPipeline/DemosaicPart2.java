@@ -1,10 +1,11 @@
-package com.eszdman.photoncamera.OpenGL.Nodes;
+package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
 import android.util.Log;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Render.Parameters;
 
 public class DemosaicPart2 extends Node {

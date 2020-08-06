@@ -1,12 +1,10 @@
-package com.eszdman.photoncamera.OpenGL.Nodes;
-
-import android.graphics.Point;
+package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
 import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class BlurMap extends Node {
     GLTexture ResizedBlurredMap;

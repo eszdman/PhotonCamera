@@ -13,9 +13,14 @@ public class GLInterface {
     public Parameters parameters;
     public ByteBuffer inputRaw;
     public GLCoreBlockProcessing glProc;
+    public GLContext glContext;
     public GLInterface(GLCoreBlockProcessing processing){
         glProc = processing;
         glprogram = glProc.mProgram;
+    }
+    public GLInterface(GLContext context){
+        glContext = context;
+        glprogram = glContext.mProgram;
     }
     @SuppressLint("NewApi")
     static public String loadShader(int fragment) {

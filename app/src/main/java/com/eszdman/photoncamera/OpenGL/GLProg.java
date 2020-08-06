@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.OpenGL;
 
+import android.opengl.GLES30;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -66,7 +67,8 @@ public class GLProg implements AutoCloseable  {
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader,nShader);
         glLinkProgram(program);
-        checkEglError("glLinkProgram");
+        GLES30.glGetError();
+        //checkEglError("glLinkProgram");
         glUseProgram(program);
         checkEglError("glUseProgram");
         mCurrentProgramActive = program;
@@ -148,7 +150,8 @@ public class GLProg implements AutoCloseable  {
         glTexture.BufferLoad();
         drawBlocks(glTexture.mSize.x, glTexture.mSize.y);
     }
-    private void drawBlocks(int w, int h) {
+
+    public void drawBlocks(int w, int h) {
         GLBlockDivider divider = new GLBlockDivider(h, GLConst.TileSize);
         int[] row = new int[2];
         while (divider.nextBlock(row)) {
@@ -156,6 +159,7 @@ public class GLProg implements AutoCloseable  {
             draw();
         }
     }
+
     @SuppressWarnings("ConstantConditions")
     public void setTexture(String var, GLTexture tex) {
         int textureId;

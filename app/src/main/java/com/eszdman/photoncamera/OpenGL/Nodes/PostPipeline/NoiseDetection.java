@@ -1,9 +1,9 @@
-package com.eszdman.photoncamera.OpenGL.Nodes;
+package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
-import com.eszdman.photoncamera.OpenGL.Scripts.ScriptParams;
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 
 public class NoiseDetection extends Node {
     public NoiseDetection(int rid, String name) {

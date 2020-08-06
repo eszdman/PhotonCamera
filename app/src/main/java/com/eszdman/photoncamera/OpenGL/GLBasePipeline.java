@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.OpenGL;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
@@ -76,6 +77,7 @@ public class GLBasePipeline implements AutoCloseable {
             }
             endT(Nodes.get(i).Name);
         }
+        glint.glprogram.drawBlocks(Nodes.get(Nodes.size()-1).GetProgTex());
         glint.glProc.drawBlocksToOutput();
         glint.glprogram.close();
         Nodes.clear();
@@ -84,7 +86,7 @@ public class GLBasePipeline implements AutoCloseable {
 
     @Override
     public void close() {
-        glint.glProc.close();
-        glint.inputRaw.clear();
+        if(glint.glProc != null) glint.glProc.close();
+        if(glint.glContext != null) glint.glContext.close();
     }
 }

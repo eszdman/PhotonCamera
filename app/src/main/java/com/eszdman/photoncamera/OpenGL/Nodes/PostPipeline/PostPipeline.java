@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.OpenGL.Nodes;
+package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
 import android.graphics.Bitmap;
 import com.eszdman.photoncamera.OpenGL.GLBasePipeline;

@@ -5,13 +5,12 @@ import android.graphics.Point;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import android.util.Log;
-
 import java.nio.ByteBuffer;
-
-import static android.opengl.GLES20.glReadPixels;
-import static android.opengl.GLES20.glViewport;
+import static android.opengl.GLES30.glReadPixels;
+import static android.opengl.GLES30.glViewport;
 
 public class GLCoreBlockProcessing extends GLContext {
+    private static String TAG = "GLCoreBlockProcessing";
     public Bitmap mOut = null;
     private final int mOutWidth, mOutHeight;
     public ByteBuffer mBlockBuffer;
@@ -31,11 +30,6 @@ public class GLCoreBlockProcessing extends GLContext {
     }
     public GLCoreBlockProcessing(Point size,GLFormat glFormat) {
         super(size.x, GLConst.TileSize);
-        //Hack for 16 bits from gpu with shifts
-        if(glFormat.mFormat == GLFormat.DataType.UNSIGNED_16){
-            glFormat = new GLFormat(GLFormat.DataType.UNSIGNED_8,4);
-            size = new Point(size.x/2,size.y);
-        }
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
@@ -46,21 +40,17 @@ public class GLCoreBlockProcessing extends GLContext {
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLConst.TileSize);
         int[] row = new int[2];
-        //mOutBuffer.clear();
         mOutBuffer.position(0);
-        //mBlockBuffer.clear();
         mBlockBuffer.position(0);
         while (divider.nextBlock(row)) {
             int y = row[0];
             int height = row[1];
-
             glViewport(0, 0, mOutWidth, height);
             checkEglError("glViewport");
             program.setvar("yOffset", y);
             program.draw();
             checkEglError("program");
             mBlockBuffer.position(0);
-            //Log.d(TAG,"ReadParams:"+"width:"+mOutWidth+" height:"+height+" buffer:"+mBlockBuffer);
             glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), mBlockBuffer);
             checkEglError("glReadPixels");
             if (height < GLConst.TileSize) {
