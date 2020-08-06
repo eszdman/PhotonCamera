@@ -11,7 +11,7 @@ uniform ivec2 minSize;
 uniform int Mpy;
 out ivec2 Output;
 #define FLT_MAX 3.402823466e+38
-#define TILESIZE (32)
+#define TILESIZE (128)
 #define MAXX (4)
 #define MAXY (3)
 float cmpTiles(ivec2 xy,int tSize,ivec2 shift){
@@ -19,8 +19,8 @@ float cmpTiles(ivec2 xy,int tSize,ivec2 shift){
     int cnt = 0;
     tSize = max(2,tSize);
     ivec2 shifted =  xy+shift;
-    for(int h=0; h<tSize; h++){
-        for(int w=0;w<tSize;w++){
+    for(int h=-1; h<tSize; h++){
+        for(int w=-1;w<tSize;w++){
             dist+= abs((texelFetch(MainBuffer, (xy+ivec2(w,h)), 0).x)
             -(texelFetch(InputBuffer, shifted+ivec2(w,h), 0).x));
             cnt++;

@@ -5,10 +5,10 @@ uniform sampler2D InputBuffer;
 uniform int CfaPattern;
 uniform int yOffset;
 out float Output;
-float firstdiag(ivec2 xy){
+float firstdiag(in ivec2 xy){
    return float(texelFetch(InputBuffer, (xy), 0).x+texelFetch(InputBuffer, (xy+ivec2(1,1)), 0).x);
 }
-float seconddiag(ivec2 xy){
+float seconddiag(in ivec2 xy){
     return float(texelFetch(InputBuffer, (xy+ivec2(0,1)), 0).x+texelFetch(InputBuffer, (xy+ivec2(1,0)), 0).x);
 }
 void main() {

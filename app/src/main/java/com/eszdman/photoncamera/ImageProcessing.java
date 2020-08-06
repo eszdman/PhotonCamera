@@ -42,6 +42,9 @@ import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
+import okhttp3.Interceptor;
+
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
 import static org.opencv.calib3d.Calib3d.RANSAC;
@@ -281,7 +284,7 @@ public class ImageProcessing {
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
-        float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
+        float fakelevel = 65535.f;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
         RawParams params = new RawParams(res);
         params.oldwhitelevel = (float)levell;
@@ -312,6 +315,7 @@ public class ImageProcessing {
         Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG,"Api Blacklevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         Interface.i.parameters.FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
+        Interface.i.parameters.realWL = levell;
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ByteBuffer> images = new ArrayList<>();
