@@ -84,6 +84,7 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -568,7 +569,8 @@ public class CameraFragment extends Fragment
                 break;
             }
             case R.id.ImageOut: {
-                Photo.instance.ShowPhoto();
+                Intent intent = new Intent(MainActivity.act, GalleryActivity.class);
+                startActivity(intent);
             }
         }
     }

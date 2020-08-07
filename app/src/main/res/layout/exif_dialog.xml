@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_margin="15dp">
+
+
+    <TextView
+        android:id="@+id/title_res"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Resolution: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_res"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        app:layout_constraintStart_toEndOf="@+id/title_res"
+        app:layout_constraintTop_toTopOf="parent"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_res"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_device"
+        app:layout_constraintTop_toBottomOf="@+id/value_res"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Date: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_device"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_date"
+        app:layout_constraintTop_toBottomOf="@+id/value_device"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_iso"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ISO: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_date"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_iso"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_iso"
+        app:layout_constraintTop_toBottomOf="@+id/value_date"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_exposure"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Exposure time: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_iso"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_exposure"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_exposure"
+        app:layout_constraintTop_toBottomOf="@+id/value_iso"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_aperture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Aperture: "
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_exposure"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_aperture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_aperture"
+        app:layout_constraintTop_toBottomOf="@+id/value_exposure"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/title_fnumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="f/"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_aperture"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/value_fnumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@+id/title_fnumber"
+        app:layout_constraintTop_toBottomOf="@+id/value_aperture"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+    <Button
+        android:id="@+id/close"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Close"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_fnumber"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

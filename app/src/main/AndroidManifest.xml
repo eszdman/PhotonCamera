@@ -33,6 +33,18 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".gallery.GalleryActivity" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
+
         <meta-data
             android:name="firebase_performance_logcat_enabled"
             android:value="false" />
