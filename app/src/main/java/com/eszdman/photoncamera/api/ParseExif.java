@@ -85,6 +85,6 @@ public class ParseExif {
 
     static {
         sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
-        sFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+        sFormatter.setTimeZone(TimeZone.getDefault());
     }
 }
