@@ -11,6 +11,10 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
 import static android.hardware.camera2.CaptureResult.*;
 import static androidx.exifinterface.media.ExifInterface.*;
 
@@ -68,11 +72,19 @@ public class ParseExif {
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_EXPOSURE_TIME,getTime(result.get(SENSOR_EXPOSURE_TIME)));
+        inter.setAttribute(ExifInterface.TAG_DATETIME, sFormatter.format(new Date(System.currentTimeMillis())));
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.i.parameters.toString()+
                 "\n"+"Version:"+"0.55");
         return inter;
+    }
+
+    private static SimpleDateFormat sFormatter;
+
+    static {
+        sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
+        sFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 }

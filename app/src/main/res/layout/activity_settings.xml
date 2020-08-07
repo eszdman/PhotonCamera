@@ -115,7 +115,7 @@
                         android:textSize="16sp"
                         android:track="@drawable/custom_switch_track_selector"
                         android:thumb="@drawable/custom_switch_thumb"
-                        android:paddingEnd="18dp"/>
+                        android:paddingEnd="18dp" />
 
                 </LinearLayout>
 

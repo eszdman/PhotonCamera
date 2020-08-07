@@ -143,7 +143,7 @@ public class GalleryActivity extends AppCompatActivity {
                     String aperture = exif.getAttribute(ExifInterface.TAG_APERTURE_VALUE);
                     String date = exif.getAttribute(ExifInterface.TAG_DATETIME);
                     String exposure = exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
-                    String iso = exif.getAttribute(ExifInterface.TAG_ISO_SPEED);
+                    String iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
                     String fnum = exif.getAttribute(ExifInterface.TAG_F_NUMBER);
 
                     final Dialog dialog = new Dialog(GalleryActivity.this);
