@@ -285,7 +285,7 @@ public class ImageProcessing {
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
-        float fakelevel = 1023;//(float)Math.pow(2,16)-1.f;//bits raw
+        float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
         BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
