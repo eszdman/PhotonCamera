@@ -18,4 +18,5 @@
     <string name="raw">Salva RAW</string>
     <string name="general">Generali</string>
     <string name="hdrxNR">Riduzione del rumore HDRX</string>
+    <string name="turn_on_watermark">Abilita filigrana</string>
 </resources>

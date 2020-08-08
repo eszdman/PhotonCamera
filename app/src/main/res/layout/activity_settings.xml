@@ -117,6 +117,20 @@
                         android:thumb="@drawable/custom_switch_thumb"
                         android:paddingEnd="18dp" />
 
+                    <Switch
+                        android:id="@+id/setting_watermark"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_watermark"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/turn_on_watermark"
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
+
                 </LinearLayout>
 
                 <TextView

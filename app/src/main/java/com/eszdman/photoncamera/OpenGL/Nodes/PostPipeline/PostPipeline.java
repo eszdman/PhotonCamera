@@ -120,7 +120,7 @@ public class PostPipeline extends GLBasePipeline {
 
         Bitmap img = runAll();
         img = RotateBitmap(img,getRotation());
-        img = addWatermark(img,0.06f);
+        if (Interface.i.settings.watermark) img = addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);
