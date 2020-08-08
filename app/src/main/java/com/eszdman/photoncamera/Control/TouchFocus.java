@@ -19,6 +19,10 @@ import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
+import static android.view.MotionEvent.ACTION_DOWN;
+import static android.view.MotionEvent.ACTION_MOVE;
+import static android.view.MotionEvent.ACTION_UP;
+
 
 public class TouchFocus {
     private final String TAG = "TouchFocus";
@@ -29,7 +33,6 @@ public class TouchFocus {
         focusEl = Interface.i.mainActivity.findViewById(R.id.touchFocus);
         focusEl.setOnTouchListener(focusListener);
         preview = Interface.i.mainActivity.findViewById(R.id.texture);
-        preview.setOnTouchListener(previewListener);
     }
 
     OnTouchListener focusListener = new OnTouchListener() {
@@ -42,23 +45,20 @@ public class TouchFocus {
             return true;
         }
     };
-    OnTouchListener previewListener = new OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            activated = true;
-            v.getScaleX();
-            Log.d(TAG, "v.getScaleX:" + v.getScaleX());
-            float x = event.getX();
-            Log.d(TAG, "event.getX:" + event.getX() + " event.getY:" +event.getY());
-            float y = Math.min(event.getY(),v.getHeight()-140.f);
-            y = Math.max(90.f,y);
-            focusEl.setX(x-150.f);
-            focusEl.setY(y+110.f);
-            focusEl.setVisibility(View.VISIBLE);
-            setFocus((int)event.getY(),(int)event.getX());
-            return true;
-        }
-    };
+
+
+    public void processTochToFocus(View v, float fx, float fy) {
+        activated = true;
+        float x = fx;
+        Log.d(TAG, "event.getX:" + fx + " event.getY:" +fy);
+        float y = Math.min(fy,v.getHeight()-140.f);
+        y = Math.max(90.f,y);
+        focusEl.setX(x-150.f);
+        focusEl.setY(y+110.f);
+        focusEl.setVisibility(View.VISIBLE);
+        setFocus((int)fy,(int)fx);
+    }
+
     private void setFocus(int x, int y){
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         Point CurUi = getMax();
