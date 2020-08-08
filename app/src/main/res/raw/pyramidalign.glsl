@@ -4,16 +4,16 @@ precision mediump sampler2D;
 precision mediump usampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D MainBuffer;
-uniform usampler2D AlignVectors;
+uniform sampler2D AlignVectors;
 uniform int yOffset;
 uniform ivec2 maxSize;
 uniform ivec2 minSize;
 uniform int Mpy;
-out ivec2 Output;
+out vec2 Output;
 #define FLT_MAX 3.402823466e+38
-#define TILESIZE (128)
-#define MAXX (4)
-#define MAXY (3)
+#define TILESIZE (256)
+#define MAXX (4*4)
+#define MAXY (3*4)
 float cmpTiles(ivec2 xy,int tSize,ivec2 shift){
     float dist = 0.0;
     int cnt = 0;
@@ -46,5 +46,5 @@ void main() {
             }
         }
     }
-    Output = prevAlign + mpy*align;
+    Output = vec2(prevAlign + mpy*align);
 }

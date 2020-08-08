@@ -54,6 +54,7 @@ public class SettingsActivity extends AppCompatActivity {
     TextView contrasttext;
     TextView compgaintext;
     Spinner cfaList;
+    Spinner alignList;
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
     private SharedPreferences sharedPreferences;
@@ -248,8 +249,20 @@ public class SettingsActivity extends AppCompatActivity {
                   Interface.i.settings.cfaPattern = -1;
               }
           }
-        );
 
+        );
+        alignList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                                              @Override
+                                              public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                                  Log.d("Settings","Position:"+position);
+                                                  Interface.i.settings.alignAlgorithm = position;
+                                              }
+                                              @Override
+                                              public void onNothingSelected(AdapterView<?> parent) {
+                                                  Interface.i.settings.alignAlgorithm = 0;
+                                              }
+        }
+        );
         set();
     }
 
@@ -283,6 +296,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(gains, Interface.i.settings.gain);
         setv(satur, Interface.i.settings.saturation);
         setv(cfaList,Interface.i.settings.cfaPattern);
+        setv(alignList,Interface.i.settings.alignAlgorithm);
         load();
     }
     //And here
@@ -314,6 +328,7 @@ public class SettingsActivity extends AppCompatActivity {
         compgaintext = getView(R.id.setting_compgainrext);
         sattext = getView(R.id.setting_sattext);
         cfaList = getView(R.id.setting_cfa);
+        alignList = getView(R.id.setting_align);
     }
     //Also here
     void get() {

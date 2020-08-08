@@ -3,42 +3,27 @@ package com.eszdman.photoncamera.api;
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
-import android.util.Size;
 
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
-import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP;
-import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
-import static android.hardware.camera2.CameraMetadata.EDGE_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
-import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
-import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
-import static android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL;
-import static android.hardware.camera2.CaptureRequest.EDGE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
-import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 
@@ -74,6 +59,7 @@ public class Settings {
     public boolean eisPhoto = true;
     public boolean fpsPreview = false;
     public boolean nightMode = false;
+    public int alignAlgorithm = 0;
     public String mCameraID = "0";
     private int count = 0;
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -140,7 +126,7 @@ public class Settings {
         Log.d(TAG, "Loaded fpsPreview:" + fpsPreview);
         hdrxNR = get(hdrxNR);
         Log.d(TAG,"Loaded hdrxNR:"+hdrxNR);
-
+        alignAlgorithm = get(alignAlgorithm);
 
         count = -1;
         mCameraID = get(mCameraID);
@@ -201,8 +187,7 @@ public class Settings {
         put(fpsPreview);
         Log.d(TAG,"Saved hdrxNR:"+hdrxNR);
         put(hdrxNR);
-        put(nightMode);
-
+        put(alignAlgorithm);
         count = -1;
         Log.d(TAG, "Saved mCameraID:" + mCameraID);
         put(mCameraID);
@@ -241,14 +226,15 @@ public class Settings {
         double sizex = size.x;
         double sizey = size.y;
         //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
-        MeteringRectangle[] rectm8 = new MeteringRectangle[2];
+        /*MeteringRectangle[] rectm8 = new MeteringRectangle[2];
         rectm8[0] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex*2.0/4.0),(int)(sizey*2.0/4.0)),10);
         rectm8[1] = new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/7),(int)(sizey/7)),30);
         MeteringRectangle[] rectaf = new MeteringRectangle[1];
         rectaf[0] =  new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/4),(int)(sizey/4)),10);
         //captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
-        //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);
+        //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);*/
+        Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float[] rgb = new float[64];
         for(int i =0; i<64; i+=2){

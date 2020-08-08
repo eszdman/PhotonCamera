@@ -4,12 +4,12 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int CfaPattern;
 uniform int yOffset;
-out float Output;
-float firstdiag(in ivec2 xy){
-   return float(texelFetch(InputBuffer, (xy), 0).x+texelFetch(InputBuffer, (xy+ivec2(1,1)), 0).x);
+out vec3 Output;
+vec3 firstdiag(in ivec2 xy){
+   return (texelFetch(InputBuffer, (xy), 0)+texelFetch(InputBuffer, (xy+ivec2(1,1)), 0));
 }
-float seconddiag(in ivec2 xy){
-    return float(texelFetch(InputBuffer, (xy+ivec2(0,1)), 0).x+texelFetch(InputBuffer, (xy+ivec2(1,0)), 0).x);
+vec3 seconddiag(in ivec2 xy){
+    return (texelFetch(InputBuffer, (xy+ivec2(0,1)), 0).x+texelFetch(InputBuffer, (xy+ivec2(1,0)), 0).x);
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -17,7 +17,7 @@ void main() {
     xy*=2;
     float firstW = 1.45;//45% GreenChannel boost
     if(CfaPattern == 1 || CfaPattern == 2) firstW = 0.6;
-    float outp =firstdiag(xy)*(firstW);
+    vec3 outp=firstdiag(xy)*(firstW);
     outp+=seconddiag(xy)*(2.0-firstW);
     outp/=8.0;
     Output = outp;

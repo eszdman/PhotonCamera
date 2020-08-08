@@ -8,7 +8,7 @@ uniform float strength;
 out vec4 Output;
 //#define depthMin (0.012)
 #define depthMin (0.006)
-#define depthMax (0.790)
+#define depthMax (0.890)
 #define colour (0.2)
 #define size1 (1.2)
 #define MSIZE1 3
@@ -34,7 +34,7 @@ void main() {
     mask =(cur-mask);
     mask=clamp(mask,-depthMax,depthMax);
     if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
-    mask*=strength*2.0;
+    mask*=strength*4.0;
     if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
     else {
         cur+=(mask.r+mask.g+mask.b)/3.;

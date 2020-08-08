@@ -273,6 +273,7 @@ public class ImageProcessing {
     }
     void ApplyHdrX() {
         boolean debugAlignment = false;
+        if(Interface.i.settings.alignAlgorithm == 1) debugAlignment = true;
         CaptureResult res = CameraFragment.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
