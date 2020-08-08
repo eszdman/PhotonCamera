@@ -43,8 +43,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.Interceptor;
-
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
 import static org.opencv.calib3d.Calib3d.RANSAC;

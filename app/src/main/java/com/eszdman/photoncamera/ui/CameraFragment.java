@@ -1168,6 +1168,16 @@ public class CameraFragment extends Fragment
             e.printStackTrace();
         }
     }
+
+
+    public void rebuildPreviewBuilderOneShot(){
+        try {
+            mCaptureSession.capture(mPreviewRequestBuilder.build(),
+                    mCaptureCallback, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
     /**
      * Configures the necessary {@link android.graphics.Matrix} transformation to `mTextureView`.
      * This method should be called after the camera preview size is determined in

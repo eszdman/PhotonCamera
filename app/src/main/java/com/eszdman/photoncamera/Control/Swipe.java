@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.Control;
 import android.annotation.SuppressLint;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
@@ -16,6 +17,7 @@ import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
@@ -41,6 +43,13 @@ public class Swipe {
             public boolean onDown(MotionEvent e) {
                 return true;
             }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                startTouchToFocus(e);
+                return false;
+            }
+
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                 Animation slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.slide_up);
@@ -76,6 +85,19 @@ public class Swipe {
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);
     }
+
+    private void startTouchToFocus(MotionEvent event)
+    {
+        AutoFitTextureView preview = Interface.i.mainActivity.findViewById(R.id.texture);
+        Rect previewRect = new Rect(preview.getLeft(),preview.getTop(),preview.getRight(),preview.getBottom());
+        if (previewRect.contains((int)event.getX(),(int)event.getY()))
+        {
+            float translateX = event.getX() - preview.getLeft();
+            float translateY = event.getY() - preview.getTop();
+            Interface.i.touchFocus.processTochToFocus(preview,translateX,translateY);
+        }
+    }
+
     public void SwipeUp(){
         if(!Interface.i.settings.ManualMode) {
             manualmode.startAnimation(slideUp);
