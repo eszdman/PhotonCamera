@@ -11,40 +11,44 @@
     <TextView
         android:id="@+id/title_res"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:text="Resolution: "
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_resolution"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_res"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:textStyle="normal"
         android:textColor="#fff"
         app:layout_constraintStart_toEndOf="@+id/title_res"
         app:layout_constraintTop_toTopOf="parent"
-        android:textSize="16sp"/>
+        android:textSize="16sp" />
 
     <TextView
         android:id="@+id/title_device"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:text="Device: "
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_res"
         android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_device"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_device"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         app:layout_constraintStart_toEndOf="@+id/title_device"
         app:layout_constraintTop_toBottomOf="@+id/value_res"
         android:textStyle="normal"
@@ -55,19 +59,21 @@
     <TextView
         android:id="@+id/title_date"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:text="Date: "
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_device"
         android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_date"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_date"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         app:layout_constraintStart_toEndOf="@+id/title_date"
         app:layout_constraintTop_toBottomOf="@+id/value_device"
         android:textStyle="normal"
@@ -78,19 +84,21 @@
     <TextView
         android:id="@+id/title_iso"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:text="ISO: "
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_date"
         android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_exposure_24dp"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_iso"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         app:layout_constraintStart_toEndOf="@+id/title_iso"
         app:layout_constraintTop_toBottomOf="@+id/value_date"
         android:textStyle="normal"
@@ -101,19 +109,21 @@
     <TextView
         android:id="@+id/title_exposure"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         android:text="Exposure time: "
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_iso"
         android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_exp_time"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_exposure"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         app:layout_constraintStart_toEndOf="@+id/title_exposure"
         app:layout_constraintTop_toBottomOf="@+id/value_iso"
         android:textStyle="normal"
@@ -122,46 +132,25 @@
         android:textSize="16sp"/>
 
     <TextView
-        android:id="@+id/title_aperture"
+        android:id="@+id/title_fnumber"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Aperture: "
+        android:layout_height="25dp"
+        android:text="f/"
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_exposure"
         android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
-
-    <TextView
-        android:id="@+id/value_aperture"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@+id/title_aperture"
-        app:layout_constraintTop_toBottomOf="@+id/value_exposure"
-        android:textStyle="normal"
-        android:textColor="#fff"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
-
-    <TextView
-        android:id="@+id/title_fnumber"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="f/"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_aperture"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_aperture"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_fnumber"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="25dp"
         app:layout_constraintStart_toEndOf="@+id/title_fnumber"
-        app:layout_constraintTop_toBottomOf="@+id/value_aperture"
+        app:layout_constraintTop_toBottomOf="@+id/value_exposure"
         android:textStyle="normal"
         android:textColor="#fff"
         android:layout_marginTop="15dp"
@@ -175,7 +164,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title_fnumber"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="10dp"
         android:textSize="16sp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

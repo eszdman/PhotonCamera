@@ -25,4 +25,5 @@
     <string name="general">General</string>
     <string name="telegram">Telegram group</string>
     <string name="hdrxNR">HDRX Noise Reduction</string>
+    <string name="turn_on_watermark">Enable watermark</string>
 </resources>

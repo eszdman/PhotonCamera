@@ -54,6 +54,7 @@ public class Settings {
     public int chromaCount = 12;
     public boolean enhancedProcess = false;
     public boolean grid = false;
+    public boolean watermark = false;
     public boolean roundedge = true;
     public boolean align = true;
     public boolean hdrx = true;
@@ -105,6 +106,8 @@ public class Settings {
         Log.d(TAG, "Loaded enhanced process:" + enhancedProcess);
         grid = get(grid);
         Log.d(TAG, "Loaded grid:" + grid);
+        watermark = get(watermark);
+        Log.d(TAG, "Loaded watermark:" + watermark);
         roundedge = get(roundedge);
         Log.d(TAG, "Loaded round edges:" + roundedge);
         sharpness = get(sharpness);
@@ -164,6 +167,8 @@ public class Settings {
         Log.d(TAG, "Saved enhanced process:" + enhancedProcess);
         put(grid);
         Log.d(TAG, "Saved grid:" + grid);
+        put(watermark);
+        Log.d(TAG, "Saved watermark:" + watermark);
         put(roundedge);
         Log.d(TAG, "Saved round edges:" + roundedge);
         put(sharpness);

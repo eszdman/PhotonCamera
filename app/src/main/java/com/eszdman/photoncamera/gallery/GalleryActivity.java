@@ -140,7 +140,6 @@ public class GalleryActivity extends AppCompatActivity {
                     String length = exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
                     String make = exif.getAttribute(ExifInterface.TAG_MAKE);
                     String model = exif.getAttribute(ExifInterface.TAG_MODEL);
-                    String aperture = exif.getAttribute(ExifInterface.TAG_APERTURE_VALUE);
                     String date = exif.getAttribute(ExifInterface.TAG_DATETIME);
                     String exposure = exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
                     String iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
@@ -155,9 +154,6 @@ public class GalleryActivity extends AppCompatActivity {
 
                     TextView device = dialog.findViewById(R.id.value_device);
                     device.setText(make + " " + model);
-
-                    TextView apert = dialog.findViewById(R.id.value_aperture);
-                    apert.setText(aperture);
 
                     TextView datetime = dialog.findViewById(R.id.value_date);
                     datetime.setText(date);
