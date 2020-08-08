@@ -102,7 +102,7 @@ public class TouchFocus {
         build.set(CaptureRequest.CONTROL_AE_REGIONS,rectaf);
         //build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
         build.set(CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
-        build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
+        //build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
         //set focus area repeating,else cam forget after one frame where it should focus
         //Interface.i.camera.rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed

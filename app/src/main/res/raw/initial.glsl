@@ -161,6 +161,7 @@ const float redcorr = 0.2;
 const float bluecorr = 0.4;
 vec3 saturate(vec3 rgb) {
     float r = rgb.r;
+    float g = rgb.g;
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
@@ -168,6 +169,7 @@ vec3 saturate(vec3 rgb) {
     rgb = hsv2rgb(hsv);
     rgb.r+=r*redcorr*saturation;
     rgb.b-=b*bluecorr*saturation;
+    rgb*=(r+g+b)/(rgb.r+rgb.g+rgb.b);
     return rgb;
 }
 void main() {
