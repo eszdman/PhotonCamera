@@ -53,7 +53,7 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLower(6.0);
         }
         if(pair.exposure < ExposureIndex.sec/90 && Interface.i.settings.eisPhoto){
-            HDR = true;
+            //HDR = true;
         }
         if(step == baseFrame){
             if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70 && Interface.i.settings.eisPhoto){

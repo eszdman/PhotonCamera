@@ -14,7 +14,7 @@ out vec4 Output;
 #define TRANSPOSE 2
 #define NRcancell (0.7)
 #define NRshift (1.2)
-#define maxNR (9.)
+#define maxNR (5.)
 #define minNR (0.5)
 float normpdf(in float x, in float sigma)
 {
