@@ -26,6 +26,9 @@ import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends GLBasePipeline {
+    public ByteBuffer stackFrame;
+    public ByteBuffer lowFrame;
+    public ByteBuffer highFrame;
     GLTexture noiseMap;
     /**
      * Embeds an image watermark over a source image to produce
@@ -98,7 +101,7 @@ public class PostPipeline extends GLBasePipeline {
         Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         glint = new GLInterface(glproc);
-        glint.inputRaw = inBuffer;
+        stackFrame = inBuffer;
         glint.parameters = parameters;
         if(Interface.i.settings.cfaPattern != -2) {
             add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));

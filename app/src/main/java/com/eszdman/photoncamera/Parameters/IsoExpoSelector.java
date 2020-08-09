@@ -11,6 +11,7 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
+    public static final boolean HDR = false;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         double mpy = 0.8;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
@@ -45,10 +46,10 @@ public class IsoExpoSelector {
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
-        if(step % 4 == 3 && false){
+        if(step == 2 && HDR){
             pair.ExpoCompensateLower(0.7);
         }
-        if(step % 4 == 2 && false){
+        if(step == 1 && HDR){
             pair.ExpoCompensateLower(6.0);
         }
 
