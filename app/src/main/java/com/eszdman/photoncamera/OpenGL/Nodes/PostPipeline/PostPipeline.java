@@ -15,6 +15,7 @@ import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
@@ -103,12 +104,16 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
-        if(Interface.i.settings.cfaPattern != -2) {
-            add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
-            //add(new Debug3(R.raw.debugraw,"Debug3"));
-            add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
+        if(!IsoExpoSelector.HDR) {
+            if (Interface.i.settings.cfaPattern != -2) {
+                add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
+                //add(new Debug3(R.raw.debugraw,"Debug3"));
+                add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
+            } else {
+                add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+            }
         } else {
-            add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+            add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
         if(Interface.i.settings.hdrxNR) {

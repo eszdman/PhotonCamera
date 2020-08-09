@@ -333,12 +333,12 @@ public class ImageProcessing {
             } else {
                 byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
             }
-            if(i == 2 && IsoExpoSelector.HDR){
+            if(i == 3 && IsoExpoSelector.HDR){
                 //rawPipeline.sensivity = k*0.7f;
                 highexp = byteBuffer;
                 continue;
             }
-            if(i == 1 && IsoExpoSelector.HDR){
+            if(i == 2 && IsoExpoSelector.HDR){
                 //rawPipeline.sensivity = k*6.0f;
                 lowexp = byteBuffer;
                 continue;
@@ -358,7 +358,7 @@ public class ImageProcessing {
         if(!debugAlignment) output = Wrapper.processFrame(0.9f+deghostlevel);
         else output = rawPipeline.Run();
         if(IsoExpoSelector.HDR){
-            Wrapper.init(width,height,2);
+            /*Wrapper.init(width,height,2);
             RawSensivity rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
             RawParams rawParams = new RawParams(res);
             rawParams.input = curimgs.get(0).getPlanes()[0].getBuffer();
@@ -378,13 +378,16 @@ public class ImageProcessing {
             Wrapper.loadFrame(rawSensivity.Output);
             Wrapper.loadFrame(lowexp);
             lowexp = Wrapper.processFrame(0.9f+deghostlevel);
-            rawSensivity.close();
+            rawSensivity.close();*/
         }
         //Black shot fix
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        for (int i = 1; i < curimgs.size(); i++) {
+            if((i == 3 || i == 2) && IsoExpoSelector.HDR) continue;
+            curimgs.get(i).close();
+        }
         if(debugAlignment) rawPipeline.close();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         if(Interface.i.settings.rawSaver) {
