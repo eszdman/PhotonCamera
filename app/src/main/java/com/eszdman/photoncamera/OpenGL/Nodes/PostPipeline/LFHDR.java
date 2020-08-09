@@ -16,6 +16,7 @@ public class LFHDR  extends Node {
     GLTexture SharpMask(GLTexture input){
         glProg.useProgram(R.raw.laplacian554);
         glProg.setTexture("InputBuffer",input);
+        glProg.setvar("size",2.3f);
         GLTexture output = new GLTexture(new Point(input.mSize.x/4,input.mSize.y/4),input.mFormat,null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -24,6 +25,7 @@ public class LFHDR  extends Node {
     GLTexture Blur(GLTexture input){
         glProg.useProgram(R.raw.gaussblur554);
         glProg.setTexture("InputBuffer",input);
+        glProg.setvar("size",2.3f);
         GLTexture output = new GLTexture(new Point(input.mSize.x/4,input.mSize.y/4),input.mFormat,null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -51,7 +53,7 @@ public class LFHDR  extends Node {
         GLTexture inputhdrlow = null;
         GLTexture inputhdrhigh = null;
         GLTexture MaskStacking = SharpMask(Debayer(inputstacking));
-        GLTexture BlurredHDR = MergeHDR(Debayer(inputhdrlow),Debayer(inputhdrhigh));
+        GLTexture BlurredHDR = Blur(MergeHDR(Debayer(inputhdrlow),Debayer(inputhdrhigh)));
         WorkingTexture = ApplyMask(BlurredHDR,MaskStacking);
     }
 }
