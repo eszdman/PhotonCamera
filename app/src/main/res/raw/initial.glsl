@@ -17,15 +17,15 @@ uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace t
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 #define PI (3.1415926535)
 out vec4 Output;
-//#define x1 2.8114
-//#define x2 -3.5701
-//#define x3 1.6807
+#define x1 2.8114
+#define x2 -3.5701
+#define x3 1.6807
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
-#define x1 2.8586f
-#define x2 -3.1643f
-#define x3 1.2899f
+//#define x1 2.8586f
+//#define x2 -3.1643f
+//#define x3 1.2899f
 float gammaEncode2(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/gain)) - 0.055;
 }
