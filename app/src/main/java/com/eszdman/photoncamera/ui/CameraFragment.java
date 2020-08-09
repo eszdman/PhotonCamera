@@ -45,6 +45,7 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.nfc.tech.IsoDep;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -1299,6 +1300,7 @@ public class CameraFragment extends Fragment
             captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
             lightcycle.setMax(FrameNumberSelector.frameCount);
+            IsoExpoSelector.HDR = false;
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 CaptureRequest request = captureBuilder.build();
