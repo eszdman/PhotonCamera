@@ -7,6 +7,7 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
@@ -20,6 +21,7 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.ui.MainActivity;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -85,6 +87,14 @@ public class GalleryActivity extends AppCompatActivity {
 
                                 Toast.makeText(GalleryActivity.this, "Image Deleted", Toast.LENGTH_SHORT)
                                         .show();
+
+                                final Handler handler = new Handler();
+                                handler.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        viewPager.setAdapter(adapter);
+                                    }
+                                }, 100);
                             }
                         });
                 builder.create()
