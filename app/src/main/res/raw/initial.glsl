@@ -140,7 +140,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
     pRGB = sensorToIntermediate*pRGB;
     pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(gammaCorrectPixel((intermediateToSRGB*pRGB)));
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {

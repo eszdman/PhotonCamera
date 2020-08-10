@@ -34,7 +34,7 @@ void main() {
     mask =(cur-mask);
     mask=clamp(mask,-depthMax,depthMax);
     if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
-    mask*=strength*3.0;
+    mask*=strength*4.0;
     if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
     else {
         cur+=(mask.r+mask.g+mask.b)/3.;

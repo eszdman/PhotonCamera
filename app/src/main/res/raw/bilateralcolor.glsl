@@ -54,7 +54,8 @@ void main() {
         float br = length(brp)/7.;
         //br = clamp(br,0.,1.0);
         float sigX = noisefactor*45.0;
-        int transposing = int(sigX/40.0)+1;
+        //sigX = 5.0;
+        int transposing = int(sigX/20.0)+1;
         //sigX*=(1.0-br)*(1.0-br);
         sigX = clamp(sigX+NRshift,minNR,maxNR);
         //create the 1-D kernel

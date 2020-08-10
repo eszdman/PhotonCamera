@@ -13,7 +13,7 @@ out vec4 Output;
 #define BSIGMA 0.1
 #define MSIZE 7
 #define TRANSPOSE 1
-#define NRcancell (0.88)
+#define NRcancell (0.90)
 #define NRshift (+0.6)
 #define maxNR (7.)
 #define minNR (0.2)
@@ -42,7 +42,7 @@ void main() {
         vec3 final_colour = vec3(0.0);
         //float sigX = sigma.x;
         //float sigY = sigma.y;
-        float sigX = noisefactor*7.0;
+        float sigX = noisefactor*2.0;
         vec3 brp =
          vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+
          vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
