@@ -352,9 +352,11 @@ public class CameraFragment extends Fragment
             switch (mState) {
                 case STATE_PREVIEW: {
                     // We have nothing to do when the camera preview is working normally.
+                    //Log.v(TAG, "PREVIEW");
                     break;
                 }
                 case STATE_WAITING_LOCK: {
+                    //Log.v(TAG, "WAITING_LOCK");
                     Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
                     // If we haven't finished the pre-capture sequence but have hit our maximum
                     // wait timeout, too bad! Begin capture anyway.
@@ -383,7 +385,9 @@ public class CameraFragment extends Fragment
                     }
                     break;
                 }
-                case STATE_WAITING_PRECAPTURE: {
+                //TODO Check why this wrong
+                /*case STATE_WAITING_PRECAPTURE: {
+                    Log.v(TAG, "WAITING_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null ||
@@ -392,9 +396,10 @@ public class CameraFragment extends Fragment
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
                     break;
-                }
+                }*/
+                case STATE_WAITING_PRECAPTURE:
                 case STATE_WAITING_NON_PRECAPTURE: {
-
+                    //Log.v(TAG, "WAITING_NON_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
@@ -1139,6 +1144,7 @@ public class CameraFragment extends Fragment
                                                 mCaptureCallback, mBackgroundHandler);
                                         unlockFocus();
                                     } else {
+                                        Log.d(TAG,"Preview, captureBurst");
                                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
