@@ -14,7 +14,7 @@ out vec4 Output;
 #define TRANSPOSE 2
 #define NRcancell (0.7)
 #define NRshift (1.2)
-#define maxNR (5.)
+#define maxNR (7.)
 #define minNR (0.5)
 float normpdf(in float x, in float sigma)
 {
@@ -25,18 +25,20 @@ float normpdf3(in vec3 v, in float sigma)
 {
     return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
 }
-float lum(in vec4 color) {
-    return length(color.xyz);
-}
 vec3 getCol(in ivec2 xy){
     vec3 inp = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    return inp/((inp.r+inp.g+inp.b+0.0001));
+    inp+=0.001;
+    return (inp)/((inp.r+inp.g+inp.b));
+    //return normalize(inp);
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    float clen = c.r+c.g+c.b+0.0001;
+    c+=0.001;
+    //vec3 lc = normalize(c);
+    //float clen = (c.r+c.g+c.b)/(lc.r+lc.g+lc.b);
+    float clen = (c.r+c.g+c.b);
     float noisefactor = texture(NoiseMap, vec2(xy)/mapsize).r;
     {
         //declare stuff
@@ -56,13 +58,13 @@ void main() {
         float sigX = noisefactor*45.0;
         //sigX = 5.0;
         int transposing = int(sigX/20.0)+1;
+        //int transposing = 1;
         //sigX*=(1.0-br)*(1.0-br);
         sigX = clamp(sigX+NRshift,minNR,maxNR);
         //create the 1-D kernel
         float Z = 0.0;
         float sigY = sigX*2.0;
-        //c/=clen;
-
+        c/=clen;
         for (int j = 0; j <= kSize; ++j)
         {
             kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), sigX);
@@ -82,6 +84,6 @@ void main() {
 
             }
         }
-        Output = vec4(final_colour/Z, 1.0)*clen;
+        Output = vec4(clamp(clen*final_colour/Z,0.0,1.0),1.0);
     }
 }
