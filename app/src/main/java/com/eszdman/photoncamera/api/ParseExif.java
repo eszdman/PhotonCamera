@@ -77,7 +77,7 @@ public class ParseExif {
         inter.setAttribute(TAG_MAKE, Build.BRAND);
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.i.parameters.toString()+
-                "\n"+"Version:"+"0.55");
+                "\n"+"Version:"+"0.6");
         return inter;
     }
 
