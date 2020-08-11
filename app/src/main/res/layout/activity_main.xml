@@ -470,17 +470,61 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:visibility="visible" />
 
-        <Switch
-            android:id="@+id/nightMode"
-            android:layout_width="wrap_content"
+        <HorizontalScrollView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Night mode"
-            app:layout_constraintBottom_toBottomOf="@+id/BottomBarHolder"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.501"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.101" />
+            android:id="@+id/horizontalview"
+            android:scrollbarThumbHorizontal="@android:color/transparent"
+            app:layout_constraintBottom_toTopOf="@id/BottomBarHolder"
+            app:layout_constraintTop_toBottomOf="@+id/open_close_manual"
+            android:layout_margin="10dp">
+
+            <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center">
+
+                <TableRow>
+
+                    <ToggleButton
+                        android:id="@+id/nightMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Night"
+                        android:textOff="Night"
+                        android:textColor="@drawable/modes_text"
+                        android:paddingHorizontal="10dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp" />
+
+
+                    <ToggleButton
+                        android:id="@+id/cameraMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Camera"
+                        android:textOff="Camera"
+                        android:textColor="@drawable/modes_text"
+                        android:paddingHorizontal="10dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp" />
+
+                    <ToggleButton
+                        android:id="@+id/videoMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Video"
+                        android:textOff="Video"
+                        android:textColor="@drawable/modes_text"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"
+                        android:visibility="invisible"/>
+                </TableRow>
+            </TableLayout>
+        </HorizontalScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
