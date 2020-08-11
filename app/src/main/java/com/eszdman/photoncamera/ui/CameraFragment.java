@@ -63,6 +63,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -595,39 +596,25 @@ public class CameraFragment extends Fragment
         quadResolution.setChecked(Interface.i.settings.QuadBayer);
         ToggleButton eisPhoto = view.findViewById(R.id.eisPhoto);
         eisPhoto.setChecked(Interface.i.settings.eisPhoto);
-        eisPhoto.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
-                Interface.i.settings.save();
-            }
+        eisPhoto.setOnClickListener(v -> {
+            Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
+            Interface.i.settings.save();
         });
-        fpsPreview.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
-                Interface.i.settings.save();
-            }
+        fpsPreview.setOnClickListener(v -> {
+            Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
+            Interface.i.settings.save();
         });
-        quadResolution.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
-                Interface.i.settings.save();
-                restartCamera();
-            }
+        quadResolution.setOnClickListener(v -> {
+            Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
+            Interface.i.settings.save();
+            restartCamera();
         });
         ImageButton flip = view.findViewById(R.id.flip_camera);
-        flip.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
-            @Override
-            public void onClick(View v) {
-                    flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
-                    Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
-                    Interface.i.settings.save();
-                    restartCamera();
-                }
+        flip.setOnClickListener(v -> {
+                flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
+                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
+                Interface.i.settings.save();
+                restartCamera();
             });
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
@@ -636,16 +623,36 @@ public class CameraFragment extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        Switch night = view.findViewById(R.id.nightMode);
+
+        ToggleButton night = view.findViewById(R.id.nightMode);
+        ToggleButton video = view.findViewById(R.id.videoMode);
+        ToggleButton camera = view.findViewById(R.id.cameraMode);
+        camera.setChecked(true);
         night.setChecked(Interface.i.settings.nightMode);
-        night.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
-                Interface.i.settings.save();
-                restartCamera();
+        night.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(night.isChecked()){
+                camera.setChecked(false);
+                video.setChecked(false);
+            }
+            Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
+            Interface.i.settings.save();
+            restartCamera();
+        });
+
+        camera.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(camera.isChecked()){
+                night.setChecked(false);
+                video.setChecked(false);
             }
         });
+
+        video.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(video.isChecked()){
+                night.setChecked(false);
+                camera.setChecked(false);
+            }
+        });
+
         mTextureView = view.findViewById(R.id.texture);
     }
 
@@ -672,7 +679,7 @@ public class CameraFragment extends Fragment
         if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
-        Switch night = Interface.i.mainActivity.findViewById(R.id.nightMode);
+        ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
         night.setChecked(Interface.i.settings.nightMode);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
