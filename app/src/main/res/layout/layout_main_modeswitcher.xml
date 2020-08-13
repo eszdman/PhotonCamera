@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+>
+    <HorizontalScrollView
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/horizontalview"
+            android:scrollbarThumbHorizontal="@color/controlCol"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+    >
+        <TableLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center">
+
+            <TableRow>
+
+                <ToggleButton
+                        android:id="@+id/nightMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Night"
+                        android:textOff="Night"
+                        android:textColor="@drawable/modes_text"
+                        android:paddingHorizontal="10dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"/>
+
+
+                <ToggleButton
+                        android:id="@+id/cameraMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Camera"
+                        android:textOff="Camera"
+                        android:textColor="@drawable/modes_text"
+                        android:paddingHorizontal="10dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"/>
+
+                <ToggleButton
+                        android:id="@+id/videoMode"
+                        android:layout_width="85dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/modes_background"
+                        android:textOn="Video"
+                        android:textOff="Video"
+                        android:textColor="@drawable/modes_text"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"
+                        android:visibility="invisible"
+                        tools:visibility="visible"/>
+            </TableRow>
+        </TableLayout>
+    </HorizontalScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

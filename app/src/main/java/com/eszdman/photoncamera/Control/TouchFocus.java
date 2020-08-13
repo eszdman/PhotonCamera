@@ -45,15 +45,10 @@ public class TouchFocus {
         }
     };
 
-
     public void processTochToFocus(View v, float fx, float fy) {
         activated = true;
-        float x = fx;
-        Log.d(TAG, "event.getX:" + fx + " event.getY:" +fy);
-        float y = Math.min(fy,v.getHeight()-140.f);
-        y = Math.max(90.f,y);
-        focusEl.setX(x-150.f);
-        focusEl.setY(y+110.f);
+        focusEl.setX(fx-focusEl.getMeasuredWidth()/2.0f);
+        focusEl.setY(fy-focusEl.getMeasuredHeight()/2.0f);
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int)fy,(int)fx);
         Interface.i.camera.rebuildPreviewBuilder();

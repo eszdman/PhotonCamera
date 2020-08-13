@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.Control;
 import android.annotation.SuppressLint;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
@@ -88,9 +89,10 @@ public class Swipe {
 
     private void startTouchToFocus(MotionEvent event)
     {
-        AutoFitTextureView preview = Interface.i.mainActivity.findViewById(R.id.texture);
-        Rect previewRect = new Rect(preview.getLeft(),preview.getTop(),preview.getRight(),preview.getBottom());
-        if (previewRect.contains((int)event.getX(),(int)event.getY()))
+        ConstraintLayout preview = Interface.i.mainActivity.findViewById(R.id.layout_viewfinder);
+        RectF previewRect = new RectF(preview.getLeft(), preview.getY(),preview.getRight(),preview.getBottom());
+       // Interface.i.camera.showToast(previewRect.toString()+"\nCurX"+event.getX()+"CurY"+event.getY());
+        if (previewRect.contains(event.getX(),event.getY()))
         {
             float translateX = event.getX() - preview.getLeft();
             float translateY = event.getY() - preview.getTop();
