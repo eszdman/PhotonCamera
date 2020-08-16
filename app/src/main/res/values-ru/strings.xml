@@ -22,4 +22,5 @@
     <string name="enable_remosaic">Включить ремозаик</string>
     <string name="telegram">Группа телеграм</string>
     <string name="hdrxNR">HDRX Шумоподавление</string>
+    <string name="turn_on_watermark">Водяной знак</string>
 </resources>

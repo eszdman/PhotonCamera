@@ -16,5 +16,5 @@ void main() {
     uint rawpart = uint(texelFetch(RawBuffer, (xy), 0).x);
     float flpart = float(rawpart)/whitelevel;
     flpart =clamp(flpart*PostRawSensivity*whitelevel,0.0,65535.0);
-    Output = int(flpart);
+    Output = uint(flpart);
 }

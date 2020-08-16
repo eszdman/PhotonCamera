@@ -273,6 +273,7 @@ public class ImageProcessing {
     }
     void ApplyHdrX() {
         boolean debugAlignment = false;
+        if(Interface.i.settings.alignAlgorithm == 1) debugAlignment = true;
         CaptureResult res = CameraFragment.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
@@ -280,11 +281,14 @@ public class ImageProcessing {
         int height = curimgs.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
         Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        if(!debugAlignment) Wrapper.init(width, height, curimgs.size());
+        if(!debugAlignment) {
+            if(IsoExpoSelector.HDR) Wrapper.init(width, height, curimgs.size()-2);
+            else Wrapper.init(width, height, curimgs.size());
+        }
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
-        float fakelevel = 1023;//(float)Math.pow(2,16)-1.f;//bits raw
+        float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
         BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
@@ -317,6 +321,8 @@ public class ImageProcessing {
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ByteBuffer> images = new ArrayList<>();
+        ByteBuffer lowexp = null;
+        ByteBuffer highexp = null;
         for (int i = 0; i < curimgs.size(); i++) {
             ByteBuffer byteBuffer = null;
             if(i == 0){
@@ -327,11 +333,15 @@ public class ImageProcessing {
             } else {
                 byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
             }
-            if(i%4 == 3 && false){
+            if(i == 3 && IsoExpoSelector.HDR){
                 //rawPipeline.sensivity = k*0.7f;
+                highexp = byteBuffer;
+                continue;
             }
-            if(i%4 == 2 && false){
+            if(i == 2 && IsoExpoSelector.HDR){
                 //rawPipeline.sensivity = k*6.0f;
+                lowexp = byteBuffer;
+                continue;
             }
             byteBuffer.position(0);
             images.add(byteBuffer);
@@ -344,52 +354,82 @@ public class ImageProcessing {
         float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
-        //ByteBuffer output = images.get(0);
         ByteBuffer output = null;
         if(!debugAlignment) output = Wrapper.processFrame(0.9f+deghostlevel);
         else output = rawPipeline.Run();
+        if(IsoExpoSelector.HDR){
+            /*Wrapper.init(width,height,2);
+            RawSensivity rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
+            RawParams rawParams = new RawParams(res);
+            rawParams.input = curimgs.get(0).getPlanes()[0].getBuffer();
+            rawParams.sensivity = 0.7f;
+            rawSensivity.additionalParams = rawParams;
+            rawSensivity.Run();
+            Wrapper.loadFrame(rawSensivity.Output);
+            Wrapper.loadFrame(highexp);
+            highexp = Wrapper.processFrame(0.9f+deghostlevel);
+
+            Wrapper.init(width,height,2);
+            rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
+            rawParams = new RawParams(res);
+            rawParams.input = curimgs.get(0).getPlanes()[0].getBuffer();
+            rawParams.sensivity = 6.0f;
+            rawSensivity.Run();
+            Wrapper.loadFrame(rawSensivity.Output);
+            Wrapper.loadFrame(lowexp);
+            lowexp = Wrapper.processFrame(0.9f+deghostlevel);
+            rawSensivity.close();*/
+        }
         //Black shot fix
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
         curimgs.get(0).getPlanes()[0].getBuffer().put(output);
         curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        for (int i = 1; i < curimgs.size(); i++) curimgs.get(i).close();
+        for (int i = 1; i < curimgs.size(); i++) {
+            if((i == 3 || i == 2) && IsoExpoSelector.HDR) continue;
+            curimgs.get(i).close();
+        }
         if(debugAlignment) rawPipeline.close();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
         if(Interface.i.settings.rawSaver) {
-            DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
-            try {
-                FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
-                dngCreator.setDescription(Interface.i.parameters.toString());
-                int rotation = Interface.i.gravity.getCameraRotation();
-                Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
-                Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
-                int orientation = ORIENTATION_NORMAL;
-                switch (rotation) {
-                    case 90:
-                        orientation = ExifInterface.ORIENTATION_ROTATE_90;
-                        break;
-                    case 180:
-                        orientation = ExifInterface.ORIENTATION_ROTATE_180;
-                        break;
-                    case 270:
-                        orientation = ExifInterface.ORIENTATION_ROTATE_270;
-                        break;
-                }
-                dngCreator.setOrientation(orientation);
-                dngCreator.writeImage(outB, curimgs.get(0));
-                curimgs.get(0).close();
-                outB.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            saveRaw(curimgs.get(0));
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
         Interface.i.parameters.path = path;
         PostPipeline pipeline = new PostPipeline();
+        pipeline.lowFrame = lowexp;
+        pipeline.highFrame = highexp;
         pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
         pipeline.close();
         curimgs.get(0).close();
+    }
+    private void saveRaw(Image in){
+        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+        try {
+            FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
+            dngCreator.setDescription(Interface.i.parameters.toString());
+            int rotation = Interface.i.gravity.getCameraRotation();
+            Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
+            Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
+            int orientation = ORIENTATION_NORMAL;
+            switch (rotation) {
+                case 90:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_90;
+                    break;
+                case 180:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_180;
+                    break;
+                case 270:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_270;
+                    break;
+            }
+            dngCreator.setOrientation(orientation);
+            dngCreator.writeImage(outB, in);
+            in.close();
+            outB.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     public void Run() {
         Image.Plane plane = curimgs.get(0).getPlanes()[0];

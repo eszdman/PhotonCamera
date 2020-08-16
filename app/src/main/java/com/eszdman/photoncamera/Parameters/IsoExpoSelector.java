@@ -11,6 +11,7 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 public class IsoExpoSelector {
     private static String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
+    public static boolean HDR = false;
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         double mpy = 0.8;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
@@ -45,13 +46,15 @@ public class IsoExpoSelector {
             pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
-        if(step % 4 == 3 && false){
-            pair.ExpoCompensateLower(0.7);
+        if(step == 3 && HDR){
+            pair.ExpoCompensateLower(1.0/6.0);
         }
-        if(step % 4 == 2 && false){
+        if(step == 2 && HDR){
             pair.ExpoCompensateLower(6.0);
         }
-
+        if(pair.exposure < ExposureIndex.sec/90 && Interface.i.settings.eisPhoto){
+            //HDR = true;
+        }
         if(step == baseFrame){
             if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70 && Interface.i.settings.eisPhoto){
                 pair.ReduceExpo();
@@ -65,7 +68,7 @@ public class IsoExpoSelector {
             }
         }
         pair.denormalizeSystem();
-        Log.d(TAG, "IsoSelected:" + pair.iso + " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:"+step);
+        Log.d(TAG, "IsoSelected:" + pair.iso + " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:"+step+" HDR:"+HDR);
         builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, pair.exposure);
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, pair.iso);
     }

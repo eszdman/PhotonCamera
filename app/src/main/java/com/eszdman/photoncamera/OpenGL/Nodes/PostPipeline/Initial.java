@@ -5,6 +5,7 @@ import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
+import com.eszdman.photoncamera.Render.Converter;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
 
@@ -28,6 +29,7 @@ public class Initial extends Node {
         glProg.setTexture("GainMap",GainMapTex);
         glProg.setvar("RawSizeX",params.rawSize.x);
         glProg.setvar("RawSizeY",params.rawSize.y);
+        glProg.setvar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setvar("sensorToIntermediate",params.sensorToProPhoto);
         glProg.setvar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setvar("gain", (float)Interface.i.settings.gain);

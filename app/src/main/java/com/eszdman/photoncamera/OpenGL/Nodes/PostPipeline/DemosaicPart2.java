@@ -14,11 +14,12 @@ public class DemosaicPart2 extends Node {
     }
     @Override
     public void Run() {
+        PostPipeline postPipeline = (PostPipeline)(basePipeline);
         GLInterface glint = basePipeline.glint;
         GLProg glProg = glint.glprogram;
         GLTexture glTexture;
         Parameters params = glint.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),glint.inputRaw);
+        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.stackFrame);
         glProg.setTexture("RawBuffer",glTexture);
         Log.d(Name,"Texture format:"+super.previousNode.WorkingTexture);
         glProg.setTexture("GreenBuffer",super.previousNode.WorkingTexture);

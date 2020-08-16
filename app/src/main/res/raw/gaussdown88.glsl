@@ -4,8 +4,8 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int yOffset;
 out float Output;
-#define size1 (1.2)
-#define MSIZE1 3
+#define size1 (1.9)
+#define MSIZE1 5
 #define resize (8)
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {

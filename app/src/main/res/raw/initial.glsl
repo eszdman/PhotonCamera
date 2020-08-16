@@ -14,17 +14,18 @@ uniform int yOffset;
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
-
+uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
+#define PI (3.1415926535)
 out vec4 Output;
-#define x1 2.8114
-#define x2 -3.5701
-#define x3 1.6807
+//#define x1 2.8114
+//#define x2 -3.5701
+//#define x3 1.6807
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
-//#define x1 2.8586f
-//#define x2 -3.1643f
-//#define x3 1.2899f
+#define x1 2.8586f
+#define x2 -3.1643f
+#define x3 1.2899f
 float gammaEncode2(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/gain)) - 0.055;
 }
@@ -41,11 +42,22 @@ vec3 gammaCorrectPixel2(vec3 rgb) {
     rgb.z = gammaEncode2(rgb.z);
     return rgb;
 }
+float tonemapSin(float ch) {
+    return ch < 0.0001f
+    ? ch
+    : 0.5f - 0.5f * cos(pow(ch, 0.8f) * PI);
+}
 
-/*vec3 tonemap(vec3 rgb) {
-    vec3 sorted = clamp(rgb, 0.f, 1.f);
+vec2 tonemapSin(vec2 ch) {
+    return vec2(tonemapSin(ch.x), tonemapSin(ch.y));
+}
+
+vec3 tonemap(vec3 rgb) {
+    vec3 sorted = rgb;
+
     float tmp;
     int permutation = 0;
+
     // Sort the RGB channels by value
     if (sorted.z < sorted.y) {
         tmp = sorted.z;
@@ -65,70 +77,70 @@ vec3 gammaCorrectPixel2(vec3 rgb) {
         sorted.y = tmp;
         permutation |= 4;
     }
+
     vec2 minmax;
     minmax.x = sorted.x;
     minmax.y = sorted.z;
+
     // Apply tonemapping curve to min, max RGB channel values
-    minmax = native_powr(minmax, 3.f) * toneMapCoeffs.x +
-    native_powr(minmax, 2.f) * toneMapCoeffs.y +
-    minmax * toneMapCoeffs.z + toneMapCoeffs.w;
+    vec2 minmaxsin = tonemapSin(minmax);
+    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
+    minmax * toneMapCoeffs.z +
+    toneMapCoeffs.w;
+    minmax = mix(minmax, minmaxsin, 0.4f);
+
     // Rescale middle value
     float newMid;
     if (sorted.z == sorted.x) {
         newMid = minmax.y;
     } else {
-        newMid = minmax.x + ((minmax.y - minmax.x) * (sorted.y - sorted.x) /
-        (sorted.z - sorted.x));
+        float yprog = (sorted.y - sorted.x) / (sorted.z - sorted.x);
+        newMid = minmax.x + (minmax.y - minmax.x) * yprog;
     }
+
     vec3 finalRGB;
     switch (permutation) {
         case 0: // b >= g >= r
-        finalRGB.x = minmax.x;
-        finalRGB.y = newMid;
-        finalRGB.z = minmax.y;
+        finalRGB.r = minmax.x;
+        finalRGB.g = newMid;
+        finalRGB.b = minmax.y;
         break;
         case 1: // g >= b >= r
-        finalRGB.x = minmax.x;
-        finalRGB.z = newMid;
-        finalRGB.y = minmax.y;
+        finalRGB.r = minmax.x;
+        finalRGB.b = newMid;
+        finalRGB.g = minmax.y;
         break;
         case 2: // b >= r >= g
-        finalRGB.y = minmax.x;
-        finalRGB.x = newMid;
-        finalRGB.z = minmax.y;
+        finalRGB.g = minmax.x;
+        finalRGB.r = newMid;
+        finalRGB.b = minmax.y;
         break;
         case 3: // g >= r >= b
-        finalRGB.z = minmax.x;
-        finalRGB.x = newMid;
-        finalRGB.y = minmax.y;
+        finalRGB.b = minmax.x;
+        finalRGB.r = newMid;
+        finalRGB.g = minmax.y;
         break;
         case 6: // r >= b >= g
-        finalRGB.y = minmax.x;
-        finalRGB.z = newMid;
-        finalRGB.x = minmax.y;
+        finalRGB.g = minmax.x;
+        finalRGB.b = newMid;
+        finalRGB.r = minmax.y;
         break;
         case 7: // r >= g >= b
-        finalRGB.z = minmax.x;
-        finalRGB.y = newMid;
-        finalRGB.x = minmax.y;
-        break;
-        case 4: // impossible
-        case 5: // impossible
-        default:
-        finalRGB.x = 0.f;
-        finalRGB.y = 0.f;
-        finalRGB.z = 0.f;
+        finalRGB.b = minmax.x;
+        finalRGB.g = newMid;
+        finalRGB.r = minmax.y;
         break;
     }
-    return clamp(finalRGB, 0.f, 1.f);
-}*/
+    return finalRGB;
+}
 vec3 applyColorSpace(vec3 pRGB){
     pRGB.x = clamp(pRGB.x, 0., neutralPoint.x);
     pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
     pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
     pRGB = sensorToIntermediate*pRGB;
-    //pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB, 0., 1.)));
+    pRGB = tonemap(pRGB);
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {
@@ -161,13 +173,18 @@ const float redcorr = 0.2;
 const float bluecorr = 0.4;
 vec3 saturate(vec3 rgb) {
     float r = rgb.r;
+    float g = rgb.g;
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
     hsv.g = clamp(hsv.g*(saturation),0.,1.0);
     rgb = hsv2rgb(hsv);
     rgb.r+=r*redcorr*saturation;
+    //rgb.g=clamp(rgb.g,0.0,1.0);
     rgb.b-=b*bluecorr*saturation;
+    rgb = clamp(rgb, 0.0,1.0);
+    rgb*=(r+g+b)/(rgb.r+rgb.g+rgb.b);
+
     return rgb;
 }
 void main() {
@@ -176,5 +193,6 @@ void main() {
     vec3 pRGB = linearizeAndGainMap(xy);
     vec3 sRGB = applyColorSpace(pRGB);
     sRGB = saturate(sRGB);
+    sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
 }

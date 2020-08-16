@@ -100,6 +100,6 @@ void main() {
         outp.b = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
         outp.r = interpolateColor(xy);
     }
-    Output = clamp(outp,0.0,1.0);
-    //Output = outp;
+    //Output = clamp(outp,0.0,1.0);
+    Output = outp;
 }

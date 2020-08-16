@@ -24,7 +24,7 @@ public class RawPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         glint.parameters = parameters;
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
-        add(new AlignAndMerge(R.raw.boxdown22,"AlignAndMerge"));
+        add(new AlignAndMerge(0,"AlignAndMerge"));
         return runAllRaw();
     }
 }

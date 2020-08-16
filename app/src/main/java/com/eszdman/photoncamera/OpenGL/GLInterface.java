@@ -11,7 +11,6 @@ import java.nio.ByteBuffer;
 public class GLInterface {
     public GLProg glprogram;
     public Parameters parameters;
-    public ByteBuffer inputRaw;
     public GLCoreBlockProcessing glProc;
     public GLContext glContext;
     public GLInterface(GLCoreBlockProcessing processing){

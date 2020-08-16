@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/rectangle">
+    <!--includes the Layout resource of ModeSwitcher-->
+    <include layout="@layout/layout_main_modeswitcher"
+             android:id="@+id/mode_switcher"
+             android:layout_alignParentTop="true"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content">
+    </include>
+    <!--includes the Layout resource of BottomBarButtons-->
+    <include layout="@layout/layout_bottombar"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_below="@id/mode_switcher">
+    </include>
+</RelativeLayout>

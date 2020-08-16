@@ -87,9 +87,11 @@ void main() {
         //outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/all;
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
         else outp = (P[1] + P[3] + P[5] + P[7])/4.;
-        Output = clamp(outp/float(WhiteLevel),0.,1.);
+        //Output = clamp(outp/float(WhiteLevel),0.,1.);
+        Output = outp/float(WhiteLevel);
     }
     else {
-    Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
+    //Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
+        Output = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
     }
 }

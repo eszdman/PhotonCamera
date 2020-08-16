@@ -45,6 +45,7 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.nfc.tech.IsoDep;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,6 +63,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -350,9 +352,11 @@ public class CameraFragment extends Fragment
             switch (mState) {
                 case STATE_PREVIEW: {
                     // We have nothing to do when the camera preview is working normally.
+                    //Log.v(TAG, "PREVIEW");
                     break;
                 }
                 case STATE_WAITING_LOCK: {
+                    //Log.v(TAG, "WAITING_LOCK");
                     Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
                     // If we haven't finished the pre-capture sequence but have hit our maximum
                     // wait timeout, too bad! Begin capture anyway.
@@ -381,7 +385,9 @@ public class CameraFragment extends Fragment
                     }
                     break;
                 }
-                case STATE_WAITING_PRECAPTURE: {
+                //TODO Check why this wrong
+                /*case STATE_WAITING_PRECAPTURE: {
+                    Log.v(TAG, "WAITING_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null ||
@@ -390,9 +396,10 @@ public class CameraFragment extends Fragment
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
                     break;
-                }
+                }*/
+                case STATE_WAITING_PRECAPTURE:
                 case STATE_WAITING_NON_PRECAPTURE: {
-
+                    //Log.v(TAG, "WAITING_NON_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
@@ -594,39 +601,25 @@ public class CameraFragment extends Fragment
         quadResolution.setChecked(Interface.i.settings.QuadBayer);
         ToggleButton eisPhoto = view.findViewById(R.id.eisPhoto);
         eisPhoto.setChecked(Interface.i.settings.eisPhoto);
-        eisPhoto.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
-                Interface.i.settings.save();
-            }
+        eisPhoto.setOnClickListener(v -> {
+            Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
+            Interface.i.settings.save();
         });
-        fpsPreview.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
-                Interface.i.settings.save();
-            }
+        fpsPreview.setOnClickListener(v -> {
+            Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
+            Interface.i.settings.save();
         });
-        quadResolution.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
-                Interface.i.settings.save();
-                restartCamera();
-            }
+        quadResolution.setOnClickListener(v -> {
+            Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
+            Interface.i.settings.save();
+            restartCamera();
         });
         ImageButton flip = view.findViewById(R.id.flip_camera);
-        flip.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.M)
-            @Override
-            public void onClick(View v) {
-                    flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
-                    Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
-                    Interface.i.settings.save();
-                    restartCamera();
-                }
+        flip.setOnClickListener(v -> {
+                flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
+                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
+                Interface.i.settings.save();
+                restartCamera();
             });
         Button settings = view.findViewById(R.id.settings);
         settings.setOnClickListener(this);
@@ -635,16 +628,36 @@ public class CameraFragment extends Fragment
         img = view.findViewById(R.id.ImageOut);
         img.setOnClickListener(this);
         img.setClickable(true);
-        Switch night = view.findViewById(R.id.nightMode);
+
+        ToggleButton night = view.findViewById(R.id.nightMode);
+        ToggleButton video = view.findViewById(R.id.videoMode);
+        ToggleButton camera = view.findViewById(R.id.cameraMode);
+        camera.setChecked(true);
         night.setChecked(Interface.i.settings.nightMode);
-        night.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
-                Interface.i.settings.save();
-                restartCamera();
+        night.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(night.isChecked()){
+                camera.setChecked(false);
+                video.setChecked(false);
+            }
+            Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
+            Interface.i.settings.save();
+            restartCamera();
+        });
+
+        camera.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(camera.isChecked()){
+                night.setChecked(false);
+                video.setChecked(false);
             }
         });
+
+        video.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if(video.isChecked()){
+                night.setChecked(false);
+                camera.setChecked(false);
+            }
+        });
+
         mTextureView = view.findViewById(R.id.texture);
     }
 
@@ -671,7 +684,7 @@ public class CameraFragment extends Fragment
         if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
-        Switch night = Interface.i.mainActivity.findViewById(R.id.nightMode);
+        ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
         night.setChecked(Interface.i.settings.nightMode);
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
@@ -1131,6 +1144,7 @@ public class CameraFragment extends Fragment
                                                 mCaptureCallback, mBackgroundHandler);
                                         unlockFocus();
                                     } else {
+                                        Log.d(TAG,"Preview, captureBurst");
                                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
@@ -1289,6 +1303,7 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"Focus:"+mFocus);
             //captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
+            captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
             for(int i =0; i<3;i++){
                 Log.d(TAG,"Temperature:"+mPreviewTemp[i]);
             }
@@ -1299,11 +1314,11 @@ public class CameraFragment extends Fragment
             captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
             lightcycle.setMax(FrameNumberSelector.frameCount);
+            IsoExpoSelector.HDR = false;//Force HDR for tests
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
-                CaptureRequest request = captureBuilder.build();
-                CameraReflectionApi.set(request,CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
-                CameraReflectionApi.set(request,CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
                 captures.add(captureBuilder.build());
             }
             //img

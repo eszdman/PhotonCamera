@@ -15,6 +15,7 @@ import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
@@ -26,6 +27,9 @@ import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends GLBasePipeline {
+    public ByteBuffer stackFrame;
+    public ByteBuffer lowFrame;
+    public ByteBuffer highFrame;
     GLTexture noiseMap;
     /**
      * Embeds an image watermark over a source image to produce
@@ -98,14 +102,18 @@ public class PostPipeline extends GLBasePipeline {
         Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         glint = new GLInterface(glproc);
-        glint.inputRaw = inBuffer;
+        stackFrame = inBuffer;
         glint.parameters = parameters;
-        if(Interface.i.settings.cfaPattern != -2) {
-            add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
-            //add(new Debug3(R.raw.debugraw,"Debug3"));
-            add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
+        if(!IsoExpoSelector.HDR) {
+            if (Interface.i.settings.cfaPattern != -2) {
+                add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
+                //add(new Debug3(R.raw.debugraw,"Debug3"));
+                add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
+            } else {
+                add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+            }
         } else {
-            add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+            add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
         if(Interface.i.settings.hdrxNR) {
