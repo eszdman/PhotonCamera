@@ -22,8 +22,8 @@
                  android:layout_height="wrap_content"
                  app:layout_constraintStart_toStartOf="parent"
                  app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintBottom_toBottomOf="parent"
-                 app:layout_constraintTop_toBottomOf="@id/bottom_buttons"
+                 app:layout_constraintBottom_toTopOf="@id/bottom_buttons"
+                 app:layout_constraintTop_toTopOf="parent"
         >
         </include>
 
@@ -35,8 +35,8 @@
                  android:layout_marginTop="@dimen/bottombar_to_modeswitcher_margin"
                  app:layout_constraintStart_toStartOf="parent"
                  app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintTop_toTopOf="parent"
-                 app:layout_constraintBottom_toTopOf="@id/mode_switcher"
+                 app:layout_constraintTop_toBottomOf="@id/mode_switcher"
+                 app:layout_constraintBottom_toBottomOf="parent"
         >
         </include>
     </androidx.constraintlayout.widget.ConstraintLayout>
