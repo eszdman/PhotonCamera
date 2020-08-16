@@ -1,11 +1,11 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="150dp"
-    android:height="150dp"
+    android:width="@dimen/focus_circle_size"
+    android:height="@dimen/focus_circle_size"
     android:viewportWidth="400"
     android:viewportHeight="400">
     <path
         android:strokeColor="#fff"
         android:strokeWidth="2"
-        android:fillColor="#1a000000"
+        android:fillColor="@color/transparent_focus_circle"
         android:pathData="M199.5 39a161.5 161.5 0 1 0 0 323a161.5 161.5 0 1 0 0-323z"/>
 </vector>

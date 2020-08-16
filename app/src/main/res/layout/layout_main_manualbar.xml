@@ -8,32 +8,37 @@
         android:layout_height="wrap_content"
         android:background="@drawable/manual_background"
         android:paddingTop="10dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="25dp"
         android:visibility="gone"
         tools:visibility="visible">
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/iso"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="30dp"
-            app:layout_constraintBottom_toBottomOf="parent">
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:padding="5dp"
+    >
 
         <ImageView
                 android:id="@+id/isoText"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
+                android:layout_height="wrap_content"
                 android:src="@drawable/ic_iso"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/isoSlider"/>
         <SeekBar
                 android:id="@+id/isoSlider"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="50dp"
-                android:layout_marginEnd="70dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginStart="10dp"
                 android:max="64"
                 android:min="1"
                 android:progress="1"
@@ -41,7 +46,7 @@
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/isoValue"
                 app:layout_constraintStart_toEndOf="@id/isoText"
                 app:layout_constraintTop_toTopOf="parent"/>
 
@@ -49,29 +54,31 @@
                 android:id="@+id/isoValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="30dp"
                 android:textColor="@color/White"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/iso"
+                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toEndOf="@id/isoSlider"
-                app:layout_constraintTop_toTopOf="parent"/>
+                tools:text="000"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/exp"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="15dp"
-            app:layout_constraintBottom_toTopOf="@id/iso">
+            app:layout_constraintBottom_toTopOf="@id/iso"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:padding="5dp"
+    >
 
         <ImageView
                 android:id="@+id/expText"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
                 android:src="@drawable/ic_exposure"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -79,10 +86,10 @@
 
         <SeekBar
                 android:id="@+id/expSlider"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="50dp"
-                android:layout_marginEnd="70dp"
+                android:layout_marginEnd="10dp"
+                android:layout_marginStart="10dp"
                 android:max="64"
                 android:min="1"
                 android:progress="1"
@@ -90,7 +97,7 @@
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/expValue"
                 app:layout_constraintStart_toEndOf="@id/expText"
                 app:layout_constraintTop_toTopOf="parent"/>
 
@@ -98,41 +105,43 @@
                 android:id="@+id/expValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="30dp"
                 android:textColor="@color/White"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/expSlider"
-                app:layout_constraintTop_toTopOf="parent"/>
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="000"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/focus"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="15dp"
             android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/exp">
+            app:layout_constraintBottom_toTopOf="@id/exp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:padding="5dp">
 
         <ImageView
                 android:id="@+id/focusText"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
                 android:src="@drawable/ic_focus"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
+                app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/focusSlider"/>
 
         <SeekBar
                 android:id="@+id/focusSlider"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="50dp"
-                android:layout_marginEnd="70dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
                 android:max="1000"
                 android:min="1"
                 android:progress="1"
@@ -140,7 +149,7 @@
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/focusValue"
                 app:layout_constraintStart_toEndOf="@id/focusText"
                 app:layout_constraintTop_toTopOf="parent"/>
 
@@ -148,14 +157,15 @@
                 android:id="@+id/focusValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="10dp"
                 android:textColor="@color/White"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/focusSlider"
-                app:layout_constraintTop_toTopOf="parent"/>
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="000"
+        />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

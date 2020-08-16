@@ -2,4 +2,19 @@
 <resources>
     <dimen name="SettingSize1">50dp</dimen>
     <dimen name="SettingSize2">45dp</dimen>
+    <dimen name="topbar_padding">10dp</dimen>
+    <dimen name="topbar_icon_size">30dp</dimen>
+    <dimen name="viewfinder_top_padding">0dp</dimen>
+    <dimen name="mode_chip_height">30dp</dimen>
+    <dimen name="bottombar_to_modeswitcher_margin">5dp</dimen>
+    <dimen name="bottombar_bottom_padding">0dp</dimen>
+    <dimen name="flip_camera_height">@dimen/gallery_button_height</dimen>
+    <dimen name="gallery_button_height">60dp</dimen>
+    <dimen name="shutter_progress_bar_height">100dp</dimen>
+    <dimen name="shutter_button_height">70dp</dimen>
+    <dimen name="mode_chip_side_margin">5dp</dimen>
+    <dimen name="mode_chip_radius">100dp</dimen>
+    <dimen name="arrow_size">35dp</dimen>
+    <dimen name="mode_switcher_pading">@dimen/bottombar_to_modeswitcher_margin</dimen>
+    <dimen name="focus_circle_size">100dp</dimen>
 </resources>

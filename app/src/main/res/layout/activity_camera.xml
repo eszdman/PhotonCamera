@@ -13,18 +13,11 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000"
     tools:context="com.eszdman.photoncamera.ui.MainActivity" >
-
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="191dp"
-        android:layout_height="184dp"
-        android:layout_gravity="center_horizontal|center_vertical"
-        android:contentDescription="TODO" />
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
