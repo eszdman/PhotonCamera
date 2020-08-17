@@ -169,7 +169,8 @@ public class GalleryActivity extends AppCompatActivity {
                     datetime.setText(date);
 
                     TextView exp = dialog.findViewById(R.id.value_exposure);
-                    exp.setText(exposure);
+                    String exposureTime = formatExposureTime(Double.valueOf(exposure));
+                    exp.setText(exposureTime);
 
                     TextView isospeed = dialog.findViewById(R.id.value_iso);
                     isospeed.setText(iso);
@@ -196,5 +197,28 @@ public class GalleryActivity extends AppCompatActivity {
 
     public static String getFileExt(File fileName) {
         return fileName.getAbsolutePath().substring(fileName.getAbsolutePath().lastIndexOf(".") + 1);
+    }
+
+    public static String formatExposureTime(final double value)
+    {
+        String output;
+
+        if (value < 1.0f)
+        {
+            output = String.format(Locale.getDefault(), "%d/%d", 1, (int)(0.5f + 1 / value));
+        }
+        else
+        {
+            final int    integer = (int)value;
+            final double time    = value - integer;
+            output = String.format(Locale.getDefault(), "%d''", integer);
+
+            if (time > 0.0001f)
+            {
+                output += String.format(Locale.getDefault(), " %d/%d", 1, (int)(0.5f + 1 / time));
+            }
+        }
+
+        return output;
     }
 }
