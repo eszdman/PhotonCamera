@@ -76,7 +76,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main3232);
         glProg.setvar("Mpy", 32);
         glProg.setvar("maxSize", brTex3232.mSize.x,brTex3232.mSize.y);
-        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_NEAREST,GL_CLAMP_TO_EDGE);
+        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -127,6 +127,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer22",base22);
 
         glProg.setTexture("OutputBuffer",Output);
+        glProg.setvar("alignk",1.f/(float)((RawPipeline)(basePipeline)).imageobj.size());
         glProg.servaru("rawsize",rawsize.x,rawsize.y);
         glProg.servaru("weightsize",weights.mSize.x,weights.mSize.y);
         glProg.servaru("alignsize",alignVectors.mSize.x,alignVectors.mSize.y);

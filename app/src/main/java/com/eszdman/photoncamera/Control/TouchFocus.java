@@ -102,14 +102,14 @@ public class TouchFocus {
         //Interface.i.camera.rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed
 
-        //build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-        //build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-        //Interface.i.camera.rebuildPreviewBuilderOneShot();
+        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        Interface.i.camera.rebuildPreviewBuilderOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
 
-        //build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
-        //build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-        //Interface.i.camera.rebuildPreviewBuilderOneShot();
+        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
+        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+        Interface.i.camera.rebuildPreviewBuilderOneShot();
     }
     public Point getMax(){
         return new Point(preview.getWidth(),preview.getHeight());

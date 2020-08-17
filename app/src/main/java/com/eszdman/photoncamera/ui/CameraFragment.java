@@ -1221,6 +1221,7 @@ public class CameraFragment extends Fragment
 
     public void rebuildPreviewBuilderOneShot(){
         try {
+            if(mCaptureSession != null)
             mCaptureSession.capture(mPreviewRequestBuilder.build(),
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {

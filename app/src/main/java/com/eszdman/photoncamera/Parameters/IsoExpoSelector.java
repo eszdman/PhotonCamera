@@ -47,10 +47,10 @@ public class IsoExpoSelector {
             pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
         }
         if(step == 3 && HDR){
-            pair.ExpoCompensateLower(1.0/6.0);
+            pair.ExpoCompensateLower(1.0/1.0);
         }
         if(step == 2 && HDR){
-            pair.ExpoCompensateLower(6.0);
+            pair.ExpoCompensateLower(8.0);
         }
         if(pair.exposure < ExposureIndex.sec/90 && Interface.i.settings.eisPhoto){
             //HDR = true;
