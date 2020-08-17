@@ -15,7 +15,6 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     private final int TileSize = 256;

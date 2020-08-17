@@ -26,6 +26,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
@@ -241,6 +242,9 @@ public class Settings {
         //captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);*/
+        Object focus = captureBuilder.get(CONTROL_AF_MODE);
+        Log.d(TAG,"InDeviceFocus:"+(int)(focus));
+        if(focus != null) afMode = (int) focus;
         Interface.i.touchFocus.onConfigured = false;
         Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
         Interface.i.touchFocus.onConfigured = true;
