@@ -42,6 +42,7 @@
                 android:max="64"
                 android:min="1"
                 android:progress="1"
+                tools:progress="64"
                 android:progressTint="@color/White"
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
@@ -52,16 +53,17 @@
 
         <TextView
                 android:id="@+id/isoValue"
-                android:layout_width="wrap_content"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:textColor="@color/White"
-                android:textSize="20sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="@id/iso"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toEndOf="@id/isoSlider"
-                tools:text="000"/>
+                android:textAlignment="center"
+                tools:text="256000"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -93,6 +95,7 @@
                 android:max="64"
                 android:min="1"
                 android:progress="1"
+                tools:progress="64"
                 android:progressTint="@color/White"
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
@@ -103,16 +106,17 @@
 
         <TextView
                 android:id="@+id/expValue"
-                android:layout_width="wrap_content"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:textColor="@color/White"
-                android:textSize="20sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/expSlider"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="000"/>
+                android:textAlignment="center"
+                tools:text="1/90000"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -145,6 +149,7 @@
                 android:max="1000"
                 android:min="1"
                 android:progress="1"
+                tools:progress="1000"
                 android:progressTint="@color/White"
                 android:theme="@android:style/Theme.Material"
                 android:thumb="@drawable/tickmark"
@@ -155,16 +160,17 @@
 
         <TextView
                 android:id="@+id/focusValue"
-                android:layout_width="wrap_content"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:textColor="@color/White"
-                android:textSize="20sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/focusSlider"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="000"
+                android:textAlignment="center"
+                tools:text="10.0"
         />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
