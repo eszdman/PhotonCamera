@@ -35,8 +35,9 @@ public class TouchFocus {
             focusEl.setVisibility(View.GONE);
             focusEl.setX((float) getMax().x/2.f);
             focusEl.setY((float) getMax().y/2.f);
-            setFocus(getMax().x/2,getMax().y/2);
-            Interface.i.camera.rebuildPreviewBuilder();
+            //setFocus(getMax().x/2,getMax().y/2);
+            setInitialAFAE();
+            //Interface.i.camera.rebuildPreviewBuilder();
             //CaptureRequest.Builder build = Interface.i.camera.mPreviewRequestBuilder;
             //build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             //build.set(CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
@@ -54,7 +55,14 @@ public class TouchFocus {
         setFocus((int)fy,(int)fx);
         Interface.i.camera.rebuildPreviewBuilder();
     }
-
+    public void setInitialAFAE(){
+        CaptureRequest.Builder build = Interface.i.camera.mPreviewRequestBuilder;
+        build.set(CaptureRequest.CONTROL_AF_REGIONS,Interface.i.settings.initialAF);
+        build.set(CaptureRequest.CONTROL_AE_REGIONS,Interface.i.settings.initialAE);
+        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
+        build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
+        Interface.i.camera.rebuildPreviewBuilder();
+    }
     public void setFocus(int x, int y){
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         Point CurUi = getMax();
