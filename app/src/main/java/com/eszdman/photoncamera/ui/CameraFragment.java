@@ -41,37 +41,30 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.nfc.tech.IsoDep;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.SystemClock;
-import android.util.Log;
-import android.util.Range;
-import android.util.Rational;
-import android.util.Size;
-import android.util.SparseIntArray;
+import android.util.*;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
@@ -84,7 +77,6 @@ import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
-import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
@@ -99,6 +91,7 @@ import java.util.concurrent.TimeUnit;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 import static com.eszdman.photoncamera.ui.MainActivity.onCameraViewCreated;
 
 public class CameraFragment extends Fragment
@@ -533,10 +526,58 @@ public class CameraFragment extends Fragment
         return new CameraFragment();
     }
 
+    /**
+     * Returns the ConstraintLayout object after adjusting the LayoutParams of Views contained in it.
+     * Adjusts the relative position of layout_topbar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
+     * depending on the aspect ratio of device.
+     * This is done in order to re-organise the camera layout for long displays (having aspect ratio > 16:9)
+     *
+     * @param aspectRatio     the aspect ratio of device display given by (height in pixels / width in pixels)
+     * @param activity_layout here, the layout of activity_main
+     * @return Object of {@param activity_layout} after adjustments.
+     */
+    private ConstraintLayout getAdjustedLayout(float aspectRatio, ConstraintLayout activity_layout) {
+        ConstraintLayout camera_container = activity_layout.findViewById(R.id.camera_container);
+        ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
+        if (aspectRatio > 16f / 9f) {
+            camera_containerLP.height = WRAP_CONTENT;
+            showToast(String.valueOf(aspectRatio));
+            ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
+            layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
+            if (aspectRatio > 2) {                  //for ratios even greater than 18:9
+                layout_topbarLP.topToTop = -1;      //resets/removes the top constraint of topbar
+            } else if (aspectRatio == 2) {          //for ratio 18:9
+                camera_containerLP.topToTop = -1;   //resets/removes the top constraint of camera_container
+                camera_containerLP.topToBottom = R.id.layout_topbar;    //constraints the top of cameracontainer to bottom of layout_topbar
+            }
+            if (((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.texture).getLayoutParams()).dimensionRatio.equals("H,3:4")) {  //if viewfinder ratio is 3:4
+                ConstraintLayout.LayoutParams layout_viewfinderLP = (ConstraintLayout.LayoutParams) camera_container.findViewById(R.id.layout_viewfinder).getLayoutParams();
+                layout_viewfinderLP.bottomToTop = R.id.layout_bottombar;    //set the bottom of layout_viewfinder to top of layout_bottombar
+            }
+        }
+        return activity_layout;
+    }
+
+    /**
+     * Logs the device display properties
+     *
+     * @param dm Object of {@link DisplayMetrics} obtained from Fragment
+     */
+    private void logDisplayProperties(DisplayMetrics dm) {
+        String TAG = "DisplayProps";
+        Log.i(TAG, "ScreenResolution = " + dm.heightPixels + "x" + dm.widthPixels);
+        Log.i(TAG, "AspectRatio = " + (float) dm.heightPixels / dm.widthPixels);
+        Log.i(TAG, "SmallestWidth = " + (int) (dm.widthPixels / (dm.densityDpi / 160f)) + "dp");
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.activity_main, container, false);
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
+        ConstraintLayout activity_main = (ConstraintLayout) inflater.inflate(R.layout.activity_main, container, false);
+        return getAdjustedLayout(aspectRatio, activity_main);
     }
 
     public ImageButton shot;
