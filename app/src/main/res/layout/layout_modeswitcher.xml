@@ -33,7 +33,7 @@
                         android:background="@drawable/modes_background"
                         android:textOn="Night"
                         android:textOff="Night"
-                        android:textSize="15sp"
+                        android:textSize="@dimen/mode_chip_text_size"
                         android:textColor="@drawable/modes_text"
                         android:layout_marginStart="@dimen/mode_chip_side_margin"
                         android:layout_marginEnd="@dimen/mode_chip_side_margin"/>
@@ -46,7 +46,7 @@
                         android:background="@drawable/modes_background"
                         android:textOn="Camera"
                         android:textOff="Camera"
-                        android:textSize="15sp"
+                        android:textSize="@dimen/mode_chip_text_size"
                         android:textColor="@drawable/modes_text"
                         android:layout_marginStart="@dimen/mode_chip_side_margin"
                         android:layout_marginEnd="@dimen/mode_chip_side_margin"/>
@@ -58,7 +58,7 @@
                         android:background="@drawable/modes_background"
                         android:textOn="Video"
                         android:textOff="Video"
-                        android:textSize="15sp"
+                        android:textSize="@dimen/mode_chip_text_size"
                         android:textColor="@drawable/modes_text"
                         android:layout_marginStart="@dimen/mode_chip_side_margin"
                         android:layout_marginEnd="@dimen/mode_chip_side_margin"

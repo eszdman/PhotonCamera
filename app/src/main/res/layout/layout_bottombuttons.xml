@@ -8,11 +8,10 @@
         android:layout_margin="5dp"
 >
     <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="@dimen/flip_camera_height"
+            android:layout_width="@dimen/flip_camera_size"
             android:layout_height="0dp"
             app:layout_constraintDimensionRatio="1:1"
             android:id="@+id/camera_switch_container"
-            app:layout_constraintHorizontal_weight="1"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/shutter_button"
@@ -20,9 +19,8 @@
     >
         <ImageButton
                 android:id="@+id/flip_camera"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="0dp"
-                app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -43,7 +41,6 @@
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintHorizontal_weight="1"
             android:id="@+id/shutter_button"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@+id/camera_switch_container"
@@ -53,7 +50,7 @@
         <ImageButton
                 android:id="@+id/picture"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/shutter_button_height"
+                android:layout_height="@dimen/shutter_button_size"
                 app:layout_constraintDimensionRatio="1:1"
                 android:background="@drawable/roundbutton"
                 android:clickable="true"
@@ -71,7 +68,7 @@
                 android:id="@+id/progressloading"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/shutter_progress_bar_height"
+                android:layout_height="@dimen/shutter_progress_bar_size"
                 app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintHorizontal_weight="1"
                 app:layout_constraintStart_toStartOf="parent"
@@ -86,10 +83,9 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="0dp"
-            android:layout_height="@dimen/gallery_button_height"
+            android:layout_width="@dimen/gallery_button_size"
+            android:layout_height="0dp"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintHorizontal_weight="1"
             android:id="@+id/galery_button_container"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -100,9 +96,8 @@
 
         <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/ImageOut"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="0dp"
-                app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

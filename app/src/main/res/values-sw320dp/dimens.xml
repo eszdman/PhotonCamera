@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="bottombar_padding">23dp</dimen>
+    <dimen name="mode_switcher_pading">6dp</dimen>
 </resources>

@@ -13,7 +13,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            android:paddingBottom="@dimen/bottombar_bottom_padding"
+            android:paddingBottom="@dimen/bottombar_padding"
     >
         <!--includes the Layout resource of ModeSwitcher-->
         <include layout="@layout/layout_modeswitcher"
