@@ -6,10 +6,9 @@ import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
 
 public class GLInterface {
-    public GLProg glprogram;
+    public final GLProg glprogram;
     public Parameters parameters;
     public GLCoreBlockProcessing glProc;
     public GLContext glContext;
@@ -27,7 +26,7 @@ public class GLInterface {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.i.mainActivity.getResources().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
-            source.append(line +"\n");
+            source.append(line).append("\n");
         }
         return source.toString();
     }

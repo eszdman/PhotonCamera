@@ -5,8 +5,6 @@ import android.util.Log;
 import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 
-import static android.opengl.GLES20.glGetIntegerv;
-
 public class Node {
     public GLTexture WorkingTexture;
     public String Name = "Node";

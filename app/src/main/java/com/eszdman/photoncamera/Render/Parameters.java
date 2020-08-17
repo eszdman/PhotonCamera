@@ -16,16 +16,16 @@ import com.eszdman.photoncamera.api.Interface;
 public class Parameters {
     public byte cfaPattern;
     public Point rawSize;
-    public float[] blacklevel = new float[4];
-    public float[] whitepoint = new float[3];
+    public final float[] blacklevel = new float[4];
+    public final float[] whitepoint = new float[3];
     public int whitelevel = 1023;
     public int realWL = -1;
     public boolean hasGainMap;
     public Point mapsize;
     public float[] gainmap;
     public String path;
-    public float[] proPhotoToSRGB = new float[9];
-    public float[] sensorToProPhoto = new float[9];
+    public final float[] proPhotoToSRGB = new float[9];
+    public final float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
 

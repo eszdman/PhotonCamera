@@ -9,11 +9,9 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.api.Interface;
 
-import java.nio.IntBuffer;
-
 public class Gravity {
-    private SensorManager mSensorManager;
-    private Sensor mGravitySensor;
+    private final SensorManager mSensorManager;
+    private final Sensor mGravitySensor;
     public float[] mGravity;
 
 
@@ -28,7 +26,7 @@ public class Gravity {
     public void stop(){
         mSensorManager.unregisterListener(mGravityTracker,mGravitySensor);
     }
-    private SensorEventListener mGravityTracker = new SensorEventListener() {
+    private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
             if (mGravity == null) {

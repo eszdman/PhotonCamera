@@ -346,7 +346,7 @@ public class SettingsActivity extends AppCompatActivity {
         save();
     }
 
-    Resources res = MainActivity.act.getResources();
+    final Resources res = MainActivity.act.getResources();
 
 
 

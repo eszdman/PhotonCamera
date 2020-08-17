@@ -83,8 +83,8 @@ public class LFHDR  extends Node {
         PostPipeline postPipeline = (PostPipeline)(basePipeline);
         glProg = basePipeline.glint.glprogram;
         GLTexture inputstacking = new GLTexture(basePipeline.glint.parameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.stackFrame);
-        GLTexture inputhdrlow = new GLTexture(basePipeline.glint.parameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.lowFrame);;
-        GLTexture inputhdrhigh = new GLTexture(basePipeline.glint.parameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.highFrame);;
+        GLTexture inputhdrlow = new GLTexture(basePipeline.glint.parameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.lowFrame);
+        GLTexture inputhdrhigh = new GLTexture(basePipeline.glint.parameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.highFrame);
         GLTexture MaskStacking = SharpMask(Debayer(inputstacking));
         GLTexture BlurredHDR = Blur(MergeHDR(Debayer(inputhdrlow),Debayer(inputhdrhigh)));
         WorkingTexture = ApplyMask(BlurredHDR,MaskStacking);

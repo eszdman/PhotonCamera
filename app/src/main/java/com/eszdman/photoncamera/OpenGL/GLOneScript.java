@@ -6,14 +6,12 @@ import android.util.Log;
 
 import java.nio.ByteBuffer;
 
-import static android.opengl.GLES20.glGetIntegerv;
-
 public class GLOneScript implements AutoCloseable {
     public GLTexture WorkingTexture;
-    public GLOneParams glOne;
-    public String Name;
+    public final GLOneParams glOne;
+    public final String Name;
     public ByteBuffer Output;
-    public int Rid;
+    public final int Rid;
     private long timestart;
     public Point size;
     public Object additionalParams;

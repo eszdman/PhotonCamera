@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.api;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -12,7 +11,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
-import androidx.annotation.RequiresApi;
+
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;

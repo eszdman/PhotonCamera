@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.OpenGL;
 import android.graphics.Point;
 
 import java.nio.Buffer;
-import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
@@ -28,10 +27,10 @@ import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
 import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
 
 public class GLTexture implements AutoCloseable {
-    public Point mSize;
-    public int mGLFormat;
-    public int mTextureID;
-    public GLFormat mFormat;
+    public final Point mSize;
+    public final int mGLFormat;
+    public final int mTextureID;
+    public final GLFormat mFormat;
     public GLTexture(Point size,GLFormat glFormat, Buffer pixels){
         this(size,glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
     }

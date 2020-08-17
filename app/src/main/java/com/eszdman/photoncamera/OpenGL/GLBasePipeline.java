@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.OpenGL;
 
 import android.graphics.Bitmap;
-import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
@@ -16,10 +15,10 @@ import static android.opengl.GLES20.glGetIntegerv;
 import static com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing.checkEglError;
 
 public class GLBasePipeline implements AutoCloseable {
-    public ArrayList<Node> Nodes = new ArrayList<Node>();
+    public final ArrayList<Node> Nodes = new ArrayList<Node>();
     public GLInterface glint = null;
     private long timestart;
-    private static String TAG = "BasePipeline";
+    private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
     public void startT(){
         timestart = System.currentTimeMillis();

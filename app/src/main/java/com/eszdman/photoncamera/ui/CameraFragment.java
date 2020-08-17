@@ -44,7 +44,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -103,6 +102,7 @@ public class CameraFragment extends Fragment
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
+    private Size target;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -159,7 +159,7 @@ public class CameraFragment extends Fragment
     public static final int yuvFormat = ImageFormat.YUV_420_888;
     public static final int prevFormat = ImageFormat.YUV_420_888;
     public static int mTargetFormat = rawFormat;
-    public static int mPreviewTargetFormat = prevFormat;
+    public static final int mPreviewTargetFormat = prevFormat;
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
@@ -321,13 +321,13 @@ public class CameraFragment extends Fragment
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
-    private Semaphore mCameraOpenCloseLock = new Semaphore(1);
+    private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
 
     /**
      * Whether the current camera device supports Flash or not.
      */
     private boolean mFlashSupported;
-    public boolean mFlashEnabled = false;
+    public final boolean mFlashEnabled = false;
 
     /**
      * Orientation of the camera sensor
@@ -338,7 +338,7 @@ public class CameraFragment extends Fragment
     /**
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
-    private CameraCaptureSession.CaptureCallback mCaptureCallback
+    private final CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
 
         private void process(CaptureResult result) {
@@ -585,7 +585,6 @@ public class CameraFragment extends Fragment
     public static ProgressBar loadingcycle;
     public CircleImageView img;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -708,7 +707,6 @@ public class CameraFragment extends Fragment
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onResume() {
         super.onResume();
@@ -769,25 +767,25 @@ public class CameraFragment extends Fragment
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
-            Size target = sizes.get(s);
+            target = sizes.get(s);
             return target;
         }
         else {
             if(sizes.size()>1) {
-                Size target = sizes.get(s - 1);
+                target = sizes.get(s - 1);
                 return target;
             }
         }
         return null;
     }
-     @RequiresApi(api = Build.VERSION_CODES.M)
+
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
         if(in == null) return mPreviewSize;
          Arrays.sort(in, new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
          if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
-             Size target = sizes.get(s);
+             target = sizes.get(s);
              if(Interface.i.settings.QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -801,7 +799,7 @@ public class CameraFragment extends Fragment
          }
          else {
              if(sizes.size()> 1 ) {
-                 Size target = sizes.get(s - 1);
+                 target = sizes.get(s - 1);
                  return target;
              }
          }
@@ -816,7 +814,6 @@ public class CameraFragment extends Fragment
     int mPreviewwidth;
     int mPreviewheight;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -843,7 +840,6 @@ public class CameraFragment extends Fragment
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public void UpdateCameraCharacteristics(String cameraId) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -966,7 +962,6 @@ public class CameraFragment extends Fragment
         MainActivity.onCameraInitialization();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         try {
@@ -1046,7 +1041,6 @@ public class CameraFragment extends Fragment
     /**
      * Opens the camera specified by {@link CameraFragment#mCameraId}.
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void openCamera(int width, int height) {
         context = this;
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
