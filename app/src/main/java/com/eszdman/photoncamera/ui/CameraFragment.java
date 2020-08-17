@@ -544,7 +544,6 @@ public class CameraFragment extends Fragment
     public static ProgressBar loadingcycle;
     public CircleImageView img;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -667,7 +666,6 @@ public class CameraFragment extends Fragment
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onResume() {
         super.onResume();
@@ -739,7 +737,7 @@ public class CameraFragment extends Fragment
         }
         return null;
     }
-     @RequiresApi(api = Build.VERSION_CODES.M)
+
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
         if(in == null) return mPreviewSize;
          Arrays.sort(in, new CompareSizesByArea());
@@ -775,7 +773,6 @@ public class CameraFragment extends Fragment
     int mPreviewwidth;
     int mPreviewheight;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -802,7 +799,6 @@ public class CameraFragment extends Fragment
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public void UpdateCameraCharacteristics(String cameraId) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -925,7 +921,6 @@ public class CameraFragment extends Fragment
         MainActivity.onCameraInitialization();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         try {
@@ -1005,7 +1000,6 @@ public class CameraFragment extends Fragment
     /**
      * Opens the camera specified by {@link CameraFragment#mCameraId}.
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void openCamera(int width, int height) {
         context = this;
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
