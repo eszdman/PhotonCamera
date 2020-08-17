@@ -11,6 +11,8 @@ import android.util.Range;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
+import java.net.InterfaceAddress;
+
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
@@ -239,7 +241,9 @@ public class Settings {
         //captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);*/
+        Interface.i.touchFocus.onConfigured = false;
         Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
+        Interface.i.touchFocus.onConfigured = true;
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float[] rgb = new float[64];
         for(int i =0; i<64; i+=2){
