@@ -1,30 +1,23 @@
 package com.eszdman.photoncamera.Control;
 import android.annotation.SuppressLint;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.Surface;
-import android.view.TextureView;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
-import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
 
 public class Swipe {
-    private static String TAG = "Swipe";
+    private static final String TAG = "Swipe";
     private GestureDetector gestureDetector;
     ConstraintLayout manualmode;
     ImageView ocmanual;

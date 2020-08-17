@@ -9,7 +9,7 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class IsoExpoSelector {
-    private static String TAG = "IsoExpoSelector";
+    private static final String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
     public static boolean HDR = false;
     public static void setExpo(CaptureRequest.Builder builder, int step) {

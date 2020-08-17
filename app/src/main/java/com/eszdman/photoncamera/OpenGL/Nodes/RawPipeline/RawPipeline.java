@@ -6,7 +6,6 @@ import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
-import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
 

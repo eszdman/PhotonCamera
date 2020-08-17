@@ -9,8 +9,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class GLOneParams {
-    public GLProg glprogram;
-    public GLCoreBlockProcessing glProc;
+    public final GLProg glprogram;
+    public final GLCoreBlockProcessing glProc;
     public GLOneParams(Point size, Bitmap out, GLFormat glFormat){
         glProc = new GLCoreBlockProcessing(size,out,glFormat);
         glprogram = glProc.mProgram;
@@ -25,7 +25,7 @@ public class GLOneParams {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.i.mainActivity.getResources().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
-            source.append(line +"\n");
+            source.append(line).append("\n");
         }
         return source.toString();
     }

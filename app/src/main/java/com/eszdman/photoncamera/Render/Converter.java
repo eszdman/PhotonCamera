@@ -47,8 +47,8 @@ public class Converter {
      * The D50 whitepoint coordinates in CIE XYZ colorspace.
      */
     private static final float[] D50_XYZ = new float[]{0.9642f, 1, 0.8249f};
-    private static String TAG = "Converter";
-    private static boolean DEBUG = false;
+    private static final String TAG = "Converter";
+    private static final boolean DEBUG = false;
 
     static {
         sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT, 6504);

@@ -27,7 +27,7 @@ public class TouchFocus {
         preview = Interface.i.mainActivity.findViewById(R.id.texture);
     }
 
-    OnTouchListener focusListener = new OnTouchListener() {
+    final OnTouchListener focusListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             activated = false;

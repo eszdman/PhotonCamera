@@ -3,13 +3,12 @@ package com.eszdman.photoncamera.api;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.DngCreator;
-import androidx.annotation.NonNull;
+
 import androidx.exifinterface.media.ExifInterface;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ImageProcessing;

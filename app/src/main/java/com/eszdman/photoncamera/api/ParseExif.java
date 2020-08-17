@@ -7,8 +7,6 @@ import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.CameraFragment;
-import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -81,7 +79,7 @@ public class ParseExif {
         return inter;
     }
 
-    private static SimpleDateFormat sFormatter;
+    private static final SimpleDateFormat sFormatter;
 
     static {
         sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");

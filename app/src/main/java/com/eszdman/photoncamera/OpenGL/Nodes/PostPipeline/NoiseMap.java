@@ -5,9 +5,6 @@ import android.graphics.Point;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 
-import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_LINEAR;
-
 public class NoiseMap extends Node {
     GLTexture ResizedMap;
     public NoiseMap(int rid, String name) {

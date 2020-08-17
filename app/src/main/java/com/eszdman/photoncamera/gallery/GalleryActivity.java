@@ -21,7 +21,6 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.ui.MainActivity;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -35,11 +34,11 @@ import java.util.Locale;
 
 public class GalleryActivity extends AppCompatActivity {
 
-    public static List<String> EXTENSION_WHITELIST = Collections.singletonList("JPG");
+    public static final List<String> EXTENSION_WHITELIST = Collections.singletonList("JPG");
 
-    private String path = Environment.getExternalStorageDirectory().toString()+"/DCIM/Camera";
-    private File f = new File(path);
-    private File[] file = f.listFiles(new FileFilter() {
+    private final String path = Environment.getExternalStorageDirectory().toString()+"/DCIM/Camera";
+    private final File f = new File(path);
+    private final File[] file = f.listFiles(new FileFilter() {
         @Override
         public boolean accept(File file) {
             return EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT));
@@ -144,6 +143,7 @@ public class GalleryActivity extends AppCompatActivity {
                 Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
 
                 try (InputStream inputStream = GalleryActivity.this.getContentResolver().openInputStream(uri)) {
+                    assert inputStream != null;
                     ExifInterface exif = new ExifInterface(inputStream);
 
                     String width = exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);

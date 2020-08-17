@@ -30,10 +30,10 @@ import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 
 public class Settings {
-    private String TAG = "Settings";
+    private final String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
     public int afMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-    public int aeModeOn = CONTROL_AE_MODE_ON;
+    public final int aeModeOn = CONTROL_AE_MODE_ON;
     public int aeModeLock = CONTROL_AE_STATE_LOCKED;
     public int aeCurrentPrev = CONTROL_AE_MODE_ON;
     public int frameCount = 25;

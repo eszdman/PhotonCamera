@@ -12,8 +12,6 @@ import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline.RawPipeline;
-import com.eszdman.photoncamera.OpenGL.Scripts.RawParams;
-import com.eszdman.photoncamera.OpenGL.Scripts.RawSensivity;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
@@ -46,11 +44,10 @@ import java.util.List;
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
 import static org.opencv.calib3d.Calib3d.RANSAC;
-import static org.opencv.calib3d.Calib3d.calibrateCameraExtended;
 import static org.opencv.calib3d.Calib3d.findHomography;
 
 public class ImageProcessing {
-    static String TAG = "ImageProcessing";
+    static final String TAG = "ImageProcessing";
     public ArrayList<Image> curimgs;
     public Boolean israw;
     public Boolean isyuv;
@@ -114,8 +111,8 @@ public class ImageProcessing {
         }
         return out;
     }
-    ORB orb = ORB.create();
-    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+    final ORB orb = ORB.create();
+    final DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
     Mat findFrameHomography(Mat need, Mat from) {
         Mat descriptors1 = new Mat(), descriptors2 = new Mat();
         MatOfKeyPoint keyPoints1 = new MatOfKeyPoint();

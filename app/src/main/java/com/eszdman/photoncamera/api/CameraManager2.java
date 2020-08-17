@@ -7,17 +7,16 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
 
 public class CameraManager2 {
-    private static String TAG = "CameraManager2";
+    private static final String TAG = "CameraManager2";
     public static CameraManager2 cameraManager2;
-    private CameraManager manager;
-    private SharedPreferences sharedPreferences;
+    private final CameraManager manager;
+    private final SharedPreferences sharedPreferences;
     private Set<String> mCameraIDs = new HashSet<String>();
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
