@@ -19,4 +19,23 @@
     <string name="general">Generali</string>
     <string name="hdrxNR">Riduzione del rumore HDRX</string>
     <string name="turn_on_watermark">Abilita filigrana</string>
+    <string name="sure_delete">Sei sicuro di voler eliminare questa foto?</string>
+    <string name="cancel">Annulla</string>
+    <string name="yes">Sì</string>
+    <string name="image_deleted">Immagine eliminata</string>
+    <string name="close">Chiudi</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="telegram">Gruppo Telegram</string>
+    <string name="unknown">Sconosciuto</string>
+    <string name="resolution">"Risoluzione: "</string>
+    <string name="size">"Dimensioni file: "</string>
+    <string name="device">"Dispositivo: "</string>
+    <string name="date">"Data: "</string>
+    <string name="iso">"ISO: "</string>
+    <string name="exposure_time">"Tempo di esposizione: "</string>
+    <string name="aperture">"Apertura: "</string>
+    <string name="flength">"Lunghezza focale: "</string>
+    <string name="info">Informazioni</string>
+    <string name="filename">"Nome file: "</string>
 </resources>

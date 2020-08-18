@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.TextView;
@@ -49,6 +50,7 @@ public class GalleryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         final ViewPager viewPager = findViewById(R.id.view_pager);
         ImageAdapter adapter = new ImageAdapter(this, file);
         viewPager.setAdapter(adapter);
@@ -61,15 +63,15 @@ public class GalleryActivity extends AppCompatActivity {
             public void onClick(View view) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(GalleryActivity.this);
 
-                builder.setMessage("Are you sure to delete this image?")
-                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                builder.setMessage(R.string.sure_delete)
+                        .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
                             }
                         })
 
-                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
 
@@ -84,7 +86,7 @@ public class GalleryActivity extends AppCompatActivity {
                                 //auto scroll to the next photo
                                 viewPager.setCurrentItem(position + 1, true);
 
-                                Toast.makeText(GalleryActivity.this, "Image Deleted", Toast.LENGTH_SHORT)
+                                Toast.makeText(GalleryActivity.this, R.string.image_deleted, Toast.LENGTH_SHORT)
                                         .show();
 
                                 final Handler handler = new Handler();
@@ -138,8 +140,8 @@ public class GalleryActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 int position = viewPager.getCurrentItem();
-                File newFile = new File(String.valueOf(file[position]));
-                String fileName = newFile.getName();
+                File currentFile = file[position];
+                String fileName = currentFile.getName();
                 Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
 
                 try (InputStream inputStream = GalleryActivity.this.getContentResolver().openInputStream(uri)) {
@@ -154,10 +156,13 @@ public class GalleryActivity extends AppCompatActivity {
                     String exposure = exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
                     String iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
                     String fnum = exif.getAttribute(ExifInterface.TAG_F_NUMBER);
+                    String focal = exif.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
 
                     final Dialog dialog = new Dialog(GalleryActivity.this);
                     dialog.setContentView(R.layout.exif_dialog);
-                    dialog.setTitle("EXIF");
+
+                    TextView title = dialog.findViewById(R.id.value_filename);
+                    title.setText(fileName.toUpperCase(Locale.ROOT));
 
                     TextView res = dialog.findViewById(R.id.value_res);
                     res.setText(width + "x" + length);
@@ -177,6 +182,17 @@ public class GalleryActivity extends AppCompatActivity {
 
                     TextView fnumber = dialog.findViewById(R.id.value_fnumber);
                     fnumber.setText(fnum);
+
+                    TextView fileSize = dialog.findViewById(R.id.value_filesize);
+                    // Here 1MB = 1000 * 1000 B
+                    fileSize.setText(String.format("%.2f", ((double) currentFile.length() / 1E6)) + " MB");
+
+                    TextView focallength = dialog.findViewById(R.id.value_flength);
+                    if(focal != null) {
+                    String focalint = focal.substring(0, focal.indexOf("/") - 1);
+                    String focalmm = addCharToString(focalint, '.', 1);
+                    focallength.setText(focalmm + " mm");
+                    }
 
                     Button dialogButton = dialog.findViewById(R.id.close);
                     // if button is clicked, close the custom dialog
@@ -199,8 +215,7 @@ public class GalleryActivity extends AppCompatActivity {
         return fileName.getAbsolutePath().substring(fileName.getAbsolutePath().lastIndexOf(".") + 1);
     }
 
-    public static String formatExposureTime(final double value)
-    {
+    public static String formatExposureTime(final double value) {
         String output;
 
         if (value < 1.0f)
@@ -220,5 +235,11 @@ public class GalleryActivity extends AppCompatActivity {
         }
 
         return output;
+    }
+
+    public static String addCharToString(String str, char c, int pos) {
+        StringBuilder stringBuilder = new StringBuilder(str);
+        stringBuilder.insert(pos, c);
+        return stringBuilder.toString();
     }
 }

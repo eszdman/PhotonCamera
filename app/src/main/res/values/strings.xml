@@ -26,4 +26,20 @@
     <string name="telegram">Telegram group</string>
     <string name="hdrxNR">HDRX Noise Reduction</string>
     <string name="turn_on_watermark">Enable watermark</string>
+    <string name="sure_delete">Are you sure to delete this image?</string>
+    <string name="cancel">Cancel</string>
+    <string name="yes">Yes</string>
+    <string name="image_deleted">Image deleted</string>
+    <string name="close">Close</string>
+    <string name="unknown">Unknown</string>
+    <string name="resolution">"Resolution: "</string>
+    <string name="size">"File size: "</string>
+    <string name="device">"Device: "</string>
+    <string name="date">"Date: "</string>
+    <string name="iso">"ISO: "</string>
+    <string name="exposure_time">"Exposure time: "</string>
+    <string name="aperture">"Aperture: "</string>
+    <string name="flength">"Focal length: "</string>
+    <string name="info">Info</string>
+    <string name="filename">"File name: "</string>
 </resources>
