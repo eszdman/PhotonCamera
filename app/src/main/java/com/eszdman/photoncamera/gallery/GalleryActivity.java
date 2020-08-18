@@ -181,7 +181,7 @@ public class GalleryActivity extends AppCompatActivity {
                     isospeed.setText(iso);
 
                     TextView fnumber = dialog.findViewById(R.id.value_fnumber);
-                    fnumber.setText(fnum);
+                    fnumber.setText("f/" + fnum);
 
                     TextView fileSize = dialog.findViewById(R.id.value_filesize);
                     // Here 1MB = 1000 * 1000 B
