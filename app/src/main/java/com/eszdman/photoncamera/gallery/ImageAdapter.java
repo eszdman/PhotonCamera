@@ -34,7 +34,7 @@ public class ImageAdapter extends PagerAdapter {
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
         Arrays.sort(file, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
-        ImageView imageView = new ImageView(context);
+        TouchImageView imageView = new TouchImageView(context);
         Glide
                 .with(context)
                 .load(file[position])
