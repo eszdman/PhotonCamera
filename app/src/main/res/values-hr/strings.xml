@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Photon Camera</string>
+    <string name="request_permission">Ovojoj aplikaciji je potrebna dozvola za pristup kameri.</string>
+    <string name="camera_error">Ovaj uređaj ne podržava Camera2 API.</string>
+    <string name="luma_nr_count">Luma NR count:</string>
+    <string name="frame_count">Broj sličica:</string>
+    <string name="disable_aligning">Isključi usklađivanje</string>
+    <string name="turn_on_system_nr">Uključi System NR</string>
+    <string name="chroma_nr_count">Chroma NR count:</string>
+    <string name="enhanced_processing">Unaprijeđena Obrada</string>
+    <string name="settings">Postavke</string>
+    <string name="comp">Kompresor:</string>
+    <string name="gain">Gain:</string>
+    <string name="contrmul">Umnožak kontrasta:</string>
+    <string name="contrconst">Konstanta:</string>
+    <string name="saturation">Zasićenje bojom:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Oštrina:</string>
+    <string name="turn_on_grid">Pokaži rešetku</string>
+    <string name="raw">Spremi RAW</string>
+    <string name="turn_on_round_edges">Omogući zakrivljene rubove:</string>
+    <string name="enable_remosaic">Omogući Remosaic</string>
+    <string name="general">Općenito</string>
+    <string name="telegram">Telegram grupa</string>
+    <string name="hdrxNR">HDRX Redukcija Šuma</string>
+    <string name="turn_on_watermark">Omogući vodeni žig</string>
+    <string name="sure_delete">Jeste li sigurni da želite ukloniti ovu fotografiju?</string>
+    <string name="cancel">Poništi</string>
+    <string name="yes">Da</string>
+    <string name="image_deleted">Fotografija izbrisana</string>
+    <string name="close">Zatvori</string>
+    <string name="unknown">Nepoznato</string>
+    <string name="resolution">"Razlučivost:"</string>
+    <string name="size">"Veličina datoteke:"</string>
+    <string name="device">"Uređaj:"</string>
+    <string name="date">"Datum: "</string>
+    <string name="iso">"ISO: "</string>
+    <string name="exposure_time">"Vrijeme ekspozicije: "</string>
+    <string name="aperture">"Apertura:"</string>
+    <string name="flength">"Fokalna duljina: "</string>
+    <string name="info">Info</string>
+    <string name="filename">"Ime datoteke: "</string>
+</resources>
