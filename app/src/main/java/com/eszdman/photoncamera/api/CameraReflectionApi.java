@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api;
 
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
@@ -85,6 +86,9 @@ public class CameraReflectionApi {
         Field[] fields = in.getClass().getDeclaredFields();
         int cnt = 0;
         for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
+    }
+    public static Field[] getAllMetadataFields(){
+        return  CameraMetadata.class.getDeclaredFields();
     }
     public static void PrintMethods(Object in){
         Log.d(TAG,"StartPrinting:"+in.getClass());

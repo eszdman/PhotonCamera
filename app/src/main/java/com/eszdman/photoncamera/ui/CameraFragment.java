@@ -44,11 +44,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import android.os.SystemClock;
+import android.os.*;
 import android.util.*;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -62,7 +58,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -80,14 +75,13 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import com.eszdman.photoncamera.util.CustomLogger;
+import com.eszdman.photoncamera.util.Utilities;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
@@ -103,6 +97,8 @@ public class CameraFragment extends Fragment
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
     private Size target;
+    private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -426,6 +422,7 @@ public class CameraFragment extends Fragment
             if(focus != null) mFocus = (float)focus; else focus = 0.f;
             mPreviewTemp = mtemp;
             process(result);
+            updateScreenLog(result);
         }
         //Automatic 60fps preview
         @Override
@@ -455,6 +452,37 @@ public class CameraFragment extends Fragment
             }
         }
     };
+
+    void updateScreenLog(CaptureResult result) {
+        CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
+        if (true) { //Preference to be added here
+            LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
+            dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
+            dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
+            dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
+            dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
+            dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
+            dataset.put("EXPOSURE_TIME", Utilities.formatExposureTime(Objects.requireNonNull(result.get(CaptureResult.SENSOR_EXPOSURE_TIME)).doubleValue() / 1E9) + "s");
+            dataset.put("ISO", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
+            cl.setVisibility(View.VISIBLE);
+            cl.updateText(cl.createTextFrom(dataset));
+        } else {
+            cl.setVisibility(View.GONE);
+        }
+    }
+
+    private String getResultFieldName(String prefix, Integer value) {
+        for (Field f : this.metadataFields)
+            if (f.getName().startsWith(prefix)) {
+                try {
+                    if (f.getInt(f) == value)
+                        return f.getName().replace(prefix, "").concat("(" + value + ")");
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        return "";
+    }
 
     /**
      * Shows a {@link Toast} on the UI thread.
