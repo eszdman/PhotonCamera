@@ -26,12 +26,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.SurfaceTexture;
+import android.graphics.*;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -75,12 +70,14 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import com.eszdman.photoncamera.util.CustomLogger;
+import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.Utilities;
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -611,7 +608,7 @@ public class CameraFragment extends Fragment
     public ImageButton shot;
     public ProgressBar lightcycle;
     public static ProgressBar loadingcycle;
-    public CircleImageView img;
+    public CircleImageView galleryImageButton;
 
     @Override
     public void onClick(View view) {
@@ -693,10 +690,10 @@ public class CameraFragment extends Fragment
         settings.setOnClickListener(this);
         ToggleButton hdrX = view.findViewById(R.id.stacking);
         hdrX.setOnClickListener(this);
-        img = view.findViewById(R.id.ImageOut);
-        img.setOnClickListener(this);
-        img.setClickable(true);
-
+        galleryImageButton = view.findViewById(R.id.ImageOut);
+        galleryImageButton.setOnClickListener(this);
+        galleryImageButton.setClickable(true);
+        loadGalleryButtonImage();
         ToggleButton night = view.findViewById(R.id.nightMode);
         ToggleButton video = view.findViewById(R.id.videoMode);
         ToggleButton camera = view.findViewById(R.id.cameraMode);
@@ -735,6 +732,28 @@ public class CameraFragment extends Fragment
 
     }
 
+    private void loadGalleryButtonImage() {
+        File[] files = FileManager.DCIM_CAMERA.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toUpperCase().endsWith(".JPG");
+            }
+        } );
+        if (files != null) {
+            long lastModifiedTime = -1;
+            File lastImage = null;
+            for (File f : files) {      //finds the last modified file from the list
+                if (f.lastModified() > lastModifiedTime) {
+                    lastImage = f;
+                    lastModifiedTime = f.lastModified();
+                }
+            }
+            //TODO replace this with Bitmap.createScaledBitmap later
+            Bitmap bitmap = BitmapFactory.decodeFile(lastImage.getAbsolutePath());
+            galleryImageButton.setImageBitmap(bitmap);
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -760,6 +779,7 @@ public class CameraFragment extends Fragment
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
+        loadGalleryButtonImage();
     }
 
     @Override
