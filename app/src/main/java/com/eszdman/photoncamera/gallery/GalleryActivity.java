@@ -1,14 +1,12 @@
 package com.eszdman.photoncamera.gallery;
 
 import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
@@ -26,7 +24,6 @@ import com.eszdman.photoncamera.R;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -39,12 +36,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     private final String path = Environment.getExternalStorageDirectory().toString()+"/DCIM/Camera";
     private final File f = new File(path);
-    private final File[] file = f.listFiles(new FileFilter() {
-        @Override
-        public boolean accept(File file) {
-            return EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT));
-        }
-    });
+    private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,71 +50,57 @@ public class GalleryActivity extends AppCompatActivity {
 
         //delete image
         Button delete = findViewById(R.id.delete);
-        delete.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(GalleryActivity.this);
+        delete.setOnClickListener(view -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(GalleryActivity.this);
 
-                builder.setMessage(R.string.sure_delete)
-                        .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+            builder.setMessage(R.string.sure_delete)
+                    .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
+
+                    .setPositiveButton(R.string.yes, (dialog, which) -> {
+
+                        int position = viewPager.getCurrentItem();
+                        File newFile = new File(String.valueOf(file[position]));
+                        String fileName = newFile.getName();
+                        File thisfile = new File (path + "/" + fileName);
+                        thisfile.delete();
+
+                        MediaScannerConnection.scanFile(GalleryActivity.this, new String[]{String.valueOf(thisfile)}, null, null);
+
+                        //auto scroll to the next photo
+                        viewPager.setCurrentItem(position + 1, true);
+
+                        Toast.makeText(GalleryActivity.this, R.string.image_deleted, Toast.LENGTH_SHORT)
+                                .show();
+
+                        final Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
                             @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
+                            public void run() {
+                                viewPager.setAdapter(adapter);
                             }
-                        })
+                        }, 100);
+                    });
+            builder.create()
+                    .show();
 
-                        .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                                int position = viewPager.getCurrentItem();
-                                File newFile = new File(String.valueOf(file[position]));
-                                String fileName = newFile.getName();
-                                File thisfile = new File (path + "/" + fileName);
-                                thisfile.delete();
-
-                                MediaScannerConnection.scanFile(GalleryActivity.this, new String[]{String.valueOf(thisfile)}, null, null);
-
-                                //auto scroll to the next photo
-                                viewPager.setCurrentItem(position + 1, true);
-
-                                Toast.makeText(GalleryActivity.this, R.string.image_deleted, Toast.LENGTH_SHORT)
-                                        .show();
-
-                                final Handler handler = new Handler();
-                                handler.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        viewPager.setAdapter(adapter);
-                                    }
-                                }, 100);
-                            }
-                        });
-                builder.create()
-                        .show();
-
-            }
         });
 
         //share button
         Button share = findViewById(R.id.share);
-        share.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int position = viewPager.getCurrentItem();
-                File newFile = new File(String.valueOf(file[position]));
-                String fileName = newFile.getName();
+        share.setOnClickListener(view -> {
+            int position = viewPager.getCurrentItem();
+            File newFile = new File(String.valueOf(file[position]));
+            String fileName = newFile.getName();
 
-                String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
+            String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
 
-                Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
+            Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
 
-                Intent intent = new Intent(Intent.ACTION_SEND);
-                intent.putExtra(Intent.EXTRA_STREAM, uri);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                intent.setType(mediaType);
-                startActivity(intent);
-            }
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.putExtra(Intent.EXTRA_STREAM, uri);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setType(mediaType);
+            startActivity(intent);
         });
 
 
@@ -136,76 +114,68 @@ public class GalleryActivity extends AppCompatActivity {
         */
 
         Button exif = findViewById(R.id.exif);
-        exif.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int position = viewPager.getCurrentItem();
-                File currentFile = file[position];
-                String fileName = currentFile.getName();
-                Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
+        exif.setOnClickListener(view -> {
+            int position = viewPager.getCurrentItem();
+            File currentFile = file[position];
+            String fileName = currentFile.getName();
+            Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
 
-                try (InputStream inputStream = GalleryActivity.this.getContentResolver().openInputStream(uri)) {
-                    assert inputStream != null;
-                    ExifInterface exif = new ExifInterface(inputStream);
+            try (InputStream inputStream = GalleryActivity.this.getContentResolver().openInputStream(uri)) {
+                assert inputStream != null;
+                ExifInterface exif1 = new ExifInterface(inputStream);
 
-                    String width = exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
-                    String length = exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
-                    String make = exif.getAttribute(ExifInterface.TAG_MAKE);
-                    String model = exif.getAttribute(ExifInterface.TAG_MODEL);
-                    String date = exif.getAttribute(ExifInterface.TAG_DATETIME);
-                    String exposure = exif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
-                    String iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
-                    String fnum = exif.getAttribute(ExifInterface.TAG_F_NUMBER);
-                    String focal = exif.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
+                String width = exif1.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
+                String length = exif1.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
+                String make = exif1.getAttribute(ExifInterface.TAG_MAKE);
+                String model = exif1.getAttribute(ExifInterface.TAG_MODEL);
+                String date = exif1.getAttribute(ExifInterface.TAG_DATETIME);
+                String exposure = exif1.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
+                String iso = exif1.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
+                String fnum = exif1.getAttribute(ExifInterface.TAG_F_NUMBER);
+                String focal = exif1.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
 
-                    final Dialog dialog = new Dialog(GalleryActivity.this);
-                    dialog.setContentView(R.layout.exif_dialog);
+                final Dialog dialog = new Dialog(GalleryActivity.this);
+                dialog.setContentView(R.layout.exif_dialog);
 
-                    TextView title = dialog.findViewById(R.id.value_filename);
-                    title.setText(fileName.toUpperCase(Locale.ROOT));
+                TextView title = dialog.findViewById(R.id.value_filename);
+                title.setText(fileName.toUpperCase(Locale.ROOT));
 
-                    TextView res = dialog.findViewById(R.id.value_res);
-                    res.setText(width + "x" + length);
+                TextView res = dialog.findViewById(R.id.value_res);
+                res.setText(width + "x" + length);
 
-                    TextView device = dialog.findViewById(R.id.value_device);
-                    device.setText(make + " " + model);
+                TextView device = dialog.findViewById(R.id.value_device);
+                device.setText(make + " " + model);
 
-                    TextView datetime = dialog.findViewById(R.id.value_date);
-                    datetime.setText(date);
+                TextView datetime = dialog.findViewById(R.id.value_date);
+                datetime.setText(date);
 
-                    TextView exp = dialog.findViewById(R.id.value_exposure);
-                    String exposureTime = formatExposureTime(Double.valueOf(exposure));
-                    exp.setText(exposureTime);
+                TextView exp = dialog.findViewById(R.id.value_exposure);
+                String exposureTime = formatExposureTime(Double.valueOf(exposure));
+                exp.setText(exposureTime);
 
-                    TextView isospeed = dialog.findViewById(R.id.value_iso);
-                    isospeed.setText(iso);
+                TextView isospeed = dialog.findViewById(R.id.value_iso);
+                isospeed.setText(iso);
 
-                    TextView fnumber = dialog.findViewById(R.id.value_fnumber);
-                    fnumber.setText("f/" + fnum);
+                TextView fnumber = dialog.findViewById(R.id.value_fnumber);
+                fnumber.setText("f/" + fnum);
 
-                    TextView fileSize = dialog.findViewById(R.id.value_filesize);
-                    // Here 1MB = 1000 * 1000 B
-                    fileSize.setText(String.format("%.2f", ((double) currentFile.length() / 1E6)) + " MB");
+                TextView fileSize = dialog.findViewById(R.id.value_filesize);
+                // Here 1MB = 1000 * 1000 B
+                fileSize.setText(String.format("%.2f", ((double) currentFile.length() / 1E6)) + " MB");
 
-                    TextView focallength = dialog.findViewById(R.id.value_flength);
-                    if(focal != null) {
-                    String focalint = focal.substring(0, focal.indexOf("/") - 1);
-                    String focalmm = addCharToString(focalint, '.', 1);
-                    focallength.setText(focalmm + " mm");
-                    }
-
-                    Button dialogButton = dialog.findViewById(R.id.close);
-                    // if button is clicked, close the custom dialog
-                    dialogButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            dialog.dismiss();
-                        }
-                    });
-                    dialog.show();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                TextView focallength = dialog.findViewById(R.id.value_flength);
+                if(focal != null) {
+                String focalint = focal.substring(0, focal.indexOf("/") - 1);
+                String focalmm = addCharToString(focalint, '.', 1);
+                focallength.setText(focalmm + " mm");
                 }
+
+                Button dialogButton = dialog.findViewById(R.id.close);
+                // if button is clicked, close the custom dialog
+                dialogButton.setOnClickListener(v -> dialog.dismiss());
+                dialog.show();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         });
 
