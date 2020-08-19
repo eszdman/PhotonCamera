@@ -126,4 +126,9 @@ public class TouchFocus {
     public Point getCurrent(){
         return new Point((int)(focusEl.getX()+150.f),(int)(focusEl.getY()-110.f));
     }
+    public void resetFocusCircle(){ //resets the position and visibility of focus circle
+        focusEl.setVisibility(View.GONE);
+        focusEl.setX((float) getMax().x / 2.f);
+        focusEl.setY((float) getMax().y / 2.f);
+    }
 }

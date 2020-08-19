@@ -1183,6 +1183,14 @@ public class CameraFragment extends Fragment
                                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
+                                    if(getActivity()!=null){
+                                        getActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                Interface.i.touchFocus.resetFocusCircle();
+                                            }
+                                        });
+                                    }
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
