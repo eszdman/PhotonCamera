@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Photon Camera</string>
+    <string name="request_permission">Aplikasi Ini membutuhkan perizinan Kamera</string>
+    <string name="camera_error">Perangkat Ini tidak mendukung Camera2 API</string>
+    <string name="luma_nr_count">Jumlah Luma dalam NR</string>
+    <string name="frame_count">Jumlah Frame</string>
+    <string name="disable_aligning">Non aktifkan Pelurusan</string>
+    <string name="turn_on_system_nr">Nyalakan NR Sistem</string>
+    <string name="chroma_nr_count">Jumlah Chroma dalam NR</string>
+    <string name="enhanced_processing">Memproses Peningkatan Gambar</string>
+    <string name="settings">Setelan</string>
+    <string name="comp">Kompresi</string>
+    <string name="gain">Tambah ISO</string>
+    <string name="contrmul">Duplikasi Kontras</string>
+    <string name="contrconst">Konstan</string>
+    <string name="saturation">Saturasi</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Ketajaman Gambar</string>
+    <string name="turn_on_grid">Perlihatkan Garis Penanda</string>
+    <string name="raw">Simpan dokumen RAW</string>
+    <string name="turn_on_round_edges">Aktifkan garis tepi membulat</string>
+    <string name="enable_remosaic">Aktifkan Remosaic</string>
+    <string name="general">Umum</string>
+    <string name="telegram">Grup Telegram</string>
+    <string name="hdrxNR">HDRX Pengurang Noise</string>
+    <string name="turn_on_watermark">Aktifkan Tanda Air</string>
+    <string name="sure_delete">Kamu yakin akan menghapus pesan ini?</string>
+    <string name="cancel">Batal</string>
+    <string name="yes">Ya</string>
+    <string name="image_deleted">Gambar dihapus</string>
+    <string name="close">Tutup</string>
+    <string name="unknown">Tidak diketahui</string>
+    <string name="resolution">"Resolusi"</string>
+    <string name="size">"Ukuran File"</string>
+    <string name="device">"Perangkat"</string>
+    <string name="date">"Tanggal"</string>
+    <string name="iso">"ISO"</string>
+    <string name="exposure_time">"Lama Eksposur"</string>
+    <string name="aperture">"Bukaan"</string>
+    <string name="flength">"Jarak Fokus"</string>
+    <string name="info">Info</string>
+    <string name="filename">"Nama File"</string>
+</resources>
