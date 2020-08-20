@@ -21,6 +21,7 @@ public class Swipe {
     private GestureDetector gestureDetector;
     ConstraintLayout manualmode;
     ImageView ocmanual;
+    private static int arrowState;
     Animation slideUp;
     Animation slideDown;
     @SuppressLint("ClickableViewAccessibility")
@@ -28,6 +29,15 @@ public class Swipe {
         Log.d(TAG,"SwipeDetection - ON");
         manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
         ocmanual = Interface.i.mainActivity.findViewById(R.id.open_close_manual);
+        ocmanual.setOnClickListener((v) -> {
+            if (arrowState == 0) {
+                SwipeUp();
+                Log.d(TAG, "Arrow Clicked:SwipeUp");
+            } else {
+                SwipeDown();
+                Log.d(TAG, "Arrow Clicked:SwipeDown");
+            }
+        });
         slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.slide_up);
         slideDown = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.animate_slide_down_exit);
         gestureDetector = new GestureDetector(Interface.i.mainActivity, new GestureDetector.SimpleOnGestureListener() {
@@ -108,6 +118,7 @@ public class Swipe {
         }
         Interface.i.camera.rebuildPreview();
         manualmode.setVisibility(View.VISIBLE);
+        arrowState ^= 1;
     }
     public void SwipeDown(){
         if(Interface.i.settings.ManualMode) {
@@ -120,6 +131,7 @@ public class Swipe {
         CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.i.settings.afMode);
         Interface.i.camera.rebuildPreview();
         manualmode.setVisibility(View.GONE);
+        arrowState ^= 1;
     }
     public void SwipeRight(){
 
