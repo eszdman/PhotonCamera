@@ -7,25 +7,32 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
+import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.Interface;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Locale;
+import java.util.Scanner;
+
 public class Parameters {
+    private static final String TAG = "Parameters";
     public byte cfaPattern;
     public Point rawSize;
-    public float[] blacklevel = new float[4];
-    public float[] whitepoint = new float[3];
+    public final float[] blacklevel = new float[4];
+    public final float[] whitepoint = new float[3];
     public int whitelevel = 1023;
     public int realWL = -1;
     public boolean hasGainMap;
     public Point mapsize;
     public float[] gainmap;
     public String path;
-    public float[] proPhotoToSRGB = new float[9];
-    public float[] sensorToProPhoto = new float[9];
+    public final float[] proPhotoToSRGB = new float[9];
+    public final float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
 
@@ -59,7 +66,6 @@ public class Parameters {
             if ((gainmap[(gainmap.length / 8) - (gainmap.length / 8) % 4]) == 1.0 &&
                     (gainmap[(gainmap.length / 2) - (gainmap.length / 2) % 4]) == 1.0 &&
                     (gainmap[(gainmap.length / 2 + gainmap.length / 8) - (gainmap.length / 2 + gainmap.length / 8) % 4]) == 1.0) {
-                String TAG = "Parameters";
                 Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
                 gainmap = new float[Const.gainmap.length];
                 for (int i = 0; i < Const.gainmap.length; i += 4) {
@@ -117,6 +123,22 @@ public class Parameters {
 
 
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
+        File customCCM  = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//","customCCM.txt");
+        Log.d(TAG,"customCCM exist:"+customCCM.exists());
+        Scanner sc = null;
+        if(customCCM.exists()) {
+            try {
+                sc = new Scanner(customCCM);
+            } catch (FileNotFoundException ignored) {
+            }
+            sc.useDelimiter(",");
+            sc.useLocale(Locale.US);
+            for (int i = 0; i < 9; i++) {
+                String inp = sc.next();
+                proPhotoToSRGB[i] = Float.parseFloat(inp);
+                //Log.d(TAG, "Read1:" + proPhotoToSRGB[i]);
+            }
+        }
         Rational[] wpoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         customTonemap = new float[]{
                 -2f + 2f * tonemapStrength,

@@ -1,8 +1,8 @@
 package com.eszdman.photoncamera.OpenGL;
 import static android.opengl.GLES30.*;
 public class GLFormat {
-    int mChannels;
-    DataType mFormat;
+    final int mChannels;
+    final DataType mFormat;
     public enum DataType {
         NONE (0, 0),
         FLOAT_16 (1, 2),
@@ -17,8 +17,8 @@ public class GLFormat {
         UNSIGNED_32 (10, 4),
         UNSIGNED_64 (11, 8),
         BOOLEAN(12, 1);
-        int mID;
-        int mSize;
+        final int mID;
+        final int mSize;
         DataType(int id, int size) {
             mID = id;
             mSize = size;

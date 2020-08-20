@@ -4,12 +4,15 @@ import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
+
+import java.net.InterfaceAddress;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
@@ -18,11 +21,15 @@ import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_OFF;
+import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
 import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
@@ -30,10 +37,12 @@ import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 
 public class Settings {
-    private String TAG = "Settings";
+    private final String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
     public int afMode = CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-    public int aeModeOn = CONTROL_AE_MODE_ON;
+    public MeteringRectangle[] initialAF = null;
+    public MeteringRectangle[] initialAE = null;
+    public final int aeModeOn = CONTROL_AE_MODE_ON;
     public int aeModeLock = CONTROL_AE_STATE_LOCKED;
     public int aeCurrentPrev = CONTROL_AE_MODE_ON;
     public int frameCount = 25;
@@ -80,8 +89,6 @@ public class Settings {
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
         noiseReduction = get(noiseReduction);
         Log.d(TAG, "Loaded noise reduction:" + noiseReduction);
-        afMode = get(afMode);
-        Log.d(TAG, "Loaded af mode:" + afMode);
         frameCount = get(frameCount);
         Log.d(TAG, "Loaded frame count:" + frameCount);
         align = get(align);
@@ -141,8 +148,6 @@ public class Settings {
         sharedPreferencesEditor = sharedPreferences.edit();
         put(noiseReduction);
         Log.d(TAG, "Saved noise reduction:" + noiseReduction);
-        put(afMode);
-        Log.d(TAG, "Saved af mode:" + afMode);
         put(frameCount);
         Log.d(TAG, "Saved frame count:" + frameCount);
         put(align);
@@ -221,7 +226,7 @@ public class Settings {
         Camera2ApiAutoFix.Apply();
         captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
-        captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
+        captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
 
@@ -238,7 +243,14 @@ public class Settings {
         //captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
         //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);*/
-        Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
+        Object focus = captureBuilder.get(CONTROL_AF_MODE);
+        Log.d(TAG,"InDeviceFocus:"+(int)(focus));
+        if(focus != null) afMode = (int) focus;
+        Interface.i.touchFocus.onConfigured = false;
+        initialAF = captureBuilder.get(CONTROL_AF_REGIONS);
+        initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
+        //Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
+        Interface.i.touchFocus.onConfigured = true;
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float[] rgb = new float[64];
         for(int i =0; i<64; i+=2){

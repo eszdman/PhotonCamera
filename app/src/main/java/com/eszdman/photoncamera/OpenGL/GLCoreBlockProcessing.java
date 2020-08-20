@@ -13,9 +13,9 @@ public class GLCoreBlockProcessing extends GLContext {
     private static String TAG = "GLCoreBlockProcessing";
     public Bitmap mOut = null;
     private final int mOutWidth, mOutHeight;
-    public ByteBuffer mBlockBuffer;
-    public ByteBuffer mOutBuffer;
-    private GLFormat mglFormat;
+    public final ByteBuffer mBlockBuffer;
+    public final ByteBuffer mOutBuffer;
+    private final GLFormat mglFormat;
     public static void checkEglError(String op) {
         int error = GLES30.glGetError();
         if (error != GLES30.GL_NO_ERROR) {

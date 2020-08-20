@@ -19,6 +19,7 @@ import com.eszdman.photoncamera.ui.CameraFragment;
 public class TouchFocus {
     private final String TAG = "TouchFocus";
     boolean activated = false;
+    public boolean onConfigured = false;
     ImageView focusEl;
     AutoFitTextureView preview;
     public void ReInit(){
@@ -27,15 +28,16 @@ public class TouchFocus {
         preview = Interface.i.mainActivity.findViewById(R.id.texture);
     }
 
-    OnTouchListener focusListener = new OnTouchListener() {
+    final OnTouchListener focusListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             activated = false;
             focusEl.setVisibility(View.GONE);
             focusEl.setX((float) getMax().x/2.f);
             focusEl.setY((float) getMax().y/2.f);
-            setFocus(getMax().x/2,getMax().y/2);
-            Interface.i.camera.rebuildPreviewBuilder();
+            //setFocus(getMax().x/2,getMax().y/2);
+            setInitialAFAE();
+            //Interface.i.camera.rebuildPreviewBuilder();
             //CaptureRequest.Builder build = Interface.i.camera.mPreviewRequestBuilder;
             //build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             //build.set(CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
@@ -53,7 +55,14 @@ public class TouchFocus {
         setFocus((int)fy,(int)fx);
         Interface.i.camera.rebuildPreviewBuilder();
     }
-
+    public void setInitialAFAE(){
+        CaptureRequest.Builder build = Interface.i.camera.mPreviewRequestBuilder;
+        build.set(CaptureRequest.CONTROL_AF_REGIONS,Interface.i.settings.initialAF);
+        build.set(CaptureRequest.CONTROL_AE_REGIONS,Interface.i.settings.initialAE);
+        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
+        build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
+        Interface.i.camera.rebuildPreviewBuilder();
+    }
     public void setFocus(int x, int y){
         Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         Point CurUi = getMax();
@@ -101,20 +110,25 @@ public class TouchFocus {
         //set focus area repeating,else cam forget after one frame where it should focus
         //Interface.i.camera.rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed
-
-        //build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-        //build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-        //Interface.i.camera.rebuildPreviewBuilderOneShot();
+        if(onConfigured){
+        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        Interface.i.camera.rebuildPreviewBuilderOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
-
-        //build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
-        //build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-        //Interface.i.camera.rebuildPreviewBuilderOneShot();
+        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
+        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+        Interface.i.camera.rebuildPreviewBuilderOneShot();
+        }
     }
     public Point getMax(){
         return new Point(preview.getWidth(),preview.getHeight());
     }
     public Point getCurrent(){
         return new Point((int)(focusEl.getX()+150.f),(int)(focusEl.getY()-110.f));
+    }
+    public void resetFocusCircle(){ //resets the position and visibility of focus circle
+        focusEl.setVisibility(View.GONE);
+        focusEl.setX((float) getMax().x / 2.f);
+        focusEl.setY((float) getMax().y / 2.f);
     }
 }

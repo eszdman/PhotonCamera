@@ -26,12 +26,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.SurfaceTexture;
+import android.graphics.*;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -41,37 +36,24 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.nfc.tech.IsoDep;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import android.os.SystemClock;
-import android.util.Log;
-import android.util.Range;
-import android.util.Rational;
-import android.util.Size;
-import android.util.SparseIntArray;
+import android.os.*;
+import android.util.*;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
@@ -84,21 +66,22 @@ import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
-import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.io.FilenameFilter;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import com.eszdman.photoncamera.util.CustomLogger;
+import com.eszdman.photoncamera.util.FileManager;
+import com.eszdman.photoncamera.util.Utilities;
 import de.hdodenhof.circleimageview.CircleImageView;
 
+import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 import static com.eszdman.photoncamera.ui.MainActivity.onCameraViewCreated;
 
 public class CameraFragment extends Fragment
@@ -110,6 +93,9 @@ public class CameraFragment extends Fragment
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
+    private Size target;
+    private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -166,7 +152,7 @@ public class CameraFragment extends Fragment
     public static final int yuvFormat = ImageFormat.YUV_420_888;
     public static final int prevFormat = ImageFormat.YUV_420_888;
     public static int mTargetFormat = rawFormat;
-    public static int mPreviewTargetFormat = prevFormat;
+    public static final int mPreviewTargetFormat = prevFormat;
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
@@ -328,13 +314,13 @@ public class CameraFragment extends Fragment
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
-    private Semaphore mCameraOpenCloseLock = new Semaphore(1);
+    private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
 
     /**
      * Whether the current camera device supports Flash or not.
      */
     private boolean mFlashSupported;
-    public boolean mFlashEnabled = false;
+    public final boolean mFlashEnabled = false;
 
     /**
      * Orientation of the camera sensor
@@ -345,7 +331,7 @@ public class CameraFragment extends Fragment
     /**
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
-    private CameraCaptureSession.CaptureCallback mCaptureCallback
+    private final CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
 
         private void process(CaptureResult result) {
@@ -433,6 +419,7 @@ public class CameraFragment extends Fragment
             if(focus != null) mFocus = (float)focus; else focus = 0.f;
             mPreviewTemp = mtemp;
             process(result);
+            updateScreenLog(result);
         }
         //Automatic 60fps preview
         @Override
@@ -462,6 +449,37 @@ public class CameraFragment extends Fragment
             }
         }
     };
+
+    void updateScreenLog(CaptureResult result) {
+        CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
+        if (true) { //Preference to be added here
+            LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
+            dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
+            dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
+            dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
+            dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
+            dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
+            dataset.put("EXPOSURE_TIME", Utilities.formatExposureTime(Objects.requireNonNull(result.get(CaptureResult.SENSOR_EXPOSURE_TIME)).doubleValue() / 1E9) + "s");
+            dataset.put("ISO", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
+            cl.setVisibility(View.VISIBLE);
+            cl.updateText(cl.createTextFrom(dataset));
+        } else {
+            cl.setVisibility(View.GONE);
+        }
+    }
+
+    private String getResultFieldName(String prefix, Integer value) {
+        for (Field f : this.metadataFields)
+            if (f.getName().startsWith(prefix)) {
+                try {
+                    if (f.getInt(f) == value)
+                        return f.getName().replace(prefix, "").concat("(" + value + ")");
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        return "";
+    }
 
     /**
      * Shows a {@link Toast} on the UI thread.
@@ -533,18 +551,65 @@ public class CameraFragment extends Fragment
         return new CameraFragment();
     }
 
+    /**
+     * Returns the ConstraintLayout object after adjusting the LayoutParams of Views contained in it.
+     * Adjusts the relative position of layout_topbar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
+     * depending on the aspect ratio of device.
+     * This is done in order to re-organise the camera layout for long displays (having aspect ratio > 16:9)
+     *
+     * @param aspectRatio     the aspect ratio of device display given by (height in pixels / width in pixels)
+     * @param activity_layout here, the layout of activity_main
+     * @return Object of {@param activity_layout} after adjustments.
+     */
+    private ConstraintLayout getAdjustedLayout(float aspectRatio, ConstraintLayout activity_layout) {
+        ConstraintLayout camera_container = activity_layout.findViewById(R.id.camera_container);
+        ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
+        if (aspectRatio > 16f / 9f) {
+            camera_containerLP.height = WRAP_CONTENT;
+            showToast(String.valueOf(aspectRatio));
+            ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
+            layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
+            if (aspectRatio > 2) {                  //for ratios even greater than 18:9
+                layout_topbarLP.topToTop = -1;      //resets/removes the top constraint of topbar
+            } else if (aspectRatio == 2) {          //for ratio 18:9
+                camera_containerLP.topToTop = -1;   //resets/removes the top constraint of camera_container
+                camera_containerLP.topToBottom = R.id.layout_topbar;    //constraints the top of cameracontainer to bottom of layout_topbar
+            }
+            if (((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.texture).getLayoutParams()).dimensionRatio.equals("H,3:4")) {  //if viewfinder ratio is 3:4
+                ConstraintLayout.LayoutParams layout_viewfinderLP = (ConstraintLayout.LayoutParams) camera_container.findViewById(R.id.layout_viewfinder).getLayoutParams();
+                layout_viewfinderLP.bottomToTop = R.id.layout_bottombar;    //set the bottom of layout_viewfinder to top of layout_bottombar
+            }
+        }
+        return activity_layout;
+    }
+
+    /**
+     * Logs the device display properties
+     *
+     * @param dm Object of {@link DisplayMetrics} obtained from Fragment
+     */
+    private void logDisplayProperties(DisplayMetrics dm) {
+        String TAG = "DisplayProps";
+        Log.i(TAG, "ScreenResolution = " + dm.heightPixels + "x" + dm.widthPixels);
+        Log.i(TAG, "AspectRatio = " + (float) dm.heightPixels / dm.widthPixels);
+        Log.i(TAG, "SmallestWidth = " + (int) (dm.widthPixels / (dm.densityDpi / 160f)) + "dp");
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.activity_main, container, false);
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
+        ConstraintLayout activity_main = (ConstraintLayout) inflater.inflate(R.layout.activity_main, container, false);
+        return getAdjustedLayout(aspectRatio, activity_main);
     }
 
     public ImageButton shot;
     public ProgressBar lightcycle;
     public static ProgressBar loadingcycle;
-    public CircleImageView img;
+    public CircleImageView galleryImageButton;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -625,10 +690,10 @@ public class CameraFragment extends Fragment
         settings.setOnClickListener(this);
         ToggleButton hdrX = view.findViewById(R.id.stacking);
         hdrX.setOnClickListener(this);
-        img = view.findViewById(R.id.ImageOut);
-        img.setOnClickListener(this);
-        img.setClickable(true);
-
+        galleryImageButton = view.findViewById(R.id.ImageOut);
+        galleryImageButton.setOnClickListener(this);
+        galleryImageButton.setClickable(true);
+        loadGalleryButtonImage();
         ToggleButton night = view.findViewById(R.id.nightMode);
         ToggleButton video = view.findViewById(R.id.videoMode);
         ToggleButton camera = view.findViewById(R.id.cameraMode);
@@ -667,7 +732,28 @@ public class CameraFragment extends Fragment
 
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void loadGalleryButtonImage() {
+        File[] files = FileManager.DCIM_CAMERA.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toUpperCase().endsWith(".JPG");
+            }
+        } );
+        if (files != null) {
+            long lastModifiedTime = -1;
+            File lastImage = null;
+            for (File f : files) {      //finds the last modified file from the list
+                if (f.lastModified() > lastModifiedTime) {
+                    lastImage = f;
+                    lastModifiedTime = f.lastModified();
+                }
+            }
+            //TODO replace this with Bitmap.createScaledBitmap later
+            Bitmap bitmap = BitmapFactory.decodeFile(lastImage.getAbsolutePath());
+            galleryImageButton.setImageBitmap(bitmap);
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -693,6 +779,7 @@ public class CameraFragment extends Fragment
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
+        loadGalleryButtonImage();
     }
 
     @Override
@@ -728,25 +815,25 @@ public class CameraFragment extends Fragment
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
-            Size target = sizes.get(s);
+            target = sizes.get(s);
             return target;
         }
         else {
             if(sizes.size()>1) {
-                Size target = sizes.get(s - 1);
+                target = sizes.get(s - 1);
                 return target;
             }
         }
         return null;
     }
-     @RequiresApi(api = Build.VERSION_CODES.M)
+
      private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
         if(in == null) return mPreviewSize;
          Arrays.sort(in, new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
          if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
-             Size target = sizes.get(s);
+             target = sizes.get(s);
              if(Interface.i.settings.QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -760,7 +847,7 @@ public class CameraFragment extends Fragment
          }
          else {
              if(sizes.size()> 1 ) {
-                 Size target = sizes.get(s - 1);
+                 target = sizes.get(s - 1);
                  return target;
              }
          }
@@ -775,7 +862,6 @@ public class CameraFragment extends Fragment
     int mPreviewwidth;
     int mPreviewheight;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void setUpCameraOutputs(int width, int height) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -802,7 +888,6 @@ public class CameraFragment extends Fragment
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     public void UpdateCameraCharacteristics(String cameraId) {
         Activity activity = getActivity();
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
@@ -925,7 +1010,6 @@ public class CameraFragment extends Fragment
         MainActivity.onCameraInitialization();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         try {
@@ -1005,7 +1089,6 @@ public class CameraFragment extends Fragment
     /**
      * Opens the camera specified by {@link CameraFragment#mCameraId}.
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
     private void openCamera(int width, int height) {
         context = this;
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
@@ -1147,6 +1230,14 @@ public class CameraFragment extends Fragment
                                         Log.d(TAG,"Preview, captureBurst");
                                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         burst = false;
+                                    }
+                                    if(getActivity()!=null){
+                                        getActivity().runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                Interface.i.touchFocus.resetFocusCircle();
+                                            }
+                                        });
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();

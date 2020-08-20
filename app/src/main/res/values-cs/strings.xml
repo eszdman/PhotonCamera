@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Photon Camera</string>
+    <string name="request_permission">Aplikace vyžaduje oprávnění využívat kameru</string>
+    <string name="camera_error">Vaše zařízení nepodporuje Camera2 API</string>
+    <string name="luma_nr_count">Odstranění Luma šumu</string>
+    <string name="frame_count">Počet snímků</string>
+    <string name="disable_aligning">Vypnout srovnání snímků</string>
+    <string name="turn_on_system_nr">Systémové odstranění šumu</string>
+    <string name="chroma_nr_count">Odstranění Chroma šumu</string>
+    <string name="enhanced_processing">Vylepšené zpracování obrazu</string>
+    <string name="settings">Nastavení</string>
+    <string name="comp">Kompresor</string>
+    <string name="gain">Nárust</string>
+    <string name="contrmul">Násobič kontrastu</string>
+    <string name="contrconst">Konstanta</string>
+    <string name="saturation">Saturace</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Ostrost</string>
+    <string name="turn_on_grid">Zobrazit mřížku</string>
+    <string name="raw">Uložit RAW</string>
+    <string name="turn_on_round_edges">Zaoblené rohy</string>
+    <string name="enable_remosaic">Povolit Re-Mosaikování</string>
+    <string name="general">Obecné</string>
+    <string name="telegram">Telegram - skupina</string>
+    <string name="hdrxNR">HDRX odstranění šumu</string>
+    <string name="turn_on_watermark">Povolit vodoznak</string>
+    <string name="sure_delete">Opravdu chcete smazat tento obrázek?</string>
+    <string name="cancel">Zrušit</string>
+    <string name="yes">Ano</string>
+    <string name="image_deleted">Obrázek vymazán</string>
+    <string name="close">Zavřít</string>
+    <string name="unknown">Neznámé</string>
+    <string name="resolution">"Rozlišení:"</string>
+    <string name="size">"Velikost:"</string>
+    <string name="device">"Zařízení:"</string>
+    <string name="date">"Datum:"</string>
+    <string name="iso">"ISO:"</string>
+    <string name="exposure_time">"Rychlost uzávěrky:"</string>
+    <string name="aperture">"Světelnost:"</string>
+    <string name="flength">"Ohnisko:"</string>
+    <string name="info">Informace</string>
+    <string name="filename">"Název souboru"</string>
+</resources>

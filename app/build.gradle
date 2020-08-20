@@ -53,10 +53,11 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = true
+            zipAlignEnabled = true
         }
         debug {
             minifyEnabled false
@@ -64,6 +65,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = true
             renderscriptDebuggable = true
+            zipAlignEnabled = true
         }
     }
 

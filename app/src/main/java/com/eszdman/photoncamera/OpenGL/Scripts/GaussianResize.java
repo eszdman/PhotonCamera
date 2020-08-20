@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.OpenGL.Scripts;
 
-import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 

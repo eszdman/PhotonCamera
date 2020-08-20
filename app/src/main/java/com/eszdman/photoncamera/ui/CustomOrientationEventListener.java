@@ -10,7 +10,7 @@ public abstract class CustomOrientationEventListener  extends OrientationEventLi
 
     private static final String TAG = "CustomOrientationEvent";
     private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
-    private Context context;
+    private final Context context;
     private int rotation = 0;
 
     public CustomOrientationEventListener(Context context) {

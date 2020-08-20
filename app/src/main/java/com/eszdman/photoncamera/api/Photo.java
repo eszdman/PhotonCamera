@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.api;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -12,7 +11,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
-import androidx.annotation.RequiresApi;
+
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;
@@ -36,9 +35,9 @@ public class Photo {
             }
             try {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    Interface.i.camera.img.setImageBitmap(bmp);
+                    Interface.i.camera.galleryImageButton.setImageBitmap(bmp);
                 } else {
-                    Interface.i.camera.img.setImageURI(uri);
+                    Interface.i.camera.galleryImageButton.setImageURI(uri);
                 }
             } catch (Exception e) {
                 e.printStackTrace();

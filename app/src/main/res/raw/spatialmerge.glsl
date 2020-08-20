@@ -14,6 +14,7 @@ uniform sampler2D MainBuffer22;
 uniform sampler2D SpatialWeights;
 uniform sampler2D AlignVectors;
 uniform int yOffset;
+uniform float alignk;
 uniform uvec2 rawsize;
 uniform uvec2 alignsize;
 uniform uvec2 weightsize;
@@ -83,7 +84,7 @@ void main() {
     float windoww = 1.0 - (weight)*70.0 - 0.2;
     //windoww-=windoww*dist*(dist2);
     //windoww = 0.4;
-    windoww = clamp(windoww,0.0,0.6);
+    windoww = clamp(windoww,0.0,alignk);
 
     float outp = (float(texelFetch(InputBuffer, aligned, 0).x)*windoww+float(texelFetch(OutputBuffer, (xy), 0).x)*(1.0-windoww));
     Output = outp;

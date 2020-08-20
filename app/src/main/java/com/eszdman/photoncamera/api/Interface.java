@@ -16,18 +16,18 @@ import static android.content.Context.ACTIVITY_SERVICE;
 
 public class Interface {
     public static Interface i;
-    public MainActivity mainActivity;
+    public final MainActivity mainActivity;
     public CameraFragment camera;
-    public Settings settings;
-    public Photo photo;
-    public Wrapper wrapper;
-    public ImageProcessing processing;
-    public Swipe swipedetection;
-    public Gravity gravity;
+    public final Settings settings;
+    public final Photo photo;
+    public final Wrapper wrapper;
+    public final ImageProcessing processing;
+    public final Swipe swipedetection;
+    public final Gravity gravity;
     public Manual manual;
     public RenderScript rs;
-    public Parameters parameters;
-    public TouchFocus touchFocus;
+    public final Parameters parameters;
+    public final TouchFocus touchFocus;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;

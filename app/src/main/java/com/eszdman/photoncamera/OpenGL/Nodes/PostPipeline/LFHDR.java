@@ -7,9 +7,9 @@ import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
-import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 
 public class LFHDR  extends Node {
     GLProg glProg;

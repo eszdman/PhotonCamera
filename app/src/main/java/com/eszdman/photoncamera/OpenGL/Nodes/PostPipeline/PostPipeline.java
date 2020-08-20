@@ -8,8 +8,6 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.Log;
 
-import androidx.exifinterface.media.ExifInterface;
-
 import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
 import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.OpenGL.GLFormat;
@@ -23,7 +21,6 @@ import com.eszdman.photoncamera.api.Interface;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 
-import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.api.ImageSaver.outimg;
 
 public class PostPipeline extends GLBasePipeline {
@@ -53,7 +50,7 @@ public class PostPipeline extends GLBasePipeline {
         canvas = new Canvas(source);
         canvas.drawBitmap(source, 0, 0, paint);
         // Scale the watermark to be approximately to the ratio given of the source image height
-        scale = (float) (((float) height * ratio) / (float) watermark.getHeight());
+        scale = ((float) height * ratio) / (float) watermark.getHeight();
         // Create the matrix
         matrix = new Matrix();
         matrix.postScale(scale, scale);
