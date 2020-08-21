@@ -1,230 +1,259 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/exif_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#40000000"
-    android:orientation="vertical">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_margin="15dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/exif_title"
+        android:text="@string/info"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        android:textSize="18sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:layout_marginTop="24dp"
+        android:id="@+id/title_filename"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/filename"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/exif_title"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_file"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_filename"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:drawableStart="@drawable/ic_file"
-        android:text="No file"
-        android:textColor="#fff"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/title_iso"
-        android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_exposure_24dp"
-        android:drawablePadding="15dp"
-        android:text="@string/iso"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/value_filename" />
-
-    <TextView
-        android:id="@+id/value_iso"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/unknown"
-        android:textColor="#fff"
-        android:textSize="16sp"
         android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_iso"
-        app:layout_constraintTop_toTopOf="@+id/title_iso" />
-
-    <TextView
-        android:id="@+id/title_fnumber"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_aperture"
-        android:drawablePadding="15dp"
-        android:text="@string/aperture"
         android:textColor="#fff"
+        app:layout_constraintStart_toEndOf="@+id/title_filename"
+        app:layout_constraintTop_toTopOf="@+id/title_filename"
         android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/title_exposure"
-        app:layout_constraintTop_toBottomOf="@+id/title_exposure" />
-
+        android:text="@string/unknown"/>
     <TextView
-        android:id="@+id/title_exposure"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:layout_marginStart="24dp"
-        android:drawableStart="@drawable/ic_exp_time"
-        android:drawablePadding="15dp"
-        android:text="S:"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@+id/title_iso"
-        app:layout_constraintStart_toEndOf="@+id/value_iso" />
-
-    <TextView
+        android:layout_marginTop="15dp"
         android:id="@+id/title_filesize"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="160dp"
-        android:drawableStart="@drawable/ic_memory"
-        android:drawablePadding="15dp"
         android:text="@string/size"
-        android:textColor="#fff"
-        android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@+id/value_res"
-        app:layout_constraintTop_toBottomOf="@+id/title_iso" />
-
-    <TextView
-        android:id="@+id/value_res"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:drawableStart="@drawable/ic_resolution"
-        android:drawablePadding="15dp"
-        android:text="@string/unknown"
         android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_filename"
         android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/title_flength"
-        app:layout_constraintTop_toTopOf="@+id/title_filesize" />
-
-    <TextView
-        android:id="@+id/title_device"
-        android:layout_width="wrap_content"
-        android:layout_height="24dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_device"
-        android:drawablePadding="15dp"
-        android:text="@string/device"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/value_res"
-        app:layout_constraintTop_toBottomOf="@+id/value_res" />
-
-    <TextView
-        android:id="@+id/value_exposure"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/unknown"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_exposure"
-        app:layout_constraintTop_toTopOf="@+id/title_exposure" />
-
-    <TextView
-        android:id="@+id/value_date"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/unknown"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_date"
-        app:layout_constraintTop_toTopOf="@+id/title_date" />
+        android:drawableStart="@drawable/ic_memory"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_filesize"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/unknown"
-        android:textColor="#fff"
-        android:textSize="16sp"
         android:textStyle="normal"
+        android:textColor="#fff"
         app:layout_constraintStart_toEndOf="@+id/title_filesize"
-        app:layout_constraintTop_toTopOf="@+id/title_filesize" />
+        app:layout_constraintTop_toTopOf="@+id/title_filesize"
+        android:textSize="16sp"
+        android:text="@string/unknown"/>
 
     <TextView
-        android:id="@+id/title_flength"
+        android:id="@+id/title_res"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_focal_length"
-        android:drawablePadding="15dp"
-        android:text="F:"
-        android:textColor="#fff"
-        android:textSize="16sp"
+        android:text="@string/resolution"
         android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/title_iso"
-        app:layout_constraintTop_toBottomOf="@+id/title_iso" />
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_filesize"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_resolution"
+        android:drawablePadding="15dp"
+        android:layout_marginTop="15dp"/>
+
+    <TextView
+        android:id="@+id/value_res"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        app:layout_constraintStart_toEndOf="@+id/title_res"
+        app:layout_constraintTop_toTopOf="@+id/title_res"
+        android:textSize="16sp"
+        android:text="@string/unknown"/>
+
+    <TextView
+        android:id="@+id/title_device"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/device"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_res"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_device"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_device"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/unknown"
+        app:layout_constraintStart_toEndOf="@+id/title_device"
+        android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
-        android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_device"
-        app:layout_constraintTop_toTopOf="@+id/title_device" />
+        app:layout_constraintTop_toTopOf="@+id/title_device"
+        android:text="@string/unknown"/>
 
     <TextView
         android:id="@+id/title_date"
         android:layout_width="wrap_content"
-        android:layout_height="26dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_date"
-        android:drawablePadding="15dp"
+        android:layout_height="25dp"
         android:text="@string/date"
-        android:textColor="#fff"
-        android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/title_device"
-        app:layout_constraintTop_toBottomOf="@+id/title_device" />
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_device"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_date"
+        android:drawablePadding="15dp"/>
 
     <TextView
-        android:id="@+id/value_flength"
+        android:id="@+id/value_date"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/unknown"
+        app:layout_constraintStart_toEndOf="@+id/title_date"
+        android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
+        app:layout_constraintTop_toTopOf="@+id/title_date"
+        android:text="@string/unknown"
+        />
+
+    <TextView
+        android:id="@+id/title_iso"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/iso"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_date"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_exposure_24dp"
+        android:drawablePadding="15dp"/>
+
+    <TextView
+        android:id="@+id/value_iso"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toEndOf="@+id/title_iso"
+        app:layout_constraintTop_toTopOf="@+id/title_iso"
         android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_flength"
-        app:layout_constraintTop_toTopOf="@+id/title_flength" />
+        android:textColor="#fff"
+        android:textSize="16sp"
+        android:text="@string/unknown"
+        />
+
+    <TextView
+        android:id="@+id/title_exposure"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/exposure_time"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_iso"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_exp_time"
+        android:drawablePadding="15dp"/>
+
+    <TextView
+        android:id="@+id/value_exposure"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toEndOf="@+id/title_exposure"
+        app:layout_constraintTop_toTopOf="@+id/title_exposure"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:textSize="16sp"
+        android:text="@string/unknown"/>
+
+    <TextView
+        android:id="@+id/title_fnumber"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/aperture"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_exposure"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_aperture"
+        android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_fnumber"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        android:layout_marginStart="8dp"
-        android:text="@string/unknown"
+        app:layout_constraintStart_toEndOf="@+id/title_fnumber"
+        app:layout_constraintTop_toTopOf="@+id/title_fnumber"
+        android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
-        android:textStyle="normal"
-        app:layout_constraintStart_toEndOf="@+id/title_fnumber"
-        app:layout_constraintTop_toTopOf="@+id/title_fnumber" />
+        android:text="@string/unknown"/>
 
-    <LinearLayout
-        android:id="@+id/exif_histogram"
-        android:layout_width="346dp"
-        android:layout_height="128dp"
-        android:background="#41000000"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/title_filesize"
-        app:layout_constraintEnd_toEndOf="parent"
+    <TextView
+        android:id="@+id/title_flength"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/flength"
+        android:textStyle="bold"
+        android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_fnumber"></LinearLayout>
+        app:layout_constraintTop_toBottomOf="@+id/title_fnumber"
+        android:layout_marginTop="15dp"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_focal_length"
+        android:drawablePadding="15dp"/>
+
+    <TextView
+        android:id="@+id/value_flength"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toEndOf="@+id/title_flength"
+        app:layout_constraintTop_toTopOf="@+id/title_flength"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:textSize="16sp"
+        android:text="@string/unknown"/>
+
+    <Button
+        android:id="@+id/close"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/close"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_flength"
+        android:layout_marginTop="10dp"
+        android:textSize="16sp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

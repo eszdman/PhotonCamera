@@ -452,16 +452,15 @@ public class CameraFragment extends Fragment
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (true) { //Preference to be added here
-            IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
+        if (Interface.i.settings.afdata) {
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
             dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
             dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
             dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
-            dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
-            dataset.put("ISO", String.valueOf(expoPair.iso));
+            dataset.put("EXPOSURE_TIME", Utilities.formatExposureTime(Objects.requireNonNull(result.get(CaptureResult.SENSOR_EXPOSURE_TIME)).doubleValue() / 1E9) + "s");
+            dataset.put("ISO", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
@@ -1426,13 +1425,26 @@ public class CameraFragment extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     lightcycle.setProgress(lightcycle.getProgress() + 1);
-                    Log.v(TAG,"Completed!");
+                    Log.d(TAG,"Completed!");
                     mCaptureResult = result;
+                    /*burstcount[0]++;
+                    if (burstcount[0] == burstcount[2] + 1 || ImageSaver.imageBuffer.size() == burstcount[2]) {
+                        try {
+                            mCaptureSession.abortCaptures();
+                            lightcycle.setAlpha(0f);
+                            lightcycle.setProgress(0);
+                            mTextureView.setAlpha(1f);
+                            unlockFocus();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }*/
+
                 }
 
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                    Log.v(TAG,"FrameCaptureStarted! FrameNumber:"+frameNumber);
+                    Log.d(TAG,"FrameCaptureStarted! FrameNumber:"+frameNumber);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
                 }
 
