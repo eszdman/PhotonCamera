@@ -12,14 +12,12 @@ public class IsoExpoSelector {
     private static final String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
     public static boolean HDR = false;
-    public static void setExpo(CaptureRequest.Builder builder, int step) {
+    public static ExpoPair GenerateExpoPair(int step){
         double mpy = 0.8;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         ExpoPair startPair = new ExpoPair(pair);
-        builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         pair.normalizeiso100();
-        Log.d(TAG, "InputParams: expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " iso:" + pair.iso);
         if(Interface.i.settings.nightMode) mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
@@ -37,7 +35,7 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat){
-        if (pair.iso >= 100/0.65) pair.iso *= mpy;
+            if (pair.iso >= 100/0.65) pair.iso *= mpy;
             else {
                 pair.exposure *= mpy;
             }
@@ -68,6 +66,14 @@ public class IsoExpoSelector {
             }
         }
         pair.denormalizeSystem();
+        return pair;
+    }
+    public static void setExpo(CaptureRequest.Builder builder, int step) {
+        ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
+                CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
+        Log.d(TAG, "InputParams: expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " iso:" + pair.iso);
+        builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+        pair = GenerateExpoPair(step);
         Log.d(TAG, "IsoSelected:" + pair.iso + " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:"+step+" HDR:"+HDR);
         builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, pair.exposure);
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, pair.iso);
@@ -114,10 +120,10 @@ public class IsoExpoSelector {
             return (long) ((Range) (key)).getLower();
         }
     }
-    static class ExpoPair {
-        long exposure;
+    public static class ExpoPair {
+        public long exposure;
         long exposurehigh,exposurelow;
-        int iso;
+        public int iso;
         int isolow,isohigh;
         public ExpoPair(ExpoPair pair){
             copyfrom(pair);
@@ -193,12 +199,14 @@ public class IsoExpoSelector {
             Log.d(TAG,"ExpoReducing done iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
         }
         public void FixedExpo(double expo){
-
             long expol = ExposureIndex.sec2time(expo);
             double k = (double)exposure/expol;
             ReduceExpo(k);
             Log.d(TAG,"ExpoFixating iso:"+iso+" expo:"+ ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
             if(normalizeCheck()) ReduceExpo(1/k);
+        }
+        public String ExposureString(){
+         return ExposureIndex.sec2string(ExposureIndex.time2sec(exposure));
         }
     }
 }
