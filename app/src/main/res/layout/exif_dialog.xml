@@ -5,7 +5,8 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:layout_margin="15dp">
+    android:background="@drawable/manual_background"
+    android:padding="15dp">
 
     <TextView
         android:layout_width="wrap_content"
@@ -20,7 +21,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="20dp"
         android:id="@+id/title_filename"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
@@ -69,6 +70,56 @@
         android:text="@string/unknown"/>
 
     <TextView
+        android:layout_marginTop="15dp"
+        android:id="@+id/title_date"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/date"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_filesize"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_date"
+        android:drawablePadding="15dp"/>
+
+    <TextView
+        android:id="@+id/value_date"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toEndOf="@+id/title_date"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:textSize="16sp"
+        app:layout_constraintTop_toTopOf="@+id/title_date"
+        android:text="@string/unknown" />
+
+    <TextView
+        android:id="@+id/title_device"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/device"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_date"
+        android:textSize="16sp"
+        android:drawableStart="@drawable/ic_device"
+        android:drawablePadding="15dp"
+        android:layout_marginTop="15dp"/>
+
+    <TextView
+        android:id="@+id/value_device"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toEndOf="@+id/title_device"
+        app:layout_constraintTop_toTopOf="@+id/title_device"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:textSize="16sp"
+        android:text="@string/unknown" />
+
+    <TextView
         android:id="@+id/title_res"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
@@ -76,7 +127,7 @@
         android:textStyle="bold"
         android:textColor="#fff"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/title_filesize"
+        app:layout_constraintTop_toBottomOf="@id/title_device"
         android:textSize="16sp"
         android:drawableStart="@drawable/ic_resolution"
         android:drawablePadding="15dp"
@@ -94,166 +145,79 @@
         android:text="@string/unknown"/>
 
     <TextView
-        android:id="@+id/title_device"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/device"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_res"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_device"
-        android:drawablePadding="15dp"/>
-
-    <TextView
-        android:id="@+id/value_device"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_device"
-        android:textStyle="normal"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        app:layout_constraintTop_toTopOf="@+id/title_device"
-        android:text="@string/unknown"/>
-
-    <TextView
-        android:id="@+id/title_date"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/date"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_device"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_date"
-        android:drawablePadding="15dp"/>
-
-    <TextView
-        android:id="@+id/value_date"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_date"
-        android:textStyle="normal"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        app:layout_constraintTop_toTopOf="@+id/title_date"
-        android:text="@string/unknown"
-        />
-
-    <TextView
-        android:id="@+id/title_iso"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/iso"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_date"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_exposure_24dp"
-        android:drawablePadding="15dp"/>
-
-    <TextView
         android:id="@+id/value_iso"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_iso"
-        app:layout_constraintTop_toTopOf="@+id/title_iso"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_res"
         android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
         android:text="@string/unknown"
-        />
-
-    <TextView
-        android:id="@+id/title_exposure"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/exposure_time"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_iso"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_exp_time"
-        android:drawablePadding="15dp"/>
+        android:drawableStart="@drawable/ic_iso_24dp"
+        android:drawablePadding="15dp"
+        android:layout_marginTop="15dp"/>
 
     <TextView
         android:id="@+id/value_exposure"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_exposure"
-        app:layout_constraintTop_toTopOf="@+id/title_exposure"
+        app:layout_constraintStart_toEndOf="@+id/value_iso"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/value_iso"
         android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
-        android:text="@string/unknown"/>
-
-    <TextView
-        android:id="@+id/title_fnumber"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/aperture"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_exposure"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_aperture"
-        android:drawablePadding="15dp"/>
-
-    <TextView
-        android:id="@+id/value_fnumber"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_fnumber"
-        app:layout_constraintTop_toTopOf="@+id/title_fnumber"
-        android:textStyle="normal"
-        android:textColor="#fff"
-        android:textSize="16sp"
-        android:text="@string/unknown"/>
-
-    <TextView
-        android:id="@+id/title_flength"
-        android:layout_width="wrap_content"
-        android:layout_height="25dp"
-        android:text="@string/flength"
-        android:textStyle="bold"
-        android:textColor="#fff"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_fnumber"
-        android:layout_marginTop="15dp"
-        android:textSize="16sp"
-        android:drawableStart="@drawable/ic_focal_length"
+        android:text="@string/unknown"
+        android:drawableStart="@drawable/ic_exp_time"
         android:drawablePadding="15dp"/>
 
     <TextView
         android:id="@+id/value_flength"
         android:layout_width="wrap_content"
         android:layout_height="25dp"
-        app:layout_constraintStart_toEndOf="@+id/title_flength"
-        app:layout_constraintTop_toTopOf="@+id/title_flength"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/value_iso"
         android:textStyle="normal"
         android:textColor="#fff"
         android:textSize="16sp"
-        android:text="@string/unknown"/>
+        android:text="@string/unknown"
+        android:drawableStart="@drawable/ic_focal_length"
+        android:drawablePadding="15dp"
+        android:layout_marginTop="15dp"/>
 
-    <Button
-        android:id="@+id/close"
+    <TextView
+        android:id="@+id/value_fnumber"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/close"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="25dp"
+        app:layout_constraintStart_toStartOf="@+id/value_exposure"
+        app:layout_constraintTop_toTopOf="@+id/value_flength"
+        android:textStyle="normal"
+        android:textColor="#fff"
+        android:textSize="16sp"
+        android:text="@string/unknown"
+        android:drawableStart="@drawable/ic_aperture"
+        android:drawablePadding="15dp"/>
+
+    <TextView
+        android:id="@+id/title_histogram"
+        android:layout_width="wrap_content"
+        android:layout_height="25dp"
+        android:text="@string/histogram"
+        android:textStyle="bold"
+        android:textColor="#fff"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/value_flength"
+        android:layout_marginTop="20dp"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:id="@+id/exif_histogram"
+        android:layout_width="346dp"
+        android:layout_height="128dp"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_flength"
-        android:layout_marginTop="10dp"
-        android:textSize="16sp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_histogram" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

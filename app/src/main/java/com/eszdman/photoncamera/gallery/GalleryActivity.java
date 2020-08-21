@@ -2,14 +2,20 @@ package com.eszdman.photoncamera.gallery;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.util.Log;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,6 +28,8 @@ import androidx.viewpager.widget.ViewPager;
 import com.eszdman.photoncamera.R;
 
 import com.eszdman.photoncamera.util.Utilities;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
@@ -137,6 +145,18 @@ public class GalleryActivity extends AppCompatActivity {
 
                 final Dialog dialog = new Dialog(GalleryActivity.this);
                 dialog.setContentView(R.layout.exif_dialog);
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+                Histogram histogram = new Histogram(this);
+                LinearLayout histogramview = dialog.findViewById(R.id.exif_histogram);
+                Log.d("GalleryActivity","Offset:"+histogram.offset);
+                histogramview.addView(histogram);
+                histogramview.setAlpha(0.45f);
+
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
+                histogram.Analyze(bitmap);
 
                 TextView title = dialog.findViewById(R.id.value_filename);
                 title.setText(fileName.toUpperCase(Locale.ROOT));
@@ -162,18 +182,15 @@ public class GalleryActivity extends AppCompatActivity {
 
                 TextView fileSize = dialog.findViewById(R.id.value_filesize);
                 // Here 1MB = 1000 * 1000 B
-                fileSize.setText(String.format("%.2f", ((double) currentFile.length() / 1E6)) + " MB");
+                fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
 
                 TextView focallength = dialog.findViewById(R.id.value_flength);
                 if(focal != null) {
-                String focalint = focal.substring(0, focal.indexOf("/") - 1);
-                String focalmm = addCharToString(focalint, '.', 1);
-                focallength.setText(focalmm + " mm");
+                    int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));
+                    int denumerator = Integer.parseInt(focal.substring(focal.indexOf("/")+1));
+                    focallength.setText(((double)(numerator)/denumerator) + " mm");
                 }
 
-                Button dialogButton = dialog.findViewById(R.id.close);
-                // if button is clicked, close the custom dialog
-                dialogButton.setOnClickListener(v -> dialog.dismiss());
                 dialog.show();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -184,12 +201,5 @@ public class GalleryActivity extends AppCompatActivity {
 
     public static String getFileExt(File fileName) {
         return fileName.getAbsolutePath().substring(fileName.getAbsolutePath().lastIndexOf(".") + 1);
-    }
-
-
-    public static String addCharToString(String str, char c, int pos) {
-        StringBuilder stringBuilder = new StringBuilder(str);
-        stringBuilder.insert(pos, c);
-        return stringBuilder.toString();
     }
 }

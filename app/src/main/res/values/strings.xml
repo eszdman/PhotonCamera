@@ -43,4 +43,5 @@
     <string name="info">Info</string>
     <string name="filename">"File name: "</string>
     <string name="turn_on_afdata">Show AF data</string>
+    <string name="histogram">Histogram</string>
 </resources>
