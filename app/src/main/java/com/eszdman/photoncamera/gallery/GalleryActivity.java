@@ -2,19 +2,27 @@ package com.eszdman.photoncamera.gallery;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.graphics.Picture;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.FileProvider;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
@@ -22,11 +30,14 @@ import androidx.viewpager.widget.ViewPager;
 import com.eszdman.photoncamera.R;
 
 import com.eszdman.photoncamera.util.Utilities;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -113,9 +124,16 @@ public class GalleryActivity extends AppCompatActivity {
         Bitmap firstfileBitmap = BitmapFactory.decodeFile(firstFile.getAbsolutePath());
         preview.setImageBitmap(firstfileBitmap);
         */
-
+        ConstraintLayout exifLayout = findViewById(R.id.exif_layout);
         Button exif = findViewById(R.id.exif);
+        Histogram histogram = new Histogram(this);
+        LinearLayout histogramview = findViewById(R.id.exif_histogram);
+        Log.d("GalleryActivity","Offset:"+histogram.offset);
+        histogramview.addView(histogram);
+        histogramview.setAlpha(0.45f);
         exif.setOnClickListener(view -> {
+
+            if(exifLayout.getVisibility() == View.VISIBLE) {exifLayout.setVisibility(View.INVISIBLE); return;}
             int position = viewPager.getCurrentItem();
             File currentFile = file[position];
             String fileName = currentFile.getName();
@@ -135,61 +153,50 @@ public class GalleryActivity extends AppCompatActivity {
                 String fnum = exif1.getAttribute(ExifInterface.TAG_F_NUMBER);
                 String focal = exif1.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
 
-                final Dialog dialog = new Dialog(GalleryActivity.this);
-                dialog.setContentView(R.layout.exif_dialog);
 
-                TextView title = dialog.findViewById(R.id.value_filename);
+
+                TextView title = findViewById(R.id.value_filename);
+                TextView res = findViewById(R.id.value_res);
+                TextView device = findViewById(R.id.value_device);
+                TextView datetime = findViewById(R.id.value_date);
+                TextView exp = findViewById(R.id.value_exposure);
+                TextView isospeed = findViewById(R.id.value_iso);
+                TextView fnumber = findViewById(R.id.value_fnumber);
+                TextView fileSize = findViewById(R.id.value_filesize);
+                TextView focallength = findViewById(R.id.value_flength);
+
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
+                histogram.Analyze(bitmap);
+
+
                 title.setText(fileName.toUpperCase(Locale.ROOT));
-
-                TextView res = dialog.findViewById(R.id.value_res);
                 res.setText(width + "x" + length);
-
-                TextView device = dialog.findViewById(R.id.value_device);
                 device.setText(make + " " + model);
-
-                TextView datetime = dialog.findViewById(R.id.value_date);
                 datetime.setText(date);
-
-                TextView exp = dialog.findViewById(R.id.value_exposure);
-                String exposureTime = Utilities.formatExposureTime(Double.valueOf(exposure));
+                if(exposure == null) exposure = "0";
+                String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
                 exp.setText(exposureTime);
-
-                TextView isospeed = dialog.findViewById(R.id.value_iso);
                 isospeed.setText(iso);
-
-                TextView fnumber = dialog.findViewById(R.id.value_fnumber);
                 fnumber.setText("f/" + fnum);
-
-                TextView fileSize = dialog.findViewById(R.id.value_filesize);
-                // Here 1MB = 1000 * 1000 B
-                fileSize.setText(String.format("%.2f", ((double) currentFile.length() / 1E6)) + " MB");
-
-                TextView focallength = dialog.findViewById(R.id.value_flength);
+                fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
                 if(focal != null) {
-                String focalint = focal.substring(0, focal.indexOf("/") - 1);
-                String focalmm = addCharToString(focalint, '.', 1);
-                focallength.setText(focalmm + " mm");
+                //Removed uwu code
+                int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));
+                int denumerator = Integer.parseInt(focal.substring(focal.indexOf("/")+1));
+                focallength.setText(((double)(numerator)/denumerator) + " mm");
+                } else {
+                    focallength.setText("");
                 }
-
-                Button dialogButton = dialog.findViewById(R.id.close);
-                // if button is clicked, close the custom dialog
-                dialogButton.setOnClickListener(v -> dialog.dismiss());
-                dialog.show();
+                exifLayout.setVisibility(View.VISIBLE);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
 
     }
-
     public static String getFileExt(File fileName) {
         return fileName.getAbsolutePath().substring(fileName.getAbsolutePath().lastIndexOf(".") + 1);
-    }
-
-
-    public static String addCharToString(String str, char c, int pos) {
-        StringBuilder stringBuilder = new StringBuilder(str);
-        stringBuilder.insert(pos, c);
-        return stringBuilder.toString();
     }
 }
