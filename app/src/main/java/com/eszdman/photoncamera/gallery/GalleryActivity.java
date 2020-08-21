@@ -2,6 +2,10 @@ package com.eszdman.photoncamera.gallery;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.graphics.Picture;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,6 +16,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -119,10 +124,15 @@ public class GalleryActivity extends AppCompatActivity {
         Bitmap firstfileBitmap = BitmapFactory.decodeFile(firstFile.getAbsolutePath());
         preview.setImageBitmap(firstfileBitmap);
         */
-
+        ConstraintLayout exifLayout = findViewById(R.id.exif_layout);
         Button exif = findViewById(R.id.exif);
+        Histogram histogram = new Histogram(this);
+        LinearLayout histogramview = findViewById(R.id.exif_histogram);
+        Log.d("GalleryActivity","Offset:"+histogram.offset);
+        histogramview.addView(histogram);
+        histogramview.setAlpha(0.45f);
         exif.setOnClickListener(view -> {
-            ConstraintLayout exifLayout = findViewById(R.id.exif_layout);
+
             if(exifLayout.getVisibility() == View.VISIBLE) {exifLayout.setVisibility(View.INVISIBLE); return;}
             int position = viewPager.getCurrentItem();
             File currentFile = file[position];
@@ -155,11 +165,18 @@ public class GalleryActivity extends AppCompatActivity {
                 TextView fileSize = findViewById(R.id.value_filesize);
                 TextView focallength = findViewById(R.id.value_flength);
 
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
+                histogram.Analyze(bitmap);
+
+
                 title.setText(fileName.toUpperCase(Locale.ROOT));
                 res.setText(width + "x" + length);
                 device.setText(make + " " + model);
                 datetime.setText(date);
-                String exposureTime = Utilities.formatExposureTime(Double.valueOf(exposure));
+                if(exposure == null) exposure = "0";
+                String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
                 exp.setText(exposureTime);
                 isospeed.setText(iso);
                 fnumber.setText("f/" + fnum);

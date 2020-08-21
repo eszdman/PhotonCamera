@@ -51,14 +51,14 @@
 
     <include
         layout="@layout/exif_dialog"
-        android:layout_width="382dp"
-        android:layout_height="343dp"
+        android:layout_width="403dp"
+        android:layout_height="298dp"
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.159"
+        app:layout_constraintVertical_bias="0.06999999"
         tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
