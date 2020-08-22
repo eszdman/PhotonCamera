@@ -121,18 +121,20 @@ public class Parameters {
                 calibrationTransform1, calibrationTransform2, neutral,
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
-        sensorToProPhoto[0] = 1.0f/neutral[0].floatValue();
-        sensorToProPhoto[1] = 0.0f;
-        sensorToProPhoto[2] = 0.0f;
+        File customCCM  = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//","customCCM.txt");
+        if(!customCCM.exists()) {
+            sensorToProPhoto[0] = 1.0f / neutral[0].floatValue();
+            sensorToProPhoto[1] = 0.0f;
+            sensorToProPhoto[2] = 0.0f;
 
-        sensorToProPhoto[3] = 0.0f;
-        sensorToProPhoto[4] = 1.0f/neutral[1].floatValue();
-        sensorToProPhoto[5] = 0.0f;
+            sensorToProPhoto[3] = 0.0f;
+            sensorToProPhoto[4] = 1.0f / neutral[1].floatValue();
+            sensorToProPhoto[5] = 0.0f;
 
-        sensorToProPhoto[6] = 0.0f;
-        sensorToProPhoto[7] = 0.0f;
-        sensorToProPhoto[8] = 1.0f/neutral[2].floatValue();
-
+            sensorToProPhoto[6] = 0.0f;
+            sensorToProPhoto[7] = 0.0f;
+            sensorToProPhoto[8] = 1.0f / neutral[2].floatValue();
+        }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
         ColorSpaceTransform CCT = Interface.i.camera.mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         if(CCT != null) {
@@ -143,7 +145,7 @@ public class Parameters {
                 Log.d(TAG,"\nTransform:"+proPhotoToSRGB[i]);
             }
         }
-        File customCCM  = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//","customCCM.txt");
+
         Log.d(TAG,"customCCM exist:"+customCCM.exists());
         Scanner sc = null;
         if(customCCM.exists()) {
