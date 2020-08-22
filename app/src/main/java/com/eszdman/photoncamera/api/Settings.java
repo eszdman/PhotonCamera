@@ -6,13 +6,21 @@ import android.graphics.Point;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
+import android.os.Environment;
 import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.InterfaceAddress;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
@@ -208,6 +216,7 @@ public class Settings {
         put(mCameraID);
 
         sharedPreferencesEditor.apply();
+        //ExportSettings();
         count = 0;
     }
 
@@ -238,8 +247,7 @@ public class Settings {
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
-
-        if(nightMode) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
+        if(nightMode && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
         /*Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/
@@ -273,10 +281,6 @@ public class Settings {
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb,rgb,rgb);
         captureBuilder.set(TONEMAP_CURVE,tonemapCurve);
-        //final CaptureRequest.Key<Boolean> EISV2 = new CaptureRequest.Key<Boolean>("com.qti.node.eisv2", boolean.class);
-        //captureBuilder.set(EISV2, true);
-        //CameraReflectionApi.native_set("com.qti.node.eisv2","1");
-        //Log.d(TAG,"Points:"+captureBuilder.get(TONEMAP_PRESET_CURVE));
     }
 
     void put(int in) {
@@ -296,6 +300,26 @@ public class Settings {
 
     void put(boolean in) {
         sharedPreferencesEditor.putBoolean(mCameraID+"Settings:" + count, in);
+        count++;
+    }
+
+    void put(int in,String name) {
+        sharedPreferencesEditor.putInt("ID"+mCameraID+"_"+name, in);
+        count++;
+    }
+
+    void put(double in,String name) {
+        sharedPreferencesEditor.putFloat("ID"+mCameraID+"_"+name, (float) in);
+        count++;
+    }
+
+    void put(String in,String name) {
+        sharedPreferencesEditor.putString("ID"+mCameraID+"_"+name, in);
+        count++;
+    }
+
+    void put(boolean in,String name) {
+        sharedPreferencesEditor.putBoolean("ID"+mCameraID+"_"+name, in);
         count++;
     }
 
@@ -324,5 +348,54 @@ public class Settings {
         result = (sharedPreferences.getString(mCameraID+"Settings:" + count, (cur)));
         count++;
         return result;
+    }
+
+    boolean get(boolean in,String name) {
+        boolean result = sharedPreferences.getBoolean("ID"+mCameraID+"_"+name, in);
+        count++;
+        return result;
+    }
+
+    int get(int cur,String name) {
+        int result;
+        result = sharedPreferences.getInt("ID"+mCameraID+"_"+name, cur);
+        count++;
+        return result;
+    }
+
+    double get(double cur,String name) {
+        double result;
+        result = sharedPreferences.getFloat("ID"+mCameraID+"_"+name, (float) (cur));
+        count++;
+        return result;
+    }
+
+    String get(String cur,String name) {
+        String result;
+        result = (sharedPreferences.getString("ID"+mCameraID+"_"+name, (cur)));
+        count++;
+        return result;
+    }
+    public void ExportSettings(){
+       Map<String, ?> allKeys =  sharedPreferences.getAll();
+       File configFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Settings.ini");
+       Properties props = new Properties();
+       try {
+           if (!configFile.exists()) configFile.createNewFile();
+           props.load(new FileInputStream(configFile));
+       }
+       catch(IOException e){
+           e.printStackTrace();
+           return;
+       }
+        for (Map.Entry<String, ?> entry : allKeys.entrySet()) {
+           props.setProperty(entry.getKey(),entry.getValue().toString());
+           Log.v(TAG,"setProperty:"+entry.getKey()+" = "+entry.getValue().toString());
+       }
+        try {
+            props.store(new FileOutputStream(configFile),"PhotonCamera settings file");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

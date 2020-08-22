@@ -37,26 +37,14 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     public void onBackPressed() {
-        /*if (CameraFragment.context.mState != 5) {
-            super.onBackPressed();
-            return;
-        }
-        Intent intent = this.getIntent();
-        this.finish();
-        this.startActivity(intent);
-        */
         super.onBackPressed();
         Animatoo.animateShrink(this);
     }
-
-    ImageView grid;
     public void onCameraResume(){
         Interface.i.swipedetection.RunDetection();
     }
     public static void onCameraViewCreated(){
         Interface.i.manual = new Manual();
-
-        //Interface.i.swipedetection.RunDetection();
     }
     public static void onCameraInitialization(){
         Camera2ApiAutoFix.Init();
@@ -68,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         act = this;
         Interface inter = new Interface(this);
-//        Wrapper.Test();
+        //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
 
         CameraFragment.context = CameraFragment.newInstance();
