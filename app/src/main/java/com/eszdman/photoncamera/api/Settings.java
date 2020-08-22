@@ -67,7 +67,7 @@ public class Settings {
     public boolean align = true;
     public boolean hdrx = true;
     public boolean hdrxNR = true;
-    public double saturation = 1.2;
+    public double saturation = 1.0;
     public double sharpness = 0.7;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;
