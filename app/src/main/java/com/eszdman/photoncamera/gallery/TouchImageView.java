@@ -10,10 +10,16 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 
-public class TouchImageView extends ImageView implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+import androidx.appcompat.widget.AppCompatImageView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
+import com.eszdman.photoncamera.R;
+
+public class TouchImageView extends AppCompatImageView implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+    private static final String TAG = "TouchImageView";
     Matrix matrix;
 
     // We can be in one of these 3 states
@@ -91,7 +97,6 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
                                 startInterceptEvent();
                             else
                                 stopInterceptEvent();
-
                             matrix.postTranslate(fixTransX, fixTransY);
                             fixTrans();
                             last.set(curr.x, curr.y);
@@ -131,7 +136,7 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
     @Override
     public boolean onDoubleTap(MotionEvent e) {
         // Double tap is detected
-        Log.i("MAIN_TAG", "Double tap detected");
+        Log.i(TAG, "Double tap detected");
         float origScale = saveScale;
         float mScaleFactor;
 
@@ -182,6 +187,7 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
 
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        Log.i(TAG, "Fling detected");
         return false;
     }
 
@@ -282,9 +288,17 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
                 return;
             int bmWidth = drawable.getIntrinsicWidth();
             int bmHeight = drawable.getIntrinsicHeight();
-
-            Log.d("bmSize", "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
-
+            Log.d(TAG, "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
+            Button exif = GalleryActivity.activity.findViewById(R.id.exif);
+            ConstraintLayout exiflayout = GalleryActivity.activity.findViewById(R.id.exif_layout);
+            if(exiflayout.getVisibility() == VISIBLE){
+                exif.callOnClick();
+                GalleryActivity.activity.startUpdate = true;
+            }
+            if(exiflayout.getVisibility() == INVISIBLE && GalleryActivity.activity.startUpdate){
+                exif.callOnClick();
+                GalleryActivity.activity.startUpdate = false;
+            }
             float scaleX = (float) viewWidth / (float) bmWidth;
             float scaleY = (float) viewHeight / (float) bmHeight;
             scale = Math.min(scaleX, scaleY);

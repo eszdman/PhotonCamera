@@ -55,19 +55,20 @@ public class Histogram extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawColor(Color.BLACK);
-        Log.d("NIRAV", "Height : " + getHeight() + ", Width : " + getWidth());
         float xInterval = ((float) getWidth() / ((float) SIZE + 1));
         for (int i = 0; i < 3; i++) {
             Paint wallpaint;
             wallpaint = new Paint();
 
                 if (i == 0) {
-                    wallpaint.setColor(RED);
+                    //wallpaint.setColor(0xFF0700);
+                    wallpaint.setARGB(255,0xFF,0x07,0x00);
                 } else if (i == 1) {
-                    wallpaint.setColor(GREEN);
+                    //wallpaint.setColor(0x1924B1);
+                    wallpaint.setARGB(255,0x19,0x24,0xB1);
                 } else {
-                    wallpaint.setColor(BLUE);
+                    //wallpaint.setColor(0x00C90D);
+                    wallpaint.setARGB(255,0x00,0xC9,0x0D);
                 }
             wallpaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
             wallpaint.setStyle(Paint.Style.FILL);

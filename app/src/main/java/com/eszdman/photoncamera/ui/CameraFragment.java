@@ -36,6 +36,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -157,6 +158,7 @@ public class CameraFragment extends Fragment
     public long mPreviewExposuretime;
     public int mPreviewIso;
     public Rational[] mPreviewTemp;
+    public ColorSpaceTransform mColorSpaceTransform;
     Range FpsRangeDef;
     Range FpsRangeHigh;
     private float mFocus;
@@ -418,6 +420,7 @@ public class CameraFragment extends Fragment
             if(iso != null) mPreviewIso = (int)iso;
             if(focus != null) mFocus = (float)focus; else focus = 0.f;
             mPreviewTemp = mtemp;
+            mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
             updateScreenLog(result);
         }

@@ -1,17 +1,17 @@
 package com.eszdman.photoncamera.gallery;
 
-import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.ImageDecoder;
-import android.graphics.Picture;
 import android.media.MediaScannerConnection;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
+import android.view.DragEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
@@ -37,7 +37,6 @@ import org.apache.commons.io.FilenameUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -49,17 +48,18 @@ public class GalleryActivity extends AppCompatActivity {
     private final String path = Environment.getExternalStorageDirectory().toString()+"/DCIM/Camera";
     private final File f = new File(path);
     private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
-
+    public static GalleryActivity activity;
+    public boolean startUpdate = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        activity = this;
         setContentView(R.layout.activity_gallery);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         final ViewPager viewPager = findViewById(R.id.view_pager);
         ImageAdapter adapter = new ImageAdapter(this, file);
         viewPager.setAdapter(adapter);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
-
         //delete image
         Button delete = findViewById(R.id.delete);
         delete.setOnClickListener(view -> {
@@ -114,27 +114,17 @@ public class GalleryActivity extends AppCompatActivity {
             intent.setType(mediaType);
             startActivity(intent);
         });
-
-
-        //gallery preview
-        /* ImageButton preview = findViewById(R.id.imageButton);
-        viewPager.setCurrentItem(0);
-        int firstpicture = viewPager.getCurrentItem();
-        File firstFile = new File(String.valueOf(file[firstpicture]));
-        Bitmap firstfileBitmap = BitmapFactory.decodeFile(firstFile.getAbsolutePath());
-        preview.setImageBitmap(firstfileBitmap);
-        */
         ConstraintLayout exifLayout = findViewById(R.id.exif_layout);
         Button exif = findViewById(R.id.exif);
         Histogram histogram = new Histogram(this);
         LinearLayout histogramview = findViewById(R.id.exif_histogram);
         Log.d("GalleryActivity","Offset:"+histogram.offset);
         histogramview.addView(histogram);
-        histogramview.setAlpha(0.45f);
+        //exifLayout.setAlpha(0.5f);
         exif.setOnClickListener(view -> {
-
             if(exifLayout.getVisibility() == View.VISIBLE) {exifLayout.setVisibility(View.INVISIBLE); return;}
             int position = viewPager.getCurrentItem();
+
             File currentFile = file[position];
             String fileName = currentFile.getName();
             Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
@@ -170,7 +160,6 @@ public class GalleryActivity extends AppCompatActivity {
                 Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
                 histogram.Analyze(bitmap);
 
-
                 title.setText(fileName.toUpperCase(Locale.ROOT));
                 res.setText(width + "x" + length);
                 device.setText(make + " " + model);
@@ -178,14 +167,14 @@ public class GalleryActivity extends AppCompatActivity {
                 if(exposure == null) exposure = "0";
                 String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
                 exp.setText(exposureTime);
-                isospeed.setText(iso);
+                isospeed.setText("ISO"+iso);
                 fnumber.setText("f/" + fnum);
                 fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
                 if(focal != null) {
                 //Removed uwu code
                 int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));
                 int denumerator = Integer.parseInt(focal.substring(focal.indexOf("/")+1));
-                focallength.setText(((double)(numerator)/denumerator) + " mm");
+                focallength.setText(((double)(numerator)/denumerator) + "mm");
                 } else {
                     focallength.setText("");
                 }

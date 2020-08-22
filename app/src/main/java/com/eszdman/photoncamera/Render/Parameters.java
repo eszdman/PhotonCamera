@@ -31,7 +31,7 @@ public class Parameters {
     public Point mapsize;
     public float[] gainmap;
     public String path;
-    public final float[] proPhotoToSRGB = new float[9];
+    public float[] proPhotoToSRGB = new float[9];
     public final float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
@@ -94,14 +94,15 @@ public class Parameters {
         float[] normalizedForwardTransform2 = new float[9];
 
         Converter.convertColorspaceTransform(calibr1, calibrationTransform1);
-        Converter.convertColorspaceTransform(forwardt1, normalizedForwardTransform1);
         Converter.convertColorspaceTransform(calibr2, calibrationTransform2);
+        Converter.convertColorspaceTransform(forwardt1, normalizedForwardTransform1);
         Converter.convertColorspaceTransform(forwardt2, normalizedForwardTransform2);
         Converter.convertColorspaceTransform(colmat1, normalizedColorMatrix1);
         Converter.convertColorspaceTransform(colmat2, normalizedColorMatrix2);
 
-        Converter.normalizeFM(normalizedForwardTransform2);
         Converter.normalizeFM(normalizedForwardTransform1);
+        Converter.normalizeFM(normalizedForwardTransform2);
+
         Converter.normalizeFM(normalizedColorMatrix1);
         Converter.normalizeFM(normalizedColorMatrix2);
         float[] sensorToXYZ = new float[9];
@@ -120,9 +121,28 @@ public class Parameters {
                 calibrationTransform1, calibrationTransform2, neutral,
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
+        sensorToProPhoto[0] = 1.0f/neutral[0].floatValue();
+        sensorToProPhoto[1] = 0.0f;
+        sensorToProPhoto[2] = 0.0f;
 
+        sensorToProPhoto[3] = 0.0f;
+        sensorToProPhoto[4] = 1.0f/neutral[1].floatValue();
+        sensorToProPhoto[5] = 0.0f;
+
+        sensorToProPhoto[6] = 0.0f;
+        sensorToProPhoto[7] = 0.0f;
+        sensorToProPhoto[8] = 1.0f/neutral[2].floatValue();
 
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
+        ColorSpaceTransform CCT = Interface.i.camera.mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        if(CCT != null) {
+            Rational[] temp = new Rational[9];
+            CCT.copyElements(temp, 0);
+            for (int i = 0; i < 9; i++) {
+                proPhotoToSRGB[i] = temp[i].floatValue();
+                Log.d(TAG,"\nTransform:"+proPhotoToSRGB[i]);
+            }
+        }
         File customCCM  = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//","customCCM.txt");
         Log.d(TAG,"customCCM exist:"+customCCM.exists());
         Scanner sc = null;

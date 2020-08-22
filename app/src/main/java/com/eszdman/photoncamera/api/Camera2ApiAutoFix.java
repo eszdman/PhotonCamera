@@ -41,9 +41,13 @@ public class Camera2ApiAutoFix {
         //fix.gains();
         fix.dynBL();
         fix.whitePoint();
+        fix.CCM();
     }
     private void whitePoint(){
         CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT,Interface.i.camera.mPreviewTemp);
+    }
+    private void CCM(){
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM,Interface.i.camera.mColorSpaceTransform);
     }
     public void curve(){
         CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);
