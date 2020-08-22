@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class GalleryActivity extends AppCompatActivity {
 
@@ -147,6 +148,7 @@ public class GalleryActivity extends AppCompatActivity {
 
                 TextView title = findViewById(R.id.value_filename);
                 TextView res = findViewById(R.id.value_res);
+                TextView res_mp = findViewById(R.id.value_res_mp);
                 TextView device = findViewById(R.id.value_device);
                 TextView datetime = findViewById(R.id.value_date);
                 TextView exp = findViewById(R.id.value_exposure);
@@ -155,20 +157,23 @@ public class GalleryActivity extends AppCompatActivity {
                 TextView fileSize = findViewById(R.id.value_filesize);
                 TextView focallength = findViewById(R.id.value_flength);
 
+                histogramview.removeAllViews();
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
                 histogram.Analyze(bitmap);
+                histogramview.addView(histogram);
 
                 title.setText(fileName.toUpperCase(Locale.ROOT));
                 res.setText(width + "x" + length);
+                res_mp.setText(String.format("%.1f", Double.parseDouble(Objects.requireNonNull(width)) * Double.parseDouble(Objects.requireNonNull(length)) / 1E6) + " MP");
                 device.setText(make + " " + model);
                 datetime.setText(date);
                 if(exposure == null) exposure = "0";
                 String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
-                exp.setText(exposureTime);
-                isospeed.setText("ISO"+iso);
-                fnumber.setText("f/" + fnum);
+                exp.setText(exposureTime + "s");
+                isospeed.setText("ISO" + iso);
+                fnumber.setText("\u0192/" + fnum);
                 fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
                 if(focal != null) {
                 //Removed uwu code
