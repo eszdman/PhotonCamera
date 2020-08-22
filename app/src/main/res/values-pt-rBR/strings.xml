@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Photon Camera</string>
+    <string name="request_permission">Este aplicativo necessita de permissão para acesso à câmera.</string>
+    <string name="camera_error">Este aparelho não suporta Camera2 API.</string>
+    <string name="luma_nr_count">Contagem de redução de ruido de luminância:</string>
+    <string name="frame_count">Contagem de quadros:</string>
+    <string name="disable_aligning">Desabilitar alinhamento</string>
+    <string name="turn_on_system_nr">Ativar redução de ruído do sistema</string>
+    <string name="chroma_nr_count">Contagem de redução de ruído de cromático:</string>
+    <string name="enhanced_processing">Processamento Aprimorado</string>
+    <string name="settings">"Configurações "</string>
+    <string name="comp">Compressor:</string>
+    <string name="gain">Ganho:</string>
+    <string name="contrmul">Multiplicação de Contraste:</string>
+    <string name="contrconst">Constante:</string>
+    <string name="saturation">Saturação:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Nitidez:</string>
+    <string name="turn_on_grid">Mostrar grade</string>
+    <string name="raw">Salvar RAW</string>
+    <string name="turn_on_round_edges">"Habilitar cantos arredondados "</string>
+    <string name="enable_remosaic">"Habilitar Remosaico "</string>
+    <string name="general">"Geral "</string>
+    <string name="telegram">"Grupo no Telegram "</string>
+    <string name="hdrxNR">Redução de Ruído HDRX</string>
+    <string name="turn_on_watermark">"Habilitar marca d'água "</string>
+    <string name="sure_delete">Você tem certeza que quer excluir esta imagem?</string>
+    <string name="cancel">Cancelar</string>
+    <string name="yes">Sim</string>
+    <string name="image_deleted">"Imagem excluída "</string>
+    <string name="close">"Fechar "</string>
+    <string name="unknown">"Desconhecido "</string>
+    <string name="resolution">"Resolução:"</string>
+    <string name="size">"Tamanho do arquivo:"</string>
+    <string name="device">"Aparelho:"</string>
+    <string name="date">"Data:"</string>
+    <string name="iso">"ISO:"</string>
+    <string name="exposure_time">"Tempo de Exposição:"</string>
+    <string name="aperture">"Abertura:"</string>
+    <string name="flength">"Comprimento focal:"</string>
+    <string name="info">"Informações "</string>
+    <string name="filename">"Nome do arquivo:"</string>
+</resources>

@@ -68,6 +68,7 @@ public class IsoExpoSelector {
         pair.denormalizeSystem();
         return pair;
     }
+
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
@@ -206,7 +207,7 @@ public class IsoExpoSelector {
             if(normalizeCheck()) ReduceExpo(1/k);
         }
         public String ExposureString(){
-         return ExposureIndex.sec2string(ExposureIndex.time2sec(exposure));
+            return ExposureIndex.sec2string(ExposureIndex.time2sec(exposure));
         }
     }
 }

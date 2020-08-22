@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
 import android.util.Log;
-import android.util.Rational;
 
 import androidx.exifinterface.media.ExifInterface;
 
@@ -68,8 +67,8 @@ public class ParseExif {
         Log.d(TAG, "sensivity:"+isonum);
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
         inter.setAttribute(TAG_F_NUMBER,result.get(LENS_APERTURE).toString());
-        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100*(double)result.get(LENS_FOCAL_LENGTH)))+"/100");
-        //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString()+"/1.0");
+        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * (double)result.get(LENS_FOCAL_LENGTH)))+"/100");
+        //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
         inter.setAttribute(TAG_EXPOSURE_TIME,getTime(result.get(SENSOR_EXPOSURE_TIME)));
@@ -85,7 +84,7 @@ public class ParseExif {
             e.printStackTrace();
         }
         inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.i.parameters.toString()+
-                "\n"+"Version:"+version);
+                "\n"+"Version:" + version);
         return inter;
     }
 

@@ -36,6 +36,7 @@ public class SettingsActivity extends AppCompatActivity {
     Switch rawSaving;
     Switch remosaic;
     Switch watermarkOnOff;
+    Switch afdataOnOff;
 
     SeekBar frameCount;
     SeekBar lumenCount;
@@ -287,6 +288,7 @@ public class SettingsActivity extends AppCompatActivity {
         setv(rawSaving,Interface.i.settings.rawSaver);
         setv(remosaic,Interface.i.settings.remosaic);
         setv(watermarkOnOff, Interface.i.settings.watermark);
+        setv(afdataOnOff, Interface.i.settings.afdata);
 
         setv(hdrxNR,Interface.i.settings.hdrxNR);
         setv(sharp, Interface.i.settings.sharpness);
@@ -303,6 +305,7 @@ public class SettingsActivity extends AppCompatActivity {
     void views() {
         gridOnOff = getView(R.id.setting_grid);
         watermarkOnOff = getView(R.id.setting_watermark);
+        afdataOnOff = getView(R.id.setting_afdata);
         roundoption = getView(R.id.setting_roundedge);
         rawSaving = getView(R.id.setting_raw);
         remosaic = getView(R.id.setting_remosaic);
@@ -343,6 +346,7 @@ public class SettingsActivity extends AppCompatActivity {
         Interface.i.settings.rawSaver = rawSaving.isChecked();
         Interface.i.settings.remosaic = remosaic.isChecked();
         Interface.i.settings.watermark = watermarkOnOff.isChecked();
+        Interface.i.settings.afdata = afdataOnOff.isChecked();
         save();
     }
 
