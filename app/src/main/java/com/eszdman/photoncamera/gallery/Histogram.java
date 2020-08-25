@@ -4,18 +4,11 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
-import android.util.Log;
-import android.util.Size;
 import android.view.View;
-
-import static android.graphics.Color.BLUE;
-import static android.graphics.Color.GREEN;
-import static android.graphics.Color.RED;
 
 public class Histogram extends View {
     private int SIZE = 256;
@@ -28,8 +21,8 @@ public class Histogram extends View {
     public void Analyze(Bitmap bitmap){
         colorsMap = new int[3][SIZE];
         maxY = 0;
-        for(int h = 0; h<bitmap.getHeight()/8;h++){
-            for(int w = 0; w<bitmap.getWidth()/8;w++){
+        for(int h = 0; h<bitmap.getHeight();h++){
+            for(int w = 0; w<bitmap.getWidth();w++){
                 int rgba = bitmap.getPixel(w,h);
                 colorsMap[0][((rgba) & 0xff)]++;
                 colorsMap[1][((rgba >>  8) & 0xff)]++;
@@ -55,36 +48,38 @@ public class Histogram extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float xInterval = ((float) getWidth() / ((float) SIZE + 1));
+        int width = getWidth();
+        int height = getHeight();
+        float xInterval =((float)getWidth()/((float)SIZE+1));
+        Paint wallpaint;
+        wallpaint = new Paint();
+        wallpaint.setAntiAlias(true);
+        wallpaint.setStyle(Paint.Style.STROKE);
+        wallpaint.setARGB(100,255,255,255);
+        canvas.drawRect(0,0,width,height,wallpaint);
+        canvas.drawLine(width/3.f,0,width/3.f,height,wallpaint);
+        canvas.drawLine(2.f*width/3.f,0,2.f*width/3.f,height,wallpaint);
+        Path wallpath = new Path();
         for (int i = 0; i < 3; i++) {
-            Paint wallpaint;
-            wallpaint = new Paint();
-
                 if (i == 0) {
                     //wallpaint.setColor(0xFF0700);
-                    wallpaint.setARGB(255,0xFF,0x07,0x00);
+                    wallpaint.setARGB(0xFF,0xFF,0x07,0x00);
                 } else if (i == 1) {
                     //wallpaint.setColor(0x1924B1);
-                    wallpaint.setARGB(255,0x19,0x24,0xB1);
+                    wallpaint.setARGB(0xFF,0x19,0x24,0xB1);
                 } else {
                     //wallpaint.setColor(0x00C90D);
-                    wallpaint.setARGB(255,0x00,0xC9,0x0D);
+                    wallpaint.setARGB(0xFF,0x00,0xC9,0x0D);
                 }
             wallpaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
             wallpaint.setStyle(Paint.Style.FILL);
-            Path wallpath = new Path();
             wallpath.reset();
-            wallpath.moveTo(0, getHeight());
+            wallpath.moveTo(0, height);
             for (int j = 0; j < SIZE; j++) {
-                int value = (int) (((double) colorsMap[i][j]) * ((double) (getHeight())/maxY));
-                //if(j==0) {
-                //   wallpath.moveTo(j * xInterval* offset, getHeight() - value);
-                //}
-                // else {
-                wallpath.lineTo(j * xInterval, getHeight() - value);
-                // }
+                float value = (((float)colorsMap[i][j])*((float)(height)/maxY));
+                wallpath.lineTo(j * xInterval, height - value);
             }
-            wallpath.lineTo(SIZE * offset, getHeight());
+            wallpath.lineTo(SIZE * offset, height);
             canvas.drawPath(wallpath, wallpaint);
         }
 

@@ -1,8 +1,13 @@
 package com.eszdman.photoncamera.gallery;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.icu.text.DateFormat;
+import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
+import android.icu.util.TimeZone;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,6 +29,7 @@ import androidx.core.content.FileProvider;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
+import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.util.Utilities;
 
@@ -34,9 +40,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
+import rapid.decoder.BitmapDecoder;
 
 public class GalleryActivity extends AppCompatActivity {
 
@@ -47,6 +56,7 @@ public class GalleryActivity extends AppCompatActivity {
     private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
     public static GalleryActivity activity;
     public boolean startUpdate = false;
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,11 +110,11 @@ public class GalleryActivity extends AppCompatActivity {
             int position = viewPager.getCurrentItem();
             File newFile = new File(String.valueOf(file[position]));
             String fileName = newFile.getName();
-
-            String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
-
-            Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
-
+            String mediaType = MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
+            Uri uri = FileProvider.getUriForFile(GalleryActivity.this,
+                    GalleryActivity.this.getPackageName() +
+                            ".provider", new File(path + "/" + fileName));
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.putExtra(Intent.EXTRA_STREAM, uri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -117,14 +127,14 @@ public class GalleryActivity extends AppCompatActivity {
         LinearLayout histogramview = findViewById(R.id.exif_histogram);
         Log.d("GalleryActivity","Offset:"+histogram.offset);
         histogramview.addView(histogram);
-        //exifLayout.setAlpha(0.5f);
         exif.setOnClickListener(view -> {
             if(exifLayout.getVisibility() == View.VISIBLE) {exifLayout.setVisibility(View.INVISIBLE); return;}
             int position = viewPager.getCurrentItem();
 
             File currentFile = file[position];
             String fileName = currentFile.getName();
-            Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() + ".provider", new File(path + "/" + fileName));
+            Uri uri = FileProvider.getUriForFile(GalleryActivity.this, GalleryActivity.this.getPackageName() +
+                    ".provider", new File(path + "/" + fileName));
 
             try (InputStream inputStream = GalleryActivity.this.getContentResolver().openInputStream(uri)) {
                 assert inputStream != null;
@@ -134,12 +144,12 @@ public class GalleryActivity extends AppCompatActivity {
                 String length = exif1.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
                 String make = exif1.getAttribute(ExifInterface.TAG_MAKE);
                 String model = exif1.getAttribute(ExifInterface.TAG_MODEL);
-                String date = exif1.getAttribute(ExifInterface.TAG_DATETIME);
+                //String date = exif1.getAttribute(ExifInterface.TAG_DATETIME);
                 String exposure = exif1.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
                 String iso = exif1.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
                 String fnum = exif1.getAttribute(ExifInterface.TAG_F_NUMBER);
                 String focal = exif1.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
-
+                if(exposure == null) exposure = "0";
 
 
                 TextView title = findViewById(R.id.value_filename);
@@ -156,26 +166,37 @@ public class GalleryActivity extends AppCompatActivity {
                 histogramview.removeAllViews();
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bitmap = BitmapFactory.decodeFile(currentFile.getAbsolutePath(), options);
-                histogram.Analyze(bitmap);
+                Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
+                assert preview != null;
+                histogram.Analyze(preview);
                 histogramview.addView(histogram);
 
                 title.setText(fileName.toUpperCase(Locale.ROOT));
-                res.setText(width + "x" + length);
-                res_mp.setText(String.format("%.1f", Double.parseDouble(Objects.requireNonNull(width)) * Double.parseDouble(Objects.requireNonNull(length)) / 1E6) + " MP");
-                device.setText(make + " " + model);
-                datetime.setText(date);
-                if(exposure == null) exposure = "0";
+                res.setText((width + "x" + length));
+                res_mp.setText((String.format(Locale.US,"%.1f",
+                        Double.parseDouble(Objects.requireNonNull(width))*
+                               Double.parseDouble(Objects.requireNonNull(length))/1E6)+" MP"));
+                device.setText((make + " " + model));
+
+                @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
+                        DateFormat.DAY+" "+DateFormat.MONTH+" "+
+                                DateFormat.YEAR+" "+DateFormat.WEEKDAY+" "+
+                                "H:m:s");
+                dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+                Date photoDate = new Date(currentFile.lastModified());
+                //dateFormat.format(photoDate);
+                datetime.setText(dateFormat.format(photoDate).toUpperCase());
+
                 String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
-                exp.setText(exposureTime + "s");
-                isospeed.setText("ISO" + iso);
-                fnumber.setText("\u0192/" + fnum);
+                exp.setText((exposureTime + "s"));
+                isospeed.setText(("ISO" + iso));
+                fnumber.setText(("\u0192/" + fnum));
                 fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
                 if(focal != null) {
-                //Removed uwu code
+                //Improved uwu code
                 int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));
                 int denumerator = Integer.parseInt(focal.substring(focal.indexOf("/")+1));
-                focallength.setText(((double)(numerator)/denumerator) + "mm");
+                focallength.setText((((double)(numerator)/denumerator) + "mm"));
                 } else {
                     focallength.setText("");
                 }

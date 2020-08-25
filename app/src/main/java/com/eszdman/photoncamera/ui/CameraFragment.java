@@ -38,9 +38,13 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.ExifInterface;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.ThumbnailUtils;
+import android.net.Uri;
 import android.os.*;
+import android.provider.MediaStore;
 import android.util.*;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -67,10 +71,13 @@ import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;
@@ -78,6 +85,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
+
+import rapid.decoder.BitmapDecoder;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -671,9 +680,13 @@ public class CameraFragment extends Fragment
                     lastModifiedTime = f.lastModified();
                 }
             }
-            //TODO replace this with Bitmap.createScaledBitmap later
-            Bitmap bitmap = BitmapFactory.decodeFile(lastImage.getAbsolutePath());
-            Interface.i.cameraui.galleryImageButton.setImageBitmap(bitmap);
+            //Used fastest decoder on the wide west
+            if(lastImage != null) {
+                    Interface.i.cameraui.galleryImageButton.setImageBitmap(
+                            BitmapDecoder.from(Uri.fromFile(lastImage))
+                                    .scaleBy(0.1f)
+                                    .decode());
+            }
         }
     }
 

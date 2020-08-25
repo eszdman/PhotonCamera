@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.api;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Build;
@@ -12,10 +13,16 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
 
+import androidx.loader.content.CursorLoader;
+
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;
 import java.util.Comparator;
+
+import rapid.decoder.BitmapDecoder;
+
+import static com.eszdman.photoncamera.gallery.GalleryActivity.activity;
 
 public class Photo {
     public static Photo instance;
@@ -99,12 +106,8 @@ public class Photo {
         try {
             Bitmap thumb = null;
             Message uriMessage = new Message();
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                thumb = ThumbnailUtils.createImageThumbnail(in, new Size(120, 120), null);
-                uriMessage.obj = thumb;
-            } else {
-                uriMessage.obj = contentUri;
-            }
+            thumb = BitmapDecoder.from(Uri.fromFile(in)).scaleBy(0.1f).decode();
+            uriMessage.obj = thumb;
             galleryHandler.sendMessage(uriMessage);
         } catch (Exception e) {
             e.printStackTrace();
