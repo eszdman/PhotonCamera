@@ -146,16 +146,16 @@ public class ImageProcessing {
     }
     void clearProcessingCycle(){
         try {
-            CameraFragment.loadingcycle.setProgress(0);
+            Interface.i.cameraui.loadingcycle.setProgress(0);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     void incrementProcessingCycle(){
         try {
-            int progress = (CameraFragment.loadingcycle.getProgress() + 1) % (CameraFragment.loadingcycle.getMax() + 1);
+            int progress = (Interface.i.cameraui.loadingcycle.getProgress() + 1) % (Interface.i.cameraui.loadingcycle.getMax() + 1);
             progress = Math.max(1, progress);
-            CameraFragment.loadingcycle.setProgress(progress);
+            Interface.i.cameraui.loadingcycle.setProgress(progress);
         } catch (Exception e){
             e.printStackTrace();
         }

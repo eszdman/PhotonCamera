@@ -35,9 +35,9 @@ public class Photo {
             }
             try {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    Interface.i.camera.galleryImageButton.setImageBitmap(bmp);
+                    Interface.i.cameraui.galleryImageButton.setImageBitmap(bmp);
                 } else {
-                    Interface.i.camera.galleryImageButton.setImageURI(uri);
+                    Interface.i.cameraui.galleryImageButton.setImageURI(uri);
                 }
             } catch (Exception e) {
                 e.printStackTrace();

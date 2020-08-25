@@ -1,9 +1,10 @@
 package com.eszdman.photoncamera.api;
 
 import android.app.ActivityManager;
-import android.renderscript.RenderScript;
+
 import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Manual;
+import com.eszdman.photoncamera.Control.Sensors;
 import com.eszdman.photoncamera.Control.Swipe;
 import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
@@ -24,10 +25,11 @@ public class Interface {
     public final ImageProcessing processing;
     public final Swipe swipedetection;
     public final Gravity gravity;
+    public final Sensors sensors;
     public Manual manual;
-    public RenderScript rs;
     public final Parameters parameters;
     public final TouchFocus touchFocus;
+    public final CameraUI cameraui;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
@@ -39,6 +41,8 @@ public class Interface {
         swipedetection = new Swipe();
         touchFocus = new TouchFocus();
         parameters = new Parameters();
+        sensors = new Sensors();
+        cameraui = new CameraUI();
     }
     // Get a MemoryInfo object for the device's current memory status.
     public ActivityManager.MemoryInfo getAvailableMemory() {

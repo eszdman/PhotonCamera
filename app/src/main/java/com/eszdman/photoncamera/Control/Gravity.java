@@ -10,6 +10,7 @@ import android.util.Log;
 import com.eszdman.photoncamera.api.Interface;
 
 public class Gravity {
+    private static final String TAG = "Gravity";
     private final SensorManager mSensorManager;
     private final Sensor mGravitySensor;
     public float[] mGravity;
@@ -24,18 +25,13 @@ public class Gravity {
         mSensorManager.registerListener(mGravityTracker,mGravitySensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
     public void stop(){
+        mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGravitySensor);
     }
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            if (mGravity == null) {
-                mGravity = sensorEvent.values.clone();
-            }
-
-            for (int i = 0; i < sensorEvent.values.length; i++) {
-                mGravity[i] = sensorEvent.values[i];
-            }
+            mGravity = sensorEvent.values;
         }
 
         @Override
@@ -46,7 +42,6 @@ public class Gravity {
         if (mGravity == null) {
             return 90;
         }
-        String TAG = "Gravity";
         for(float f:mGravity) Log.d(TAG,"gravity:"+f);
         if (mGravity[2] > 9f) //pointing at the ground
             return 90;

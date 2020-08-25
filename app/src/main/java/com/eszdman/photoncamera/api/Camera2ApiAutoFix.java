@@ -17,7 +17,7 @@ import java.lang.reflect.Field;
 import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
 public class Camera2ApiAutoFix {
-    private static String TAG = "Camera2ApiAutoFix";
+    private static final String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;
     private CaptureResult result;
     Camera2ApiAutoFix(CameraCharacteristics characteristic) {
@@ -39,7 +39,7 @@ public class Camera2ApiAutoFix {
         CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         //fix.gains();
-        fix.dynBL();
+        fix.BL();
         fix.whitePoint();
         fix.CCM();
     }
@@ -102,7 +102,7 @@ public class Camera2ApiAutoFix {
         Log.d(TAG,"Overrided channelVector:"+rggbChannelVector.toString());
     }
     @SuppressLint("NewApi")
-    public void dynBL(){
+    public void BL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         BlackLevelPattern ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if(ptr == null) return;

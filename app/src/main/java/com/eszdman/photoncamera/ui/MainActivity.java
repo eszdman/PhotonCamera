@@ -40,16 +40,6 @@ public class MainActivity extends AppCompatActivity {
         super.onBackPressed();
         Animatoo.animateShrink(this);
     }
-    public void onCameraResume(){
-        Interface.i.swipedetection.RunDetection();
-    }
-    public static void onCameraViewCreated(){
-        Interface.i.manual = new Manual();
-    }
-    public static void onCameraInitialization(){
-        Camera2ApiAutoFix.Init();
-        Interface.i.manual.Init();
-    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

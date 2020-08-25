@@ -61,8 +61,8 @@ public class ImageSaver implements Runnable {
         return dir.getAbsolutePath();
     }
     private void unlock(){
-        Interface.i.camera.shot.setActivated(true);
-        Interface.i.camera.shot.setClickable(true);
+        Interface.i.cameraui.shot.setActivated(true);
+        Interface.i.cameraui.shot.setClickable(true);
     }
     private void end(ImageReader mReader){
         Image last = mReader.acquireLatestImage();
@@ -122,8 +122,8 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        Interface.i.camera.shot.setActivated(true);
-                        Interface.i.camera.shot.setClickable(true);
+                        Interface.i.cameraui.shot.setActivated(true);
+                        Interface.i.cameraui.shot.setClickable(true);
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -159,8 +159,8 @@ public class ImageSaver implements Runnable {
                     if (Interface.i.settings.frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        Interface.i.camera.shot.setActivated(true);
-                        Interface.i.camera.shot.setClickable(true);
+                        Interface.i.cameraui.shot.setActivated(true);
+                        Interface.i.cameraui.shot.setClickable(true);
                     }
                     bcnt++;
                 } catch (IOException e) {
@@ -199,8 +199,8 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        Interface.i.camera.shot.setActivated(true);
-                        Interface.i.camera.shot.setClickable(true);
+                        Interface.i.cameraui.shot.setActivated(true);
+                        Interface.i.cameraui.shot.setClickable(true);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

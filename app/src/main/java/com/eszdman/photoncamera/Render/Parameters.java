@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.Render;
 import android.annotation.SuppressLint;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;

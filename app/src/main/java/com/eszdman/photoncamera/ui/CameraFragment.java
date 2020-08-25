@@ -50,7 +50,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
@@ -79,11 +78,8 @@ import java.util.concurrent.TimeUnit;
 
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
-import com.eszdman.photoncamera.util.Utilities;
-import de.hdodenhof.circleimageview.CircleImageView;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
-import static com.eszdman.photoncamera.ui.MainActivity.onCameraViewCreated;
 
 public class CameraFragment extends Fragment
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
@@ -465,6 +461,7 @@ public class CameraFragment extends Fragment
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
+            dataset.put("Shakeness", String.valueOf(Interface.i.sensors.getShakeness()));
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
@@ -609,17 +606,12 @@ public class CameraFragment extends Fragment
         return getAdjustedLayout(aspectRatio, activity_main);
     }
 
-    public ImageButton shot;
-    public ProgressBar lightcycle;
-    public static ProgressBar loadingcycle;
-    public CircleImageView galleryImageButton;
-
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                shot.setActivated(false);
-                shot.setClickable(false);
+                Interface.i.cameraui.shot.setActivated(false);
+                Interface.i.cameraui.shot.setClickable(false);
                 takePicture();
                 break;
             }
@@ -653,81 +645,8 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-        onCameraViewCreated();
-        Interface.i.touchFocus.ReInit();
-        lightcycle = view.findViewById(R.id.lightCycle);
-        lightcycle.setAlpha(0);
-        lightcycle.setMax(Interface.i.settings.frameCount);
-        //lightcycle.setMin(0);
-        loadingcycle = view.findViewById(R.id.progressloading);
-        loadingcycle.setMax(Interface.i.settings.frameCount);
-        shot = view.findViewById(R.id.picture);
-        shot.setOnClickListener(this);
-        shot.setActivated(true);
-        ToggleButton fpsPreview = view.findViewById(R.id.fpsPreview);
-        fpsPreview.setChecked(Interface.i.settings.fpsPreview);
-        ToggleButton quadResolution = view.findViewById(R.id.quadRes);
-        quadResolution.setChecked(Interface.i.settings.QuadBayer);
-        ToggleButton eisPhoto = view.findViewById(R.id.eisPhoto);
-        eisPhoto.setChecked(Interface.i.settings.eisPhoto);
-        eisPhoto.setOnClickListener(v -> {
-            Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
-            Interface.i.settings.save();
-        });
-        fpsPreview.setOnClickListener(v -> {
-            Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
-            Interface.i.settings.save();
-        });
-        quadResolution.setOnClickListener(v -> {
-            Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
-            Interface.i.settings.save();
-            restartCamera();
-        });
-        ImageButton flip = view.findViewById(R.id.flip_camera);
-        flip.setOnClickListener(v -> {
-                flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
-                Interface.i.settings.mCameraID = cycler(Interface.i.settings.mCameraID, mCameraIds);
-                Interface.i.settings.save();
-                restartCamera();
-            });
-        Button settings = view.findViewById(R.id.settings);
-        settings.setOnClickListener(this);
-        ToggleButton hdrX = view.findViewById(R.id.stacking);
-        hdrX.setOnClickListener(this);
-        galleryImageButton = view.findViewById(R.id.ImageOut);
-        galleryImageButton.setOnClickListener(this);
-        galleryImageButton.setClickable(true);
-        loadGalleryButtonImage();
-        ToggleButton night = view.findViewById(R.id.nightMode);
-        ToggleButton video = view.findViewById(R.id.videoMode);
-        ToggleButton camera = view.findViewById(R.id.cameraMode);
-        camera.setChecked(true);
-        night.setChecked(Interface.i.settings.nightMode);
-        night.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(night.isChecked()){
-                camera.setChecked(false);
-                video.setChecked(false);
-            }
-            Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
-            Interface.i.settings.save();
-            restartCamera();
-        });
-
-        camera.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(camera.isChecked()){
-                night.setChecked(false);
-                video.setChecked(false);
-            }
-        });
-
-        video.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if(video.isChecked()){
-                night.setChecked(false);
-                camera.setChecked(false);
-            }
-        });
-
         mTextureView = view.findViewById(R.id.texture);
+        Interface.i.cameraui.onCameraViewCreated();
     }
 
     @Override
@@ -736,7 +655,7 @@ public class CameraFragment extends Fragment
 
     }
 
-    private void loadGalleryButtonImage() {
+    public void loadGalleryButtonImage() {
         File[] files = FileManager.DCIM_CAMERA.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
@@ -754,29 +673,14 @@ public class CameraFragment extends Fragment
             }
             //TODO replace this with Bitmap.createScaledBitmap later
             Bitmap bitmap = BitmapFactory.decodeFile(lastImage.getAbsolutePath());
-            galleryImageButton.setImageBitmap(bitmap);
+            Interface.i.cameraui.galleryImageButton.setImageBitmap(bitmap);
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        Log.d(TAG,"CameraResume");
-        MainActivity.act.onCameraResume();
-        Interface.i.touchFocus.ReInit();
-        ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
-        ImageView edges = MainActivity.act.findViewById(R.id.edges);
-        ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
-        Interface.i.gravity.run();
-        if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
-        else grid_icon.setVisibility(View.GONE);
-        if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
-        else edges.setVisibility(View.GONE);
-        hdrX.setChecked(Interface.i.settings.hdrx);
-        ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
-        night.setChecked(Interface.i.settings.nightMode);
-        startBackgroundThread();
+        Interface.i.cameraui.onCameraResume();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -788,9 +692,8 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onPause() {
-        Interface.i.gravity.stop();
+        Interface.i.cameraui.onCameraPause();
         closeCamera();
-        Interface.i.settings.saveID();
         stopBackgroundThread();
         super.onPause();
     }
@@ -1011,7 +914,7 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
-        MainActivity.onCameraInitialization();
+        Interface.i.cameraui.onCameraInitialization();
     }
 
     @SuppressLint("MissingPermission")
@@ -1091,7 +994,7 @@ public class CameraFragment extends Fragment
     }*/
 
     /**
-     * Opens the camera specified by {@link CameraFragment#mCameraId}.
+     * Opens the camera specified by {@link CameraFragment#mCameraIds}.
      */
     private void openCamera(int width, int height) {
         context = this;
@@ -1149,7 +1052,7 @@ public class CameraFragment extends Fragment
     /**
      * Starts a background thread and its {@link Handler}.
      */
-    private void startBackgroundThread() {
+    public void startBackgroundThread() {
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
@@ -1408,7 +1311,7 @@ public class CameraFragment extends Fragment
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.i.gravity.getCameraRotation());
             captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
-            lightcycle.setMax(FrameNumberSelector.frameCount);
+            Interface.i.cameraui.lightcycle.setMax(FrameNumberSelector.frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
@@ -1420,7 +1323,7 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
             Log.d(TAG,"CaptureStarted!");
-            lightcycle.setAlpha(1.0f);
+            Interface.i.cameraui.lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
@@ -1428,7 +1331,7 @@ public class CameraFragment extends Fragment
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    lightcycle.setProgress(lightcycle.getProgress() + 1);
+                    Interface.i.cameraui.lightcycle.setProgress(Interface.i.cameraui.lightcycle.getProgress() + 1);
                     Log.v(TAG,"Completed!");
                     mCaptureResult = result;
                 }
@@ -1443,8 +1346,8 @@ public class CameraFragment extends Fragment
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG,"SequenceCompleted");
                     try {
-                        lightcycle.setAlpha(0f);
-                        lightcycle.setProgress(0);
+                        Interface.i.cameraui.lightcycle.setAlpha(0f);
+                        Interface.i.cameraui.lightcycle.setProgress(0);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e){
                     e.printStackTrace();
@@ -1461,8 +1364,8 @@ public class CameraFragment extends Fragment
                     if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
-                            lightcycle.setAlpha(0f);
-                            lightcycle.setProgress(0);
+                            Interface.i.cameraui.lightcycle.setAlpha(0f);
+                            Interface.i.cameraui.lightcycle.setProgress(0);
                             mTextureView.setAlpha(1f);
                             createCameraPreviewSession();
                             FixPreview = false;
@@ -1586,7 +1489,7 @@ public class CameraFragment extends Fragment
     /**
      * Start the timer for the pre-capture sequence.
      * <p/>
-     * Call this only with {@link #mCameraStateLock} held.
+     * Call this only with { #mCameraStateLock} held.
      */
     private void startTimerLocked() {
         mCaptureTimer = SystemClock.elapsedRealtime();
@@ -1595,7 +1498,7 @@ public class CameraFragment extends Fragment
     /**
      * Check if the timer for the pre-capture sequence has been hit.
      * <p/>
-     * Call this only with {@link #mCameraStateLock} held.
+     * Call this only with { #mCameraStateLock} held.
      *
      * @return true if the timeout occurred.
      */
