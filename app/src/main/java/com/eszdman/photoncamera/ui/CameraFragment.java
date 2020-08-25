@@ -461,6 +461,7 @@ public class CameraFragment extends Fragment
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
+            surfaceView.update(null);
             cl.setVisibility(View.GONE);
         }
     }
