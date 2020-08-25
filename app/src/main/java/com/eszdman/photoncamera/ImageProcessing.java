@@ -7,6 +7,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
+import android.media.MediaPlayer;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
@@ -438,5 +439,7 @@ public class ImageProcessing {
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
         clearProcessingCycle();
+        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
+        processingPlayer.start();
     }
 }

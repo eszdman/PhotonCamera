@@ -38,23 +38,17 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.ExifInterface;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.*;
-import android.provider.MediaStore;
 import android.util.*;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
@@ -72,13 +66,10 @@ import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;
@@ -1340,7 +1331,7 @@ public class CameraFragment extends Fragment
             Interface.i.cameraui.lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
             MediaPlayer burstPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst);
-            MediaPlayer endPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.processing_end);
+            MediaPlayer endPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst_end);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
