@@ -452,9 +452,12 @@ public class CameraFragment extends Fragment
             dataset.put("ISO", String.valueOf(expoPair.iso));
             dataset.put("Shakeness", String.valueOf(Interface.i.sensors.getShakeness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
-            RectF rect = getScreenRectFromMeteringRect(Objects.requireNonNull(result.get(CaptureResult.CONTROL_AF_REGIONS), "MeteringRectangle[] is Null!")[0]);
-            dataset.put("F_RECT(px)", rect.toString());
-            surfaceView.update(rect);
+            MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
+            if(rectobj != null && rectobj.length > 0) {
+                RectF rect = getScreenRectFromMeteringRect(rectobj[0]);
+                dataset.put("F_RECT(px)", rect.toString());
+                surfaceView.update(rect);
+            }
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
@@ -465,17 +468,15 @@ public class CameraFragment extends Fragment
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
         Rect sensor = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if (sensor != null) {
-            float left = (((float) meteringRectangle.getY() / sensor.height()) * surfaceView.getHeight()) + surfaceView.getY();
-            float top = (((float) meteringRectangle.getX() / sensor.width()) * surfaceView.getWidth());
-
-            float width = (((float) meteringRectangle.getHeight() / sensor.height()) * surfaceView.getHeight());
-            float height = (((float) meteringRectangle.getWidth() / sensor.width()) * surfaceView.getWidth());
-
+            float left = (((float) meteringRectangle.getY() / sensor.height()) * (surfaceView.getWidth()));
+            float top = (((float) meteringRectangle.getX() / sensor.width())* (surfaceView.getHeight()));
+            float width = (((float) meteringRectangle.getHeight() / sensor.height()) * (surfaceView.getWidth()));
+            float height = (((float) meteringRectangle.getWidth() / sensor.width()) * (surfaceView.getHeight()));
             return new RectF(
-                    left, //Left
-                    top,   //Top
+                          left        , //Left
+                          top         ,  //Top
                     left + width,//Right
-                    top + height //Bottom
+                    top+height //Bottom
             );
         }
         return new RectF();

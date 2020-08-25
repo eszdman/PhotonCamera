@@ -74,24 +74,25 @@ public class TouchFocus {
             x = 0;
         if (y<0)
             y = 0;
-        if (y > CurUi.y)
+        /*if (y > CurUi.y)
             y = CurUi.y;
         if (x > CurUi.x)
-            x  =CurUi.x;
+            x  =CurUi.x;*/
         //use 1/8 from the the sensor size for the focus rect
-        int width_to_set = sizee.width()/8;
-        int height_to_set = width_to_set;
-        float x_scale = (float)sizee.width()/(float)CurUi.x;
-        float y_scale = (float)sizee.height()/(float)CurUi.y;
-        int x_to_set = (int)(x * x_scale) -width_to_set/2;
+        int width_to_set = sizee.width()/6;
+        float kprop = (float)CurUi.x/(float)(CurUi.y);
+        int height_to_set = (int)(width_to_set*kprop);
+        float x_scale = (float)sizee.width()/(float)CurUi.y;
+        float y_scale = (float)sizee.height()/(float)CurUi.x;
+        int x_to_set = (int)(x * x_scale) - width_to_set/2;
         int y_to_set = (int)(y * y_scale) - height_to_set/2;
         if (x_to_set < 0)
             x_to_set = 0;
         if (y_to_set < 0)
             y_to_set = 0;
-        if (y_to_set + height_to_set/2 > sizee.height())
+        if (y_to_set - height_to_set > sizee.height())
             y_to_set = sizee.height() - height_to_set;
-        if (x_to_set + width_to_set/2 > sizee.width())
+        if (x_to_set - width_to_set  > sizee.width())
             y_to_set = sizee.width() - width_to_set;
         MeteringRectangle rect_to_set =new MeteringRectangle(x_to_set,y_to_set, width_to_set,height_to_set,MeteringRectangle.METERING_WEIGHT_MAX-1);
         MeteringRectangle[] rectaf = new MeteringRectangle[1];
