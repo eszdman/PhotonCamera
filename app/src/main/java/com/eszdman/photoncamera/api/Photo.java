@@ -33,19 +33,9 @@ public class Photo {
         @Override
         public void handleMessage(Message msg)
         {
-            Uri uri = null;
-            Bitmap bmp = null;
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                bmp = (Bitmap) msg.obj;
-            } else{
-                uri = (Uri)msg.obj;
-            }
+            Bitmap bmp = (Bitmap) msg.obj;
             try {
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    Interface.i.cameraui.galleryImageButton.setImageBitmap(bmp);
-                } else {
-                    Interface.i.cameraui.galleryImageButton.setImageURI(uri);
-                }
+              Interface.i.cameraui.galleryImageButton.setImageBitmap(bmp);
             } catch (Exception e) {
                 e.printStackTrace();
             }
