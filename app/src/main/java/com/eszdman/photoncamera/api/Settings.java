@@ -2,7 +2,6 @@ package com.eszdman.photoncamera.api;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
-import android.graphics.Point;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
@@ -17,26 +16,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.InterfaceAddress;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
-import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_STATE_LOCKED;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
-import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_ABERRATION_MODE;
-import static android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
@@ -48,6 +40,7 @@ import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_CURVE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 
+@SuppressWarnings("ALL")
 public class Settings {
     private final String TAG = "Settings";
     public int noiseReduction = NOISE_REDUCTION_MODE_OFF;

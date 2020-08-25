@@ -13,6 +13,7 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import static android.hardware.camera2.CaptureResult.*;
@@ -21,13 +22,12 @@ import static androidx.exifinterface.media.ExifInterface.*;
 public class ParseExif {
     static String getTime(long exposuretime){
         String out;
-        CaptureResult res;
         long sec = 1000000000;
         double time = (double)(exposuretime)/sec;
         out = String.valueOf((time));
         return out;
     }
-    static public String resultget(CaptureResult res,Key<Object> key){
+    static public String resultget(CaptureResult res,Key<?> key){
         Object out = res.get(key);
         if(out !=null) return out.toString();
         else return "";
@@ -66,12 +66,12 @@ public class ParseExif {
         if(iso != null) isonum = (int)((int)(iso)*IsoExpoSelector.getMPY());
         Log.d(TAG, "sensivity:"+isonum);
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
-        inter.setAttribute(TAG_F_NUMBER,result.get(LENS_APERTURE).toString());
-        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * (double)result.get(LENS_FOCAL_LENGTH)))+"/100");
+        inter.setAttribute(TAG_F_NUMBER,resultget(result,LENS_APERTURE));
+        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * (double)Double.parseDouble(resultget(result,LENS_FOCAL_LENGTH))))+"/100");
         //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
-        inter.setAttribute(TAG_APERTURE_VALUE,result.get(LENS_APERTURE).toString());
-        inter.setAttribute(TAG_EXPOSURE_TIME,getTime(result.get(SENSOR_EXPOSURE_TIME)));
+        inter.setAttribute(TAG_APERTURE_VALUE,String.valueOf(result.get(LENS_APERTURE)));
+        inter.setAttribute(TAG_EXPOSURE_TIME,getTime(Long.parseLong(resultget(result,SENSOR_EXPOSURE_TIME))));
         inter.setAttribute(ExifInterface.TAG_DATETIME, sFormatter.format(new Date(System.currentTimeMillis())));
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
@@ -91,7 +91,7 @@ public class ParseExif {
     private static final SimpleDateFormat sFormatter;
 
     static {
-        sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
+        sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
         sFormatter.setTimeZone(TimeZone.getDefault());
     }
 }

@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ToggleButton;
 
-import com.eszdman.photoncamera.AutoFitTextureView;
+
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.ui.MainActivity;

@@ -65,6 +65,7 @@ public class GLTexture implements AutoCloseable {
         checkEglError("Tex bind");
     }
 
+    @androidx.annotation.NonNull
     @Override
     public String toString() {
         return "GLTexture{" +

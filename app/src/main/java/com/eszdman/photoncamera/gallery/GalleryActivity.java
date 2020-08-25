@@ -6,8 +6,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.icu.text.DateFormat;
 import android.icu.text.SimpleDateFormat;
-import android.icu.util.Calendar;
-import android.icu.util.TimeZone;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -29,7 +27,6 @@ import androidx.core.content.FileProvider;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
-import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.util.Utilities;
 
@@ -92,12 +89,7 @@ public class GalleryActivity extends AppCompatActivity {
                                 .show();
 
                         final Handler handler = new Handler();
-                        handler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                viewPager.setAdapter(adapter);
-                            }
-                        }, 100);
+                        handler.postDelayed(() -> viewPager.setAdapter(adapter), 100);
                     });
             builder.create()
                     .show();
@@ -182,9 +174,7 @@ public class GalleryActivity extends AppCompatActivity {
                         DateFormat.DAY+" "+DateFormat.MONTH+" "+
                                 DateFormat.YEAR+" "+DateFormat.WEEKDAY+" "+
                                 "H:m:s");
-                dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
                 Date photoDate = new Date(currentFile.lastModified());
-                //dateFormat.format(photoDate);
                 datetime.setText(dateFormat.format(photoDate).toUpperCase());
 
                 String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));

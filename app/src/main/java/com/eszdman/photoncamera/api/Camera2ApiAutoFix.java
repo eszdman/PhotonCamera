@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 
 import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
+@SuppressWarnings("ALL")
 public class Camera2ApiAutoFix {
     private static final String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;

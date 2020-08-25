@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.Control;
 
+import android.annotation.SuppressLint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
@@ -17,11 +18,12 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
 
 public class TouchFocus {
-    private final String TAG = "TouchFocus";
+    protected final String TAG = "TouchFocus";
     boolean activated = false;
     public boolean onConfigured = false;
     ImageView focusEl;
     AutoFitTextureView preview;
+    @SuppressLint("ClickableViewAccessibility")
     public void ReInit(){
         focusEl = Interface.i.mainActivity.findViewById(R.id.touchFocus);
         focusEl.setOnTouchListener(focusListener);
@@ -31,6 +33,7 @@ public class TouchFocus {
     final OnTouchListener focusListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
+            v.performClick();
             activated = false;
             focusEl.setVisibility(View.GONE);
             focusEl.setX((float) getMax().x/2.f);
@@ -47,7 +50,7 @@ public class TouchFocus {
         }
     };
 
-    public void processTochToFocus(View v, float fx, float fy) {
+    public void processTochToFocus(float fx, float fy) {
         activated = true;
         focusEl.setX(fx-focusEl.getMeasuredWidth()/2.0f);
         focusEl.setY(fy-focusEl.getMeasuredHeight()/2.0f);
@@ -123,9 +126,6 @@ public class TouchFocus {
     }
     public Point getMax(){
         return new Point(preview.getWidth(),preview.getHeight());
-    }
-    public Point getCurrent(){
-        return new Point((int)(focusEl.getX()+150.f),(int)(focusEl.getY()-110.f));
     }
     public void resetFocusCircle(){ //resets the position and visibility of focus circle
         focusEl.setVisibility(View.GONE);

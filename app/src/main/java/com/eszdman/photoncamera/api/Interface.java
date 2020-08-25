@@ -45,10 +45,10 @@ public class Interface {
         cameraui = new CameraUI();
     }
     // Get a MemoryInfo object for the device's current memory status.
-    public ActivityManager.MemoryInfo getAvailableMemory() {
+    /*public ActivityManager.MemoryInfo getAvailableMemory() {
         ActivityManager activityManager = (ActivityManager) mainActivity.getSystemService(ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         activityManager.getMemoryInfo(memoryInfo);
         return memoryInfo;
-    }
+    }*/
 }

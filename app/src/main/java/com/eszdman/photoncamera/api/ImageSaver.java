@@ -39,9 +39,6 @@ public class ImageSaver implements Runnable {
         //proc.Run();
         Interface.i.processing.curimgs = imageBuffer;
         proc.Run();
-        for(int i =0; i<imageBuffer.size();i++){
-            //imageBuffer.get(i).close();
-        }
         imageBuffer = new ArrayList<>();
         Log.d(TAG,"ImageSaver Done!");
         bcnt =0;
@@ -53,10 +50,11 @@ public class ImageSaver implements Runnable {
         return "IMG_"+dateText;
     }
     static String curDir(){
-        File dir= null;
+        File dir;
         dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//Camera//");
         if(Interface.i.settings.rawSaver) dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Raw//");
-        if(!dir.exists()) dir.mkdirs();
+        if(!dir.exists()) //noinspection ResultOfMethodCallIgnored
+            dir.mkdirs();
 
         return dir.getAbsolutePath();
     }
@@ -65,7 +63,7 @@ public class ImageSaver implements Runnable {
         Interface.i.cameraui.shot.setClickable(true);
     }
     private void end(ImageReader mReader){
-        Image last = mReader.acquireLatestImage();
+        mReader.acquireLatestImage();
         try {
             for(int i = 0; i<mReader.getMaxImages();i++){
                 Image cur = mReader.acquireNextImage();
