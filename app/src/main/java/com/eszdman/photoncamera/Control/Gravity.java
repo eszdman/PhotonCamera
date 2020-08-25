@@ -25,6 +25,7 @@ public class Gravity {
         mSensorManager.registerListener(mGravityTracker,mGravitySensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
     public void stop(){
+        if(mGravity != null)
         mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGravitySensor);
     }

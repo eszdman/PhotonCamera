@@ -23,6 +23,7 @@ public class Sensors {
         mSensorManager.registerListener(mGravityTracker,mGyroSensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
     public void stop(){
+        if(mAngles != null)
         mAngles = mAngles.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGyroSensor);
     }

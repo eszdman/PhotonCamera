@@ -21,17 +21,10 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
-import org.opencv.core.DMatch;
-import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfInt;
-import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
-import org.opencv.features2d.DescriptorMatcher;
-import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
@@ -40,12 +33,9 @@ import org.opencv.photo.Photo;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
 
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
-import static org.opencv.calib3d.Calib3d.RANSAC;
-import static org.opencv.calib3d.Calib3d.findHomography;
 
 public class ImageProcessing {
     static final String TAG = "ImageProcessing";
@@ -53,9 +43,9 @@ public class ImageProcessing {
     public Boolean israw;
     public Boolean isyuv;
     public String path;
-    public ImageProcessing(ArrayList<Image> images) {
-        curimgs = images;
-    }
+    //public ImageProcessing(ArrayList<Image> images) {
+    //    curimgs = images;
+    //}
     public ImageProcessing() {
     }
     Mat convertyuv(Image image) {
@@ -97,7 +87,6 @@ public class ImageProcessing {
     }
     Mat[][] EqualizeImages() {
         Mat[][] out = new Mat[2][curimgs.size()];
-        Mat lut = new Mat(1, 256, CvType.CV_8U);
         for (int i = 0; i < curimgs.size(); i++) {
             out[0][i] = new Mat();
             out[1][i] = new Mat();
@@ -112,9 +101,9 @@ public class ImageProcessing {
         }
         return out;
     }
-    final ORB orb = ORB.create();
-    final DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-    Mat findFrameHomography(Mat need, Mat from) {
+    //final ORB orb = ORB.create();
+    //final DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+    /*Mat findFrameHomography(Mat need, Mat from) {
         Mat descriptors1 = new Mat(), descriptors2 = new Mat();
         MatOfKeyPoint keyPoints1 = new MatOfKeyPoint();
         MatOfKeyPoint keyPoints2 = new MatOfKeyPoint();
@@ -128,23 +117,24 @@ public class ImageProcessing {
         List<KeyPoint> keypoints2 = keyPoints2.toList();
         ArrayList<Point> keypoints1f = new ArrayList<Point>();
         ArrayList<Point> keypoints2f = new ArrayList<Point>();
-        for (int i = 0; i < arr.length; i++) {
-            Point on1 = keypoints1.get(arr[i].queryIdx).pt;
-            Point on2 = keypoints2.get(arr[i].trainIdx).pt;
-            if (arr[i].distance < 50) {
+        for (DMatch dMatch : arr) {
+            Point on1 = keypoints1.get(dMatch.queryIdx).pt;
+            Point on2 = keypoints2.get(dMatch.trainIdx).pt;
+            if (dMatch.distance < 50) {
                 keypoints1f.add(on1);
                 keypoints2f.add(on2);
             }
         }
-        points1.fromArray(keypoints1f.toArray(new Point[keypoints1f.size()]));
-        points2.fromArray(keypoints2f.toArray(new Point[keypoints2f.size()]));
+        points1.fromArray(keypoints1f.toArray(new Point[0]));
+        points2.fromArray(keypoints2f.toArray(new Point[0]));
         Mat h = null;
         if (!points1.empty() && !points2.empty()) h = findHomography(points2, points1, RANSAC);
         keyPoints1.release();
         keyPoints2.release();
 
         return h;
-    }
+    }*/
+
     void clearProcessingCycle(){
         try {
             Interface.i.cameraui.loadingcycle.setProgress(0);
@@ -166,8 +156,8 @@ public class ImageProcessing {
         incrementProcessingCycle();
     }
     void ApplyStabilization() {
-        Mat[] grey = null;
-        Mat[] col = null;
+        Mat[] grey;
+        Mat[] col;
         Mat[][] readed = EqualizeImages();
         col = readed[0];
         grey = readed[1];
@@ -183,7 +173,7 @@ public class ImageProcessing {
         for (int i = 0; i < curimgs.size() - 1; i += alignopt) {
             if (aligning) {
                 //Mat h=new Mat();
-                Point shift = new Point();
+                Point shift;
                 {
                     if (i == 0) shift = align.calculateShift(grey[grey.length - 1], grey[i]);
                     else {
@@ -199,14 +189,13 @@ public class ImageProcessing {
             processingstep();
             Core.addWeighted(output, 0.7, col[i], 0.3, 0, output);
         }
-        Mat merging = new Mat();
         Log.d("ImageProcessing Stab", "imgsmat size:" + imgsmat.size());
         processingstep();
         if (!israw) {
-            Mat outb = new Mat();
-            double params = Math.sqrt(Math.log(CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * 22) + 9;
+            Object sensivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+            if(sensivity == null) sensivity = (int)100;
+            double params = Math.sqrt(Math.log((int)sensivity) * 22) + 9;
             Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
-            params = Math.min(params, 50);
             int ind = imgsmat.size() / 2;
             if (ind % 2 == 0) ind -= 1;
             int wins = imgsmat.size() - ind;
@@ -215,7 +204,6 @@ public class ImageProcessing {
             ind = Math.max(0, ind);
             Log.d("ImageProcessing Denoise", "index:" + ind + " wins:" + wins);
             //imgsmat.set(ind,output);
-            Mat outbil = new Mat();
             Mat cols = new Mat();
             ArrayList<Mat> cols2 = new ArrayList<>();
             Imgproc.cvtColor(output, cols, Imgproc.COLOR_BGR2YUV);
@@ -252,7 +240,6 @@ public class ImageProcessing {
                     Core.subtract(out, temp, struct);
                 }
                 if (i != 0) {
-                    Mat temp = new Mat();
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur, cur);
                     Imgproc.bilateralFilter(cur, out, Interface.i.settings.chromaCount, Interface.i.settings.chromaCount * 3, Interface.i.settings.chromaCount * 3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
@@ -264,7 +251,6 @@ public class ImageProcessing {
             Core.merge(cols2, cols);
             Imgproc.cvtColor(cols, output, Imgproc.COLOR_YUV2BGR);
             processingstep();
-            outb = outbil;
             Imgcodecs.imwrite(path, output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         }
         clearProcessingCycle();
@@ -291,8 +277,8 @@ public class ImageProcessing {
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
         BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelarr = new int[4];
-        blevel.copyTo(levelarr,0);
         if(blevel !=null){
+            blevel.copyTo(levelarr,0);
             for(int i =0; i<4;i++){
                 levelarr[i]=(int)(levelarr[i]*k);
             }
@@ -322,7 +308,7 @@ public class ImageProcessing {
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
         for (int i = 0; i < curimgs.size(); i++) {
-            ByteBuffer byteBuffer = null;
+            ByteBuffer byteBuffer;
             if(i == 0){
                 byteBuffer = curimgs.get(baseFrame).getPlanes()[0].getBuffer();
             } else
@@ -349,7 +335,9 @@ public class ImageProcessing {
         rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.i.parameters.whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        float deghostlevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/16.2f;
+        Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        if(sensitivity == null) sensitivity = (int)100;
+        float deghostlevel = (float)Math.sqrt(((int)sensitivity)* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
         Log.d(TAG,"Deghosting level:"+deghostlevel);
         ByteBuffer output = null;
