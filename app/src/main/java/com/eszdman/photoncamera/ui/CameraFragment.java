@@ -27,16 +27,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.*;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
-import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.*;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -44,11 +37,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.*;
 import android.util.*;
-import android.view.LayoutInflater;
-import android.view.Surface;
-import android.view.TextureView;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
@@ -59,14 +48,18 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
-import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.CameraManager2;
-import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
+import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
+import com.eszdman.photoncamera.util.CustomLogger;
+import com.eszdman.photoncamera.util.FileManager;
+import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -74,11 +67,6 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import com.eszdman.photoncamera.util.CustomLogger;
-import com.eszdman.photoncamera.util.FileManager;
-
-import rapid.decoder.BitmapDecoder;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -197,6 +185,7 @@ public class CameraFragment extends Fragment
      * An {@link AutoFitTextureView} for camera preview.
      */
     public AutoFitTextureView mTextureView;
+    public SurfaceViewOverViewfinder surfaceView;
 
     /**
      * A {@link CameraCaptureSession } for camera preview.
@@ -459,15 +448,37 @@ public class CameraFragment extends Fragment
             dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
             dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
             dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
-            dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
             dataset.put("Shakeness", String.valueOf(Interface.i.sensors.getShakeness()));
+            dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
+            RectF rect = getScreenRectFromMeteringRect(Objects.requireNonNull(result.get(CaptureResult.CONTROL_AF_REGIONS), "MeteringRectangle[] is Null!")[0]);
+            dataset.put("F_RECT(px)", rect.toString());
+            surfaceView.update(rect);
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
             cl.setVisibility(View.GONE);
         }
+    }
+
+    private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
+        Rect sensor = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if (sensor != null) {
+            float left = (((float) meteringRectangle.getY() / sensor.height()) * surfaceView.getHeight()) + surfaceView.getY();
+            float top = (((float) meteringRectangle.getX() / sensor.width()) * surfaceView.getWidth());
+
+            float width = (((float) meteringRectangle.getHeight() / sensor.height()) * surfaceView.getHeight());
+            float height = (((float) meteringRectangle.getWidth() / sensor.width()) * surfaceView.getWidth());
+
+            return new RectF(
+                    left, //Left
+                    top,   //Top
+                    left + width,//Right
+                    top + height //Bottom
+            );
+        }
+        return new RectF();
     }
 
     private String getResultFieldName(String prefix, Integer value) {
@@ -647,6 +658,7 @@ public class CameraFragment extends Fragment
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         mTextureView = view.findViewById(R.id.texture);
+        surfaceView = view.findViewById(R.id.surfaceView);
         Interface.i.cameraui.onCameraViewCreated();
     }
 

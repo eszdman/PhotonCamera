@@ -69,7 +69,18 @@
                 tools:visibility="visible"
         />
 
-
+        <com.eszdman.photoncamera.SurfaceViewOverViewfinder
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:id="@+id/surfaceView"
+                app:layout_constraintBottom_toBottomOf="@id/texture"
+                app:layout_constraintEnd_toEndOf="@id/texture"
+                app:layout_constraintStart_toStartOf="@id/texture"
+                app:layout_constraintTop_toTopOf="@id/texture"
+                android:background="#00000000"
+                tools:visibility="gone"
+        >
+        </com.eszdman.photoncamera.SurfaceViewOverViewfinder>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!--Capture Progress circle-->
