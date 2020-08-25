@@ -7,8 +7,8 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
-import android.media.MediaPlayer;
 import android.util.Log;
+
 import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
@@ -19,6 +19,7 @@ import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
@@ -37,6 +38,7 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
+
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -439,7 +441,7 @@ public class ImageProcessing {
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
         clearProcessingCycle();
-        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
-        processingPlayer.start();
+
+        //this is end processing
     }
 }

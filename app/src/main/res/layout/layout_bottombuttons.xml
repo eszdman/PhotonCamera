@@ -49,10 +49,10 @@
     >
         <ImageButton
                 android:id="@+id/picture"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/shutter_button_size"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 app:layout_constraintDimensionRatio="1:1"
-                android:background="@drawable/roundbutton"
+                android:background="@drawable/shutter_button"
                 android:clickable="true"
                 android:contentDescription="Shutter Button"
                 app:layout_constraintStart_toStartOf="@id/progressloading"

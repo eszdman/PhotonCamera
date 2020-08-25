@@ -1345,7 +1345,6 @@ public class CameraFragment extends Fragment
             Interface.i.cameraui.lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
             MediaPlayer burstPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst);
-            MediaPlayer endPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst_end);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -1369,7 +1368,6 @@ public class CameraFragment extends Fragment
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG,"SequenceCompleted");
                     try {
-                        endPlayer.start();
                         Interface.i.cameraui.lightcycle.setAlpha(0f);
                         Interface.i.cameraui.lightcycle.setProgress(0);
                         mTextureView.setAlpha(1f);
