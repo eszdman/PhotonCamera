@@ -41,6 +41,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ExifInterface;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaPlayer;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.*;
@@ -1338,6 +1339,8 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"CaptureStarted!");
             Interface.i.cameraui.lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
+            MediaPlayer burstPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst);
+            MediaPlayer endPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.processing_end);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
@@ -1345,12 +1348,14 @@ public class CameraFragment extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     Interface.i.cameraui.lightcycle.setProgress(Interface.i.cameraui.lightcycle.getProgress() + 1);
+                    burstPlayer.start();
                     Log.v(TAG,"Completed!");
                     mCaptureResult = result;
                 }
 
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+                    burstPlayer.seekTo(0);
                     Log.v(TAG,"FrameCaptureStarted! FrameNumber:"+frameNumber);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
                 }
@@ -1359,6 +1364,7 @@ public class CameraFragment extends Fragment
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG,"SequenceCompleted");
                     try {
+                        endPlayer.start();
                         Interface.i.cameraui.lightcycle.setAlpha(0f);
                         Interface.i.cameraui.lightcycle.setProgress(0);
                         mTextureView.setAlpha(1f);
