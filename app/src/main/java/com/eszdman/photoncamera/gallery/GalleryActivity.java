@@ -4,14 +4,11 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaScannerConnection;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
-import android.view.DragEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
@@ -28,7 +25,6 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
-
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
