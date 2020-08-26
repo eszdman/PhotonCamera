@@ -5,7 +5,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.util.Log;
 
 import com.eszdman.photoncamera.api.Interface;
 
@@ -37,7 +36,7 @@ public class Sensors {
         public void onAccuracyChanged(Sensor sensor, int i) { }
     };
     private int filter = -1;
-    private final float fk = 0.7f;
+    protected final float fk = 0.2f;
     public int getShakeness() {
         if (mAngles == null) {
             return 0;
@@ -46,9 +45,9 @@ public class Sensors {
         for(float f:mAngles){
             output+=Math.abs((int)(f*1000));
         }
-        //if(filter == -1) filter = output;
-        //output =(int)(output*(1.0f-fk) + filter*(fk));
-        //filter = output;
+        if(filter == -1) filter = output;
+        output =(int)(output*(1.0f-fk) + filter*(fk));
+        filter = output;
         return output;
     }
 }

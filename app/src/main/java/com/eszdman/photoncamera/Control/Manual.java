@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.Control;
 
-import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureRequest.Builder;

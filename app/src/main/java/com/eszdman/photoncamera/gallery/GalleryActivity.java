@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -20,6 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -28,6 +30,7 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
@@ -155,14 +158,31 @@ public class GalleryActivity extends AppCompatActivity {
                 TextView fileSize = findViewById(R.id.value_filesize);
                 TextView focallength = findViewById(R.id.value_flength);
 
-                histogramview.removeAllViews();
+
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
-                assert preview != null;
-                histogram.Analyze(preview);
-                histogramview.addView(histogram);
-
+                histogramview.removeAllViews();
+                class HistHandler extends Handler {
+                    @Override
+                    public void handleMessage(Message msg)
+                    {
+                        histogramview.removeAllViews();
+                        histogramview.addView((View)msg.obj);
+                    }
+                }
+                Handler addview = new HistHandler();
+                Thread th = new Thread(){
+                    @Override
+                    public void run() {
+                        Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
+                        assert preview != null;
+                        histogram.Analyze(preview);
+                        Message msg = new Message();
+                        msg.obj = histogram;
+                        addview.sendMessage(msg);
+                    }
+                };
+                th.start();
                 title.setText(fileName.toUpperCase(Locale.ROOT));
                 res.setText((width + "x" + length));
                 res_mp.setText((String.format(Locale.US,"%.1f",

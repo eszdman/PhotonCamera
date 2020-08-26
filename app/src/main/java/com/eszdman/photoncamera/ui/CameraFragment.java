@@ -60,7 +60,6 @@ import com.eszdman.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;

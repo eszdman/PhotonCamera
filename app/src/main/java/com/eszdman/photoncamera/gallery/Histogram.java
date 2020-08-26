@@ -15,8 +15,10 @@ public class Histogram extends View {
     private int maxY = 0;
     float offset = 1;
     private int[][] colorsMap;
+    Paint wallpaint;
     public Histogram(Context context) {
         super(context);
+        wallpaint = new Paint();
     }
     public void Analyze(Bitmap bitmap){
         colorsMap = new int[3][SIZE];
@@ -47,12 +49,10 @@ public class Histogram extends View {
     @SuppressLint("DrawAllocation")
     @Override
     protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+        //super.onDraw(canvas);
         int width = getWidth();
         int height = getHeight();
         float xInterval =((float)getWidth()/((float)SIZE+1));
-        Paint wallpaint;
-        wallpaint = new Paint();
         wallpaint.setAntiAlias(true);
         wallpaint.setStyle(Paint.Style.STROKE);
         wallpaint.setARGB(100,255,255,255);
