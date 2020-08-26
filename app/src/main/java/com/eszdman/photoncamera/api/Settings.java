@@ -93,124 +93,68 @@ public class Settings {
     }
     public void load() {
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
-        noiseReduction = get(noiseReduction);
-        Log.d(TAG, "Loaded noise reduction:" + noiseReduction);
-        frameCount = get(frameCount);
-        Log.d(TAG, "Loaded frame count:" + frameCount);
-        align = get(align);
-        Log.d(TAG, "Loaded align:" + align);
-        lumenCount = get(lumenCount);
-        Log.d(TAG, "Loaded lumen count:" + lumenCount);
-        chromaCount = get(chromaCount);
-        Log.d(TAG, "Loaded chroma count:" + chromaCount);
-        enhancedProcess = get(enhancedProcess);
-        Log.d(TAG, "Loaded enhanced process:" + enhancedProcess);
-        grid = get(grid);
-        Log.d(TAG, "Loaded grid:" + grid);
-        watermark = get(watermark);
-        Log.d(TAG, "Loaded watermark:" + watermark);
-        afdata = get(afdata);
-        Log.d(TAG, "Loaded afdata:" + afdata);
-        roundedge = get(roundedge);
-        Log.d(TAG, "Loaded round edges:" + roundedge);
-        sharpness = get(sharpness);
-        Log.d(TAG, "Loaded sharpness:" + sharpness);
-        contrastMpy = get(contrastMpy);
-        Log.d(TAG, "Loaded contrast mpy:" + contrastMpy);
-        contrastConst = get(contrastConst);
-        Log.d(TAG, "Loaded contrast const:" + contrastConst);
-        saturation = get(saturation);
-        Log.d(TAG, "Loaded saturation:" + saturation);
-        compressor = get(compressor);
-        Log.d(TAG, "Loaded compressor:" + compressor);
-        gain = get(gain);
-        Log.d(TAG, "Loaded gain:" + gain);
-        //lastPicture = get(lastPicture);
-        Log.d(TAG, "Loaded last picture:" + lastPicture);
-        hdrx = get(hdrx);
-        Log.d(TAG, "Loaded hdrx:" + hdrx);
-        cfaPattern = get(cfaPattern);
-        Log.d(TAG, "Loaded CFA:" + cfaPattern);
-        rawSaver = get(rawSaver);
-        Log.d(TAG, "Loaded rawSaver:" + rawSaver);
-        remosaic = get(remosaic);
-        Log.d(TAG, "Loaded remosaic:" + remosaic);
-        eisPhoto = get(eisPhoto);
-        Log.d(TAG, "Loaded eisPhoto:" + eisPhoto);
-        QuadBayer = get(QuadBayer);
-        Log.d(TAG, "Loaded QuadBayer:" + QuadBayer);
-        fpsPreview = get(fpsPreview);
-        Log.d(TAG, "Loaded fpsPreview:" + fpsPreview);
-        hdrxNR = get(hdrxNR);
-        Log.d(TAG,"Loaded hdrxNR:"+hdrxNR);
-        alignAlgorithm = get(alignAlgorithm);
-
+        noiseReduction = get(noiseReduction,"NoiseReduction");
+        frameCount = get(frameCount,"FrameCount");
+        align = get(align,"Alignment");
+        lumenCount = get(lumenCount,"LumaCount");
+        chromaCount = get(chromaCount,"ChromaCount");
+        enhancedProcess = get(enhancedProcess,"EnhancedProc");
+        grid = get(grid,"Grid");
+        watermark = get(watermark,"Watermark");
+        afdata = get(afdata,"AFData");
+        roundedge = get(roundedge,"RoundEdges");
+        sharpness = get(sharpness,"Sharpness");
+        contrastMpy = get(contrastMpy,"ContrastMpy");
+        contrastConst = get(contrastConst,"ContrastConst");
+        saturation = get(saturation,"Saturation");
+        compressor = get(compressor,"Compressor");
+        gain = get(gain,"Gain");
+        hdrx = get(hdrx,"Hdrx");
+        cfaPattern = get(cfaPattern,"CFA");
+        rawSaver = get(rawSaver,"SaveRaw");
+        remosaic = get(remosaic,"Remosaic");
+        eisPhoto = get(eisPhoto,"EisPhoto");
+        QuadBayer = get(QuadBayer,"QuadBayer");
+        fpsPreview = get(fpsPreview,"FpsPreview");
+        hdrxNR = get(hdrxNR,"HdrxNR");
+        alignAlgorithm = get(alignAlgorithm,"AlignmentAlgo");
         count = -1;
-        mCameraID = get(mCameraID);
-        Log.d(TAG, "Loaded mCameraID:" + mCameraID);
+        mCameraID = sharedPreferences.getString("Camera", mCameraID);
         count = 0;
     }
 
     public void save() {
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
         sharedPreferencesEditor = sharedPreferences.edit();
-        put(noiseReduction);
-        Log.d(TAG, "Saved noise reduction:" + noiseReduction);
-        put(frameCount);
-        Log.d(TAG, "Saved frame count:" + frameCount);
-        put(align);
-        Log.d(TAG, "Saved align:" + align);
-        put(lumenCount);
-        Log.d(TAG, "Saved lumen count:" + lumenCount);
-        put(chromaCount);
-        Log.d(TAG, "Saved chroma count:" + chromaCount);
-        put(enhancedProcess);
-        Log.d(TAG, "Saved enhanced process:" + enhancedProcess);
-        put(grid);
-        Log.d(TAG, "Saved grid:" + grid);
-        put(watermark);
-        Log.d(TAG, "Saved watermark:" + watermark);
-        put(afdata);
-        Log.d(TAG, "Saved afdata:" + afdata);
-        put(roundedge);
-        Log.d(TAG, "Saved round edges:" + roundedge);
-        put(sharpness);
-        Log.d(TAG, "Saved sharpness:" + sharpness);
-        put(contrastMpy);
-        Log.d(TAG, "Saved contrast mpy:" + contrastMpy);
-        put(contrastConst);
-        Log.d(TAG, "Saved contrast const:" + contrastConst);
-        put(saturation);
-        Log.d(TAG, "Saved saturation:" + saturation);
-        put(compressor);
-        Log.d(TAG, "Saved compressor:" + compressor);
-        put(gain);
-        Log.d(TAG, "Saved gain:" + gain);
-        //put(lastPicture);
-        Log.d(TAG, "Saved last picture:" + lastPicture);
-        put(hdrx);
-        Log.d(TAG, "Saved hdrx:" + hdrx);
-        Log.d(TAG, "Saved CFA:" + cfaPattern);
-        put(cfaPattern);
-        Log.d(TAG, "Saved RawSaver:" + rawSaver);
-        put(rawSaver);
-        Log.d(TAG, "Saved remosaic:" + remosaic);
-        put(remosaic);
-        Log.d(TAG, "Saved eisPhoto:" + eisPhoto);
-        put(eisPhoto);
-        Log.d(TAG, "Saved QuadBayer:" + QuadBayer);
-        put(QuadBayer);
-        Log.d(TAG, "Saved fpsPreview:" + fpsPreview);
-        put(fpsPreview);
-        Log.d(TAG,"Saved hdrxNR:"+hdrxNR);
-        put(hdrxNR);
-        put(alignAlgorithm);
+        put(noiseReduction,"NoiseReduction");
+        put(frameCount,"FrameCount");
+        put(align,"Alignment");
+        put(lumenCount,"LumaCount");
+        put(chromaCount,"ChromaCount");
+        put(enhancedProcess,"EnhancedProc");
+        put(grid,"Grid");
+        put(watermark,"Watermark");
+        put(afdata,"AFData");
+        put(roundedge,"RoundEdges");
+        put(sharpness,"Sharpness");
+        put(contrastMpy,"ContrastMpy");
+        put(contrastConst,"ContrastConst");
+        put(saturation,"Saturation");
+        put(compressor,"Compressor");
+        put(gain,"Gain");
+        put(hdrx,"Hdrx");
+        put(cfaPattern,"CFA");
+        put(rawSaver,"SaveRaw");
+        put(remosaic,"Remosaic");
+        put(eisPhoto,"EisPhoto");
+        put(QuadBayer,"QuadBayer");
+        put(fpsPreview,"FpsPreview");
+        put(hdrxNR,"HdrxNR");
+        put(alignAlgorithm,"AlignmentAlgo");
         count = -1;
-        Log.d(TAG, "Saved mCameraID:" + mCameraID);
-        put(mCameraID);
-
+        sharedPreferencesEditor.putString("Camera", mCameraID);
         sharedPreferencesEditor.apply();
-        //ExportSettings();
+        ExportSettings();
         count = 0;
     }
 
@@ -218,8 +162,7 @@ public class Settings {
         count = -1;
         sharedPreferences = MainActivity.act.getPreferences(MODE_PRIVATE);
         sharedPreferencesEditor = sharedPreferences.edit();
-        Log.d(TAG, "Saved mCameraID:" + mCameraID);
-        put(mCameraID);
+        sharedPreferencesEditor.putString("Camera", mCameraID);
         sharedPreferencesEditor.apply();
         count = 0;
     }
@@ -297,22 +240,26 @@ public class Settings {
     }
 
     void put(int in,String name) {
-        sharedPreferencesEditor.putInt("ID"+mCameraID+"_"+name, in);
+        Log.d(TAG,"Saved "+name+":"+in);
+        sharedPreferencesEditor.putInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
         count++;
     }
 
     void put(double in,String name) {
-        sharedPreferencesEditor.putFloat("ID"+mCameraID+"_"+name, (float) in);
+        Log.d(TAG,"Saved "+name+":"+in);
+        sharedPreferencesEditor.putFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (float) in);
         count++;
     }
 
     void put(String in,String name) {
-        sharedPreferencesEditor.putString("ID"+mCameraID+"_"+name, in);
+        Log.d(TAG,"Saved "+name+":"+in);
+        sharedPreferencesEditor.putString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
         count++;
     }
 
     void put(boolean in,String name) {
-        sharedPreferencesEditor.putBoolean("ID"+mCameraID+"_"+name, in);
+        Log.d(TAG,"Saved "+name+":"+in);
+        sharedPreferencesEditor.putBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
         count++;
     }
 
@@ -344,28 +291,32 @@ public class Settings {
     }
 
     boolean get(boolean in,String name) {
-        boolean result = sharedPreferences.getBoolean("ID"+mCameraID+"_"+name, in);
+        boolean result = sharedPreferences.getBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
+        Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
     }
 
     int get(int cur,String name) {
         int result;
-        result = sharedPreferences.getInt("ID"+mCameraID+"_"+name, cur);
+        result = sharedPreferences.getInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, cur);
+        Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
     }
 
     double get(double cur,String name) {
         double result;
-        result = sharedPreferences.getFloat("ID"+mCameraID+"_"+name, (float) (cur));
+        result = sharedPreferences.getFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (float) (cur));
+        Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
     }
 
     String get(String cur,String name) {
         String result;
-        result = (sharedPreferences.getString("ID"+mCameraID+"_"+name, (cur)));
+        result = (sharedPreferences.getString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (cur)));
+        Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
     }
