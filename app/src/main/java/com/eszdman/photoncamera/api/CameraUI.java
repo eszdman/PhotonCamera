@@ -66,7 +66,8 @@ public class CameraUI {
             flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
             Interface.i.camera.mTextureView.animate().rotation(Interface.i.camera.mTextureView.getRotation() - 360).setDuration(450).start();
             Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID, Interface.i.camera.mCameraIds);
-            Interface.i.settings.save();
+            Interface.i.settings.saveID();
+            Interface.i.settings.load();
             Interface.i.camera.restartCamera();
         });
         Button settings = Interface.i.mainActivity.findViewById(R.id.settings);

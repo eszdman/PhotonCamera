@@ -125,7 +125,7 @@ public class Settings {
         Log.d(TAG, "Loaded compressor:" + compressor);
         gain = get(gain);
         Log.d(TAG, "Loaded gain:" + gain);
-        lastPicture = get(lastPicture);
+        //lastPicture = get(lastPicture);
         Log.d(TAG, "Loaded last picture:" + lastPicture);
         hdrx = get(hdrx);
         Log.d(TAG, "Loaded hdrx:" + hdrx);
@@ -171,7 +171,7 @@ public class Settings {
         put(watermark);
         Log.d(TAG, "Saved watermark:" + watermark);
         put(afdata);
-        Log.d(TAG, "Saved watermark:" + afdata);
+        Log.d(TAG, "Saved afdata:" + afdata);
         put(roundedge);
         Log.d(TAG, "Saved round edges:" + roundedge);
         put(sharpness);
@@ -186,7 +186,7 @@ public class Settings {
         Log.d(TAG, "Saved compressor:" + compressor);
         put(gain);
         Log.d(TAG, "Saved gain:" + gain);
-        put(lastPicture);
+        //put(lastPicture);
         Log.d(TAG, "Saved last picture:" + lastPicture);
         put(hdrx);
         Log.d(TAG, "Saved hdrx:" + hdrx);
