@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -125,6 +126,33 @@ public class CameraUI {
         ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
         night.setChecked(Interface.i.settings.nightMode);
         Interface.i.camera.startBackgroundThread();
+        burstUnlock();
+        clearProcessingCycle();
     }
 
+    public void onProcessingEnd(){
+        clearProcessingCycle();
+        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
+        processingPlayer.start();
+    }
+    public void burstUnlock(){
+        Interface.i.cameraui.shot.setActivated(true);
+        Interface.i.cameraui.shot.setClickable(true);
+    }
+    public void clearProcessingCycle(){
+        try {
+            Interface.i.cameraui.loadingcycle.setProgress(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void incrementProcessingCycle(){
+        try {
+            int progress = (Interface.i.cameraui.loadingcycle.getProgress() + 1) % (Interface.i.cameraui.loadingcycle.getMax() + 1);
+            progress = Math.max(1, progress);
+            Interface.i.cameraui.loadingcycle.setProgress(progress);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 }

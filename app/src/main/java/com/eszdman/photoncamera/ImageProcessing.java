@@ -135,25 +135,9 @@ public class ImageProcessing {
         return h;
     }*/
 
-    void clearProcessingCycle(){
-        try {
-            Interface.i.cameraui.loadingcycle.setProgress(0);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    void incrementProcessingCycle(){
-        try {
-            int progress = (Interface.i.cameraui.loadingcycle.getProgress() + 1) % (Interface.i.cameraui.loadingcycle.getMax() + 1);
-            progress = Math.max(1, progress);
-            Interface.i.cameraui.loadingcycle.setProgress(progress);
-        } catch (Exception e){
-            e.printStackTrace();
-        }
-    }
 
     void processingstep() {
-        incrementProcessingCycle();
+        Interface.i.cameraui.incrementProcessingCycle();
     }
     void ApplyStabilization() {
         Mat[] grey;
@@ -253,7 +237,6 @@ public class ImageProcessing {
             processingstep();
             Imgcodecs.imwrite(path, output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         }
-        clearProcessingCycle();
     }
     void ApplyHdrX() {
         boolean debugAlignment = false;
@@ -418,16 +401,9 @@ public class ImageProcessing {
         }
     }
     public void Run() {
-        Image.Plane plane = curimgs.get(0).getPlanes()[0];
-        Log.d(TAG, "buffer parameters:");
-        Log.d(TAG, "bufferpixelstride" + plane.getPixelStride());
-        Log.d(TAG, "bufferrowstride" + plane.getRowStride());
         Camera2ApiAutoFix.ApplyRes();
-        Log.d("ImageProcessing", "Camera bayer:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT));
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
-        clearProcessingCycle();
-        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
-        processingPlayer.start();
+        Interface.i.cameraui.onProcessingEnd();
     }
 }

@@ -55,12 +55,7 @@ public class ImageSaver implements Runnable {
         if(Interface.i.settings.rawSaver) dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Raw//");
         if(!dir.exists()) //noinspection ResultOfMethodCallIgnored
             dir.mkdirs();
-
         return dir.getAbsolutePath();
-    }
-    private void unlock(){
-        Interface.i.cameraui.shot.setActivated(true);
-        Interface.i.cameraui.shot.setClickable(true);
     }
     private void end(ImageReader mReader){
         mReader.acquireLatestImage();
@@ -74,7 +69,7 @@ public class ImageSaver implements Runnable {
             e.printStackTrace();
         }
         imageBuffer.clear();
-        unlock();
+        Interface.i.cameraui.burstUnlock();
     }
     public Handler ProcessCall;
     @Override
@@ -120,8 +115,7 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        Interface.i.cameraui.shot.setActivated(true);
-                        Interface.i.cameraui.shot.setClickable(true);
+                        Interface.i.cameraui.burstUnlock();
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -157,8 +151,7 @@ public class ImageSaver implements Runnable {
                     if (Interface.i.settings.frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        Interface.i.cameraui.shot.setActivated(true);
-                        Interface.i.cameraui.shot.setClickable(true);
+                        Interface.i.cameraui.burstUnlock();
                     }
                     bcnt++;
                 } catch (IOException e) {
@@ -166,7 +159,7 @@ public class ImageSaver implements Runnable {
                 }
                 break;
             }
-            case ImageFormat.RAW10:
+            //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR: {
                 String ext = ".jpg";
                 if(Interface.i.settings.rawSaver) ext = ".dng";
@@ -197,8 +190,7 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        Interface.i.cameraui.shot.setActivated(true);
-                        Interface.i.cameraui.shot.setClickable(true);
+                        Interface.i.cameraui.burstUnlock();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
