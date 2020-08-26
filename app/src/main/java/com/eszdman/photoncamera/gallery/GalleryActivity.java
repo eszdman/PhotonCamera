@@ -6,13 +6,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.icu.text.DateFormat;
 import android.icu.text.SimpleDateFormat;
-import android.icu.util.Calendar;
-import android.icu.util.TimeZone;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -22,6 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -29,8 +29,8 @@ import androidx.core.content.FileProvider;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
-import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
@@ -92,12 +92,7 @@ public class GalleryActivity extends AppCompatActivity {
                                 .show();
 
                         final Handler handler = new Handler();
-                        handler.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                viewPager.setAdapter(adapter);
-                            }
-                        }, 100);
+                        handler.postDelayed(() -> viewPager.setAdapter(adapter), 100);
                     });
             builder.create()
                     .show();
@@ -163,14 +158,31 @@ public class GalleryActivity extends AppCompatActivity {
                 TextView fileSize = findViewById(R.id.value_filesize);
                 TextView focallength = findViewById(R.id.value_flength);
 
-                histogramview.removeAllViews();
+
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
-                assert preview != null;
-                histogram.Analyze(preview);
-                histogramview.addView(histogram);
-
+                histogramview.removeAllViews();
+                class HistHandler extends Handler {
+                    @Override
+                    public void handleMessage(Message msg)
+                    {
+                        histogramview.removeAllViews();
+                        histogramview.addView((View)msg.obj);
+                    }
+                }
+                Handler addview = new HistHandler();
+                Thread th = new Thread(){
+                    @Override
+                    public void run() {
+                        Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
+                        assert preview != null;
+                        histogram.Analyze(preview);
+                        Message msg = new Message();
+                        msg.obj = histogram;
+                        addview.sendMessage(msg);
+                    }
+                };
+                th.start();
                 title.setText(fileName.toUpperCase(Locale.ROOT));
                 res.setText((width + "x" + length));
                 res_mp.setText((String.format(Locale.US,"%.1f",
@@ -182,9 +194,7 @@ public class GalleryActivity extends AppCompatActivity {
                         DateFormat.DAY+" "+DateFormat.MONTH+" "+
                                 DateFormat.YEAR+" "+DateFormat.WEEKDAY+" "+
                                 "H:m:s");
-                dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
                 Date photoDate = new Date(currentFile.lastModified());
-                //dateFormat.format(photoDate);
                 datetime.setText(dateFormat.format(photoDate).toUpperCase());
 
                 String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));

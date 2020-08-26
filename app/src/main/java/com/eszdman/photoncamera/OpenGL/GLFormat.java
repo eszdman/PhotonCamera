@@ -139,7 +139,7 @@ public class GLFormat {
         }
         return 0;
     }
-
+    @androidx.annotation.NonNull
     @Override
     public String toString() {
         return "GLFormat{" +

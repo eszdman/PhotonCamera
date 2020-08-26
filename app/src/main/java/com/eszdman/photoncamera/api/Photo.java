@@ -3,17 +3,11 @@ package com.eszdman.photoncamera.api;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.util.Size;
-
-import androidx.loader.content.CursorLoader;
 
 import com.eszdman.photoncamera.ui.MainActivity;
 
@@ -22,14 +16,11 @@ import java.util.Comparator;
 
 import rapid.decoder.BitmapDecoder;
 
-import static com.eszdman.photoncamera.gallery.GalleryActivity.activity;
-
+@SuppressWarnings("ALL")
 public class Photo {
     public static Photo instance;
     private static Handler galleryHandler;
     static class GalleryHandler extends Handler {
-        GalleryHandler() {
-        }
         @Override
         public void handleMessage(Message msg)
         {

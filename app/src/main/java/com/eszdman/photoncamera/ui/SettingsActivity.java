@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.ui;
 import androidx.annotation.IdRes;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -22,8 +23,9 @@ import com.eszdman.photoncamera.api.Interface;
 
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
-
+@SuppressLint("UseSwitchCompatOrMaterialCode")
 public class SettingsActivity extends AppCompatActivity {
+
     //Here
     TextView luma;
     TextView framestext;
@@ -72,6 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Interface.i.settingsActivity = this;
         setContentView(R.layout.activity_settings);
         if(Interface.i.settings.hdrx){
             LinearLayout jpg = findViewById(R.id.settingsJPG);
@@ -99,7 +102,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.chromaCount = chromaCount.getProgress();
-                chroma.setText(res.getText(R.string.chroma_nr_count).toString() + " " + Interface.i.settings.chromaCount);
+                chroma.setText((res.getText(R.string.chroma_nr_count).toString() + " " + Interface.i.settings.chromaCount));
             }
 
             @Override
@@ -114,7 +117,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.lumenCount = lumenCount.getProgress();
-                luma.setText(res.getText(R.string.luma_nr_count).toString() + " " + Interface.i.settings.lumenCount);
+                luma.setText((res.getText(R.string.luma_nr_count).toString() + " " + Interface.i.settings.lumenCount));
             }
 
             @Override
@@ -129,7 +132,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.frameCount = frameCount.getProgress();
-                framestext.setText(res.getText(R.string.frame_count).toString() + " " + Interface.i.settings.frameCount);
+                framestext.setText((res.getText(R.string.frame_count).toString() + " " + Interface.i.settings.frameCount));
                 if (Interface.i.settings.frameCount == 1) framestext.setText("Unprocessed Output");
             }
 
@@ -145,7 +148,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.contrastConst = contrastconst.getProgress();
-                contrasttext.setText(res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
+                contrasttext.setText((res.getText(R.string.contrmul) + String.valueOf(Interface.i.settings.contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst));
             }
 
             @Override
@@ -160,7 +163,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.contrastMpy = getDouble(contrastmul.getProgress());
-                contrasttext.setText(res.getText(R.string.contrmul) + " " + Interface.i.settings.contrastMpy + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst);
+                contrasttext.setText((res.getText(R.string.contrmul) + " " + Interface.i.settings.contrastMpy + " " + res.getText(R.string.contrconst) + " " + Interface.i.settings.contrastConst));
             }
 
             @Override
@@ -175,7 +178,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.sharpness = getDouble(sharp.getProgress());
-                sharptext.setText(res.getText(R.string.sharpness) + " " + Interface.i.settings.sharpness);
+                sharptext.setText((res.getText(R.string.sharpness) + " " + Interface.i.settings.sharpness));
             }
 
             @Override
@@ -190,7 +193,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.saturation = getDouble(satur.getProgress());
-                sattext.setText(res.getText(R.string.saturation).toString() + " " + Interface.i.settings.saturation);
+                sattext.setText((res.getText(R.string.saturation).toString() + " " + Interface.i.settings.saturation));
             }
 
             @Override
@@ -205,7 +208,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.compressor = getDouble(compress.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + " " + Interface.i.settings.gain);
+                compgaintext.setText((res.getText(R.string.comp) + String.valueOf(Interface.i.settings.compressor) + " " + res.getText(R.string.gain) + " " + Interface.i.settings.gain));
             }
 
             @Override
@@ -220,7 +223,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Interface.i.settings.gain = getDouble(gains.getProgress());
-                compgaintext.setText(res.getText(R.string.comp) + " " + Interface.i.settings.compressor + "  " + res.getText(R.string.gain) + " " + Interface.i.settings.gain);
+                compgaintext.setText((res.getText(R.string.comp) + " " + Interface.i.settings.compressor + "  " + res.getText(R.string.gain) + " " + Interface.i.settings.gain));
             }
 
             @Override
@@ -267,6 +270,7 @@ public class SettingsActivity extends AppCompatActivity {
         set();
     }
 
+    @SuppressLint("CommitPrefEdits")
     @Override
     protected void onPause() {
         sharedPreferencesEditor = sharedPreferences.edit();
@@ -277,7 +281,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     //Here
-    void set() {
+    public void set() {
         setv(disablealign, !Interface.i.settings.align);
         setv(frameCount, Interface.i.settings.frameCount);
         setv(chromaCount, Interface.i.settings.chromaCount);
@@ -302,7 +306,7 @@ public class SettingsActivity extends AppCompatActivity {
         load();
     }
     //And here
-    void views() {
+    public void views() {
         gridOnOff = getView(R.id.setting_grid);
         watermarkOnOff = getView(R.id.setting_watermark);
         afdataOnOff = getView(R.id.setting_afdata);
@@ -334,7 +338,7 @@ public class SettingsActivity extends AppCompatActivity {
         alignList = getView(R.id.setting_align);
     }
     //Also here
-    void get() {
+    public void get() {
         views();
         if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
         else Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_OFF;
@@ -425,5 +429,13 @@ public class SettingsActivity extends AppCompatActivity {
     public void telega(View view) {
         Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
         startActivity(browserint);
+    }
+
+    public void export_settings(View view) {
+        Interface.i.settings.ExportSettings();
+    }
+
+    public void import_settings(View view) {
+        Interface.i.settings.ImportSettings();
     }
 }

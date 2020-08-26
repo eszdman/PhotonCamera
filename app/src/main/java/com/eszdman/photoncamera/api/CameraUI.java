@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -8,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ToggleButton;
 
-import com.eszdman.photoncamera.AutoFitTextureView;
+
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.ui.MainActivity;
@@ -65,7 +66,8 @@ public class CameraUI {
             flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
             Interface.i.camera.mTextureView.animate().rotation(Interface.i.camera.mTextureView.getRotation() - 360).setDuration(450).start();
             Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID, Interface.i.camera.mCameraIds);
-            Interface.i.settings.save();
+            Interface.i.settings.saveID();
+            Interface.i.settings.load();
             Interface.i.camera.restartCamera();
         });
         Button settings = Interface.i.mainActivity.findViewById(R.id.settings);
@@ -125,6 +127,33 @@ public class CameraUI {
         ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
         night.setChecked(Interface.i.settings.nightMode);
         Interface.i.camera.startBackgroundThread();
+        burstUnlock();
+        clearProcessingCycle();
     }
 
+    public void onProcessingEnd(){
+        clearProcessingCycle();
+        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
+        processingPlayer.start();
+    }
+    public void burstUnlock(){
+        Interface.i.cameraui.shot.setActivated(true);
+        Interface.i.cameraui.shot.setClickable(true);
+    }
+    public void clearProcessingCycle(){
+        try {
+            Interface.i.cameraui.loadingcycle.setProgress(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void incrementProcessingCycle(){
+        try {
+            int progress = (Interface.i.cameraui.loadingcycle.getProgress() + 1) % (Interface.i.cameraui.loadingcycle.getMax() + 1);
+            progress = Math.max(1, progress);
+            Interface.i.cameraui.loadingcycle.setProgress(progress);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 }

@@ -44,4 +44,6 @@
     <string name="filename">"File name: "</string>
     <string name="turn_on_afdata">Show AF data</string>
     <string name="histogram">Histogram</string>
+    <string name="export_settings">Export Settings</string>
+    <string name="import_settings">Import Settings</string>
 </resources>

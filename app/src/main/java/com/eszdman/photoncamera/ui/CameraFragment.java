@@ -22,7 +22,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -31,7 +30,6 @@ import android.hardware.camera2.*;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -62,7 +60,6 @@ import com.eszdman.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Semaphore;
@@ -70,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
+@SuppressWarnings("rawtypes")
 public class CameraFragment extends Fragment
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
@@ -155,22 +153,23 @@ public class CameraFragment extends Fragment
             = new TextureView.SurfaceTextureListener() {
 
         @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+        public void onSurfaceTextureAvailable(@NonNull SurfaceTexture texture, int width, int height) {
             openCamera(width, height);
         }
 
         @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+        public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture texture, int width, int height) {
             configureTransform(width, height);
         }
 
         @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+
+        public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture texture) {
             return true;
         }
 
         @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+        public void onSurfaceTextureUpdated(@NonNull SurfaceTexture texture) {
         }
 
     };
@@ -404,7 +403,7 @@ public class CameraFragment extends Fragment
             Rational[] mtemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
             if(exposure != null) mPreviewExposuretime = (long)exposure;
             if(iso != null) mPreviewIso = (int)iso;
-            if(focus != null) mFocus = (float)focus; else focus = 0.f;
+            if(focus != null) mFocus = (float)focus;
             mPreviewTemp = mtemp;
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
@@ -425,7 +424,7 @@ public class CameraFragment extends Fragment
                     }
                 }
                 if(ExposureIndex.index()+0.9 < 8.0) {
-                    if(is30Fps && Interface.i.settings.fpsPreview && mCameraDevice.getId() != "1")
+                    if(is30Fps && Interface.i.settings.fpsPreview && !mCameraDevice.getId().equals("1"))
                     {
                         Log.d(TAG,"Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeHigh);
@@ -504,12 +503,7 @@ public class CameraFragment extends Fragment
     public void showToast(final String text) {
         final Activity activity = getActivity();
         if (activity != null) {
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(activity, text, Toast.LENGTH_SHORT).show();
-                }
-            });
+            activity.runOnUiThread(() -> Toast.makeText(activity, text, Toast.LENGTH_SHORT).show());
         }
     }
 
@@ -641,12 +635,11 @@ public class CameraFragment extends Fragment
                 if (sw.isChecked()) {
                     mTargetFormat = rawFormat;
                     Interface.i.settings.hdrx = true;
-                    Interface.i.settings.save();
                 } else {
                     mTargetFormat = yuvFormat;
                     Interface.i.settings.hdrx = false;
-                    Interface.i.settings.save();
                 }
+                Interface.i.settings.save();
                 restartCamera();
                 break;
             }
@@ -671,12 +664,7 @@ public class CameraFragment extends Fragment
     }
 
     public void loadGalleryButtonImage() {
-        File[] files = FileManager.DCIM_CAMERA.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toUpperCase().endsWith(".JPG");
-            }
-        } );
+        File[] files = FileManager.DCIM_CAMERA.listFiles((dir, name) -> name.toUpperCase().endsWith(".JPG"));
         if (files != null) {
             long lastModifiedTime = -1;
             File lastImage = null;
@@ -762,7 +750,9 @@ public class CameraFragment extends Fragment
              target = sizes.get(s);
              if(Interface.i.settings.QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                 if(pre == null) return target;
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+                 if(act == null) return target;
                  double k = (double) (target.getHeight()) / act.bottom;
                  mul(pre, k);
                  mul(act, k);
@@ -779,24 +769,21 @@ public class CameraFragment extends Fragment
          }
          return mPreviewSize;
      }
+
+    int mPreviewwidth;
+    int mPreviewheight;
     /**
      * Sets up member variables related to camera.
      *
      * @param width  The width of available size for camera preview
      * @param height The height of available size for camera preview
      */
-    int mPreviewwidth;
-    int mPreviewheight;
-
     private void setUpCameraOutputs(int width, int height) {
-        Activity activity = getActivity();
-        CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
         //CameraManager2 manager2 = new CameraManager2(manager);
         // manager2.CameraArr(manager);
         try {
-                CameraCharacteristics characteristics
-                        = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
-                mCameraCharacteristics = characteristics;
+            mCameraCharacteristics = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
                 mPreviewwidth = width;
                 mPreviewheight = height;
                 UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
@@ -815,8 +802,7 @@ public class CameraFragment extends Fragment
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
-        Activity activity = getActivity();
-        CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
         CameraCharacteristics characteristics
                 = null;
         try {
@@ -827,8 +813,11 @@ public class CameraFragment extends Fragment
         mCameraCharacteristics = characteristics;
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
-        StreamConfigurationMap map = mCameraCharacteristics.get(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        StreamConfigurationMap map = null;
+        if (mCameraCharacteristics != null) {
+            map = mCameraCharacteristics.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        }
         if (map == null) {
             return;
         }
@@ -852,22 +841,26 @@ public class CameraFragment extends Fragment
         Range[] ranges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
         int def = 30;
         int min = 20;
-        for(int i =0; i<ranges.length;i++){
-            if((int)ranges[i].getUpper() >= def){
-                FpsRangeDef = ranges[i];
-                break;
-            }
+        if(ranges == null) {
+            ranges = new Range[1];
+            ranges[0] = new Range(15, 30);
         }
-        if(FpsRangeDef == null)
-            for(int i =0; i<ranges.length;i++){
-                if((int)ranges[i].getUpper() >= min){
-                    FpsRangeDef = ranges[i];
+            for (Range value : ranges) {
+                if ((int) value.getUpper() >= def) {
+                    FpsRangeDef = value;
                     break;
                 }
             }
-        for(int i =0; i<ranges.length;i++){
-            if((int)ranges[i].getUpper() > def){
-                FpsRangeDef = ranges[i];
+        if(FpsRangeDef == null)
+            for (Range range : ranges) {
+                if ((int) range.getUpper() >= min) {
+                    FpsRangeDef = range;
+                    break;
+                }
+            }
+        for (Range range : ranges) {
+            if ((int) range.getUpper() > def) {
+                FpsRangeDef = range;
                 break;
             }
         }
@@ -892,7 +885,7 @@ public class CameraFragment extends Fragment
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
-        activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
+        Interface.i.mainActivity.getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewwidth;
         int rotatedPreviewHeight = mPreviewheight;
         int maxPreviewWidth = displaySize.x;
@@ -901,7 +894,9 @@ public class CameraFragment extends Fragment
         if (swappedDimensions) {
             rotatedPreviewWidth = mPreviewheight;
             rotatedPreviewHeight = mPreviewwidth;
+            //noinspection SuspiciousNameCombination
             maxPreviewWidth = displaySize.y;
+            //noinspection SuspiciousNameCombination
             maxPreviewHeight = displaySize.x;
         }
 
@@ -967,7 +962,11 @@ public class CameraFragment extends Fragment
         }
 
         Activity activity = getActivity();
-        CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = null;
+        if (activity != null) {
+            manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        }
+        if(manager == null) return;
         StreamConfigurationMap map = null;
         try {
             map = manager.getCameraCharacteristics(Interface.i.settings.mCameraID).get(
@@ -975,6 +974,7 @@ public class CameraFragment extends Fragment
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
+        if(map == null) return;
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         int max = 3;
@@ -1017,15 +1017,14 @@ public class CameraFragment extends Fragment
      */
     private void openCamera(int width, int height) {
         context = this;
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(Interface.i.mainActivity, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
             return;
         }
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
-        Activity activity = getActivity();
-        CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         mCameraIds = manager2.getCameraIdList();
         try {
@@ -1082,6 +1081,7 @@ public class CameraFragment extends Fragment
      * Stops the background thread and its {@link Handler}.
      */
     private void stopBackgroundThread() {
+        if(mBackgroundThread == null) return;
         mBackgroundThread.quitSafely();
         try {
             mBackgroundThread.join();
@@ -1114,7 +1114,7 @@ public class CameraFragment extends Fragment
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            List surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+            List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             if(burst){
                 surfaces = Arrays.asList(mImageReaderPreview.getSurface(),mImageReaderRaw.getSurface());
             }
@@ -1135,15 +1135,17 @@ public class CameraFragment extends Fragment
                                     // Auto focus should be continuous for camera preview.
                                     //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                     // Flash is automatically enabled when necessary.
-                                    setAutoFlash(mPreviewRequestBuilder);
+                                    setAutoFlash();
                                     Interface.i.settings.applyPrev(mPreviewRequestBuilder);
 
                                     //lightcycle.setVisibility(View.INVISIBLE);
                                     // Finally, we start displaying the camera preview.
                                     if (Interface.i.camera.is30Fps) {
-                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeDef);
+                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                                FpsRangeDef);
                                     } else {
-                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeHigh);
+                                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                                FpsRangeHigh);
                                     }
                                     mPreviewRequest = mPreviewRequestBuilder.build();
 
@@ -1158,12 +1160,7 @@ public class CameraFragment extends Fragment
                                         burst = false;
                                     }
                                     if(getActivity()!=null){
-                                        getActivity().runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                Interface.i.touchFocus.resetFocusCircle();
-                                            }
-                                        });
+                                        getActivity().runOnUiThread(() -> Interface.i.touchFocus.resetFocusCircle());
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
@@ -1294,11 +1291,6 @@ public class CameraFragment extends Fragment
         }
     }
 
-    /**
-     * Capture a still picture. This method should be called when we get a response in
-     * {@link #mCaptureCallback} from both {@link #lockFocus()}.
-     */
-    private boolean FixPreview = false;
     ArrayList<CaptureRequest> captures;
     CameraCaptureSession.CaptureCallback CaptureCallback;
     private void captureStillPicture() {
@@ -1311,7 +1303,6 @@ public class CameraFragment extends Fragment
             final CaptureRequest.Builder captureBuilder =
                     mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             mCaptureSession.stopRepeating();
-            FixPreview = true;
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderPreview.getSurface());
             Interface.i.settings.applyRes(captureBuilder);
@@ -1376,7 +1367,6 @@ public class CameraFragment extends Fragment
                     }
                     //unlockFocus();
                     createCameraPreviewSession();
-                    FixPreview = false;
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
                 }
 
@@ -1390,7 +1380,6 @@ public class CameraFragment extends Fragment
                             Interface.i.cameraui.lightcycle.setProgress(0);
                             mTextureView.setAlpha(1f);
                             createCameraPreviewSession();
-                            FixPreview = false;
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
@@ -1409,20 +1398,6 @@ public class CameraFragment extends Fragment
     }
 
     /**
-     * Retrieves the JPEG orientation from the specified screen rotation.
-     *
-     * @param rotation The screen rotation.
-     * @return The JPEG orientation (one of 0, 90, 270, and 360)
-     */
-    public int getOrientation(int rotation) {
-        // Sensor orientation is 90 for most devices, or 270 for some devices (eg. Nexus 5X)
-        // We have to take that into account and rotate JPEG properly.
-        // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.
-        // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
-        return (ORIENTATIONS.get(rotation) + mSensorOrientation + 270) % 360;
-    }
-
-    /**
      * Unlock the focus. This method should be called when still image capture sequence is
      * finished.
      */
@@ -1430,7 +1405,7 @@ public class CameraFragment extends Fragment
         // Reset the auto-focus trigger
         //mCaptureSession.stopRepeating();
         CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AF_TRIGGER,CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-        setAutoFlash(mPreviewRequestBuilder);
+        setAutoFlash();
         //mCaptureSession.capture(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
@@ -1452,16 +1427,12 @@ public class CameraFragment extends Fragment
         return ids[n];
     }
 
-    public void setAutoFlash(CaptureRequest.Builder requestBuilder) {
+    public void setAutoFlash() {
         if (mFlashSupported) {
             if (mFlashEnabled)
             CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
         }
     }
-
-    /**
-     * Saves a JPEG {@link Image} into the specified {@link File}.
-     */
 
 
     /**
@@ -1496,11 +1467,11 @@ public class CameraFragment extends Fragment
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Activity activity = getActivity();
+            assert getArguments() != null;
             return new AlertDialog.Builder(activity)
                     .setMessage(getArguments().getString(ARG_MESSAGE))
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
+                    .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
+                        if (activity != null) {
                             activity.finish();
                         }
                     })

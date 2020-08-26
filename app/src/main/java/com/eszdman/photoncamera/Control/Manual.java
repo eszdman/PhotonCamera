@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.Control;
 
-import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureRequest.Builder;
@@ -17,7 +16,6 @@ public class Manual {
     public double expvalue = 1.0/20;
     public int isovalue = 1600;
     public boolean exposure = false;
-    @SuppressLint("NewApi")
     public void Init() {
         SeekBar isoSlider = Interface.i.mainActivity.findViewById(R.id.isoSlider);
         TextView isoValue = Interface.i.mainActivity.findViewById(R.id.isoValue);
@@ -57,14 +55,13 @@ public class Manual {
         expSlider.setMax((int)(Math.log((double)(maxexp)/ ExposureIndex.sec)/Math.log(2))+1);
         expSlider.setProgress(-4);
         expSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @SuppressLint({"DefaultLocale", "SetTextI18n"})
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 expvalue = Math.pow(2,expSlider.getProgress());
                 if(expSlider.getProgress() == expSlider.getMax()) expvalue = ((double)maxexp)/ExposureIndex.sec;
                 if(expSlider.getProgress() == expSlider.getMin()) expvalue = ((double)minexp)/ExposureIndex.sec;
                 if(expvalue < 1.0) {
-                    expValue.setText("1/"+(int)(1.0 / expvalue));
+                    expValue.setText(("1/"+(int)(1.0 / expvalue)));
                     try{
                         //Interface.i.camera.mPreviewRequestBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME,ExposureIndex.sec2time(expvalue));
                         Builder builder = Interface.i.camera.mPreviewRequestBuilder;
@@ -88,10 +85,16 @@ public class Manual {
         });
         SeekBar focusSlider = Interface.i.mainActivity.findViewById(R.id.focusSlider);
         TextView focusValue = Interface.i.mainActivity.findViewById(R.id.focusValue);
-        float min = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        float min;
+        Object mino = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        if(mino != null ) min = (float)mino;
+        else min = 0.f;
         focusSlider.setMin(0);
         focusSlider.setMax(1000);
-        float max = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
+        float max;
+        Object maxo = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
+        if(mino != null ) max = (float)maxo;
+        else max = 1.f;
         float k = (max-min)/1000.f;
         focusSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -104,13 +107,13 @@ public class Manual {
                 //CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.LENS_FOCUS_DISTANCE,progressf);
                 Interface.i.camera.rebuildPreviewBuilder();
                 if((float)progress == 1000f) {
-                    focusValue.setText("INF");
+                    focusValue.setText(("INF"));
                 }
                 else if((float)progress <= 100f) {
-                    focusValue.setText((float)progress + "cm");
+                    focusValue.setText(((float)progress + "cm"));
                 }
                 else {
-                    focusValue.setText((float)progress / 100 + "m");
+                    focusValue.setText(((float)progress / 100 + "m"));
                 }
             }
             @Override

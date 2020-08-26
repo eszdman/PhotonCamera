@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ফটোনক্যাম</string>
     <string name="request_permission">এই অ্যাপ এর ক্যামেরা অনুমতি প্রয়োজন</string>
     <string name="camera_error">এই ডিভাইসে ক্যামেরা ২ এপিআই সাপোর্ট নেই</string>
     <string name="luma_nr_count">লুমা নয়েজ কমানোর মাত্রাঃ</string>

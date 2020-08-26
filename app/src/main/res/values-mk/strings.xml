@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Photon Camera</string>
     <string name="request_permission">Апликацијата бара пристап до камера</string>
     <string name="camera_error">Твојот уред не подржува Camera2 API</string>
     <string name="luma_nr_count">Luma NR count:</string>
