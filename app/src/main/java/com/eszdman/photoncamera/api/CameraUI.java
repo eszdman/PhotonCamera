@@ -63,8 +63,8 @@ public class CameraUI {
         });
         ImageButton flip = Interface.i.mainActivity.findViewById(R.id.flip_camera);
         flip.setOnClickListener(v -> {
-            flip.animate().rotation(flip.getRotation() - 180).setDuration(450).start();
-            Interface.i.camera.mTextureView.animate().rotation(Interface.i.camera.mTextureView.getRotation() - 360).setDuration(450).start();
+            flip.animate().rotationBy(180).setDuration(450).start();
+            Interface.i.camera.mTextureView.animate().rotationBy(360).setDuration(450).start();
             Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID, Interface.i.camera.mCameraIds);
             Interface.i.settings.saveID();
             Interface.i.settings.load();
@@ -133,8 +133,8 @@ public class CameraUI {
 
     public void onProcessingEnd(){
         clearProcessingCycle();
-        MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
-        processingPlayer.start();
+        //MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
+        //processingPlayer.start();
     }
     public void burstUnlock(){
         Interface.i.cameraui.shot.setActivated(true);

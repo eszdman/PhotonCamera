@@ -324,7 +324,7 @@ public class Settings {
             String property = entry.getValue().toString();
             String name = entry.getKey().toString();
             if(name.charAt(5) == '_' && name.length() > 6) {
-                Log.d(TAG,"Imporing:"+name.charAt(6)+" "+name);
+                Log.d(TAG,"Importing:"+name.charAt(6)+" "+name);
                 switch (name.charAt(6)) {
                     case 'b':
                         sharedPreferencesEditor.putBoolean(name, Boolean.parseBoolean(property));

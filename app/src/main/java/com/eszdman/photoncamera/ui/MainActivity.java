@@ -16,6 +16,7 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
+import com.eszdman.photoncamera.util.FileManager;
 
 import org.opencv.android.OpenCVLoader;
 
@@ -48,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         Interface inter = new Interface(this);
         //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
-
+        FileManager.CreateFolders();
         CameraFragment.context = CameraFragment.newInstance();
         inter.camera = CameraFragment.context;
         setContentView(R.layout.activity_camera);
