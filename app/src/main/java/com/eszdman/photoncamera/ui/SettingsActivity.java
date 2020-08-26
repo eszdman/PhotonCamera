@@ -25,6 +25,7 @@ import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 @SuppressLint("UseSwitchCompatOrMaterialCode")
 public class SettingsActivity extends AppCompatActivity {
+
     //Here
     TextView luma;
     TextView framestext;
@@ -73,6 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Interface.i.settingsActivity = this;
         setContentView(R.layout.activity_settings);
         if(Interface.i.settings.hdrx){
             LinearLayout jpg = findViewById(R.id.settingsJPG);
@@ -279,7 +281,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     //Here
-    void set() {
+    public void set() {
         setv(disablealign, !Interface.i.settings.align);
         setv(frameCount, Interface.i.settings.frameCount);
         setv(chromaCount, Interface.i.settings.chromaCount);
@@ -304,7 +306,7 @@ public class SettingsActivity extends AppCompatActivity {
         load();
     }
     //And here
-    void views() {
+    public void views() {
         gridOnOff = getView(R.id.setting_grid);
         watermarkOnOff = getView(R.id.setting_watermark);
         afdataOnOff = getView(R.id.setting_afdata);
@@ -336,7 +338,7 @@ public class SettingsActivity extends AppCompatActivity {
         alignList = getView(R.id.setting_align);
     }
     //Also here
-    void get() {
+    public void get() {
         views();
         if (turnNR.isChecked()) Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
         else Interface.i.settings.noiseReduction = NOISE_REDUCTION_MODE_OFF;
@@ -427,5 +429,13 @@ public class SettingsActivity extends AppCompatActivity {
     public void telega(View view) {
         Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
         startActivity(browserint);
+    }
+
+    public void export_settings(View view) {
+        Interface.i.settings.ExportSettings();
+    }
+
+    public void import_settings(View view) {
+        Interface.i.settings.ImportSettings();
     }
 }

@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
@@ -18,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
@@ -154,7 +156,6 @@ public class Settings {
         count = -1;
         sharedPreferencesEditor.putString("Camera", mCameraID);
         sharedPreferencesEditor.apply();
-        ExportSettings();
         count = 0;
     }
 
@@ -218,80 +219,32 @@ public class Settings {
         TonemapCurve tonemapCurve = new TonemapCurve(rgb,rgb,rgb);
         captureBuilder.set(TONEMAP_CURVE,tonemapCurve);
     }
-
-    void put(int in) {
-        sharedPreferencesEditor.putInt(mCameraID+"Settings:" + count, in);
-        count++;
-    }
-
-    void put(double in) {
-        sharedPreferencesEditor.putFloat(mCameraID+"Settings:" + count, (float) in);
-        count++;
-    }
-
-    void put(String in) {
-        sharedPreferencesEditor.putString(mCameraID+"Settings:" + count, in);
-        count++;
-    }
-
-    void put(boolean in) {
-        sharedPreferencesEditor.putBoolean(mCameraID+"Settings:" + count, in);
-        count++;
-    }
-
     void put(int in,String name) {
         Log.d(TAG,"Saved "+name+":"+in);
-        sharedPreferencesEditor.putInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
+        sharedPreferencesEditor.putInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_i_"+name, in);
         count++;
     }
 
     void put(double in,String name) {
         Log.d(TAG,"Saved "+name+":"+in);
-        sharedPreferencesEditor.putFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (float) in);
+        sharedPreferencesEditor.putFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_d_"+name, (float) in);
         count++;
     }
 
     void put(String in,String name) {
         Log.d(TAG,"Saved "+name+":"+in);
-        sharedPreferencesEditor.putString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
+        sharedPreferencesEditor.putString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_s_"+name, in);
         count++;
     }
 
     void put(boolean in,String name) {
         Log.d(TAG,"Saved "+name+":"+in);
-        sharedPreferencesEditor.putBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
+        sharedPreferencesEditor.putBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_b_"+name, in);
         count++;
-    }
-
-    boolean get(boolean in) {
-        boolean result = sharedPreferences.getBoolean(mCameraID+"Settings:" + count, in);
-        count++;
-        return result;
-    }
-
-    int get(int cur) {
-        int result;
-        result = sharedPreferences.getInt(mCameraID+"Settings:" + count, cur);
-        count++;
-        return result;
-    }
-
-    double get(double cur) {
-        double result;
-        result = sharedPreferences.getFloat(mCameraID+"Settings:" + count, (float) (cur));
-        count++;
-        return result;
-    }
-
-    String get(String cur) {
-        String result;
-        result = (sharedPreferences.getString(mCameraID+"Settings:" + count, (cur)));
-        count++;
-        return result;
     }
 
     boolean get(boolean in,String name) {
-        boolean result = sharedPreferences.getBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, in);
+        boolean result = sharedPreferences.getBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_b_"+name, in);
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
@@ -299,7 +252,7 @@ public class Settings {
 
     int get(int cur,String name) {
         int result;
-        result = sharedPreferences.getInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, cur);
+        result = sharedPreferences.getInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_i_"+name, cur);
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
@@ -307,7 +260,7 @@ public class Settings {
 
     double get(double cur,String name) {
         double result;
-        result = sharedPreferences.getFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (float) (cur));
+        result = sharedPreferences.getFloat("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_d_"+name, (float) (cur));
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
@@ -315,12 +268,13 @@ public class Settings {
 
     String get(String cur,String name) {
         String result;
-        result = (sharedPreferences.getString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_"+name, (cur)));
+        result = (sharedPreferences.getString("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_s_"+name, (cur)));
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
     }
     public void ExportSettings(){
+       save();
        Map<String, ?> allKeys =  sharedPreferences.getAll();
        File configFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Settings.ini");
        Properties props = new Properties();
@@ -336,10 +290,58 @@ public class Settings {
            props.setProperty(entry.getKey(),entry.getValue().toString());
            Log.v(TAG,"setProperty:"+entry.getKey()+" = "+entry.getValue().toString());
        }
+
         try {
             props.store(new FileOutputStream(configFile),"PhotonCamera settings file");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public void ImportSettings(){
+        Map<String, ?> allKeys =  sharedPreferences.getAll();
+        File configFile = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Settings.ini");
+        Properties props = new Properties();
+        try {
+            if (!configFile.exists()) configFile.createNewFile();
+            props.load(new FileInputStream(configFile));
+        }
+        catch(IOException e){
+            e.printStackTrace();
+            return;
+        }
+        mCameraID = props.getProperty("Camera");
+        String ids = props.getProperty("Cameras",CameraManager2.cameraManager2.getCameraIdList().toString());
+        ids = ids.replace("]","");
+        ids = ids.replace("[","");
+        ids = ids.replace(" ","");
+        String idarr[] = ids.split(",");
+        CameraManager2.cameraManager2.mCameraIDs.clear();
+        for(String id : idarr) {
+            Log.d(TAG,"CameraID:"+id);
+            CameraManager2.cameraManager2.mCameraIDs.add(id);
+        }
+        for (Map.Entry<Object, Object> entry : props.entrySet()){
+            String property = entry.getValue().toString();
+            String name = entry.getKey().toString();
+            if(name.charAt(5) == '_' && name.length() > 6) {
+                Log.d(TAG,"Imporing:"+name.charAt(6)+" "+name);
+                switch (name.charAt(6)) {
+                    case 'b':
+                        sharedPreferencesEditor.putBoolean(name, Boolean.parseBoolean(property));
+                        break;
+                    case 'i':
+                        sharedPreferencesEditor.putInt(name, Integer.parseInt(property));
+                        break;
+                    case 'd':
+                        sharedPreferencesEditor.putFloat(name, Float.parseFloat(property));
+                        break;
+                    case 's':
+                        sharedPreferencesEditor.putString(name, property);
+                        break;
+                }
+            }
+        }
+        load();
+        Interface.i.settingsActivity.set();
     }
 }

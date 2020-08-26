@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Photon Camera</string>
     <string name="request_permission">Este aplicativo necessita de permissão para acesso à câmera.</string>
     <string name="camera_error">Este aparelho não suporta Camera2 API.</string>
     <string name="luma_nr_count">Contagem de redução de ruido de luminância:</string>

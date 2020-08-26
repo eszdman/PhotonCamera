@@ -40,4 +40,5 @@
     <string name="filename">"Nome file: "</string>
     <string name="turn_on_afdata">Mostra dati AF</string>
     <string name="histogram">Istogramma</string>
+    <string name="gain">Amplificazione:</string>
 </resources>

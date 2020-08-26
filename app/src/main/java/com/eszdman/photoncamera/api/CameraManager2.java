@@ -17,7 +17,7 @@ public class CameraManager2 {
     public static CameraManager2 cameraManager2;
     private final CameraManager manager;
     private final SharedPreferences sharedPreferences;
-    private Set<String> mCameraIDs = new HashSet<>();
+    public Set<String> mCameraIDs = new HashSet<>();
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
         manager = manag;
