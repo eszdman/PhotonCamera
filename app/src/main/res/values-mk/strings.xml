@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="request_permission">Апликацијата бара пристап до камера</string>
+    <string name="camera_error">Твојот уред не подржува Camera2 API</string>
+    <string name="luma_nr_count">Luma NR count:</string>
+    <string name="frame_count">Број на слики:</string>
+    <string name="disable_aligning">Исклучи aligning (совпаѓање)</string>
+    <string name="turn_on_system_nr">Прикчучи системски NR</string>
+    <string name="chroma_nr_count">Број на Chroma NR:</string>
+    <string name="enhanced_processing">Подобрена обработка</string>
+    <string name="settings">Опции</string>
+    <string name="comp">Компресор:</string>
+    <string name="gain">Gain:</string>
+    <string name="contrmul">Contrast multiply:</string>
+    <string name="contrconst">Константа:</string>
+    <string name="saturation">Заситеност:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Острина:</string>
+    <string name="turn_on_grid">Прикажи линии</string>
+    <string name="raw">Зачувај во RAW</string>
+    <string name="turn_on_round_edges">Уклучи Заоблени ќошеви</string>
+    <string name="enable_remosaic">Уклучи Remosaic</string>
+    <string name="general">Генерално</string>
+    <string name="telegram">Телеграм група</string>
+    <string name="hdrxNR">HDRX редукција на шум</string>
+    <string name="turn_on_watermark">Уклучи стикер</string>
+    <string name="sure_delete">Дали сте сигурни за бришење на оваја фотографија?</string>
+    <string name="cancel">Откажи</string>
+    <string name="yes">Да</string>
+    <string name="image_deleted">Сликата беше избришана</string>
+    <string name="close">Затвори</string>
+    <string name="unknown">Непознат</string>
+    <string name="resolution">"Резолуција: "</string>
+    <string name="size">"Големина на фалј: "</string>
+    <string name="device">"Уред: "</string>
+    <string name="date">"Датум: "</string>
+    <string name="iso">"ISO: "</string>
+    <string name="exposure_time">"Време на изложеност: "</string>
+    <string name="aperture">"Aperture: "</string>
+    <string name="flength">"Focal length: "</string>
+    <string name="info">Информации</string>
+    <string name="filename">"Име на фалј: "</string>
+</resources>

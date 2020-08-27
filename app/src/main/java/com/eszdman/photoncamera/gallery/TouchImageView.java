@@ -9,11 +9,14 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
-import android.view.View;
-import android.widget.ImageView;
+import android.widget.Button;
+import androidx.appcompat.widget.AppCompatImageView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
-public class TouchImageView extends ImageView implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+import com.eszdman.photoncamera.R;
 
+public class TouchImageView extends AppCompatImageView implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+    private static final String TAG = "TouchImageView";
     Matrix matrix;
 
     // We can be in one of these 3 states
@@ -62,67 +65,49 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
         m = new float[9];
         setImageMatrix(matrix);
         setScaleType(ScaleType.MATRIX);
-
-        setOnTouchListener(new OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                mScaleDetector.onTouchEvent(event);
-                mGestureDetector.onTouchEvent(event);
-
-                PointF curr = new PointF(event.getX(), event.getY());
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        last.set(curr);
-                        start.set(last);
-                        mode = DRAG;
-                        break;
-
-                    case MotionEvent.ACTION_MOVE:
-                        if (mode == DRAG) {
-                            float deltaX = curr.x - last.x;
-                            float deltaY = curr.y - last.y;
-                            float fixTransX = getFixDragTrans(deltaX, viewWidth,
-                                    origWidth * saveScale);
-                            float fixTransY = getFixDragTrans(deltaY, viewHeight,
-                                    origHeight * saveScale);
-                            if(saveScale == 1.0 )
-                                startInterceptEvent();
-                            else
-                                stopInterceptEvent();
-
-                            matrix.postTranslate(fixTransX, fixTransY);
-                            fixTrans();
-                            last.set(curr.x, curr.y);
-                        }
-                        break;
-
-                    case MotionEvent.ACTION_UP:
-                        mode = NONE;
-                        int xDiff = (int) Math.abs(curr.x - start.x);
-                        int yDiff = (int) Math.abs(curr.y - start.y);
-                        if (xDiff < CLICK && yDiff < CLICK)
-                            performClick();
-                        break;
-
-                    case MotionEvent.ACTION_POINTER_UP:
-                        mode = NONE;
-                        break;
-                }
-
-                setImageMatrix(matrix);
-                invalidate();
-                return true; // indicate event was handled
+        setOnTouchListener((v, event) -> {
+            mScaleDetector.onTouchEvent(event);
+            mGestureDetector.onTouchEvent(event);
+            PointF curr = new PointF(event.getX(), event.getY());
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    last.set(curr);
+                    start.set(last);
+                    mode = DRAG;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (mode == DRAG) {
+                        float deltaX = curr.x - last.x;
+                        float deltaY = curr.y - last.y;
+                        float fixTransX = getFixDragTrans(deltaX, viewWidth,
+                                origWidth * saveScale);
+                        float fixTransY = getFixDragTrans(deltaY, viewHeight,
+                                origHeight * saveScale);
+                        if(saveScale == 1.0 )
+                            startInterceptEvent();
+                        else
+                            stopInterceptEvent();
+                        matrix.postTranslate(fixTransX, fixTransY);
+                        fixTrans();
+                        last.set(curr.x, curr.y);
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    mode = NONE;
+                    int xDiff = (int) Math.abs(curr.x - start.x);
+                    int yDiff = (int) Math.abs(curr.y - start.y);
+                    if (xDiff < CLICK && yDiff < CLICK)
+                        performClick();
+                    break;
+                case MotionEvent.ACTION_POINTER_UP:
+                    mode = NONE;
+                    break;
             }
-
+            setImageMatrix(matrix);
+            invalidate();
+            return true; // indicate event was handled
         });
     }
-
-    public void setMaxZoom(float x) {
-        maxScale = x;
-    }
-
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
         return false;
@@ -131,7 +116,7 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
     @Override
     public boolean onDoubleTap(MotionEvent e) {
         // Double tap is detected
-        Log.i("MAIN_TAG", "Double tap detected");
+        Log.i(TAG, "Double tap detected");
         float origScale = saveScale;
         float mScaleFactor;
 
@@ -143,8 +128,8 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
             mScaleFactor = maxScale / origScale;
         }
 
-        matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2,
-                viewHeight / 2);
+        matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2.f,
+                viewHeight / 2.f);
 
         fixTrans();
         return false;
@@ -182,6 +167,7 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
 
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        Log.i(TAG, "Fling detected");
         return false;
     }
 
@@ -208,8 +194,8 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
 
             if (origWidth * saveScale <= viewWidth
                     || origHeight * saveScale <= viewHeight)
-                matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2,
-                        viewHeight / 2);
+                matrix.postScale(mScaleFactor, mScaleFactor, viewWidth / 2.f,
+                        viewHeight / 2.f);
             else
                 matrix.postScale(mScaleFactor, mScaleFactor,
                         detector.getFocusX(), detector.getFocusY());
@@ -282,9 +268,17 @@ public class TouchImageView extends ImageView implements GestureDetector.OnGestu
                 return;
             int bmWidth = drawable.getIntrinsicWidth();
             int bmHeight = drawable.getIntrinsicHeight();
-
-            Log.d("bmSize", "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
-
+            Log.d(TAG, "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
+            Button exif = GalleryActivity.activity.findViewById(R.id.exif);
+            ConstraintLayout exiflayout = GalleryActivity.activity.findViewById(R.id.exif_layout);
+            if(exiflayout.getVisibility() == VISIBLE){
+                exif.callOnClick();
+                GalleryActivity.activity.startUpdate = true;
+            }
+            if(exiflayout.getVisibility() == INVISIBLE && GalleryActivity.activity.startUpdate){
+                exif.callOnClick();
+                GalleryActivity.activity.startUpdate = false;
+            }
             float scaleX = (float) viewWidth / (float) bmWidth;
             float scaleY = (float) viewHeight / (float) bmHeight;
             scale = Math.min(scaleX, scaleY);

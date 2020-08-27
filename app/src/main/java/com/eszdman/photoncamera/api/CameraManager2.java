@@ -17,7 +17,7 @@ public class CameraManager2 {
     public static CameraManager2 cameraManager2;
     private final CameraManager manager;
     private final SharedPreferences sharedPreferences;
-    private Set<String> mCameraIDs = new HashSet<String>();
+    public Set<String> mCameraIDs = new HashSet<>();
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
         manager = manag;
@@ -30,7 +30,7 @@ public class CameraManager2 {
         }
     }
     public String[] getCameraIdList(){
-        String[] arr = mCameraIDs.toArray(new String[mCameraIDs.size()]);
+        String[] arr = mCameraIDs.toArray(new String[0]);
         int[] idarr = new int[arr.length];
         for(int i =0; i<arr.length;i++) {
             idarr[i] = Integer.parseInt(arr[i]);
@@ -68,18 +68,23 @@ public class CameraManager2 {
                 CameraCharacteristics cameraCharacteristics;
                 try {
                     cameraCharacteristics = manager.getCameraCharacteristics(nextId);
-                    if (cameraCharacteristics != null) {
-                        int id = Integer.parseInt(nextId);
-                        Log.d(TAG,"Number:"+nextId+" bit 4:"+getBit(4,id)+" bit 5:"+getBit(5,id)+" bit 6:"+getBit(6,id)+ " bit 7:"+ getBit(7,id)+" bit 8:"+ getBit(8,id));
-                        String caps = (String.valueOf(cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0])+
-                                cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)[0]);
-                        Log.d(TAG,"Caps:"+caps);
-                        if((id == 0 || id == 1 || !getBit(6,id)) && !checkCaps(caps,Caps)){
-                            Caps.add(caps);
-                            mCameraIDs.add(nextId);
-                        }
-
+                    int id = Integer.parseInt(nextId);
+                    Log.d(TAG,"Number:"+nextId+" bit 4:"+getBit(4,id)+" bit 5:"+getBit(5,id)+" bit 6:"+getBit(6,id)+ " bit 7:"+ getBit(7,id)+" bit 8:"+ getBit(8,id));
+                    float[] flen = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                    float[] aper = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+                    String caps = "";
+                    if(flen != null){
+                        caps+=(String.valueOf(flen[0]));
                     }
+                    if(aper != null){
+                        caps+=(String.valueOf(aper[0]));
+                    }
+                    Log.d(TAG,"Caps:"+caps);
+                    if((id == 0 || id == 1 || !getBit(6,id)) && !checkCaps(caps,Caps)){
+                        Caps.add(caps);
+                        mCameraIDs.add(nextId);
+                    }
+
                 } catch(Exception ignored){}
             }
         } catch(Exception ignored){}

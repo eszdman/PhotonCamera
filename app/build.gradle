@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     def versionPropsFile = file('version.properties')
     def versionBuild
-    compileSdkVersion 29
+    compileSdkVersion 30
     buildToolsVersion "29.0.3"
     lintOptions {
         abortOnError false
@@ -32,11 +32,11 @@ android {
     defaultConfig {
         applicationId 'com.eszdman.photoncamera'
         minSdkVersion 26
-        targetSdkVersion 29
+        targetSdkVersion 30
         renderscriptTargetApi 24
         renderscriptSupportModeEnabled false
         versionCode versionCode
-        versionName '0.6'
+        versionName '0.65'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
@@ -56,7 +56,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            jniDebuggable = true
+            jniDebuggable = false
             zipAlignEnabled = true
         }
         debug {
@@ -83,20 +83,23 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'de.hdodenhof:circleimageview:3.1.0'
-    implementation 'androidx.appcompat:appcompat:1x.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.0'
     implementation 'androidx.preference:preference:1.1.1'
     implementation 'org.jetbrains:annotations:15.0'
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'com.mytechia:opencv:4.1.0-my'
-    implementation 'androidx.exifinterface:exifinterface:1.3.0-alpha01'
+    implementation 'androidx.exifinterface:exifinterface:1.3.0-beta01'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'org.jocl:jocl:2.0.2'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
-    implementation group: 'commons-io', name: 'commons-io', version: '2.6'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.7'
+    implementation 'rapid.decoder:library:0.3.0'
+    implementation 'rapid.decoder:jpeg-decoder:0.3.0'
+    implementation 'rapid.decoder:png-decoder:0.3.0'
 }

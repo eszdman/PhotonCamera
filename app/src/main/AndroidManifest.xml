@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.eszdman.photoncamera">
 
     <uses-permission android:name="android.permission.CAMERA" />
@@ -21,7 +22,8 @@
         android:largeHeap="true"
         android:isGame="true"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:targetApi="q">
         <activity android:name=".ui.SettingsActivity" />
         <activity
             android:name=".ui.SplashActivity"

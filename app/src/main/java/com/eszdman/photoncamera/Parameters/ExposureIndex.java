@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 
 import com.eszdman.photoncamera.ui.CameraFragment;
 
+import java.util.Locale;
+
 public class ExposureIndex {
     public static final long sec = 1000000000;
 
@@ -16,12 +18,11 @@ public class ExposureIndex {
     public static double time2sec(long in){
         return ((double)in)/sec;
     }
-    @SuppressLint("DefaultLocale")
     public static String sec2string(double in){
-        if(in > 1.0) return String.format("%.2f", in);
+        if(in > 1.0) return String.format(Locale.US,"%.2f", in);
         else {
             in = 1.0/in;
-            return "1/"+String.format("%.2f", in);
+            return "1/"+String.format(Locale.US,"%.2f", in);
         }
     }
     public static long sec2time(double in){

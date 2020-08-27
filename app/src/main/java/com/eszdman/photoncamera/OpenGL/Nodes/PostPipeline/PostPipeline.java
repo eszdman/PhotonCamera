@@ -130,6 +130,7 @@ public class PostPipeline extends GLBasePipeline {
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);
         try {
+            //noinspection ResultOfMethodCallIgnored
             outimg.createNewFile();
             FileOutputStream fOut = new FileOutputStream(outimg);
             img.compress(Bitmap.CompressFormat.JPEG, 97, fOut);

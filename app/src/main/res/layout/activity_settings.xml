@@ -131,6 +131,20 @@
                         android:thumb="@drawable/custom_switch_thumb"
                         android:paddingEnd="18dp"/>
 
+                    <Switch
+                        android:id="@+id/setting_afdata"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/SettingSize1"
+                        android:drawableStart="@drawable/ic_developer"
+                        android:drawablePadding="20dp"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center|start|center_horizontal"
+                        android:text="@string/turn_on_afdata"
+                        android:textSize="16sp"
+                        android:track="@drawable/custom_switch_track_selector"
+                        android:thumb="@drawable/custom_switch_thumb"
+                        android:paddingEnd="18dp"/>
+
                 </LinearLayout>
 
                 <TextView
@@ -506,7 +520,7 @@
                     android:paddingBottom="10dp">
 
                     <ImageView
-                        android:id="@+id/tg_icon"
+                        android:id="@+id/telegram_ic"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:src="@drawable/ic_telegram"
@@ -525,7 +539,7 @@
                         android:textAlignment="viewStart"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toEndOf="@id/tg_icon"
+                        app:layout_constraintStart_toEndOf="@id/telegram_ic"
                         app:layout_constraintTop_toTopOf="parent"
                         android:layout_marginStart="44dp"
                         android:textAllCaps="false"
@@ -533,9 +547,88 @@
                         android:textStyle="normal"/>
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/export"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:background="@drawable/card_layout"
+                    android:orientation="vertical"
+                    android:paddingLeft="15dp"
+                    android:paddingTop="10dp"
+                    android:paddingRight="15dp"
+                    android:paddingBottom="10dp">
 
+                    <ImageView
+                        android:id="@+id/export_ic"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        />
+
+                    <Button
+                        android:id="@+id/Export"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="44dp"
+                        android:background="#00FFFFFF"
+                        android:onClick="export_settings"
+                        android:text="@string/export_settings"
+                        android:textAlignment="viewStart"
+                        android:textAllCaps="false"
+                        android:textSize="16sp"
+                        android:textStyle="normal"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/export_ic"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/importsettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:background="@drawable/card_layout"
+                    android:orientation="vertical"
+                    android:paddingLeft="15dp"
+                    android:paddingTop="10dp"
+                    android:paddingRight="15dp"
+                    android:paddingBottom="10dp">
+
+                    <ImageView
+                        android:id="@+id/import_ic"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        />
+
+                    <Button
+                        android:id="@+id/Import"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="44dp"
+                        android:background="#00FFFFFF"
+                        android:onClick="import_settings"
+                        android:text="@string/import_settings"
+                        android:textAlignment="viewStart"
+                        android:textAllCaps="false"
+                        android:textSize="16sp"
+                        android:textStyle="normal"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/import_ic"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
             </LinearLayout>
-        </LinearLayout>
+            </LinearLayout>
     </ScrollView>
 
     <!--android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar" -->

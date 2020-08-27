@@ -66,28 +66,30 @@ void main() {
     vec2 xyInterp = vec2(xy)/float(TILESIZE);
     xyInterp/=vec2(alignsize);
     vec2 alignf = vec2(texture(AlignVectors, xyInterp).xy);
+    //vec2 alignf = vec2(texelFetch(AlignVectors, xy/TILESIZE,0).xy);
     ivec2 align = ivec2(alignf/2.0)*2;
     ivec2 aligned = (xy+align);
     aligned = clamp(aligned,ivec2(0,0),ivec2(rawsize));
-    xyInterp = vec2(xy)/4.0;
+    xyInterp = vec2(xy)/float(TILESIZE);
 
     xyInterp/=vec2(weightsize);
-    //float weight = float(texture(SpatialWeights, xyInterp).x);
+    float weight = float(texture(SpatialWeights, xyInterp).x);
     float inp = boxdown22(aligned/2,InputBuffer22)/4.0;
     float target = boxdown22(xy/2,MainBuffer22)/4.0;
-    float weight = abs(inp-target);
+    //float weight = abs(inp-target);
     //float weight = smoothstep(MIN_NOISE, MAX_NOISE, abs(inp-target));
     //float weight = float(texelFetch(SpatialWeights, ivec2(xyInterp), 0).x);
     alignf/=float(TILESIZE);
     //float dist2 = alignf.x*alignf.x+alignf.y*alignf.y;
     //float dist2 = smoothstep(0.0,2.0,abs(alignf.x)+abs(alignf.y));
-    float windoww = 1.0 - (weight)*70.0 - 0.2;
+    float windoww = 1.0 - (weight)*6.0 - 0.2;
     //windoww-=windoww*dist*(dist2);
-    //windoww = 0.4;
-    windoww = clamp(windoww,0.0,alignk);
+    windoww = 0.4;
+    windoww = clamp(windoww,0.00,alignk);
 
-    float outp = (float(texelFetch(InputBuffer, aligned, 0).x)*windoww+float(texelFetch(OutputBuffer, (xy), 0).x)*(1.0-windoww));
+    float outp = ((float(texelFetch(InputBuffer, aligned, 0).x))*windoww+(float(texelFetch(OutputBuffer, (xy), 0).x))*(1.0-windoww));
     Output = outp;
+    //Output = float(texelFetch(OutputBuffer, (xy), 0).x);
     //Output = texelFetch(InputBuffer22, aligned/2, 0).x;
     //Output = weight*10.0;
     //Output = float(alignf.x+alignf.y);

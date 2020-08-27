@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Photon Camera</string>
     <string name="request_permission">Această aplicație are nevoie de permisiunea camerei.</string>
     <string name="camera_error">Acest dispozitiv nu acceptă Camera2 API.</string>
     <string name="luma_nr_count">Valoare Luma NR</string>
