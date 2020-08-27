@@ -13,13 +13,14 @@ public class IsoExpoSelector {
     private static final String TAG = "IsoExpoSelector";
     public static final int baseFrame = 1;
     public static boolean HDR = false;
+    public static boolean useTripod = false;
     public static ExpoPair GenerateExpoPair(int step){
         double mpy = 0.8;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime,getEXPLOW(),getEXPHIGH(),
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         ExpoPair startPair = new ExpoPair(pair);
         pair.normalizeiso100();
-        if(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT) mpy = 2.0;
+        if(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT.mNum) mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }
@@ -41,7 +42,7 @@ public class IsoExpoSelector {
                 pair.exposure *= mpy;
             }
         }
-        if(Interface.i.sensors.getShakeness() < 9) {
+        if(useTripod) {
             pair.MinIso();
         }
         if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){

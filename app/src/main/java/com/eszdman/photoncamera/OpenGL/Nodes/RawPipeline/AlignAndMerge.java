@@ -102,11 +102,13 @@ public class AlignAndMerge extends Node {
         endT("Alignment");
         return alignVectors;
     }
-    private GLTexture Weights(GLTexture brTex22,GLTexture base22){
+    private GLTexture Weights(GLTexture brTex22,GLTexture base22,GLTexture align){
         startT();
         glProg.useProgram(R.raw.spatialweights);
         glProg.setTexture("InputBuffer22",brTex22);
         glProg.setTexture("MainBuffer22",base22);
+        glProg.setTexture("AlignVectors",align);
+        glProg.setvaru("rawsize",rawsize.x,rawsize.y);
         GLTexture output = new GLTexture(new Point(base22.mSize.x/2,base22.mSize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(output);
         glProg.close();
@@ -127,9 +129,9 @@ public class AlignAndMerge extends Node {
 
         glProg.setTexture("OutputBuffer",Output);
         glProg.setvar("alignk",1.f/(float)((RawPipeline)(basePipeline)).imageobj.size());
-        glProg.servaru("rawsize",rawsize.x,rawsize.y);
-        glProg.servaru("weightsize",weights.mSize.x,weights.mSize.y);
-        glProg.servaru("alignsize",alignVectors.mSize.x,alignVectors.mSize.y);
+        glProg.setvaru("rawsize",rawsize.x,rawsize.y);
+        glProg.setvaru("weightsize",weights.mSize.x,weights.mSize.y);
+        glProg.setvaru("alignsize",alignVectors.mSize.x,alignVectors.mSize.y);
         //GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(Output);
         glProg.close();
@@ -172,7 +174,7 @@ public class AlignAndMerge extends Node {
             GLTexture brTex3232 = GaussDown44(brTex88);
             Log.d("AlignAndMerge","Resize:"+(System.currentTimeMillis()-time2)+" ms");
             GLTexture alignVectors = Align(brTex22,brTex88,brTex3232,BaseFrame22,BaseFrame88,BaseFrame3232);
-            GLTexture weights = Weights(brTex22,BaseFrame22);
+            GLTexture weights = Weights(brTex22,BaseFrame22,alignVectors);
             Merge(Output,inputraw,alignVectors,weights,BaseFrame,brTex22,BaseFrame22);
             /*AlignVectors.close();
             inputraw.close();

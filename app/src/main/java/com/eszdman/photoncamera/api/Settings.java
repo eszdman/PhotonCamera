@@ -78,14 +78,14 @@ public class Settings {
     public int alignAlgorithm = 0;
     public String mCameraID = "0";
     private int count = 0;
-    public CameraMode selectedMode = CameraMode.DEFAULT;
+    public int selectedMode = CameraMode.DEFAULT.mNum;
     public enum CameraMode {
         DEFAULT(0),
         NIGHT(1),
         UNLIMITED(2);
-        int mNumber;
+        public int mNum;
         CameraMode(int number) {
-            mNumber = number;
+            mNum = number;
         }
     }
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -127,7 +127,7 @@ public class Settings {
         fpsPreview = get(fpsPreview,"FpsPreview");
         hdrxNR = get(hdrxNR,"HdrxNR");
         alignAlgorithm = get(alignAlgorithm,"AlignmentAlgo");
-        selectedMode.mNumber = get(selectedMode.mNumber, "SelectedMode");
+        selectedMode = get(selectedMode, "SelectedMode");
         count = -1;
         mCameraID = sharedPreferences.getString("Camera", mCameraID);
         count = 0;
@@ -161,7 +161,7 @@ public class Settings {
         put(fpsPreview,"FpsPreview");
         put(hdrxNR,"HdrxNR");
         put(alignAlgorithm,"AlignmentAlgo");
-        put(selectedMode.mNumber, "SelectedMode");
+        put(selectedMode, "SelectedMode");
         count = -1;
         sharedPreferencesEditor.putString("Camera", mCameraID);
         sharedPreferencesEditor.apply();
@@ -193,7 +193,7 @@ public class Settings {
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
-        if(selectedMode.mNumber == CameraMode.NIGHT.mNumber && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
+        if(selectedMode == CameraMode.NIGHT.mNum && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
         /*Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/

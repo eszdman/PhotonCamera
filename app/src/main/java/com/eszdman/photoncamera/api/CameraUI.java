@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.api;
 
-import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -15,8 +14,6 @@ import android.widget.ToggleButton;
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.ui.MainActivity;
-
-import java.sql.PreparedStatement;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -101,15 +98,15 @@ public class CameraUI {
         //switcher.setOnClickListener((tableView)-> {
             //TODO Use only one listener to change camera mode
         //});
-        night.setChecked(Interface.i.settings.selectedMode.mNumber == Settings.CameraMode.NIGHT.mNumber);
+        night.setChecked(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT.mNum);
         night.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(night.isChecked()){
                 camera.setChecked(false);
                 video.setChecked(false);
             }
-            if(Interface.i.settings.selectedMode != Settings.CameraMode.NIGHT){
-                Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT;
-            } else Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT;
+            if(Interface.i.settings.selectedMode != Settings.CameraMode.NIGHT.mNum){
+                Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT.mNum;
+            } else Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT.mNum;
             Interface.i.settings.save();
             Interface.i.camera.restartCamera();
         });
@@ -148,7 +145,7 @@ public class CameraUI {
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
         ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
-        night.setChecked(Interface.i.settings.selectedMode.mNumber == Settings.CameraMode.NIGHT.mNumber);
+        night.setChecked(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT.mNum);
         Interface.i.camera.startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();

@@ -466,6 +466,7 @@ public class CameraFragment extends Fragment
     }
 
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
+        if(mImageReaderPreview == null) return new RectF();
             float left = (((float) meteringRectangle.getY() / mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
             float top = (((float) meteringRectangle.getX() / mImageReaderPreview.getWidth())* (surfaceView.getHeight()));
             float width = (((float) meteringRectangle.getHeight() / mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
@@ -1321,6 +1322,7 @@ public class CameraFragment extends Fragment
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
+            IsoExpoSelector.useTripod = Interface.i.sensors.getShakeness() < 5;
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());

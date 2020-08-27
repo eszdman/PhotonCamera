@@ -253,7 +253,7 @@ public class ImageProcessing {
             else Wrapper.init(width, height, curimgs.size());
         }
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
-        int levell = 1023;
+        int levell = 0;
         if(level !=null) levell = (int)level;
         float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
