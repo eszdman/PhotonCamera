@@ -9,8 +9,7 @@
 
 >
     <HorizontalScrollView
-            xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
+        android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/horizontalview"
             android:scrollbarThumbHorizontal="@color/panel_transparency"
@@ -19,51 +18,68 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
     >
+
         <TableLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="center">
+            android:id="@+id/switcher"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center">
 
-            <TableRow>
-
-                <ToggleButton
-                        android:id="@+id/nightMode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/mode_chip_height"
-                        android:background="@drawable/modes_background"
-                        android:textOn="Night"
-                        android:textOff="Night"
-                        android:textSize="@dimen/mode_chip_text_size"
-                        android:textColor="@drawable/modes_text"
-                        android:layout_marginStart="@dimen/mode_chip_side_margin"
-                        android:layout_marginEnd="@dimen/mode_chip_side_margin"/>
-
+            <TableRow android:id="@+id/switchrow">
 
                 <ToggleButton
-                        android:id="@+id/cameraMode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/mode_chip_height"
-                        android:background="@drawable/modes_background"
-                        android:textOn="Camera"
-                        android:textOff="Camera"
-                        android:textSize="@dimen/mode_chip_text_size"
-                        android:textColor="@drawable/modes_text"
-                        android:layout_marginStart="@dimen/mode_chip_side_margin"
-                        android:layout_marginEnd="@dimen/mode_chip_side_margin"/>
+                    android:id="@+id/unlimitedMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/mode_chip_height"
+                    android:layout_marginStart="@dimen/mode_chip_side_margin"
+                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
+                    android:background="@drawable/modes_background"
+                    android:textColor="@drawable/modes_text"
+                    android:textOff="Unlimited"
+                    android:textOn="Unlimited"
+                    android:textSize="@dimen/mode_chip_text_size"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
 
                 <ToggleButton
-                        android:id="@+id/videoMode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="@dimen/mode_chip_height"
-                        android:background="@drawable/modes_background"
-                        android:textOn="Video"
-                        android:textOff="Video"
-                        android:textSize="@dimen/mode_chip_text_size"
-                        android:textColor="@drawable/modes_text"
-                        android:layout_marginStart="@dimen/mode_chip_side_margin"
-                        android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                        android:visibility="invisible"
-                        tools:visibility="visible"/>
+                    android:id="@+id/nightMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/mode_chip_height"
+                    android:layout_marginStart="@dimen/mode_chip_side_margin"
+                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
+                    android:background="@drawable/modes_background"
+                    android:textColor="@drawable/modes_text"
+                    android:textOff="Night"
+                    android:textOn="Night"
+                    android:textSize="@dimen/mode_chip_text_size" />
+
+
+                <ToggleButton
+                    android:id="@+id/cameraMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/mode_chip_height"
+                    android:layout_marginStart="@dimen/mode_chip_side_margin"
+                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
+                    android:background="@drawable/modes_background"
+                    android:textColor="@drawable/modes_text"
+                    android:textOff="Camera"
+                    android:textOn="Camera"
+                    android:textSize="@dimen/mode_chip_text_size" />
+
+                <ToggleButton
+                    android:id="@+id/videoMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/mode_chip_height"
+                    android:layout_marginStart="@dimen/mode_chip_side_margin"
+                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
+                    android:background="@drawable/modes_background"
+                    android:textColor="@drawable/modes_text"
+                    android:textOff="Video"
+                    android:textOn="Video"
+                    android:textSize="@dimen/mode_chip_text_size"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
             </TableRow>
         </TableLayout>
     </HorizontalScrollView>

@@ -466,20 +466,16 @@ public class CameraFragment extends Fragment
     }
 
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
-        Rect sensor = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-        if (sensor != null) {
-            float left = (((float) meteringRectangle.getY() / sensor.height()) * (surfaceView.getWidth()));
-            float top = (((float) meteringRectangle.getX() / sensor.width())* (surfaceView.getHeight()));
-            float width = (((float) meteringRectangle.getHeight() / sensor.height()) * (surfaceView.getWidth()));
-            float height = (((float) meteringRectangle.getWidth() / sensor.width()) * (surfaceView.getHeight()));
+            float left = (((float) meteringRectangle.getY() / mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
+            float top = (((float) meteringRectangle.getX() / mImageReaderPreview.getWidth())* (surfaceView.getHeight()));
+            float width = (((float) meteringRectangle.getHeight() / mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
+            float height = (((float) meteringRectangle.getWidth() / mImageReaderPreview.getWidth()) * (surfaceView.getHeight()));
             return new RectF(
                           left        , //Left
                           top         ,  //Top
                     left + width,//Right
                     top+height //Bottom
             );
-        }
-        return new RectF();
     }
 
     private String getResultFieldName(String prefix, Integer value) {

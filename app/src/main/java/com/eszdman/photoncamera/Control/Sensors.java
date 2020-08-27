@@ -30,13 +30,14 @@ public class Sensors {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
             mAngles = sensorEvent.values;
+            getShakeness();//For filtering
         }
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int i) { }
     };
     private int filter = -1;
-    protected final float fk = 0.2f;
+    protected final float fk = 0.7f;
     public int getShakeness() {
         if (mAngles == null) {
             return 0;

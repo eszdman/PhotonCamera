@@ -7,12 +7,16 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.ToggleButton;
 
 
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.ui.MainActivity;
+
+import java.sql.PreparedStatement;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -22,6 +26,17 @@ public class CameraUI {
     public ProgressBar lightcycle;
     public ProgressBar loadingcycle;
     public CircleImageView galleryImageButton;
+    TableLayout switcher;
+    ToggleButton fpsPreview;
+    ToggleButton quadResolution;
+    ToggleButton eisPhoto;
+    ImageButton flip;
+    Button settings;
+    ToggleButton hdrX;
+    ToggleButton night;
+    ToggleButton unlimited;
+    ToggleButton video;
+    ToggleButton camera;
 
     public void onCameraInitialization(){
         Camera2ApiAutoFix.Init();
@@ -42,11 +57,11 @@ public class CameraUI {
         galleryImageButton.setOnClickListener(Interface.i.camera);
         galleryImageButton.setClickable(true);
         Interface.i.touchFocus.ReInit();
-        ToggleButton fpsPreview = Interface.i.mainActivity.findViewById(R.id.fpsPreview);
+        fpsPreview = Interface.i.mainActivity.findViewById(R.id.fpsPreview);
         fpsPreview.setChecked(Interface.i.settings.fpsPreview);
-        ToggleButton quadResolution = Interface.i.mainActivity.findViewById(R.id.quadRes);
+        quadResolution = Interface.i.mainActivity.findViewById(R.id.quadRes);
         quadResolution.setChecked(Interface.i.settings.QuadBayer);
-        ToggleButton eisPhoto = Interface.i.mainActivity.findViewById(R.id.eisPhoto);
+        eisPhoto = Interface.i.mainActivity.findViewById(R.id.eisPhoto);
         eisPhoto.setChecked(Interface.i.settings.eisPhoto);
         eisPhoto.setOnClickListener(v -> {
             Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
@@ -61,7 +76,7 @@ public class CameraUI {
             Interface.i.settings.save();
             Interface.i.camera.restartCamera();
         });
-        ImageButton flip = Interface.i.mainActivity.findViewById(R.id.flip_camera);
+        flip = Interface.i.mainActivity.findViewById(R.id.flip_camera);
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
             Interface.i.camera.mTextureView.animate().rotationBy(360).setDuration(450).start();
@@ -70,26 +85,34 @@ public class CameraUI {
             Interface.i.settings.load();
             Interface.i.camera.restartCamera();
         });
-        Button settings = Interface.i.mainActivity.findViewById(R.id.settings);
+        settings = Interface.i.mainActivity.findViewById(R.id.settings);
         settings.setOnClickListener(Interface.i.camera);
-        ToggleButton hdrX = Interface.i.mainActivity.findViewById(R.id.stacking);
+        hdrX = Interface.i.mainActivity.findViewById(R.id.stacking);
         hdrX.setOnClickListener(Interface.i.camera);
         Interface.i.camera.loadGalleryButtonImage();
-        ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
-        ToggleButton video = Interface.i.mainActivity.findViewById(R.id.videoMode);
-        ToggleButton camera = Interface.i.mainActivity.findViewById(R.id.cameraMode);
+        night = Interface.i.mainActivity.findViewById(R.id.nightMode);
+        video = Interface.i.mainActivity.findViewById(R.id.videoMode);
+        camera = Interface.i.mainActivity.findViewById(R.id.cameraMode);
         camera.setChecked(true);
-        night.setChecked(Interface.i.settings.nightMode);
+        TableRow row = Interface.i.mainActivity.findViewById(R.id.switchrow);
+        row.setOnClickListener(view -> {
+        });
+        switcher = Interface.i.mainActivity.findViewById(R.id.switcher);
+        //switcher.setOnClickListener((tableView)-> {
+            //TODO Use only one listener to change camera mode
+        //});
+        night.setChecked(Interface.i.settings.selectedMode.mNumber == Settings.CameraMode.NIGHT.mNumber);
         night.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(night.isChecked()){
                 camera.setChecked(false);
                 video.setChecked(false);
             }
-            Interface.i.settings.nightMode = !Interface.i.settings.nightMode;
+            if(Interface.i.settings.selectedMode != Settings.CameraMode.NIGHT){
+                Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT;
+            } else Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT;
             Interface.i.settings.save();
             Interface.i.camera.restartCamera();
         });
-
         camera.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(camera.isChecked()){
                 night.setChecked(false);
@@ -125,12 +148,14 @@ public class CameraUI {
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.i.settings.hdrx);
         ToggleButton night = Interface.i.mainActivity.findViewById(R.id.nightMode);
-        night.setChecked(Interface.i.settings.nightMode);
+        night.setChecked(Interface.i.settings.selectedMode.mNumber == Settings.CameraMode.NIGHT.mNumber);
         Interface.i.camera.startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();
     }
+    public void UnlimitedMode(){
 
+    }
     public void onProcessingEnd(){
         clearProcessingCycle();
         //MediaPlayer processingPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_processing_end);
