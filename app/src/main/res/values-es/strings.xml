@@ -7,13 +7,13 @@
     <string name="frame_count">"Número de Frames "</string>
     <string name="disable_aligning">"Deshabilitar alineación "</string>
     <string name="turn_on_system_nr">Activar sistema NR</string>
-    <string name="chroma_nr_count">Número de Chroma NR</string>
+    <string name="chroma_nr_count">Número de Chroma NR:</string>
     <string name="enhanced_processing">Procesamiento Mejorado</string>
     <string name="settings">"Configuraciones "</string>
-    <string name="comp">Compresor</string>
-    <string name="gain">Ganancia</string>
-    <string name="contrmul">Multiplicador de contraste</string>
-    <string name="contrconst">Constante</string>
+    <string name="comp">Compresor:</string>
+    <string name="gain">Ganancia:</string>
+    <string name="contrmul">Multiplicador de contraste:</string>
+    <string name="contrconst">Constante:</string>
     <string name="saturation">Saturacion</string>
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
@@ -26,7 +26,7 @@
     <string name="telegram">"Grupo de Telegram "</string>
     <string name="hdrxNR">Reducción de ruido HDRX</string>
     <string name="turn_on_watermark">"Activar marca de agua "</string>
-    <string name="sure_delete">¿Estas seguro que quieres eliminar está imagen?</string>
+    <string name="sure_delete">¿Estás seguro de que quieres eliminar esta imagen?</string>
     <string name="cancel">Cancelar</string>
     <string name="yes">Si</string>
     <string name="image_deleted">Imagen borrada</string>
@@ -42,4 +42,5 @@
     <string name="flength">"Tamaño focal:"</string>
     <string name="info">Informacion</string>
     <string name="filename">"Nombre de archivo:"</string>
+    <string name="turn_on_afdata">Mostrar datos de AF</string>
 </resources>

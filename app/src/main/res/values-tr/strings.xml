@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Photon Camera</string>
+    <string name="request_permission">Bu uygulama kamera iznine ihtiyaç duyuyor.</string>
+    <string name="camera_error">Bu cihazın Camera2 API desteği yok.</string>
+    <string name="luma_nr_count">Luma NR sayısı:</string>
+    <string name="frame_count">Kare sayısı:</string>
+    <string name="disable_aligning">Hizalamayı devre dışı bırak</string>
+    <string name="turn_on_system_nr">Sistem NR aç</string>
+    <string name="chroma_nr_count">Chroma NR sayısı:</string>
+    <string name="enhanced_processing">Artırılmış İşleme</string>
+    <string name="settings">Ayarlar</string>
+    <string name="comp">Sıkıştırıcı</string>
+    <string name="gain">Kazanç:</string>
+    <string name="contrmul">Kontrast çarpanı:</string>
+    <string name="contrconst">Sabit:</string>
+    <string name="saturation">Doygunluk:</string>
+    <string name="jpg">JPG</string>
+    <string name="hdrx">HDRX</string>
+    <string name="sharpness">Keskinlik:</string>
+    <string name="turn_on_grid">Izgarayı göster</string>
+    <string name="raw">RAW kaydet</string>
+    <string name="turn_on_round_edges">Yuvarlak kenarları etkinleştir</string>
+    <string name="enable_remosaic">Remosaic etkinleştir</string>
+    <string name="general">Genel</string>
+    <string name="telegram">Telegram grubu</string>
+    <string name="hdrxNR">HDRX Gürültü Azaltma</string>
+    <string name="turn_on_watermark">Filigran etkinleştir</string>
+    <string name="sure_delete">Bu görüntüyü silmek istiyor musunuz?</string>
+    <string name="cancel">İptal</string>
+    <string name="yes">Evet</string>
+    <string name="image_deleted">Görüntü silindi</string>
+    <string name="close">Kapat</string>
+    <string name="unknown">Bilinmeyen</string>
+    <string name="resolution">"Çözünürlük: "</string>
+    <string name="size">"Dosya boyutu: "</string>
+    <string name="device">"Cihaz: "</string>
+    <string name="date">"Tarih: "</string>
+    <string name="iso">"ISO: "</string>
+    <string name="exposure_time">"Pozlama süresi: "</string>
+    <string name="aperture">"Diyafram: "</string>
+    <string name="flength">"Odak uzaklığı: "</string>
+    <string name="info">Bilgi</string>
+    <string name="filename">"Dosya adı: "</string>
+    <string name="turn_on_afdata">AF verisini göster</string>
+</resources>
