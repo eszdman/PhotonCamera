@@ -56,7 +56,7 @@ public class CameraUI {
         }
     }
     public void onCameraViewCreated(){
-
+        Interface.i.settings.mCameraID = "0";
         lightcycle = Interface.i.mainActivity.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(Interface.i.settings.frameCount);
