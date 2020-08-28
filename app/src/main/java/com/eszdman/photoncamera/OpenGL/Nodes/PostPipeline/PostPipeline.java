@@ -35,7 +35,7 @@ public class PostPipeline extends GLBasePipeline {
      * @param ratio A float value < 1 to give the ratio of watermark's height to image's height,
      *             try changing this from 0.20 to 0.60 to obtain right results
      */
-    public static Bitmap addWatermark(Bitmap source, float ratio) {
+    public static void addWatermark(Bitmap source, float ratio) {
         Canvas canvas;
         Paint paint;
         Matrix matrix;
@@ -61,7 +61,6 @@ public class PostPipeline extends GLBasePipeline {
         matrix.postTranslate(15, height - r.height());
         // Draw the watermark
         canvas.drawBitmap(watermark, matrix, paint);
-        return source;
     }
     public int selectSharp(){
         long resolution = glint.parameters.rawSize.x*glint.parameters.rawSize.y;
@@ -125,7 +124,7 @@ public class PostPipeline extends GLBasePipeline {
 
         Bitmap img = runAll();
         img = RotateBitmap(img,getRotation());
-        if (Interface.i.settings.watermark) img = addWatermark(img,0.06f);
+        if (Interface.i.settings.watermark) addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);

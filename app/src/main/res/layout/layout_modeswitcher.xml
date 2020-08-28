@@ -8,6 +8,7 @@
         android:padding="@dimen/mode_switcher_pading"
 
 >
+
     <HorizontalScrollView
         android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -25,7 +26,9 @@
             android:layout_height="match_parent"
             android:layout_gravity="center">
 
-            <TableRow android:id="@+id/switchrow">
+            <TableRow
+                android:id="@+id/switchrow"
+                android:orientation="vertical">
 
                 <ToggleButton
                     android:id="@+id/unlimitedMode"
@@ -83,4 +86,5 @@
             </TableRow>
         </TableLayout>
     </HorizontalScrollView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

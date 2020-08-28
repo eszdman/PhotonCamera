@@ -15,6 +15,7 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     private final int TileSize = 256;
@@ -75,7 +76,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main3232);
         glProg.setvar("Mpy", 32);
         glProg.setvar("maxSize", brTex3232.mSize.x,brTex3232.mSize.y);
-        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_NEAREST,GL_CLAMP_TO_EDGE);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -95,7 +96,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main22);
         glProg.setvar("Mpy", 2);
         glProg.setvar("minSize", (int)(brTex22.mSize.x*0.15),(int)(brTex22.mSize.y*0.15));
-        glProg.setvar("maxSize", (int)(brTex22.mSize.x*0.85),(int)(brTex22.mSize.y*0.85));
+        glProg.setvar("maxSize", (int)(brTex22.mSize.x*0.83),(int)(brTex22.mSize.y*0.83));
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -109,7 +110,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer22",base22);
         glProg.setTexture("AlignVectors",align);
         glProg.setvaru("rawsize",rawsize.x,rawsize.y);
-        GLTexture output = new GLTexture(new Point(base22.mSize.x/2,base22.mSize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture output = new GLTexture(new Point(align.mSize.x,align.mSize.y),new GLFormat(GLFormat.DataType.FLOAT_16),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(output);
         glProg.close();
         endT("Weights");

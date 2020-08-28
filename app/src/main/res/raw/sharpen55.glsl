@@ -39,5 +39,6 @@ void main() {
     else {
         cur+=(mask.r+mask.g+mask.b)/3.;
     }
-    Output = clamp(cur,0.0,1.0);
+    cur = clamp(cur,0.0,1.0);
+    Output = vec4(cur.r,cur.g,cur.b,1.0);
 }

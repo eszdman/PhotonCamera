@@ -17,7 +17,9 @@ public class CameraManager2 {
     public static CameraManager2 cameraManager2;
     private final CameraManager manager;
     private final SharedPreferences sharedPreferences;
+    public boolean supportFrontCamera = false;
     public Set<String> mCameraIDs = new HashSet<>();
+    //public String[] mCameras;
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
         manager = manag;
@@ -34,6 +36,7 @@ public class CameraManager2 {
         int[] idarr = new int[arr.length];
         for(int i =0; i<arr.length;i++) {
             idarr[i] = Integer.parseInt(arr[i]);
+            if(idarr[i] == 1) supportFrontCamera = true;
         }
         Arrays.sort(idarr);
         for(int i =0; i<arr.length;i++) {

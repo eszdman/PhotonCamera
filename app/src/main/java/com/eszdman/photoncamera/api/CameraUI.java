@@ -6,6 +6,8 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.ToggleButton;
@@ -23,6 +25,7 @@ public class CameraUI {
     public ProgressBar lightcycle;
     public ProgressBar loadingcycle;
     public CircleImageView galleryImageButton;
+    public RadioGroup auxGroup;
     TableLayout switcher;
     ToggleButton fpsPreview;
     ToggleButton quadResolution;
@@ -34,10 +37,23 @@ public class CameraUI {
     ToggleButton unlimited;
     ToggleButton video;
     ToggleButton camera;
-
     public void onCameraInitialization(){
         Camera2ApiAutoFix.Init();
         Interface.i.manual.Init();
+        String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
+        if(auxGroup.getChildCount() == 0 && cameras.length > 2) {
+            for (int i = 1; i < cameras.length; i++) {
+                RadioButton rb = new RadioButton(Interface.i.mainActivity);
+                rb.setText("");
+                auxGroup.addView(rb);
+            }
+            auxGroup.check(1);
+            auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
+                if(i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
+                Interface.i.settings.mCameraID = Interface.i.camera.mCameraIds[i-1];
+                Interface.i.camera.restartCamera();
+            });
+        }
     }
     public void onCameraViewCreated(){
 
@@ -77,7 +93,7 @@ public class CameraUI {
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
             Interface.i.camera.mTextureView.animate().rotationBy(360).setDuration(450).start();
-            Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID, Interface.i.camera.mCameraIds);
+            Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID);
             Interface.i.settings.saveID();
             Interface.i.settings.load();
             Interface.i.camera.restartCamera();
@@ -123,6 +139,7 @@ public class CameraUI {
                 camera.setChecked(false);
             }
         });
+        auxGroup = Interface.i.mainActivity.findViewById(R.id.auxButtons);
         Interface.i.manual = new Manual();
     }
     public void onCameraPause(){

@@ -82,13 +82,13 @@ void main() {
     alignf/=float(TILESIZE);
     //float dist2 = alignf.x*alignf.x+alignf.y*alignf.y;
     //float dist2 = smoothstep(0.0,2.0,abs(alignf.x)+abs(alignf.y));
-    float windoww = 1.0 - (weight)*6.0 - 0.2;
+    float windoww = 1.0 - (weight)*5.6 - 0.4;
     //windoww-=windoww*dist*(dist2);
-    windoww = 0.4;
-    windoww = clamp(windoww,0.00,alignk);
-
-    float outp = ((float(texelFetch(InputBuffer, aligned, 0).x))*windoww+(float(texelFetch(OutputBuffer, (xy), 0).x))*(1.0-windoww));
-    Output = outp;
+    windoww = clamp(windoww,0.00,1.0);
+    windoww*=alignk;
+    windoww = float(int(windoww*100.0))/100.0;
+    float outp = (((texelFetch(InputBuffer, aligned, 0).x))*float((windoww))+((texelFetch(OutputBuffer, (xy), 0).x))*float((1.0-windoww)));
+    Output = outp/1.0;
     //Output = float(texelFetch(OutputBuffer, (xy), 0).x);
     //Output = texelFetch(InputBuffer22, aligned/2, 0).x;
     //Output = weight*10.0;

@@ -777,10 +777,11 @@ public class CameraFragment extends Fragment
      */
     private void setUpCameraOutputs(int width, int height) {
         CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
-        //CameraManager2 manager2 = new CameraManager2(manager);
+        CameraManager2 manager2 = new CameraManager2(manager);
+        manager2.getCameraIdList();
         // manager2.CameraArr(manager);
         try {
-            mCameraCharacteristics = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
+                mCameraCharacteristics = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
                 mPreviewwidth = width;
                 mPreviewheight = height;
                 UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
@@ -1414,14 +1415,28 @@ public class CameraFragment extends Fragment
     }
 
 
-    public String cycler(String id, String[] ids) {
-        //ids = new String[]{"0","1"};
+    public String cycler(String id) {
+        String[] ids;
+        if(CameraManager2.cameraManager2.supportFrontCamera) {
+            if(Interface.i.cameraui.auxGroup.getChildCount() != 0) {
+                int i = Interface.i.cameraui.auxGroup.getCheckedRadioButtonId();
+                if (i >= 2) i++;
+                ids = new String[]{mCameraIds[i - 1], "1"};
+            } else ids = new String[]{"0","1"};
+        }
+        else {
+           return "0";
+        }
         int n = 0;
         for (int i = 0; i < ids.length; i++) {
             if (id.equals(ids[i])) n = i;
         }
         n++;
         n %= ids.length;
+        if(n == 1) Interface.i.cameraui.auxGroup.setVisibility(View.INVISIBLE);
+        else {
+            Interface.i.cameraui.auxGroup.setVisibility(View.VISIBLE);
+        }
         return ids[n];
     }
 
