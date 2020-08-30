@@ -20,7 +20,7 @@ public class IsoExpoSelector {
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         ExpoPair startPair = new ExpoPair(pair);
         pair.normalizeiso100();
-        if(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT.mNum) mpy = 2.0;
+        if(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT) mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }

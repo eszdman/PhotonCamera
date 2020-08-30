@@ -78,12 +78,12 @@ public class Settings {
     public int alignAlgorithm = 0;
     public String mCameraID = "0";
     private int count = 0;
-    public int selectedMode = CameraMode.DEFAULT.mNum;
+    public CameraMode selectedMode = CameraMode.DEFAULT;
     public enum CameraMode {
         DEFAULT(0),
         NIGHT(1),
         UNLIMITED(2);
-        public int mNum;
+        public final int mNum;
         CameraMode(int number) {
             mNum = number;
         }
@@ -193,7 +193,7 @@ public class Settings {
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
-        if(selectedMode == CameraMode.NIGHT.mNum && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
+        if(selectedMode == CameraMode.NIGHT && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
         /*Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/
@@ -251,6 +251,11 @@ public class Settings {
         sharedPreferencesEditor.putBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_b_"+name, in);
         count++;
     }
+    void put(CameraMode in,String name) {
+        Log.d(TAG,"Saved "+name+":"+in);
+        sharedPreferencesEditor.putInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_m_"+name, in.mNum);
+        count++;
+    }
 
     boolean get(boolean in,String name) {
         boolean result = sharedPreferences.getBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_b_"+name, in);
@@ -281,6 +286,18 @@ public class Settings {
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
+    }
+    CameraMode get(CameraMode cur,String name) {
+        int result;
+        result = sharedPreferences.getInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_m_"+name, cur.mNum);
+        Log.d(TAG,"Loaded "+name+":"+result);
+        count++;
+        switch (result){
+            case(0): return CameraMode.DEFAULT;
+            case(1): return CameraMode.NIGHT;
+            case(2): return CameraMode.UNLIMITED;
+        }
+        return CameraMode.DEFAULT;
     }
     public void ExportSettings(){
        save();
@@ -346,6 +363,9 @@ public class Settings {
                         break;
                     case 's':
                         sharedPreferencesEditor.putString(name, property);
+                        break;
+                    case 'm':
+                        sharedPreferencesEditor.putInt(name, Integer.parseInt(property));
                         break;
                 }
             }

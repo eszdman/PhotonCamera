@@ -30,58 +30,77 @@
                 android:id="@+id/switchrow"
                 android:orientation="vertical">
 
-                <ToggleButton
-                    android:id="@+id/unlimitedMode"
+                <RadioGroup
+                    android:id="@+id/radioswitcher"
                     android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Unlimited"
-                    android:textOn="Unlimited"
-                    android:textSize="@dimen/mode_chip_text_size"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <ToggleButton
-                    android:id="@+id/nightMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Night"
-                    android:textOn="Night"
-                    android:textSize="@dimen/mode_chip_text_size" />
+                    <RadioButton
+                        android:id="@+id/unlimitedMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/modes_background"
+                        android:button="@android:drawable/divider_horizontal_dark"
+                        android:paddingStart="5dp"
+                        android:paddingTop="5dp"
+                        android:paddingEnd="5dp"
+                        android:paddingBottom="5dp"
+                        android:text="Unlimited"
+                        android:textAlignment="center"
+                        android:textSize="16sp" />
 
+                    <RadioButton
+                        android:id="@+id/nightMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/modes_background"
+                        android:button="@android:drawable/divider_horizontal_dark"
+                        android:paddingStart="5dp"
+                        android:paddingTop="5dp"
+                        android:paddingEnd="5dp"
+                        android:paddingBottom="5dp"
+                        android:text="Night"
+                        android:textAlignment="center"
+                        android:textSize="16sp" />
 
-                <ToggleButton
-                    android:id="@+id/cameraMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Camera"
-                    android:textOn="Camera"
-                    android:textSize="@dimen/mode_chip_text_size" />
+                    <RadioButton
+                        android:id="@+id/cameraMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/modes_background"
+                        android:button="@android:drawable/divider_horizontal_dark"
+                        android:paddingStart="5dp"
+                        android:paddingTop="5dp"
+                        android:paddingEnd="5dp"
+                        android:paddingBottom="5dp"
+                        android:text="Camera"
+                        android:textAlignment="center"
+                        android:textSize="16sp" />
 
-                <ToggleButton
-                    android:id="@+id/videoMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Video"
-                    android:textOn="Video"
-                    android:textSize="@dimen/mode_chip_text_size"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
+                    <RadioButton
+                        android:id="@+id/videoMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/modes_background"
+                        android:button="@android:drawable/divider_horizontal_dark"
+                        android:paddingStart="5dp"
+                        android:paddingTop="5dp"
+                        android:paddingEnd="5dp"
+                        android:paddingBottom="5dp"
+                        android:text="Video"
+                        android:textAlignment="center"
+                        android:textSize="16sp" />
+                </RadioGroup>
+
 
             </TableRow>
         </TableLayout>
