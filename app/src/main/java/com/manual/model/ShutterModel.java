@@ -87,6 +87,7 @@ public class ShutterModel extends ManualModel<Long> {
 
     @Override
     public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+        currentInfo = knobItemInfo2;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);

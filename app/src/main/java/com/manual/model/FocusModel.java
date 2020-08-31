@@ -48,8 +48,8 @@ public class FocusModel extends ManualModel<Float> {
                 drawable = new ShadowTextDrawable();
             }
             String manual_string = Interface.i.mainActivity.getString(R.string.manual_mode_manual);
-            getKnobInfoList().add(new KnobItemInfo(drawable, manual_string, i - arrayList2.size(), (double) arrayList2.get(i)));
-            getKnobInfoList().add(new KnobItemInfo(drawable, manual_string, i + 1, (double) arrayList2.get(i)));
+            getKnobInfoList().add(new KnobItemInfo(drawable, arrayList2.get(i).toString(), i - arrayList2.size(), (double) arrayList2.get(i)));
+            getKnobInfoList().add(new KnobItemInfo(drawable,  arrayList2.get(i).toString(), i + 1, (double) arrayList2.get(i)));
         }
         int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
         knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
@@ -62,6 +62,7 @@ public class FocusModel extends ManualModel<Float> {
 
     @Override
     public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+        currentInfo = knobItemInfo2;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);

@@ -31,8 +31,6 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getAutoItem(-1.0d);
-        getKnobInfoList().add(auto);
 
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
@@ -89,6 +87,7 @@ public class EvModel extends ManualModel<Float> {
 
     @Override
     public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+        currentInfo = knobItemInfo2;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo2.value);
         Interface.i.camera.rebuildPreviewBuilder();
