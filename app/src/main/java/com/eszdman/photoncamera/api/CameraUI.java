@@ -50,6 +50,7 @@ public class CameraUI {
                 Interface.i.camera.restartCamera();
             });
         }
+        Interface.i.manualMode.init();
     }
     public void onCameraViewCreated(){
         Interface.i.settings.mCameraID = "0";

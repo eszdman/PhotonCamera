@@ -16,6 +16,8 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
 
+import java.util.logging.Handler;
+
 public class Swipe {
     private static final String TAG = "Swipe";
     private GestureDetector gestureDetector;
@@ -104,33 +106,37 @@ public class Swipe {
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            Interface.i.touchFocus.processTochToFocus(translateX,translateY);
+            if (Interface.i.manualMode.getCurrentFocusValue() == -1.0)
+//            Interface.i.touchFocus.processTochToFocus(camera_container, translateX, translateY);
+                Interface.i.touchFocus.processTochToFocus(translateX, translateY);
         }
     }
 
-    public void SwipeUp(){
-        if(!Interface.i.settings.ManualMode) {
+    public void SwipeUp() {
+        if (!Interface.i.settings.ManualMode) {
             manualmode.startAnimation(slideUp);
             Interface.i.settings.ManualMode = true;
             ocmanual.animate().rotation(180).setDuration(250).start();
         }
-        Interface.i.camera.rebuildPreview();
         manualmode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
+        Interface.i.camera.rebuildPreview();
     }
-    public void SwipeDown(){
-        if(Interface.i.settings.ManualMode) {
+
+    public void SwipeDown() {
+        if (Interface.i.settings.ManualMode) {
             manualmode.startAnimation(slideDown);
             ocmanual.animate().rotation(0).setDuration(250).start();
         }
         Interface.i.settings.ManualMode = false;
-
-        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.i.settings.aeModeOn);
-        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.i.settings.afMode);
-        Interface.i.camera.rebuildPreview();
-        manualmode.setVisibility(View.GONE);
         arrowState ^= 1;
+        manualmode.setVisibility(View.INVISIBLE);
+        Interface.i.manualMode.retractAllKnobs();
+        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, Interface.i.settings.aeModeOn);
+        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, Interface.i.settings.afMode);
+        Interface.i.camera.rebuildPreview();
     }
+
     public void SwipeRight(){
 
     }

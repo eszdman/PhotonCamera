@@ -57,6 +57,7 @@ import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
+import com.manual.ManualModeImpl;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;

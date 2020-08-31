@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.api;
 
 import android.app.ActivityManager;
 
+import android.renderscript.RenderScript;
 import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.Control.Sensors;
@@ -13,6 +14,8 @@ import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
+import com.manual.ManualMode;
+import com.manual.ManualModeImpl;
 
 import static android.content.Context.ACTIVITY_SERVICE;
 
@@ -28,10 +31,12 @@ public class Interface {
     public final Gravity gravity;
     public final Sensors sensors;
     public Manual manual;
+    public RenderScript rs;
     public final Parameters parameters;
     public final TouchFocus touchFocus;
     public final CameraUI cameraui;
     public SettingsActivity settingsActivity;
+    public final ManualMode manualMode;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
@@ -45,6 +50,7 @@ public class Interface {
         parameters = new Parameters();
         sensors = new Sensors();
         cameraui = new CameraUI();
+        manualMode = new ManualModeImpl(act);
     }
     // Get a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo getAvailableMemory() {
