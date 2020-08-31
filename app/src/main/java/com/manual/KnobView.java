@@ -12,6 +12,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.Interface;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,7 +22,7 @@ public class KnobView extends View {
     public static final double EPSILON = 1.0E-4d;
     private static final String TAG = KnobView.class.getSimpleName();
     public Range range;
-    protected TextView status;
+    //protected TextView status;
     protected String auto_sring;
     protected double defaultValue = -1.0d;
     private Paint m_BackgroundPaint;
@@ -69,6 +70,7 @@ public class KnobView extends View {
         this.m_DashLength = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_length);
         this.m_DashPadding = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_padding);
         this.auto_sring = context.getString(R.string.manual_mode_auto);
+        //status = Interface.i.mainActivity.findViewById(R.id.ev_option_tv);
         setupIcons();
     }
 
@@ -268,13 +270,13 @@ public class KnobView extends View {
         if (this.m_IsTouching) {
             this.m_IsTouching = false;
             onRotationEndFromTouch();
-            updateText();
+            //updateText();
         }
     }
 
-    public void updateText() {
+   /* public void updateText() {
         status.setText(getCurrentKnobItem().text);
-    }
+    }*/
 
     public void doWhatever() {
     }

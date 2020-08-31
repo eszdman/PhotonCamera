@@ -9,24 +9,33 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
+
 import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Const;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
+import com.manual.model.EvModel;
+import com.manual.model.FocusModel;
+import com.manual.model.IModel;
+import com.manual.model.IsoModel;
+import com.manual.model.ManualModel;
+import com.manual.model.ShutterModel;
 
 /**
  * Created by Vibhor on 10/08/2020
  */
-public final class ManualModeImpl implements ManualMode {
+public final class ManualModeImpl implements ManualMode, ManualModel.ValueChangedEvent {
 
     private static final String TAG = "ManualModeImpl";
     private final Activity activity;
-    private KnobView exposureKnobView, isoKnobView, focusKnobView, evKnobView;
+    private KnobView defaultKnobView, isoKnobView, focusKnobView, evKnobView;
     private ImageButton exposureButton, isoButton, focusButton, evButton;
     private int exposureVisibilityState, isoVisibilityState, focusVisibilityState, evVisibilityState;
     private ConstraintLayout knob_container, focus_button_container, iso_button_container, exposure_button_container, ev_button_container;
+    private ManualModel mfModel, isoModel, expotimeModel, evModel, selectedModel;
 
     public ManualModeImpl(Activity activity) {
         this.activity = activity;
@@ -38,7 +47,7 @@ public final class ManualModeImpl implements ManualMode {
             return;
         initialiseDataMembers();
         addKnobs();
-        hideAllKnobs("");
+        //hideAllKnobs("");
         setupOnClickListeners();
     }
 
@@ -49,22 +58,22 @@ public final class ManualModeImpl implements ManualMode {
 
     @Override
     public double getCurrentExposureValue() {
-        return exposureKnobView.getCurrentKnobItem().value;
+        return expotimeModel.getCurrentInfo().value;
     }
 
     @Override
     public double getCurrentISOValue() {
-        return isoKnobView.getCurrentKnobItem().value;
+        return isoModel.getCurrentInfo().value;
     }
 
     @Override
     public double getCurrentFocusValue() {
-        return focusKnobView.getCurrentKnobItem().value;
+        return mfModel.getCurrentInfo().value;
     }
 
     @Override
     public double getCurrentEvValue() {
-        return evKnobView.getCurrentKnobItem().value;
+        return evModel.getCurrentInfo().value;
     }
 
     public void resetKnobs() {
@@ -94,11 +103,8 @@ public final class ManualModeImpl implements ManualMode {
 
     @Override
     public void rotate(int orientation) {
-        if (focusKnobView != null && exposureKnobView != null && isoKnobView != null) {
-            focusKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
-            exposureKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
-            evKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
-            isoKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
+        if (defaultKnobView != null) {
+            defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
             focus_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
             exposure_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
             iso_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
@@ -121,23 +127,24 @@ public final class ManualModeImpl implements ManualMode {
 
     private void addKnobs() {
         knob_container.removeAllViews();
+        defaultKnobView = new KnobView(activity);
+
         CameraCharactersticsOldWay aClass = new CameraCharactersticsOldWay();
-        focusKnobView = new FocusKnobView(activity);
-        focusKnobView.setRange(aClass.focusRange);
-        exposureKnobView = new ExposureTimeKnobView(activity);
-        exposureKnobView.setRange(aClass.expRange);
-        isoKnobView = new ISOKnobView(activity);
-        isoKnobView.setRange(aClass.isoRange);
-        evKnobView = new EVKnobView(activity);
-        evKnobView.setRange(aClass.evRange);
+
+        mfModel = new FocusModel(aClass.focusRange,this::onValueChanged);
+
+        evModel = new EvModel(aClass.evRange,this::onValueChanged);
+
+        isoModel = new IsoModel(aClass.isoRange,this::onValueChanged);
+
+        expotimeModel = new ShutterModel(aClass.expRange,this::onValueChanged);
+
+
         aClass.logIt();
-        knob_container.addView(focusKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
-        knob_container.addView(exposureKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
-        knob_container.addView(isoKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
-        knob_container.addView(evKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
+        knob_container.addView(defaultKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    private void hideAllKnobs(String except) {
+    /*private void hideAllKnobs(String except) {
         if (!except.equalsIgnoreCase("focus"))
             setFocusKnobVisibility(0);
         if (!except.equalsIgnoreCase("exposure"))
@@ -146,53 +153,93 @@ public final class ManualModeImpl implements ManualMode {
             setISOKnobVisibility(0);
         if (!except.equalsIgnoreCase("ev"))
             setEVKnobVisibility(0);
+    }*/
+
+    private void setModelToKnob(ManualModel modelToKnob)
+    {
+        if (modelToKnob == selectedModel)
+        {
+            defaultKnobView.resetKnob();
+            defaultKnobView.setKnobViewChangedListener(null);
+            defaultKnobView.setVisibility(View.GONE);
+            knob_container.setVisibility(View.GONE);
+            selectedModel = null;
+        }
+        else {
+            defaultKnobView.resetKnob();
+            defaultKnobView.setKnobViewChangedListener(modelToKnob);
+            defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
+            defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
+            defaultKnobView.setVisibility(View.VISIBLE);
+            knob_container.setVisibility(View.VISIBLE);
+            selectedModel = modelToKnob;
+        }
     }
 
     private void setupOnClickListeners() {
 
         focusButton.setOnClickListener(v -> {
-            hideAllKnobs("focus");
-            setFocusKnobVisibility(focusVisibilityState ^= 1);
+            setModelToKnob(mfModel);
         });
         focusButton.setOnLongClickListener(v -> {
-            focusKnobView.resetKnob();
-            focusKnobView.doWhatever();
-            focusKnobView.updateText();
+            defaultKnobView.resetKnob();
+            mfModel.onSelectedKnobItemChanged(defaultKnobView,null,mfModel.getCurrentInfo());
+
             return true;
         });
         exposureButton.setOnClickListener(v -> {
-            hideAllKnobs("exposure");
-            setExposureKnobVisibility(exposureVisibilityState ^= 1);
+            setModelToKnob(expotimeModel);
         });
         exposureButton.setOnLongClickListener(v -> {
-            exposureKnobView.resetKnob();
-            exposureKnobView.doWhatever();
-            exposureKnobView.updateText();
+            defaultKnobView.resetKnob();
+            expotimeModel.onSelectedKnobItemChanged(defaultKnobView,null,expotimeModel.getCurrentInfo());
+
             return true;
         });
         isoButton.setOnClickListener(v -> {
-            hideAllKnobs("iso");
-            setISOKnobVisibility(isoVisibilityState ^= 1);
+            setModelToKnob(isoModel);
         });
         isoButton.setOnLongClickListener(v -> {
-            isoKnobView.resetKnob();
-            isoKnobView.doWhatever();
-            isoKnobView.updateText();
+            defaultKnobView.resetKnob();
+            isoModel.onSelectedKnobItemChanged(defaultKnobView,null,isoModel.getCurrentInfo());
+
             return true;
         });
         evButton.setOnClickListener(v -> {
-            hideAllKnobs("ev");
-            setEVKnobVisibility(evVisibilityState ^= 1);
+           setModelToKnob(evModel);
         });
         evButton.setOnLongClickListener(v -> {
-            evKnobView.resetKnob();
-            evKnobView.doWhatever();
-            evKnobView.updateText();
+            defaultKnobView.resetKnob();
+            evModel.onSelectedKnobItemChanged(defaultKnobView,null,evModel.getCurrentInfo());
+
             return true;
         });
+
+        /*onValueChanged(mfModel);
+        onValueChanged(evModel);
+        onValueChanged(isoModel);
+        onValueChanged(expotimeModel);*/
     }
 
-    private void setFocusKnobVisibility(int state) {
+    @Override
+    public void onValueChanged(IModel manualMode) {
+        KnobItemInfo info = manualMode.getCurrentInfo();
+        if (info == null)
+            return;
+        String txt = manualMode.getCurrentInfo().text;
+        if (txt == null)
+            return;
+        if (manualMode instanceof EvModel)
+            ((TextView)Interface.i.mainActivity.findViewById(R.id.ev_option_tv)).setText(txt);
+        else if (manualMode instanceof FocusModel)
+            ((TextView)Interface.i.mainActivity.findViewById(R.id.focus_option_tv)).setText(txt);
+        else if (manualMode instanceof IsoModel)
+            ((TextView)Interface.i.mainActivity.findViewById(R.id.iso_option_tv)).setText(txt);
+        else if (manualMode instanceof ShutterModel)
+            ((TextView)Interface.i.mainActivity.findViewById(R.id.exposure_option_tv)).setText(txt);
+    }
+
+    /*private void setFocusKnobVisibility(int state) {
         focusVisibilityState = state;
         focusKnobView.setVisibility(focusVisibilityState == 1 ? View.VISIBLE : View.INVISIBLE);
         focusButton.setSelected(focusVisibilityState == 1);
@@ -214,7 +261,7 @@ public final class ManualModeImpl implements ManualMode {
         evVisibilityState = state;
         evKnobView.setVisibility(evVisibilityState == 1 ? View.VISIBLE : View.INVISIBLE);
         evButton.setSelected(evVisibilityState == 1);
-    }
+    }*/
 
     static class CameraCharactersticsOldWay {
         CameraCharacteristics cameraCharacteristics = CameraFragment.mCameraCharacteristics;
