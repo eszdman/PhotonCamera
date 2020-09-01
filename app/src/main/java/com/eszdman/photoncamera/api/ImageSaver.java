@@ -10,7 +10,7 @@ import android.media.ImageReader;
 import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
-import com.eszdman.photoncamera.ui.CameraFragment;
+
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import java.io.File;
@@ -167,6 +167,10 @@ public class ImageSaver implements Runnable {
                 String path = curDir()+curName()+ext;
                 try {
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
+                    if(Interface.i.settings.selectedMode == Settings.CameraMode.UNLIMITED){
+                        ImageProcessing.UnlimitedCycle(mImage);
+                        return;
+                    }
                     imageBuffer.add(mImage);
                     if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.i.settings.frameCount != 1) {
                         //unlock();

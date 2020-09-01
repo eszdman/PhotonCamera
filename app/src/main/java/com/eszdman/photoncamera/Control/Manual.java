@@ -10,7 +10,7 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 public class Manual {
     public double expvalue = 1.0/20;

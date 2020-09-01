@@ -11,9 +11,8 @@ import android.widget.ToggleButton;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
-import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
 import com.eszdman.photoncamera.util.FileManager;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.eszdman.photoncamera.ui;
+package com.eszdman.photoncamera.api;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -45,16 +45,15 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
-import com.eszdman.photoncamera.api.CameraManager2;
-import com.eszdman.photoncamera.api.CameraReflectionApi;
-import com.eszdman.photoncamera.api.ImageSaver;
-import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
+import com.eszdman.photoncamera.ui.MainActivity;
+import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
@@ -610,14 +609,35 @@ public class CameraFragment extends Fragment
         ConstraintLayout activity_main = (ConstraintLayout) inflater.inflate(R.layout.activity_main, container, false);
         return getAdjustedLayout(aspectRatio, activity_main);
     }
-
+    boolean onUnlimited = false;
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                Interface.i.cameraui.shot.setActivated(false);
-                Interface.i.cameraui.shot.setClickable(false);
-                takePicture();
+                if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED) {
+                    Interface.i.cameraui.shot.setActivated(false);
+                    Interface.i.cameraui.shot.setClickable(false);
+                    takePicture();
+                }
+                else {
+                    if(!onUnlimited) {
+                        onUnlimited = true;
+                        Interface.i.cameraui.shot.setActivated(false);
+                        Interface.i.cameraui.shot.setClickable(true);
+                        takePicture();
+                    } else {
+                        Interface.i.cameraui.shot.setActivated(true);
+                        Interface.i.cameraui.shot.setClickable(true);
+                        onUnlimited = false;
+                        try {
+                            mCaptureSession.abortCaptures();
+                            ImageProcessing.UnlimitedEnd();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                        createCameraPreviewSession();
+                    }
+                }
                 break;
             }
             case R.id.settings: {
@@ -1154,7 +1174,8 @@ public class CameraFragment extends Fragment
                                         unlockFocus();
                                     } else {
                                         Log.d(TAG,"Preview, captureBurst");
-                                        mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                        if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED) mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                        else mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
                                     if(getActivity()!=null){
@@ -1328,6 +1349,10 @@ public class CameraFragment extends Fragment
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
             }
+            if(FrameNumberSelector.frameCount == -1){
+                IsoExpoSelector.setExpo(captureBuilder, 0);
+                captures.add(captureBuilder.build());
+            }
             //img
             Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
@@ -1372,6 +1397,7 @@ public class CameraFragment extends Fragment
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
+                    if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED)
                     if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();

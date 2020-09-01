@@ -7,18 +7,20 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
-import android.media.MediaPlayer;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline.RawPipeline;
+import com.eszdman.photoncamera.OpenGL.Scripts.AverageParams;
+import com.eszdman.photoncamera.OpenGL.Scripts.AverageRaw;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.ParseExif;
+import com.eszdman.photoncamera.api.CameraFragment;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -31,6 +33,7 @@ import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -372,7 +375,19 @@ public class ImageProcessing {
         pipeline.close();
         curimgs.get(0).close();
     }
-    private void saveRaw(Image in){
+    void ProcessRaw(ByteBuffer input){
+        if(Interface.i.settings.rawSaver) {
+            saveRaw(curimgs.get(0));
+            return;
+        }
+        Log.d(TAG, "Wrapper.processFrame()");
+        Interface.i.parameters.path = path;
+        PostPipeline pipeline = new PostPipeline();
+        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.i.parameters);
+        pipeline.close();
+        curimgs.get(0).close();
+    }
+    private static void saveRaw(Image in){
         DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
         try {
             FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
@@ -399,6 +414,40 @@ public class ImageProcessing {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    static ByteBuffer unlimitedBuffer;
+    public static void UnlimitedCycle(Image input){
+        int width = input.getPlanes()[0].getRowStride()
+                / input.getPlanes()[0].getPixelStride();
+        int height = input.getHeight();
+        Interface.i.parameters.rawSize = new android.graphics.Point(width,height);
+        if(unlimitedBuffer == null){
+            unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
+        }
+        AverageRaw averageRaw = new AverageRaw(Interface.i.parameters.rawSize,R.raw.average,"UnlimitedAvr");
+        averageRaw.additionalParams = new AverageParams(unlimitedBuffer,input.getPlanes()[0].getBuffer());
+        averageRaw.Run();
+        unlimitedBuffer = averageRaw.Output;
+        averageRaw.close();
+        input.close();
+    }
+    public static void UnlimitedEnd(){
+        Log.d(TAG, "Wrapper.processFrame()");
+        Interface.i.parameters.FillParameters(CameraFragment.mCaptureResult,CameraFragment.mCameraCharacteristics,Interface.i.parameters.rawSize);
+        Interface.i.parameters.path = ImageSaver.outimg.getAbsolutePath();
+        PostPipeline pipeline = new PostPipeline();
+        pipeline.Run(unlimitedBuffer,Interface.i.parameters);
+        pipeline.close();
+        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,ImageSaver.outimg.getAbsolutePath());
+        if(!Interface.i.settings.rawSaver) {
+            try {
+                inter.saveAttributes();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        unlimitedBuffer.clear();
+        com.eszdman.photoncamera.api.Photo.instance.SaveImg(ImageSaver.outimg);
     }
     public void Run() {
         Camera2ApiAutoFix.ApplyRes();

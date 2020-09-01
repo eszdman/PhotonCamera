@@ -6,8 +6,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 
-import com.eszdman.photoncamera.ui.CameraFragment;
-
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Array;

@@ -1,8 +1,6 @@
 package com.eszdman.photoncamera.Parameters;
 
-import android.annotation.SuppressLint;
-
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 import java.util.Locale;
 

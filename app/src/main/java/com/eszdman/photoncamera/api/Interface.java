@@ -1,7 +1,5 @@
 package com.eszdman.photoncamera.api;
 
-import android.app.ActivityManager;
-
 import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.Control.Sensors;
@@ -10,11 +8,9 @@ import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.ui.CameraUI;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
-
-import static android.content.Context.ACTIVITY_SERVICE;
 
 public class Interface {
     public static Interface i;

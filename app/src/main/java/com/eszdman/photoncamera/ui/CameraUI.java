@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.api;
+package com.eszdman.photoncamera.ui;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
@@ -14,6 +14,10 @@ import android.widget.ToggleButton;
 
 import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -43,6 +47,7 @@ public class CameraUI {
                 rb.setText("");
                 auxGroup.addView(rb);
             }
+            Interface.i.settings.mCameraID = "0";
             auxGroup.check(1);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
                 if(i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
@@ -100,6 +105,7 @@ public class CameraUI {
         Interface.i.camera.loadGalleryButtonImage();
         switcher = Interface.i.mainActivity.findViewById(R.id.radioswitcher);
         switcher.check(R.id.cameraMode);
+        Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT;
         switcher.setOnCheckedChangeListener((radioGroup, i) -> {
             switch(i) {
                 case (R.id.cameraMode):
@@ -123,12 +129,14 @@ public class CameraUI {
             case UNLIMITED:
                 eisPhoto.setVisibility(View.INVISIBLE);
                 fpsPreview.setVisibility(View.VISIBLE);
-                hdrX.setVisibility(View.VISIBLE);
+                hdrX.setVisibility(View.INVISIBLE);
+                shot.setBackgroundResource(R.drawable.unlimitedbutton);
                 break;
             case DEFAULT:
                 eisPhoto.setVisibility(View.VISIBLE);
                 fpsPreview.setVisibility(View.VISIBLE);
                 hdrX.setVisibility(View.VISIBLE);
+                shot.setBackgroundResource(R.drawable.roundbutton);
                 break;
             case NIGHT:
                 eisPhoto.setVisibility(View.INVISIBLE);

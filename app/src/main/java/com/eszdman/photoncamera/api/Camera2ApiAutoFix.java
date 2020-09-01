@@ -10,7 +10,6 @@ import android.util.Range;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
-import com.eszdman.photoncamera.ui.CameraFragment;
 
 import java.lang.reflect.Field;
 

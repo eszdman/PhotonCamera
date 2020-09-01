@@ -15,7 +15,7 @@ import android.widget.ImageView;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 public class TouchFocus {
     protected final String TAG = "TouchFocus";

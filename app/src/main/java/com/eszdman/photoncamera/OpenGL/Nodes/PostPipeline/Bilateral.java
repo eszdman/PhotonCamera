@@ -8,7 +8,7 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 public class Bilateral extends Node {
     public Bilateral(int rid, String name) {

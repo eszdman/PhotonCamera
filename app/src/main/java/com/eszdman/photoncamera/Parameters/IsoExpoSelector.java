@@ -7,7 +7,7 @@ import android.util.Range;
 
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 public class IsoExpoSelector {
     private static final String TAG = "IsoExpoSelector";

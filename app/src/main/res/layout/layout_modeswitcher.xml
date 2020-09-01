@@ -50,7 +50,10 @@
                         android:paddingBottom="5dp"
                         android:text="Unlimited"
                         android:textAlignment="center"
-                        android:textSize="16sp" />
+                        android:textColor="@drawable/modes_text"
+                        android:textSize="16sp"
+                        android:visibility="visible"
+                        tools:visibility="visible" />
 
                     <RadioButton
                         android:id="@+id/nightMode"
@@ -66,7 +69,10 @@
                         android:paddingBottom="5dp"
                         android:text="Night"
                         android:textAlignment="center"
-                        android:textSize="16sp" />
+                        android:textColor="@drawable/modes_text"
+                        android:textSize="16sp"
+                        android:visibility="visible"
+                        tools:visibility="visible" />
 
                     <RadioButton
                         android:id="@+id/cameraMode"
@@ -81,6 +87,7 @@
                         android:paddingEnd="5dp"
                         android:paddingBottom="5dp"
                         android:text="Camera"
+                        android:textColor="@drawable/modes_text"
                         android:textAlignment="center"
                         android:textSize="16sp" />
 
@@ -98,7 +105,10 @@
                         android:paddingBottom="5dp"
                         android:text="Video"
                         android:textAlignment="center"
-                        android:textSize="16sp" />
+                        android:textColor="@drawable/modes_text"
+                        android:textSize="16sp"
+                        android:visibility="invisible"
+                        tools:visibility="visible" />
                 </RadioGroup>
 
 

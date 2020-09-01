@@ -9,7 +9,6 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Range;
 
-import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;

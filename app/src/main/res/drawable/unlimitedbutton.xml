@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:state_pressed="false" >
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="80dp"
+            android:height="80dp"
+            android:viewportWidth="80"
+            android:viewportHeight="80">
+            <group>
+                <path
+                    android:fillColor="@android:color/darker_gray"
+                    android:pathData="M40 0a40 40 0 1 0 0 80a40 40 0 1 0 0-80z"/>
+                <path
+                    android:fillColor="@color/colorAccent"
+                    android:pathData="M24.15 17.45c0-2.31 2.5-3.76 4.5-2.6L68.4 37.8c2 1.15 2 4.04 0 5.2L28.65 65.93c-2 1.16-4.5-0.29-4.5-2.6v-45.9z"/>
+            </group>
+        </vector>
+</item><item android:state_activated="false" android:state_pressed="false" >
+    <vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:width="80dp"
+        android:height="80dp"
+        android:viewportWidth="80"
+        android:viewportHeight="80">
+        <path
+            android:fillColor="@android:color/darker_gray"
+            android:pathData="M40 0a40 40 0 1 0 0 80a40 40 0 1 0 0-80z"/>
+        <path
+            android:fillColor="@color/colorAccent"
+            android:pathData="M15 18c0-1.66 1.34-3 3-3h44c1.66 0 3 1.34 3 3v44c0 1.66-1.34 3-3 3h-44c-1.66 0-3-1.34-3-3z"/>
+    </vector>
+
+</item><item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/colorAccent" />
+            <size android:width="80dp" android:height="80dp"/>
+        </shape>
+    </item>
+</selector>
