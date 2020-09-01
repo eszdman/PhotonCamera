@@ -3,13 +3,7 @@ package com.eszdman.photoncamera.ui;
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
-import android.widget.ToggleButton;
+import android.widget.*;
 
 
 import com.eszdman.photoncamera.Control.Manual;
@@ -18,8 +12,8 @@ import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
-import com.eszdman.photoncamera.ui.MainActivity;
 
+import com.eszdman.photoncamera.wefika.horizontalpicker.HorizontalPicker;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class CameraUI {
@@ -29,19 +23,20 @@ public class CameraUI {
     public ProgressBar loadingcycle;
     public CircleImageView galleryImageButton;
     public RadioGroup auxGroup;
-    RadioGroup switcher;
+    HorizontalPicker modePicker;
     ToggleButton fpsPreview;
     ToggleButton quadResolution;
     ToggleButton eisPhoto;
     ImageButton flip;
     Button settings;
     ToggleButton hdrX;
+
     @SuppressLint("ResourceType")
-    public void onCameraInitialization(){
+    public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
         Interface.i.manual.Init();
         String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
-        if(auxGroup.getChildCount() == 0 && cameras.length > 2) {
+        if (auxGroup.getChildCount() == 0 && cameras.length > 2) {
             for (int i = 1; i < cameras.length; i++) {
                 RadioButton rb = new RadioButton(Interface.i.mainActivity);
                 rb.setText("");
@@ -50,13 +45,14 @@ public class CameraUI {
             Interface.i.settings.mCameraID = "0";
             auxGroup.check(1);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
-                if(i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
-                Interface.i.settings.mCameraID = Interface.i.camera.mCameraIds[i-1];
+                if (i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
+                Interface.i.settings.mCameraID = Interface.i.camera.mCameraIds[i - 1];
                 Interface.i.camera.restartCamera();
             });
         }
     }
-    public void onCameraViewCreated(){
+
+    public void onCameraViewCreated() {
         Interface.i.settings.mCameraID = "0";
         lightcycle = Interface.i.mainActivity.findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
@@ -103,36 +99,48 @@ public class CameraUI {
         hdrX = Interface.i.mainActivity.findViewById(R.id.stacking);
         hdrX.setOnClickListener(Interface.i.camera);
         Interface.i.camera.loadGalleryButtonImage();
-        switcher = Interface.i.mainActivity.findViewById(R.id.radioswitcher);
-        switcher.check(R.id.cameraMode);
-        Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT;
-        switcher.setOnCheckedChangeListener((radioGroup, i) -> {
-            switch(i) {
-                case (R.id.cameraMode):
-                    Interface.i.settings.selectedMode = Settings.CameraMode.DEFAULT;
-                    break;
-                case (R.id.nightMode):
-                    Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT;
-                    break;
-                case (R.id.unlimitedMode):
-                    Interface.i.settings.selectedMode = Settings.CameraMode.UNLIMITED;
-                    break;
+        modePicker = Interface.i.mainActivity.findViewById(R.id.modePicker);
+        String[] modes = Settings.CameraMode.names();
+        modePicker.setValues(modes);
+        modePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        modePicker.setOnItemSelectedListener(new HorizontalPicker.OnItemSelected() {
+            @Override
+            public void onItemSelected(int index) {
+                switchToMode(Settings.CameraMode.valueOf(modes[index]));
             }
-            configureMode(Interface.i.settings.selectedMode);
-            Interface.i.camera.restartCamera();
         });
+        modePicker.setSelectedItem(1);
         auxGroup = Interface.i.mainActivity.findViewById(R.id.auxButtons);
         Interface.i.manual = new Manual();
     }
-    public void configureMode(Settings.CameraMode input){
-        switch(input){
+
+    public void switchToMode(Settings.CameraMode cameraMode) {
+        switch (cameraMode) {
+            case PHOTO:
+            default:
+                Interface.i.settings.selectedMode = Settings.CameraMode.PHOTO;
+                break;
+            case NIGHT:
+                Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT;
+                break;
+            case UNLIMITED:
+                Interface.i.settings.selectedMode = Settings.CameraMode.UNLIMITED;
+                break;
+        }
+        configureMode(Interface.i.settings.selectedMode);
+        Interface.i.camera.restartCamera();
+    }
+
+    public void configureMode(Settings.CameraMode input) {
+        switch (input) {
             case UNLIMITED:
                 eisPhoto.setVisibility(View.INVISIBLE);
                 fpsPreview.setVisibility(View.VISIBLE);
                 hdrX.setVisibility(View.INVISIBLE);
                 shot.setBackgroundResource(R.drawable.unlimitedbutton);
                 break;
-            case DEFAULT:
+            case PHOTO:
+            default:
                 eisPhoto.setVisibility(View.VISIBLE);
                 fpsPreview.setVisibility(View.VISIBLE);
                 hdrX.setVisibility(View.VISIBLE);

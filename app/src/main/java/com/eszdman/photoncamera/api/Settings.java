@@ -77,14 +77,24 @@ public class Settings {
     public int alignAlgorithm = 0;
     public String mCameraID = "0";
     private int count = 0;
-    public CameraMode selectedMode = CameraMode.DEFAULT;
+    public CameraMode selectedMode = CameraMode.PHOTO;
     public enum CameraMode {
-        DEFAULT(0),
+        UNLIMITED(2),
+        PHOTO(0),
         NIGHT(1),
-        UNLIMITED(2);
+        VIDEO(3);
         public final int mNum;
+
         CameraMode(int number) {
             mNum = number;
+        }
+
+        public static String[] names() {
+            String[] names = new String[values().length];
+            for (int i = 0; i < values().length; i++) {
+                names[i] = values()[i].name();
+            }
+            return names;
         }
     }
     private SharedPreferences.Editor sharedPreferencesEditor;
@@ -292,11 +302,11 @@ public class Settings {
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         switch (result){
-            case(0): return CameraMode.DEFAULT;
+            case(0): return CameraMode.PHOTO;
             case(1): return CameraMode.NIGHT;
             case(2): return CameraMode.UNLIMITED;
         }
-        return CameraMode.DEFAULT;
+        return CameraMode.PHOTO;
     }
     public void ExportSettings(){
        save();
