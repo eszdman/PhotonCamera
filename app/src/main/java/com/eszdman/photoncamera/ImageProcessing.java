@@ -438,13 +438,17 @@ public class ImageProcessing {
         PostPipeline pipeline = new PostPipeline();
         pipeline.Run(unlimitedBuffer,Interface.i.parameters);
         pipeline.close();
-        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,ImageSaver.outimg.getAbsolutePath());
-        if(!Interface.i.settings.rawSaver) {
-            try {
-                inter.saveAttributes();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
+            if (!Interface.i.settings.rawSaver) {
+                try {
+                    inter.saveAttributes();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+        }catch (Exception e){
+            e.printStackTrace();
         }
         unlimitedBuffer.clear();
         com.eszdman.photoncamera.api.Photo.instance.SaveImg(ImageSaver.outimg);
