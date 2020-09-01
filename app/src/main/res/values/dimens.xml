@@ -19,4 +19,5 @@
     <dimen name="focus_circle_size">80dp</dimen>
     <dimen name="mode_chip_text_size">15sp</dimen>
     <dimen name="exif_dialog_width">320dp</dimen>
+    <dimen name="mode_switcher_padding">10dp</dimen>
 </resources>
