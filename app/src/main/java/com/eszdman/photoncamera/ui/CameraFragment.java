@@ -408,8 +408,7 @@ public class CameraFragment extends Fragment
             mPreviewTemp = mtemp;
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
-
-            //updateScreenLog(result);
+            updateScreenLog(result);
         }
         //Automatic 60fps preview
         @Override
