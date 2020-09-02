@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
@@ -8,6 +9,7 @@ import android.hardware.camera2.params.TonemapCurve;
 import android.os.Environment;
 import android.util.Log;
 import android.util.Range;
+import android.widget.Toast;
 
 import com.eszdman.photoncamera.ui.MainActivity;
 
@@ -15,8 +17,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.FloatBuffer;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 import static android.content.Context.MODE_PRIVATE;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
@@ -76,13 +82,32 @@ public class Settings {
     public boolean fpsPreview = false;
     public int alignAlgorithm = 0;
     public String mCameraID = "0";
+    public float[] tonemap = {
+            0.00390625f,
+            0.0078125f, 0.0117188f, 0.015625f, 0.0195312f, 0.0234375f, 0.0273438f, 0.03125f, 0.0351562f, 0.0390625f, 0.0429688f, 0.046875f, 0.0507812f, 0.0546875f, 0.0585938f, 0.0625f, 0.0664062f, 0.0703125f,
+            0.0742188f, 0.078125f, 0.0820312f, 0.0859375f, 0.0898438f, 0.09375f, 0.0976562f, 0.101562f, 0.105469f, 0.109375f, 0.113281f, 0.117188f, 0.121094f, 0.125f, 0.128906f,
+            0.132812f, 0.136719f, 0.140625f, 0.144531f, 0.148438f, 0.152344f, 0.15625f, 0.160156f, 0.164062f, 0.167969f, 0.171875f, 0.175781f, 0.179688f, 0.183594f, 0.1875f, 0.191406f, 0.195312f, 0.199219f,
+            0.203125f, 0.207031f, 0.210938f, 0.214844f, 0.21875f, 0.222656f, 0.226562f, 0.230469f, 0.234375f, 0.238281f, 0.242188f, 0.246094f, 0.25f, 0.253906f, 0.257812f, 0.261719f, 0.265625f,
+            0.269531f, 0.273438f, 0.277344f, 0.28125f, 0.285156f, 0.289062f, 0.292969f, 0.296875f, 0.300781f, 0.304688f, 0.308594f, 0.3125f, 0.316406f, 0.320312f, 0.324219f, 0.328125f, 0.332031f,
+            0.335938f, 0.339844f, 0.34375f, 0.347656f, 0.351562f, 0.355469f, 0.359375f, 0.363281f, 0.367188f, 0.371094f, 0.375f, 0.378906f, 0.382812f, 0.386719f, 0.390625f, 0.394531f,
+            0.398438f, 0.402344f, 0.40625f, 0.410156f, 0.414062f, 0.417969f, 0.421875f, 0.425781f, 0.429688f, 0.433594f, 0.4375f, 0.441406f, 0.445312f, 0.449219f, 0.453125f, 0.457031f, 0.460938f,
+            0.464844f, 0.46875f, 0.472656f, 0.476562f, 0.480469f, 0.484375f, 0.488281f, 0.492188f, 0.496094f, 0.5f, 0.503906f, 0.507812f, 0.511719f, 0.515625f, 0.519531f, 0.523438f, 0.527344f,
+            0.53125f, 0.535156f, 0.539062f, 0.542969f, 0.546875f, 0.550781f, 0.554688f, 0.558594f, 0.5625f, 0.566406f, 0.570312f, 0.574219f, 0.578125f, 0.582031f, 0.585938f, 0.589844f,
+            0.59375f, 0.597656f, 0.601562f, 0.605469f, 0.609375f, 0.613281f, 0.617188f, 0.621094f, 0.625f, 0.628906f, 0.632812f, 0.636719f, 0.640625f, 0.644531f, 0.648438f, 0.652344f, 0.65625f,
+            0.660156f, 0.664062f, 0.667969f, 0.671875f, 0.675781f, 0.679688f, 0.683594f, 0.6875f, 0.691406f, 0.695312f, 0.699219f, 0.703125f, 0.707031f, 0.710938f, 0.714844f, 0.71875f, 0.722656f,
+            0.726562f, 0.730469f, 0.734375f, 0.738281f, 0.742188f, 0.746094f, 0.75f, 0.753906f, 0.757812f, 0.761719f, 0.765625f, 0.769531f, 0.773438f, 0.777344f, 0.78125f, 0.785156f,
+            0.789062f, 0.792969f, 0.796875f, 0.800781f, 0.804688f, 0.808594f, 0.8125f, 0.816406f, 0.820312f, 0.824219f, 0.828125f, 0.832031f, 0.835938f, 0.839844f, 0.84375f, 0.847656f, 0.851562f,
+            0.855469f, 0.859375f, 0.863281f, 0.867188f, 0.871094f, 0.875f, 0.878906f, 0.882812f, 0.886719f, 0.890625f, 0.894531f, 0.898438f, 0.902344f, 0.90625f, 0.910156f, 0.914062f, 0.917969f,
+            0.921875f, 0.925781f, 0.929688f, 0.933594f, 0.9375f, 0.941406f, 0.945312f, 0.949219f, 0.953125f, 0.957031f, 0.960938f, 0.964844f, 0.96875f, 0.972656f, 0.976562f, 0.980469f,
+            0.984375f, 0.988281f, 0.992188f, 0.996094f, 1.0f
+    };
     private int count = 0;
     public CameraMode selectedMode = CameraMode.PHOTO;
     public enum CameraMode {
         UNLIMITED(2),
         PHOTO(0),
-        NIGHT(1),
-        VIDEO(3);
+        NIGHT(1),;
+        //VIDEO(3);
         public final int mNum;
 
         CameraMode(int number) {
@@ -137,6 +162,7 @@ public class Settings {
         hdrxNR = get(hdrxNR,"HdrxNR");
         alignAlgorithm = get(alignAlgorithm,"AlignmentAlgo");
         selectedMode = get(selectedMode, "SelectedMode");
+        tonemap = get(tonemap,"Tonemap");
         count = -1;
         mCameraID = sharedPreferences.getString("Camera", mCameraID);
         count = 0;
@@ -171,6 +197,7 @@ public class Settings {
         put(hdrxNR,"HdrxNR");
         put(alignAlgorithm,"AlignmentAlgo");
         put(selectedMode, "SelectedMode");
+        put(tonemap,"Tonemap");
         count = -1;
         sharedPreferencesEditor.putString("Camera", mCameraID);
         sharedPreferencesEditor.apply();
@@ -265,6 +292,15 @@ public class Settings {
         sharedPreferencesEditor.putInt("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_m_"+name, in.mNum);
         count++;
     }
+    private void put(float[] floats, String name) {
+        String floatStr = "[";
+        for(int i =0; i<floats.length;i++){
+            floatStr+=String.valueOf(floats[i]);
+            if(i!= floats.length-1) floatStr+=",";
+        }
+        floatStr+="]";
+        sharedPreferencesEditor.putString("Tonemap",floatStr);
+    }
 
     boolean get(boolean in,String name) {
         boolean result = sharedPreferences.getBoolean("ID"+String.format("%03d",Integer.parseInt(mCameraID))+"_b_"+name, in);
@@ -295,6 +331,23 @@ public class Settings {
         Log.d(TAG,"Loaded "+name+":"+result);
         count++;
         return result;
+    }
+    float[] get(float[] current,String name){
+        String floatStr = "[";
+        for(int i =0; i<current.length;i++){
+            floatStr+=String.valueOf(current[i]);
+            if(i!= current.length-1) floatStr+=",";
+        }
+        floatStr+="]";
+        floatStr = sharedPreferences.getString("Tonemap",floatStr);
+        floatStr = floatStr.replace("]","");
+        floatStr = floatStr.replace("[","");
+        floatStr = floatStr.replace(" ","");
+        String outarr[] = floatStr.split(",");
+        for(int i =0;i<current.length;i++){
+            current[i] = Float.parseFloat(outarr[i]);
+        }
+        return current;
     }
     CameraMode get(CameraMode cur,String name) {
         int result;
@@ -331,6 +384,18 @@ public class Settings {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        final Activity activity = Interface.i.mainActivity;
+        if (activity != null) {
+            activity.runOnUiThread(() -> Toast.makeText(activity, "Exported", Toast.LENGTH_SHORT).show());
+        }
+    }
+    public String[] getArr(Properties props,String propname,String def){
+        String values = props.getProperty(propname,def);
+        values = values.replace("]","");
+        values = values.replace("[","");
+        values = values.replace(" ","");
+        String outarr[] = values.split(",");
+        return outarr;
     }
     public void ImportSettings(){
         Map<String, ?> allKeys =  sharedPreferences.getAll();
@@ -345,16 +410,27 @@ public class Settings {
             return;
         }
         mCameraID = props.getProperty("Camera");
-        String ids = props.getProperty("Cameras",CameraManager2.cameraManager2.getCameraIdList().toString());
-        ids = ids.replace("]","");
-        ids = ids.replace("[","");
-        ids = ids.replace(" ","");
-        String idarr[] = ids.split(",");
         CameraManager2.cameraManager2.mCameraIDs.clear();
-        for(String id : idarr) {
+        for(String id : getArr(props,"Cameras",CameraManager2.cameraManager2.getCameraIdList().toString())) {
             Log.d(TAG,"CameraID:"+id);
             CameraManager2.cameraManager2.mCameraIDs.add(id);
         }
+        Set<String> floatText = new HashSet<>();
+        for(int i =0; i<tonemap.length;i++){
+            floatText.add(String.valueOf(tonemap[i]));
+        }
+        String floatStr = "[";
+        for(int i =0; i<tonemap.length;i++){
+            floatStr+=String.valueOf(tonemap[i]);
+            if(i!= tonemap.length-1) floatStr+=",";
+        }
+        floatStr+="]";
+        int cnt = 0;
+        for (String tonemapstr : getArr(props,"Tonemap",sharedPreferences.getString("Tonemap",floatStr).toString())){
+            tonemap[cnt] = Float.parseFloat(tonemapstr);
+            cnt++;
+        }
+
         for (Map.Entry<Object, Object> entry : props.entrySet()){
             String property = entry.getValue().toString();
             String name = entry.getKey().toString();
@@ -381,5 +457,9 @@ public class Settings {
         }
         load();
         Interface.i.settingsActivity.set();
+        final Activity activity = Interface.i.mainActivity;
+        if (activity != null) {
+            activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
+        }
     }
 }

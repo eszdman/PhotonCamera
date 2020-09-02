@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
+import android.graphics.Point;
+
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
@@ -25,6 +27,8 @@ public class Initial extends Node {
         GLProg glProg = glint.glprogram;
         Parameters params = glint.parameters;
         GLTexture GainMapTex = new GLTexture(params.mapsize, new GLFormat(GLFormat.DataType.FLOAT_16,4),FloatBuffer.wrap(params.gainmap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256,0),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(Interface.i.settings.tonemap));
+        glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("Fullbuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("GainMap",GainMapTex);
         glProg.setvar("RawSizeX",params.rawSize.x);

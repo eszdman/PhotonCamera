@@ -103,12 +103,7 @@ public class CameraUI {
         String[] modes = Settings.CameraMode.names();
         modePicker.setValues(modes);
         modePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        modePicker.setOnItemSelectedListener(new HorizontalPicker.OnItemSelected() {
-            @Override
-            public void onItemSelected(int index) {
-                switchToMode(Settings.CameraMode.valueOf(modes[index]));
-            }
-        });
+        modePicker.setOnItemSelectedListener(index -> switchToMode(Settings.CameraMode.valueOf(modes[index])));
         modePicker.setSelectedItem(1);
         auxGroup = Interface.i.mainActivity.findViewById(R.id.auxButtons);
         Interface.i.manual = new Manual();
