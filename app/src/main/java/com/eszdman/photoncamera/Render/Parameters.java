@@ -40,7 +40,7 @@ public class Parameters {
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         for (int i = 0; i < 4; i++) blacklevel[i] = 64;
-        tonemapStrength = (float) Interface.i.settings.compressor;
+        tonemapStrength = (float) Interface.getSettings().compressor;
         int[] blarr = new int[4];
         BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (level != null) {
@@ -49,8 +49,8 @@ public class Parameters {
         }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
-        if(Interface.i.settings.cfaPattern != -1){
-            cfaPattern = (byte)Interface.i.settings.cfaPattern;
+        if(Interface.getSettings().cfaPattern != -1){
+            cfaPattern = (byte)Interface.getSettings().cfaPattern;
         }
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (wlevel != null) whitelevel = ((int)wlevel);
@@ -137,7 +137,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / neutral[2].floatValue();
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        ColorSpaceTransform CCT = Interface.i.camera.mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CCT = Interface.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         if(CCT != null) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);
@@ -178,10 +178,10 @@ public class Parameters {
         return "Parameters:" +
                 ", hasGainMap=" + hasGainMap +
                 ", framecount=" + FrameNumberSelector.frameCount +
-                ", CameraID=" + Interface.i.settings.mCameraID +
-                ", Satur=" + FltFormat(Interface.i.settings.saturation) +
-                ", Gain=" + FltFormat(Interface.i.settings.gain) +
-                ", Sharpness=" + FltFormat(Interface.i.settings.sharpness);
+                ", CameraID=" + Interface.getSettings().mCameraID +
+                ", Satur=" + FltFormat(Interface.getSettings().saturation) +
+                ", Gain=" + FltFormat(Interface.getSettings().gain) +
+                ", Sharpness=" + FltFormat(Interface.getSettings().sharpness);
     }
 
     @SuppressLint("DefaultLocale")

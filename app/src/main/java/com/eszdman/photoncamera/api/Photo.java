@@ -26,7 +26,7 @@ public class Photo {
         {
             Bitmap bmp = (Bitmap) msg.obj;
             try {
-              Interface.i.cameraui.galleryImageButton.setImageBitmap(bmp);
+              Interface.getCameraUI().galleryImageButton.setImageBitmap(bmp);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -67,8 +67,8 @@ public class Photo {
     }
 
     public void ShowPhoto() {
-        if (Interface.i.settings.lastPicture != null) {
-            ShowPhoto(new File(Interface.i.settings.lastPicture));
+        if (Interface.getSettings().lastPicture != null) {
+            ShowPhoto(new File(Interface.getSettings().lastPicture));
         }
     }
 
@@ -80,9 +80,9 @@ public class Photo {
     }
     public void SaveImg(File in) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        boolean wasNull = Interface.i.settings.lastPicture == null;
-        Interface.i.settings.lastPicture = in.getAbsolutePath();
-        if (wasNull) Interface.i.settings.save();
+        boolean wasNull = Interface.getSettings().lastPicture == null;
+        Interface.getSettings().lastPicture = in.getAbsolutePath();
+        if (wasNull) Interface.getSettings().save();
         Uri contentUri = Uri.fromFile(in);
         try {
             Bitmap thumb = null;

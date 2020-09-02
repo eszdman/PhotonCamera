@@ -20,7 +20,7 @@ public class IsoExpoSelector {
                 CameraFragment.context.mPreviewIso,getISOLOW(),getISOHIGH());
         ExpoPair startPair = new ExpoPair(pair);
         pair.normalizeiso100();
-        if(Interface.i.settings.selectedMode == Settings.CameraMode.NIGHT) mpy = 2.0;
+        if(Interface.getSettings().selectedMode == Settings.CameraMode.NIGHT) mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }
@@ -28,10 +28,10 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if(step != baseFrame || !Interface.i.settings.eisPhoto) pair.ReduceIso();
+            if(step != baseFrame || !Interface.getSettings().eisPhoto) pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if(step != baseFrame || !Interface.i.settings.eisPhoto) pair.ReduceIso(1.25);
+            if(step != baseFrame || !Interface.getSettings().eisPhoto) pair.ReduceIso(1.25);
         }
         if (pair.iso >= 12700) {
             pair.ReduceIso();
@@ -45,9 +45,9 @@ public class IsoExpoSelector {
         if(useTripod) {
             pair.MinIso();
         }
-        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
-            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
-            pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
+        if(Interface.getSettings().ManualMode && Interface.getManual().exposure){
+            pair.exposure = (long)(ExposureIndex.sec*Interface.getManual().expvalue);
+            pair.iso = (int)(Interface.getManual().isovalue/getMPY());
         }
         if(step == 3 && HDR){
             pair.ExpoCompensateLower(1.0/1.0);
@@ -55,19 +55,19 @@ public class IsoExpoSelector {
         if(step == 2 && HDR){
             pair.ExpoCompensateLower(8.0);
         }
-        if(pair.exposure < ExposureIndex.sec/90 && Interface.i.settings.eisPhoto){
+        if(pair.exposure < ExposureIndex.sec/90 && Interface.getSettings().eisPhoto){
             //HDR = true;
         }
         if(step == baseFrame){
-            if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70 && Interface.i.settings.eisPhoto){
+            if(pair.iso <= 120 && pair.exposure > ExposureIndex.sec/70 && Interface.getSettings().eisPhoto){
                 pair.ReduceExpo();
             }
-            if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50 && Interface.i.settings.eisPhoto){
+            if(pair.iso <= 245 && pair.exposure > ExposureIndex.sec/50 && Interface.getSettings().eisPhoto){
                 pair.ReduceExpo();
             }
-            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3 && pair.iso < 3200 && Interface.i.settings.eisPhoto){
+            if(pair.exposure < ExposureIndex.sec*3.00 && pair.exposure > ExposureIndex.sec/3 && pair.iso < 3200 && Interface.getSettings().eisPhoto){
                 pair.FixedExpo(1.0/8);
-                if(pair.normalizeCheck()) Interface.i.camera.showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
+                if(pair.normalizeCheck()) Interface.getCameraFragment().showToast("Wrong parameters: iso:"+pair.iso+ " exp:"+pair.exposure);
             }
         }
         pair.denormalizeSystem();

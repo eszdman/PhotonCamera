@@ -22,7 +22,7 @@ public class GLOneParams {
 
     static public String loadShader(int fragment) {
         StringBuilder source = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.i.mainActivity.getResources().openRawResource(fragment)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.getMainActivity().getResources().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
             source.append(line).append("\n");
         }

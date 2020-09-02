@@ -34,96 +34,96 @@ public class CameraUI {
     @SuppressLint("ResourceType")
     public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
-        Interface.i.manual.Init();
+        Interface.getManual().Init();
         String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
         if (auxGroup.getChildCount() == 0 && cameras.length > 2) {
             for (int i = 1; i < cameras.length; i++) {
-                RadioButton rb = new RadioButton(Interface.i.mainActivity);
+                RadioButton rb = new RadioButton(Interface.getMainActivity());
                 rb.setText("");
                 auxGroup.addView(rb);
             }
-            Interface.i.settings.mCameraID = "0";
+            Interface.getSettings().mCameraID = "0";
             auxGroup.check(1);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
                 if (i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
-                Interface.i.settings.mCameraID = Interface.i.camera.mCameraIds[i - 1];
-                Interface.i.camera.restartCamera();
+                Interface.getSettings().mCameraID = Interface.getCameraFragment().mCameraIds[i - 1];
+                Interface.getCameraFragment().restartCamera();
             });
         }
     }
 
     public void onCameraViewCreated() {
-        Interface.i.settings.mCameraID = "0";
-        lightcycle = Interface.i.mainActivity.findViewById(R.id.lightCycle);
+        Interface.getSettings().mCameraID = "0";
+        lightcycle = Interface.getMainActivity().findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
-        lightcycle.setMax(Interface.i.settings.frameCount);
-        loadingcycle = Interface.i.mainActivity.findViewById(R.id.progressloading);
-        loadingcycle.setMax(Interface.i.settings.frameCount);
-        shot = Interface.i.mainActivity.findViewById(R.id.picture);
-        shot.setOnClickListener(Interface.i.camera);
+        lightcycle.setMax(Interface.getSettings().frameCount);
+        loadingcycle = Interface.getMainActivity().findViewById(R.id.progressloading);
+        loadingcycle.setMax(Interface.getSettings().frameCount);
+        shot = Interface.getMainActivity().findViewById(R.id.picture);
+        shot.setOnClickListener(Interface.getCameraFragment());
         shot.setActivated(true);
-        galleryImageButton = Interface.i.mainActivity.findViewById(R.id.ImageOut);
-        galleryImageButton.setOnClickListener(Interface.i.camera);
+        galleryImageButton = Interface.getMainActivity().findViewById(R.id.ImageOut);
+        galleryImageButton.setOnClickListener(Interface.getCameraFragment());
         galleryImageButton.setClickable(true);
-        Interface.i.touchFocus.ReInit();
-        fpsPreview = Interface.i.mainActivity.findViewById(R.id.fpsPreview);
-        fpsPreview.setChecked(Interface.i.settings.fpsPreview);
-        quadResolution = Interface.i.mainActivity.findViewById(R.id.quadRes);
-        quadResolution.setChecked(Interface.i.settings.QuadBayer);
-        eisPhoto = Interface.i.mainActivity.findViewById(R.id.eisPhoto);
-        eisPhoto.setChecked(Interface.i.settings.eisPhoto);
+        Interface.getTouchFocus().ReInit();
+        fpsPreview = Interface.getMainActivity().findViewById(R.id.fpsPreview);
+        fpsPreview.setChecked(Interface.getSettings().fpsPreview);
+        quadResolution = Interface.getMainActivity().findViewById(R.id.quadRes);
+        quadResolution.setChecked(Interface.getSettings().QuadBayer);
+        eisPhoto = Interface.getMainActivity().findViewById(R.id.eisPhoto);
+        eisPhoto.setChecked(Interface.getSettings().eisPhoto);
         eisPhoto.setOnClickListener(v -> {
-            Interface.i.settings.eisPhoto = !Interface.i.settings.eisPhoto;
-            Interface.i.settings.save();
+            Interface.getSettings().eisPhoto = !Interface.getSettings().eisPhoto;
+            Interface.getSettings().save();
         });
         fpsPreview.setOnClickListener(v -> {
-            Interface.i.settings.fpsPreview = !Interface.i.settings.fpsPreview;
-            Interface.i.settings.save();
+            Interface.getSettings().fpsPreview = !Interface.getSettings().fpsPreview;
+            Interface.getSettings().save();
         });
         quadResolution.setOnClickListener(v -> {
-            Interface.i.settings.QuadBayer = !Interface.i.settings.QuadBayer;
-            Interface.i.settings.save();
-            Interface.i.camera.restartCamera();
+            Interface.getSettings().QuadBayer = !Interface.getSettings().QuadBayer;
+            Interface.getSettings().save();
+            Interface.getCameraFragment().restartCamera();
         });
-        flip = Interface.i.mainActivity.findViewById(R.id.flip_camera);
+        flip = Interface.getMainActivity().findViewById(R.id.flip_camera);
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
-            Interface.i.camera.mTextureView.animate().rotationBy(360).setDuration(450).start();
-            Interface.i.settings.mCameraID = Interface.i.camera.cycler(Interface.i.settings.mCameraID);
-            Interface.i.settings.saveID();
-            Interface.i.settings.load();
-            Interface.i.camera.restartCamera();
+            Interface.getCameraFragment().mTextureView.animate().rotationBy(360).setDuration(450).start();
+            Interface.getSettings().mCameraID = Interface.getCameraFragment().cycler(Interface.getSettings().mCameraID);
+            Interface.getSettings().saveID();
+            Interface.getSettings().load();
+            Interface.getCameraFragment().restartCamera();
         });
-        settings = Interface.i.mainActivity.findViewById(R.id.settings);
-        settings.setOnClickListener(Interface.i.camera);
-        hdrX = Interface.i.mainActivity.findViewById(R.id.stacking);
-        hdrX.setOnClickListener(Interface.i.camera);
-        Interface.i.camera.loadGalleryButtonImage();
-        modePicker = Interface.i.mainActivity.findViewById(R.id.modePicker);
+        settings = Interface.getMainActivity().findViewById(R.id.settings);
+        settings.setOnClickListener(Interface.getCameraFragment());
+        hdrX = Interface.getMainActivity().findViewById(R.id.stacking);
+        hdrX.setOnClickListener(Interface.getCameraFragment());
+        Interface.getCameraFragment().loadGalleryButtonImage();
+        modePicker = Interface.getMainActivity().findViewById(R.id.modePicker);
         String[] modes = Settings.CameraMode.names();
         modePicker.setValues(modes);
         modePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         modePicker.setOnItemSelectedListener(index -> switchToMode(Settings.CameraMode.valueOf(modes[index])));
         modePicker.setSelectedItem(1);
-        auxGroup = Interface.i.mainActivity.findViewById(R.id.auxButtons);
-        Interface.i.manual = new Manual();
+        auxGroup = Interface.getMainActivity().findViewById(R.id.auxButtons);
+        Interface.setManual(new Manual());
     }
 
     public void switchToMode(Settings.CameraMode cameraMode) {
         switch (cameraMode) {
             case PHOTO:
             default:
-                Interface.i.settings.selectedMode = Settings.CameraMode.PHOTO;
+                Interface.getSettings().selectedMode = Settings.CameraMode.PHOTO;
                 break;
             case NIGHT:
-                Interface.i.settings.selectedMode = Settings.CameraMode.NIGHT;
+                Interface.getSettings().selectedMode = Settings.CameraMode.NIGHT;
                 break;
             case UNLIMITED:
-                Interface.i.settings.selectedMode = Settings.CameraMode.UNLIMITED;
+                Interface.getSettings().selectedMode = Settings.CameraMode.UNLIMITED;
                 break;
         }
-        configureMode(Interface.i.settings.selectedMode);
-        Interface.i.camera.restartCamera();
+        configureMode(Interface.getSettings().selectedMode);
+        Interface.getCameraFragment().restartCamera();
     }
 
     public void configureMode(Settings.CameraMode input) {
@@ -148,25 +148,25 @@ public class CameraUI {
         }
     }
     public void onCameraPause(){
-        Interface.i.gravity.stop();
-        Interface.i.sensors.stop();
-        Interface.i.settings.saveID();
+        Interface.getGravity().stop();
+        Interface.getSensors().stop();
+        Interface.getSettings().saveID();
     }
     public void onCameraResume(){
-        Interface.i.swipedetection.RunDetection();
-        Interface.i.sensors.run();
+        Interface.getSwipe().RunDetection();
+        Interface.getSensors().run();
         Log.d(TAG,"CameraResume");
-        Interface.i.touchFocus.ReInit();
+        Interface.getTouchFocus().ReInit();
         ImageView grid_icon = MainActivity.act.findViewById(R.id.grid);
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
-        Interface.i.gravity.run();
-        if (Interface.i.settings.grid) grid_icon.setVisibility(View.VISIBLE);
+        Interface.getGravity().run();
+        if (Interface.getSettings().grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
-        if (Interface.i.settings.roundedge) edges.setVisibility(View.VISIBLE);
+        if (Interface.getSettings().roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
-        hdrX.setChecked(Interface.i.settings.hdrx);
-        Interface.i.camera.startBackgroundThread();
+        hdrX.setChecked(Interface.getSettings().hdrx);
+        Interface.getCameraFragment().startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();
     }
@@ -174,21 +174,21 @@ public class CameraUI {
         clearProcessingCycle();
     }
     public void burstUnlock(){
-        Interface.i.cameraui.shot.setActivated(true);
-        Interface.i.cameraui.shot.setClickable(true);
+        Interface.getCameraUI().shot.setActivated(true);
+        Interface.getCameraUI().shot.setClickable(true);
     }
     public void clearProcessingCycle(){
         try {
-            Interface.i.cameraui.loadingcycle.setProgress(0);
+            Interface.getCameraUI().loadingcycle.setProgress(0);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     public void incrementProcessingCycle(){
         try {
-            int progress = (Interface.i.cameraui.loadingcycle.getProgress() + 1) % (Interface.i.cameraui.loadingcycle.getMax() + 1);
+            int progress = (Interface.getCameraUI().loadingcycle.getProgress() + 1) % (Interface.getCameraUI().loadingcycle.getMax() + 1);
             progress = Math.max(1, progress);
-            Interface.i.cameraui.loadingcycle.setProgress(progress);
+            Interface.getCameraUI().loadingcycle.setProgress(progress);
         } catch (Exception e){
             e.printStackTrace();
         }
