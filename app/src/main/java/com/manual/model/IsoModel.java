@@ -65,7 +65,7 @@ public class IsoModel extends ManualModel<Integer> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo oldval, KnobItemInfo newval) {
+    public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         if (newval.value == -1) {
@@ -75,6 +75,6 @@ public class IsoModel extends ManualModel<Integer> {
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) newval.value);
         }
         Interface.i.camera.rebuildPreviewBuilder();
-        fireValueChangedEvent();
+        //fireValueChangedEvent(newval.text);
     }
 }

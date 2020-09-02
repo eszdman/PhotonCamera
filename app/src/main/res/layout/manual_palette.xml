@@ -62,72 +62,82 @@
             app:layout_constraintTop_toBottomOf="@id/knob_container"
             app:layout_constraintEnd_toEndOf="parent"
     >
+
         <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:id="@+id/focus_button_container"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
-        >
+            android:id="@+id/focus_button_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:textAlignment="center"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
             <ImageButton
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/focus_option_tv"
-                    app:layout_constraintBottom_toTopOf="@id/focus_option_tv"
-                    android:id="@+id/focus_option"
-                    app:srcCompat="@drawable/manual_control_icon_focus"
-                    android:background="#00000000"
-            />
-            <TextView android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      app:layout_constraintStart_toStartOf="parent"
-                      app:layout_constraintEnd_toEndOf="parent"
-                      app:layout_constraintBottom_toTopOf="@id/focus_option"
-                      app:layout_constraintTop_toTopOf="parent"
-                      tools:text="NULL"
-                      android:paddingTop="5dp"
-                      android:textColor="@color/white"
-                      android:layout_gravity="center"
-                      android:id="@+id/focus_option_tv"
-                      android:textSize="15sp"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="0dp"
+                android:id="@+id/focus_option"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:id="@+id/shutter_button_container"
-                app:layout_constraintStart_toEndOf="@id/focus_button_container"
-                app:layout_constraintBottom_toBottomOf="parent"
+                android:background="#00000000"
+                app:layout_constraintBottom_toTopOf="@id/focus_option_tv"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/focus_option_tv"
+                app:srcCompat="@drawable/manual_control_icon_focus" />
+
+            <TextView
+                android:id="@+id/focus_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:paddingTop="5dp"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                app:layout_constraintBottom_toTopOf="@id/focus_option"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/iso_button_container"
-        >
-            <ImageButton android:layout_width="wrap_content"
-                         android:layout_height="wrap_content"
-                         app:layout_constraintStart_toStartOf="parent"
-                         app:layout_constraintEnd_toEndOf="parent"
-                         app:layout_constraintTop_toBottomOf="@id/exposure_option_tv"
-                         app:layout_constraintBottom_toBottomOf="parent"
-                         android:id="@+id/exposure_option"
-                         app:srcCompat="@drawable/manual_control_icon_exposure"
-                         android:layout_gravity="center"
-                         android:background="#00000000"/>
-            <TextView android:layout_width="wrap_content"
-                      android:layout_height="wrap_content"
-                      app:layout_constraintStart_toStartOf="parent"
-                      app:layout_constraintEnd_toEndOf="parent"
-                      app:layout_constraintBottom_toTopOf="@id/exposure_option"
-                      app:layout_constraintTop_toTopOf="parent"
-                      tools:text="NULL"
-                      android:paddingTop="5dp"
-                      android:textColor="@color/white"
-                      android:layout_gravity="center"
-                      android:id="@+id/exposure_option_tv"
-                      android:textSize="15sp"/>
+                tools:text="NULL"
+                android:textAlignment="center"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/shutter_button_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:textAlignment="center"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/iso_button_container"
+            app:layout_constraintStart_toEndOf="@id/focus_button_container"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageButton
+                android:id="@+id/exposure_option"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="#00000000"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/exposure_option_tv"
+                app:srcCompat="@drawable/manual_control_icon_exposure" />
+
+            <TextView
+                android:id="@+id/exposure_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:paddingTop="5dp"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                app:layout_constraintBottom_toTopOf="@id/exposure_option"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:textAlignment="center"
+                tools:text="NULL" />
         </androidx.constraintlayout.widget.ConstraintLayout>
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="0dp"
@@ -149,7 +159,7 @@
                          app:srcCompat="@drawable/manual_control_icon_iso"
                          android:layout_gravity="center"
                          android:background="#00000000"/>
-            <TextView android:layout_width="50dp"
+            <TextView android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       app:layout_constraintStart_toStartOf="parent"
                       app:layout_constraintEnd_toEndOf="parent"
@@ -173,7 +183,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
 
         >
-            <ImageButton android:layout_width="wrap_content"
+            <ImageButton android:layout_width="match_parent"
                          android:layout_height="wrap_content"
                          app:layout_constraintStart_toStartOf="parent"
                          app:layout_constraintEnd_toEndOf="parent"
@@ -183,7 +193,7 @@
                          app:srcCompat="@drawable/ic_exposure"
                          android:layout_gravity="center"
                          android:background="#00000000"/>
-            <TextView android:layout_width="50dp"
+            <TextView android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       app:layout_constraintStart_toStartOf="parent"
                       app:layout_constraintEnd_toEndOf="parent"

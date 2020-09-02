@@ -1,6 +1,7 @@
 package com.manual.model;
 
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
@@ -61,7 +62,7 @@ public class FocusModel extends ManualModel<Float> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
         currentInfo = knobItemInfo2;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
@@ -71,6 +72,6 @@ public class FocusModel extends ManualModel<Float> {
             builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo2.value);
         }
         Interface.i.camera.rebuildPreviewBuilder();
-        fireValueChangedEvent();
+        //fireValueChangedEvent(knobItemInfo2.text);
     }
 }

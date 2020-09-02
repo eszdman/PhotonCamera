@@ -22,8 +22,6 @@ public class KnobView extends View {
     public static final double EPSILON = 1.0E-4d;
     private static final String TAG = KnobView.class.getSimpleName();
     public Range range;
-    //protected TextView status;
-    protected String auto_sring;
     protected double defaultValue = -1.0d;
     private Paint m_BackgroundPaint;
     private boolean m_DashAroundAutoEnabled;
@@ -45,6 +43,13 @@ public class KnobView extends View {
     private RotationState m_RotationState;
     private int m_Tick;
     private KnobItemInfo m_Value;
+    private boolean dolog = true;
+
+    private void log(String msg)
+    {
+        if (dolog)
+            Log.v(TAG, msg);
+    }
 
     public KnobView(Context context) {
         this(context, null);
@@ -69,9 +74,6 @@ public class KnobView extends View {
         this.m_Paint.setAntiAlias(true);
         this.m_DashLength = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_length);
         this.m_DashPadding = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_padding);
-        this.auto_sring = context.getString(R.string.manual_mode_auto);
-        //status = Interface.i.mainActivity.findViewById(R.id.ev_option_tv);
-        setupIcons();
     }
 
     public void cancelTouchEvent() {
@@ -80,22 +82,24 @@ public class KnobView extends View {
 
     public void setRange(Range range) {
         this.range = range;
-        setupIcons();
         invalidate();
     }
 
     @Override
     public void draw(Canvas canvas) {
+        long startTime = System.nanoTime();
+        super.draw(canvas);
         if (this.m_RotationCenter != null && this.m_KnobInfo != null) {
             canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, this.m_BackgroundPaint);
-            canvas.save();
+            //canvas.save();
+            double drawRotation;
             if (this.m_KnobItems != null) {
                 double startAngle = Double.NaN;
                 double endAngle = Double.NaN;
                 for (int i = 0; i < this.m_KnobItems.size(); i++) {
                     KnobItemInfo item = this.m_KnobItems.get(i);
                     KnobItemInfo nextItem = i + 1 < this.m_KnobItems.size() ? this.m_KnobItems.get(i + 1) : null;
-                    double drawRotation = (-this.m_DrawableCurrentDegree) + item.rotationCenter;
+                    drawRotation = (-this.m_DrawableCurrentDegree) + item.rotationCenter;
                     canvas.rotate((float) drawRotation, this.m_RotationCenter.x, this.m_RotationCenter.y);
                     canvas.rotate(-this.m_KnobItemsSelfRotation, item.drawable.getBounds().exactCenterX(), item.drawable.getBounds().exactCenterY());
                     item.drawable.draw(canvas);
@@ -120,15 +124,18 @@ public class KnobView extends View {
                     }
                 }
             }
-            canvas.restore();
+            //canvas.restore();
         }
+        log("drawTime:" + (System.nanoTime() - startTime) +"ns");
     }
 
     private double evaluateRotation(float x, float y) {
+        log("evaluateRotation");
         return Math.atan2((double) (x - this.m_RotationCenter.x), (double) (-(y - this.m_RotationCenter.y)));
     }
 
     private PointF evaluateRotationCenter() {
+        log("evaluateRotationCenter");
         int width = getWidth();
         int height = getHeight();
         double fanEdge = Math.sqrt(Math.pow((double) (((float) width) / 2.0f), 2.0d) + Math.pow((double) height, 2.0d));
@@ -153,7 +160,7 @@ public class KnobView extends View {
 
     private KnobItemInfo getKnobItemFromValue(double value) {
         if (this.m_KnobItems == null) {
-            Log.d(TAG, "getKnobItemFromValue() - knobItems is null");
+            log("getKnobItemFromValue() - knobItems is null");
             return null;
         }
         for (KnobItemInfo item : this.m_KnobItems) {
@@ -161,13 +168,13 @@ public class KnobView extends View {
                 return item;
             }
         }
-        Log.d(TAG, "getKnobItemFromValue() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log( "getKnobItemFromValue() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
         return null;
     }
 
     public double getKnobValueFromTick(int tick) {
         if (this.m_KnobItems == null) {
-            Log.d(TAG, "getKnobValueFromTick() - knobItems is null");
+            log("getKnobValueFromTick() - knobItems is null");
             return 0.0d;
         }
         for (KnobItemInfo item : this.m_KnobItems) {
@@ -175,7 +182,7 @@ public class KnobView extends View {
                 return item.value;
             }
         }
-        Log.d(TAG, "getKnobValueFromTick() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log( "getKnobValueFromTick() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
         return 0.0d;
     }
 
@@ -184,15 +191,12 @@ public class KnobView extends View {
     }
 
     private void setTick(int tick) {
+        log("setTick " + tick);
         if (this.m_Tick != tick) {
             int oldTick = this.m_Tick;
             this.m_Tick = tick;
             onSelectedKnobItemChanged(getKnobItemFromTick(oldTick), getKnobItemFromTick(tick));
         }
-    }
-
-    public boolean isSetupIcons() {
-        return this.m_IsSetupIcons;
     }
 
     private boolean isTooCloseToCenter(float x, float y) {
@@ -243,7 +247,7 @@ public class KnobView extends View {
         float x = event.getX();
         float y = event.getY();
         if (isTooCloseToCenter(x, y)) {
-            Log.v(TAG, "onActionDown() - Too close to center");
+            log("onActionDown() - Too close to center");
             return;
         }
         this.m_InitRadius = evaluateRotation(x, y);
@@ -256,13 +260,12 @@ public class KnobView extends View {
             float x = event.getX();
             float y = event.getY();
             if (isTooCloseToCenter(x, y)) {
-                Log.v(TAG, "onActionMove() - Too close to center, stop running");
+                log("onActionMove() - Too close to center, stop running");
                 this.m_IsTouching = false;
                 onRotationEndFromTouch();
                 return;
             }
             onRotationUpdateFromTouch(evaluateRotation(x, y) - this.m_InitRadius);
-            doWhatever();
         }
     }
 
@@ -272,13 +275,6 @@ public class KnobView extends View {
             onRotationEndFromTouch();
             //updateText();
         }
-    }
-
-   /* public void updateText() {
-        status.setText(getCurrentKnobItem().text);
-    }*/
-
-    public void doWhatever() {
     }
 
     @Override
@@ -291,7 +287,7 @@ public class KnobView extends View {
         setRotationState(RotationState.STOPPING);
         this.m_DrawableLastDegree = this.m_DrawableCurrentDegree;
         setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
-        setKnobViewRotationSmooth(mapTickToRotation(this.m_Tick));
+        setKnobViewRotation(mapTickToRotation(this.m_Tick));
         if (getKnobItemFromTick(this.m_Tick) != null) {
             getKnobItemFromTick(this.m_Tick).drawable.setState(SELECTED_STATE_SET);
         }
@@ -301,9 +297,9 @@ public class KnobView extends View {
     public void onRotationStartFromTouch() {
         setRotationState(RotationState.STARTING);
         this.m_DrawableCurrentDegree = this.m_DrawableLastDegree;
-        if (getKnobItemFromTick(this.m_Tick) != null) {
+       /* if (getKnobItemFromTick(this.m_Tick) != null) {
             getKnobItemFromTick(this.m_Tick).drawable.setState(new int[]{-16842913});
-        }
+        }*/
     }
 
     public void onRotationUpdateFromTouch(double radiusDiff) {
@@ -317,12 +313,13 @@ public class KnobView extends View {
             }
             this.m_DrawableCurrentDegree = validateRotation(this.m_DrawableCurrentDegree);
             setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
+            log("invalidate onRotationUpdateFromTouch");
             invalidate();
         }
     }
 
     private void onSelectedKnobItemChanged(KnobItemInfo oldItem, KnobItemInfo newItem) {
-        if (newItem != null) {
+        if (newItem != null && oldItem != newItem) {
             this.m_Value = newItem;
             if (this.m_KnobViewChangedListener != null) {
                 this.m_KnobViewChangedListener.onSelectedKnobItemChanged(this, oldItem, newItem);
@@ -332,6 +329,7 @@ public class KnobView extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        log("insSizeChanged");
         super.onSizeChanged(w, h, oldw, oldh);
         this.m_RotationCenter = evaluateRotationCenter();
         updateDashBounds();
@@ -340,27 +338,27 @@ public class KnobView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (!isEnabled() || getVisibility() != 0) {
+        /*if (!isEnabled() || getVisibility() != 0) {
             if (this.m_IsTouching) {
                 onActionUp(event);
             }
         } else if (event.getPointerCount() > 1) {
             onActionUp(event);
-        } else {
+        } else {*/
             switch (event.getAction()) {
-                case 0:
+                case MotionEvent.ACTION_DOWN:
                     onActionDown(event);
-                    break;
-                case 1:
-                case 3:
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
                     onActionUp(event);
-                    break;
-                case 2:
+                    return false;
+                case MotionEvent.ACTION_MOVE:
                     onActionMove(event);
-                    break;
+                    return true;
             }
-            super.onTouchEvent(event);
-        }
+            //super.onTouchEvent(event);
+        //}
         return true;
     }
 
@@ -377,14 +375,19 @@ public class KnobView extends View {
     public void setKnobInfo(KnobInfo info) {
         this.m_KnobInfo = info;
         updateKnobItemsBounds();
+        log("invalidate setKnobInfo");
         invalidate();
     }
 
     public void setKnobItems(List<KnobItemInfo> items) {
+        log("setKnobItems " + items.size());
         this.m_KnobItems = items;
         updateKnobItemsBounds();
         updateKnobItemSelection();
-        getKnobItemFromTick(this.m_Tick).drawable.setState(SELECTED_STATE_SET);
+        /*KnobItemInfo info = getKnobItemFromTick(this.m_Tick);
+        if (info != null && info.drawable != null)
+            info.drawable.setState(SELECTED_STATE_SET);*/
+        log("invalidate setKnobItems");
         invalidate();
     }
 
@@ -406,6 +409,7 @@ public class KnobView extends View {
         }
         if (oldSelfRotation != this.m_KnobItemsSelfRotation) {
             updateKnobItemsBounds();
+            log("invalidate setKnobItemsRotation");
             invalidate();
         }
     }
@@ -423,6 +427,7 @@ public class KnobView extends View {
     private void setKnobViewRotation(double rotation) {
         this.m_DrawableCurrentDegree = rotation;
         this.m_DrawableLastDegree = rotation;
+        log("invalidate setKnobViewRotation");
         invalidate();
     }
 
@@ -458,19 +463,9 @@ public class KnobView extends View {
             setKnobViewRotationSmooth(mapTickToRotation(item.tick));
             return;
         }
-        Log.w(TAG, "setTickByValue() - item is null, " + this);
+        log("setTickByValue() - item is null, " + this);
     }
 
-    public void setupIcons() {
-        if (this.m_IsSetupIcons) {
-            return;
-        }
-        this.m_IsSetupIcons = onSetupIcons();
-    }
-
-    protected boolean onSetupIcons() {
-        return true;
-    }
 
     public void setValueByTick(int tick) {
         setTick(tick);
@@ -478,10 +473,12 @@ public class KnobView extends View {
     }
 
     private void updateDashBounds() {
+        log("updateDashBounds");
         this.m_DashBounds.set((getWidth() / 2) - 1, this.m_DashPadding, (getWidth() / 2) + 1, this.m_DashPadding + this.m_DashLength);
     }
 
     private void updateKnobItemsBounds() {
+        log("updateKnobItemsBounds");
         if (this.m_KnobItems != null) {
             for (KnobItemInfo item : this.m_KnobItems) {
                 int left = (getWidth() / 2) - (item.drawable.getIntrinsicWidth() / 2);
@@ -537,6 +534,7 @@ public class KnobView extends View {
     }
 
     private int validateTick(int tick) {
+        log("validateTick " + tick);
         if (this.m_KnobInfo == null) {
             return tick;
         }

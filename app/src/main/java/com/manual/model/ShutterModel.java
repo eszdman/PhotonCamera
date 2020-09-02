@@ -1,6 +1,7 @@
 package com.manual.model;
 
 import android.graphics.drawable.StateListDrawable;
+import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import android.util.Rational;
@@ -86,8 +87,13 @@ public class ShutterModel extends ManualModel<Long> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
         currentInfo = knobItemInfo2;
+        try {
+            Interface.i.camera.mCaptureSession.abortCaptures();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
@@ -96,7 +102,7 @@ public class ShutterModel extends ManualModel<Long> {
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, (long) knobItemInfo2.value);
         }
         Interface.i.camera.rebuildPreviewBuilder();
-        fireValueChangedEvent();
+        //fireValueChangedEvent(knobItemInfo2.text);
     }
 
     private int findPreferredIntervalCount(int totalCount) {

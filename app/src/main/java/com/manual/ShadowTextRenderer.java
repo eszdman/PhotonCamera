@@ -39,7 +39,7 @@ public class ShadowTextRenderer {
         } else if (this.m_Text != null) {
             int length = this.m_Text.length();
             if (length != 0) {
-                measure();
+                //measure();
                 float bottom = top + ((float) this.m_MeasuredTextBounds.height());
                 canvas.drawText(this.m_Text, 0, length, left, bottom, this.m_TextPaint);
                 if (this.m_HasStroke) {
@@ -95,7 +95,7 @@ public class ShadowTextRenderer {
             float currentTextSize2 = currentTextSize - 1.0f;
             this.m_TextPaint.setTextSize(currentTextSize2);
             this.m_StrokePaint.setTextSize(currentTextSize2);
-            measure(currentTextSize2);
+            //measure(currentTextSize2);
         }
     }
 

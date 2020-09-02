@@ -31,7 +31,8 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-
+        KnobItemInfo auto = getAutoItem(0);
+        getKnobInfoList().add(auto);
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
         float evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
@@ -76,6 +77,7 @@ public class EvModel extends ManualModel<Float> {
                 }
             }
         }
+        currentInfo = getKnobInfoList().get(getKnobInfoList().size()/2);
         int angle = 80;
         knobInfo = new KnobInfo(-angle, angle, -negtiveValueCount, positiveValueCount, Interface.i.mainActivity.getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
@@ -86,12 +88,12 @@ public class EvModel extends ManualModel<Float> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, KnobItemInfo knobItemInfo2) {
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
         currentInfo = knobItemInfo2;
         CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
         builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo2.value);
         Interface.i.camera.rebuildPreviewBuilder();
-        fireValueChangedEvent();
+        //fireValueChangedEvent(knobItemInfo2.text);
     }
 
     private boolean isZero(float value) {

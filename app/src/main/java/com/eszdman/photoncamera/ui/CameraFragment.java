@@ -408,7 +408,8 @@ public class CameraFragment extends Fragment
             mPreviewTemp = mtemp;
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
-            updateScreenLog(result);
+
+            //updateScreenLog(result);
         }
         //Automatic 60fps preview
         @Override
@@ -1179,7 +1180,7 @@ public class CameraFragment extends Fragment
     }
     public void rebuildPreview(){
         try {
-            mCaptureSession.stopRepeating();
+            //mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequest,
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -1188,7 +1189,7 @@ public class CameraFragment extends Fragment
     }
     public void rebuildPreviewBuilder(){
         try {
-            mCaptureSession.stopRepeating();
+            //mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
