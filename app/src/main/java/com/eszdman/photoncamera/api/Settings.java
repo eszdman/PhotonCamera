@@ -239,7 +239,7 @@ public class Settings {
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
         if(selectedMode == CameraMode.NIGHT && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
-        /*Point size = new Point(Interface.i.camera.mImageReaderPreview.getWidth(),Interface.i.camera.mImageReaderPreview.getHeight());
+        /*Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/
         //captureBuilder.set(CONTROL_AE_TARGET_FPS_RANGE,new Range<>(24,60));
@@ -250,15 +250,15 @@ public class Settings {
         rectaf[0] =  new MeteringRectangle(new Point((int)(sizex/2.0),(int)(sizey/2.0)),new Size((int)(sizex/4),(int)(sizey/4)),10);
         //captureBuilder.set(CONTROL_AF_REGIONS,rectaf);
         captureBuilder.set(CONTROL_AE_REGIONS,rectm8);
-        //captureBuilder.set(CONTROL_AF_MODE, Interface.i.settings.afMode);*/
+        //captureBuilder.set(CONTROL_AF_MODE, Interface.getSettings().afMode);*/
         Object focus = captureBuilder.get(CONTROL_AF_MODE);
         Log.d(TAG,"InDeviceFocus:"+(int)(focus));
         if(focus != null) afMode = (int) focus;
-        Interface.i.touchFocus.onConfigured = false;
+        Interface.getTouchFocus().onConfigured = false;
         initialAF = captureBuilder.get(CONTROL_AF_REGIONS);
         initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
-        //Interface.i.touchFocus.setFocus(size.x/2,size.y/2);
-        Interface.i.touchFocus.onConfigured = true;
+        //Interface.getTouchFocus().setFocus(size.x/2,size.y/2);
+        Interface.getTouchFocus().onConfigured = true;
         captureBuilder.set(TONEMAP_MODE,TONEMAP_MODE_GAMMA_VALUE);
         float[] rgb = new float[64];
         for(int i =0; i<64; i+=2){
@@ -394,7 +394,7 @@ public class Settings {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        final Activity activity = Interface.i.mainActivity;
+        final Activity activity = Interface.getMainActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Exported", Toast.LENGTH_SHORT).show());
         }
@@ -453,8 +453,8 @@ public class Settings {
         }
         sharedPreferencesEditor.apply();
         load();
-        Interface.i.settingsActivity.set();
-        final Activity activity = Interface.i.mainActivity;
+        Interface.getSettingsActivity().set();
+        final Activity activity = Interface.getMainActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
         }

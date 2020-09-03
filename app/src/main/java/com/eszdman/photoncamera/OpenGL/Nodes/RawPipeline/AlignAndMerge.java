@@ -29,7 +29,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.i.parameters.realWL);
+        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -38,7 +38,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw32(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.i.parameters.realWL);
+        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_32),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -47,7 +47,7 @@ public class AlignAndMerge extends Node {
     private GLTexture BoxDown22(GLTexture input){
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("CfaPattern",Interface.i.parameters.cfaPattern);
+        glProg.setvar("CfaPattern",Interface.getParameters().cfaPattern);
         GLTexture output = new GLTexture(new Point(rawsize.x/2,rawsize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -143,7 +143,7 @@ public class AlignAndMerge extends Node {
         startT();
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("whitelevel", (float)Interface.i.parameters.whitelevel);
+        glProg.setvar("whitelevel", (float)Interface.getParameters().whitelevel);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
         //glProg.drawBlocks(output);
         glProg.close();

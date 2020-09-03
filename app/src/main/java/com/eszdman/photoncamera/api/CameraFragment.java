@@ -423,7 +423,7 @@ public class CameraFragment extends Fragment
                     }
                 }
                 if(ExposureIndex.index()+0.9 < 8.0) {
-                    if(is30Fps && Interface.i.settings.fpsPreview && !mCameraDevice.getId().equals("1"))
+                    if(is30Fps && Interface.getSettings().fpsPreview && !mCameraDevice.getId().equals("1"))
                     {
                         Log.d(TAG,"Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeHigh);
@@ -439,7 +439,7 @@ public class CameraFragment extends Fragment
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (Interface.i.settings.afdata) {
+        if (Interface.getSettings().afdata) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -448,7 +448,7 @@ public class CameraFragment extends Fragment
             dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
             dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
-            dataset.put("Shakeness", String.valueOf(Interface.i.sensors.getShakeness()));
+            dataset.put("Shakeness", String.valueOf(Interface.getSensors().getShakeness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
             if(rectobj != null && rectobj.length > 0) {
@@ -614,20 +614,20 @@ public class CameraFragment extends Fragment
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED) {
-                    Interface.i.cameraui.shot.setActivated(false);
-                    Interface.i.cameraui.shot.setClickable(false);
+                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) {
+                    Interface.getCameraUI().shot.setActivated(false);
+                    Interface.getCameraUI().shot.setClickable(false);
                     takePicture();
                 }
                 else {
                     if(!onUnlimited) {
                         onUnlimited = true;
-                        Interface.i.cameraui.shot.setActivated(false);
-                        Interface.i.cameraui.shot.setClickable(true);
+                        Interface.getCameraUI().shot.setActivated(false);
+                        Interface.getCameraUI().shot.setClickable(true);
                         takePicture();
                     } else {
-                        Interface.i.cameraui.shot.setActivated(true);
-                        Interface.i.cameraui.shot.setClickable(true);
+                        Interface.getCameraUI().shot.setActivated(true);
+                        Interface.getCameraUI().shot.setClickable(true);
                         onUnlimited = false;
                         try {
                             mCaptureSession.abortCaptures();
@@ -642,7 +642,7 @@ public class CameraFragment extends Fragment
             }
             case R.id.settings: {
 //                closeCamera();
-//                Interface.i.settings.openSettingsActivity();
+//                Interface.getSettings().openSettingsActivity();
                 Intent intent = new Intent(MainActivity.act, SettingsActivity.class);
                 startActivity(intent);
                 break;
@@ -651,12 +651,12 @@ public class CameraFragment extends Fragment
                 ToggleButton sw = (ToggleButton) view;
                 if (sw.isChecked()) {
                     mTargetFormat = rawFormat;
-                    Interface.i.settings.hdrx = true;
+                    Interface.getSettings().hdrx = true;
                 } else {
                     mTargetFormat = yuvFormat;
-                    Interface.i.settings.hdrx = false;
+                    Interface.getSettings().hdrx = false;
                 }
-                Interface.i.settings.save();
+                Interface.getSettings().save();
                 restartCamera();
                 break;
             }
@@ -671,7 +671,7 @@ public class CameraFragment extends Fragment
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         mTextureView = view.findViewById(R.id.texture);
         surfaceView = view.findViewById(R.id.surfaceView);
-        Interface.i.cameraui.onCameraViewCreated();
+        Interface.getCameraUI().onCameraViewCreated();
     }
 
     @Override
@@ -693,7 +693,7 @@ public class CameraFragment extends Fragment
             }
             //Used fastest decoder on the wide west
             if(lastImage != null) {
-                    Interface.i.cameraui.galleryImageButton.setImageBitmap(
+                    Interface.getCameraUI().galleryImageButton.setImageBitmap(
                             BitmapDecoder.from(Uri.fromFile(lastImage))
                                     .scaleBy(0.1f)
                                     .decode());
@@ -704,7 +704,7 @@ public class CameraFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-        Interface.i.cameraui.onCameraResume();
+        Interface.getCameraUI().onCameraResume();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -716,7 +716,7 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onPause() {
-        Interface.i.cameraui.onCameraPause();
+        Interface.getCameraUI().onCameraPause();
         closeCamera();
         stopBackgroundThread();
         super.onPause();
@@ -763,9 +763,9 @@ public class CameraFragment extends Fragment
          Arrays.sort(in, new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
-         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.i.settings.QuadBayer){
+         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.getSettings().QuadBayer){
              target = sizes.get(s);
-             if(Interface.i.settings.QuadBayer) {
+             if(Interface.getSettings().QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
                  if(pre == null) return target;
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -796,15 +796,15 @@ public class CameraFragment extends Fragment
      * @param height The height of available size for camera preview
      */
     private void setUpCameraOutputs(int width, int height) {
-        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         manager2.getCameraIdList();
         // manager2.CameraArr(manager);
         try {
-                mCameraCharacteristics = manager.getCameraCharacteristics(Interface.i.settings.mCameraID);
+                mCameraCharacteristics = manager.getCameraCharacteristics(Interface.getSettings().mCameraID);
                 mPreviewwidth = width;
                 mPreviewheight = height;
-                UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
+                UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
                 imageSaver = new ImageSaver();
                 //Thread thr = new Thread(imageSaver);
                 //thr.start();
@@ -820,7 +820,7 @@ public class CameraFragment extends Fragment
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
-        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraCharacteristics characteristics
                 = null;
         try {
@@ -842,17 +842,17 @@ public class CameraFragment extends Fragment
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         int maxjpg = 3;
-        if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.i.settings.frameCount+3;
+        if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.getSettings().frameCount+3;
         mImageReaderPreview = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, maxjpg);
         mImageReaderPreview.setOnImageAvailableListener(
                 mOnYuvImageAvailableListener, mBackgroundHandler);
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Interface.i.settings.frameCount + 3);
+                mTargetFormat, Interface.getSettings().frameCount + 3);
         mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
-        int displayRotation = Interface.i.gravity.getRotation();
+        int displayRotation = Interface.getGravity().getRotation();
         //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         //noinspection ConstantConditions
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
@@ -903,7 +903,7 @@ public class CameraFragment extends Fragment
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
-        Interface.i.mainActivity.getWindowManager().getDefaultDisplay().getSize(displaySize);
+        Interface.getMainActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewwidth;
         int rotatedPreviewHeight = mPreviewheight;
         int maxPreviewWidth = displaySize.x;
@@ -946,7 +946,7 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
-        Interface.i.cameraui.onCameraInitialization();
+        Interface.getCameraUI().onCameraInitialization();
     }
 
     @SuppressLint("MissingPermission")
@@ -972,7 +972,7 @@ public class CameraFragment extends Fragment
                 mPreviewRequestBuilder = null;
             }
             stopBackgroundThread();
-            UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
+            UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
         } catch (Exception e) {
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
         } finally {
@@ -987,7 +987,7 @@ public class CameraFragment extends Fragment
         if(manager == null) return;
         StreamConfigurationMap map = null;
         try {
-            map = manager.getCameraCharacteristics(Interface.i.settings.mCameraID).get(
+            map = manager.getCameraCharacteristics(Interface.getSettings().mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -996,7 +996,7 @@ public class CameraFragment extends Fragment
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         int max = 3;
-        if(mTargetFormat == mPreviewTargetFormat) max = Interface.i.settings.frameCount + 3;
+        if(mTargetFormat == mPreviewTargetFormat) max = Interface.getSettings().frameCount + 3;
         //largest = target;
         mImageReaderPreview = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, /*maxImages*/max);
@@ -1004,21 +1004,21 @@ public class CameraFragment extends Fragment
                 mOnYuvImageAvailableListener, mBackgroundHandler);
 
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Interface.i.settings.frameCount + 3);
+                mTargetFormat, Interface.getSettings().frameCount + 3);
         mImageReaderRaw.setOnImageAvailableListener(
                 mOnRawImageAvailableListener, mBackgroundHandler);
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to restart camera.", e);
         }
         //stopBackgroundThread();
-        UpdateCameraCharacteristics(Interface.i.settings.mCameraID);
+        UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
         startBackgroundThread();
         mBackgroundHandler.post(imageSaver);
     }
@@ -1035,21 +1035,21 @@ public class CameraFragment extends Fragment
      */
     private void openCamera(int width, int height) {
         context = this;
-        if (ContextCompat.checkSelfPermission(Interface.i.mainActivity, Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(Interface.getMainActivity(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
             return;
         }
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
-        CameraManager manager = (CameraManager) Interface.i.mainActivity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         mCameraIds = manager2.getCameraIdList();
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(Interface.i.settings.mCameraID, mStateCallback, mBackgroundHandler);
+            manager.openCamera(Interface.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -1154,11 +1154,11 @@ public class CameraFragment extends Fragment
                                     //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                     // Flash is automatically enabled when necessary.
                                     setAutoFlash();
-                                    Interface.i.settings.applyPrev(mPreviewRequestBuilder);
+                                    Interface.getSettings().applyPrev(mPreviewRequestBuilder);
 
                                     //lightcycle.setVisibility(View.INVISIBLE);
                                     // Finally, we start displaying the camera preview.
-                                    if (Interface.i.camera.is30Fps) {
+                                    if (Interface.getCameraFragment().is30Fps) {
                                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                                 FpsRangeDef);
                                     } else {
@@ -1174,12 +1174,12 @@ public class CameraFragment extends Fragment
                                         unlockFocus();
                                     } else {
                                         Log.d(TAG,"Preview, captureBurst");
-                                        if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED) mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                        if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         else mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
                                     if(getActivity()!=null){
-                                        getActivity().runOnUiThread(() -> Interface.i.touchFocus.resetFocusCircle());
+                                        getActivity().runOnUiThread(() -> Interface.getTouchFocus().resetFocusCircle());
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
@@ -1238,7 +1238,7 @@ public class CameraFragment extends Fragment
         if (null == mTextureView || null == mPreviewSize || null == activity) {
             return;
         }
-        int rotation = Interface.i.gravity.getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
+        int rotation = Interface.getGravity().getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
         Matrix matrix = new Matrix();
         RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
@@ -1324,7 +1324,7 @@ public class CameraFragment extends Fragment
             mCaptureSession.stopRepeating();
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderPreview.getSurface());
-            Interface.i.settings.applyRes(captureBuilder);
+            Interface.getSettings().applyRes(captureBuilder);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG,"Focus:"+mFocus);
@@ -1336,15 +1336,15 @@ public class CameraFragment extends Fragment
             }
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
-            //int rotation = Interface.i.gravity.getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.i.gravity.getCameraRotation());
+            //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.getGravity().getCameraRotation());
             captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
-            Interface.i.cameraui.lightcycle.setMax(FrameNumberSelector.frameCount);
+            Interface.getCameraUI().lightcycle.setMax(FrameNumberSelector.frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
-            IsoExpoSelector.useTripod = Interface.i.sensors.getShakeness() < 5;
+            IsoExpoSelector.useTripod = Interface.getSensors().getShakeness() < 5;
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
@@ -1357,16 +1357,16 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
             Log.d(TAG,"CaptureStarted!");
-            Interface.i.cameraui.lightcycle.setAlpha(1.0f);
+            Interface.getCameraUI().lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
-            MediaPlayer burstPlayer = MediaPlayer.create(Interface.i.mainActivity,R.raw.sound_burst);
+            MediaPlayer burstPlayer = MediaPlayer.create(Interface.getMainActivity(),R.raw.sound_burst);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    Interface.i.cameraui.lightcycle.setProgress(Interface.i.cameraui.lightcycle.getProgress() + 1);
+                    Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
                     burstPlayer.start();
                     Log.v(TAG,"Completed!");
                     mCaptureResult = result;
@@ -1383,8 +1383,8 @@ public class CameraFragment extends Fragment
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG,"SequenceCompleted");
                     try {
-                        Interface.i.cameraui.lightcycle.setAlpha(0f);
-                        Interface.i.cameraui.lightcycle.setProgress(0);
+                        Interface.getCameraUI().lightcycle.setAlpha(0f);
+                        Interface.getCameraUI().lightcycle.setProgress(0);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e){
                     e.printStackTrace();
@@ -1397,12 +1397,12 @@ public class CameraFragment extends Fragment
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    if(Interface.i.settings.selectedMode != Settings.CameraMode.UNLIMITED)
+                    if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
                     if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
-                            Interface.i.cameraui.lightcycle.setAlpha(0f);
-                            Interface.i.cameraui.lightcycle.setProgress(0);
+                            Interface.getCameraUI().lightcycle.setAlpha(0f);
+                            Interface.getCameraUI().lightcycle.setProgress(0);
                             mTextureView.setAlpha(1f);
                             createCameraPreviewSession();
                         } catch (CameraAccessException e) {
@@ -1444,8 +1444,8 @@ public class CameraFragment extends Fragment
     public String cycler(String id) {
         String[] ids;
         if(CameraManager2.cameraManager2.supportFrontCamera) {
-            if(Interface.i.cameraui.auxGroup.getChildCount() != 0) {
-                int i = Interface.i.cameraui.auxGroup.getCheckedRadioButtonId();
+            if(Interface.getCameraUI().auxGroup.getChildCount() != 0) {
+                int i = Interface.getCameraUI().auxGroup.getCheckedRadioButtonId();
                 if (i >= 2) i++;
                 ids = new String[]{mCameraIds[i - 1], "1"};
             } else ids = new String[]{"0","1"};
@@ -1459,9 +1459,9 @@ public class CameraFragment extends Fragment
         }
         n++;
         n %= ids.length;
-        if(n == 1) Interface.i.cameraui.auxGroup.setVisibility(View.INVISIBLE);
+        if(n == 1) Interface.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
         else {
-            Interface.i.cameraui.auxGroup.setVisibility(View.VISIBLE);
+            Interface.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
         }
         return ids[n];
     }

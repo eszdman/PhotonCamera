@@ -15,7 +15,7 @@ public class Sensors {
     public float[] mAngles;
 
     public Sensors() {
-        mSensorManager = (SensorManager) Interface.i.mainActivity.getSystemService(Context.SENSOR_SERVICE);
+        mSensorManager = (SensorManager) Interface.getMainActivity().getSystemService(Context.SENSOR_SERVICE);
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
     }
     public void run(){

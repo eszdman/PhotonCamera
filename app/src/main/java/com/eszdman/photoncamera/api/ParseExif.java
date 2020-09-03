@@ -40,10 +40,10 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = Interface.i.gravity.getCameraRotation();
+        int rotation = Interface.getGravity().getCameraRotation();
         String TAG = "ParseExif";
-        Log.d(TAG,"Gravity rotation:"+Interface.i.gravity.getRotation());
-        Log.d(TAG,"Sensor rotation:"+Interface.i.camera.mSensorOrientation);
+        Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
+        Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:
@@ -78,12 +78,12 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         String version = "";
         try {
-            PackageInfo pInfo = Interface.i.mainActivity.getPackageManager().getPackageInfo(Interface.i.mainActivity.getPackageName(), 0);
+            PackageInfo pInfo = Interface.getMainActivity().getPackageManager().getPackageInfo(Interface.getMainActivity().getPackageName(), 0);
             version = pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.i.parameters.toString()+
+        inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.getParameters().toString()+
                 "\n"+"Version:" + version);
         return inter;
     }

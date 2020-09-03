@@ -23,7 +23,7 @@ public class CameraManager2 {
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
         manager = manag;
-        sharedPreferences = Interface.i.mainActivity.getPreferences(MODE_PRIVATE);
+        sharedPreferences = Interface.getMainActivity().getPreferences(MODE_PRIVATE);
         if(!sharedPreferences.getBoolean("GotAux",false)){
             getCameraId();
             save();
