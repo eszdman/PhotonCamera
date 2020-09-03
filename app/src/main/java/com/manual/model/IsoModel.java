@@ -39,9 +39,9 @@ public class IsoModel extends ManualModel<Integer> {
         while (i2 < arrayList2.size()) {
             boolean isLastItem = i2 == arrayList2.size() + -1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobText);
+            drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobTextSelected);
+            drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
             if (i2 % 3 == 0 || isLastItem) {
                 drawable.setText(arrayList2.get(i2));
                 drawableSelected.setText(arrayList2.get(i2));
@@ -53,8 +53,8 @@ public class IsoModel extends ManualModel<Integer> {
             getKnobInfoList().add(new KnobItemInfo(stateDrawable, arrayList2.get(i2), i2 + 1, arrayList3.get(i2)));
             i2++;
         }
-        int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
+        int angle = Interface.getMainActivity().getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
+        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
     }
 
     @Override
@@ -65,14 +65,14 @@ public class IsoModel extends ManualModel<Integer> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
-        CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
         if (newval.value == -1) {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) newval.value);
         }
-        Interface.i.camera.rebuildPreviewBuilder();
+        Interface.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(newval.text);
     }
 }

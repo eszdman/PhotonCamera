@@ -74,12 +74,12 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     protected KnobItemInfo getNewAutoItem(double defaultval) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-        String auto_sring = Interface.i.mainActivity.getString(R.string.manual_mode_auto);
+        String auto_sring = Interface.getMainActivity().getString(R.string.manual_mode_auto);
         autoDrawable.setText(auto_sring);
-        autoDrawable.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobText);
+        autoDrawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
         autoDrawableSelected.setText(auto_sring);
-        autoDrawableSelected.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobTextSelected);
+        autoDrawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
@@ -90,10 +90,10 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     public KnobItemInfo getItemInfo(String text, double val, int tick) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
         autoDrawable.setText(text);
-        autoDrawable.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobText);
+        autoDrawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
         autoDrawableSelected.setText(text);
-        autoDrawableSelected.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobTextSelected);
+        autoDrawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);

@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                         eis.animate().rotation(rot).setDuration(RotationDur).start();
                         fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
                         quadres.animate().rotation(rot).setDuration(RotationDur).start();
-                        Interface.i.manualMode.rotate(rot);
+                        Interface.getManualMode().rotate(rot);
                     }
                 };
     }

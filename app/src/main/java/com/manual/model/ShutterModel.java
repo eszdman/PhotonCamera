@@ -55,9 +55,9 @@ public class ShutterModel extends ManualModel<Long> {
         while (i2 < arrayList2.size()) {
             boolean isLastItem = i2 == arrayList2.size() + -1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobText);
+            drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(Interface.i.mainActivity, R.style.ManualModeKnobTextSelected);
+            drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
             if (i2 % preferredIntervalCount == 0 || isLastItem) {
                 String text = arrayList2.get(i2);
                 drawable.setText(text);
@@ -72,11 +72,11 @@ public class ShutterModel extends ManualModel<Long> {
             i2++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
+        int angleMax = Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override
@@ -88,18 +88,18 @@ public class ShutterModel extends ManualModel<Long> {
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
         currentInfo = knobItemInfo2;
         try {
-            Interface.i.camera.mCaptureSession.abortCaptures();
+            Interface.getCameraFragment().mCaptureSession.abortCaptures();
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, (long) knobItemInfo2.value);
         }
-        Interface.i.camera.rebuildPreviewBuilder();
+        Interface.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);
     }
 

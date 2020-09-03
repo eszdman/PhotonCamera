@@ -12,8 +12,8 @@ import android.widget.TextView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
 import com.manual.model.*;
 
 /**
@@ -108,7 +108,7 @@ public final class ManualModeImpl implements ManualMode {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
             for (int i = 0; i < buttons_container.getChildCount(); i++) {
-                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
+                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(Interface.getMainActivity().RotationDur).start();
             }
         }
     }
@@ -120,10 +120,10 @@ public final class ManualModeImpl implements ManualMode {
         exposureButton = activity.findViewById(R.id.exposure_option);
         isoButton = activity.findViewById(R.id.iso_option);
         evButton = activity.findViewById(R.id.ev_option);
-        mfTextView = Interface.i.mainActivity.findViewById(R.id.focus_option_tv);
-        evTextview = Interface.i.mainActivity.findViewById(R.id.ev_option_tv);
-        expoTextView = Interface.i.mainActivity.findViewById(R.id.exposure_option_tv);
-        isoTextview = Interface.i.mainActivity.findViewById(R.id.iso_option_tv);
+        mfTextView = activity.findViewById(R.id.focus_option_tv);
+        evTextview = activity.findViewById(R.id.ev_option_tv);
+        expoTextView = activity.findViewById(R.id.exposure_option_tv);
+        isoTextview = activity.findViewById(R.id.iso_option_tv);
     }
 
     private void addKnobs() {

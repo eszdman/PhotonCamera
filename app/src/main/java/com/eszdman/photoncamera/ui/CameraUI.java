@@ -50,6 +50,7 @@ public class CameraUI {
                 Interface.getCameraFragment().restartCamera();
             });
         }
+        Interface.getManualMode().init();
     }
 
     public void onCameraViewCreated() {

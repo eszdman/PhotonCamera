@@ -106,7 +106,7 @@ public class Swipe {
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            if (Interface.i.manualMode.getCurrentFocusValue() == -1.0)
+            if (Interface.getManualMode().getCurrentFocusValue() == -1.0)
                 Interface.getTouchFocus().processTochToFocus(translateX,translateY);
         }
     }
@@ -132,7 +132,7 @@ public class Swipe {
         CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
         Interface.getCameraFragment().rebuildPreview();
         manualmode.setVisibility(View.INVISIBLE);
-        Interface.i.manualMode.retractAllKnobs();
+        Interface.getManualMode().retractAllKnobs();
         arrowState ^= 1;
     }
     public void SwipeRight(){

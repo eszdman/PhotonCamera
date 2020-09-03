@@ -8,7 +8,7 @@ import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.ui.CameraUI;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.manual.ManualMode;
@@ -114,6 +114,10 @@ public class Interface {
 
     public static void setSettingsActivity(SettingsActivity settingsActivity) {
         sInterface.settingsActivity = settingsActivity;
+    }
+
+    public static ManualMode getManualMode() {
+       return sInterface.manualMode;
     }
 
     //  a MemoryInfo object for the device's current memory status.

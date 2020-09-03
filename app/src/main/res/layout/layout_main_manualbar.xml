@@ -6,7 +6,7 @@
         android:id="@+id/manual_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
+        android:visibility="invisible"
         tools:visibility="visible">
     <include layout="@layout/manual_palette"
              app:layout_constraintStart_toStartOf="parent"

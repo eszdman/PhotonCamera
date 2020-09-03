@@ -5,8 +5,8 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
@@ -40,9 +40,9 @@ public class FocusModel extends ManualModel<Float> {
         }
         for (int i = 0; i < arrayList2.size(); i++) {
             if (i == 0) {
-                drawable = Interface.i.mainActivity.getDrawable(R.drawable.manual_icon_focus_near);
+                drawable = Interface.getMainActivity().getDrawable(R.drawable.manual_icon_focus_near);
             } else if (i == arrayList2.size() - 1) {
-                drawable = Interface.i.mainActivity.getDrawable(R.drawable.manual_icon_focus_far);
+                drawable = Interface.getMainActivity().getDrawable(R.drawable.manual_icon_focus_far);
             } else {
                 drawable = new ShadowTextDrawable();
             }
@@ -50,8 +50,8 @@ public class FocusModel extends ManualModel<Float> {
             getKnobInfoList().add(new KnobItemInfo(drawable, text, i - arrayList2.size(), (double) arrayList2.get(i)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, i + 1, (double) arrayList2.get(i)));
         }
-        int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
+        int angle = Interface.getMainActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
+        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
     }
 
     @Override
@@ -62,14 +62,14 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
         currentInfo = knobItemInfo2;
-        CaptureRequest.Builder builder = Interface.i.camera.mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
         if (knobItemInfo2.value == -1) {
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         } else {
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo2.value);
         }
-        Interface.i.camera.rebuildPreviewBuilder();
+        Interface.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);
     }
 }
