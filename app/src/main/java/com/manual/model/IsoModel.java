@@ -4,7 +4,6 @@ import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 
-import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.manual.KnobInfo;
@@ -24,7 +23,7 @@ public class IsoModel extends ManualModel<Integer> {
 
     @Override
     protected void fillKnobInfoList() {
-        KnobItemInfo auto = getAutoItem(-1.0d);
+        KnobItemInfo auto = getNewAutoItem(-1.0d);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 

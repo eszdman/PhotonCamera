@@ -11,7 +11,6 @@ import com.eszdman.photoncamera.api.Interface;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
-import com.manual.ManualMode;
 import com.manual.ShadowTextDrawable;
 
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getAutoItem(-1.0d);
+        KnobItemInfo auto = getNewAutoItem(-1.0d);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 

@@ -10,7 +10,6 @@ import android.util.Log;
 import android.util.Range;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.TextView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 
@@ -45,12 +44,6 @@ public class KnobView extends View {
     private KnobItemInfo m_Value;
     private boolean dolog = true;
 
-    private void log(String msg)
-    {
-        if (dolog)
-            Log.v(TAG, msg);
-    }
-
     public KnobView(Context context) {
         this(context, null);
     }
@@ -74,6 +67,12 @@ public class KnobView extends View {
         this.m_Paint.setAntiAlias(true);
         this.m_DashLength = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_length);
         this.m_DashPadding = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_dash_padding);
+        this.m_IconPadding = context.getResources().getDimensionPixelSize(R.dimen.manual_knob_icon_padding);
+    }
+
+    private void log(String msg) {
+        if (dolog)
+            Log.v(TAG, msg);
     }
 
     public void cancelTouchEvent() {
@@ -126,7 +125,7 @@ public class KnobView extends View {
             }
             //canvas.restore();
         }
-        log("drawTime:" + (System.nanoTime() - startTime) +"ns");
+        log("drawTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     private double evaluateRotation(float x, float y) {
@@ -168,7 +167,7 @@ public class KnobView extends View {
                 return item;
             }
         }
-        log( "getKnobItemFromValue() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log("getKnobItemFromValue() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
         return null;
     }
 
@@ -182,7 +181,21 @@ public class KnobView extends View {
                 return item.value;
             }
         }
-        log( "getKnobValueFromTick() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log("getKnobValueFromTick() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        return 0.0d;
+    }
+
+    public double getKnobValueFromText(String text) {
+        if (this.m_KnobItems == null) {
+            log("getKnobValueFromText() - knobItems is null");
+            return 0.0d;
+        }
+        for (KnobItemInfo item : this.m_KnobItems) {
+            if (item.text.equalsIgnoreCase(text)) {
+                return item.value;
+            }
+        }
+        log("getKnobValueFromText() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
         return 0.0d;
     }
 
@@ -345,19 +358,19 @@ public class KnobView extends View {
         } else if (event.getPointerCount() > 1) {
             onActionUp(event);
         } else {*/
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    onActionDown(event);
-                    return true;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    onActionUp(event);
-                    return false;
-                case MotionEvent.ACTION_MOVE:
-                    onActionMove(event);
-                    return true;
-            }
-            //super.onTouchEvent(event);
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                onActionDown(event);
+                return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                onActionUp(event);
+                return false;
+            case MotionEvent.ACTION_MOVE:
+                onActionMove(event);
+                return true;
+        }
+        //super.onTouchEvent(event);
         //}
         return true;
     }
@@ -453,7 +466,7 @@ public class KnobView extends View {
     }
 
     public void resetKnob() {
-        setTickByValue(defaultValue);
+        setTickByValue(getKnobValueFromText(Interface.i.mainActivity.getString(R.string.manual_mode_auto)));
     }
 
     public void setTickByValue(double value) {

@@ -1,7 +1,6 @@
 package com.manual.model;
 
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
@@ -25,7 +24,7 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     protected void fillKnobInfoList() {
         Drawable drawable;
-        KnobItemInfo auto = getAutoItem(-1.0d);
+        KnobItemInfo auto = getNewAutoItem(-1.0d);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         Float min = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
@@ -48,9 +47,9 @@ public class FocusModel extends ManualModel<Float> {
             } else {
                 drawable = new ShadowTextDrawable();
             }
-            String manual_string = Interface.i.mainActivity.getString(R.string.manual_mode_manual);
-            getKnobInfoList().add(new KnobItemInfo(drawable, arrayList2.get(i).toString(), i - arrayList2.size(), (double) arrayList2.get(i)));
-            getKnobInfoList().add(new KnobItemInfo(drawable,  arrayList2.get(i).toString(), i + 1, (double) arrayList2.get(i)));
+            String text = String.format("%.2f", arrayList2.get(i));
+            getKnobInfoList().add(new KnobItemInfo(drawable, text, i - arrayList2.size(), (double) arrayList2.get(i)));
+            getKnobInfoList().add(new KnobItemInfo(drawable,  text, i + 1, (double) arrayList2.get(i)));
         }
         int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
         knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));

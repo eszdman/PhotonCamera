@@ -36,7 +36,7 @@ public class Interface {
     public final TouchFocus touchFocus;
     public final CameraUI cameraui;
     public SettingsActivity settingsActivity;
-    public final ManualMode manualMode;
+    public  ManualMode manualMode;
     public Interface(MainActivity act) {
         i = this;
         mainActivity = act;
@@ -50,7 +50,7 @@ public class Interface {
         parameters = new Parameters();
         sensors = new Sensors();
         cameraui = new CameraUI();
-        manualMode = new ManualModeImpl(act);
+        manualMode = ManualMode.getInstance(act);
     }
     // Get a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo getAvailableMemory() {

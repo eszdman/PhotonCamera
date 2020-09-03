@@ -1,9 +1,15 @@
 package com.manual;
 
+import android.app.Activity;
+
 /**
  * Created by Vibhor on 10/08/2020
  */
 public interface ManualMode {
+    static ManualMode getInstance(Activity activity) {
+        return new ManualModeImpl(activity);
+    }
+
     void init();
 
     double getCurrentExposureValue();

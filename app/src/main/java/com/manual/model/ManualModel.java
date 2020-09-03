@@ -43,7 +43,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         }
     }
 
-    private class UpdateTextHandler extends Handler
+  /*  private class UpdateTextHandler extends Handler
     {
         public UpdateTextHandler(Looper mainLooper) {
             super(mainLooper);
@@ -56,7 +56,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
                     valueChangedEvent.onValueChanged((String)msg.obj);
             }
         }
-    }
+    }*/
 
     public interface ValueChangedEvent
     {
@@ -64,7 +64,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     }
 
     private List<KnobItemInfo> knobInfoList;
-    protected KnobItemInfo currentInfo;
+    protected KnobItemInfo currentInfo,autoModel;
     protected Range<T> range;
     private ValueChangedEvent valueChangedEvent;
     protected KnobInfo knobInfo;
@@ -81,7 +81,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         mBackgroundThread = new HandlerThread(ManualMode.class.getName());
         mBackgroundThread.start();
         backgroundHandler = new ManualModelHandler(mBackgroundThread.getLooper());
-        mainHandler = new UpdateTextHandler(Looper.getMainLooper());
+//        mainHandler = new UpdateTextHandler(Looper.getMainLooper());
         fillKnobInfoList();
     }
 
@@ -105,7 +105,11 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         mainHandler.sendMessage(msg);*/
     }
 
-    public KnobItemInfo getAutoItem(double defaultval)
+    public KnobItemInfo getAutoModel() {
+        return autoModel;
+    }
+
+    protected KnobItemInfo getNewAutoItem(double defaultval)
     {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
         String auto_sring = Interface.i.mainActivity.getString(R.string.manual_mode_auto);
@@ -117,7 +121,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
-        return new KnobItemInfo(autoStateDrawable, auto_sring, 0, defaultval);
+        autoModel = new KnobItemInfo(autoStateDrawable, auto_sring, 0, defaultval);
+        return autoModel;
     }
 
     public KnobItemInfo getItemInfo(String text, double val, int tick)

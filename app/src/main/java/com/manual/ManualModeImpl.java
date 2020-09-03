@@ -9,17 +9,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
-
 import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
-import com.manual.model.EvModel;
-import com.manual.model.FocusModel;
-import com.manual.model.IsoModel;
-import com.manual.model.ManualModel;
-import com.manual.model.ShutterModel;
+import com.manual.model.*;
 
 /**
  * Created by Vibhor on 10/08/2020
@@ -31,41 +26,41 @@ public final class ManualModeImpl implements ManualMode {
     private KnobView defaultKnobView;
     private ImageButton exposureButton, isoButton, focusButton, evButton;
     //private int exposureVisibilityState, isoVisibilityState, focusVisibilityState, evVisibilityState;
-    private ConstraintLayout knob_container;//, focus_button_container, iso_button_container, exposure_button_container, ev_button_container;
+    private ConstraintLayout knob_container,buttons_container;// focus_button_container, iso_button_container, exposure_button_container, ev_button_container;
     private ManualModel mfModel, isoModel, expotimeModel, evModel, selectedModel;
-    private TextView mfTextView,isoTextview, expoTextView, evTextview;
+    private TextView mfTextView, isoTextview, expoTextView, evTextview;
 
-    private ManualModel.ValueChangedEvent mfchanged = new ManualModel.ValueChangedEvent() {
+    private final ManualModel.ValueChangedEvent mfchanged = new ManualModel.ValueChangedEvent() {
         @Override
         public void onValueChanged(String value) {
-            mfTextView.post(()-> mfTextView.setText(value));
+            mfTextView.post(() -> mfTextView.setText(value));
 
         }
     };
 
-    private ManualModel.ValueChangedEvent evchanged = new ManualModel.ValueChangedEvent() {
+    private final ManualModel.ValueChangedEvent evchanged = new ManualModel.ValueChangedEvent() {
         @Override
         public void onValueChanged(String value) {
-                evTextview.post(()->evTextview.setText(value));
+            evTextview.post(() -> evTextview.setText(value));
         }
     };
 
-    private ManualModel.ValueChangedEvent expochanged = new ManualModel.ValueChangedEvent() {
+    private final ManualModel.ValueChangedEvent expochanged = new ManualModel.ValueChangedEvent() {
         @Override
         public void onValueChanged(String value) {
 
-                expoTextView.post(()->expoTextView.setText(value));
+            expoTextView.post(() -> expoTextView.setText(value));
         }
     };
 
-    private ManualModel.ValueChangedEvent isochanged = new ManualModel.ValueChangedEvent() {
+    private final ManualModel.ValueChangedEvent isochanged = new ManualModel.ValueChangedEvent() {
         @Override
         public void onValueChanged(String value) {
-                isoTextview.post(()->isoTextview.setText(value));
+            isoTextview.post(() -> isoTextview.setText(value));
         }
     };
 
-    public ManualModeImpl(Activity activity) {
+    ManualModeImpl(Activity activity) {
         this.activity = activity;
     }
 
@@ -104,14 +99,14 @@ public final class ManualModeImpl implements ManualMode {
         return evModel.getCurrentInfo().value;
     }
 
-    public void resetKnobs() {
+/*    public void resetKnobs() {
         for (int i = 0; i < knob_container.getChildCount(); i++) {
             if (knob_container.getChildAt(i) instanceof KnobView) {
                 KnobView kv = (KnobView) knob_container.getChildAt(i);
                 kv.setTickByValue(kv.defaultValue);
             }
         }
-    }
+    }*/
 
     @Override
     public void retractAllKnobs() {
@@ -119,8 +114,7 @@ public final class ManualModeImpl implements ManualMode {
             knob_container.getChildAt(i).setVisibility(View.INVISIBLE);
             if (knob_container.getChildAt(i) instanceof KnobView) {
                 KnobView kv = (KnobView) knob_container.getChildAt(i);
-                kv.setTickByValue(kv.defaultValue);
-//                kv.updateText();// this causes lag
+                kv.resetKnob();
             }
         }
         focusButton.setSelected(false);
@@ -133,15 +127,20 @@ public final class ManualModeImpl implements ManualMode {
     public void rotate(int orientation) {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(Math.abs(orientation / 90) == 1 ? orientation + 180 : orientation));
+            for (int i = 0; i < buttons_container.getChildCount(); i++) {
+                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
+            }
             /*focus_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
             exposure_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
             iso_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
-            ev_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();*/
+            ev_button_container.animate().rotation(orientation).setDuration(Interface.i.mainActivity.RotationDur).start();
+        */
         }
     }
 
     private void initialiseDataMembers() {
         knob_container = activity.findViewById(R.id.knob_container);
+        buttons_container = activity.findViewById(R.id.buttons_container);
         /*focus_button_container = activity.findViewById(R.id.focus_button_container);
         exposure_button_container = activity.findViewById(R.id.shutter_button_container);
         iso_button_container = activity.findViewById(R.id.iso_button_container);
@@ -151,10 +150,10 @@ public final class ManualModeImpl implements ManualMode {
         exposureButton = activity.findViewById(R.id.exposure_option);
         isoButton = activity.findViewById(R.id.iso_option);
         evButton = activity.findViewById(R.id.ev_option);
-        mfTextView = (TextView)Interface.i.mainActivity.findViewById(R.id.focus_option_tv);
-        evTextview = (TextView)Interface.i.mainActivity.findViewById(R.id.ev_option_tv);
-        expoTextView = (TextView)Interface.i.mainActivity.findViewById(R.id.exposure_option_tv);
-        isoTextview = (TextView)Interface.i.mainActivity.findViewById(R.id.iso_option_tv);
+        mfTextView = (TextView) Interface.i.mainActivity.findViewById(R.id.focus_option_tv);
+        evTextview = (TextView) Interface.i.mainActivity.findViewById(R.id.ev_option_tv);
+        expoTextView = (TextView) Interface.i.mainActivity.findViewById(R.id.exposure_option_tv);
+        isoTextview = (TextView) Interface.i.mainActivity.findViewById(R.id.iso_option_tv);
     }
 
     private void addKnobs() {
@@ -187,22 +186,19 @@ public final class ManualModeImpl implements ManualMode {
             setEVKnobVisibility(0);
     }*/
 
-    private void setModelToKnob(ManualModel modelToKnob)
-    {
-        if (modelToKnob == selectedModel)
-        {
-            defaultKnobView.resetKnob();
+    private void setModelToKnob(ManualModel modelToKnob) {
+        if (modelToKnob == selectedModel) {
+//            defaultKnobView.resetKnob();
             defaultKnobView.setKnobViewChangedListener(null);
             defaultKnobView.setVisibility(View.GONE);
             knob_container.setVisibility(View.GONE);
             selectedModel = null;
-        }
-        else {
+        } else {
             //defaultKnobView.resetKnob();
             defaultKnobView.setKnobViewChangedListener(modelToKnob);
             defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
             defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
-
+            defaultKnobView.setTickByValue(modelToKnob.getCurrentInfo().value);
             defaultKnobView.setVisibility(View.VISIBLE);
             knob_container.setVisibility(View.VISIBLE);
             selectedModel = modelToKnob;
@@ -213,39 +209,38 @@ public final class ManualModeImpl implements ManualMode {
 
         focusButton.setOnClickListener(v -> {
             setModelToKnob(mfModel);
-            defaultKnobView.setDashAroundAutoEnabled(false);
         });
         focusButton.setOnLongClickListener(v -> {
+            if(selectedModel==mfModel)
             defaultKnobView.resetKnob();
-            mfModel.onSelectedKnobItemChanged(defaultKnobView,null,mfModel.getCurrentInfo());
-
+            mfModel.onSelectedKnobItemChanged(null, null, mfModel.getAutoModel());
             return true;
         });
         exposureButton.setOnClickListener(v -> {
             setModelToKnob(expotimeModel);
         });
         exposureButton.setOnLongClickListener(v -> {
+            if(selectedModel==expotimeModel)
             defaultKnobView.resetKnob();
-            expotimeModel.onSelectedKnobItemChanged(defaultKnobView,null,expotimeModel.getCurrentInfo());
-
+            expotimeModel.onSelectedKnobItemChanged(null, null, expotimeModel.getAutoModel());
             return true;
         });
         isoButton.setOnClickListener(v -> {
             setModelToKnob(isoModel);
         });
         isoButton.setOnLongClickListener(v -> {
+            if(selectedModel==isoModel)
             defaultKnobView.resetKnob();
-            isoModel.onSelectedKnobItemChanged(defaultKnobView,null,isoModel.getCurrentInfo());
-
+            isoModel.onSelectedKnobItemChanged(null, null, isoModel.getAutoModel());
             return true;
         });
         evButton.setOnClickListener(v -> {
-           setModelToKnob(evModel);
+            setModelToKnob(evModel);
         });
         evButton.setOnLongClickListener(v -> {
+            if(selectedModel==evModel)
             defaultKnobView.resetKnob();
-            evModel.onSelectedKnobItemChanged(defaultKnobView,null,evModel.getCurrentInfo());
-
+            evModel.onSelectedKnobItemChanged(null, null, evModel.getAutoModel());
             return true;
         });
 

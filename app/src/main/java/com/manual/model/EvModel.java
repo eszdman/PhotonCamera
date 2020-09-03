@@ -6,6 +6,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 
+import android.widget.TextView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
@@ -20,7 +21,7 @@ public class EvModel extends ManualModel<Float> {
 
     private final String TAG = EvModel.class.getSimpleName();
 
-    public EvModel(Range range,ValueChangedEvent valueChangedEvent) {
+    public EvModel(Range range, ValueChangedEvent valueChangedEvent) {
         super(range,valueChangedEvent);
     }
 
@@ -31,8 +32,9 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getAutoItem(0);
+        KnobItemInfo auto = getNewAutoItem(0);
         getKnobInfoList().add(auto);
+        currentInfo = auto;
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
         float evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
@@ -77,8 +79,7 @@ public class EvModel extends ManualModel<Float> {
                 }
             }
         }
-        currentInfo = getKnobInfoList().get(getKnobInfoList().size()/2);
-        int angle = 80;
+        int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
         knobInfo = new KnobInfo(-angle, angle, -negtiveValueCount, positiveValueCount, Interface.i.mainActivity.getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
 

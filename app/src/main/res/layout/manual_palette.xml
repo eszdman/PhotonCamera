@@ -18,38 +18,6 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toTopOf="@id/buttons_container"
     >
-<!--        <com.manual.ExposureTimeKnobView-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="0dp"-->
-<!--                app:layout_constraintStart_toStartOf="parent"-->
-<!--                app:layout_constraintEnd_toEndOf="parent"-->
-<!--                app:layout_constraintTop_toTopOf="parent"-->
-<!--                app:layout_constraintBottom_toBottomOf="parent">-->
-<!--        </com.manual.ExposureTimeKnobView>-->
-<!--        <com.manual.ISOKnobView-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="0dp"-->
-<!--                app:layout_constraintStart_toStartOf="parent"-->
-<!--                app:layout_constraintEnd_toEndOf="parent"-->
-<!--                app:layout_constraintTop_toTopOf="parent"-->
-<!--                app:layout_constraintBottom_toBottomOf="parent">-->
-<!--        </com.manual.ISOKnobView>-->
-<!--        <com.manual.FocusKnobView-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="0dp"-->
-<!--                app:layout_constraintStart_toStartOf="parent"-->
-<!--                app:layout_constraintEnd_toEndOf="parent"-->
-<!--                app:layout_constraintTop_toTopOf="parent"-->
-<!--                app:layout_constraintBottom_toBottomOf="parent">-->
-<!--        </com.manual.FocusKnobView>-->
-<!--        <com.manual.EVKnobView-->
-<!--                android:layout_width="0dp"-->
-<!--                android:layout_height="0dp"-->
-<!--                app:layout_constraintStart_toStartOf="parent"-->
-<!--                app:layout_constraintEnd_toEndOf="parent"-->
-<!--                app:layout_constraintTop_toTopOf="parent"-->
-<!--                app:layout_constraintBottom_toBottomOf="parent">-->
-<!--        </com.manual.EVKnobView>-->
     </androidx.constraintlayout.widget.ConstraintLayout>
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="0dp"
@@ -91,7 +59,8 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:paddingTop="5dp"
-                android:textColor="@color/white"
+                android:textColor="@color/manual_text_color"
+                tools:textColor="@color/White"
                 android:textSize="15sp"
                 app:layout_constraintBottom_toTopOf="@id/focus_option"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -130,7 +99,9 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:paddingTop="5dp"
-                android:textColor="@color/white"
+                android:textColor="@color/manual_text_color"
+                tools:textColor="@color/White"
+                android:textIsSelectable="true"
                 android:textSize="15sp"
                 app:layout_constraintBottom_toTopOf="@id/exposure_option"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -167,7 +138,8 @@
                       app:layout_constraintTop_toTopOf="parent"
                       tools:text="NULL"
                       android:paddingTop="5dp"
-                      android:textColor="@color/white"
+                      android:textColor="@color/manual_text_color"
+                      tools:textColor="@color/White"
                       android:id="@+id/iso_option_tv"
                       android:layout_gravity="center"
                       android:textAlignment="center"
@@ -201,7 +173,8 @@
                       app:layout_constraintTop_toTopOf="parent"
                       tools:text="NULL"
                       android:paddingTop="5dp"
-                      android:textColor="@color/white"
+                      android:textColor="@color/manual_text_color"
+                      tools:textColor="@color/White"
                       android:id="@+id/ev_option_tv"
                       android:layout_gravity="center"
                       android:textAlignment="center"
