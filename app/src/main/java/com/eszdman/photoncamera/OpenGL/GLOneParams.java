@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.OpenGL;
 
-import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 
