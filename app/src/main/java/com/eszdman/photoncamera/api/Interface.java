@@ -8,9 +8,10 @@ import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
-import com.eszdman.photoncamera.ui.CameraUI;
+import com.eszdman.photoncamera.ui.CameraFragment;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
+import com.manual.ManualMode;
 
 public class Interface {
     private static Interface sInterface;
@@ -27,6 +28,7 @@ public class Interface {
     private final CameraUI cameraUI;
     private CameraFragment cameraFragment;
     private Manual manual;
+    private  ManualMode manualMode;
     private SettingsActivity settingsActivity;
 
     public Interface(MainActivity act) {
@@ -42,6 +44,8 @@ public class Interface {
         parameters = new Parameters();
         sensors = new Sensors();
         cameraUI = new CameraUI();
+        manualMode = ManualMode.getInstance(act);
+
     }
 
     public static MainActivity getMainActivity() {
@@ -116,7 +120,7 @@ public class Interface {
     /*public ActivityManager.MemoryInfo AvailableMemory() {
         ActivityManager activityManager = (ActivityManager) mainActivity.SystemService(ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-        activityManager.MemoryInfo(memoryInfo);
+        activityManager.getMemoryInfo(memoryInfo);
         return memoryInfo;
     }*/
 }

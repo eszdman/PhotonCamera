@@ -49,6 +49,10 @@ public class IsoExpoSelector {
             pair.exposure = (long)(ExposureIndex.sec*Interface.getManual().expvalue);
             pair.iso = (int)(Interface.getManual().isovalue/getMPY());
         }
+//        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
+//            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
+//            pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
+//        }
         if(step == 3 && HDR){
             pair.ExpoCompensateLower(1.0/1.0);
         }

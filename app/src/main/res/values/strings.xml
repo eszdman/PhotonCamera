@@ -46,4 +46,7 @@
     <string name="histogram">Histogram</string>
     <string name="export_settings">Export Settings</string>
     <string name="import_settings">Import Settings</string>
+    <string name="manual_mode_auto">Auto</string>
+    <string name="manual_mode_manual">Manual</string>
+
 </resources>

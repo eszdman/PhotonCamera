@@ -10,7 +10,7 @@
     <dimen name="gallery_button_size">60dp</dimen>
     <dimen name="bottombar_to_modeswitcher_margin">@dimen/bottombar_padding</dimen>
     <dimen name="bottombar_padding">0dp</dimen>
-    <dimen name="shutter_progress_bar_size">155dp</dimen>
+    <dimen name="shutter_progress_bar_size">70dp</dimen>
     <dimen name="shutter_button_size">70dp</dimen>
     <dimen name="mode_chip_side_margin">5dp</dimen>
     <dimen name="mode_chip_radius">100dp</dimen>
@@ -20,4 +20,9 @@
     <dimen name="mode_chip_text_size">15sp</dimen>
     <dimen name="exif_dialog_width">320dp</dimen>
     <dimen name="mode_switcher_padding">10dp</dimen>
+    <dimen name="manual_knob_dash_length">6dp</dimen>
+    <dimen name="manual_knob_dash_padding">11dp</dimen>
+    <dimen name="manual_knob_icon_padding">7dp</dimen>
+    <dimen name="manual_knob_text_size">14dp</dimen>
+    <dimen name="manual_knob_icon_size">17dp</dimen>
 </resources>
