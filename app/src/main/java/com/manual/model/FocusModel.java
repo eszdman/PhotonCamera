@@ -4,7 +4,6 @@ import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
@@ -17,8 +16,8 @@ import java.util.ArrayList;
 
 public class FocusModel extends ManualModel<Float> {
 
-    public FocusModel(Range range,ValueChangedEvent valueChangedEvent) {
-        super(range,valueChangedEvent);
+    public FocusModel(Range range, ValueChangedEvent valueChangedEvent) {
+        super(range, valueChangedEvent);
     }
 
     @Override
@@ -49,7 +48,7 @@ public class FocusModel extends ManualModel<Float> {
             }
             String text = String.format("%.2f", arrayList2.get(i));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, i - arrayList2.size(), (double) arrayList2.get(i)));
-            getKnobInfoList().add(new KnobItemInfo(drawable,  text, i + 1, (double) arrayList2.get(i)));
+            getKnobInfoList().add(new KnobItemInfo(drawable, text, i + 1, (double) arrayList2.get(i)));
         }
         int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
         knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));

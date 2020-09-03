@@ -19,7 +19,7 @@ public enum Rotation {
         }
         int orientation2 = orientation % 360;
         if (orientation2 >= 45 && orientation2 < 135) {
-            return INVERSE_LANDSCAPE;
+            return LANDSCAPE;
         }
         if (orientation2 >= 135 && orientation2 < 225) {
             return INVERSE_PORTRAIT;
@@ -27,7 +27,7 @@ public enum Rotation {
         if (orientation2 < 225 || orientation2 >= 315) {
             return PORTRAIT;
         }
-        return LANDSCAPE;
+        return INVERSE_LANDSCAPE;
     }
 
     public static Rotation fromScreenOrientation(int screenOrientation) {

@@ -22,11 +22,11 @@ public class KnobView extends View {
     private static final String TAG = KnobView.class.getSimpleName();
     public Range range;
     protected double defaultValue = -1.0d;
-    private Paint m_BackgroundPaint;
+    private final Paint m_BackgroundPaint;
     private boolean m_DashAroundAutoEnabled;
-    private Rect m_DashBounds;
-    private int m_DashLength;
-    private int m_DashPadding;
+    private final Rect m_DashBounds;
+    private final int m_DashLength;
+    private final int m_DashPadding;
     private double m_DrawableCurrentDegree;
     private double m_DrawableLastDegree;
     private int m_IconPadding;
@@ -37,12 +37,12 @@ public class KnobView extends View {
     private List<KnobItemInfo> m_KnobItems;
     private float m_KnobItemsSelfRotation;
     private KnobViewChangedListener m_KnobViewChangedListener;
-    private Paint m_Paint;
+    private final Paint m_Paint;
     private PointF m_RotationCenter;
     private RotationState m_RotationState;
     private int m_Tick;
     private KnobItemInfo m_Value;
-    private boolean dolog = true;
+    private final boolean dolog = true;
 
     public KnobView(Context context) {
         this(context, null);
@@ -130,14 +130,14 @@ public class KnobView extends View {
 
     private double evaluateRotation(float x, float y) {
         log("evaluateRotation");
-        return Math.atan2((double) (x - this.m_RotationCenter.x), (double) (-(y - this.m_RotationCenter.y)));
+        return Math.atan2(x - this.m_RotationCenter.x, -(y - this.m_RotationCenter.y));
     }
 
     private PointF evaluateRotationCenter() {
         log("evaluateRotationCenter");
         int width = getWidth();
         int height = getHeight();
-        double fanEdge = Math.sqrt(Math.pow((double) (((float) width) / 2.0f), 2.0d) + Math.pow((double) height, 2.0d));
+        double fanEdge = Math.sqrt(Math.pow(((float) width) / 2.0f, 2.0d) + Math.pow(height, 2.0d));
         return new PointF(((float) width) / 2.0f, (float) ((fanEdge / 2.0d) / (((double) height) / fanEdge)));
     }
 
@@ -213,7 +213,7 @@ public class KnobView extends View {
     }
 
     private boolean isTooCloseToCenter(float x, float y) {
-        return Math.sqrt(Math.pow((double) (x - this.m_RotationCenter.x), 2.0d) + Math.pow((double) (y - this.m_RotationCenter.y), 2.0d)) < 50.0d;
+        return Math.sqrt(Math.pow(x - this.m_RotationCenter.x, 2.0d) + Math.pow(y - this.m_RotationCenter.y, 2.0d)) < 50.0d;
     }
 
     private int mapRotationToTick(double rotation) {
@@ -466,7 +466,7 @@ public class KnobView extends View {
     }
 
     public void resetKnob() {
-        setTickByValue(getKnobValueFromText(Interface.i.mainActivity.getString(R.string.manual_mode_auto)));
+        setTickByValue(getKnobValueFromTick(0));
     }
 
     public void setTickByValue(double value) {
@@ -502,11 +502,11 @@ public class KnobView extends View {
                 item.drawable.setBounds(left, top, left + item.drawable.getIntrinsicWidth(), top + item.drawable.getIntrinsicHeight());
                 if (this.m_KnobInfo != null) {
                     double includedAngle = ((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin));
-                    double radius = (double) this.m_RotationCenter.y;
-                    double edgeY = (double) (item.drawable.getIntrinsicWidth() / 2);
+                    double radius = this.m_RotationCenter.y;
+                    double edgeY = item.drawable.getIntrinsicWidth() / 2;
                     double edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicHeight() / 2));
                     if (this.m_KnobItemsSelfRotation % 180.0f != 0.0f) {
-                        edgeY = (double) (item.drawable.getIntrinsicHeight() / 2);
+                        edgeY = item.drawable.getIntrinsicHeight() / 2;
                         edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicWidth() / 2));
                     }
                     double drawableAngleHalf = Math.toDegrees(Math.atan(edgeY / edgeX));

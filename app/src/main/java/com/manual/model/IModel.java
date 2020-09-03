@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface IModel {
     List<KnobItemInfo> getKnobInfoList();
+
     KnobItemInfo getCurrentInfo();
+
     KnobInfo getKnobInfo();
 }

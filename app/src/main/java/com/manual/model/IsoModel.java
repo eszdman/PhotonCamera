@@ -3,7 +3,6 @@ package com.manual.model;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.manual.KnobInfo;
@@ -17,8 +16,8 @@ public class IsoModel extends ManualModel<Integer> {
 
     public static final String[] ISO_CANDIDATES = {"100", "125", "160", "200", "250", "320", "400", "500", "640", "800", "1000", "1250", "1600", "2000", "2500", "3200", "4000", "5000", "6400", "12800"};
 
-    public IsoModel(Range range,ValueChangedEvent valueChangedEvent) {
-        super(range,valueChangedEvent);
+    public IsoModel(Range range, ValueChangedEvent valueChangedEvent) {
+        super(range, valueChangedEvent);
     }
 
     @Override
@@ -55,7 +54,7 @@ public class IsoModel extends ManualModel<Integer> {
             i2++;
         }
         int angle = Interface.i.mainActivity.getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(),  Interface.i.mainActivity.getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.i.mainActivity.getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
     }
 
     @Override

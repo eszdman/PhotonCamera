@@ -10,12 +10,12 @@ import androidx.annotation.RequiresApi;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ShadowTextRenderer {
-    private boolean m_HasStroke;
-    private Size m_MaximumSize;
     private final Rect m_MeasuredTextBounds;
     private final Paint m_StrokePaint;
-    private String m_Text;
     private final Paint m_TextPaint;
+    private boolean m_HasStroke;
+    private Size m_MaximumSize;
+    private String m_Text;
     private float m_TextSize;
 
     public ShadowTextRenderer() {
@@ -65,8 +65,22 @@ public class ShadowTextRenderer {
         return this.m_Text;
     }
 
+    public void setText(CharSequence text) {
+        this.m_Text = text != null ? text.toString() : null;
+        this.m_MeasuredTextBounds.setEmpty();
+    }
+
     public float getTextSize() {
         return this.m_TextSize;
+    }
+
+    public void setTextSize(float size) {
+        if (((double) Math.abs(this.m_TextPaint.getTextSize() - size)) >= 0.1d) {
+            this.m_TextSize = size;
+            this.m_TextPaint.setTextSize(size);
+            this.m_StrokePaint.setTextSize(size);
+            this.m_MeasuredTextBounds.setEmpty();
+        }
     }
 
     private Typeface getTypefaceFromAttrs(String familyName) {
@@ -112,7 +126,6 @@ public class ShadowTextRenderer {
         this.m_TextPaint.setColorFilter(filter);
     }
 
-
     public void setMaximumSize(int width, int height) {
         this.m_MaximumSize = new Size(width, height);
         this.m_MeasuredTextBounds.setEmpty();
@@ -128,11 +141,6 @@ public class ShadowTextRenderer {
 
     public void setStroke(boolean hasStroke) {
         this.m_HasStroke = hasStroke;
-    }
-
-    public void setText(CharSequence text) {
-        this.m_Text = text != null ? text.toString() : null;
-        this.m_MeasuredTextBounds.setEmpty();
     }
 
     public void setTextAppearance(Context context, int resId) {
@@ -161,15 +169,6 @@ public class ShadowTextRenderer {
             this.m_MeasuredTextBounds.setEmpty();
         }
         style.recycle();
-    }
-
-    public void setTextSize(float size) {
-        if (((double) Math.abs(this.m_TextPaint.getTextSize() - size)) >= 0.1d) {
-            this.m_TextSize = size;
-            this.m_TextPaint.setTextSize(size);
-            this.m_StrokePaint.setTextSize(size);
-            this.m_MeasuredTextBounds.setEmpty();
-        }
     }
 
     public void setTypeface(Typeface typeface) {

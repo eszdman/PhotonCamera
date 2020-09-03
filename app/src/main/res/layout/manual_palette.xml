@@ -55,7 +55,7 @@
 
             <TextView
                 android:id="@+id/focus_option_tv"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:paddingTop="5dp"
@@ -95,7 +95,7 @@
 
             <TextView
                 android:id="@+id/exposure_option_tv"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:paddingTop="5dp"
@@ -130,7 +130,7 @@
                          app:srcCompat="@drawable/manual_control_icon_iso"
                          android:layout_gravity="center"
                          android:background="#00000000"/>
-            <TextView android:layout_width="match_parent"
+            <TextView android:layout_width="0dp"
                       android:layout_height="wrap_content"
                       app:layout_constraintStart_toStartOf="parent"
                       app:layout_constraintEnd_toEndOf="parent"
@@ -165,7 +165,7 @@
                          app:srcCompat="@drawable/ic_exposure"
                          android:layout_gravity="center"
                          android:background="#00000000"/>
-            <TextView android:layout_width="match_parent"
+            <TextView android:layout_width="0dp"
                       android:layout_height="wrap_content"
                       app:layout_constraintStart_toStartOf="parent"
                       app:layout_constraintEnd_toEndOf="parent"

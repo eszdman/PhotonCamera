@@ -18,6 +18,7 @@ public class ShadowTextDrawable extends Drawable {
     public ShadowTextDrawable(CharSequence text) {
         this.m_Renderer.setText(text);
     }
+
     @Override
     public void draw(Canvas canvas) {
         Rect bounds = getBounds();
@@ -26,11 +27,13 @@ public class ShadowTextDrawable extends Drawable {
             this.m_Renderer.draw(canvas, (float) (bounds.left + ((bounds.width() - this.m_TextBounds.width()) / 2)), (float) (bounds.top + ((bounds.height() - this.m_TextBounds.height()) / 2)));
         }
     }
+
     @Override
     public int getIntrinsicHeight() {
         this.m_Renderer.getBounds(this.m_TextBounds);
         return this.m_TextBounds.height();
     }
+
     @Override
     public int getIntrinsicWidth() {
         this.m_Renderer.getBounds(this.m_TextBounds);
@@ -46,10 +49,12 @@ public class ShadowTextDrawable extends Drawable {
         this.m_Renderer.getBounds(this.m_TextBounds);
         textBounds.set(this.m_TextBounds);
     }
+
     @Override
     public void setAlpha(int alpha) {
         this.m_Renderer.setAlpha(alpha);
     }
+
     @Override
     public void setColorFilter(ColorFilter filter) {
         this.m_Renderer.setColorFilter(filter);

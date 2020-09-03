@@ -5,8 +5,6 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
-
-import android.widget.TextView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.CameraFragment;
@@ -22,7 +20,7 @@ public class EvModel extends ManualModel<Float> {
     private final String TAG = EvModel.class.getSimpleName();
 
     public EvModel(Range range, ValueChangedEvent valueChangedEvent) {
-        super(range,valueChangedEvent);
+        super(range, valueChangedEvent);
     }
 
     @Override
