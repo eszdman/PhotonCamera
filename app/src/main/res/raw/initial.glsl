@@ -85,12 +85,13 @@ vec3 tonemap(vec3 rgb) {
 
     // Apply tonemapping curve to min, max RGB channel values
     vec2 minmaxsin = tonemapSin(minmax);
-    //minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
-    //pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
-    //minmax * toneMapCoeffs.z +
-    //toneMapCoeffs.w;
-    minmax.x*=texelFetch(TonemapTex,ivec2(int(minmax.x*256.0),0),0).x;
-    minmax.y*=texelFetch(TonemapTex,ivec2(int(minmax.y*256.0),0),0).x;
+    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
+    minmax * toneMapCoeffs.z +
+    toneMapCoeffs.w;
+
+    //minmax.x*=texelFetch(TonemapTex,ivec2(int(minmax.x*255.0),0),0).x;
+    //minmax.y*=texelFetch(TonemapTex,ivec2(int(minmax.y*255.0),0),0).x;
     minmax = mix(minmax, minmaxsin, 0.4f);
 
     // Rescale middle value

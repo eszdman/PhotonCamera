@@ -11,11 +11,7 @@ public class FileManager {
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void CreateFolders() {
-        if (!DCIM_CAMERA.exists()) {
-            DCIM_CAMERA.mkdir();
-            if (!PHOTON_DIR.exists()) {
-                PHOTON_DIR.mkdir();
-            }
-        }
+        if (!DCIM_CAMERA.exists()) DCIM_CAMERA.mkdir();
+        if (!PHOTON_DIR.exists()) PHOTON_DIR.mkdir();
     }
 }

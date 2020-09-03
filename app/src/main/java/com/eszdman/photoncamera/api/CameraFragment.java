@@ -358,7 +358,7 @@ public class CameraFragment extends Fragment
                     break;
                 }
                 //TODO Check why this wrong
-                case STATE_WAITING_PRECAPTURE: {
+                /*case STATE_WAITING_PRECAPTURE: {
                     Log.v(TAG, "WAITING_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
@@ -368,8 +368,8 @@ public class CameraFragment extends Fragment
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
                     break;
-                }
-                //case STATE_WAITING_PRECAPTURE:
+                }*/
+                case STATE_WAITING_PRECAPTURE:
                 case STATE_WAITING_NON_PRECAPTURE: {
                     //Log.v(TAG, "WAITING_NON_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
