@@ -4,6 +4,7 @@ precision mediump usampler2D;
 precision mediump sampler2D;
 uniform sampler2D Fullbuffer;
 uniform sampler2D GainMap;
+uniform sampler2D TonemapTex;
 uniform int RawSizeX;
 uniform int RawSizeY;
 uniform vec4 blackLevel;
@@ -88,6 +89,9 @@ vec3 tonemap(vec3 rgb) {
     pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
     minmax * toneMapCoeffs.z +
     toneMapCoeffs.w;
+
+    //minmax.x*=texelFetch(TonemapTex,ivec2(int(minmax.x*255.0),0),0).x;
+    //minmax.y*=texelFetch(TonemapTex,ivec2(int(minmax.y*255.0),0),0).x;
     minmax = mix(minmax, minmaxsin, 0.4f);
 
     // Rescale middle value

@@ -8,7 +8,7 @@ out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    float outp = ((float(texelFetch(InputBuffer, (xy), 0).x))/WhiteLevel)-1.0;
+    float outp = ((float(texelFetch(InputBuffer, (xy), 0).x))/WhiteLevel);
     //outp = clamp(outp,0.0,1.0);
     Output = outp;
 }

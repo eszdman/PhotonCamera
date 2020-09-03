@@ -27,8 +27,8 @@ public class Swipe {
     @SuppressLint("ClickableViewAccessibility")
     public void RunDetection(){
         Log.d(TAG,"SwipeDetection - ON");
-        manualmode = Interface.i.mainActivity.findViewById(R.id.manual_mode);
-        ocmanual = Interface.i.mainActivity.findViewById(R.id.open_close_manual);
+        manualmode = Interface.getMainActivity().findViewById(R.id.manual_mode);
+        ocmanual = Interface.getMainActivity().findViewById(R.id.open_close_manual);
         ocmanual.setOnClickListener((v) -> {
             if (arrowState == 0) {
                 SwipeUp();
@@ -38,9 +38,9 @@ public class Swipe {
                 Log.d(TAG, "Arrow Clicked:SwipeDown");
             }
         });
-        slideUp = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.slide_up);
-        slideDown = AnimationUtils.loadAnimation(Interface.i.mainActivity, R.anim.animate_slide_down_exit);
-        gestureDetector = new GestureDetector(Interface.i.mainActivity, new GestureDetector.SimpleOnGestureListener() {
+        slideUp = AnimationUtils.loadAnimation(Interface.getMainActivity(), R.anim.slide_up);
+        slideDown = AnimationUtils.loadAnimation(Interface.getMainActivity(), R.anim.animate_slide_down_exit);
+        gestureDetector = new GestureDetector(Interface.getMainActivity(), new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
             @Override
@@ -83,7 +83,7 @@ public class Swipe {
             }
         });
         View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
-        View holder = Interface.i.mainActivity.findViewById(R.id.textureHolder);
+        View holder = Interface.getMainActivity().findViewById(R.id.textureHolder);
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);
     }
@@ -92,42 +92,42 @@ public class Swipe {
     {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
-        ConstraintLayout camera_container = Interface.i.mainActivity.findViewById(R.id.camera_container);
-        ConstraintLayout layout_viewfinder = Interface.i.mainActivity.findViewById(R.id.layout_viewfinder);
+        ConstraintLayout camera_container = Interface.getMainActivity().findViewById(R.id.camera_container);
+        ConstraintLayout layout_viewfinder = Interface.getMainActivity().findViewById(R.id.layout_viewfinder);
         RectF viewfinderRect = new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container
                 layout_viewfinder.getRight(), //right edge of viewfinder
                 layout_viewfinder.getBottom() + camera_container.getY() //bottom edge of viewfinder + y position of camera_container
         );
-        // Interface.i.camera.showToast(previewRect.toString()+"\nCurX"+event.getX()+"CurY"+event.getY());
+        // Interface.getCameraFragment().showToast(previewRect.toString()+"\nCurX"+event.getX()+"CurY"+event.getY());
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            Interface.i.touchFocus.processTochToFocus(translateX,translateY);
+            Interface.getTouchFocus().processTochToFocus(translateX,translateY);
         }
     }
 
     public void SwipeUp(){
-        if(!Interface.i.settings.ManualMode) {
+        if(!Interface.getSettings().ManualMode) {
             manualmode.startAnimation(slideUp);
-            Interface.i.settings.ManualMode = true;
+            Interface.getSettings().ManualMode = true;
             ocmanual.animate().rotation(180).setDuration(250).start();
         }
-        Interface.i.camera.rebuildPreview();
+        Interface.getCameraFragment().rebuildPreview();
         manualmode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
     public void SwipeDown(){
-        if(Interface.i.settings.ManualMode) {
+        if(Interface.getSettings().ManualMode) {
             manualmode.startAnimation(slideDown);
             ocmanual.animate().rotation(0).setDuration(250).start();
         }
-        Interface.i.settings.ManualMode = false;
+        Interface.getSettings().ManualMode = false;
 
-        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.i.settings.aeModeOn);
-        CameraReflectionApi.set(Interface.i.camera.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.i.settings.afMode);
-        Interface.i.camera.rebuildPreview();
+        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
+        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
+        Interface.getCameraFragment().rebuildPreview();
         manualmode.setVisibility(View.GONE);
         arrowState ^= 1;
     }

@@ -17,7 +17,7 @@ public class Gravity {
 
 
     public Gravity(){
-        mSensorManager = (SensorManager) Interface.i.mainActivity.getSystemService(Context.SENSOR_SERVICE);
+        mSensorManager = (SensorManager) Interface.getMainActivity().getSystemService(Context.SENSOR_SERVICE);
         mGravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 
     }
@@ -60,6 +60,6 @@ public class Gravity {
         }
     }
     public int getCameraRotation(){
-       return (Interface.i.camera.mSensorOrientation+Interface.i.gravity.getRotation()+270) % 360;
+       return (Interface.getCameraFragment().mSensorOrientation+Interface.getGravity().getRotation()+270) % 360;
     }
 }

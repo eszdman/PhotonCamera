@@ -9,7 +9,7 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.api.CameraFragment;
 
 public class Sharpen extends Node {
     public Sharpen(int rid, String name) {
@@ -26,7 +26,7 @@ public class Sharpen extends Node {
         sharpnessLevel = Math.min(1.5f, sharpnessLevel);
         Log.d("PostNode:"+Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setvar("size", sharpnessLevel);
-        glProg.setvar("strength", (float)Interface.i.settings.sharpness);
+        glProg.setvar("strength", (float)Interface.getSettings().sharpness);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
     }

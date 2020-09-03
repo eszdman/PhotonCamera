@@ -52,11 +52,32 @@
                  app:layout_constraintStart_toStartOf="parent"
                  app:layout_constraintEnd_toEndOf="parent"
                  app:layout_constraintBottom_toBottomOf="parent"
+                 app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
+                 app:layout_constraintVertical_bias="0.0"
         >
         </include>
 
         <!--    Block 1.3-->
         <!--   includes the Layout resource of Manual Mode palette-->
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            app:layout_constraintBottom_toTopOf="@+id/open_close_manual"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.496"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <RadioGroup
+                android:id="@+id/auxButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
         <include layout="@layout/layout_main_manualbar"
                  android:id="@+id/manual_mode"
                  android:layout_width="0dp"
@@ -71,15 +92,15 @@
         <!--    Block 1.4-->
         <!--Arrow-->
         <ImageView
-                android:id="@+id/open_close_manual"
-                android:layout_width="@dimen/arrow_size"
-                android:layout_height="@dimen/arrow_size"
-                android:background="@drawable/chevron_up"
-                app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:visibility="visible"
-                android:contentDescription="Arrow"/>
+            android:id="@+id/open_close_manual"
+            android:layout_width="@dimen/arrow_size"
+            android:layout_height="@dimen/arrow_size"
+            android:background="@drawable/chevron_up"
+            android:contentDescription="Arrow"
+            android:visibility="visible"
+            app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!--    Block 2-->

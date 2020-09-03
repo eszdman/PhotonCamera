@@ -35,12 +35,12 @@ public class PostPipeline extends GLBasePipeline {
      * @param ratio A float value < 1 to give the ratio of watermark's height to image's height,
      *             try changing this from 0.20 to 0.60 to obtain right results
      */
-    public static Bitmap addWatermark(Bitmap source, float ratio) {
+    public static void addWatermark(Bitmap source, float ratio) {
         Canvas canvas;
         Paint paint;
         Matrix matrix;
         RectF r;
-        Bitmap watermark = BitmapFactory.decodeResource(Interface.i.mainActivity.getResources(), R.drawable.photoncamera_watermark);
+        Bitmap watermark = BitmapFactory.decodeResource(Interface.getMainActivity().getResources(), R.drawable.photoncamera_watermark);
         int width, height;
         float scale;
         width = source.getWidth();
@@ -61,7 +61,6 @@ public class PostPipeline extends GLBasePipeline {
         matrix.postTranslate(15, height - r.height());
         // Draw the watermark
         canvas.drawBitmap(watermark, matrix, paint);
-        return source;
     }
     public int selectSharp(){
         long resolution = glint.parameters.rawSize.x*glint.parameters.rawSize.y;
@@ -77,10 +76,10 @@ public class PostPipeline extends GLBasePipeline {
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
     public int getRotation() {
-        int rotation = Interface.i.gravity.getCameraRotation();
+        int rotation = Interface.getGravity().getCameraRotation();
         String TAG = "ParseExif";
-        Log.d(TAG, "Gravity rotation:" + Interface.i.gravity.getRotation());
-        Log.d(TAG, "Sensor rotation:" + Interface.i.camera.mSensorOrientation);
+        Log.d(TAG, "Gravity rotation:" + Interface.getGravity().getRotation());
+        Log.d(TAG, "Sensor rotation:" + Interface.getCameraFragment().mSensorOrientation);
         int orientation = 0;
         switch (rotation) {
             case 90:
@@ -102,7 +101,7 @@ public class PostPipeline extends GLBasePipeline {
         stackFrame = inBuffer;
         glint.parameters = parameters;
         if(!IsoExpoSelector.HDR) {
-            if (Interface.i.settings.cfaPattern != -2) {
+            if (Interface.getSettings().cfaPattern != -2) {
                 add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
                 add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
@@ -113,7 +112,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
-        if(Interface.i.settings.hdrxNR) {
+        if(Interface.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
@@ -125,7 +124,7 @@ public class PostPipeline extends GLBasePipeline {
 
         Bitmap img = runAll();
         img = RotateBitmap(img,getRotation());
-        if (Interface.i.settings.watermark) img = addWatermark(img,0.06f);
+        if (Interface.getSettings().watermark) addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);

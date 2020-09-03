@@ -2,7 +2,7 @@
 <resources>
     <string name="request_permission">Această aplicație are nevoie de permisiunea camerei.</string>
     <string name="camera_error">Acest dispozitiv nu acceptă Camera2 API.</string>
-    <string name="luma_nr_count">Valoare Luma NR</string>
+    <string name="luma_nr_count">Reducere zgomot Luma:</string>
     <string name="frame_count">Număr cadre:</string>
     <string name="disable_aligning">Dezactivaţi alinierea</string>
     <string name="turn_on_system_nr">Activeaza System NR</string>
@@ -30,7 +30,7 @@
     <string name="yes">Da</string>
     <string name="image_deleted">Fotografia a fost ştearsă</string>
     <string name="close">Închide</string>
-    <string name="unknown">Necunoscut</string>
+    <string name="unknown">Necunoscută</string>
     <string name="resolution">"Rezoluţie: "</string>
     <string name="size">"Mărime fişier: "</string>
     <string name="device">"Dispozitiv: "</string>
@@ -41,4 +41,5 @@
     <string name="flength">"Distanță focală: "</string>
     <string name="info">Informații</string>
     <string name="filename">"Nume fișier: "</string>
+    <string name="turn_on_afdata">Arată date Auto-focus</string>
 </resources>

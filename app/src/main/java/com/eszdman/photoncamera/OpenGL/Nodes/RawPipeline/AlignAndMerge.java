@@ -15,6 +15,7 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     private final int TileSize = 256;
@@ -28,7 +29,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.i.parameters.realWL);
+        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -37,7 +38,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw32(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.i.parameters.realWL);
+        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_32),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -46,7 +47,7 @@ public class AlignAndMerge extends Node {
     private GLTexture BoxDown22(GLTexture input){
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("CfaPattern",Interface.i.parameters.cfaPattern);
+        glProg.setvar("CfaPattern",Interface.getParameters().cfaPattern);
         GLTexture output = new GLTexture(new Point(rawsize.x/2,rawsize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -75,7 +76,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main3232);
         glProg.setvar("Mpy", 32);
         glProg.setvar("maxSize", brTex3232.mSize.x,brTex3232.mSize.y);
-        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture alignVectors = new GLTexture(new Point(rawsize.x/TileSize,rawsize.y/TileSize),new GLFormat(GLFormat.DataType.FLOAT_16,2),null,GL_NEAREST,GL_CLAMP_TO_EDGE);
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -95,7 +96,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main22);
         glProg.setvar("Mpy", 2);
         glProg.setvar("minSize", (int)(brTex22.mSize.x*0.15),(int)(brTex22.mSize.y*0.15));
-        glProg.setvar("maxSize", (int)(brTex22.mSize.x*0.85),(int)(brTex22.mSize.y*0.85));
+        glProg.setvar("maxSize", (int)(brTex22.mSize.x*0.83),(int)(brTex22.mSize.y*0.83));
         glProg.setTexture("AlignVectors",alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -109,7 +110,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer22",base22);
         glProg.setTexture("AlignVectors",align);
         glProg.setvaru("rawsize",rawsize.x,rawsize.y);
-        GLTexture output = new GLTexture(new Point(base22.mSize.x/2,base22.mSize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture output = new GLTexture(new Point(align.mSize.x,align.mSize.y),new GLFormat(GLFormat.DataType.FLOAT_16),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(output);
         glProg.close();
         endT("Weights");
@@ -142,7 +143,7 @@ public class AlignAndMerge extends Node {
         startT();
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("whitelevel", (float)Interface.i.parameters.whitelevel);
+        glProg.setvar("whitelevel", (float)Interface.getParameters().whitelevel);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
         //glProg.drawBlocks(output);
         glProg.close();

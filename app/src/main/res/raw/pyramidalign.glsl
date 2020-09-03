@@ -10,6 +10,7 @@ uniform ivec2 maxSize;
 uniform ivec2 minSize;
 uniform int Mpy;
 out vec2 Output;
+#define M_PI 3.1415926535897932384626433832795f
 #define FLT_MAX 3.402823466e+38
 #define TILESIZE (256)
 #define oversizek (2)
@@ -45,17 +46,18 @@ float cmpTiles(ivec2 xy,int tSize,ivec2 shift){
     int cnt = 0;
     tSize = max(2*2,tSize*oversizek);
     ivec2 shifted =  xy+shift;
-    for(int h=-1; h<tSize-3; h+=4){
-        for(int w=-1;w<tSize-3;w+=4){
+    for(int h=-2; h<tSize; h++){
+        for(int w=-2;w<tSize;w+=4){
             vec4 in1 = texelFetch(MainBuffer, (xy+ivec2(w, h)), 0);
             vec4 in2 = texelFetch(InputBuffer, (shifted+ivec2(w, h)), 0);
             //dist+= abs((in1.r+in1.g+in1.b+in1.a)
             //-(in2.r+in2.g+in2.b+in2.a));
             in1 = abs((in1)-(in2));
-            dist+= in1.r+in1.g+in1.b+in1.a;
+            dist+=in1.r+in1.g+in1.b+in1.a;
+            dist*=cos(M_PI*float(tSize - h - w)/float(tSize))+1.0;
             /*    dist+= abs((texelFetch(MainBuffer, (xy+ivec2(w, h)), 0).x)
                 -(texelFetch(InputBuffer, shifted+ivec2(w, h), 0).x));*/
-                cnt+=4;
+            cnt+=4;
         }
     }
     return dist/float(cnt);

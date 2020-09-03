@@ -10,7 +10,6 @@ import android.util.Range;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
-import com.eszdman.photoncamera.ui.CameraFragment;
 
 import java.lang.reflect.Field;
 
@@ -45,10 +44,10 @@ public class Camera2ApiAutoFix {
         fix.CCM();
     }
     private void whitePoint(){
-        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT,Interface.i.camera.mPreviewTemp);
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT,Interface.getCameraFragment().mPreviewTemp);
     }
     private void CCM(){
-        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM,Interface.i.camera.mColorSpaceTransform);
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM,Interface.getCameraFragment().mColorSpaceTransform);
     }
     public void curve(){
         CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);

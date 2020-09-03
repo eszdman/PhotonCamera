@@ -2,85 +2,21 @@
 <androidx.constraintlayout.widget.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_height="wrap_content"
-        android:layout_width="match_parent"
-        android:padding="@dimen/mode_switcher_pading"
-
->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
+        android:padding="@dimen/mode_switcher_padding">
+    <com.eszdman.photoncamera.wefika.horizontalpicker.HorizontalPicker
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:id="@+id/horizontalview"
-            android:scrollbarThumbHorizontal="@color/panel_transparency"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:textColor="@color/White"
+            android:textSize="@dimen/mode_chip_text_size"
+            android:marqueeRepeatLimit="-1"
+            android:id="@+id/modePicker"
+            android:ellipsize="middle"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-    >
-
-        <TableLayout
-            android:id="@+id/switcher"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center">
-
-            <TableRow android:id="@+id/switchrow">
-
-                <ToggleButton
-                    android:id="@+id/unlimitedMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Unlimited"
-                    android:textOn="Unlimited"
-                    android:textSize="@dimen/mode_chip_text_size"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
-
-                <ToggleButton
-                    android:id="@+id/nightMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Night"
-                    android:textOn="Night"
-                    android:textSize="@dimen/mode_chip_text_size" />
-
-
-                <ToggleButton
-                    android:id="@+id/cameraMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Camera"
-                    android:textOn="Camera"
-                    android:textSize="@dimen/mode_chip_text_size" />
-
-                <ToggleButton
-                    android:id="@+id/videoMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/mode_chip_height"
-                    android:layout_marginStart="@dimen/mode_chip_side_margin"
-                    android:layout_marginEnd="@dimen/mode_chip_side_margin"
-                    android:background="@drawable/modes_background"
-                    android:textColor="@drawable/modes_text"
-                    android:textOff="Video"
-                    android:textOn="Video"
-                    android:textSize="@dimen/mode_chip_text_size"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
-
-            </TableRow>
-        </TableLayout>
-    </HorizontalScrollView>
+            tools:background="@color/GreyDis"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

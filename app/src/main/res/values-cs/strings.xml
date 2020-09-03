@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="request_permission">Aplikace vyžaduje oprávnění využívat kameru</string>
+    <string name="request_permission">Aplikace vyžaduje oprávnění používat fotoaparát.</string>
     <string name="camera_error">Vaše zařízení nepodporuje Camera2 API</string>
-    <string name="luma_nr_count">Odstranění Luma šumu</string>
-    <string name="frame_count">Počet snímků</string>
-    <string name="disable_aligning">Vypnout srovnání snímků</string>
-    <string name="turn_on_system_nr">Systémové odstranění šumu</string>
-    <string name="chroma_nr_count">Odstranění Chroma šumu</string>
+    <string name="luma_nr_count">Redukce Luma šumu:</string>
+    <string name="frame_count">Počet snímků:</string>
+    <string name="disable_aligning">Vypnout srovnávání snímků</string>
+    <string name="turn_on_system_nr">Použití systémové redukce šumu</string>
+    <string name="chroma_nr_count">Redukce Chroma šumu:</string>
     <string name="enhanced_processing">Vylepšené zpracování obrazu</string>
     <string name="settings">Nastavení</string>
-    <string name="comp">Kompresor</string>
-    <string name="gain">Nárust</string>
-    <string name="contrmul">Násobič kontrastu</string>
-    <string name="contrconst">Konstanta</string>
-    <string name="saturation">Saturace</string>
+    <string name="comp">Kompresor:</string>
+    <string name="gain">Nárust:</string>
+    <string name="contrmul">Násobič Kontrastu:</string>
+    <string name="contrconst">Konstanta:</string>
+    <string name="saturation">Sytost barev:</string>
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
-    <string name="sharpness">Ostrost</string>
+    <string name="sharpness">Ostrost:</string>
     <string name="turn_on_grid">Zobrazit mřížku</string>
     <string name="raw">Uložit RAW</string>
     <string name="turn_on_round_edges">Zaoblené rohy</string>
     <string name="enable_remosaic">Povolit Re-Mosaikování</string>
     <string name="general">Obecné</string>
     <string name="telegram">Telegram - skupina</string>
-    <string name="hdrxNR">HDRX odstranění šumu</string>
+    <string name="hdrxNR">Redukce šumu režimu HDRX</string>
     <string name="turn_on_watermark">Povolit vodoznak</string>
     <string name="sure_delete">Opravdu chcete smazat tento obrázek?</string>
     <string name="cancel">Zrušit</string>
@@ -40,5 +40,6 @@
     <string name="aperture">"Světelnost:"</string>
     <string name="flength">"Ohnisko:"</string>
     <string name="info">Informace</string>
-    <string name="filename">"Název souboru"</string>
+    <string name="filename">"Název souboru:"</string>
+    <string name="turn_on_afdata">Informace o zaostřování</string>
 </resources>
