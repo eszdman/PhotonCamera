@@ -13,6 +13,7 @@ import com.manual.KnobView;
 import com.manual.ShadowTextDrawable;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class ShutterModel extends ManualModel<Long> {
 
@@ -32,34 +33,38 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getNewAutoItem(-1.0d);
+        KnobItemInfo auto = getNewAutoItem(-1.0d, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
-        ArrayList<String> arrayList2 = new ArrayList<>();
-        ArrayList<Long> arrayList3 = new ArrayList<>();
+        ArrayList<String> candidates = new ArrayList<>();
+        ArrayList<Long> values = new ArrayList<>();
+        values.add(range.getLower());
+        candidates.add("Min");
         for (String exposureTimeCandidate : EXPOSURE_TIME_CANDIDATES) {
             if (exposureTimeCandidate.contains("/")) {
                 exposureTimeValue = (long) (Rational.parseRational(exposureTimeCandidate).doubleValue() * 1000.0d * 1000.0d * 1000.0d);
             } else {
                 exposureTimeValue = (long) (Double.parseDouble(exposureTimeCandidate) * 1000.0d * 1000.0d * 1000.0d);
             }
-            if (exposureTimeValue >= range.getLower() && exposureTimeValue <= range.getUpper()) {
-                arrayList2.add(exposureTimeCandidate);
-                arrayList3.add(exposureTimeValue);
+            if (exposureTimeValue > range.getLower() && exposureTimeValue < range.getUpper()) {
+                candidates.add(exposureTimeCandidate);
+                values.add(exposureTimeValue);
             }
         }
+        values.add(range.getUpper());
+        candidates.add(String.format(Locale.ROOT, "%.1f", range.getUpper().doubleValue() / 1E9));
         int indicatorCount = 0;
-        int preferredIntervalCount = findPreferredIntervalCount(arrayList2.size());
-        int i2 = 0;
-        while (i2 < arrayList2.size()) {
-            boolean isLastItem = i2 == arrayList2.size() + -1;
+        int preferredIntervalCount = findPreferredIntervalCount(candidates.size());
+        int tick = 0;
+        while (tick < candidates.size()) {
+            boolean isLastItem = tick == candidates.size() - 1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
             drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
             drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
-            if (i2 % preferredIntervalCount == 0 || isLastItem) {
-                String text = arrayList2.get(i2);
+            if (tick % preferredIntervalCount == 0 || isLastItem) {
+                String text = candidates.get(tick);
                 drawable.setText(text);
                 drawableSelected.setText(text);
                 indicatorCount++;
@@ -67,16 +72,16 @@ public class ShutterModel extends ManualModel<Long> {
             StateListDrawable stateDrawable = new StateListDrawable();
             stateDrawable.addState(new int[]{-16842913}, drawable);
             stateDrawable.addState(new int[]{-16842913}, drawableSelected);
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, arrayList2.get(i2), i2 - arrayList2.size(), (double) arrayList3.get(i2)));
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, arrayList2.get(i2), i2 + 1, (double) arrayList3.get(i2)));
-            i2++;
+            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), (double) values.get(tick)));
+            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, (double) values.get(tick)));
+            tick++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
         int angleMax = Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override
@@ -85,19 +90,21 @@ public class ShutterModel extends ManualModel<Long> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
-        currentInfo = knobItemInfo2;
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
+        currentInfo = knobItemInfo;
         try {
             Interface.getCameraFragment().mCaptureSession.abortCaptures();
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
         CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
-        if (knobItemInfo2.value == -1) {
-            builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+        if (knobItemInfo.equals(autoModel)) {
+            if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
+                builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, (long) knobItemInfo2.value);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, (long) knobItemInfo.value);
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, Interface.getCameraFragment().mPreviewIso);
         }
         Interface.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);

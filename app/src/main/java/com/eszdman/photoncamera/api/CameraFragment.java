@@ -448,7 +448,9 @@ public class CameraFragment extends Fragment
             dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
             dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
             dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
+            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
+            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
             dataset.put("Shakeness", String.valueOf(Interface.getSensors().getShakeness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
@@ -460,8 +462,11 @@ public class CameraFragment extends Fragment
             cl.setVisibility(View.VISIBLE);
             cl.updateText(cl.createTextFrom(dataset));
         } else {
-            surfaceView.update(null);
-            cl.setVisibility(View.GONE);
+            if (surfaceView.rectToDraw != null) {
+                surfaceView.rectToDraw = null;
+                surfaceView.invalidate();
+                cl.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -1048,7 +1053,7 @@ public class CameraFragment extends Fragment
         mCameraIds = manager2.getCameraIdList();
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
-                throw new RuntimeException("Time out waiting to lock camera opening.");
+//                throw new RuntimeException("Time out waiting to lock camera opening.");
             }
             manager.openCamera(Interface.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {

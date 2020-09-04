@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHolder.Callback {
 
     private static final String TAG = "SurfaceViewOverViewfinder";
-    private RectF rectToDraw = new RectF();
+    public RectF rectToDraw = new RectF();
     private final SurfaceHolder mHolder = this.getHolder();
 
     public SurfaceViewOverViewfinder(Context context, AttributeSet attrs) {
@@ -24,19 +24,23 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
         this.setWillNotDraw(false);
-        Canvas canvas = surfaceHolder.lockCanvas();
-        if (canvas == null) {
-            Log.e(TAG, "Canvas is null");
-        } else {
-            canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
-            if (rectToDraw != null) {
-                Paint myPaint = new Paint();
-                myPaint.setColor(Color.rgb(0, 255, 0));
-                myPaint.setStrokeWidth(3);
-                myPaint.setStyle(Paint.Style.STROKE);
-                canvas.drawRect(rectToDraw, myPaint);
+        try {
+            Canvas canvas = surfaceHolder.lockCanvas();
+            if (canvas == null) {
+                Log.e(TAG, "Canvas is null");
+            } else {
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
+                if (rectToDraw != null) {
+                    Paint myPaint = new Paint();
+                    myPaint.setColor(Color.rgb(0, 255, 0));
+                    myPaint.setStrokeWidth(3);
+                    myPaint.setStyle(Paint.Style.STROKE);
+                    canvas.drawRect(rectToDraw, myPaint);
+                }
+                surfaceHolder.unlockCanvasAndPost(canvas);
             }
-            surfaceHolder.unlockCanvasAndPost(canvas);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

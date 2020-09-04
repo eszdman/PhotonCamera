@@ -1,10 +1,6 @@
 package com.eszdman.photoncamera.api;
 
-import com.eszdman.photoncamera.Control.Gravity;
-import com.eszdman.photoncamera.Control.Manual;
-import com.eszdman.photoncamera.Control.Sensors;
-import com.eszdman.photoncamera.Control.Swipe;
-import com.eszdman.photoncamera.Control.TouchFocus;
+import com.eszdman.photoncamera.Control.*;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
@@ -27,8 +23,8 @@ public class Interface {
     private final TouchFocus touchFocus;
     private final CameraUI cameraUI;
     private CameraFragment cameraFragment;
+    private final ManualMode manualMode;
     private Manual manual;
-    private  ManualMode manualMode;
     private SettingsActivity settingsActivity;
 
     public Interface(MainActivity act) {

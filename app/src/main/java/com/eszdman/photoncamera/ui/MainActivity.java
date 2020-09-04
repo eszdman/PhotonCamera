@@ -2,26 +2,20 @@ package com.eszdman.photoncamera.ui;
 
 import android.Manifest;
 import android.content.pm.ActivityInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ToggleButton;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
 import com.eszdman.photoncamera.util.FileManager;
-
-import com.manual.ManualModeImpl;
-import org.opencv.android.OpenCVLoader;
-
 import de.hdodenhof.circleimageview.CircleImageView;
+import org.opencv.android.OpenCVLoader;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -98,7 +92,8 @@ public class MainActivity extends AppCompatActivity {
                         eis.animate().rotation(rot).setDuration(RotationDur).start();
                         fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
                         quadres.animate().rotation(rot).setDuration(RotationDur).start();
-                        Interface.getManualMode().rotate(rot);
+                        if (findViewById(R.id.manual_mode).getVisibility() == View.VISIBLE)
+                            Interface.getManualMode().rotate(rot);
                     }
                 };
     }

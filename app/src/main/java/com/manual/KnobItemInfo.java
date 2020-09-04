@@ -15,11 +15,11 @@ public class KnobItemInfo implements Comparable<KnobItemInfo> {
     public double rotationLeft;
     public double rotationRight;
 
-    public KnobItemInfo(Drawable drawable2, String text2, int tick2, double value2) {
+    public KnobItemInfo(Drawable drawable2, String text, int tick, double value) {
         this.drawable = drawable2;
-        this.text = text2;
-        this.tick = tick2;
-        this.value = value2;
+        this.text = text;
+        this.tick = tick;
+        this.value = value;
     }
 
     public static List<KnobItemInfo> createItemList(Drawable[] drawables, String[] texts, int[] ticks, double[] values) {

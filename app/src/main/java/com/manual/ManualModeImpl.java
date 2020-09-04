@@ -6,10 +6,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.util.Log;
 import android.util.Range;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
@@ -44,7 +44,8 @@ public final class ManualModeImpl implements ManualMode {
     };
     private KnobView defaultKnobView;
     private ImageButton exposureButton, isoButton, focusButton, evButton;
-    private ConstraintLayout knob_container, buttons_container;
+    private LinearLayout buttons_container;
+    private FrameLayout knob_container;
     private ManualModel mfModel, isoModel, expotimeModel, evModel, selectedModel;
     private TextView mfTextView, isoTextview, expoTextView, evTextview;
     private final ManualModel.ValueChangedEvent mfchanged = new ManualModel.ValueChangedEvent() {
@@ -95,7 +96,7 @@ public final class ManualModeImpl implements ManualMode {
 
     @Override
     public void retractAllKnobs() {
-        defaultKnobView.setVisibility(View.INVISIBLE);
+        defaultKnobView.setVisibility(View.GONE);
         defaultKnobView.resetKnob();
         mfModel.resetModel();
         expotimeModel.resetModel();
@@ -142,7 +143,8 @@ public final class ManualModeImpl implements ManualMode {
 
 
         aClass.logIt();
-        knob_container.addView(defaultKnobView, new ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT));
+        knob_container.addView(defaultKnobView);
+        knob_container.setVisibility(View.GONE);
     }
 
     private void setModelToKnob(ManualModel modelToKnob) {
@@ -154,13 +156,15 @@ public final class ManualModeImpl implements ManualMode {
             selectedModel = null;
         } else {
             //defaultKnobView.resetKnob();
-            defaultKnobView.setKnobViewChangedListener(modelToKnob);
-            defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
-            defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
-            defaultKnobView.setTickByValue(modelToKnob.getCurrentInfo().value);
-            defaultKnobView.setVisibility(View.VISIBLE);
-            knob_container.setVisibility(View.VISIBLE);
-            selectedModel = modelToKnob;
+            if (modelToKnob.getKnobInfoList().size() > 1) {
+                defaultKnobView.setKnobViewChangedListener(modelToKnob);
+                defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
+                defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
+                defaultKnobView.setTickByValue(modelToKnob.getCurrentInfo().value);
+                defaultKnobView.setVisibility(View.VISIBLE);
+                knob_container.setVisibility(View.VISIBLE);
+                selectedModel = modelToKnob;
+            }
         }
     }
 
@@ -211,16 +215,19 @@ public final class ManualModeImpl implements ManualMode {
 
     static class CameraCharactersticsOldWay {
         CameraCharacteristics cameraCharacteristics = CameraFragment.mCameraCharacteristics;
-        Range<Float> focusRange = new Range<>(0f, 10f);
+        Float minFocal = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        Float maxFocal = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
+        Range<Float> focusRange = (!(minFocal == null || maxFocal == null || minFocal == 0.0f)) ? new Range<>(Math.min(minFocal, maxFocal), Math.max(minFocal, maxFocal)) : null;
         Range<Integer> isoRange = new Range<>(IsoExpoSelector.getISOLOWExt(), IsoExpoSelector.getISOHIGHExt());
         Range<Long> expRange = new Range<>(IsoExpoSelector.getEXPLOW(), IsoExpoSelector.getEXPHIGH());
         Range<Float> evRange = new Range<>(cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getLower().floatValue(), cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getUpper().floatValue());
 
         public void logIt() {
-            Log.d(TAG, "focusRange" + focusRange.toString());
-            Log.d(TAG, "isoRange" + isoRange.toString());
-            Log.d(TAG, "expRange" + expRange.toString());
-            Log.d(TAG, "evCompRange" + evRange.toString());
+            String lens = Interface.getSettings().mCameraID;
+            Log.d(TAG, "focusRange(" + lens + ") : " + (focusRange == null ? "Fixed [" + maxFocal + "]" : focusRange.toString()));
+            Log.d(TAG, "isoRange(" + lens + ") : " + isoRange.toString());
+            Log.d(TAG, "expRange(" + lens + ") : " + expRange.toString());
+            Log.d(TAG, "evCompRange(" + lens + ") : " + evRange.toString());
         }
 
     }

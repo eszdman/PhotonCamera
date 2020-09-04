@@ -22,39 +22,39 @@ public class IsoModel extends ManualModel<Integer> {
 
     @Override
     protected void fillKnobInfoList() {
-        KnobItemInfo auto = getNewAutoItem(-1.0d);
+        KnobItemInfo auto = getNewAutoItem(-1.0d, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
-        ArrayList<String> arrayList2 = new ArrayList<>();
-        ArrayList<Integer> arrayList3 = new ArrayList<>();
+        ArrayList<String> candidates = new ArrayList<>();
+        ArrayList<Integer> values = new ArrayList<>();
         for (String isoCandidate : ISO_CANDIDATES) {
             int isoValue = Integer.parseInt(isoCandidate);
             if (isoValue >= range.getLower() && isoValue - 50 <= range.getUpper()) {
-                arrayList2.add(isoCandidate);
-                arrayList3.add(isoValue);
+                candidates.add(isoCandidate);
+                values.add(isoValue);
             }
         }
-        int i2 = 0;
-        while (i2 < arrayList2.size()) {
-            boolean isLastItem = i2 == arrayList2.size() + -1;
+        int tick = 0;
+        while (tick < candidates.size()) {
+            boolean isLastItem = tick == candidates.size() + -1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
             drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
             drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
-            if (i2 % 3 == 0 || isLastItem) {
-                drawable.setText(arrayList2.get(i2));
-                drawableSelected.setText(arrayList2.get(i2));
+            if (tick % 3 == 0 || isLastItem) {
+                drawable.setText(candidates.get(tick));
+                drawableSelected.setText(candidates.get(tick));
             }
             StateListDrawable stateDrawable = new StateListDrawable();
             stateDrawable.addState(new int[]{-16842913}, drawable);
             stateDrawable.addState(new int[]{-16842913}, drawableSelected);
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, arrayList2.get(i2), i2 - arrayList2.size(), arrayList3.get(i2)));
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, arrayList2.get(i2), i2 + 1, arrayList3.get(i2)));
-            i2++;
+            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), values.get(tick)));
+            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, values.get(tick)));
+            tick++;
         }
         int angle = Interface.getMainActivity().getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -arrayList2.size(), arrayList2.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
     }
 
     @Override
@@ -66,11 +66,13 @@ public class IsoModel extends ManualModel<Integer> {
     public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
         CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
-        if (newval.value == -1) {
+        if (newval.equals(autoModel)) {
+            if(Interface.getManualMode().getCurrentExposureValue() == -1) //check if Exposure is Auto
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) newval.value);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, Interface.getCameraFragment().mPreviewExposuretime);
         }
         Interface.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(newval.text);

@@ -15,8 +15,8 @@ import java.util.List;
 public abstract class ManualModel<T extends Comparable<? super T>> implements KnobViewChangedListener, IModel {
 
     private final int SET_TO_CAM = 1;
-    private final int UPDATE_TEXT = 1;
-    protected KnobItemInfo currentInfo, autoModel;
+    //    private Handler mainHandler;
+    private final HandlerThread mBackgroundThread;
 
   /*  private class UpdateTextHandler extends Handler
     {
@@ -37,8 +37,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     private final List<KnobItemInfo> knobInfoList;
     private final ValueChangedEvent valueChangedEvent;
     private final Handler backgroundHandler;
-    private Handler mainHandler;
-    private final HandlerThread mBackgroundThread;
+//    private final int UPDATE_TEXT = 1;
+    protected KnobItemInfo currentInfo, autoModel;
     public ManualModel(Range range, ValueChangedEvent valueChangedEvent) {
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
@@ -72,9 +72,11 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         return autoModel;
     }
 
-    protected KnobItemInfo getNewAutoItem(double defaultval) {
+    protected KnobItemInfo getNewAutoItem(double defaultVal, String defaultText) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
         String auto_sring = Interface.getMainActivity().getString(R.string.manual_mode_auto);
+        if (defaultText != null)
+            auto_sring = defaultText;
         autoDrawable.setText(auto_sring);
         autoDrawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
@@ -83,7 +85,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
-        autoModel = new KnobItemInfo(autoStateDrawable, auto_sring, 0, defaultval);
+        autoModel = new KnobItemInfo(autoStateDrawable, auto_sring, 0, defaultVal);
         return autoModel;
     }
 

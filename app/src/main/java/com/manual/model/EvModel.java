@@ -14,6 +14,7 @@ import com.manual.KnobView;
 import com.manual.ShadowTextDrawable;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class EvModel extends ManualModel<Float> {
 
@@ -30,13 +31,13 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getNewAutoItem(0);
+        KnobItemInfo auto = getNewAutoItem(0, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
         float evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
-        ArrayList<Float> arrayList2 = new ArrayList<>();
+        ArrayList<Float> values = new ArrayList<>();
         for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= evStep) {
             float roundedValue = ((float) Math.round(10000.0f * fValue)) / 10000.0f;
             if (!isZero(fValue)) {
@@ -46,13 +47,13 @@ public class EvModel extends ManualModel<Float> {
                     negtiveValueCount++;
                 }
             }
-            arrayList2.add(roundedValue);
+            values.add(roundedValue);
         }
-        if (arrayList2.size() > 0) {
-            arrayList2.set(arrayList2.size() - 1, evRange.getLower());
+        if (values.size() > 0) {
+            values.set(values.size() - 1, evRange.getLower());
         }
-        for (int i = 0; i < arrayList2.size(); i++) {
-            float value = arrayList2.get(i);
+        for (int tick = 0; tick < values.size(); tick++) {
+            float value = values.get(tick);
             if (!isZero(value)) {
                 ShadowTextDrawable drawable = new ShadowTextDrawable();
                 drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
@@ -69,11 +70,11 @@ public class EvModel extends ManualModel<Float> {
                 StateListDrawable stateDrawable = new StateListDrawable();
                 stateDrawable.addState(new int[]{-16842913}, drawable);
                 stateDrawable.addState(new int[]{-16842913}, drawableSelected);
-                String text = String.format("%.2f", value);
+                String text = String.format(Locale.ROOT, "%.2f", value);
                 if (value > 0.0f) {
-                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, positiveValueCount - i, value));
+                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, positiveValueCount - tick, value));
                 } else {
-                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, negtiveValueCount - i, value));
+                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, negtiveValueCount - tick, value));
                 }
             }
         }
@@ -87,12 +88,12 @@ public class EvModel extends ManualModel<Float> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2) {
-        currentInfo = knobItemInfo2;
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
+        currentInfo = knobItemInfo;
         CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo2.value);
+        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value);
         Interface.getCameraFragment().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo2.text);
+        //fireValueChangedEvent(knobItemInfo.text);
     }
 
     private boolean isZero(float value) {

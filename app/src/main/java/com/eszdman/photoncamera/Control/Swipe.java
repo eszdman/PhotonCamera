@@ -8,6 +8,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -21,7 +22,7 @@ import java.util.logging.Handler;
 public class Swipe {
     private static final String TAG = "Swipe";
     private GestureDetector gestureDetector;
-    ConstraintLayout manualmode;
+    FrameLayout manualmode;
     ImageView ocmanual;
     private static int arrowState;
     Animation slideUp;
@@ -131,7 +132,7 @@ public class Swipe {
         CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
         CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
         Interface.getCameraFragment().rebuildPreview();
-        manualmode.setVisibility(View.INVISIBLE);
+        manualmode.setVisibility(View.GONE);
         Interface.getManualMode().retractAllKnobs();
         arrowState ^= 1;
     }

@@ -8,15 +8,15 @@ public class KnobInfo {
     public final int tickMax;
     public final int tickMin;
 
-    public KnobInfo(int angleMin2, int angleMax2, int tickMin2, int tickMax2) {
-        this(angleMin2, angleMax2, tickMin2, tickMax2, 0);
+    public KnobInfo(int angleMin, int angleMax, int tickMin, int tickMax) {
+        this(angleMin, angleMax, tickMin, tickMax, 0);
     }
 
-    public KnobInfo(int angleMin2, int angleMax2, int tickMin2, int tickMax2, int autoAngle2) {
-        this.angleMax = angleMax2;
-        this.angleMin = angleMin2;
-        this.tickMax = tickMax2;
-        this.tickMin = tickMin2;
-        this.autoAngle = autoAngle2;
+    public KnobInfo(int angleMin, int angleMax, int tickMin, int tickMax, int autoAngle) {
+        this.angleMax = angleMax;
+        this.angleMin = angleMin;
+        this.tickMax = tickMax;
+        this.tickMin = tickMin;
+        this.autoAngle = autoAngle;
     }
 }

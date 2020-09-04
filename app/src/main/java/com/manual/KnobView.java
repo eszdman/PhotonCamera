@@ -11,17 +11,14 @@ import android.util.Range;
 import android.view.MotionEvent;
 import android.view.View;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class KnobView extends View {
-    public static final double EPSILON = 1.0E-4d;
     private static final String TAG = KnobView.class.getSimpleName();
     public Range range;
-    protected double defaultValue = -1.0d;
     private final Paint m_BackgroundPaint;
     private boolean m_DashAroundAutoEnabled;
     private final Rect m_DashBounds;
@@ -31,7 +28,6 @@ public class KnobView extends View {
     private double m_DrawableLastDegree;
     private int m_IconPadding;
     private double m_InitRadius;
-    private boolean m_IsSetupIcons;
     private boolean m_IsTouching;
     private KnobInfo m_KnobInfo;
     private List<KnobItemInfo> m_KnobItems;
@@ -42,7 +38,7 @@ public class KnobView extends View {
     private RotationState m_RotationState;
     private int m_Tick;
     private KnobItemInfo m_Value;
-    private final boolean dolog = true;
+    private static final boolean dolog = true;
 
     public KnobView(Context context) {
         this(context, null);
@@ -342,11 +338,13 @@ public class KnobView extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        long startTime = System.nanoTime();
         log("insSizeChanged");
         super.onSizeChanged(w, h, oldw, oldh);
         this.m_RotationCenter = evaluateRotationCenter();
         updateDashBounds();
         updateKnobItemsBounds();
+        log("onSizeChangedTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     @Override
