@@ -24,7 +24,6 @@ public class Interface {
     private final CameraUI cameraUI;
     private CameraFragment cameraFragment;
     private final ManualMode manualMode;
-    private Manual manual;
     private SettingsActivity settingsActivity;
 
     public Interface(MainActivity act) {
@@ -94,14 +93,6 @@ public class Interface {
 
     public static void setCameraFragment(CameraFragment cameraFragment) {
         sInterface.cameraFragment = cameraFragment;
-    }
-
-    public static Manual getManual() {
-        return sInterface.manual;
-    }
-
-    public static void setManual(Manual manual) {
-        sInterface.manual = manual;
     }
 
     public static SettingsActivity getSettingsActivity() {

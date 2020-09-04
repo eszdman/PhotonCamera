@@ -448,9 +448,9 @@ public class CameraFragment extends Fragment
             dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
             dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
             dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
-            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
+//            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
-            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
+//            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
             dataset.put("Shakeness", String.valueOf(Interface.getSensors().getShakeness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);

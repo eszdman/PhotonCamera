@@ -45,10 +45,14 @@ public class IsoExpoSelector {
         if(useTripod) {
             pair.MinIso();
         }
-        if(Interface.getSettings().ManualMode && Interface.getManual().exposure){
-            pair.exposure = (long)(ExposureIndex.sec*Interface.getManual().expvalue);
-            pair.iso = (int)(Interface.getManual().isovalue/getMPY());
-        }
+//        if (Interface.getSettings().ManualMode) {
+//            pair.exposure = (long)(ExposureIndex.sec*Interface.getManual().expvalue);
+//            pair.iso = (int)(Interface.getManual().isovalue/getMPY());
+        double currentManExp = Interface.getManualMode().getCurrentExposureValue();
+        double currentManISO = Interface.getManualMode().getCurrentISOValue();
+        pair.exposure = currentManExp != -1 ? (long) currentManExp : Interface.getCameraFragment().mPreviewExposuretime;
+        pair.iso = currentManISO != -1 ? (int) currentManISO : Interface.getCameraFragment().mPreviewIso;
+//        }
 //        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
 //            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
 //            pair.iso = (int)(Interface.i.manual.isovalue/getMPY());

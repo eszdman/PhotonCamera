@@ -32,7 +32,6 @@ public final class ManualModeImpl implements ManualMode {
     private final ManualModel.ValueChangedEvent expochanged = new ManualModel.ValueChangedEvent() {
         @Override
         public void onValueChanged(String value) {
-
             expoTextView.post(() -> expoTextView.setText(value));
         }
     };
@@ -132,40 +131,14 @@ public final class ManualModeImpl implements ManualMode {
         defaultKnobView = new KnobView(activity);
 
         CameraCharactersticsOldWay aClass = new CameraCharactersticsOldWay();
-
         mfModel = new FocusModel(aClass.focusRange, mfchanged);
-
         evModel = new EvModel(aClass.evRange, evchanged);
-
         isoModel = new IsoModel(aClass.isoRange, isochanged);
-
         expotimeModel = new ShutterModel(aClass.expRange, expochanged);
-
 
         aClass.logIt();
         knob_container.addView(defaultKnobView);
         knob_container.setVisibility(View.GONE);
-    }
-
-    private void setModelToKnob(ManualModel modelToKnob) {
-        if (modelToKnob == selectedModel) {
-//            defaultKnobView.resetKnob();
-            defaultKnobView.setKnobViewChangedListener(null);
-            defaultKnobView.setVisibility(View.GONE);
-            knob_container.setVisibility(View.GONE);
-            selectedModel = null;
-        } else {
-            //defaultKnobView.resetKnob();
-            if (modelToKnob.getKnobInfoList().size() > 1) {
-                defaultKnobView.setKnobViewChangedListener(modelToKnob);
-                defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
-                defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
-                defaultKnobView.setTickByValue(modelToKnob.getCurrentInfo().value);
-                defaultKnobView.setVisibility(View.VISIBLE);
-                knob_container.setVisibility(View.VISIBLE);
-                selectedModel = modelToKnob;
-            }
-        }
     }
 
     private void setupOnClickListeners() {
@@ -211,6 +184,27 @@ public final class ManualModeImpl implements ManualMode {
         evModel.fireValueChangedEvent(evModel.getAutoModel().text);
         expotimeModel.fireValueChangedEvent(expotimeModel.getAutoModel().text);
         isoModel.fireValueChangedEvent(isoModel.getAutoModel().text);
+    }
+
+    private void setModelToKnob(ManualModel modelToKnob) {
+        if (modelToKnob == selectedModel) {
+//            defaultKnobView.resetKnob();
+            defaultKnobView.setKnobViewChangedListener(null);
+            defaultKnobView.setVisibility(View.GONE);
+            knob_container.setVisibility(View.GONE);
+            selectedModel = null;
+        } else {
+            //defaultKnobView.resetKnob();
+            if (modelToKnob.getKnobInfoList().size() > 1) {
+                defaultKnobView.setKnobViewChangedListener(modelToKnob);
+                defaultKnobView.setKnobInfo(modelToKnob.getKnobInfo());
+                defaultKnobView.setKnobItems(modelToKnob.getKnobInfoList());
+                defaultKnobView.setTickByValue(modelToKnob.getCurrentInfo().value);
+                defaultKnobView.setVisibility(View.VISIBLE);
+                knob_container.setVisibility(View.VISIBLE);
+                selectedModel = modelToKnob;
+            }
+        }
     }
 
     static class CameraCharactersticsOldWay {
