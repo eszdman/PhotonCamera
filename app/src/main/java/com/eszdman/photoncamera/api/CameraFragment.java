@@ -1205,7 +1205,7 @@ public class CameraFragment extends Fragment
     }
     public void rebuildPreview(){
         try {
-            mCaptureSession.stopRepeating();
+//            mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequest,
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -1214,7 +1214,7 @@ public class CameraFragment extends Fragment
     }
     public void rebuildPreviewBuilder(){
         try {
-            mCaptureSession.stopRepeating();
+//            mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
                     mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {

@@ -102,8 +102,9 @@ public class ShutterModel extends ManualModel<Long> {
             if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
+            Range<Long> clampedRange = new Range<>(10000000L, 100000000L); //clamped between 1/100s to 1/10s
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, (long) knobItemInfo.value);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)));
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, Interface.getCameraFragment().mPreviewIso);
         }
         Interface.getCameraFragment().rebuildPreviewBuilder();
