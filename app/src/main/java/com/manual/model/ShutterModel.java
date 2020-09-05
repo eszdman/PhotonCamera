@@ -17,7 +17,7 @@ import java.util.Locale;
 
 public class ShutterModel extends ManualModel<Long> {
 
-    public static final String[] EXPOSURE_TIME_CANDIDATES = {"Min", "1/30000", "1/15000", "1/20000", "1/18000", "1/16000", "1/14000", "1/12000", "1/10000", "1/8000", "1/6400", "1/5000", "1/4000", "1/3200", "1/2500", "1/2000", "1/1600", "1/1250", "1/1000", "1/800", "1/640", "1/500", "1/400", "1/320", "1/250", "1/200", "1/160", "1/125", "1/100", "1/80", "1/60", "1/50", "1/40", "1/30", "1/25", "1/20", "1/15", "1/13", "1/10", "1/8", "1/6", "1/5", "1/4", "1/3", "0.4", "0.5", "0.6", "0.75", "1", "1.3", "1.6", "2", "2.5", "3", "4", "5", "6", "8", "10", "13", "15", "20", "25", "30", "31","32","33","34", "Max"};
+    public static final String[] EXPOSURE_TIME_CANDIDATES = {"Min", "1/30000", "1/25000", "1/20000", "1/18000", "1/16000", "1/14000", "1/12000", "1/10000", "1/8000", "1/6400", "1/5000", "1/4000", "1/3200", "1/2500", "1/2000", "1/1600", "1/1250", "1/1000", "1/800", "1/640", "1/500", "1/400", "1/320", "1/250", "1/200", "1/160", "1/125", "1/100", "1/80", "1/60", "1/50", "1/40", "1/30", "1/25", "1/20", "1/15", "1/13", "1/10", "1/8", "1/6", "1/5", "1/4", "1/3", "0.4", "0.5", "0.6", "0.75", "1", "1.3", "1.6", "2", "2.5", "3", "4", "5", "6", "8", "10", "13", "15", "20", "25", "30", "31","32","33","34", "Max"};
 
 
     public ShutterModel(Range range, ValueChangedEvent valueChangedEvent) {
@@ -102,7 +102,7 @@ public class ShutterModel extends ManualModel<Long> {
             if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
-            Range<Long> clampedRange = new Range<>(10000000L, 100000000L); //clamped between 1/100s to 1/10s
+            Range<Long> clampedRange = new Range<>(1000000L, 100000000L); //clamped between 1/1000s to 1/10s
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)));
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, Interface.getCameraFragment().mPreviewIso);
