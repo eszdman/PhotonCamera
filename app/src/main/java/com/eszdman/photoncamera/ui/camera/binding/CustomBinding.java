@@ -20,24 +20,19 @@ public class CustomBinding {
     @BindingAdapter("bindRotate")
     public static void rotatetView(View view, CameraFragmentModel model)
     {
-        if (model != null && view.getId() != R.id.layout_topbar)
+        if (model != null)
             view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
     }
 
     //handel the rotation that should get applied to "@+id/buttons_container" when the CameraFragmentModels rotation change
     //the ui item must add bindChildsRotate="@{uimodel}"/>
     @BindingAdapter("bindChildsRotate")
-    public static void rotatetKnobView(View view, CameraFragmentModel model)
+    public static void rotatetKnobView(KnobView view, CameraFragmentModel model)
     {
-        if (model != null && view.getId() != R.id.layout_topbar) {
+        if (model != null) {
             int orientation = model.getOrientation();
-            int duration = model.getDuration();
-            LinearLayout defaultKnobView = (LinearLayout) view;
-            if (defaultKnobView != null) {
-                for (int i = 0; i < defaultKnobView.getChildCount(); i++) {
-                    defaultKnobView.getChildAt(i).animate().rotation(orientation).setDuration(duration).start();
-                }
-            }
+            KnobView defaultKnobView = view;
+            defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
         }
     }
 }

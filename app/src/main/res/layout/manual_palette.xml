@@ -19,6 +19,12 @@
             android:id="@+id/knob_container"
             android:orientation="horizontal"
     >
+
+        <com.manual.KnobView
+            android:id="@+id/knobView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            bindChildsRotate="@{uimodel}"/>
     </FrameLayout>
     <LinearLayout
             android:layout_width="match_parent"
@@ -27,7 +33,6 @@
             android:paddingBottom="15dp"
             android:orientation="horizontal"
             android:background="@color/panel_transparency"
-        bindChildsRotate="@{uimodel}"
     >
         <LinearLayout
                 android:id="@+id/focus_button_container"
