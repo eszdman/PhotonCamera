@@ -20,6 +20,7 @@ import android.widget.TextView;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
@@ -76,7 +77,7 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Interface.setSettingsActivity(this);
         setContentView(R.layout.activity_settings);
-        if(Interface.getSettings().hdrx){
+        if(PreferenceKeys.isHdrxNrOn()){
             LinearLayout jpg = findViewById(R.id.settingsJPG);
             TextView jpgt = findViewById(R.id.textjpgset);
             jpgt.setVisibility(View.GONE);

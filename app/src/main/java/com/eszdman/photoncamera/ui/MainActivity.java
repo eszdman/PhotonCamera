@@ -8,11 +8,13 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ToggleButton;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import de.hdodenhof.circleimageview.CircleImageView;
 import org.opencv.android.OpenCVLoader;
@@ -39,9 +41,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         act = this;
         new Interface(this);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        PreferenceKeys.setDefaults();
         //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         FileManager.CreateFolders();

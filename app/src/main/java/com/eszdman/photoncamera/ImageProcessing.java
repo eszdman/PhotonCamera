@@ -21,6 +21,7 @@ import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -151,14 +152,14 @@ public class ImageProcessing {
         Log.d("ImageProcessing Stab", "Curimgs size " + curimgs.size());
         Mat output = new Mat();
         col[col.length - 1].copyTo(output);
-        boolean aligning = Interface.getSettings().align;
+//        boolean aligning = Interface.getSettings().align;
         ArrayList<Mat> imgsmat = new ArrayList<>();
         MergeMertens merge = Photo.createMergeMertens();
         AlignMTB align = Photo.createAlignMTB();
         Point shiftprev = new Point();
         int alignopt = 2;
         for (int i = 0; i < curimgs.size() - 1; i += alignopt) {
-            if (aligning) {
+            if (PreferenceKeys.isDisableAligningOn()) {
                 //Mat h=new Mat();
                 Point shift;
                 {
@@ -214,11 +215,11 @@ public class ImageProcessing {
                     Imgproc.pyrUp(diff, diff);
                     Imgproc.pyrUp(diff, diff, new Size(cur.width(), cur.height()));
                     Core.addWeighted(cur, 1, diff, -1, 0, cur);
-                    if (!Interface.getSettings().enhancedProcess) {
+                    if (!PreferenceKeys.isEnhancedProcessionOn()) {
                         Imgproc.blur(cur, cur, new Size(2, 2));
                         Imgproc.bilateralFilter(cur, out, Interface.getSettings().lumenCount / 4, Interface.getSettings().lumenCount, Interface.getSettings().lumenCount);
                     }
-                    if (Interface.getSettings().enhancedProcess)
+                    if (PreferenceKeys.isEnhancedProcessionOn())
                         Photo.fastNlMeansDenoising(cur, out, (float) (Interface.getSettings().lumenCount) / 6.5f, 3, 15);
                     out.copyTo(temp);
                     Imgproc.blur(temp, temp, new Size(4, 4));

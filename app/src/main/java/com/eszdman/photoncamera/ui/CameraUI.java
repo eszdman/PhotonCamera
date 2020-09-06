@@ -12,6 +12,7 @@ import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
 
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.wefika.horizontalpicker.HorizontalPicker;
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -159,9 +160,9 @@ public class CameraUI {
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
         Interface.getGravity().run();
-        if (Interface.getSettings().grid) grid_icon.setVisibility(View.VISIBLE);
+        if (PreferenceKeys.isShowGridOn()) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
-        if (Interface.getSettings().roundedge) edges.setVisibility(View.VISIBLE);
+        if (PreferenceKeys.isRoundEdgeOn()) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.getSettings().hdrx);
         Interface.getCameraFragment().startBackgroundThread();

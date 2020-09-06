@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:gravity="top"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="@dimen/camera_settings_entry_margin"
+        android:paddingBottom="@dimen/camera_settings_entry_margin"
+        android:minHeight="?android:listPreferredItemHeight"
+        android:paddingEnd="?android:scrollbarSize"
+        android:paddingStart="?android:scrollbarSize"
+>
+    <ImageView
+            android:layout_gravity="top|center"
+            android:id="@android:id/icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:src="@drawable/ic_splash"
+            android:contentDescription="@string/icon_string"/>
+
+    <TextView
+            android:textSize="20sp"
+            android:ellipsize="marquee"
+            android:id="@android:id/title"
+            android:fadingEdge="horizontal"
+            android:layout_gravity="top|center_horizontal"
+            android:padding="10dp"
+            tools:text="Title"
+            android:textColor="?android:textColorPrimary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    <TextView
+            android:textAppearance="?android:textAppearanceSmall"
+            android:textColor="?android:textColorSecondary"
+            android:id="@android:id/summary"
+            tools:text="Summary"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="wrap_content"
+            android:textAlignment="center"
+            android:layout_height="wrap_content"
+    />
+</LinearLayout>

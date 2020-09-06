@@ -17,6 +17,7 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -112,7 +113,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
-        if(Interface.getSettings().hdrxNR) {
+        if(PreferenceKeys.isHdrxNrOn()) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
@@ -124,7 +125,7 @@ public class PostPipeline extends GLBasePipeline {
 
         Bitmap img = runAll();
         img = RotateBitmap(img,getRotation());
-        if (Interface.getSettings().watermark) addWatermark(img,0.06f);
+        if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);

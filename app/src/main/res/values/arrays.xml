@@ -9,8 +9,8 @@
         <item>MONO</item>
     </string-array>
     <string-array name="alignset">
-        <item>Align: Pcam CPU</item>
-        <item>Align: Pcam GPU</item>
-        <item>Align: NightCam GPU(not working)</item>
+        <item>Pcam CPU</item>
+        <item>Pcam GPU</item>
+        <item>NightCam GPU(not working)</item>
     </string-array>
 </resources>

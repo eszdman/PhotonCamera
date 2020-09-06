@@ -49,5 +49,10 @@
     <string name="manual_mode_auto">Auto</string>
     <string name="manual_mode_manual">Manual</string>
     <string name="manual_mode_fixed">Fixed</string>
+    <string name="pref_show_grid_title">Show Grid</string>
+    <string name="cfa">CFA</string>
+    <string name="align_method">Align Method</string>
+    <string name="icon_string">Icon</string>
+    <string name="pref_save_per_lens_string">Save settings for each lens separately</string>
 
 </resources>

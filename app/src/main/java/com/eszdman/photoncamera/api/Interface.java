@@ -1,9 +1,13 @@
 package com.eszdman.photoncamera.api;
 
-import com.eszdman.photoncamera.Control.*;
+import com.eszdman.photoncamera.Control.Gravity;
+import com.eszdman.photoncamera.Control.Sensors;
+import com.eszdman.photoncamera.Control.Swipe;
+import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
+import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.CameraUI;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
@@ -25,6 +29,7 @@ public class Interface {
     private CameraFragment cameraFragment;
     private final ManualMode manualMode;
     private SettingsActivity settingsActivity;
+    private final SettingsManager settingsManager;
 
     public Interface(MainActivity act) {
         sInterface = this;
@@ -40,6 +45,7 @@ public class Interface {
         sensors = new Sensors();
         cameraUI = new CameraUI();
         manualMode = ManualMode.getInstance(act);
+        settingsManager = new SettingsManager(act);
 
     }
 
@@ -104,7 +110,11 @@ public class Interface {
     }
 
     public static ManualMode getManualMode() {
-       return sInterface.manualMode;
+        return sInterface.manualMode;
+    }
+
+    public static SettingsManager getSettingsManager() {
+        return sInterface.settingsManager;
     }
 
     //  a MemoryInfo object for the device's current memory status.

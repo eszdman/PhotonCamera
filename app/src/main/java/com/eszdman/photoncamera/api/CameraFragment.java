@@ -52,8 +52,10 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
+import com.eszdman.photoncamera.ui.SettingsActivity2;
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
 import com.manual.ManualModeImpl;
@@ -440,7 +442,7 @@ public class CameraFragment extends Fragment
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (Interface.getSettings().afdata) {
+        if (PreferenceKeys.isAfDataOn()) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -649,7 +651,7 @@ public class CameraFragment extends Fragment
             case R.id.settings: {
 //                closeCamera();
 //                Interface.getSettings().openSettingsActivity();
-                Intent intent = new Intent(MainActivity.act, SettingsActivity.class);
+                Intent intent = new Intent(MainActivity.act, SettingsActivity2.class);
                 startActivity(intent);
                 break;
             }
@@ -657,10 +659,12 @@ public class CameraFragment extends Fragment
                 ToggleButton sw = (ToggleButton) view;
                 if (sw.isChecked()) {
                     mTargetFormat = rawFormat;
-                    Interface.getSettings().hdrx = true;
+//                    Interface.getSettings().hdrx = true;
+                    PreferenceKeys.setHdrX(true);
                 } else {
                     mTargetFormat = yuvFormat;
-                    Interface.getSettings().hdrx = false;
+//                    Interface.getSettings().hdrx = false;
+                    PreferenceKeys.setHdrX(false);
                 }
                 Interface.getSettings().save();
                 restartCamera();

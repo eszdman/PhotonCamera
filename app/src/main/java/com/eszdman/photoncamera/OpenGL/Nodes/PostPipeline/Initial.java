@@ -10,6 +10,7 @@ import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Render.Converter;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.nio.FloatBuffer;
 
@@ -38,7 +39,8 @@ public class Initial extends Node {
         glProg.setvar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setvar("gain", (float)Interface.getSettings().gain);
         glProg.setvar("neutralPoint",params.whitepoint);
-        float sat =(float)Interface.getSettings().saturation;
+//        float sat =(float)Interface.getSettings().saturation;
+        float sat =(float) PreferenceKeys.getSaturationValue();
         if(Interface.getSettings().cfaPattern == -2) sat = 0.f;
         glProg.setvar("saturation",sat);
         for(int i =0; i<4;i++){

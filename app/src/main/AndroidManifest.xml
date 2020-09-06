@@ -24,7 +24,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:targetApi="q">
-        <activity android:name=".ui.SettingsActivity" />
+        <activity android:name=".ui.SettingsActivity"  />
+        <activity android:name=".ui.SettingsActivity2"/>
         <activity
             android:name=".ui.SplashActivity"
             android:theme="@style/SplashTheme">

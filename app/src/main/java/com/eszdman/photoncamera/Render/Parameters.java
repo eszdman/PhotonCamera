@@ -13,6 +13,7 @@ import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -178,9 +179,9 @@ public class Parameters {
                 ", hasGainMap=" + hasGainMap +
                 ", framecount=" + FrameNumberSelector.frameCount +
                 ", CameraID=" + Interface.getSettings().mCameraID +
-                ", Satur=" + FltFormat(Interface.getSettings().saturation) +
+                ", Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
                 ", Gain=" + FltFormat(Interface.getSettings().gain) +
-                ", Sharpness=" + FltFormat(Interface.getSettings().sharpness);
+                ", Sharpness=" + FltFormat(PreferenceKeys.getSharpnessValue());
     }
 
     @SuppressLint("DefaultLocale")
