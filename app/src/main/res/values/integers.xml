@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="manual_awb_knob_view_angle_half">45</integer>
+    <integer name="manual_awb_knob_view_auto_angle">0</integer>
+    <integer name="manual_color_temperature_knob_view_angle_half">170</integer>
+    <integer name="manual_color_temperature_knob_view_auto_angle">40</integer>
+    <integer name="manual_exposure_knob_view_angle_half">140</integer>
+    <integer name="manual_exposure_knob_view_auto_angle">30</integer>
+    <integer name="manual_focus_knob_view_angle_half">50</integer>
+    <integer name="manual_focus_knob_view_auto_angle">30</integer>
+    <integer name="manual_iso_knob_view_angle_half">130</integer>
+    <integer name="manual_iso_knob_view_auto_angle">30</integer>
+    <integer name="manual_ev_knob_view_angle_half">80</integer>
+    <integer name="manual_ev_knob_view_auto_angle">15</integer>
+</resources>

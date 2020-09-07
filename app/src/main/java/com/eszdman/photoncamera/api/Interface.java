@@ -1,16 +1,13 @@
 package com.eszdman.photoncamera.api;
 
-import com.eszdman.photoncamera.Control.Gravity;
-import com.eszdman.photoncamera.Control.Manual;
-import com.eszdman.photoncamera.Control.Sensors;
-import com.eszdman.photoncamera.Control.Swipe;
-import com.eszdman.photoncamera.Control.TouchFocus;
+import com.eszdman.photoncamera.Control.*;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.ui.CameraUI;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
+import com.manual.ManualMode;
 
 public class Interface {
     private static Interface sInterface;
@@ -26,7 +23,7 @@ public class Interface {
     private final TouchFocus touchFocus;
     private final CameraUI cameraUI;
     private CameraFragment cameraFragment;
-    private Manual manual;
+    private final ManualMode manualMode;
     private SettingsActivity settingsActivity;
 
     public Interface(MainActivity act) {
@@ -42,6 +39,8 @@ public class Interface {
         parameters = new Parameters();
         sensors = new Sensors();
         cameraUI = new CameraUI();
+        manualMode = ManualMode.getInstance(act);
+
     }
 
     public static MainActivity getMainActivity() {
@@ -96,14 +95,6 @@ public class Interface {
         sInterface.cameraFragment = cameraFragment;
     }
 
-    public static Manual getManual() {
-        return sInterface.manual;
-    }
-
-    public static void setManual(Manual manual) {
-        sInterface.manual = manual;
-    }
-
     public static SettingsActivity getSettingsActivity() {
         return sInterface.settingsActivity;
     }
@@ -112,11 +103,15 @@ public class Interface {
         sInterface.settingsActivity = settingsActivity;
     }
 
+    public static ManualMode getManualMode() {
+       return sInterface.manualMode;
+    }
+
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {
         ActivityManager activityManager = (ActivityManager) mainActivity.SystemService(ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-        activityManager.MemoryInfo(memoryInfo);
+        activityManager.getMemoryInfo(memoryInfo);
         return memoryInfo;
     }*/
 }

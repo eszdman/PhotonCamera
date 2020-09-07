@@ -17,7 +17,6 @@
 package com.eszdman.photoncamera.wefika.horizontalpicker;
 
 import android.animation.ArgbEvaluator;
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -25,22 +24,32 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.os.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.text.BoringLayout;
 import android.text.Layout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.view.*;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
+import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
+
 import androidx.core.text.TextDirectionHeuristicCompat;
 import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+
 import com.eszdman.photoncamera.R;
 
 import java.lang.ref.WeakReference;
@@ -343,29 +352,22 @@ public class HorizontalPicker extends View {
 
     private TextDirectionHeuristicCompat getTextDirectionHeuristic() {
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        // Always need to resolve layout direction first
+        final boolean defaultIsRtl = (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
 
-            return TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR;
-
-        } else {
-
-            // Always need to resolve layout direction first
-            final boolean defaultIsRtl = (getLayoutDirection() == LAYOUT_DIRECTION_RTL);
-
-            switch (getTextDirection()) {
-                default:
-                case TEXT_DIRECTION_FIRST_STRONG:
-                    return (defaultIsRtl ? TextDirectionHeuristicsCompat.FIRSTSTRONG_RTL :
-                            TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR);
-                case TEXT_DIRECTION_ANY_RTL:
-                    return TextDirectionHeuristicsCompat.ANYRTL_LTR;
-                case TEXT_DIRECTION_LTR:
-                    return TextDirectionHeuristicsCompat.LTR;
-                case TEXT_DIRECTION_RTL:
-                    return TextDirectionHeuristicsCompat.RTL;
-                case TEXT_DIRECTION_LOCALE:
-                    return TextDirectionHeuristicsCompat.LOCALE;
-            }
+        switch (getTextDirection()) {
+            default:
+            case TEXT_DIRECTION_FIRST_STRONG:
+                return (defaultIsRtl ? TextDirectionHeuristicsCompat.FIRSTSTRONG_RTL :
+                        TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR);
+            case TEXT_DIRECTION_ANY_RTL:
+                return TextDirectionHeuristicsCompat.ANYRTL_LTR;
+            case TEXT_DIRECTION_LTR:
+                return TextDirectionHeuristicsCompat.LTR;
+            case TEXT_DIRECTION_RTL:
+                return TextDirectionHeuristicsCompat.RTL;
+            case TEXT_DIRECTION_LOCALE:
+                return TextDirectionHeuristicsCompat.LOCALE;
         }
     }
 
@@ -402,13 +404,8 @@ public class HorizontalPicker extends View {
 
             edgeEffect.setSize(height, width);
             if (edgeEffect.draw(canvas)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                     postInvalidateOnAnimation();
-                } else {
-                    postInvalidate();
-                }
             }
-
             canvas.restoreToCount(restoreCount);
         }
 
@@ -1037,13 +1034,13 @@ public class HorizontalPicker extends View {
 
     public interface OnItemSelected {
 
-        public void onItemSelected(int index);
+        void onItemSelected(int index);
 
     }
 
     public interface OnItemClicked {
 
-        public void onItemClicked(int index);
+        void onItemClicked(int index);
 
     }
 

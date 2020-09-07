@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.*;
 
 
-import com.eszdman.photoncamera.Control.Manual;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraManager2;
@@ -34,7 +33,6 @@ public class CameraUI {
     @SuppressLint("ResourceType")
     public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
-        Interface.getManual().Init();
         String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
         if (auxGroup.getChildCount() == 0 && cameras.length > 2) {
             for (int i = 1; i < cameras.length; i++) {
@@ -50,6 +48,7 @@ public class CameraUI {
                 Interface.getCameraFragment().restartCamera();
             });
         }
+        Interface.getManualMode().init();
     }
 
     public void onCameraViewCreated() {
@@ -106,7 +105,6 @@ public class CameraUI {
         modePicker.setOnItemSelectedListener(index -> switchToMode(Settings.CameraMode.valueOf(modes[index])));
         modePicker.setSelectedItem(1);
         auxGroup = Interface.getMainActivity().findViewById(R.id.auxButtons);
-        Interface.setManual(new Manual());
     }
 
     public void switchToMode(Settings.CameraMode cameraMode) {

@@ -1,7 +1,5 @@
 package com.eszdman.photoncamera.OpenGL;
 
-import android.annotation.SuppressLint;
-
 import com.eszdman.photoncamera.Render.Parameters;
 import com.eszdman.photoncamera.api.Interface;
 import java.io.BufferedReader;
