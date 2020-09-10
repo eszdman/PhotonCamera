@@ -92,11 +92,8 @@ public class ShutterModel extends ManualModel<Long> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        try {
-            Interface.getCameraFragment().mCaptureSession.abortCaptures();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+        Interface.getCameraFragment().getiCaptureSession().abortCaptures();
+
         CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
             if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
