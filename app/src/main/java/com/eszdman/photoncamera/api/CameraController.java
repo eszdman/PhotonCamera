@@ -74,6 +74,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCamera.setCameraEventsListner(this);
         iCaptureSession = new CaptureSessionImpl(iCamera);
         iCaptureSession.setCaptureSessionEventListner(this);
+        imageSaver = new ImageSaver();
     }
 
     private static CameraController cameraController = new CameraController();
