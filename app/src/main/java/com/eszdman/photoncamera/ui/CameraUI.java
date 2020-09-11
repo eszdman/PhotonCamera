@@ -39,23 +39,34 @@ public class CameraUI {
     @SuppressLint("ResourceType")
     public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
-        String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
+        String[] cameras = CameraController.GET().mCameraIds;
         if (auxGroup.getChildCount() == 0 && cameras.length > 2) {
-            for (int i = 1; i < cameras.length; i++) {
-                RadioButton rb = new RadioButton(Interface.getMainActivity());
+            auxGroup.removeAllViews();
+            auxGroup.clearCheck();
+            for (int i = 0; i < cameras.length-1; i++) {
+                RadioButton rb = new RadioButton(auxGroup.getContext());
+                rb.setId(i);
                 rb.setText("");
                 auxGroup.addView(rb);
             }
             Interface.getSettings().mCameraID = "0";
-            auxGroup.check(1);
+            auxGroup.check(0);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
-                if (isFrontCam(CameraController.GET().mCameraIds[i])) i++;
-                if (i >= CameraController.GET().mCameraIds.length)
-                    i = i - CameraController.GET().mCameraIds.length;
-                Interface.getSettings().mCameraID = CameraController.GET().mCameraIds[i];
+                int radioButtonID = radioGroup.getCheckedRadioButtonId();
+                View radioButton = radioGroup.findViewById(radioButtonID);
+
+                int position = radioGroup.indexOfChild(radioButton);
+                i = position;
+                final String camids[] = CameraController.GET().mCameraIds;
+                for (int t = 0; t <= position;t++)
+                    if (isFrontCam(camids[t])) i++;
+                Log.v(TAG, "radiogroup int: "+ i +"  Set camid : " + camids[i]);
+                Interface.getSettings().mCameraID = camids[i];
                 CameraController.GET().restartCamera();
             });
         }
+
+
         Interface.getManualMode().init();
     }
 
