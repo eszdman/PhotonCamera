@@ -1,6 +1,10 @@
 package com.eszdman.photoncamera.ui;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.*;
@@ -9,6 +13,7 @@ import android.widget.*;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraController;
+import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
@@ -44,12 +49,30 @@ public class CameraUI {
             Interface.getSettings().mCameraID = "0";
             auxGroup.check(1);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
-                if (i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
-                Interface.getSettings().mCameraID = CameraController.GET().mCameraIds[i - 1];
+                if (isFrontCam(CameraController.GET().mCameraIds[i])) i++;
+                if (i >= CameraController.GET().mCameraIds.length)
+                    i = i - CameraController.GET().mCameraIds.length;
+                Interface.getSettings().mCameraID = CameraController.GET().mCameraIds[i];
                 CameraController.GET().restartCamera();
             });
         }
         Interface.getManualMode().init();
+    }
+
+    private boolean isFrontCam(String id)
+    {
+        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
+        CameraCharacteristics characteristics = null;
+        try {
+            characteristics = manager.getCameraCharacteristics(id);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        if (characteristics == null) {
+            Log.e(TAG, "Failed to get Characteristics for camera id:" + id);
+            return false;
+        }
+        return characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT;
     }
 
     public void onCameraViewCreated() {
@@ -60,10 +83,10 @@ public class CameraUI {
         loadingcycle = Interface.getMainActivity().findViewById(R.id.progressloading);
         loadingcycle.setMax(Interface.getSettings().frameCount);
         shot = Interface.getMainActivity().findViewById(R.id.picture);
-        shot.setOnClickListener(Interface.getCameraFragment());
+        shot.setOnClickListener(CameraFragment.GET());
         shot.setActivated(true);
         galleryImageButton = Interface.getMainActivity().findViewById(R.id.ImageOut);
-        galleryImageButton.setOnClickListener(Interface.getCameraFragment());
+        galleryImageButton.setOnClickListener(CameraFragment.GET());
         galleryImageButton.setClickable(true);
         Interface.getTouchFocus().ReInit();
         fpsPreview = Interface.getMainActivity().findViewById(R.id.fpsPreview);
@@ -88,17 +111,17 @@ public class CameraUI {
         flip = Interface.getMainActivity().findViewById(R.id.flip_camera);
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
-            Interface.getCameraFragment().mTextureView.animate().rotationBy(360).setDuration(450).start();
-            Interface.getSettings().mCameraID = Interface.getCameraFragment().cycler(Interface.getSettings().mCameraID);
+            CameraFragment.GET().mTextureView.animate().rotationBy(360).setDuration(450).start();
+            Interface.getSettings().mCameraID = cycler(Interface.getSettings().mCameraID);
             Interface.getSettings().saveID();
             Interface.getSettings().load();
             CameraController.GET().restartCamera();
         });
         settings = Interface.getMainActivity().findViewById(R.id.settings);
-        settings.setOnClickListener(Interface.getCameraFragment());
+        settings.setOnClickListener(CameraFragment.GET());
         hdrX = Interface.getMainActivity().findViewById(R.id.stacking);
-        hdrX.setOnClickListener(Interface.getCameraFragment());
-        Interface.getCameraFragment().loadGalleryButtonImage();
+        hdrX.setOnClickListener(CameraFragment.GET());
+        CameraFragment.GET().loadGalleryButtonImage();
         modePicker = Interface.getMainActivity().findViewById(R.id.modePicker);
         String[] modes = Settings.CameraMode.names();
         modePicker.setValues(modes);
@@ -106,6 +129,54 @@ public class CameraUI {
         modePicker.setOnItemSelectedListener(index -> switchToMode(Settings.CameraMode.valueOf(modes[index])));
         modePicker.setSelectedItem(1);
         auxGroup = Interface.getMainActivity().findViewById(R.id.auxButtons);
+    }
+
+    private String cycler(String id) {
+        boolean front1 = isFrontCam(id);
+        String ret = "0";
+        if (front1)
+        {
+            for (String s : CameraController.GET().mCameraIds)
+                if (!isFrontCam(s)) {
+                    ret = s;
+                    Interface.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
+                    break;
+                }
+        }
+        else
+        {
+            for (String s : CameraController.GET().mCameraIds)
+                if (isFrontCam(s)) {
+                    ret = s;
+                    Interface.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
+                    break;
+                }
+        }
+        return ret;
+
+        /*boolean front2 = isFrontCam(id+1);
+        String[] ids;
+        if(CameraManager2.cameraManager2.supportFrontCamera) {
+            if(Interface.getCameraUI().auxGroup.getChildCount() != 0) {
+                int i = Interface.getCameraUI().auxGroup.getCheckedRadioButtonId();
+                if (i >= 2) i++;
+                ids = new String[]{CameraController.GET().mCameraIds[i - 1], "1"};
+            } else ids = new String[]{"0","1"};
+        }
+        else {
+            return "0";
+        }
+        int n = 0;
+        for (int i = 0; i < ids.length; i++) {
+            if (id.equals(ids[i])) n = i;
+        }
+        n++;
+        n %= ids.length;
+        if(n == 1) Interface.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
+        else {
+            Interface.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
+        }
+        return ids[n];*/
     }
 
     public void switchToMode(Settings.CameraMode cameraMode) {

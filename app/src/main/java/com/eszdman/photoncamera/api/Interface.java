@@ -22,7 +22,6 @@ public class Interface {
     private final Parameters parameters;
     private final TouchFocus touchFocus;
     private final CameraUI cameraUI;
-    private CameraFragment cameraFragment;
     private final ManualMode manualMode;
     private SettingsActivity settingsActivity;
 
@@ -85,14 +84,6 @@ public class Interface {
 
     public static CameraUI getCameraUI() {
         return sInterface.cameraUI;
-    }
-
-    public static CameraFragment getCameraFragment() {
-        return sInterface.cameraFragment;
-    }
-
-    public static void setCameraFragment(CameraFragment cameraFragment) {
-        sInterface.cameraFragment = cameraFragment;
     }
 
     public static SettingsActivity getSettingsActivity() {

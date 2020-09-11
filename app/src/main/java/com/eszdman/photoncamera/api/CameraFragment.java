@@ -41,21 +41,13 @@ import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.ImageProcessing;
-import com.eszdman.photoncamera.Parameters.ExposureIndex;
-import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
-import com.eszdman.photoncamera.api.camera.CameraImpl;
-import com.eszdman.photoncamera.api.camera.ICamera;
-import com.eszdman.photoncamera.api.capture.ImageSaverCapture;
-import com.eszdman.photoncamera.api.session.CaptureSessionImpl;
-import com.eszdman.photoncamera.api.session.ICaptureSession;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
@@ -132,13 +124,16 @@ public class CameraFragment extends Fragment
      */
     public AutoFitTextureView mTextureView;
     public SurfaceViewOverViewfinder surfaceView;
+    private static CameraFragment cameraFragment;
 
-
-    public static CameraFragment context;
+    public static CameraFragment GET() {
+        if (cameraFragment == null)
+            cameraFragment = new CameraFragment();
+        return cameraFragment;
+    }
 
     private CameraFragment() {
         super();
-        context = this;
     }
 
     @Override
@@ -232,9 +227,7 @@ public class CameraFragment extends Fragment
         }
     }
 
-    public static CameraFragment newInstance() {
-        return new CameraFragment();
-    }
+
 
     /**
      * Returns the ConstraintLayout object after adjusting the LayoutParams of Views contained in it.
@@ -449,30 +442,7 @@ public class CameraFragment extends Fragment
         mTextureView.setTransform(matrix);
     }
 
-    public String cycler(String id) {
-        String[] ids;
-        if(CameraManager2.cameraManager2.supportFrontCamera) {
-            if(Interface.getCameraUI().auxGroup.getChildCount() != 0) {
-                int i = Interface.getCameraUI().auxGroup.getCheckedRadioButtonId();
-                if (i >= 2) i++;
-                ids = new String[]{CameraController.GET().mCameraIds[i - 1], "1"};
-            } else ids = new String[]{"0","1"};
-        }
-        else {
-           return "0";
-        }
-        int n = 0;
-        for (int i = 0; i < ids.length; i++) {
-            if (id.equals(ids[i])) n = i;
-        }
-        n++;
-        n %= ids.length;
-        if(n == 1) Interface.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
-        else {
-            Interface.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
-        }
-        return ids[n];
-    }
+
 
 
     @Override

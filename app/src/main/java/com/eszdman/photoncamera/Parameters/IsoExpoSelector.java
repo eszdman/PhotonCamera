@@ -93,7 +93,7 @@ public class IsoExpoSelector {
             if (pair.exposure < ExposureIndex.sec * 3.00 && pair.exposure > ExposureIndex.sec / 3 && pair.iso < 3200 && Interface.getSettings().eisPhoto) {
                 pair.FixedExpo(1.0 / 8);
                 if (pair.normalizeCheck())
-                    Interface.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
+                    CameraFragment.GET().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
             }
         }
         pair.denormalizeSystem();
