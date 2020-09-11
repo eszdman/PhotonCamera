@@ -233,7 +233,7 @@ public class Settings {
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE,LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
-        Range range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
+        Range range = CameraController.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
         if(selectedMode == CameraMode.NIGHT && range != null) captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,(int)range.getUpper());
         /*Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
         double sizex = size.x;

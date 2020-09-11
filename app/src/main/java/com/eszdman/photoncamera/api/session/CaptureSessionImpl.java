@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.api;
+package com.eszdman.photoncamera.api.session;
 
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -7,6 +7,8 @@ import android.os.Handler;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+
+import com.eszdman.photoncamera.api.camera.ICamera;
 
 import java.util.ArrayList;
 import java.util.List;

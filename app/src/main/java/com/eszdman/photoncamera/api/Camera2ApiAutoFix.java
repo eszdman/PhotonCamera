@@ -27,16 +27,16 @@ public class Camera2ApiAutoFix {
         result = res;
     }
     public static void Init(){
-        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraFragment.mCameraCharacteristics);
+        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraController.mCameraCharacteristics);
         fix.ExposureTime();
     }
     public static void Apply(){
-        CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
+        CameraCharacteristics  characteristics= CameraController.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         fix.MaxRegionsAF();
     }
     public static void ApplyRes(){
-        CaptureResult characteristics= CameraFragment.mCaptureResult;
+        CaptureResult characteristics= CameraController.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         //fix.gains();
         fix.BL();
@@ -44,10 +44,10 @@ public class Camera2ApiAutoFix {
         fix.CCM();
     }
     private void whitePoint(){
-        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT,Interface.getCameraFragment().mPreviewTemp);
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, CameraController.GET().mPreviewTemp);
     }
     private void CCM(){
-        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM,Interface.getCameraFragment().mColorSpaceTransform);
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM,CameraController.GET().mColorSpaceTransform);
     }
     public void curve(){
         CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);
@@ -104,7 +104,7 @@ public class Camera2ApiAutoFix {
     @SuppressLint("NewApi")
     public void BL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
-        BlackLevelPattern ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern ptr = CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if(ptr == null) return;
        if(level == null){
            level = new float[4];

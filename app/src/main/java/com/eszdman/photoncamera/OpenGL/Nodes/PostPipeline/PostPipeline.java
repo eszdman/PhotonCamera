@@ -16,6 +16,7 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 
 import java.io.FileOutputStream;
@@ -79,7 +80,7 @@ public class PostPipeline extends GLBasePipeline {
         int rotation = Interface.getGravity().getCameraRotation();
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + Interface.getGravity().getRotation());
-        Log.d(TAG, "Sensor rotation:" + Interface.getCameraFragment().mSensorOrientation);
+        Log.d(TAG, "Sensor rotation:" + CameraController.GET().mSensorOrientation);
         int orientation = 0;
         switch (rotation) {
             case 90:

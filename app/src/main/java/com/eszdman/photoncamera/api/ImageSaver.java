@@ -143,7 +143,7 @@ public class ImageSaver implements Runnable {
                         processing.israw = false;
                         processing.path = outimg.getAbsolutePath();
                         done(processing);
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, processing.path);
+                        ExifInterface inter = ParseExif.Parse(CameraController.mCaptureResult, processing.path);
                         inter.saveAttributes();
                         Photo.instance.SaveImg(outimg);
                         end(mReader);
@@ -179,16 +179,16 @@ public class ImageSaver implements Runnable {
                         processing.israw = true;
                         processing.path = path;
                         done(processing);
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,outimg.getAbsolutePath());
+                        ExifInterface inter = ParseExif.Parse(CameraController.mCaptureResult,outimg.getAbsolutePath());
                         if(!Interface.getSettings().rawSaver) inter.saveAttributes();
                         Photo.instance.SaveImg(outimg);
                         end(mReader);
                     }
                     if(Interface.getSettings().frameCount == 1) {
-                        Log.d(TAG,"activearr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
-                        Log.d(TAG,"precorr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"activearr:"+ CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG,"precorr:"+ CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"image:"+mImage.getCropRect());
-                        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+                        DngCreator dngCreator = new DngCreator(CameraController.mCameraCharacteristics, CameraController.mCaptureResult);
                         output = new FileOutputStream(new File(curDir(),curName()+".dng"));
                         dngCreator.writeImage(output, mImage);
                         imageBuffer = new ArrayList<>();

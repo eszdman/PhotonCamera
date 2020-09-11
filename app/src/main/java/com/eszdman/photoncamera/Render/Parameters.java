@@ -12,6 +12,7 @@ import android.util.Log;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 
 import java.io.File;
@@ -136,7 +137,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / neutral[2].floatValue();
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        ColorSpaceTransform CCT = Interface.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CCT = CameraController.GET().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         if(CCT != null) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);

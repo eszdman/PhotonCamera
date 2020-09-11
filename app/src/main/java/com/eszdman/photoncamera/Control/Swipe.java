@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Interface;
 
@@ -118,7 +119,7 @@ public class Swipe {
             Interface.getSettings().ManualMode = true;
             ocmanual.animate().rotation(180).setDuration(250).start();
         }
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraController.GET().rebuildPreviewBuilder();
         manualmode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
@@ -129,9 +130,9 @@ public class Swipe {
         }
         Interface.getSettings().ManualMode = false;
 
-        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
-        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraReflectionApi.set(CameraController.GET().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
+        CameraReflectionApi.set(CameraController.GET().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
+        CameraController.GET().rebuildPreviewBuilder();
         manualmode.setVisibility(View.GONE);
         Interface.getManualMode().retractAllKnobs();
         arrowState ^= 1;

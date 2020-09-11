@@ -8,6 +8,7 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.CameraFragment;
 
@@ -21,10 +22,10 @@ public class Sharpen extends Node {
         GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
         GLProg glProg = glint.glprogram;
-        float sharpnessLevel = (float)Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/14.2f;
+        float sharpnessLevel = (float)Math.sqrt((CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY))* IsoExpoSelector.getMPY() - 50.)/14.2f;
         sharpnessLevel = Math.max(0.5f,sharpnessLevel);
         sharpnessLevel = Math.min(1.5f, sharpnessLevel);
-        Log.d("PostNode:"+Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        Log.d("PostNode:"+Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setvar("size", sharpnessLevel);
         glProg.setvar("strength", (float)Interface.getSettings().sharpness);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);

@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.api;
+package com.eszdman.photoncamera.api.session;
 
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CaptureRequest;

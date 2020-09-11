@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.api;
+package com.eszdman.photoncamera.api.camera;
 
 import android.hardware.camera2.CaptureRequest;
 import android.os.Handler;
@@ -18,6 +18,7 @@ public interface ICamera {
     void onResume();
     void onPause();
 
+    boolean isCameraOpen();
     String getId();
     CaptureRequest.Builder createCaptureRequest(int template);
     void createCaptureSession(List<Surface> var1, android.hardware.camera2.CameraCaptureSession.StateCallback var2, Handler var3);

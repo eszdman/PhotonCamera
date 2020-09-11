@@ -6,6 +6,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import android.util.Rational;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
@@ -92,9 +93,9 @@ public class ShutterModel extends ManualModel<Long> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        Interface.getCameraFragment().getiCaptureSession().abortCaptures();
+        CameraController.GET().getiCaptureSession().abortCaptures();
 
-        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = CameraController.GET().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
             if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
@@ -102,9 +103,9 @@ public class ShutterModel extends ManualModel<Long> {
             Range<Long> clampedRange = new Range<>(1000000L, 100000000L); //clamped between 1/1000s to 1/10s
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)));
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, Interface.getCameraFragment().mPreviewIso);
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, CameraController.GET().mPreviewIso);
         }
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraController.GET().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);
     }
 

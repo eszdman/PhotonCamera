@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.Parameters;
 
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraFragment;
 
 import java.util.Locale;
@@ -8,8 +9,8 @@ public class ExposureIndex {
     public static final long sec = 1000000000;
 
     public static double index() {
-        long exposureTime = CameraFragment.context.mPreviewExposuretime;
-        int iso = CameraFragment.context.mPreviewIso;
+        long exposureTime = CameraController.GET().mPreviewExposuretime;
+        int iso = CameraController.GET().mPreviewIso;
         double time = (double) (exposureTime) / sec;
         return iso * time;
     }

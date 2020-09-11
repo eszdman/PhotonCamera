@@ -4,6 +4,7 @@ import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
@@ -72,16 +73,16 @@ public class IsoModel extends ManualModel<Integer> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
-        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = CameraController.GET().mPreviewRequestBuilder;
         if (newval.equals(autoModel)) {
             if(Interface.getManualMode().getCurrentExposureValue() == -1) //check if Exposure is Auto
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) newval.value);
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, Interface.getCameraFragment().mPreviewExposuretime);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, CameraController.GET().mPreviewExposuretime);
         }
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraController.GET().rebuildPreviewBuilder();
         //fireValueChangedEvent(newval.text);
     }
 

@@ -19,7 +19,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCameraCharacteristics);//Ur camera Characteristics
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraController.mCameraCharacteristics);//Ur camera Characteristics
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set",CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
@@ -33,7 +33,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureResult.class,"mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCaptureResult);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraController.mCaptureResult);
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureResult.Key.class, Object.class);
             set.setAccessible(true);
@@ -100,7 +100,7 @@ public class CameraReflectionApi {
         for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
     }*/
     public static void setVERBOSE(boolean in) {
-        Object capres = CameraFragment.mCaptureResult;//Ur camera CaptureResult
+        Object capres = CameraController.mCaptureResult;//Ur camera CaptureResult
         Field verbose;
         try {
             //noinspection JavaReflectionMemberAccess

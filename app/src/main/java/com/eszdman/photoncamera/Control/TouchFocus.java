@@ -14,6 +14,7 @@ import android.widget.ImageView;
 
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.CameraFragment;
 
@@ -40,12 +41,12 @@ public class TouchFocus {
             focusEl.setY((float) getMax().y/2.f);
             //setFocus(getMax().x/2,getMax().y/2);
             setInitialAFAE();
-            //Interface.getCameraFragment().rebuildPreviewBuilder();
-            //CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
+            //CameraController.GET().rebuildPreviewBuilder();
+            //CaptureRequest.Builder build = CameraController.GET().mPreviewRequestBuilder;
             //build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
             //build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
             //set focus area repeating,else cam forget after one frame where it should focus
-            //Interface.getCameraFragment().rebuildPreviewBuilder();
+            //CameraController.GET().rebuildPreviewBuilder();
             return true;
         }
     };
@@ -56,20 +57,20 @@ public class TouchFocus {
         focusEl.setY(fy-focusEl.getMeasuredHeight()/2.0f);
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int)fy,(int)fx);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraController.GET().rebuildPreviewBuilder();
     }
     public void setInitialAFAE(){
-        CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder build = CameraController.GET().mPreviewRequestBuilder;
         build.set(CaptureRequest.CONTROL_AF_REGIONS,Interface.getSettings().initialAF);
         build.set(CaptureRequest.CONTROL_AE_REGIONS,Interface.getSettings().initialAE);
         build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
         build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        CameraController.GET().rebuildPreviewBuilder();
     }
     public void setFocus(int x, int y){
-        Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
+        Point size = new Point(CameraController.GET().getPreviewWidth(),CameraController.GET().getPreviewHeight());
         Point CurUi = getMax();
-        Rect sizee = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        Rect sizee = CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if(sizee == null){
             sizee = new Rect(0,0,size.x,size.y);
         }
@@ -105,23 +106,23 @@ public class TouchFocus {
                 "scale x/y:" + x_scale+"/"+y_scale+"\n"+
                 "final rect :" + rect_to_set.toString());
         rectaf[0] = rect_to_set;
-        CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder build = CameraController.GET().mPreviewRequestBuilder;
         build.set(CaptureRequest.CONTROL_AF_REGIONS,rectaf);
         build.set(CaptureRequest.CONTROL_AE_REGIONS,rectaf);
         build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
         build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
         build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
         //set focus area repeating,else cam forget after one frame where it should focus
-        //Interface.getCameraFragment().rebuildPreviewBuilder();
+        //CameraController.GET().rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed
         if(onConfigured){
         build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-        Interface.getCameraFragment().rebuildPreviewBuilderOneShot();
+        CameraController.GET().rebuildPreviewBuilderOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
         build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-        Interface.getCameraFragment().rebuildPreviewBuilderOneShot();
+        CameraController.GET().rebuildPreviewBuilderOneShot();
         }
     }
     public Point getMax(){

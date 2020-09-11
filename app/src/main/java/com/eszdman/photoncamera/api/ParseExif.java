@@ -43,7 +43,7 @@ public class ParseExif {
         int rotation = Interface.getGravity().getCameraRotation();
         String TAG = "ParseExif";
         Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
-        Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
+        Log.d(TAG,"Sensor rotation:"+CameraController.GET().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:

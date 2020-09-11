@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
 import com.manual.model.*;
@@ -208,9 +209,9 @@ public final class ManualModeImpl implements ManualMode {
     }
 
     static class CameraCharactersticsOldWay {
-        CameraCharacteristics cameraCharacteristics = CameraFragment.mCameraCharacteristics;
-        Float minFocal = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
-        Float maxFocal = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
+        CameraCharacteristics cameraCharacteristics = CameraController.mCameraCharacteristics;
+        Float minFocal = CameraController.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        Float maxFocal = CameraController.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
         Range<Float> focusRange = (!(minFocal == null || maxFocal == null || minFocal == 0.0f)) ? new Range<>(Math.min(minFocal, maxFocal), Math.max(minFocal, maxFocal)) : null;
         Range<Integer> isoRange = new Range<>(IsoExpoSelector.getISOLOWExt(), IsoExpoSelector.getISOHIGHExt());
         Range<Long> expRange = new Range<>(IsoExpoSelector.getEXPLOW(), IsoExpoSelector.getEXPHIGH());

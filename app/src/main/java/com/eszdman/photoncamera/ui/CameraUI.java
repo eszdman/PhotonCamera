@@ -8,6 +8,7 @@ import android.widget.*;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
@@ -44,8 +45,8 @@ public class CameraUI {
             auxGroup.check(1);
             auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
                 if (i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
-                Interface.getSettings().mCameraID = Interface.getCameraFragment().mCameraIds[i - 1];
-                Interface.getCameraFragment().restartCamera();
+                Interface.getSettings().mCameraID = CameraController.GET().mCameraIds[i - 1];
+                CameraController.GET().restartCamera();
             });
         }
         Interface.getManualMode().init();
@@ -82,7 +83,7 @@ public class CameraUI {
         quadResolution.setOnClickListener(v -> {
             Interface.getSettings().QuadBayer = !Interface.getSettings().QuadBayer;
             Interface.getSettings().save();
-            Interface.getCameraFragment().restartCamera();
+            CameraController.GET().restartCamera();
         });
         flip = Interface.getMainActivity().findViewById(R.id.flip_camera);
         flip.setOnClickListener(v -> {
@@ -91,7 +92,7 @@ public class CameraUI {
             Interface.getSettings().mCameraID = Interface.getCameraFragment().cycler(Interface.getSettings().mCameraID);
             Interface.getSettings().saveID();
             Interface.getSettings().load();
-            Interface.getCameraFragment().restartCamera();
+            CameraController.GET().restartCamera();
         });
         settings = Interface.getMainActivity().findViewById(R.id.settings);
         settings.setOnClickListener(Interface.getCameraFragment());
@@ -121,7 +122,7 @@ public class CameraUI {
                 break;
         }
         configureMode(Interface.getSettings().selectedMode);
-        Interface.getCameraFragment().restartCamera();
+        CameraController.GET().restartCamera();
     }
 
     public void configureMode(Settings.CameraMode input) {
@@ -164,7 +165,6 @@ public class CameraUI {
         if (Interface.getSettings().roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(Interface.getSettings().hdrx);
-        Interface.getCameraFragment().startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();
     }

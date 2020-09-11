@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         FileManager.CreateFolders();
-        CameraFragment.context = CameraFragment.newInstance();
+        CameraFragment.newInstance();
         Interface.setCameraFragment(CameraFragment.context);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

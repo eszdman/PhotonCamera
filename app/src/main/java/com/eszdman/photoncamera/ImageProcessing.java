@@ -16,6 +16,7 @@ import com.eszdman.photoncamera.OpenGL.Scripts.AverageParams;
 import com.eszdman.photoncamera.OpenGL.Scripts.AverageRaw;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
 import com.eszdman.photoncamera.api.Interface;
@@ -179,10 +180,10 @@ public class ImageProcessing {
         Log.d("ImageProcessing Stab", "imgsmat size:" + imgsmat.size());
         processingstep();
         if (!israw) {
-            Object sensivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+            Object sensivity = CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
             if(sensivity == null) sensivity = (int)100;
             double params = Math.sqrt(Math.log((int)sensivity) * 22) + 9;
-            Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+            Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             int ind = imgsmat.size() / 2;
             if (ind % 2 == 0) ind -= 1;
             int wins = imgsmat.size() - ind;
@@ -244,24 +245,24 @@ public class ImageProcessing {
     void ApplyHdrX() {
         boolean debugAlignment = false;
         if(Interface.getSettings().alignAlgorithm == 1) debugAlignment = true;
-        CaptureResult res = CameraFragment.mCaptureResult;
+        CaptureResult res = CameraController.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
         int height = curimgs.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG,"Api WhiteLevel:"+CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         if(!debugAlignment) {
             if(IsoExpoSelector.HDR) Wrapper.init(width, height, curimgs.size()-2);
             else Wrapper.init(width, height, curimgs.size());
         }
-        Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
+        Object level = CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if(level !=null) levell = (int)level;
         float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel/levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
-        BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern blevel = CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelarr = new int[4];
         if(blevel !=null){
             blevel.copyTo(levelarr,0);
@@ -284,9 +285,9 @@ public class ImageProcessing {
             wl=(int)(wll*k);
             CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL,wll);
         }
-        Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Log.d(TAG,"Api Blacklevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        Interface.getParameters().FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
+        Log.d(TAG,"Api WhiteLevel:"+CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG,"Api Blacklevel:"+CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
+        Interface.getParameters().FillParameters(res,CameraController.mCameraCharacteristics, new android.graphics.Point(width,height));
         if(Interface.getParameters().realWL == -1) Interface.getParameters().realWL = levell;
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
@@ -321,7 +322,7 @@ public class ImageProcessing {
         rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.getParameters().whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        Object sensitivity = CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
         if(sensitivity == null) sensitivity = (int)100;
         float deghostlevel = (float)Math.sqrt(((int)sensitivity)* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
@@ -388,13 +389,13 @@ public class ImageProcessing {
         curimgs.get(0).close();
     }
     private static void saveRaw(Image in){
-        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+        DngCreator dngCreator = new DngCreator(CameraController.mCameraCharacteristics, CameraController.mCaptureResult);
         try {
             FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
             dngCreator.setDescription(Interface.getParameters().toString());
             int rotation = Interface.getGravity().getCameraRotation();
             Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
-            Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
+            Log.d(TAG,"Sensor rotation:"+ CameraController.GET().mSensorOrientation);
             int orientation = ORIENTATION_NORMAL;
             switch (rotation) {
                 case 90:
@@ -433,13 +434,13 @@ public class ImageProcessing {
     }
     public static void UnlimitedEnd(){
         Log.d(TAG, "Wrapper.processFrame()");
-        Interface.getParameters().FillParameters(CameraFragment.mCaptureResult,CameraFragment.mCameraCharacteristics,Interface.getParameters().rawSize);
+        Interface.getParameters().FillParameters(CameraController.mCaptureResult,CameraController.mCameraCharacteristics,Interface.getParameters().rawSize);
         Interface.getParameters().path = ImageSaver.outimg.getAbsolutePath();
         PostPipeline pipeline = new PostPipeline();
         pipeline.Run(unlimitedBuffer,Interface.getParameters());
         pipeline.close();
         try {
-            ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
+            ExifInterface inter = ParseExif.Parse(CameraController.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
             if (!Interface.getSettings().rawSaver) {
                 try {
                     inter.saveAttributes();

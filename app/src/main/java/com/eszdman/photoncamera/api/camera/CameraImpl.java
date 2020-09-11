@@ -1,7 +1,6 @@
-package com.eszdman.photoncamera.api;
+package com.eszdman.photoncamera.api.camera;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -9,10 +8,13 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+
+import com.eszdman.photoncamera.api.BackThreadController;
+import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.Interface;
 
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -30,10 +32,8 @@ public class CameraImpl implements ICamera {
     public CameraDevice mCameraDevice;
 
     private ICamera.CameraEvents cameraEventsListner;
-
-    /*An additional thread for running tasks that shouldn't block the UI.*/
-    private HandlerThread mBackgroundThread;
-    private Handler mBackgroundHandler;
+    private BackThreadController backThreadController;
+    private boolean isOpen;
 
     public CameraImpl()
     {
@@ -44,26 +44,43 @@ public class CameraImpl implements ICamera {
         this.cameraEventsListner = cameraEventsListner;
     }
 
+    @Override
+    public boolean isCameraOpen()
+    {
+        return isOpen;
+    }
+
     private void fireOnCameraOpen()
     {
+        isOpen = true;
+        synchronized (this)
+        {
+            this.notifyAll();
+        }
         if (cameraEventsListner != null)
             cameraEventsListner.onCameraOpen();
     }
 
     private void fireOnCameraClose()
     {
+        isOpen = false;
+        synchronized (this)
+        {
+            this.notifyAll();
+        }
         if (cameraEventsListner != null)
             cameraEventsListner.onCameraClose();
     }
 
     @Override
     public void onResume() {
-        startBackgroundThread();
+        backThreadController = new BackThreadController();
     }
 
     @Override
     public void onPause() {
-        stopBackgroundThread();
+        backThreadController.close();
+        backThreadController = null;
     }
 
     @Override
@@ -99,7 +116,7 @@ public class CameraImpl implements ICamera {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
 //                throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(id, mStateCallback, mBackgroundHandler);
+            manager.openCamera(id, mStateCallback, backThreadController.getmBackgroundHandler());
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -123,30 +140,6 @@ public class CameraImpl implements ICamera {
         }
     }
 
-    /**
-     * Starts a background thread and its {@link Handler}.
-     */
-    private void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("CameraBackground");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-        //mBackgroundHandler.post(imageSaver);
-    }
-
-    /**
-     * Stops the background thread and its {@link Handler}.
-     */
-    private void stopBackgroundThread() {
-        if(mBackgroundThread == null) return;
-        mBackgroundThread.quitSafely();
-        try {
-            mBackgroundThread.join();
-            mBackgroundThread = null;
-            mBackgroundHandler = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
