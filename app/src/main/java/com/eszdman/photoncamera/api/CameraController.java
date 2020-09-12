@@ -39,6 +39,9 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.camera.CameraImpl;
 import com.eszdman.photoncamera.api.camera.ICamera;
+import com.eszdman.photoncamera.api.capture.BurstCounter;
+import com.eszdman.photoncamera.api.capture.CapturePipe;
+import com.eszdman.photoncamera.api.capture.EszdCapturePipe;
 import com.eszdman.photoncamera.api.capture.ImageSaverCapture;
 import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.CaptureSessionImpl;
@@ -97,15 +100,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
     private static final int STATE_CLOSED = 5;
 
-    /**
-     * Max preview width that is guaranteed by Camera2 API
-     */
-    private static final int MAX_PREVIEW_WIDTH = 1920;
 
-    /**
-     * Max preview height that is guaranteed by Camera2 API
-     */
-    private static final int MAX_PREVIEW_HEIGHT = 1080;
 
     public static CameraCharacteristics mCameraCharacteristics;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
@@ -131,15 +126,13 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * The {@link android.util.Size} of camera preview.
      */
     private Size mPreviewSize;
-    private Size target;
 
     /*An additional thread for running tasks that shouldn't block the UI.*/
     private HandlerThread mBackgroundThread;
     /*A {@link Handler} for running tasks in the background.*/
     public Handler mBackgroundHandler;
-    /*An {@link ImageReader} that handles still image capture.*/
-    private ImageSaverCapture yuvImageCapture;
-    private ImageSaverCapture rawImageCapture;
+
+    private CapturePipe capturePipe;
 
     /*{@link CaptureRequest.Builder} for the camera preview*/
     //public CaptureRequest.Builder mPreviewRequestBuilder;
@@ -169,9 +162,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     int[] mCameraAfModes;
     public boolean is30Fps = true;
     private ImageCaptureResultCallback imageCaptureResultCallback = new ImageCaptureResultCallback();
-    private boolean burst = false;
-    private int burstcount;
-    ArrayList<CaptureRequest> captures;
     private AutoFitTextureView mTextureView;
     private ControllerEvents eventsListner;
     private CaptureSessionController captureSessionController;
@@ -180,6 +170,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * still image is ready to be saved.
      */
     private ImageSaver imageSaver;
+    private BurstCounter burstCounter;
 
     private CameraController()
     {
@@ -189,6 +180,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCaptureSession.setCaptureSessionEventListner(this);
         imageSaver = new ImageSaver();
         captureSessionController = new CaptureSessionController(iCaptureSession,iCamera,mCaptureCallback);
+        capturePipe = new EszdCapturePipe(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
+        burstCounter = new BurstCounter();
     }
 
 
@@ -284,13 +277,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCaptureSession.close();
         iCamera.closeCamera();
         captureSessionController.clear();
-        if (yuvImageCapture != null)
-        {
-            yuvImageCapture.close();
-            rawImageCapture.close();
-            yuvImageCapture = null;
-            rawImageCapture = null;
-        }
+        capturePipe.close();
         mState = STATE_CLOSED;
     }
 
@@ -368,20 +355,20 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     public void onCaptureSequenceCompleted() {
         Log.v(TAG, "onCaptureSequenceCompleted");
         mTextureView.setAlpha(1f);
-        burst = false;
+        burstCounter.setBurst(false);
         createCameraPreviewSession();
     }
 
     @Override
     public void onCaptureProgressed() {
-        burstcount++;
-        Log.v(TAG, "onCaptureProgressed " + burstcount + "/" + FrameNumberSelector.frameCount);
+        burstCounter.increase();
+        Log.v(TAG, "onCaptureProgressed " + burstCounter.getCurrent_burst() + "/" + FrameNumberSelector.frameCount);
         if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
-            if (burstcount >= FrameNumberSelector.frameCount + 1 || ImageSaver.imageBuffer.size() >= FrameNumberSelector.frameCount) {
+            if (burstCounter.getCurrent_burst() >= FrameNumberSelector.frameCount + 1 || ImageSaver.imageBuffer.size() >= FrameNumberSelector.frameCount) {
                 iCaptureSession.abortCaptures();
                 mTextureView.setAlpha(1f);
                 Log.v(TAG, "startPreview");
-                burst = false;
+                burstCounter.setBurst(false);
                 createCameraPreviewSession();
             }
     }
@@ -400,14 +387,13 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
             }
 
             //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
-            if (!burst) {
+            if (!burstCounter.isBurst()) {
                 captureSessionController.applyRepeating();
                 unlockFocus();
             } else {
                 Log.d(TAG,"Preview, captureBurst");
-                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) iCaptureSession.captureBurst(captures, imageCaptureResultCallback, mBackgroundHandler);
-                else iCaptureSession.setRepeatingBurst(captures, imageCaptureResultCallback, mBackgroundHandler);
-                burst = false;
+                capturePipe.startCapture(mBackgroundHandler);
+                burstCounter.setBurst(false);
             }
             if (eventsListner != null)
                 eventsListner.updateTouchtoFocus();
@@ -420,108 +406,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     public void onConfiguredFailed() {
         if (eventsListner != null)
             eventsListner.showToast("Failed");
-    }
-
-    /**
-     * Given {@code choices} of {@code Size}s supported by a camera, choose the smallest one that
-     * is at least as large as the respective texture view size, and that is at most as large as the
-     * respective max size, and whose aspect ratio matches with the specified value. If such size
-     * doesn't exist, choose the largest one that is at most as large as the respective max size,
-     * and whose aspect ratio matches with the specified value.
-     *
-     * @param choices           The list of sizes that the camera supports for the intended output
-     *                          class
-     * @param textureViewWidth  The width of the texture view relative to sensor coordinate
-     * @param textureViewHeight The height of the texture view relative to sensor coordinate
-     * @param maxWidth          The maximum width that can be chosen
-     * @param maxHeight         The maximum height that can be chosen
-     * @param aspectRatio       The aspect ratio
-     * @return The optimal {@code Size}, or an arbitrary one if none were big enough
-     */
-    private static Size chooseOptimalSize(Size[] choices, int textureViewWidth,
-                                          int textureViewHeight, int maxWidth, int maxHeight, Size aspectRatio) {
-
-        // Collect the supported resolutions that are at least as big as the preview Surface
-        List<Size> bigEnough = new ArrayList<>();
-        // Collect the supported resolutions that are smaller than the preview Surface
-        List<Size> notBigEnough = new ArrayList<>();
-        int w = aspectRatio.getWidth();
-        int h = aspectRatio.getHeight();
-        for (Size option : choices) {
-            if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
-                    option.getHeight() == option.getWidth() * h / w) {
-                if (option.getWidth() >= textureViewWidth &&
-                        option.getHeight() >= textureViewHeight) {
-                    bigEnough.add(option);
-                } else {
-                    notBigEnough.add(option);
-                }
-            }
-        }
-
-        // Pick the smallest of those big enough. If there is no one big enough, pick the
-        // largest of those not big enough.
-        if (bigEnough.size() > 0) {
-            return Collections.min(bigEnough, new CompareSizesByArea());
-        } else if (notBigEnough.size() > 0) {
-            return Collections.max(notBigEnough, new CompareSizesByArea());
-        } else {
-            Log.e(TAG, "Couldn't find any suitable preview size");
-            return choices[0];
-        }
-    }
-
-    private Size getCameraOutputSize(Size[] in) {
-        Arrays.sort(in, new CompareSizesByArea());
-        List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
-            target = sizes.get(s);
-            return target;
-        }
-        else {
-            if(sizes.size()>1) {
-                target = sizes.get(s - 1);
-                return target;
-            }
-        }
-        return null;
-    }
-
-    private void mul(Rect in, double k) {
-        in.bottom *= k;
-        in.left *= k;
-        in.right *= k;
-        in.top *= k;
-    }
-
-    private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
-        if(in == null) return mPreviewSize;
-        Arrays.sort(in, new CompareSizesByArea());
-        List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.getSettings().QuadBayer){
-            target = sizes.get(s);
-            if(Interface.getSettings().QuadBayer) {
-                Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-                if(pre == null) return target;
-                Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-                if(act == null) return target;
-                double k = (double) (target.getHeight()) / act.bottom;
-                mul(pre, k);
-                mul(act, k);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
-            }
-            return target;
-        }
-        else {
-            if(sizes.size()> 1 ) {
-                target = sizes.get(s - 1);
-                return target;
-            }
-        }
-        return mPreviewSize;
     }
 
     /**
@@ -549,23 +433,10 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
     private void UpdateCameraCharacteristics(String cameraId) {
         Log.v(TAG,"UpdateCameraCharacteristics " + cameraId);
-        //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
-
-        StreamConfigurationMap map = null;
-        if (mCameraCharacteristics != null) {
-            map = mCameraCharacteristics.get(
-                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        }
-        if (map == null) {
-            return;
-        }
-        Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
-        Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
+        capturePipe.findOutputSizes(mCameraCharacteristics,mTargetFormat,mPreviewTargetFormat);
         int maxjpg = 3;
         if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.getSettings().frameCount+3;
-        yuvImageCapture = new ImageSaverCapture(preview.getWidth(),preview.getHeight(),mPreviewTargetFormat, maxjpg, imageSaver);
-        rawImageCapture = new ImageSaverCapture(target.getWidth(), target.getHeight(),
-                mTargetFormat, Interface.getSettings().frameCount + 3, imageSaver);
+        capturePipe.createImageReader(maxjpg);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = Interface.getGravity().getRotation();
@@ -577,7 +448,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
         boolean swappedDimensions = isSwappedDimensions(displayRotation);
 
-        findPreviewSize(map, target, swappedDimensions);
+        mPreviewSize = SizeUtils.findPreviewSize(mCameraCharacteristics.get(
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP), new Size(mTextureView.getWidth(), mTextureView.getHeight()) ,mPreviewSize, swappedDimensions);
         Log.v(TAG,"Optimal PreviewSize: " + mPreviewSize.toString());
 
         if (eventsListner != null)
@@ -588,39 +460,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Boolean available = mCameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
         Interface.getCameraUI().onCameraInitialization();
-    }
-
-    private void findPreviewSize(StreamConfigurationMap map, Size target, boolean swappedDimensions) {
-        Point displaySize = new Point();
-        Interface.getMainActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
-        int rotatedPreviewWidth = mPreviewSize.getWidth();
-        int rotatedPreviewHeight = mPreviewSize.getHeight();
-        int maxPreviewWidth = displaySize.x;
-        int maxPreviewHeight = displaySize.y;
-
-        if (swappedDimensions) {
-            rotatedPreviewWidth =  mPreviewSize.getHeight();
-            rotatedPreviewHeight = mPreviewSize.getWidth();;
-            //noinspection SuspiciousNameCombination
-            maxPreviewWidth = displaySize.y;
-            //noinspection SuspiciousNameCombination
-            maxPreviewHeight = displaySize.x;
-        }
-
-        if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
-            maxPreviewWidth = MAX_PREVIEW_WIDTH;
-        }
-
-        if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
-            maxPreviewHeight = MAX_PREVIEW_HEIGHT;
-        }
-
-        // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-        // garbage capture data.
-        mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                maxPreviewHeight, target);
     }
 
     private boolean isSwappedDimensions(int displayRotation) {
@@ -681,35 +520,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      */
     @SuppressLint("LongLogTag")
     protected void createCameraPreviewSession() {
-        Log.v(TAG, "createCameraPreviewSession");
-        if (mPreviewSize == null)
-            return;
-        try {
-            SurfaceTexture texture = mTextureView.getSurfaceTexture();
-            assert texture != null;
-            // We configure the size of default buffer to be the size of camera preview we want.
-            Log.d("createCameraPreviewSession() mTextureView", "" + mTextureView);
-            Log.d("createCameraPreviewSession() Texture", "" + texture);
-            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-
-            // This is the output Surface we need to start preview.
-            Surface surface = new Surface(texture);
-            // We set up a CaptureRequest.Builder with the output Surface.
-            captureSessionController.clear();
-            captureSessionController.addSurface(surface,true);
-
-            // Here, we create a CameraCaptureSession for camera preview.
-            if(burst){
-                captureSessionController.addSurface(yuvImageCapture.getSurface(),false)
-                        .addSurface(rawImageCapture.getSurface(),false);
-            }
-            if(mTargetFormat == mPreviewTargetFormat){
-                captureSessionController.addSurface(yuvImageCapture.getSurface(),false);
-            }
-            captureSessionController.createCaptureSession(mBackgroundHandler);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        capturePipe.createCameraPreviewSession(mTextureView.getSurfaceTexture(),mBackgroundHandler);
     }
 
 
@@ -749,52 +560,10 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
 
     private void captureStillPicture() {
+        burstCounter.setBurst(true);
+        burstCounter.setCurrent_burst(0);
+        capturePipe.captureStillPicture(mTargetFormat,mFocus,mTextureView,mBackgroundHandler,burstCounter);
 
-        // This is the CaptureRequest.Builder that we use to take a picture.
-        final CaptureRequest.Builder captureBuilder =
-                iCamera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-        iCaptureSession.stopRepeating();
-        if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(rawImageCapture.getSurface());
-        else captureBuilder.addTarget(yuvImageCapture.getSurface());
-        Interface.getSettings().applyRes(captureBuilder);
-        //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
-        //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
-        Log.d(TAG,"Focus:"+mFocus);
-        //captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
-        captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
-        captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
-        for(int i =0; i<3;i++){
-            Log.d(TAG,"Temperature:"+mPreviewTemp[i]);
-        }
-        Log.d(TAG,"CaptureBuilderStarted!");
-        //setAutoFlash(captureBuilder);
-        //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
-        captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.getGravity().getCameraRotation());
-        captures = new ArrayList<>();
-        FrameNumberSelector.getFrames();
-        IsoExpoSelector.HDR = false;//Force HDR for tests
-        captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
-        captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
-        IsoExpoSelector.useTripod = Interface.getSensors().getShakeness() < 5;
-        for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
-            IsoExpoSelector.setExpo(captureBuilder, i);
-            captures.add(captureBuilder.build());
-        }
-        if(FrameNumberSelector.frameCount == -1){
-            IsoExpoSelector.setExpo(captureBuilder, 0);
-            captures.add(captureBuilder.build());
-        }
-        //img
-        Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
-        burstcount = 0;
-        Log.d(TAG,"CaptureStarted!");
-        mTextureView.setAlpha(0.5f);
-
-        //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
-        imageCaptureResultCallback.fireOnCaptureSquenceStarted(FrameNumberSelector.frameCount);
-        burst = true;
-        createCameraPreviewSession();
-        //mCaptureSession.captureBurst(captures, CaptureCallback, null);
     }
 
     /**
@@ -817,7 +586,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private void setAutoFlash() {
         if (mFlashSupported) {
             if (mFlashEnabled)
-                captureSessionController.setAeTriggerTo(CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH).applyOneShot();
+                captureSessionController.setAeMode(CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH).applyRepeating();
         }
     }
 
