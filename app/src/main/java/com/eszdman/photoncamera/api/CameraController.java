@@ -780,7 +780,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Log.d(TAG,"CaptureStarted!");
         Interface.getCameraUI().lightcycle.setAlpha(1.0f);
         mTextureView.setAlpha(0.5f);
-        MediaPlayer burstPlayer = MediaPlayer.create(Interface.getMainActivity(),R.raw.sound_burst);
 
         //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
         burst = true;

@@ -73,6 +73,7 @@ public class CameraFragment extends Fragment
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+    private SoundPlayer soundPlayer;
 
 
     static {
@@ -342,6 +343,7 @@ public class CameraFragment extends Fragment
         mTextureView = view.findViewById(R.id.texture);
         surfaceView = view.findViewById(R.id.surfaceView);
         Interface.getCameraUI().onCameraViewCreated();
+        soundPlayer = new SoundPlayer(getContext());
     }
 
     @Override
@@ -375,6 +377,7 @@ public class CameraFragment extends Fragment
     public void onResume() {
         super.onResume();
         CameraController.GET().onResume();
+        CameraController.GET().setCaptureListner(soundPlayer);
         Interface.getCameraUI().onCameraResume();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
@@ -390,6 +393,7 @@ public class CameraFragment extends Fragment
     public void onPause() {
         Interface.getCameraUI().onCameraPause();
         CameraController.GET().onPause();
+        CameraController.GET().removeCaptureListner(soundPlayer);
         super.onPause();
     }
 
