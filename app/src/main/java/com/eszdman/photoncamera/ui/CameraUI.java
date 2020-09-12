@@ -278,6 +278,11 @@ public class CameraUI implements ImageCaptureResultCallback.CaptureEvents {
     }
 
     @Override
+    public boolean runOnUiThread() {
+        return true;
+    }
+
+    @Override
     public void onCaptureStarted() {
         Log.v(TAG, "onCaptureStarted");
     }
@@ -286,6 +291,13 @@ public class CameraUI implements ImageCaptureResultCallback.CaptureEvents {
     public void onCaptureCompleted() {
         Log.v(TAG, "onCaptureCompleted");
         Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
+    }
+
+    @Override
+    public void onCaptureSequenceStarted(int burstcount) {
+        Log.v(TAG,"onCaptureSequenceStarted:" + burstcount);
+        Interface.getCameraUI().lightcycle.setMax(burstcount);
+        Interface.getCameraUI().lightcycle.setAlpha(1.0f);
     }
 
     @Override

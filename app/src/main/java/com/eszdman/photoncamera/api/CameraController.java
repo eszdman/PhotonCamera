@@ -20,7 +20,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
-import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -347,6 +346,11 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     }
 
     @Override
+    public boolean runOnUiThread() {
+        return false;
+    }
+
+    @Override
     public void onCaptureStarted() {
         Log.v(TAG, "onCaptureStarted");
     }
@@ -354,6 +358,11 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     @Override
     public void onCaptureCompleted() {
         Log.v(TAG, "onCaptureCompleted");
+    }
+
+    @Override
+    public void onCaptureSequenceStarted(int burstcount) {
+
     }
 
     @Override
@@ -401,8 +410,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
                 unlockFocus();
             } else {
                 Log.d(TAG,"Preview, captureBurst");
-                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) iCaptureSession.captureBurst(captures, imageCaptureResultCallback, null);
-                else iCaptureSession.setRepeatingBurst(captures, imageCaptureResultCallback, null);
+                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) iCaptureSession.captureBurst(captures, imageCaptureResultCallback, mBackgroundHandler);
+                else iCaptureSession.setRepeatingBurst(captures, imageCaptureResultCallback, mBackgroundHandler);
                 burst = false;
             }
             if (eventsListner != null)
@@ -761,7 +770,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.getGravity().getCameraRotation());
         captures = new ArrayList<>();
         FrameNumberSelector.getFrames();
-        Interface.getCameraUI().lightcycle.setMax(FrameNumberSelector.frameCount);
         IsoExpoSelector.HDR = false;//Force HDR for tests
         captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
         captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
@@ -778,10 +786,10 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
         burstcount = 0;
         Log.d(TAG,"CaptureStarted!");
-        Interface.getCameraUI().lightcycle.setAlpha(1.0f);
         mTextureView.setAlpha(0.5f);
 
         //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
+        imageCaptureResultCallback.fireOnCaptureSquenceStarted(FrameNumberSelector.frameCount);
         burst = true;
         createCameraPreviewSession();
         //mCaptureSession.captureBurst(captures, CaptureCallback, null);

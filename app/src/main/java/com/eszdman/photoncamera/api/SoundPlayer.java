@@ -14,6 +14,11 @@ public class SoundPlayer implements ImageCaptureResultCallback.CaptureEvents
     }
 
     @Override
+    public boolean runOnUiThread() {
+        return false;
+    }
+
+    @Override
     public void onCaptureStarted() {
         burstPlayer.seekTo(0);
     }
@@ -21,6 +26,11 @@ public class SoundPlayer implements ImageCaptureResultCallback.CaptureEvents
     @Override
     public void onCaptureCompleted() {
         burstPlayer.start();
+    }
+
+    @Override
+    public void onCaptureSequenceStarted(int burstcount) {
+
     }
 
     @Override
