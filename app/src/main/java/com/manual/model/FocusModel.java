@@ -64,14 +64,11 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = CameraController.GET().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
-            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            CameraController.GET().getCaptureSession().setAfMode(CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE).applyRepeating();
         } else {
-            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo.value);
+            CameraController.GET().getCaptureSession().setAfMode(CaptureRequest.CONTROL_AF_MODE_OFF)
+                    .set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo.value).applyRepeating();
         }
-        CameraController.GET().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo.text);
     }
 }

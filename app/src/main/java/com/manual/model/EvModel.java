@@ -91,9 +91,7 @@ public class EvModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = CameraController.GET().mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value);
-        CameraController.GET().rebuildPreviewBuilder();
+        CameraController.GET().getCaptureSession().set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value).applyRepeating();
         //fireValueChangedEvent(knobItemInfo.text);
     }
 

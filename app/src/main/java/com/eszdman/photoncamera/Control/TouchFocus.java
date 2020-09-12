@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.Control;
 
 import android.annotation.SuppressLint;
+import android.graphics.Camera;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
@@ -17,6 +18,7 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.api.session.CaptureSessionController;
 
 public class TouchFocus {
     protected final String TAG = "TouchFocus";
@@ -57,15 +59,12 @@ public class TouchFocus {
         focusEl.setY(fy-focusEl.getMeasuredHeight()/2.0f);
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int)fy,(int)fx);
-        CameraController.GET().rebuildPreviewBuilder();
     }
     public void setInitialAFAE(){
-        CaptureRequest.Builder build = CameraController.GET().mPreviewRequestBuilder;
-        build.set(CaptureRequest.CONTROL_AF_REGIONS,Interface.getSettings().initialAF);
-        build.set(CaptureRequest.CONTROL_AE_REGIONS,Interface.getSettings().initialAE);
-        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
-        build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
-        CameraController.GET().rebuildPreviewBuilder();
+        CameraController.GET().getCaptureSession().setAfRegion(Interface.getSettings().initialAF)
+                .setAeRegion(Interface.getSettings().initialAE)
+                .setAfMode(Interface.getSettings().afMode)
+                .setAeMode(CaptureRequest.CONTROL_AE_MODE_ON).applyRepeating();
     }
     public void setFocus(int x, int y){
         Point size = new Point(CameraController.GET().getPreviewWidth(),CameraController.GET().getPreviewHeight());
@@ -106,23 +105,22 @@ public class TouchFocus {
                 "scale x/y:" + x_scale+"/"+y_scale+"\n"+
                 "final rect :" + rect_to_set.toString());
         rectaf[0] = rect_to_set;
-        CaptureRequest.Builder build = CameraController.GET().mPreviewRequestBuilder;
-        build.set(CaptureRequest.CONTROL_AF_REGIONS,rectaf);
-        build.set(CaptureRequest.CONTROL_AE_REGIONS,rectaf);
-        build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
-        build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
+        CameraController.GET().getCaptureSession().setAfRegion(rectaf)
+                .setAeRegion(rectaf)
+                .set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+                .setAeMode(CaptureRequest.CONTROL_AE_MODE_ON)
+                .setAfMode(Interface.getSettings().afMode).applyRepeating();
         //set focus area repeating,else cam forget after one frame where it should focus
         //CameraController.GET().rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed
         if(onConfigured){
-        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-        CameraController.GET().rebuildPreviewBuilderOneShot();
+            CameraController.GET().getCaptureSession().setFocusTriggerTo(CaptureRequest.CONTROL_AF_TRIGGER_START)
+                    .setAeTriggerTo(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
+                    .applyOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
-        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
-        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-        CameraController.GET().rebuildPreviewBuilderOneShot();
+            CameraController.GET().getCaptureSession().setFocusTriggerTo(CaptureRequest.CONTROL_AF_TRIGGER_IDLE)
+                    .setAeTriggerTo(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE)
+                    .applyOneShot();
         }
     }
     public Point getMax(){

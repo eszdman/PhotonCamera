@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.api;
 import android.hardware.camera2.CaptureResult;
 
 import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
 
 public interface ICameraController
@@ -21,7 +22,6 @@ public interface ICameraController
     void closeCamera();
     void startBackgroundThread();
     void stopBackgroundThread();
-    void rebuildPreviewBuilder();
-    void rebuildPreviewBuilderOneShot();
     ICaptureSession getiCaptureSession();
+    CaptureSessionController getCaptureSession();
 }

@@ -94,19 +94,15 @@ public class ShutterModel extends ManualModel<Long> {
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
         CameraController.GET().getiCaptureSession().abortCaptures();
-
-        CaptureRequest.Builder builder = CameraController.GET().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
             if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
-                builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+                CameraController.GET().getCaptureSession().setAeMode(CaptureRequest.CONTROL_AE_MODE_ON).applyRepeating();
         } else {
             Range<Long> clampedRange = new Range<>(1000000L, 100000000L); //clamped between 1/1000s to 1/10s
-            builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)));
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, CameraController.GET().mPreviewIso);
+            CameraController.GET().getCaptureSession().setAeMode(CaptureRequest.CONTROL_AE_MODE_OFF)
+                    .set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)))
+                    .set(CaptureRequest.SENSOR_SENSITIVITY, CameraController.GET().mPreviewIso).applyRepeating();
         }
-        CameraController.GET().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo2.text);
     }
 
     private int findPreferredIntervalCount(int totalCount) {

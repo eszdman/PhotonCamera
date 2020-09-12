@@ -39,8 +39,8 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.camera.CameraImpl;
 import com.eszdman.photoncamera.api.camera.ICamera;
-import com.eszdman.photoncamera.api.capture.AbstractImageCapture;
 import com.eszdman.photoncamera.api.capture.ImageSaverCapture;
+import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.CaptureSessionImpl;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
 
@@ -142,8 +142,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private ImageSaverCapture rawImageCapture;
 
     /*{@link CaptureRequest.Builder} for the camera preview*/
-    public CaptureRequest.Builder mPreviewRequestBuilder;
-    public CaptureRequest mPreviewRequest;
+    //public CaptureRequest.Builder mPreviewRequestBuilder;
     /**
      * The current state of camera state for taking pictures.
      */
@@ -175,6 +174,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     ArrayList<CaptureRequest> captures;
     private AutoFitTextureView mTextureView;
     private ControllerEvents eventsListner;
+    private CaptureSessionController captureSessionController;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
@@ -188,6 +188,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCaptureSession = new CaptureSessionImpl(iCamera);
         iCaptureSession.setCaptureSessionEventListner(this);
         imageSaver = new ImageSaver();
+        captureSessionController = new CaptureSessionController(iCaptureSession,iCamera,mCaptureCallback);
     }
 
 
@@ -232,12 +233,14 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         startBackgroundThread();
         setCaptureListner(this);
         iCamera.onResume();
+        captureSessionController.setBackgroundHandler(mBackgroundHandler);
     }
     @Override
     public void onPause()
     {
         removeCaptureListner(this);
         closeCamera();
+        captureSessionController.setBackgroundHandler(null);
         stopBackgroundThread();
         iCamera.onPause();
     }
@@ -280,6 +283,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Log.v(TAG, "Close Camera");
         iCaptureSession.close();
         iCamera.closeCamera();
+        captureSessionController.clear();
         if (yuvImageCapture != null)
         {
             yuvImageCapture.close();
@@ -317,22 +321,17 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         }
     }
 
-    @Override
-    public void rebuildPreviewBuilder(){
-        iCaptureSession.setRepeatingRequest(mPreviewRequest,
-                mCaptureCallback, mBackgroundHandler);
-    }
 
-    @Override
-    public void rebuildPreviewBuilderOneShot(){
-        iCaptureSession.capture(mPreviewRequestBuilder.build(),
-                mCaptureCallback, mBackgroundHandler);
-    }
 
     @Override
     public ICaptureSession getiCaptureSession()
     {
         return iCaptureSession;
+    }
+
+    @Override
+    public CaptureSessionController getCaptureSession() {
+        return captureSessionController;
     }
 
     @Override
@@ -392,21 +391,17 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         try {
             // Flash is automatically enabled when necessary.
             setAutoFlash();
-            Interface.getSettings().applyPrev(mPreviewRequestBuilder);
+            Interface.getSettings().applyPrev(captureSessionController.getPreviewRequestBuilder());
             // Finally, we start displaying the camera preview.
             if (is30Fps) {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                        FpsRangeDef);
+                captureSessionController.setFpsRange(FpsRangeDef);
             } else {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                        FpsRangeHigh);
+                captureSessionController.setFpsRange(FpsRangeHigh);
             }
-            mPreviewRequest = mPreviewRequestBuilder.build();
 
             //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
             if (!burst) {
-                iCaptureSession.setRepeatingRequest(mPreviewRequest,
-                        mCaptureCallback, mBackgroundHandler);
+                captureSessionController.applyRepeating();
                 unlockFocus();
             } else {
                 Log.d(TAG,"Preview, captureBurst");
@@ -576,53 +571,26 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         int displayRotation = Interface.getGravity().getRotation();
         //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         //noinspection ConstantConditions
-        mSensorOrientation = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-        Range[] ranges = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-        int def = 30;
-        int min = 20;
-        if(ranges == null) {
-            ranges = new Range[1];
-            ranges[0] = new Range(15, 30);
-        }
-        for (Range value : ranges) {
-            if ((int) value.getUpper() >= def) {
-                FpsRangeDef = value;
-                break;
-            }
-        }
-        if(FpsRangeDef == null)
-            for (Range range : ranges) {
-                if ((int) range.getUpper() >= min) {
-                    FpsRangeDef = range;
-                    break;
-                }
-            }
-        for (Range range : ranges) {
-            if ((int) range.getUpper() > def) {
-                FpsRangeDef = range;
-                break;
-            }
-        }
-        if(FpsRangeHigh == null) FpsRangeHigh = FpsRangeDef;
-        boolean swappedDimensions = false;
-        switch (displayRotation) {
-            case 0:
-            case 180:
-                if (mSensorOrientation == 90 || mSensorOrientation == 270) {
-                    swappedDimensions = true;
-                }
-                break;
-            case 90:
-            case 270:
-                if (mSensorOrientation == 0 || mSensorOrientation == 180) {
-                    swappedDimensions = true;
-                }
-                break;
-            default:
-                Log.e(TAG, "Display rotation is invalid: " + displayRotation);
-        }
 
+        findFpsRange();
         mCameraAfModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+
+        boolean swappedDimensions = isSwappedDimensions(displayRotation);
+
+        findPreviewSize(map, target, swappedDimensions);
+        Log.v(TAG,"Optimal PreviewSize: " + mPreviewSize.toString());
+
+        if (eventsListner != null)
+            eventsListner.updateTextureViewOrientation(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+
+        // Check if the flash is supported.
+        Boolean available = mCameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+        mFlashSupported = available == null ? false : available;
+        Interface.getCameraUI().onCameraInitialization();
+    }
+
+    private void findPreviewSize(StreamConfigurationMap map, Size target, boolean swappedDimensions) {
         Point displaySize = new Point();
         Interface.getMainActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewSize.getWidth();
@@ -653,18 +621,59 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
                 maxPreviewHeight, target);
-        Log.v(TAG,"Optimal PreviewSize: " + mPreviewSize.toString());
-
-        if (eventsListner != null)
-            eventsListner.updateTextureViewOrientation(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-
-
-        // Check if the flash is supported.
-        Boolean available = mCameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-        mFlashSupported = available == null ? false : available;
-        Interface.getCameraUI().onCameraInitialization();
     }
 
+    private boolean isSwappedDimensions(int displayRotation) {
+        boolean swappedDimensions = false;
+        mSensorOrientation = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        switch (displayRotation) {
+            case 0:
+            case 180:
+                if (mSensorOrientation == 90 || mSensorOrientation == 270) {
+                    swappedDimensions = true;
+                }
+                break;
+            case 90:
+            case 270:
+                if (mSensorOrientation == 0 || mSensorOrientation == 180) {
+                    swappedDimensions = true;
+                }
+                break;
+            default:
+                Log.e(TAG, "Display rotation is invalid: " + displayRotation);
+        }
+        return swappedDimensions;
+    }
+
+    private void findFpsRange() {
+        Range[] ranges = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+        int def = 30;
+        int min = 20;
+        if(ranges == null) {
+            ranges = new Range[1];
+            ranges[0] = new Range(15, 30);
+        }
+        for (Range value : ranges) {
+            if ((int) value.getUpper() >= def) {
+                FpsRangeDef = value;
+                break;
+            }
+        }
+        if(FpsRangeDef == null)
+            for (Range range : ranges) {
+                if ((int) range.getUpper() >= min) {
+                    FpsRangeDef = range;
+                    break;
+                }
+            }
+        for (Range range : ranges) {
+            if ((int) range.getUpper() > def) {
+                FpsRangeDef = range;
+                break;
+            }
+        }
+        if(FpsRangeHigh == null) FpsRangeHigh = FpsRangeDef;
+    }
 
 
     /**
@@ -686,19 +695,18 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
             // This is the output Surface we need to start preview.
             Surface surface = new Surface(texture);
             // We set up a CaptureRequest.Builder with the output Surface.
-            mPreviewRequestBuilder
-                    = iCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mPreviewRequestBuilder.addTarget(surface);
+            captureSessionController.clear();
+            captureSessionController.addSurface(surface,true);
 
             // Here, we create a CameraCaptureSession for camera preview.
-            List<Surface> surfaces = Arrays.asList(surface, yuvImageCapture.getSurface());
             if(burst){
-                surfaces = Arrays.asList(yuvImageCapture.getSurface(),rawImageCapture.getSurface());
+                captureSessionController.addSurface(yuvImageCapture.getSurface(),false)
+                        .addSurface(rawImageCapture.getSurface(),false);
             }
             if(mTargetFormat == mPreviewTargetFormat){
-                surfaces = Arrays.asList(surface, yuvImageCapture.getSurface());
+                captureSessionController.addSurface(yuvImageCapture.getSurface(),false);
             }
-            iCaptureSession.createCaptureSession(surfaces, null);
+            captureSessionController.createCaptureSession(mBackgroundHandler);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -712,8 +720,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         if (mCameraAfModes.length > 1) lockFocus();
         else {
             mState = STATE_WAITING_NON_PRECAPTURE;
-            iCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                    mBackgroundHandler);
+            captureSessionController.applyOneShot();
         }
     }
 
@@ -723,12 +730,10 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private void lockFocus() {
         startTimerLocked();
         // This is how to tell the camera to lock focus.
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                CameraMetadata.CONTROL_AF_TRIGGER_START);
+        captureSessionController.setFocusTriggerTo(CameraMetadata.CONTROL_AF_TRIGGER_START).applyOneShot();
+
         // Tell #mCaptureCallback to wait for the lock.
         mState = STATE_WAITING_LOCK;
-        iCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                mBackgroundHandler);
     }
 
     /**
@@ -737,12 +742,9 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      */
     private void runPrecaptureSequence() {
         // This is how to tell the camera to trigger.
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        captureSessionController.setAeTriggerTo(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START).applyOneShot();
         // Tell #mCaptureCallback to wait for the precapture sequence to be set.
         mState = STATE_WAITING_PRECAPTURE;
-        iCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                mBackgroundHandler);
     }
 
 
@@ -802,13 +804,12 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private void unlockFocus() {
         // Reset the auto-focus trigger
         //mCaptureSession.stopRepeating();
-        CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AF_TRIGGER,CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+        captureSessionController.setFocusTriggerTo(CameraMetadata.CONTROL_AF_TRIGGER_CANCEL).applyOneShot();
         setAutoFlash();
         //mCaptureSession.capture(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
         mState = STATE_PREVIEW;
-        rebuildPreviewBuilder();
         //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
     }
@@ -816,7 +817,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private void setAutoFlash() {
         if (mFlashSupported) {
             if (mFlashEnabled)
-                CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                captureSessionController.setAeTriggerTo(CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH).applyOneShot();
         }
     }
 
@@ -958,9 +959,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
                 if(ExposureIndex.index() > 8.0){
                     if(!is30Fps) {
                         Log.d(TAG,"Changed preview target 30fps");
-                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeDef);
-                        mPreviewRequest = mPreviewRequestBuilder.build();
-                        rebuildPreviewBuilder();
+                        captureSessionController.setFpsRange(FpsRangeDef).applyRepeating();
                         is30Fps = true;
                     }
                 }
@@ -968,9 +967,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
                     if(is30Fps && Interface.getSettings().fpsPreview && !iCamera.getId().equals("1"))
                     {
                         Log.d(TAG,"Changed preview target 60fps");
-                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeHigh);
-                        mPreviewRequest = mPreviewRequestBuilder.build();
-                        rebuildPreviewBuilder();
+                        captureSessionController.setFpsRange(FpsRangeHigh).applyRepeating();
                         is30Fps = false;
                     }
 

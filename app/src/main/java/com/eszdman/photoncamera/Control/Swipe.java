@@ -119,7 +119,6 @@ public class Swipe {
             Interface.getSettings().ManualMode = true;
             ocmanual.animate().rotation(180).setDuration(250).start();
         }
-        CameraController.GET().rebuildPreviewBuilder();
         manualmode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
@@ -129,10 +128,8 @@ public class Swipe {
             ocmanual.animate().rotation(0).setDuration(250).start();
         }
         Interface.getSettings().ManualMode = false;
-
-        CameraReflectionApi.set(CameraController.GET().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
-        CameraReflectionApi.set(CameraController.GET().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
-        CameraController.GET().rebuildPreviewBuilder();
+        CameraController.GET().getCaptureSession().setAeMode(Interface.getSettings().aeModeOn);
+        CameraController.GET().getCaptureSession().setAfMode(Interface.getSettings().afMode).applyRepeating();
         manualmode.setVisibility(View.GONE);
         Interface.getManualMode().retractAllKnobs();
         arrowState ^= 1;
