@@ -2,10 +2,8 @@ package com.eszdman.photoncamera.api;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -31,7 +29,6 @@ import android.util.Range;
 import android.util.Rational;
 import android.util.Size;
 import android.view.Surface;
-import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -54,9 +51,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class CameraController implements ICamera.CameraEvents, ICaptureSession.CaptureSessionEvents
+public class CameraController implements ICamera.CameraEvents, ICaptureSession.CaptureSessionEvents, ImageCaptureResultCallback.CaptureEvents, ICameraController
 {
-    private AutoFitTextureView mTextureView;
+    private static CameraController cameraController = new CameraController();
+    public static CameraController GET()
+    {
+        return cameraController;
+    }
 
     public interface ControllerEvents
     {
@@ -66,34 +67,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         void showToast(String msg);
         void updateTextureViewOrientation(int width, int height);
         void updateTouchtoFocus();
-    }
-
-    private CameraController()
-    {
-        iCamera = new CameraImpl();
-        iCamera.setCameraEventsListner(this);
-        iCaptureSession = new CaptureSessionImpl(iCamera);
-        iCaptureSession.setCaptureSessionEventListner(this);
-        imageSaver = new ImageSaver();
-    }
-
-    private static CameraController cameraController = new CameraController();
-
-    public static CameraController GET()
-    {
-        return cameraController;
-    }
-
-    private ControllerEvents eventsListner;
-
-    public void setEventsListner(ControllerEvents eventsListner)
-    {
-        this.eventsListner = eventsListner;
-    }
-
-    public void setTextureView(AutoFitTextureView textureView)
-    {
-        this.mTextureView = textureView;
     }
 
     private static final String TAG = CameraController.class.getSimpleName();
@@ -136,7 +109,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private static final int MAX_PREVIEW_HEIGHT = 1080;
 
     public static CameraCharacteristics mCameraCharacteristics;
-    public static CaptureResult mCaptureResult;
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
     public static final int yuvFormat = ImageFormat.YUV_420_888;
     public static final int prevFormat = ImageFormat.YUV_420_888;
@@ -153,11 +125,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     /**
      * ID of the current {@link CameraDevice}.
      */
-
     public String[] mCameraIds;
-
-    //public CameraCaptureSession mCaptureSession;
-
     private ICamera iCamera;
     protected ICaptureSession iCaptureSession;
     /**
@@ -174,12 +142,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     private ImageSaverCapture yuvImageCapture;
     private ImageSaverCapture rawImageCapture;
 
-    /**
-     * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
-     * still image is ready to be saved.
-     */
-    private ImageSaver imageSaver;
-
     /*{@link CaptureRequest.Builder} for the camera preview*/
     public CaptureRequest.Builder mPreviewRequestBuilder;
     public CaptureRequest mPreviewRequest;
@@ -187,57 +149,273 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * The current state of camera state for taking pictures.
      */
     public int mState = STATE_PREVIEW;
-
     /**
      * Timer to use with pre-capture sequence to ensure a timely capture if 3A convergence is
      * taking too long.
      */
     private long mCaptureTimer;
-
     /**
      * Timeout for the pre-capture sequence.
      */
     private static final long PRECAPTURE_TIMEOUT_MS = 1000;
-
-    private boolean burst = false;
 
     /**
      * Whether the current camera device supports Flash or not.
      */
     private boolean mFlashSupported;
     public final boolean mFlashEnabled = false;
-
     /**
      * Orientation of the camera sensor
      */
     public int mSensorOrientation;
     int[] mCameraAfModes;
     public boolean is30Fps = true;
-
+    private ImageCaptureResultCallback imageCaptureResultCallback = new ImageCaptureResultCallback();
+    private boolean burst = false;
+    private int burstcount;
     ArrayList<CaptureRequest> captures;
-    CameraCaptureSession.CaptureCallback CaptureCallback;
+    private AutoFitTextureView mTextureView;
+    private ControllerEvents eventsListner;
+    /**
+     * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
+     * still image is ready to be saved.
+     */
+    private ImageSaver imageSaver;
 
+    private CameraController()
+    {
+        iCamera = new CameraImpl();
+        iCamera.setCameraEventsListner(this);
+        iCaptureSession = new CaptureSessionImpl(iCamera);
+        iCaptureSession.setCaptureSessionEventListner(this);
+        imageSaver = new ImageSaver();
+    }
+
+
+    @Override
     public int getPreviewWidth()
     {
         return mPreviewSize.getWidth();
     }
-
+    @Override
     public int getPreviewHeight()
     {
         return mPreviewSize.getHeight();
     }
-
+    @Override
+    public CaptureResult getCaptureResult()
+    {
+        return imageCaptureResultCallback.getResult();
+    }
+    @Override
+    public void setEventsListner(ControllerEvents eventsListner)
+    {
+        this.eventsListner = eventsListner;
+    }
+    @Override
+    public void setCaptureListner(ImageCaptureResultCallback.CaptureEvents captureListner)
+    {
+        imageCaptureResultCallback.addEventListner(captureListner);
+    }
+    @Override
+    public void removeCaptureListner(ImageCaptureResultCallback.CaptureEvents captureListner)
+    {
+        imageCaptureResultCallback.removeEventListner(captureListner);
+    }
+    @Override
+    public void setTextureView(AutoFitTextureView textureView)
+    {
+        this.mTextureView = textureView;
+    }
+    @Override
     public void onResume()
     {
         startBackgroundThread();
+        setCaptureListner(this);
         iCamera.onResume();
     }
-
+    @Override
     public void onPause()
     {
+        removeCaptureListner(this);
         closeCamera();
         stopBackgroundThread();
         iCamera.onPause();
+    }
+
+    @SuppressLint("MissingPermission")
+    @Override
+    public void restartCamera() {
+        closeCamera();
+        openCamera(mTextureView.getWidth(),mTextureView.getHeight());
+    }
+
+    /**
+     * Opens the camera
+     */
+    @Override
+    public void openCamera(int width, int height) {
+        Log.v(TAG,"openCamera WxH:" + width +"x" +height);
+        if (ContextCompat.checkSelfPermission(Interface.getMainActivity(), Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            //requestCameraPermission();
+            return;
+        }
+        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
+        CameraManager2 manager2 = new CameraManager2(manager);
+        mCameraIds = manager2.getCameraIdList();
+        if (mPreviewSize == null)
+            mPreviewSize = new Size(mTextureView.getWidth(),mTextureView.getHeight());
+        setUpCameraOutputs(manager);
+        if (eventsListner != null)
+            eventsListner.configureTransform(width,height, mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+        iCamera.openCamera(Interface.getSettings().mCameraID);
+    }
+
+    /**
+     * Closes the current {@link CameraDevice}.
+     */
+    @Override
+    public void closeCamera() {
+        Log.v(TAG, "Close Camera");
+        iCaptureSession.close();
+        iCamera.closeCamera();
+        if (yuvImageCapture != null)
+        {
+            yuvImageCapture.close();
+            rawImageCapture.close();
+            yuvImageCapture = null;
+            rawImageCapture = null;
+        }
+        mState = STATE_CLOSED;
+    }
+
+    /**
+     * Starts a background thread and its {@link Handler}.
+     */
+    @Override
+    public void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("CameraBackground");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+        //mBackgroundHandler.post(imageSaver);
+    }
+
+    /**
+     * Stops the background thread and its {@link Handler}.
+     */
+    @Override
+    public void stopBackgroundThread() {
+        if(mBackgroundThread == null) return;
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void rebuildPreviewBuilder(){
+        iCaptureSession.setRepeatingRequest(mPreviewRequest,
+                mCaptureCallback, mBackgroundHandler);
+    }
+
+    @Override
+    public void rebuildPreviewBuilderOneShot(){
+        iCaptureSession.capture(mPreviewRequestBuilder.build(),
+                mCaptureCallback, mBackgroundHandler);
+    }
+
+    @Override
+    public ICaptureSession getiCaptureSession()
+    {
+        return iCaptureSession;
+    }
+
+    @Override
+    public void onCameraOpen() {
+        createCameraPreviewSession();
+    }
+
+    @Override
+    public void onCameraClose() {
+
+    }
+
+    @Override
+    public void onCaptureStarted() {
+        Log.v(TAG, "onCaptureStarted");
+    }
+
+    @Override
+    public void onCaptureCompleted() {
+        Log.v(TAG, "onCaptureCompleted");
+    }
+
+    @Override
+    public void onCaptureSequenceCompleted() {
+        Log.v(TAG, "onCaptureSequenceCompleted");
+        mTextureView.setAlpha(1f);
+        burst = false;
+        createCameraPreviewSession();
+    }
+
+    @Override
+    public void onCaptureProgressed() {
+        burstcount++;
+        Log.v(TAG, "onCaptureProgressed " + burstcount + "/" + FrameNumberSelector.frameCount);
+        if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
+            if (burstcount >= FrameNumberSelector.frameCount + 1 || ImageSaver.imageBuffer.size() >= FrameNumberSelector.frameCount) {
+                iCaptureSession.abortCaptures();
+                mTextureView.setAlpha(1f);
+                Log.v(TAG, "startPreview");
+                burst = false;
+                createCameraPreviewSession();
+            }
+    }
+
+    @Override
+    public void onConfigured() {
+        try {
+            // Flash is automatically enabled when necessary.
+            setAutoFlash();
+            Interface.getSettings().applyPrev(mPreviewRequestBuilder);
+            // Finally, we start displaying the camera preview.
+            if (is30Fps) {
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                        FpsRangeDef);
+            } else {
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                        FpsRangeHigh);
+            }
+            mPreviewRequest = mPreviewRequestBuilder.build();
+
+            //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
+            if (!burst) {
+                iCaptureSession.setRepeatingRequest(mPreviewRequest,
+                        mCaptureCallback, mBackgroundHandler);
+                unlockFocus();
+            } else {
+                Log.d(TAG,"Preview, captureBurst");
+                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) iCaptureSession.captureBurst(captures, imageCaptureResultCallback, null);
+                else iCaptureSession.setRepeatingBurst(captures, imageCaptureResultCallback, null);
+                burst = false;
+            }
+            if (eventsListner != null)
+                eventsListner.updateTouchtoFocus();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onConfiguredFailed() {
+        if (eventsListner != null)
+            eventsListner.showToast("Failed");
     }
 
     /**
@@ -478,75 +656,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Interface.getCameraUI().onCameraInitialization();
     }
 
-    @SuppressLint("MissingPermission")
-    public void restartCamera() {
-        closeCamera();
-        openCamera(mTextureView.getWidth(),mTextureView.getHeight());
-    }
 
-    /**
-     * Opens the camera
-     */
-    protected void openCamera(int width, int height) {
-        Log.v(TAG,"openCamera WxH:" + width +"x" +height);
-        if (ContextCompat.checkSelfPermission(Interface.getMainActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            //requestCameraPermission();
-            return;
-        }
-        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
-        CameraManager2 manager2 = new CameraManager2(manager);
-        mCameraIds = manager2.getCameraIdList();
-        if (mPreviewSize == null)
-            mPreviewSize = new Size(mTextureView.getWidth(),mTextureView.getHeight());
-        setUpCameraOutputs(manager);
-        if (eventsListner != null)
-            eventsListner.configureTransform(width,height, mPreviewSize.getWidth(), mPreviewSize.getHeight());
-
-        iCamera.openCamera(Interface.getSettings().mCameraID);
-    }
-
-    /**
-     * Closes the current {@link CameraDevice}.
-     */
-    public void closeCamera() {
-        Log.v(TAG, "Close Camera");
-        iCaptureSession.close();
-        iCamera.closeCamera();
-        if (yuvImageCapture != null)
-        {
-            yuvImageCapture.close();
-            rawImageCapture.close();
-            yuvImageCapture = null;
-            rawImageCapture = null;
-        }
-        mState = STATE_CLOSED;
-    }
-
-    /**
-     * Starts a background thread and its {@link Handler}.
-     */
-    public void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("CameraBackground");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-        //mBackgroundHandler.post(imageSaver);
-    }
-
-    /**
-     * Stops the background thread and its {@link Handler}.
-     */
-    private void stopBackgroundThread() {
-        if(mBackgroundThread == null) return;
-        mBackgroundThread.quitSafely();
-        try {
-            mBackgroundThread.join();
-            mBackgroundThread = null;
-            mBackgroundHandler = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Creates a new {@link CameraCaptureSession} for camera preview.
@@ -585,16 +695,6 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         }
     }
 
-    public void rebuildPreviewBuilder(){
-        iCaptureSession.setRepeatingRequest(mPreviewRequest,
-                mCaptureCallback, mBackgroundHandler);
-    }
-
-
-    public void rebuildPreviewBuilderOneShot(){
-        iCaptureSession.capture(mPreviewRequestBuilder.build(),
-                mCaptureCallback, mBackgroundHandler);
-    }
 
     /**
      * Initiate a still image capture.
@@ -676,59 +776,11 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         }
         //img
         Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
-        final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
+        burstcount = 0;
         Log.d(TAG,"CaptureStarted!");
         Interface.getCameraUI().lightcycle.setAlpha(1.0f);
         mTextureView.setAlpha(0.5f);
         MediaPlayer burstPlayer = MediaPlayer.create(Interface.getMainActivity(),R.raw.sound_burst);
-        CaptureCallback
-                = new CameraCaptureSession.CaptureCallback() {
-            @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                           @NonNull CaptureRequest request,
-                                           @NonNull TotalCaptureResult result) {
-                Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
-                burstPlayer.start();
-                Log.v(TAG,"Completed!");
-                mCaptureResult = result;
-            }
-
-            @Override
-            public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                burstPlayer.seekTo(0);
-                Log.v(TAG,"FrameCaptureStarted! FrameNumber:"+frameNumber);
-                super.onCaptureStarted(session, request, timestamp, frameNumber);
-            }
-
-            @Override
-            public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
-                Log.d(TAG,"SequenceCompleted");
-                try {
-                    Interface.getCameraUI().lightcycle.setAlpha(0f);
-                    Interface.getCameraUI().lightcycle.setProgress(0);
-                    mTextureView.setAlpha(1f);
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
-                //unlockFocus();
-                createCameraPreviewSession();
-                super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
-            }
-
-            @Override
-            public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
-                burstcount[1]++;
-                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
-                    if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
-                        iCaptureSession.abortCaptures();
-                        Interface.getCameraUI().lightcycle.setAlpha(0f);
-                        Interface.getCameraUI().lightcycle.setProgress(0);
-                        mTextureView.setAlpha(1f);
-                        createCameraPreviewSession();
-                    }
-                super.onCaptureProgressed(session, request, partialResult);
-            }
-        };
 
         //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
         burst = true;
@@ -754,66 +806,14 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         //        mBackgroundHandler);
     }
 
-    public void setAutoFlash() {
+    private void setAutoFlash() {
         if (mFlashSupported) {
             if (mFlashEnabled)
                 CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
         }
     }
 
-    @Override
-    public void onCameraOpen() {
-        createCameraPreviewSession();
-    }
 
-    @Override
-    public void onCameraClose() {
-
-    }
-
-    @Override
-    public void onConfigured() {
-        try {
-            // Auto focus should be continuous for camera preview.
-            //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            // Flash is automatically enabled when necessary.
-            setAutoFlash();
-            Interface.getSettings().applyPrev(mPreviewRequestBuilder);
-
-            //lightcycle.setVisibility(View.INVISIBLE);
-            // Finally, we start displaying the camera preview.
-            if (is30Fps) {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                        FpsRangeDef);
-            } else {
-                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                        FpsRangeHigh);
-            }
-            mPreviewRequest = mPreviewRequestBuilder.build();
-
-            //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
-            if (!burst) {
-                iCaptureSession.setRepeatingRequest(mPreviewRequest,
-                        mCaptureCallback, mBackgroundHandler);
-                unlockFocus();
-            } else {
-                Log.d(TAG,"Preview, captureBurst");
-                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) iCaptureSession.captureBurst(captures, CaptureCallback, null);
-                else iCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
-                burst = false;
-            }
-            if (eventsListner != null)
-                eventsListner.updateTouchtoFocus();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onConfiguredFailed() {
-        if (eventsListner != null)
-            eventsListner.showToast("Failed");
-    }
 
     /**
      * Compares two {@code Size}s based on their areas.
@@ -849,10 +849,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         return (SystemClock.elapsedRealtime() - mCaptureTimer) > PRECAPTURE_TIMEOUT_MS;
     }
 
-    public ICaptureSession getiCaptureSession()
-    {
-        return iCaptureSession;
-    }
+
 
     private final CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {

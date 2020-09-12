@@ -15,13 +15,14 @@ import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.ImageCaptureResultCallback;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Settings;
 
 import com.eszdman.photoncamera.wefika.horizontalpicker.HorizontalPicker;
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class CameraUI {
+public class CameraUI implements ImageCaptureResultCallback.CaptureEvents {
     private static final String TAG = "CameraUI";
     public ImageButton shot;
     public ProgressBar lightcycle;
@@ -229,11 +230,13 @@ public class CameraUI {
         }
     }
     public void onCameraPause(){
+        CameraController.GET().removeCaptureListner(this);
         Interface.getGravity().stop();
         Interface.getSensors().stop();
         Interface.getSettings().saveID();
     }
     public void onCameraResume(){
+        CameraController.GET().setCaptureListner(this);
         Interface.getSwipe().RunDetection();
         Interface.getSensors().run();
         Log.d(TAG,"CameraResume");
@@ -272,5 +275,28 @@ public class CameraUI {
         } catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onCaptureStarted() {
+        Log.v(TAG, "onCaptureStarted");
+    }
+
+    @Override
+    public void onCaptureCompleted() {
+        Log.v(TAG, "onCaptureCompleted");
+        Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
+    }
+
+    @Override
+    public void onCaptureSequenceCompleted() {
+        Log.v(TAG, "onCaptureSequenceCompleted");
+        Interface.getCameraUI().lightcycle.setAlpha(0f);
+        Interface.getCameraUI().lightcycle.setProgress(0);
+    }
+
+    @Override
+    public void onCaptureProgressed() {
+        Log.v(TAG, "onCaptureProgressed");
     }
 }

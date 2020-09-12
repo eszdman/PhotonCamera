@@ -180,10 +180,10 @@ public class ImageProcessing {
         Log.d("ImageProcessing Stab", "imgsmat size:" + imgsmat.size());
         processingstep();
         if (!israw) {
-            Object sensivity = CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+            Object sensivity = CameraController.GET().getCaptureResult().get(CaptureResult.SENSOR_SENSITIVITY);
             if(sensivity == null) sensivity = (int)100;
             double params = Math.sqrt(Math.log((int)sensivity) * 22) + 9;
-            Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+            Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraController.GET().getCaptureResult().get(CaptureResult.SENSOR_SENSITIVITY));
             int ind = imgsmat.size() / 2;
             if (ind % 2 == 0) ind -= 1;
             int wins = imgsmat.size() - ind;
@@ -245,7 +245,7 @@ public class ImageProcessing {
     void ApplyHdrX() {
         boolean debugAlignment = false;
         if(Interface.getSettings().alignAlgorithm == 1) debugAlignment = true;
-        CaptureResult res = CameraController.mCaptureResult;
+        CaptureResult res = CameraController.GET().getCaptureResult();
         processingstep();
         long startTime = System.currentTimeMillis();
         int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
@@ -322,7 +322,7 @@ public class ImageProcessing {
         rawPipeline.images = images;
         Log.d(TAG,"WhiteLevel:"+Interface.getParameters().whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        Object sensitivity = CameraController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        Object sensitivity = CameraController.GET().getCaptureResult().get(CaptureResult.SENSOR_SENSITIVITY);
         if(sensitivity == null) sensitivity = (int)100;
         float deghostlevel = (float)Math.sqrt(((int)sensitivity)* IsoExpoSelector.getMPY() - 50.)/16.2f;
         deghostlevel = Math.min(0.25f,deghostlevel);
@@ -389,7 +389,7 @@ public class ImageProcessing {
         curimgs.get(0).close();
     }
     private static void saveRaw(Image in){
-        DngCreator dngCreator = new DngCreator(CameraController.mCameraCharacteristics, CameraController.mCaptureResult);
+        DngCreator dngCreator = new DngCreator(CameraController.mCameraCharacteristics, CameraController.GET().getCaptureResult());
         try {
             FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
             dngCreator.setDescription(Interface.getParameters().toString());
@@ -434,13 +434,13 @@ public class ImageProcessing {
     }
     public static void UnlimitedEnd(){
         Log.d(TAG, "Wrapper.processFrame()");
-        Interface.getParameters().FillParameters(CameraController.mCaptureResult,CameraController.mCameraCharacteristics,Interface.getParameters().rawSize);
+        Interface.getParameters().FillParameters(CameraController.GET().getCaptureResult(),CameraController.mCameraCharacteristics,Interface.getParameters().rawSize);
         Interface.getParameters().path = ImageSaver.outimg.getAbsolutePath();
         PostPipeline pipeline = new PostPipeline();
         pipeline.Run(unlimitedBuffer,Interface.getParameters());
         pipeline.close();
         try {
-            ExifInterface inter = ParseExif.Parse(CameraController.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
+            ExifInterface inter = ParseExif.Parse(CameraController.GET().getCaptureResult(), ImageSaver.outimg.getAbsolutePath());
             if (!Interface.getSettings().rawSaver) {
                 try {
                     inter.saveAttributes();

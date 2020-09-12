@@ -36,7 +36,7 @@ public class Camera2ApiAutoFix {
         fix.MaxRegionsAF();
     }
     public static void ApplyRes(){
-        CaptureResult characteristics= CameraController.mCaptureResult;
+        CaptureResult characteristics = CameraController.GET().getCaptureResult();
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         //fix.gains();
         fix.BL();

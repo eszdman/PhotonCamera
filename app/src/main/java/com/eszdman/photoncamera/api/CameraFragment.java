@@ -72,7 +72,6 @@ public class CameraFragment extends Fragment
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
-    private Size target;
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
 
 

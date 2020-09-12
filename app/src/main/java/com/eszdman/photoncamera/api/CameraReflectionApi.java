@@ -33,7 +33,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureResult.class,"mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraController.mCaptureResult);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraController.GET().getCaptureResult());
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(),"set", CaptureResult.Key.class, Object.class);
             set.setAccessible(true);
@@ -100,7 +100,7 @@ public class CameraReflectionApi {
         for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
     }*/
     public static void setVERBOSE(boolean in) {
-        Object capres = CameraController.mCaptureResult;//Ur camera CaptureResult
+        Object capres = CameraController.GET().getCaptureResult();//Ur camera CaptureResult
         Field verbose;
         try {
             //noinspection JavaReflectionMemberAccess
