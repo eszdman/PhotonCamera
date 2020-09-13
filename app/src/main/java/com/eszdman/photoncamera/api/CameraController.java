@@ -4,10 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.ImageFormat;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -18,7 +14,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
-import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -27,7 +22,6 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Rational;
 import android.util.Size;
-import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -35,23 +29,18 @@ import androidx.core.content.ContextCompat;
 import com.eszdman.photoncamera.AutoFitTextureView;
 import com.eszdman.photoncamera.Parameters.ExposureIndex;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.camera.CameraImpl;
 import com.eszdman.photoncamera.api.camera.ICamera;
 import com.eszdman.photoncamera.api.capture.BurstCounter;
 import com.eszdman.photoncamera.api.capture.CapturePipe;
 import com.eszdman.photoncamera.api.capture.EszdCapturePipe;
-import com.eszdman.photoncamera.api.capture.ImageSaverCapture;
+import com.eszdman.photoncamera.api.capture.ZslCapture;
 import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.CaptureSessionImpl;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 
 public class CameraController implements ICamera.CameraEvents, ICaptureSession.CaptureSessionEvents, ImageCaptureResultCallback.CaptureEvents, ICameraController
 {
@@ -103,18 +92,18 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
 
     public static CameraCharacteristics mCameraCharacteristics;
-    public static final int rawFormat = ImageFormat.RAW_SENSOR;
+   /* public static final int rawFormat = ImageFormat.RAW_SENSOR;
     public static final int yuvFormat = ImageFormat.YUV_420_888;
     public static final int prevFormat = ImageFormat.YUV_420_888;
     public static int mTargetFormat = rawFormat;
-    public static final int mPreviewTargetFormat = prevFormat;
+    public static final int mPreviewTargetFormat = prevFormat;*/
     public static CaptureResult mPreviewResult;
     public long mPreviewExposuretime;
     public int mPreviewIso;
     public Rational[] mPreviewTemp;
     public ColorSpaceTransform mColorSpaceTransform;
-    Range FpsRangeDef;
-    Range FpsRangeHigh;
+    public Range FpsRangeDef;
+    public Range FpsRangeHigh;
     private float mFocus;
     /**
      * ID of the current {@link CameraDevice}.
@@ -180,6 +169,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCaptureSession.setCaptureSessionEventListner(this);
         imageSaver = new ImageSaver();
         captureSessionController = new CaptureSessionController(iCaptureSession,iCamera,mCaptureCallback);
+        //capturePipe = new EszdCapturePipe(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
         capturePipe = new EszdCapturePipe(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
         burstCounter = new BurstCounter();
     }
@@ -227,6 +217,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         setCaptureListner(this);
         iCamera.onResume();
         captureSessionController.setBackgroundHandler(mBackgroundHandler);
+        capturePipe.setmBackgroundHandler(mBackgroundHandler);
+        capturePipe.setBurstCounter(burstCounter);
     }
     @Override
     public void onPause()
@@ -234,6 +226,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         removeCaptureListner(this);
         closeCamera();
         captureSessionController.setBackgroundHandler(null);
+        capturePipe.setmBackgroundHandler(null);
+        capturePipe.setBurstCounter(null);
         stopBackgroundThread();
         iCamera.onPause();
     }
@@ -259,13 +253,38 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         mCameraIds = manager2.getCameraIdList();
+        try {
+            mCameraCharacteristics = manager.getCameraCharacteristics(Interface.getSettings().mCameraID);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
         if (mPreviewSize == null)
             mPreviewSize = new Size(mTextureView.getWidth(),mTextureView.getHeight());
-        setUpCameraOutputs(manager);
+        //setUpCameraOutputs(manager);
         if (eventsListner != null)
             eventsListner.configureTransform(width,height, mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
+        findFpsRange();
+        mCameraAfModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+
+        // Find out if we need to swap dimension to get the preview size relative to sensor
+        // coordinate.
+        int displayRotation = Interface.getGravity().getRotation();
+        boolean swappedDimensions = isSwappedDimensions(displayRotation);
+
+        mPreviewSize = SizeUtils.findPreviewSize(mCameraCharacteristics.get(
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP), new Size(mTextureView.getWidth(), mTextureView.getHeight()) ,mPreviewSize, swappedDimensions);
+        Log.v(TAG,"Optimal PreviewSize: " + mPreviewSize.toString());
+
+        if (eventsListner != null)
+            eventsListner.updateTextureViewOrientation(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+
+        // Check if the flash is supported.
+        Boolean available = mCameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+        mFlashSupported = available == null ? false : available;
         iCamera.openCamera(Interface.getSettings().mCameraID);
+        Interface.getCameraUI().onCameraInitialization();
     }
 
     /**
@@ -276,8 +295,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Log.v(TAG, "Close Camera");
         iCaptureSession.close();
         iCamera.closeCamera();
-        captureSessionController.clear();
         capturePipe.close();
+        captureSessionController.clear();
         mState = STATE_CLOSED;
     }
 
@@ -375,91 +394,21 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
     @Override
     public void onConfigured() {
+        Log.v(TAG, "onConfigured capturesession");
         try {
-            // Flash is automatically enabled when necessary.
-            setAutoFlash();
-            Interface.getSettings().applyPrev(captureSessionController.getPreviewRequestBuilder());
-            // Finally, we start displaying the camera preview.
-            if (is30Fps) {
-                captureSessionController.setFpsRange(FpsRangeDef);
-            } else {
-                captureSessionController.setFpsRange(FpsRangeHigh);
-            }
-
-            //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
-            if (!burstCounter.isBurst()) {
-                captureSessionController.applyRepeating();
-                unlockFocus();
-            } else {
-                Log.d(TAG,"Preview, captureBurst");
-                capturePipe.startCapture(mBackgroundHandler);
-                burstCounter.setBurst(false);
-            }
+            capturePipe.onConfigured();
             if (eventsListner != null)
                 eventsListner.updateTouchtoFocus();
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
     @Override
     public void onConfiguredFailed() {
         if (eventsListner != null)
             eventsListner.showToast("Failed");
-    }
-
-    /**
-     * Sets up member variables related to camera.
-     */
-    private void setUpCameraOutputs(CameraManager cameraManager) {
-        // manager2.CameraArr(manager);
-        try {
-            mCameraCharacteristics = cameraManager.getCameraCharacteristics(Interface.getSettings().mCameraID);
-            UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
-
-            //Thread thr = new Thread(imageSaver);
-            //thr.start();
-            mBackgroundHandler.post(imageSaver);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        } catch (NullPointerException e) {
-            // Currently an NPE is thrown when the Camera2API is used but not supported on the
-            // device this code runs.
-            e.printStackTrace();
-            if (eventsListner != null)
-                eventsListner.onCreateOutPutError(R.string.camera_error);
-        }
-    }
-
-    private void UpdateCameraCharacteristics(String cameraId) {
-        Log.v(TAG,"UpdateCameraCharacteristics " + cameraId);
-        capturePipe.findOutputSizes(mCameraCharacteristics,mTargetFormat,mPreviewTargetFormat);
-        int maxjpg = 3;
-        if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.getSettings().frameCount+3;
-        capturePipe.createImageReader(maxjpg);
-        // Find out if we need to swap dimension to get the preview size relative to sensor
-        // coordinate.
-        int displayRotation = Interface.getGravity().getRotation();
-        //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        //noinspection ConstantConditions
-
-        findFpsRange();
-        mCameraAfModes = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
-
-        boolean swappedDimensions = isSwappedDimensions(displayRotation);
-
-        mPreviewSize = SizeUtils.findPreviewSize(mCameraCharacteristics.get(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP), new Size(mTextureView.getWidth(), mTextureView.getHeight()) ,mPreviewSize, swappedDimensions);
-        Log.v(TAG,"Optimal PreviewSize: " + mPreviewSize.toString());
-
-        if (eventsListner != null)
-            eventsListner.updateTextureViewOrientation(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-
-
-        // Check if the flash is supported.
-        Boolean available = mCameraCharacteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-        mFlashSupported = available == null ? false : available;
-        Interface.getCameraUI().onCameraInitialization();
     }
 
     private boolean isSwappedDimensions(int displayRotation) {
@@ -520,7 +469,12 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      */
     @SuppressLint("LongLogTag")
     protected void createCameraPreviewSession() {
-        capturePipe.createCameraPreviewSession(mTextureView.getSurfaceTexture(),mBackgroundHandler);
+        Log.v(TAG, "createCameraPreviewSession");
+        capturePipe.findOutputSizes(mCameraCharacteristics);
+        FrameNumberSelector.getFrames();
+        capturePipe.createImageReader(FrameNumberSelector.frameCount);
+        capturePipe.createCaptureSession(mTextureView.getSurfaceTexture());
+        mBackgroundHandler.post(imageSaver);
     }
 
 
@@ -528,10 +482,11 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * Initiate a still image capture.
      */
     protected void takePicture() {
+        Log.v(TAG, "takePicture");
         if (mCameraAfModes.length > 1) lockFocus();
         else {
             mState = STATE_WAITING_NON_PRECAPTURE;
-            captureSessionController.applyOneShot();
+            captureStillPicture();
         }
     }
 
@@ -539,6 +494,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * Lock the focus as the first step for a still image capture.
      */
     private void lockFocus() {
+        Log.v(TAG, "lockFocus");
         startTimerLocked();
         // This is how to tell the camera to lock focus.
         captureSessionController.setFocusTriggerTo(CameraMetadata.CONTROL_AF_TRIGGER_START).applyOneShot();
@@ -552,6 +508,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
      */
     private void runPrecaptureSequence() {
+        Log.v(TAG, "runPrecaptureSequence");
         // This is how to tell the camera to trigger.
         captureSessionController.setAeTriggerTo(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START).applyOneShot();
         // Tell #mCaptureCallback to wait for the precapture sequence to be set.
@@ -560,9 +517,10 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
 
 
     private void captureStillPicture() {
+        Log.v(TAG, "captureStillPicture");
         burstCounter.setBurst(true);
         burstCounter.setCurrent_burst(0);
-        capturePipe.captureStillPicture(mTargetFormat,mFocus,mTextureView,mBackgroundHandler,burstCounter);
+        capturePipe.captureStillPicture(mFocus,mTextureView);
 
     }
 
@@ -570,7 +528,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * Unlock the focus. This method should be called when still image capture sequence is
      * finished.
      */
-    private void unlockFocus() {
+    public void unlockFocus() {
+        Log.v(TAG, "unlockFocus");
         // Reset the auto-focus trigger
         //mCaptureSession.stopRepeating();
         captureSessionController.setFocusTriggerTo(CameraMetadata.CONTROL_AF_TRIGGER_CANCEL).applyOneShot();
@@ -583,7 +542,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         //        mBackgroundHandler);
     }
 
-    private void setAutoFlash() {
+    public void setAutoFlash() {
+        Log.v(TAG, "setAutoFlash");
         if (mFlashSupported) {
             if (mFlashEnabled)
                 captureSessionController.setAeMode(CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH).applyRepeating();
@@ -707,6 +667,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
+            capturePipe.setCaptureResult(result);
             Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
             Object focus = result.get(CaptureResult.LENS_FOCUS_DISTANCE);

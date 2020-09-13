@@ -11,6 +11,7 @@ import java.util.List;
 public interface ICaptureSession {
 
     void createCaptureSession(List<Surface> var1, Handler var3);
+    void createZslCaptureSession(List<Surface> var1, Handler var3,int width, int height);
 
     void setRepeatingRequest(CaptureRequest mPreviewRequest, CameraCaptureSession.CaptureCallback mCaptureCallback, Handler mBackgroundHandler);
 
@@ -31,4 +32,5 @@ public interface ICaptureSession {
     void abortCaptures();
     void setCaptureSessionEventListner(CaptureSessionEvents captureSessionEventListner);
     void close();
+    Surface getInputSurface();
 }

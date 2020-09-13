@@ -1,12 +1,12 @@
 package com.eszdman.photoncamera.api.capture;
 
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.os.Handler;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
@@ -33,8 +33,8 @@ public class EszdCapturePipe extends CapturePipe {
 
     Size previewSize;
     Size captureSize;
-    private int targetFormat;
-    private int previewFormat;
+    private final int targetFormat  = ImageFormat.RAW_SENSOR;
+    private int previewFormat = ImageFormat.YUV_420_888;
     private ImageSaverCapture yuvImageCapture;
     private ImageSaverCapture rawImageCapture;
     private ImageSaver imageSaver;
@@ -53,7 +53,7 @@ public class EszdCapturePipe extends CapturePipe {
     }
 
     @Override
-    public void createCameraPreviewSession(SurfaceTexture surfaceTexture, Handler mBackgroundHandler) {
+    public void createCaptureSession(SurfaceTexture surfaceTexture) {
         Log.v(TAG, "createCameraPreviewSession");
         if (previewSize == null)
             return;
@@ -86,19 +86,19 @@ public class EszdCapturePipe extends CapturePipe {
     }
 
     @Override
-    public void findOutputSizes(CameraCharacteristics cameraCharacteristics, int targetFormat, int previewFormat) {
+    public void findOutputSizes(CameraCharacteristics cameraCharacteristics) {
         StreamConfigurationMap map = null;
             map = cameraCharacteristics.get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         previewSize =  SizeUtils.getCameraOutputSize(map.getOutputSizes(previewFormat));
         captureSize = SizeUtils.getCameraOutputSize(map.getOutputSizes(targetFormat),previewSize,cameraCharacteristics);
-        this.targetFormat = targetFormat;
-        this.previewFormat = previewFormat;
+
     }
 
     @Override
     public void createImageReader(int maximages) {
-        yuvImageCapture = new ImageSaverCapture(previewSize.getWidth(),previewSize.getHeight(),previewFormat, maximages, imageSaver);
+        Log.v(TAG,"createImageReader:" + maximages);
+        yuvImageCapture = new ImageSaverCapture(previewSize.getWidth(),previewSize.getHeight(),previewFormat, Interface.getSettings().frameCount + 3, imageSaver);
         rawImageCapture = new ImageSaverCapture(captureSize.getWidth(), captureSize.getHeight(),
                 targetFormat, Interface.getSettings().frameCount + 3, imageSaver);
         add(yuvImageCapture);
@@ -112,6 +112,7 @@ public class EszdCapturePipe extends CapturePipe {
         rawImageCapture = null;
     }
 
+
     @Override
     public void setSurfaces() {
         captureSessionController.addSurface(yuvImageCapture.getSurface(),false);
@@ -119,7 +120,7 @@ public class EszdCapturePipe extends CapturePipe {
     }
 
     @Override
-    public void startCapture(Handler mBackgroundHandler) {
+    public void startCapture() {
         if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
             iCaptureSession.captureBurst(captures, imageCaptureResultCallback, mBackgroundHandler);
         else
@@ -127,14 +128,22 @@ public class EszdCapturePipe extends CapturePipe {
     }
 
     @Override
-    public void captureStillPicture(int mTargetFormat, float mFocus, AutoFitTextureView surfaceTexture, Handler mBackgroundHandler, BurstCounter burstCounter) {
+    public void setCaptureResult(TotalCaptureResult captureResult) {
+
+    }
+
+    @Override
+    public void captureStillPicture(float mFocus, AutoFitTextureView surfaceTexture) {
 
         // This is the CaptureRequest.Builder that we use to take a picture.
         final CaptureRequest.Builder captureBuilder =
                 iCamera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
         iCaptureSession.stopRepeating();
-        if(mTargetFormat != previewFormat) captureBuilder.addTarget(getAbstractImageCapture(1).getSurface());
-        else captureBuilder.addTarget(getAbstractImageCapture(0).getSurface());
+        Log.v(TAG, "is HDRDX:" + Interface.getSettings().hdrx);
+        if (!Interface.getSettings().hdrx)
+            captureBuilder.addTarget(yuvImageCapture.getSurface());
+        else
+            captureBuilder.addTarget(rawImageCapture.getSurface());
         Interface.getSettings().applyRes(captureBuilder);
         //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
         //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
@@ -171,7 +180,41 @@ public class EszdCapturePipe extends CapturePipe {
 
         //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
         imageCaptureResultCallback.fireOnCaptureSquenceStarted(FrameNumberSelector.frameCount);
-        createCameraPreviewSession(surfaceTexture.getSurfaceTexture(),mBackgroundHandler);
+        createCaptureSession(surfaceTexture.getSurfaceTexture());
         //mCaptureSession.captureBurst(captures, CaptureCallback, null);
+    }
+
+    @Override
+    public void onConfigured() {
+        Log.v(TAG, "onConfigured capturesession");
+        try {
+            // Flash is automatically enabled when necessary.
+            CameraController.GET().setAutoFlash();
+
+            // Finally, we start displaying the camera preview.
+            if (CameraController.GET().is30Fps) {
+                captureSessionController.setFpsRange(CameraController.GET().FpsRangeDef);
+            } else {
+                captureSessionController.setFpsRange(CameraController.GET().FpsRangeHigh);
+            }
+
+            if (!burstCounter.isBurst()) {
+                captureSessionController.applyRepeating();
+                CameraController.GET().unlockFocus();
+            } else {
+                Log.d(TAG,"Preview, captureBurst");
+                startCapture();
+                burstCounter.setBurst(false);
+            }
+            Interface.getSettings().applyPrev(captureSessionController.getPreviewRequestBuilder());
+            captureSessionController.applyRepeating();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onConfiguredFailed() {
+
     }
 }

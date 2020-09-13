@@ -321,10 +321,8 @@ public class CameraFragment extends Fragment
             case R.id.stacking: {
                 ToggleButton sw = (ToggleButton) view;
                 if (sw.isChecked()) {
-                    CameraController.mTargetFormat = CameraController.rawFormat;
                     Interface.getSettings().hdrx = true;
                 } else {
-                    CameraController.mTargetFormat = CameraController.yuvFormat;
                     Interface.getSettings().hdrx = false;
                 }
                 Interface.getSettings().save();

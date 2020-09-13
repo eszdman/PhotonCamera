@@ -17,13 +17,14 @@ public class CaptureSessionController
     public CaptureRequest.Builder mPreviewRequestBuilder;
     private ICaptureSession captureSession;
     private ICamera iCamera;
-    private Surface previewSurface;
+    private List<Surface> previewSurface;
     CameraCaptureSession.CaptureCallback captureCallback;
     private Handler backgroundHandler;
 
     public CaptureSessionController(ICaptureSession captureSession, ICamera camera, CameraCaptureSession.CaptureCallback captureCallback)
     {
         surfaceList = new ArrayList<>();
+        previewSurface = new ArrayList<>();
         this.captureSession = captureSession;
         this.iCamera = camera;
         this.captureCallback = captureCallback;
@@ -32,7 +33,7 @@ public class CaptureSessionController
     public void clear()
     {
         surfaceList.clear();
-        previewSurface = null;
+        previewSurface.clear();
     }
 
     public void setBackgroundHandler(Handler handler)
@@ -44,8 +45,8 @@ public class CaptureSessionController
     {
         if (!surfaceList.contains(surface)) {
             surfaceList.add(surface);
-            if (forPreview)
-                previewSurface = surface;
+            if (forPreview && !previewSurface.contains(surface))
+                previewSurface.add(surface);
         }
         return this;
     }
@@ -54,9 +55,20 @@ public class CaptureSessionController
     {
         mPreviewRequestBuilder
                 = iCamera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-        mPreviewRequestBuilder.addTarget(previewSurface);
+        for (Surface s : previewSurface)
+            mPreviewRequestBuilder.addTarget(s);
 
         captureSession.createCaptureSession(surfaceList, handler);
+    }
+
+    public void createZslCaptureSession(Handler handler, int width, int height)
+    {
+        mPreviewRequestBuilder
+                = iCamera.createCaptureRequest(CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG);
+        for (Surface s : previewSurface)
+            mPreviewRequestBuilder.addTarget(s);
+
+        captureSession.createZslCaptureSession(surfaceList, handler,width,height);
     }
 
     public CaptureRequest.Builder getPreviewRequestBuilder()
@@ -117,6 +129,13 @@ public class CaptureSessionController
     public void applyRepeating()
     {
         captureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), captureCallback,backgroundHandler);
+    }
+
+    public void applyRepeatingBurst()
+    {
+        ArrayList<CaptureRequest> builders = new ArrayList<>();
+        builders.add(mPreviewRequestBuilder.build());
+        captureSession.setRepeatingBurst(builders, captureCallback,backgroundHandler);
     }
 
     public void applyOneShot()

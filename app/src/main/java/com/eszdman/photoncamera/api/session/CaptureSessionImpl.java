@@ -4,6 +4,7 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -15,6 +16,7 @@ import java.util.List;
 
 public class CaptureSessionImpl implements ICaptureSession {
 
+    private static final String TAG = CaptureSessionImpl.class.getSimpleName();
     private ICamera iCamera;
     /**
      * A {@link CameraCaptureSession } for camera preview.
@@ -30,11 +32,19 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void createCaptureSession(List<Surface> var1, Handler var3) {
+        Log.v(TAG,"createCaptureSession");
         iCamera.createCaptureSession(var1,sessionCreated,var3);
     }
 
     @Override
+    public void createZslCaptureSession(List<Surface> var1, Handler var3,int width, int height) {
+        Log.v(TAG,"createZslCaptureSession");
+        iCamera.createReprocessCaptureSession(var1,sessionCreated,var3,width,height);
+    }
+
+    @Override
     public void setRepeatingRequest(CaptureRequest mPreviewRequest, CameraCaptureSession.CaptureCallback mCaptureCallback, Handler mBackgroundHandler) {
+        Log.v(TAG,"setRepeatingRequest");
         try {
             mCaptureSession.setRepeatingRequest(mPreviewRequest,
                     mCaptureCallback, mBackgroundHandler);
@@ -45,6 +55,7 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void capture(CaptureRequest build, CameraCaptureSession.CaptureCallback mCaptureCallback, Handler mBackgroundHandler) {
+        Log.v(TAG,"capture");
         try {
             mCaptureSession.capture(build,
                     mCaptureCallback, mBackgroundHandler);
@@ -55,6 +66,7 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void stopRepeating() {
+        Log.v(TAG,"stopRepeating");
         try {
             mCaptureSession.stopRepeating();
         } catch (CameraAccessException e) {
@@ -64,6 +76,7 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void captureBurst(ArrayList<CaptureRequest> captures, CameraCaptureSession.CaptureCallback captureCallback, Handler o) {
+        Log.v(TAG,"captureBurst");
         try {
             mCaptureSession.captureBurst(captures,captureCallback,o);
         } catch (CameraAccessException e) {
@@ -73,6 +86,7 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void setRepeatingBurst(ArrayList<CaptureRequest> captures, CameraCaptureSession.CaptureCallback captureCallback, Handler o) {
+        Log.v(TAG,"setRepeatingBurst");
         try {
             mCaptureSession.setRepeatingBurst(captures,captureCallback,o);
         } catch (CameraAccessException e) {
@@ -82,6 +96,7 @@ public class CaptureSessionImpl implements ICaptureSession {
 
     @Override
     public void abortCaptures() {
+        Log.v(TAG,"abortCaptures");
         try {
             mCaptureSession.abortCaptures();
         } catch (CameraAccessException e) {
@@ -119,6 +134,7 @@ public class CaptureSessionImpl implements ICaptureSession {
         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
             // When the session is ready, we start displaying the preview.
             mCaptureSession = cameraCaptureSession;
+            Log.d(TAG, "Session is reprocessable:" +mCaptureSession.isReprocessable());
             fireOnCofigured();
         }
 
@@ -128,4 +144,9 @@ public class CaptureSessionImpl implements ICaptureSession {
             fireOnCofiguredFailed();
         }
     };
+
+    @Override
+    public Surface getInputSurface() {
+        return mCaptureSession.getInputSurface();
+    }
 }

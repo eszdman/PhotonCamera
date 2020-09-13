@@ -52,7 +52,7 @@ public class IsoExpoSelector {
         if (pair.iso >= 12700) {
             pair.ReduceIso();
         }
-        if (CameraController.mTargetFormat == CameraController.rawFormat) {
+        if (Interface.getSettings().hdrx) {
             if (pair.iso >= 100 / 0.65) pair.iso *= mpy;
             else {
                 pair.exposure *= mpy;

@@ -2,11 +2,15 @@ package com.eszdman.photoncamera.api.camera;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.InputConfiguration;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.os.Handler;
 import android.view.Surface;
 
@@ -99,9 +103,31 @@ public class CameraImpl implements ICamera {
     }
 
     @Override
+    public CaptureRequest.Builder createReprocessCaptureRequest(TotalCaptureResult template) {
+        try {
+            return mCameraDevice.createReprocessCaptureRequest(template);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
     public void createCaptureSession(List<Surface> var1, CameraCaptureSession.StateCallback var2, Handler var3) {
         try {
             mCameraDevice.createCaptureSession(var1,var2,var3);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void createReprocessCaptureSession(List<Surface> var1, CameraCaptureSession.StateCallback var2, Handler var3, int width, int height) {
+        try {
+            InputConfiguration inputConfiguration = new InputConfiguration(
+                    width,
+                    height, ImageFormat.PRIVATE);
+            mCameraDevice.createReprocessableCaptureSession(inputConfiguration,var1,var2,var3);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }

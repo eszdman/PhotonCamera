@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api.capture;
 
+import android.hardware.camera2.TotalCaptureResult;
 import android.media.ImageReader;
 import android.view.Surface;
 
