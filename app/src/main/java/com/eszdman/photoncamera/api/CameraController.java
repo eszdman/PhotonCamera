@@ -169,8 +169,8 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         iCaptureSession.setCaptureSessionEventListner(this);
         imageSaver = new ImageSaver();
         captureSessionController = new CaptureSessionController(iCaptureSession,iCamera,mCaptureCallback);
+        capturePipe = new ZslCapture(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
         //capturePipe = new EszdCapturePipe(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
-        capturePipe = new EszdCapturePipe(imageSaver,captureSessionController,iCamera,iCaptureSession,imageCaptureResultCallback);
         burstCounter = new BurstCounter();
     }
 
@@ -358,16 +358,18 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     @Override
     public void onCaptureStarted() {
         Log.v(TAG, "onCaptureStarted");
+        capturePipe.onCaptureStarted();
     }
 
     @Override
     public void onCaptureCompleted() {
         Log.v(TAG, "onCaptureCompleted");
+        capturePipe.onCaptureCompleted();
     }
 
     @Override
     public void onCaptureSequenceStarted(int burstcount) {
-
+        capturePipe.onCaptureSequenceStarted(burstcount);
     }
 
     @Override
@@ -375,21 +377,22 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         Log.v(TAG, "onCaptureSequenceCompleted");
         mTextureView.setAlpha(1f);
         burstCounter.setBurst(false);
-        createCameraPreviewSession();
+        capturePipe.onCaptureSequenceCompleted();
     }
 
     @Override
     public void onCaptureProgressed() {
         burstCounter.increase();
         Log.v(TAG, "onCaptureProgressed " + burstCounter.getCurrent_burst() + "/" + FrameNumberSelector.frameCount);
-        if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
+        capturePipe.onCaptureProgressed();
+        /*if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
             if (burstCounter.getCurrent_burst() >= FrameNumberSelector.frameCount + 1 || ImageSaver.imageBuffer.size() >= FrameNumberSelector.frameCount) {
                 iCaptureSession.abortCaptures();
                 mTextureView.setAlpha(1f);
                 Log.v(TAG, "startPreview");
                 burstCounter.setBurst(false);
                 createCameraPreviewSession();
-            }
+            }*/
     }
 
     @Override
@@ -468,7 +471,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
     @SuppressLint("LongLogTag")
-    protected void createCameraPreviewSession() {
+    public void createCameraPreviewSession() {
         Log.v(TAG, "createCameraPreviewSession");
         capturePipe.findOutputSizes(mCameraCharacteristics);
         FrameNumberSelector.getFrames();
@@ -555,7 +558,7 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
     /**
      * Compares two {@code Size}s based on their areas.
      */
-    static class CompareSizesByArea implements Comparator<Size> {
+    public static class CompareSizesByArea implements Comparator<Size> {
 
         @Override
         public int compare(Size lhs, Size rhs) {

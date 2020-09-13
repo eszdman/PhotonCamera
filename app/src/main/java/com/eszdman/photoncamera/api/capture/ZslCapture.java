@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api.capture;
 
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
@@ -9,12 +10,12 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageWriter;
-import android.os.Handler;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 
 import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.api.CameraController;
 import com.eszdman.photoncamera.api.ImageCaptureResultCallback;
 import com.eszdman.photoncamera.api.ImageSaver;
@@ -24,6 +25,8 @@ import com.eszdman.photoncamera.api.camera.ICamera;
 import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -35,7 +38,8 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
     Size displaySize;
     private final int targetFormat = ImageFormat.RAW_SENSOR;
     private final int previewFormat = ImageFormat.YUV_420_888;
-    private ForwardImageCapture yuvImageCapture;
+    private ForwardImageCapture privateImageCapture;
+    private ImageSaverCapture yuvImageCapture;
     private ImageSaverCapture rawImageCapture;
     private ImageSaver imageSaver;
     private ImageWriter zslwriter;
@@ -53,8 +57,8 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
         this.iCamera = iCamera;
         this.iCaptureSession = iCaptureSession;
         this.imageCaptureResultCallback = imageCaptureResultCallback;
-        imageBlockingQueue = new ArrayBlockingQueue<>(60);
-        captureResultBlockingQueue = new ArrayBlockingQueue<>(60);
+        imageBlockingQueue = new ArrayBlockingQueue<>(50);
+        captureResultBlockingQueue = new ArrayBlockingQueue<>(50);
     }
 
     @Override
@@ -85,22 +89,28 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
 
     @Override
     public void captureStillPicture(float mFocus, AutoFitTextureView surfaceTexture) {
-
-
+        //iCaptureSession.stopRepeating();
+        FrameNumberSelector.getFrames();
+        burstCounter.setMax_burst(FrameNumberSelector.frameCount);
+        burstCounter.setCurrent_burst(0);
         CaptureResult result = null;
         Image image = null;
-        try {
-            result = captureResultBlockingQueue.take();
-            image = imageBlockingQueue.take();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        for (int i = 0; i< burstCounter.getMax_burst(); i++) {
+            try {
+                result = captureResultBlockingQueue.take();
+                image = imageBlockingQueue.take();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            CaptureRequest.Builder zsl = iCamera.createReprocessCaptureRequest((TotalCaptureResult) result);
+            if (!Interface.getSettings().hdrx)
+                zsl.addTarget(yuvImageCapture.getSurface());
+            else
+                zsl.addTarget(rawImageCapture.getSurface());
+            zslwriter.queueInputImage(image);
+            iCaptureSession.capture(zsl.build(), imageCaptureResultCallback, mBackgroundHandler);
         }
-        CaptureRequest.Builder zsl = iCamera.createReprocessCaptureRequest((TotalCaptureResult) result);
-        zsl.addTarget(rawImageCapture.getSurface());
-        zslwriter.queueInputImage(image);
-        iCaptureSession.capture(zsl.build(),imageCaptureResultCallback,mBackgroundHandler);
-        if (image != null)
-            image.close();
+        //captureSessionController.applyRepeating();
     }
 
     @Override
@@ -114,19 +124,35 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
 
     @Override
     public void createImageReader(int maxImages) {
-        maxImages = 15;
+        maxImages = 50;
         imageBlockingQueue = new ArrayBlockingQueue<>(maxImages);
         captureResultBlockingQueue = new ArrayBlockingQueue<>(maxImages);
-        yuvImageCapture = new ForwardImageCapture(previewSize.getWidth(),previewSize.getHeight(),previewFormat, maxImages, this);
-        rawImageCapture = new ImageSaverCapture(captureSize.getWidth(), captureSize.getHeight(),
-               targetFormat, maxImages, imageSaver);
+        Size max = Collections.max(
+                Arrays.asList(CameraController.mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.PRIVATE)),
+        new CameraController.CompareSizesByArea());
+
+        Size rawmax = Collections.max(
+                Arrays.asList(CameraController.mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.YUV_420_888)),
+        new CameraController.CompareSizesByArea());
+        Rect rawmax2 = CameraController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        //Size rawmax2 = Collections.max(
+        //        Arrays.asList(CameraController.mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP).getOutputSizes(ImageFormat.RAW_SENSOR)),
+
+        //new CameraController.CompareSizesByArea());
+        privateImageCapture = new ForwardImageCapture(max.getWidth(),max.getHeight(),ImageFormat.PRIVATE, maxImages, this);
+        yuvImageCapture = new ImageSaverCapture(rawmax.getWidth(), rawmax.getHeight(),
+               ImageFormat.YUV_420_888, maxImages, imageSaver);
+        rawImageCapture = new ImageSaverCapture(rawmax2.right, rawmax2.bottom,
+               ImageFormat.RAW_SENSOR, maxImages, imageSaver);
+        add(privateImageCapture);
         add(yuvImageCapture);
         add(rawImageCapture);
     }
 
     @Override
     public void setSurfaces() {
-        captureSessionController.addSurface(yuvImageCapture.getSurface(),true);
+        captureSessionController.addSurface(privateImageCapture.getSurface(),true);
+        captureSessionController.addSurface(yuvImageCapture.getSurface(),false);
         captureSessionController.addSurface(rawImageCapture.getSurface(),false);
     }
 
@@ -138,8 +164,8 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
     @Override
     public void close() {
         super.close();
+        privateImageCapture = null;
         yuvImageCapture = null;
-        rawImageCapture = null;
     }
 
     @Override
@@ -161,7 +187,7 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
 
     @Override
     public void onImageAvailable(Image img) {
-        Log.v(TAG,"onImageAvailible");
+        //Log.v(TAG,"onImageAvailible");
         if (imageBlockingQueue.remainingCapacity() <= 2)
         {
             try {
@@ -191,6 +217,36 @@ public class ZslCapture extends CapturePipe implements ForwardImageCapture.Image
 
     @Override
     public void onConfiguredFailed() {
+
+    }
+
+    @Override
+    public boolean runOnUiThread() {
+        return false;
+    }
+
+    @Override
+    public void onCaptureStarted() {
+
+    }
+
+    @Override
+    public void onCaptureCompleted() {
+
+    }
+
+    @Override
+    public void onCaptureSequenceStarted(int burstcount) {
+
+    }
+
+    @Override
+    public void onCaptureSequenceCompleted() {
+
+    }
+
+    @Override
+    public void onCaptureProgressed() {
 
     }
 }

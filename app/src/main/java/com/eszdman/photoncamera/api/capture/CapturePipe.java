@@ -7,14 +7,16 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.os.Handler;
 
 import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.api.ImageCaptureResultCallback;
 import com.eszdman.photoncamera.api.capture.AbstractImageCapture;
 import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
+import com.eszdman.photoncamera.api.session.ICaptureSession.CaptureSessionEvents;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class CapturePipe implements ICaptureSession.CaptureSessionEvents {
+public abstract class CapturePipe implements CaptureSessionEvents, ImageCaptureResultCallback.CaptureEvents {
 
     private List<AbstractImageCapture> imageCaptureList;
     protected CaptureSessionController captureSessionController;

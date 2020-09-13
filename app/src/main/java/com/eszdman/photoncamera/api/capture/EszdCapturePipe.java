@@ -217,4 +217,41 @@ public class EszdCapturePipe extends CapturePipe {
     public void onConfiguredFailed() {
 
     }
+
+    @Override
+    public boolean runOnUiThread() {
+        return false;
+    }
+
+    @Override
+    public void onCaptureStarted() {
+
+    }
+
+    @Override
+    public void onCaptureCompleted() {
+
+    }
+
+    @Override
+    public void onCaptureSequenceStarted(int burstcount) {
+
+    }
+
+    @Override
+    public void onCaptureSequenceCompleted() {
+        CameraController.GET().createCameraPreviewSession();
+    }
+
+    @Override
+    public void onCaptureProgressed() {
+        if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
+        if (burstCounter.getCurrent_burst() >= FrameNumberSelector.frameCount + 1 || ImageSaver.imageBuffer.size() >= FrameNumberSelector.frameCount) {
+            iCaptureSession.abortCaptures();
+            //CameraController.GET().mTextureView.setAlpha(1f);
+            Log.v(TAG, "startPreview");
+            burstCounter.setBurst(false);
+            CameraController.GET().createCameraPreviewSession();
+        }
+    }
 }

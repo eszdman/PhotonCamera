@@ -102,6 +102,10 @@ public class CaptureSessionImpl implements ICaptureSession {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
+        catch (IllegalStateException ex)
+        {
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -141,7 +145,14 @@ public class CaptureSessionImpl implements ICaptureSession {
         @Override
         public void onConfigureFailed(
                 @NonNull CameraCaptureSession cameraCaptureSession) {
+            Log.v(TAG, "captureSession config failed");
             fireOnCofiguredFailed();
+        }
+
+        @Override
+        public void onClosed(@NonNull CameraCaptureSession session) {
+            super.onClosed(session);
+            Log.v(TAG, "captureSession got closed");
         }
     };
 

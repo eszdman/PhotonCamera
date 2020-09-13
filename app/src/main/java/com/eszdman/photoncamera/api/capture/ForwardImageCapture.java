@@ -22,7 +22,7 @@ public class ForwardImageCapture extends AbstractImageCapture {
 
     @Override
     public void onImageAvailable(ImageReader imageReader) {
-        Log.d(TAG, "onImageAvailable");
+        //Log.d(TAG, "onImageAvailable");
         Image img = imageReader.acquireLatestImage();
         if (imageEventsListner != null)
             imageEventsListner.onImageAvailable(img);
