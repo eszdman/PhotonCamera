@@ -14,6 +14,7 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.Permissions;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         act = this;
         new Interface(this);
+        Interface.getSettings().loadCache();
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         PreferenceKeys.setDefaults();
         //Wrapper.Test();

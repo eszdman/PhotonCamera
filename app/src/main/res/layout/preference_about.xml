@@ -11,7 +11,8 @@
         android:minHeight="?android:listPreferredItemHeight"
         android:paddingEnd="?android:scrollbarSize"
         android:paddingStart="?android:scrollbarSize"
->
+        >
+
     <ImageView
             android:layout_gravity="top|center"
             android:id="@android:id/icon"
@@ -26,19 +27,25 @@
             android:id="@android:id/title"
             android:fadingEdge="horizontal"
             android:layout_gravity="top|center_horizontal"
-            android:padding="10dp"
+            android:paddingStart="@dimen/camera_settings_icon_size"
+            android:paddingEnd="@dimen/camera_settings_icon_size"
+            android:paddingBottom="10dp"
+            android:paddingTop="10dp"
             tools:text="Title"
             android:textColor="?android:textColorPrimary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
+
     <TextView
             android:textAppearance="?android:textAppearanceSmall"
             android:textColor="?android:textColorSecondary"
             android:id="@android:id/summary"
             tools:text="Summary"
+            android:paddingStart="@dimen/camera_settings_icon_size"
+            android:paddingEnd="@dimen/camera_settings_icon_size"
             android:layout_gravity="center_horizontal"
             android:layout_width="wrap_content"
             android:textAlignment="center"
             android:layout_height="wrap_content"
-    />
+            />
 </LinearLayout>

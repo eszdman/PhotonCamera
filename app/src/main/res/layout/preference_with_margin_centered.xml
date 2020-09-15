@@ -21,25 +21,27 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/camera_settings_entry_margin"
-            android:layout_marginBottom="@dimen/camera_settings_entry_margin"
-            android:layout_weight="1.0"
             android:layout_gravity="center_vertical"
-            android:layout_marginStart="@dimen/camera_settings_icon_size"
-            android:layout_marginEnd="@dimen/camera_settings_icon_size">
+            android:layout_marginBottom="@dimen/camera_settings_entry_margin"
+            android:layout_marginEnd="40dp"
+            android:layout_weight="1.0"
+            >
         <TextView
                 android:textSize="@dimen/camera_settings_preference_font_size"
                 android:ellipsize="marquee"
                 android:id="@android:id/title"
                 android:fadingEdge="horizontal"
+                android:textAlignment="center"
                 tools:text="Preference Title"
                 android:textColor="?android:textColorPrimary"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
         <TextView
                 android:textAppearance="?android:textAppearanceSmall"
                 android:textColor="?android:textColorSecondary"
                 android:id="@android:id/summary"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:textAlignment="center"
                 tools:text="Preference Description"
                 android:layout_height="wrap_content"
                 android:layout_below="@android:id/title"
@@ -51,6 +53,5 @@
             android:id="@android:id/widget_frame"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:paddingEnd="@dimen/camera_settings_entry_margin"
-            android:paddingStart="?android:scrollbarSize"/>
+           />
 </LinearLayout>

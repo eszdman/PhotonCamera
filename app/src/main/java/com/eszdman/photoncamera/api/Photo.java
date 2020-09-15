@@ -81,8 +81,8 @@ public class Photo {
     public void SaveImg(File in) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         boolean wasNull = Interface.getSettings().lastPicture == null;
-        Interface.getSettings().lastPicture = in.getAbsolutePath();
-        if (wasNull) Interface.getSettings().save();
+        Interface.getSettings().setLastPicture(in.getAbsolutePath());
+//        if (wasNull) Interface.getSettings().save();
         Uri contentUri = Uri.fromFile(in);
         try {
             Bitmap thumb = null;

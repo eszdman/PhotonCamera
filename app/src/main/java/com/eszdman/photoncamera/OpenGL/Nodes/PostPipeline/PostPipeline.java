@@ -113,7 +113,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
-        if(PreferenceKeys.isHdrxNrOn()) {
+        if(Interface.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));

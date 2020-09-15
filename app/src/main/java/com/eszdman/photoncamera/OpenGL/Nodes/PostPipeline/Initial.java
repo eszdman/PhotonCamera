@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
 import android.graphics.Point;
-
 import com.eszdman.photoncamera.OpenGL.GLFormat;
 import com.eszdman.photoncamera.OpenGL.GLInterface;
 import com.eszdman.photoncamera.OpenGL.GLProg;
@@ -39,8 +38,7 @@ public class Initial extends Node {
         glProg.setvar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setvar("gain", (float)Interface.getSettings().gain);
         glProg.setvar("neutralPoint",params.whitepoint);
-//        float sat =(float)Interface.getSettings().saturation;
-        float sat =(float) PreferenceKeys.getSaturationValue();
+        float sat =(float)Interface.getSettings().saturation;
         if(Interface.getSettings().cfaPattern == -2) sat = 0.f;
         glProg.setvar("saturation",sat);
         for(int i =0; i<4;i++){

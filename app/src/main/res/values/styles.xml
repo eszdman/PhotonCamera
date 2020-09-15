@@ -22,12 +22,19 @@
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
     <style name="PreferenceActionBarStyle">
-        <item name="android:background">?colorPrimaryDark</item>
-        <item name="android:elevation">4dp</item>
         <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
     </style>
     <style name="SettingsTitleTextAppearance">
         <item name="android:textSize">18sp</item>
         <item name="android:textColor">?android:textColorPrimary</item>
+    </style>
+    <style name="Theme.SetingsActivity" parent="@style/Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
     </style>
 </resources>

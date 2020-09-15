@@ -442,7 +442,7 @@ public class CameraFragment extends Fragment
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (PreferenceKeys.isAfDataOn()) {
+        if (Interface.getSettings().afdata) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -656,17 +656,16 @@ public class CameraFragment extends Fragment
                 break;
             }
             case R.id.stacking: {
-                ToggleButton sw = (ToggleButton) view;
-                if (sw.isChecked()) {
+                PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
+//                ToggleButton sw = (ToggleButton) view;
+                if (PreferenceKeys.isHdrXOn()) {
                     mTargetFormat = rawFormat;
 //                    Interface.getSettings().hdrx = true;
-                    PreferenceKeys.setHdrX(true);
                 } else {
                     mTargetFormat = yuvFormat;
 //                    Interface.getSettings().hdrx = false;
-                    PreferenceKeys.setHdrX(false);
                 }
-                Interface.getSettings().save();
+//                Interface.getSettings().save();
                 restartCamera();
                 break;
             }

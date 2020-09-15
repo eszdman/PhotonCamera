@@ -11,6 +11,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
@@ -34,6 +35,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onResume() {
         super.onResume();
+        String godParent = "prefscreen";
         Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
         toolbar.setTitle(getPreferenceScreen().getTitle());
         Preference myPref = findPreference(PreferenceKeys.KEY_TELEGRAM);
@@ -43,12 +45,29 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 startActivity(browserint);
                 return true;
             });
+        Preference github = findPreference(PreferenceKeys.KEY_CONTRIBUTORS);
+        if (github != null)
+            github.setOnPreferenceClickListener(preference -> {
+                Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
+                startActivity(browserint);
+                return true;
+            });
+        if (PreferenceKeys.isHdrXOn())
+            removePreferenceFromScreen("pref_category_jpg", godParent);
+        else
+            removePreferenceFromScreen("pref_category_hdrx", godParent);
     }
 
+    private void removePreferenceFromScreen(String preferenceKey, String parentScreenKey) {
+        PreferenceScreen parentScreen = findPreference(parentScreenKey);
+        if (parentScreen != null)
+            if (parentScreen.findPreference(preferenceKey) != null) {
+                parentScreen.removePreference(parentScreen.findPreference(preferenceKey));
+            }
+    }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
     }
 
     @Override

@@ -16,19 +16,22 @@ public class CameraManager2 {
     private static final String TAG = "CameraManager2";
     public static CameraManager2 cameraManager2;
     private final CameraManager manager;
-    private final SharedPreferences sharedPreferences;
+//    private final SharedPreferences sharedPreferences;
+    private final String preferenceName= "_cameras";
     public boolean supportFrontCamera = false;
     public Set<String> mCameraIDs = new HashSet<>();
     //public String[] mCameras;
     public CameraManager2(CameraManager manag) {
         cameraManager2 = this;
         manager = manag;
-        sharedPreferences = Interface.getMainActivity().getPreferences(MODE_PRIVATE);
-        if(!sharedPreferences.getBoolean("GotAux",false)){
+//        sharedPreferences = Interface.getMainActivity().getPreferences(MODE_PRIVATE);
+//        if(!sharedPreferences.getBoolean("GotAux",false)){
+        if(!Interface.getSettingsManager().getBoolean(preferenceName,"GotAux")){
             getCameraId();
             save();
         } else {
-            mCameraIDs = sharedPreferences.getStringSet("Cameras",null);
+//            mCameraIDs = sharedPreferences.getStringSet("Cameras",null);
+            mCameraIDs = Interface.getSettingsManager().getStringSet(preferenceName,"Cameras",null);
         }
     }
     public String[] getCameraIdList(){
@@ -95,9 +98,11 @@ public class CameraManager2 {
     }
 
     void save() {
-        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-        sharedPreferencesEditor.putBoolean("GotAux", true);
-        sharedPreferencesEditor.putStringSet("Cameras",mCameraIDs);
-        sharedPreferencesEditor.apply();
+//        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
+//        sharedPreferencesEditor.putBoolean("GotAux", true);
+        Interface.getSettingsManager().set(preferenceName,"GotAux",true);
+//        sharedPreferencesEditor.putStringSet("Cameras",mCameraIDs);
+        Interface.getSettingsManager().set(preferenceName,"Cameras",mCameraIDs);
+//        sharedPreferencesEditor.apply();
     }
 }

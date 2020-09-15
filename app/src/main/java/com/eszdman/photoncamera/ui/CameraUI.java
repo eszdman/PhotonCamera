@@ -67,22 +67,27 @@ public class CameraUI {
         galleryImageButton.setClickable(true);
         Interface.getTouchFocus().ReInit();
         fpsPreview = Interface.getMainActivity().findViewById(R.id.fpsPreview);
-        fpsPreview.setChecked(Interface.getSettings().fpsPreview);
+        fpsPreview.setChecked(PreferenceKeys.isFpsPreviewOn());
         quadResolution = Interface.getMainActivity().findViewById(R.id.quadRes);
-        quadResolution.setChecked(Interface.getSettings().QuadBayer);
+        quadResolution.setChecked(PreferenceKeys.isQuadBayerOn());
         eisPhoto = Interface.getMainActivity().findViewById(R.id.eisPhoto);
-        eisPhoto.setChecked(Interface.getSettings().eisPhoto);
+        eisPhoto.setChecked(PreferenceKeys.isEisPhotoOn());
         eisPhoto.setOnClickListener(v -> {
-            Interface.getSettings().eisPhoto = !Interface.getSettings().eisPhoto;
-            Interface.getSettings().save();
+//            Interface.getSettings().eisPhoto = !Interface.getSettings().eisPhoto;
+//            Interface.getSettings().save();
+            PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
         });
         fpsPreview.setOnClickListener(v -> {
-            Interface.getSettings().fpsPreview = !Interface.getSettings().fpsPreview;
-            Interface.getSettings().save();
+//            Interface.getSettings().fpsPreview = !Interface.getSettings().fpsPreview;
+//            Interface.getSettings().save();
+            PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
+
+
         });
         quadResolution.setOnClickListener(v -> {
-            Interface.getSettings().QuadBayer = !Interface.getSettings().QuadBayer;
-            Interface.getSettings().save();
+//            Interface.getSettings().QuadBayer = !Interface.getSettings().QuadBayer;
+//            Interface.getSettings().save();
+            PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
             Interface.getCameraFragment().restartCamera();
         });
         flip = Interface.getMainActivity().findViewById(R.id.flip_camera);
@@ -91,7 +96,7 @@ public class CameraUI {
             Interface.getCameraFragment().mTextureView.animate().rotationBy(360).setDuration(450).start();
             Interface.getSettings().mCameraID = Interface.getCameraFragment().cycler(Interface.getSettings().mCameraID);
             Interface.getSettings().saveID();
-            Interface.getSettings().load();
+            Interface.getSettings().loadCache();
             Interface.getCameraFragment().restartCamera();
         });
         settings = Interface.getMainActivity().findViewById(R.id.settings);
@@ -160,11 +165,11 @@ public class CameraUI {
         ImageView edges = MainActivity.act.findViewById(R.id.edges);
         ToggleButton hdrX = MainActivity.act.findViewById(R.id.stacking);
         Interface.getGravity().run();
-        if (PreferenceKeys.isShowGridOn()) grid_icon.setVisibility(View.VISIBLE);
+        if (Interface.getSettings().grid) grid_icon.setVisibility(View.VISIBLE);
         else grid_icon.setVisibility(View.GONE);
-        if (PreferenceKeys.isRoundEdgeOn()) edges.setVisibility(View.VISIBLE);
+        if (Interface.getSettings().roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
-        hdrX.setChecked(Interface.getSettings().hdrx);
+        hdrX.setChecked(PreferenceKeys.isHdrXOn());
         Interface.getCameraFragment().startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();

@@ -77,7 +77,7 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Interface.setSettingsActivity(this);
         setContentView(R.layout.activity_settings);
-        if(PreferenceKeys.isHdrxNrOn()){
+        if(Interface.getSettings().hdrxNR){
             LinearLayout jpg = findViewById(R.id.settingsJPG);
             TextView jpgt = findViewById(R.id.textjpgset);
             jpgt.setVisibility(View.GONE);
@@ -96,7 +96,7 @@ public class SettingsActivity extends AppCompatActivity {
             hdrxt.setVisibility(View.GONE);
             hdrx.setVisibility(View.GONE);
         }
-        Interface.getSettings().load();
+        Interface.getSettings().loadCache();
         views();
         sharedPreferences = getPreferences(MODE_PRIVATE);
         chromaCount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -276,7 +276,7 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onPause() {
         sharedPreferencesEditor = sharedPreferences.edit();
         get();
-        Interface.getSettings().save();
+//        Interface.getSettings().save();
         save();
         super.onPause();
     }

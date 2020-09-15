@@ -3,23 +3,21 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orderingFromXml="true"
-        android:title="Settings"
+        android:title="@string/settings"
         android:key="prefscreen">
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
             android:key="pref_category_general"
             android:title="@string/general">
-        <SeekBarPreference
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_frame_count_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/frame_count"
-                android:summary=""
-                android:defaultValue="4"
-                android:max="25"
-                android:min="0"
-                app:showSeekBarValue="true"
+                android:defaultValue="@string/pref_framecount_default"
+                app:maxValue="50"
+                app:minValue="1"
                 android:icon="@drawable/ic_burst_mode_black_24dp"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_show_grid_key"
                 android:defaultValue="@bool/pref_show_grid_default"
@@ -27,7 +25,7 @@
                 android:title="@string/turn_on_grid"
                 android:summary=""
                 android:icon="@drawable/ic_settings_grid"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_show_roundedge_key"
                 android:defaultValue="@bool/pref_show_roundedge_default"
@@ -35,7 +33,7 @@
                 android:title="@string/turn_on_round_edges"
                 android:summary=""
                 android:icon="@drawable/ic_rounded_corner"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_show_watermark_key"
                 android:defaultValue="@bool/pref_show_watermark_default"
@@ -43,7 +41,7 @@
                 android:title="@string/turn_on_watermark"
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_show_afdata_key"
                 android:defaultValue="@bool/pref_show_afdata_default"
@@ -51,7 +49,15 @@
                 android:title="@string/turn_on_afdata"
                 android:summary=""
                 android:icon="@drawable/ic_developer"
-        />
+                />
+        <com.eszdman.photoncamera.settings.ManagedSwitchPreference
+                android:title="@string/pref_save_per_lens_string"
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_save_per_lens_settings"
+                android:icon="@drawable/ic_settings_grid"
+                app:defaultValue="false"
+                android:enabled="false"
+                />
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
@@ -64,7 +70,7 @@
                 android:title="@string/turn_on_system_nr"
                 android:summary=""
                 android:icon="@drawable/ic_gradient_black_24dp"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_disable_aligning_key"
                 android:defaultValue="@bool/pref_disable_align_default"
@@ -72,29 +78,27 @@
                 android:title="@string/disable_aligning"
                 android:summary=""
                 android:icon="@drawable/ic_format_align_justify_black_24dp"
-        />
-        <SeekBarPreference
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_chroma_nr_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/chroma_nr_count"
-                android:summary="This is the summary"
-                android:defaultValue="2"
-                android:max="65"
-                android:min="1"
-                app:showSeekBarValue="true"
+                android:summary=""
+                android:defaultValue="@string/pref_chroma_seekbar_default"
+                app:maxValue="65"
+                app:minValue="1"
                 android:icon="@drawable/ic_burst_mode_black_24dp"
-        />
-        <SeekBarPreference
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_luma_nr_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/luma_nr_count"
-                android:summary="This is the summary"
-                android:defaultValue="0"
-                android:max="65"
-                android:min="1"
-                app:showSeekBarValue="true"
+                android:summary=""
+                android:defaultValue="@string/pref_luma_seekbar_default"
+                app:maxValue="65"
+                app:minValue="1"
                 android:icon="@drawable/ic_grain_black_24dp"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_enhanced_processing_key"
                 android:defaultValue="@bool/pref_enhanced_processing_default"
@@ -102,7 +106,7 @@
                 android:title="@string/enhanced_processing"
                 android:summary=""
                 android:icon="@drawable/ic_tune_black_24dp"
-        />
+                />
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
@@ -115,7 +119,7 @@
                 android:title="@string/raw"
                 android:summary=""
                 android:icon="@drawable/ic_raw"
-        />
+                />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_hdrx_nr_key"
                 android:defaultValue="@bool/pref_hdrx_nr_default"
@@ -123,88 +127,106 @@
                 android:title="@string/hdrxNR"
                 android:summary=""
                 android:icon="@drawable/ic_gradient_black_24dp"
-        />
-        <SeekBarPreference
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_sharpness_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/sharpness"
-                android:summary="This is the summary"
-                android:defaultValue="0"
-                android:max="250"
-                android:min="0"
-                app:showSeekBarValue="true"
+                android:summary=""
+                android:defaultValue="@string/pref_sharpness_seekbar_default"
+                app:maxValue="2.5"
+                app:minValue="0"
+                app:isFloat="true"
+                app:stepPerUnit="100"
                 android:icon="@drawable/ic_grain_black_24dp"
-        />
-        <SeekBarPreference
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_saturation_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/saturation"
-                android:summary="This is the summary"
-                android:defaultValue="@integer/pref_saturation_seekbar_default"
-                android:max="300"
-                android:min="0"
-                app:showSeekBarValue="true"
+                android:summary=""
+                android:defaultValue="@string/pref_saturation_seekbar_default"
+                app:maxValue="3"
+                app:minValue="0"
+                app:isFloat="true"
+                app:stepPerUnit="10"
                 android:icon="@drawable/ic_saturation"
-        />
-        <SeekBarPreference
-                android:key="pref_luma_nr_seekbar_key"
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
+                android:key="pref_compressor_seekbar_key"
                 android:layout="@layout/preference_seekbar"
-                android:title="@string/luma_nr_count"
-                android:summary="This is the summary"
-                android:defaultValue="50"
-                android:max="200"
-                android:min="50"
-                app:showSeekBarValue="true"
-                android:icon="@drawable/ic_tune_black_24dp"
-        />
+                android:title="@string/compressor"
+                android:summary=""
+                android:defaultValue="@string/pref_compressor_gain_seekbar_default"
+                app:maxValue="2"
+                app:minValue="0.5"
+                app:isFloat="true"
+                app:stepPerUnit="10"
+                android:icon="@drawable/ic_compressor"
+                />
+        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
+                android:key="pref_gain_seekbar_key"
+                android:layout="@layout/preference_seekbar"
+                android:title="@string/gain"
+                android:summary=""
+                android:defaultValue="@string/pref_compressor_gain_seekbar_default"
+                app:maxValue="2"
+                app:minValue="0.5"
+                app:isFloat="true"
+                app:stepPerUnit="10"
+                android:icon="@drawable/ic_compressor"
+                />
         <ListPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_cfa_key"
                 android:title="@string/cfa"
+                android:summary="%s"
                 android:icon="@drawable/ic_bayer"
-                android:entries="@array/cfapat"
-                android:entryValues="@array/cfapat"
-                android:defaultValue="AUTO"
-        />
+                android:entries="@array/cfapat_entries"
+                android:entryValues="@array/cfapat_entryValues"
+                android:defaultValue="@string/pref_cfa_default_value"
+                />
         <ListPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_align_method_key"
+                android:summary="%s"
                 android:title="@string/align_method"
                 android:icon="@drawable/ic_burst_mode_black_24dp"
-                android:entries="@array/alignset"
-                android:entryValues="@array/alignset"
-                android:defaultValue="Pcam CPU"
+                android:entries="@array/alignset_entries"
+                android:entryValues="@array/alignset_entryValues"
+                android:defaultValue="@string/pref_align_method_default"
 
-        />
-        <Preference
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/telegram"
-                android:icon="@drawable/ic_telegram"
-                android:key="pref_telegram_channel"
-                android:summary=""/>
-        <com.eszdman.photoncamera.settings.ManagedSwitchPreference
-                android:title="@string/pref_save_per_lens_string"
-                android:key="pref_save_per_lens_settings"
-                android:icon="@drawable/ic_settings_grid"
-                app:defaultValue="false"
-        />
+                />
     </PreferenceCategory>
-    <PreferenceScreen
-            android:layout="@layout/preference_with_margin"
-            android:title="About"
-            android:key="pref_about_key"
-            android:icon="@drawable/ic_baseline_info_24">
-        <Preference android:layout="@layout/preference_about"
+    <PreferenceCategory
+            android:layout="@layout/preference_category_layout"
+            android:key="pref_category_about"
+            android:title="@string/about">
+        <PreferenceScreen
+                android:layout="@layout/preference_with_margin"
+                android:title="About"
+                android:key="pref_about_key"
+                android:icon="@drawable/ic_baseline_info_24">
+            <Preference
+                    android:layout="@layout/preference_about"
                     app:title="Photon Camera\u2122"
                     android:summary="An Open Source Android Camera with\n Enhanced Image Processing"
-                    android:key="about"
+                    android:key="pref_photoncamera"
+                    android:selectable="false"
                     android:icon="@drawable/ic_splash">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/eszdman/PhotonCamera"/>
-        </Preference>
-        <Preference android:layout="@layout/preference_about"
+            </Preference>
+            <Preference
+                    android:layout="@layout/preference_about"
                     android:key="pref_contributors"
+                    android:icon="@drawable/ic_github"
                     android:title="Contributors"
-                    android:summary="eszdman, Urnyx05, killerink, mirai, vibhorSrv"/>
-    </PreferenceScreen>
+                    android:summary="assassinfil, eszdman, killerink, mirai, Urnyx05, vibhorSrv"/>
+            <Preference
+                    android:layout="@layout/preference_about"
+                    android:title="@string/telegram"
+                    android:icon="@drawable/ic_telegram"
+                    android:key="pref_telegram_channel"
+                    />
+        </PreferenceScreen>
+    </PreferenceCategory>
 </PreferenceScreen>

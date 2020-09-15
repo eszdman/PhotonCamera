@@ -24,6 +24,7 @@ import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * SettingsManager class provides an api for getting and setting SharedPreferences
@@ -301,6 +302,14 @@ public class SettingsManager {
     }
 
     /**
+     * Retrieve a default from the DefaultsStore as a Float.
+     */
+    public Float getFloatDefault(String key) {
+        String defaultValueString = mDefaultsStore.getDefaultValue(key);
+        return defaultValueString == null ? 0.0f : Float.parseFloat(defaultValueString);
+    }
+
+    /**
      * Retrieve a default from the DefaultsStore as a boolean.
      */
     public boolean getBooleanDefault(String key) {
@@ -315,6 +324,11 @@ public class SettingsManager {
     public String getString(String scope, String key, String defaultValue) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         return preferences.getString(key, defaultValue);
+    }
+
+    public Set<String> getStringSet(String scope, String key, Set<String> defaultValue) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        return preferences.getStringSet(key, defaultValue);
     }
 
     /**
@@ -341,6 +355,24 @@ public class SettingsManager {
      */
     public Integer getInteger(String scope, String key) {
         return getInteger(scope, key, getIntegerDefault(key));
+    }
+
+    /**
+     * Retrieve a setting's value as a Float, manually specifiying
+     * a default value.
+     */
+    public Float getFloat(String scope, String key, Float defaultValue) {
+        String defaultValueString = Float.toString(defaultValue);
+        String value = getString(scope, key, defaultValueString);
+        return Float.parseFloat(value);
+    }
+
+    /**
+     * Retrieve a setting's value as a Float, converting the default value
+     * stored in the DefaultsStore.
+     */
+    public Float getFloat(String scope, String key) {
+        return getFloat(scope, key, getFloatDefault(key));
     }
 
     /**
@@ -434,6 +466,11 @@ public class SettingsManager {
      */
     public void set(String scope, String key, boolean value) {
         set(scope, key, convert(value));
+    }
+
+    public void set(String scope, String key, Set<String> value) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        preferences.edit().putStringSet(key, value).apply();
     }
 
     /**
