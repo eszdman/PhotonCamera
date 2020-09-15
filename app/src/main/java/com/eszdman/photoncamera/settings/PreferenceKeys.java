@@ -38,6 +38,7 @@ public class PreferenceKeys {
     public static final String KEY_REMOSAIC = "pref_remosaic_key";////TODO
     public static final String KEY_TELEGRAM = "pref_telegram_channel";
     public static final String KEY_CONTRIBUTORS = "pref_contributors";
+    public static final String KEY_THEME = "pref_theme_key";
     /**
      * Other Keys
      */
@@ -161,6 +162,10 @@ public class PreferenceKeys {
 
     public static int getCFAValue() {
         return Interface.getSettingsManager().getInteger(current_scope, KEY_CFA);
+    }
+
+    public static int getThemeValue() {
+        return Interface.getSettingsManager().getInteger(current_scope, KEY_THEME);
     }
 
     /**

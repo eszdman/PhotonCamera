@@ -47,6 +47,7 @@ public class Settings {
     public boolean rawSaver;
     public boolean QuadBayer;
     public int cfaPattern;
+    public int theme;
     public boolean remosaic;//TODO
     public boolean eisPhoto;
     public boolean fpsPreview;
@@ -101,6 +102,7 @@ public class Settings {
         selectedMode = getCameraMode();
         tonemap = parseToneMapArray();
         mCameraID = PreferenceKeys.getCameraID();
+        theme = PreferenceKeys.getThemeValue();
     }
 
     public void saveID() {

@@ -26,4 +26,14 @@
         <item>1</item>
         <item>2</item>
     </string-array>
+    <string-array name="theme_entries">
+        <item>@string/theme_follow_system</item>
+        <item>@string/theme_light</item>
+        <item>@string/theme_dark</item>
+    </string-array>
+    <string-array name="theme_entryValues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
 </resources>
