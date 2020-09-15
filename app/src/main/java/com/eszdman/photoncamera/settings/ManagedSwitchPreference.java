@@ -16,19 +16,21 @@
 package com.eszdman.photoncamera.settings;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
-import androidx.preference.SwitchPreference;
+import androidx.preference.SwitchPreferenceCompat;
 import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 /**
  * This class allows Settings UIs to display and set boolean values controlled
- * via the {@link SettingsManager}. The Default {@link SwitchPreference} uses
+ * via the {@link SettingsManager}. The Default {@link SwitchPreferenceCompat} uses
  * {@link android.content.SharedPreferences} as a backing store; since the
  * {@link SettingsManager} stores all settings as Strings we need to ensure we
  * get and set boolean settings through the manager.
  */
-public class ManagedSwitchPreference extends SwitchPreference {
+public class ManagedSwitchPreference extends SwitchPreferenceCompat {
+
     public ManagedSwitchPreference(Context context) {
         super(context);
     }
@@ -77,5 +79,11 @@ public class ManagedSwitchPreference extends SwitchPreference {
             // was not persisted.
             return false;
         }
+    }
+
+    @Override
+    protected Object onGetDefaultValue(TypedArray a, int index) {
+        persistBoolean(a.getBoolean(index, false));
+        return a.getBoolean(index, false);
     }
 }
