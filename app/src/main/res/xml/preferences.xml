@@ -19,6 +19,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.eszdman.photoncamera.settings.ManagedSwitchPreference
+                android:key="pref_camera_sounds_key"
+                android:defaultValue="@bool/pref_camera_sounds_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/camera_sounds"
+                android:summary=""
+                android:icon="@drawable/ic_camera_sounds"
+                />
+        <com.eszdman.photoncamera.settings.ManagedSwitchPreference
                 android:key="pref_show_grid_key"
                 android:defaultValue="@bool/pref_show_grid_default"
                 android:layout="@layout/preference_with_margin"
@@ -152,18 +160,18 @@
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_saturation"
                 />
-        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
-                android:key="pref_compressor_seekbar_key"
-                android:layout="@layout/preference_seekbar"
-                android:title="@string/compressor"
-                android:summary=""
-                android:defaultValue="@string/pref_compressor_gain_seekbar_default"
-                app:maxValue="2"
-                app:minValue="0.5"
-                app:isFloat="true"
-                app:stepPerUnit="10"
-                android:icon="@drawable/ic_compressor"
-                />
+<!--        <com.eszdman.photoncamera.settings.UniversalSeekBarPreference-->
+<!--                android:key="pref_compressor_seekbar_key"-->
+<!--                android:layout="@layout/preference_seekbar"-->
+<!--                android:title="@string/compressor"-->
+<!--                android:summary=""-->
+<!--                android:defaultValue="@string/pref_compressor_gain_seekbar_default"-->
+<!--                app:maxValue="2"-->
+<!--                app:minValue="0.5"-->
+<!--                app:isFloat="true"-->
+<!--                app:stepPerUnit="10"-->
+<!--                android:icon="@drawable/ic_compressor"-->
+<!--                />-->
         <com.eszdman.photoncamera.settings.UniversalSeekBarPreference
                 android:key="pref_gain_seekbar_key"
                 android:layout="@layout/preference_seekbar"
@@ -180,7 +188,7 @@
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_cfa_key"
                 android:title="@string/cfa"
-                android:summary="%s"
+                app:useSimpleSummaryProvider="true"
                 android:icon="@drawable/ic_bayer"
                 android:entries="@array/cfapat_entries"
                 android:entryValues="@array/cfapat_entryValues"
@@ -189,7 +197,7 @@
         <ListPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_align_method_key"
-                android:summary="%s"
+                app:useSimpleSummaryProvider="true"
                 android:title="@string/align_method"
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 android:entries="@array/alignset_entries"

@@ -1376,6 +1376,7 @@ public class CameraFragment extends Fragment
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
                     Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
+                    if(PreferenceKeys.isCameraSoundsOn())
                     burstPlayer.start();
                     Log.v(TAG,"Completed!");
                     mCaptureResult = result;

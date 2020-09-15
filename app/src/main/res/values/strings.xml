@@ -50,11 +50,12 @@
     <string name="manual_mode_manual">Manual</string>
     <string name="manual_mode_fixed">Fixed</string>
     <string name="pref_show_grid_title">Show Grid</string>
-    <string name="cfa">CFA</string>
+    <string name="cfa">CFA Pattern</string>
     <string name="align_method">Align Method</string>
     <string name="icon_string">Icon</string>
     <string name="pref_save_per_lens_string">Save Per Lens Settings</string>
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
+    <string name="camera_sounds">Camera Sounds</string>
 
 </resources>

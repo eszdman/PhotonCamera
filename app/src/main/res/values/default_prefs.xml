@@ -2,6 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools"
            tools:ignore="MissingTranslation">
     <bool name="pref_enhanced_processing_default">false</bool>
+    <bool name="pref_camera_sounds_default">true</bool>
     <bool name="pref_show_grid_default">false</bool>
     <bool name="pref_show_watermark_default">false</bool>
     <bool name="pref_show_afdata_default">false</bool>
