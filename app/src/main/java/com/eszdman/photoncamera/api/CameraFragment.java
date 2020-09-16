@@ -714,6 +714,7 @@ public class CameraFragment extends Fragment
     public void onResume() {
         super.onResume();
         Interface.getCameraUI().onCameraResume();
+        startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -817,12 +818,14 @@ public class CameraFragment extends Fragment
                 imageSaver = new ImageSaver();
                 //Thread thr = new Thread(imageSaver);
                 //thr.start();
+            if (mBackgroundHandler != null)
                 mBackgroundHandler.post(imageSaver);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (NullPointerException e) {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
+            e.printStackTrace();
             ErrorDialog.newInstance(getString(R.string.camera_error))
                     .show(getChildFragmentManager(), FRAGMENT_DIALOG);
         }
@@ -943,13 +946,15 @@ public class CameraFragment extends Fragment
                 maxPreviewHeight, target);
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
-        int orientation = getResources().getConfiguration().orientation;
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mTextureView.setAspectRatio(
-                    mPreviewSize.getWidth(), mPreviewSize.getHeight());
-        } else {
-            mTextureView.setAspectRatio(
-                    mPreviewSize.getHeight(), mPreviewSize.getWidth());
+       if(isAdded()) {
+            int orientation = getResources().getConfiguration().orientation;
+            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                mTextureView.setAspectRatio(
+                        mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            } else {
+                mTextureView.setAspectRatio(
+                        mPreviewSize.getHeight(), mPreviewSize.getWidth());
+            }
         }
 
         // Check if the flash is supported.
@@ -983,6 +988,7 @@ public class CameraFragment extends Fragment
             stopBackgroundThread();
             UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
         } finally {
             mCameraOpenCloseLock.release();

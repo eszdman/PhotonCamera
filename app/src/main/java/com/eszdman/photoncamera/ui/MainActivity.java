@@ -55,11 +55,11 @@ public class MainActivity extends AppCompatActivity {
         Interface.setCameraFragment(CameraFragment.context);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        if (null == savedInstanceState) {
+     /*   if (null == savedInstanceState) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container, CameraFragment.context)
                     .commit();
-        }
+        }*/
 
         customOrientationEventListener = new
                 CustomOrientationEventListener(getBaseContext()) {
@@ -106,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container, CameraFragment.context)
+                .commit();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         customOrientationEventListener.enable();
     }

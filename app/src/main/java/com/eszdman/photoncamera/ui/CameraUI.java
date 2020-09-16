@@ -170,7 +170,6 @@ public class CameraUI {
         if (Interface.getSettings().roundedge) edges.setVisibility(View.VISIBLE);
         else edges.setVisibility(View.GONE);
         hdrX.setChecked(PreferenceKeys.isHdrXOn());
-        Interface.getCameraFragment().startBackgroundThread();
         burstUnlock();
         clearProcessingCycle();
     }
