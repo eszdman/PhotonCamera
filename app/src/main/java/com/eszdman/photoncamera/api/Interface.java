@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.app.Application;
 import com.eszdman.photoncamera.Control.Gravity;
 import com.eszdman.photoncamera.Control.Sensors;
 import com.eszdman.photoncamera.Control.Swipe;
@@ -13,23 +14,33 @@ import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.manual.ManualMode;
 
-public class Interface {
+public class Interface extends Application {
     private static Interface sInterface;
-    private final MainActivity mainActivity;
-    private final Settings settings;
-    private final Photo photo;
-    private final Wrapper wrapper;
-    private final ImageProcessing imageProcessing;
-    private final Swipe swipe;
-    private final Gravity gravity;
-    private final Sensors sensors;
-    private final Parameters parameters;
-    private final TouchFocus touchFocus;
-    private final CameraUI cameraUI;
+    private MainActivity mainActivity;
+    private Settings settings;
+    private Photo photo;
+    private Wrapper wrapper;
+    private ImageProcessing imageProcessing;
+    private Swipe swipe;
+    private Gravity gravity;
+    private Sensors sensors;
+    private Parameters parameters;
+    private TouchFocus touchFocus;
+    private CameraUI cameraUI;
     private CameraFragment cameraFragment;
-    private final ManualMode manualMode;
+    private ManualMode manualMode;
     private SettingsActivity settingsActivity;
-    private final SettingsManager settingsManager;
+    private SettingsManager settingsManager;
+
+    public Interface() {
+
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        registerActivityLifecycleCallbacks(new LifeCycleMonitor());
+    }
 
     public Interface(MainActivity act) {
         sInterface = this;
