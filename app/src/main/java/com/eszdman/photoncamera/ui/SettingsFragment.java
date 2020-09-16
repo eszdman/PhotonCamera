@@ -16,8 +16,8 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
-    Activity activity;
-
+    private static final String KEY_MAIN_PARENT_SCREEN = "prefscreen";
+    private Activity activity;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -30,12 +30,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         activity = getActivity();
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
+        if (PreferenceKeys.isHdrXOn())
+            removePreferenceFromScreen("pref_category_jpg", KEY_MAIN_PARENT_SCREEN);
+        else
+            removePreferenceFromScreen("pref_category_hdrx", KEY_MAIN_PARENT_SCREEN);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        String godParent = "prefscreen";
         Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
         toolbar.setTitle(getPreferenceScreen().getTitle());
         Preference myPref = findPreference(PreferenceKeys.KEY_TELEGRAM);
@@ -52,10 +55,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 startActivity(browserint);
                 return true;
             });
-        if (PreferenceKeys.isHdrXOn())
-            removePreferenceFromScreen("pref_category_jpg", godParent);
-        else
-            removePreferenceFromScreen("pref_category_hdrx", godParent);
     }
 
     private void removePreferenceFromScreen(String preferenceKey, String parentScreenKey) {
@@ -68,18 +67,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Preference themeList = findPreference(PreferenceKeys.KEY_THEME);
-        themeList.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(Preference preference, Object newValue) {
+        if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME)) {
+            if (getContext() != null) {
                 Intent intent = new Intent(getContext(), SettingsActivity2.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
-
-                //getActivity().recreate();
-                return false;
             }
-        });
+        }
     }
 
     @Override

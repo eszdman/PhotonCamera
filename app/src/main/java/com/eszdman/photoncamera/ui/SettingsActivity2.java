@@ -14,21 +14,7 @@ public class SettingsActivity2 extends AppCompatActivity implements PreferenceFr
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-        switch (Interface.getSettings().theme) {
-            case 0:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                break;
-
-            case 1:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                break;
-
-            case 2:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                break;
-        }
-
+        getDelegate().setLocalNightMode(Interface.getSettings().theme);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings1);
         getSupportFragmentManager()
