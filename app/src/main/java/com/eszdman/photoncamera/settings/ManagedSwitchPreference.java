@@ -20,7 +20,6 @@ import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import androidx.preference.SwitchPreferenceCompat;
 import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.ui.MainActivity;
 
 /**
  * This class allows Settings UIs to display and set boolean values controlled
@@ -30,6 +29,7 @@ import com.eszdman.photoncamera.ui.MainActivity;
  * get and set boolean settings through the manager.
  */
 public class ManagedSwitchPreference extends SwitchPreferenceCompat {
+    private boolean fallback_value;
 
     public ManagedSwitchPreference(Context context) {
         super(context);
@@ -45,45 +45,39 @@ public class ManagedSwitchPreference extends SwitchPreferenceCompat {
 
     @Override
     public boolean getPersistedBoolean(boolean defaultReturnValue) {
-        if (Interface.getMainActivity() == null) {
-            // The context and app may not be initialized upon initial inflation of the
-            // preference from XML. In that case return the default value.
+        if (Interface.getSettingsManager() != null)
+            return Interface.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL, getKey(), defaultReturnValue);
+        else
             return defaultReturnValue;
-        }
-        SettingsManager settingsManager = Interface.getSettingsManager();
-        if (settingsManager != null) {
-            return settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, getKey());
-        } else {
-            // If the SettingsManager is for some reason not initialized,
-            // perhaps triggered by a monkey, return default value.
-            return defaultReturnValue;
-        }
+
     }
 
     @Override
     public boolean persistBoolean(boolean value) {
-        MainActivity cameraApp = Interface.getMainActivity();
-        if (cameraApp == null) {
-            // The context may not be initialized upon initial inflation of the
-            // preference from XML. In that case return false to note the value won't
-            // be persisted.
-            return false;
-        }
-        SettingsManager settingsManager = Interface.getSettingsManager();
-        if (settingsManager != null) {
-            settingsManager.set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
+        if (Interface.getSettingsManager() != null) {
+            Interface.getSettingsManager().set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
             return true;
-        } else {
-            // If the SettingsManager is for some reason not initialized,
-            // perhaps triggered by a monkey, return false to note the value
-            // was not persisted.
+        } else
             return false;
+
+    }
+
+    private void set(boolean value) {
+        setChecked(value);
+        persistBoolean(value);
+    }
+
+    @Override
+    protected void onSetInitialValue(Object defaultValue) {
+        if (defaultValue == null) {
+            defaultValue = fallback_value;
         }
+        set(getPersistedBoolean((Boolean) defaultValue));
     }
 
     @Override
     protected Object onGetDefaultValue(TypedArray a, int index) {
-        persistBoolean(a.getBoolean(index, false));
+        fallback_value = a.getBoolean(index, false);
         return a.getBoolean(index, false);
     }
 }
