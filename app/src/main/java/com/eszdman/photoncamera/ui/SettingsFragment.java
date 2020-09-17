@@ -9,6 +9,7 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
@@ -34,6 +35,12 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             removePreferenceFromScreen("pref_category_jpg", KEY_MAIN_PARENT_SCREEN);
         else
             removePreferenceFromScreen("pref_category_hdrx", KEY_MAIN_PARENT_SCREEN);
+
+        Preference hide = findPreference(PreferenceKeys.KEY_SAVE_PER_LENS_SETTINGS);
+        PreferenceCategory category = findPreference("pref_category_general");
+        if (category != null && hide != null) {
+                category.removePreference(hide);
+        }
     }
 
     @Override
