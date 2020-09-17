@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.log.FragmentLifeCycleMonitor;
 import com.eszdman.photoncamera.app.PhotonCamera;
 
 public class SettingsActivity2 extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
@@ -21,6 +22,8 @@ public class SettingsActivity2 extends AppCompatActivity implements PreferenceFr
                 .beginTransaction()
                 .replace(R.id.settings_container, new SettingsFragment())
                 .commit();
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(),true);
+
     }
 
     public void back(View view) {

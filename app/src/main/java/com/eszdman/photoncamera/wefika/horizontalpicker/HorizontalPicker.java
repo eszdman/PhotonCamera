@@ -113,6 +113,7 @@ public class HorizontalPicker extends View {
     private int pressedItem = -1;
 
     private ColorStateList textColor;
+    private int selectedtextColor;
 
     private OnItemSelected onItemSelected;
     private OnItemClicked onItemClicked;
@@ -170,7 +171,7 @@ public class HorizontalPicker extends View {
             marqueeRepeatLimit = a.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
             dividerSize = a.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
             sideItems = a.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
-
+            selectedtextColor = a.getColor(R.styleable.HorizontalPicker_selectedColor,0XFFFFFFFF);
             float textSize = a.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
@@ -952,7 +953,7 @@ public class HorizontalPicker extends View {
             selectedColor = textColor.getColorForState(new int[]{android.R.attr.state_pressed, android.R.attr.state_selected}, defaultColor);
         } else if (position == getSelectedItem()) { //Vibhor
             defaultColor = textColor.getDefaultColor();
-            selectedColor = getResources().getColor(R.color.colorAccent, null);
+            selectedColor = selectedtextColor;
         } else {
             defaultColor = textColor.getDefaultColor();
             selectedColor = textColor.getColorForState(new int[]{android.R.attr.state_selected}, defaultColor);

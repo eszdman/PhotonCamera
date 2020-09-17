@@ -10,6 +10,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:textColor="@color/White"
+            app:selectedColor="?colorAccent"
             android:textSize="@dimen/mode_chip_text_size"
             android:marqueeRepeatLimit="-1"
             android:id="@+id/modePicker"

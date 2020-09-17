@@ -18,7 +18,7 @@ import java.util.Locale;
  */
 public class UniversalSeekBarPreference extends Preference implements SeekBar.OnSeekBarChangeListener {
     private static final String TAG = "UnivSeekBarPref: ";
-    private static final boolean isLoggingOn = true;
+    private static final boolean isLoggingOn = false;
     private final float mMin, mMax;
     private final boolean isFloat, showSeekBarValue;
     private float mStepPerUnit;

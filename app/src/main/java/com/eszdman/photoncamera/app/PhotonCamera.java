@@ -9,8 +9,8 @@ import com.eszdman.photoncamera.Control.Swipe;
 import com.eszdman.photoncamera.Control.TouchFocus;
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Render.Parameters;
+import com.eszdman.photoncamera.log.ActivityLifecycleMonitor;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.LifeCycleMonitor;
 import com.eszdman.photoncamera.api.Photo;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.settings.SettingsManager;
@@ -20,6 +20,7 @@ import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.manual.ManualMode;
 
 public class PhotonCamera extends Application {
+    public static final boolean DEBUG = false;
     private static PhotonCamera sPhotonCamera;
     private MainActivity mainActivity;
     private Settings settings;
@@ -116,22 +117,30 @@ public class PhotonCamera extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        registerActivityLifecycleCallbacks(new LifeCycleMonitor());
+        registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
+        initModules();
+    }
+
+    private void initModules() {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         gravity = new Gravity(sensorManager);
         sensors = new Sensors(sensorManager);
 
-        settingsManager = new SettingsManager(this);
-        settings = new Settings();
-        photo = new Photo();
-        imageProcessing = new ImageProcessing();
         swipe = new Swipe();
         touchFocus = new TouchFocus();
+
+        settingsManager = new SettingsManager(this);
+        settings = new Settings();
+
+        photo = new Photo();
+        imageProcessing = new ImageProcessing();
+
         parameters = new Parameters();
         cameraUI = new CameraUI();
     }
+
 
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {

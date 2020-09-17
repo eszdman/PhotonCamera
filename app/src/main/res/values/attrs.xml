@@ -25,6 +25,7 @@
         <attr name="android:marqueeRepeatLimit"/>
         <attr name="dividerSize" format="dimension"/>
         <attr name="sideItems" format="integer"/>
+        <attr name="selectedColor" format="reference|color"/>
 
     </declare-styleable>
     <attr name="horizontalPickerStyle" format="reference"/>

@@ -12,8 +12,9 @@ import androidx.preference.PreferenceManager;
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.log.FragmentLifeCycleMonitor;
 import com.eszdman.photoncamera.api.Permissions;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.manual.ManualMode;
@@ -55,11 +56,11 @@ public class MainActivity extends AppCompatActivity {
         PhotonCamera.setCameraFragment(CameraFragment.context);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-     /*   if (null == savedInstanceState) {
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container, CameraFragment.context)
-                    .commit();
-        }*/
+        //   if (null == savedInstanceState)
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container, CameraFragment.context)
+                .commit();
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(),true);
 
         customOrientationEventListener = new
                 CustomOrientationEventListener(getBaseContext()) {
@@ -106,9 +107,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, CameraFragment.context)
-                .commit();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         customOrientationEventListener.enable();
     }

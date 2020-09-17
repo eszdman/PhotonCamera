@@ -11,7 +11,7 @@
     <TextView android:textSize="@dimen/camera_settings_preference_font_size"
               android:textAlignment="gravity"
               android:textStyle="bold"
-              android:textColor="@color/colorAccent"
+              android:textColor="?colorAccent"
               android:gravity="start|center"
               android:id="@android:id/title"
               android:layout_width="match_parent"
