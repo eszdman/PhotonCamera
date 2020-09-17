@@ -3,19 +3,19 @@ package com.eszdman.photoncamera.ui;
 import android.os.Bundle;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 public class SettingsActivity2 extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        getDelegate().setLocalNightMode(Interface.getSettings().theme);
         super.onCreate(savedInstanceState);
+//        AppCompatDelegate.setDefaultNightMode(PhotonCamera.getSettings().theme);
+        getDelegate().setLocalNightMode(PhotonCamera.getSettings().theme);
         setContentView(R.layout.activity_settings1);
         getSupportFragmentManager()
                 .beginTransaction()

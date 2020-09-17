@@ -13,7 +13,7 @@ import android.widget.TextView;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.manual.model.*;
 
 /**
@@ -108,7 +108,7 @@ public final class ManualModeImpl implements ManualMode {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
             for (int i = 0; i < buttons_container.getChildCount(); i++) {
-                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(Interface.getMainActivity().RotationDur).start();
+                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(PhotonCamera.getMainActivity().RotationDur).start();
             }
         }
     }
@@ -217,7 +217,7 @@ public final class ManualModeImpl implements ManualMode {
         Range<Float> evRange = new Range<>(cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getLower().floatValue(), cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getUpper().floatValue());
 
         public void logIt() {
-            String lens = Interface.getSettings().mCameraID;
+            String lens = PhotonCamera.getSettings().mCameraID;
             Log.d(TAG, "focusRange(" + lens + ") : " + (focusRange == null ? "Fixed [" + maxFocal + "]" : focusRange.toString()));
             Log.d(TAG, "isoRange(" + lens + ") : " + isoRange.toString());
             Log.d(TAG, "expRange(" + lens + ") : " + expRange.toString());

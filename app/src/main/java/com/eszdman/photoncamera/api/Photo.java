@@ -9,6 +9,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.ui.MainActivity;
 
 import java.io.File;
@@ -26,7 +27,7 @@ public class Photo {
         {
             Bitmap bmp = (Bitmap) msg.obj;
             try {
-              Interface.getCameraUI().galleryImageButton.setImageBitmap(bmp);
+              PhotonCamera.getCameraUI().galleryImageButton.setImageBitmap(bmp);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -67,8 +68,8 @@ public class Photo {
     }
 
     public void ShowPhoto() {
-        if (Interface.getSettings().lastPicture != null) {
-            ShowPhoto(new File(Interface.getSettings().lastPicture));
+        if (PhotonCamera.getSettings().lastPicture != null) {
+            ShowPhoto(new File(PhotonCamera.getSettings().lastPicture));
         }
     }
 
@@ -80,8 +81,8 @@ public class Photo {
     }
     public void SaveImg(File in) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        boolean wasNull = Interface.getSettings().lastPicture == null;
-        Interface.getSettings().setLastPicture(in.getAbsolutePath());
+        boolean wasNull = PhotonCamera.getSettings().lastPicture == null;
+        PhotonCamera.getSettings().setLastPicture(in.getAbsolutePath());
 //        if (wasNull) Interface.getSettings().save();
         Uri contentUri = Uri.fromFile(in);
         try {

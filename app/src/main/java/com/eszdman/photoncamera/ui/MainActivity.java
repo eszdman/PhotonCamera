@@ -12,11 +12,11 @@ import androidx.preference.PreferenceManager;
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.api.Permissions;
-import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
+import com.manual.ManualMode;
 import de.hdodenhof.circleimageview.CircleImageView;
 import org.opencv.android.OpenCVLoader;
 
@@ -42,17 +42,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         act = this;
-        new Interface(this);
-        Interface.getSettings().loadCache();
+        PhotonCamera.setMainActivity(this);
+        PhotonCamera.setManualMode(ManualMode.getInstance(this));
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         PreferenceKeys.setDefaults();
+        PhotonCamera.getSettings().loadCache();
         //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
         FileManager.CreateFolders();
         CameraFragment.context = CameraFragment.newInstance();
-        Interface.setCameraFragment(CameraFragment.context);
+        PhotonCamera.setCameraFragment(CameraFragment.context);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
      /*   if (null == savedInstanceState) {
@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
                         fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
                         quadres.animate().rotation(rot).setDuration(RotationDur).start();
                         if (findViewById(R.id.manual_mode).getVisibility() == View.VISIBLE)
-                            Interface.getManualMode().rotate(rot);
+                            PhotonCamera.getManualMode().rotate(rot);
                     }
                 };
     }

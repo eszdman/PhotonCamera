@@ -1,58 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.eszdman.photoncamera">
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.eszdman.photoncamera">
 
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <uses-feature
-        android:name="android.hardware.camera"
-        android:required="true" />
-    <uses-feature android:name="android.hardware.camera.autofocus" />
+            android:name="android.hardware.camera"
+            android:required="true"/>
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
 
     <application
-        android:name=".api.Interface"
-        android:allowBackup="true"
-        android:hardwareAccelerated="true"
-        android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true"
-        android:label="@string/app_name"
-        android:largeHeap="true"
-        android:isGame="true"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        tools:targetApi="q">
-        <activity android:name=".ui.SettingsActivity"  />
-        <activity android:name=".ui.SettingsActivity2" android:theme="@style/Theme.SetingsActivity"/>
+            android:name=".app.PhotonCamera"
+            android:allowBackup="true"
+            android:hardwareAccelerated="true"
+            android:icon="@mipmap/ic_launcher"
+            android:requestLegacyExternalStorage="true"
+            android:label="@string/app_name"
+            android:largeHeap="true"
+            android:isGame="true"
+            android:supportsRtl="true"
+            android:theme="@style/Theme.Photon.BaseApp"
+            tools:targetApi="q">
+        <activity android:name=".ui.SettingsActivity"/>
         <activity
-            android:name=".ui.SplashActivity"
-            android:theme="@style/SplashTheme">
+                android:name=".ui.SettingsActivity2"
+                android:theme="@style/Theme.Photon.SettingsActivity"/>
+        <activity
+                android:name=".ui.SplashActivity"
+                android:theme="@style/Theme.Photon.Splash">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.MainActivity" android:configChanges="orientation|keyboardHidden|screenSize"/>
+        <activity
+                android:name=".ui.MainActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"/>
 
-        <activity android:name=".gallery.GalleryActivity" />
+        <activity android:name=".gallery.GalleryActivity"/>
 
         <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
+                android:name="androidx.core.content.FileProvider"
+                android:authorities="${applicationId}.provider"
+                android:exported="false"
+                android:grantUriPermissions="true">
             <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/filepaths" />
+                    android:name="android.support.FILE_PROVIDER_PATHS"
+                    android:resource="@xml/filepaths"/>
         </provider>
 
         <meta-data
-            android:name="firebase_performance_logcat_enabled"
-            android:value="false" />
+                android:name="firebase_performance_logcat_enabled"
+                android:value="false"/>
     </application>
 </manifest>

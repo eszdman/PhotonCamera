@@ -37,7 +37,6 @@ import android.os.*;
 import android.util.*;
 import android.view.*;
 import android.widget.Toast;
-import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
@@ -51,14 +50,13 @@ import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.MainActivity;
-import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity2;
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
-import com.manual.ManualModeImpl;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
@@ -426,7 +424,7 @@ public class CameraFragment extends Fragment
                     }
                 }
                 if(ExposureIndex.index()+0.9 < 8.0) {
-                    if(is30Fps && Interface.getSettings().fpsPreview && !mCameraDevice.getId().equals("1"))
+                    if(is30Fps && PhotonCamera.getSettings().fpsPreview && !mCameraDevice.getId().equals("1"))
                     {
                         Log.d(TAG,"Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,FpsRangeHigh);
@@ -442,7 +440,7 @@ public class CameraFragment extends Fragment
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (Interface.getSettings().afdata) {
+        if (PhotonCamera.getSettings().afdata) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -453,7 +451,7 @@ public class CameraFragment extends Fragment
 //            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
 //            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-            dataset.put("Shakeness", String.valueOf(Interface.getSensors().getShakeness()));
+            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakeness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
             if(rectobj != null && rectobj.length > 0) {
@@ -622,20 +620,20 @@ public class CameraFragment extends Fragment
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.picture: {
-                if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) {
-                    Interface.getCameraUI().shot.setActivated(false);
-                    Interface.getCameraUI().shot.setClickable(false);
+                if(PhotonCamera.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) {
+                    PhotonCamera.getCameraUI().shot.setActivated(false);
+                    PhotonCamera.getCameraUI().shot.setClickable(false);
                     takePicture();
                 }
                 else {
                     if(!onUnlimited) {
                         onUnlimited = true;
-                        Interface.getCameraUI().shot.setActivated(false);
-                        Interface.getCameraUI().shot.setClickable(true);
+                        PhotonCamera.getCameraUI().shot.setActivated(false);
+                        PhotonCamera.getCameraUI().shot.setClickable(true);
                         takePicture();
                     } else {
-                        Interface.getCameraUI().shot.setActivated(true);
-                        Interface.getCameraUI().shot.setClickable(true);
+                        PhotonCamera.getCameraUI().shot.setActivated(true);
+                        PhotonCamera.getCameraUI().shot.setClickable(true);
                         onUnlimited = false;
                         try {
                             mCaptureSession.abortCaptures();
@@ -680,7 +678,7 @@ public class CameraFragment extends Fragment
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         mTextureView = view.findViewById(R.id.texture);
         surfaceView = view.findViewById(R.id.surfaceView);
-        Interface.getCameraUI().onCameraViewCreated();
+        PhotonCamera.getCameraUI().onCameraViewCreated();
     }
 
     @Override
@@ -702,7 +700,7 @@ public class CameraFragment extends Fragment
             }
             //Used fastest decoder on the wide west
             if(lastImage != null) {
-                    Interface.getCameraUI().galleryImageButton.setImageBitmap(
+                    PhotonCamera.getCameraUI().galleryImageButton.setImageBitmap(
                             BitmapDecoder.from(Uri.fromFile(lastImage))
                                     .scaleBy(0.1f)
                                     .decode());
@@ -713,7 +711,7 @@ public class CameraFragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-        Interface.getCameraUI().onCameraResume();
+        PhotonCamera.getCameraUI().onCameraResume();
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(MainActivity.act);
         if (mTextureView.isAvailable()) {
@@ -726,7 +724,7 @@ public class CameraFragment extends Fragment
 
     @Override
     public void onPause() {
-        Interface.getCameraUI().onCameraPause();
+        PhotonCamera.getCameraUI().onCameraPause();
         closeCamera();
         stopBackgroundThread();
         super.onPause();
@@ -773,9 +771,9 @@ public class CameraFragment extends Fragment
          Arrays.sort(in, new CompareSizesByArea());
          List<Size> sizes = new ArrayList<>(Arrays.asList(in));
          int s = sizes.size() - 1;
-         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || Interface.getSettings().QuadBayer){
+         if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || PhotonCamera.getSettings().QuadBayer){
              target = sizes.get(s);
-             if(Interface.getSettings().QuadBayer) {
+             if(PhotonCamera.getSettings().QuadBayer) {
                  Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
                  if(pre == null) return target;
                  Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -806,15 +804,15 @@ public class CameraFragment extends Fragment
      * @param height The height of available size for camera preview
      */
     private void setUpCameraOutputs(int width, int height) {
-        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         manager2.getCameraIdList();
         // manager2.CameraArr(manager);
         try {
-                mCameraCharacteristics = manager.getCameraCharacteristics(Interface.getSettings().mCameraID);
+                mCameraCharacteristics = manager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
                 mPreviewwidth = width;
                 mPreviewheight = height;
-                UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
+                UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
                 imageSaver = new ImageSaver();
                 //Thread thr = new Thread(imageSaver);
                 //thr.start();
@@ -832,7 +830,7 @@ public class CameraFragment extends Fragment
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
-        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraCharacteristics characteristics
                 = null;
         try {
@@ -854,17 +852,17 @@ public class CameraFragment extends Fragment
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         int maxjpg = 3;
-        if(mTargetFormat == mPreviewTargetFormat) maxjpg = Interface.getSettings().frameCount+3;
+        if(mTargetFormat == mPreviewTargetFormat) maxjpg = PhotonCamera.getSettings().frameCount+3;
         mImageReaderPreview = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, maxjpg);
         mImageReaderPreview.setOnImageAvailableListener(
                 mOnYuvImageAvailableListener, mBackgroundHandler);
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Interface.getSettings().frameCount + 3);
+                mTargetFormat, PhotonCamera.getSettings().frameCount + 3);
         mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
-        int displayRotation = Interface.getGravity().getRotation();
+        int displayRotation = PhotonCamera.getGravity().getRotation();
         //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
         //noinspection ConstantConditions
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
@@ -915,7 +913,7 @@ public class CameraFragment extends Fragment
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
-        Interface.getMainActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
+        PhotonCamera.getMainActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewwidth;
         int rotatedPreviewHeight = mPreviewheight;
         int maxPreviewWidth = displaySize.x;
@@ -960,7 +958,7 @@ public class CameraFragment extends Fragment
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
-        Interface.getCameraUI().onCameraInitialization();
+        PhotonCamera.getCameraUI().onCameraInitialization();
     }
 
     @SuppressLint("MissingPermission")
@@ -986,7 +984,7 @@ public class CameraFragment extends Fragment
                 mPreviewRequestBuilder = null;
             }
             stopBackgroundThread();
-            UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
+            UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
@@ -1002,7 +1000,7 @@ public class CameraFragment extends Fragment
         if(manager == null) return;
         StreamConfigurationMap map = null;
         try {
-            map = manager.getCameraCharacteristics(Interface.getSettings().mCameraID).get(
+            map = manager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -1011,7 +1009,7 @@ public class CameraFragment extends Fragment
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat),preview);
         int max = 3;
-        if(mTargetFormat == mPreviewTargetFormat) max = Interface.getSettings().frameCount + 3;
+        if(mTargetFormat == mPreviewTargetFormat) max = PhotonCamera.getSettings().frameCount + 3;
         //largest = target;
         mImageReaderPreview = ImageReader.newInstance(target.getWidth(), target.getHeight(),
                 mPreviewTargetFormat, /*maxImages*/max);
@@ -1019,21 +1017,21 @@ public class CameraFragment extends Fragment
                 mOnYuvImageAvailableListener, mBackgroundHandler);
 
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, Interface.getSettings().frameCount + 3);
+                mTargetFormat, PhotonCamera.getSettings().frameCount + 3);
         mImageReaderRaw.setOnImageAvailableListener(
                 mOnRawImageAvailableListener, mBackgroundHandler);
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(Interface.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
+            manager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to restart camera.", e);
         }
         //stopBackgroundThread();
-        UpdateCameraCharacteristics(Interface.getSettings().mCameraID);
+        UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
         startBackgroundThread();
         mBackgroundHandler.post(imageSaver);
     }
@@ -1050,21 +1048,21 @@ public class CameraFragment extends Fragment
      */
     private void openCamera(int width, int height) {
         context = this;
-        if (ContextCompat.checkSelfPermission(Interface.getMainActivity(), Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(PhotonCamera.getMainActivity(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
             return;
         }
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
-        CameraManager manager = (CameraManager) Interface.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
         CameraManager2 manager2 = new CameraManager2(manager);
         mCameraIds = manager2.getCameraIdList();
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
 //                throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(Interface.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
+            manager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -1169,11 +1167,11 @@ public class CameraFragment extends Fragment
                                     //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                     // Flash is automatically enabled when necessary.
                                     setAutoFlash();
-                                    Interface.getSettings().applyPrev(mPreviewRequestBuilder);
+                                    PhotonCamera.getSettings().applyPrev(mPreviewRequestBuilder);
 
                                     //lightcycle.setVisibility(View.INVISIBLE);
                                     // Finally, we start displaying the camera preview.
-                                    if (Interface.getCameraFragment().is30Fps) {
+                                    if (PhotonCamera.getCameraFragment().is30Fps) {
                                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                                 FpsRangeDef);
                                     } else {
@@ -1189,12 +1187,12 @@ public class CameraFragment extends Fragment
                                         unlockFocus();
                                     } else {
                                         Log.d(TAG,"Preview, captureBurst");
-                                        if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                        if(PhotonCamera.getSettings().selectedMode != Settings.CameraMode.UNLIMITED) mCaptureSession.captureBurst(captures, CaptureCallback, null);
                                         else mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
                                         burst = false;
                                     }
                                     if(getActivity()!=null){
-                                        getActivity().runOnUiThread(() -> Interface.getTouchFocus().resetFocusCircle());
+                                        getActivity().runOnUiThread(() -> PhotonCamera.getTouchFocus().resetFocusCircle());
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
@@ -1253,7 +1251,7 @@ public class CameraFragment extends Fragment
         if (null == mTextureView || null == mPreviewSize || null == activity) {
             return;
         }
-        int rotation = Interface.getGravity().getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
+        int rotation = PhotonCamera.getGravity().getRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
         Matrix matrix = new Matrix();
         RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
@@ -1339,7 +1337,7 @@ public class CameraFragment extends Fragment
             mCaptureSession.stopRepeating();
             if(mTargetFormat != mPreviewTargetFormat) captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else captureBuilder.addTarget(mImageReaderPreview.getSurface());
-            Interface.getSettings().applyRes(captureBuilder);
+            PhotonCamera.getSettings().applyRes(captureBuilder);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG,"Focus:"+mFocus);
@@ -1352,14 +1350,14 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, Interface.getGravity().getCameraRotation());
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation());
             captures = new ArrayList<>();
             FrameNumberSelector.getFrames();
-            Interface.getCameraUI().lightcycle.setMax(FrameNumberSelector.frameCount);
+            PhotonCamera.getCameraUI().lightcycle.setMax(FrameNumberSelector.frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
-            IsoExpoSelector.useTripod = Interface.getSensors().getShakeness() < 5;
+            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakeness() < 5;
             for (int i = 0; i < FrameNumberSelector.frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
@@ -1372,16 +1370,16 @@ public class CameraFragment extends Fragment
             Log.d(TAG,"FrameCount:"+FrameNumberSelector.frameCount);
             final int[] burstcount = {0, 0, FrameNumberSelector.frameCount};
             Log.d(TAG,"CaptureStarted!");
-            Interface.getCameraUI().lightcycle.setAlpha(1.0f);
+            PhotonCamera.getCameraUI().lightcycle.setAlpha(1.0f);
             mTextureView.setAlpha(0.5f);
-            MediaPlayer burstPlayer = MediaPlayer.create(Interface.getMainActivity(),R.raw.sound_burst);
+            MediaPlayer burstPlayer = MediaPlayer.create(PhotonCamera.getMainActivity(),R.raw.sound_burst);
             CaptureCallback
                     = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    Interface.getCameraUI().lightcycle.setProgress(Interface.getCameraUI().lightcycle.getProgress() + 1);
+                    PhotonCamera.getCameraUI().lightcycle.setProgress(PhotonCamera.getCameraUI().lightcycle.getProgress() + 1);
                     if(PreferenceKeys.isCameraSoundsOn())
                     burstPlayer.start();
                     Log.v(TAG,"Completed!");
@@ -1399,8 +1397,8 @@ public class CameraFragment extends Fragment
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG,"SequenceCompleted");
                     try {
-                        Interface.getCameraUI().lightcycle.setAlpha(0f);
-                        Interface.getCameraUI().lightcycle.setProgress(0);
+                        PhotonCamera.getCameraUI().lightcycle.setAlpha(0f);
+                        PhotonCamera.getCameraUI().lightcycle.setProgress(0);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e){
                     e.printStackTrace();
@@ -1413,12 +1411,12 @@ public class CameraFragment extends Fragment
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    if(Interface.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
+                    if(PhotonCamera.getSettings().selectedMode != Settings.CameraMode.UNLIMITED)
                     if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                         try {
                             mCaptureSession.abortCaptures();
-                            Interface.getCameraUI().lightcycle.setAlpha(0f);
-                            Interface.getCameraUI().lightcycle.setProgress(0);
+                            PhotonCamera.getCameraUI().lightcycle.setAlpha(0f);
+                            PhotonCamera.getCameraUI().lightcycle.setProgress(0);
                             mTextureView.setAlpha(1f);
                             createCameraPreviewSession();
                         } catch (CameraAccessException e) {
@@ -1460,8 +1458,8 @@ public class CameraFragment extends Fragment
     public String cycler(String id) {
         String[] ids;
         if(CameraManager2.cameraManager2.supportFrontCamera) {
-            if(Interface.getCameraUI().auxGroup.getChildCount() != 0) {
-                int i = Interface.getCameraUI().auxGroup.getCheckedRadioButtonId();
+            if(PhotonCamera.getCameraUI().auxGroup.getChildCount() != 0) {
+                int i = PhotonCamera.getCameraUI().auxGroup.getCheckedRadioButtonId();
                 if (i >= 2) i++;
                 ids = new String[]{mCameraIds[i - 1], "1"};
             } else ids = new String[]{"0","1"};
@@ -1475,9 +1473,9 @@ public class CameraFragment extends Fragment
         }
         n++;
         n %= ids.length;
-        if(n == 1) Interface.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
+        if(n == 1) PhotonCamera.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
         else {
-            Interface.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
+            PhotonCamera.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
         }
         return ids[n];
     }

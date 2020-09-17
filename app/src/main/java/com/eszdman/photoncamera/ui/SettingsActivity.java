@@ -19,12 +19,12 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.NOISE_REDUCTION_MODE_OFF;
 @SuppressLint("UseSwitchCompatOrMaterialCode")
+@Deprecated
 public class SettingsActivity extends AppCompatActivity {
 
     //Here
@@ -75,9 +75,9 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Interface.setSettingsActivity(this);
+        PhotonCamera.setSettingsActivity(this);
         setContentView(R.layout.activity_settings);
-        if(Interface.getSettings().hdrxNR){
+        if(PhotonCamera.getSettings().hdrxNR){
             LinearLayout jpg = findViewById(R.id.settingsJPG);
             TextView jpgt = findViewById(R.id.textjpgset);
             jpgt.setVisibility(View.GONE);
@@ -96,14 +96,14 @@ public class SettingsActivity extends AppCompatActivity {
             hdrxt.setVisibility(View.GONE);
             hdrx.setVisibility(View.GONE);
         }
-        Interface.getSettings().loadCache();
+        PhotonCamera.getSettings().loadCache();
         views();
         sharedPreferences = getPreferences(MODE_PRIVATE);
         chromaCount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().chromaCount = chromaCount.getProgress();
-                chroma.setText((res.getText(R.string.chroma_nr_count).toString() + " " + Interface.getSettings().chromaCount));
+                PhotonCamera.getSettings().chromaCount = chromaCount.getProgress();
+                chroma.setText((res.getText(R.string.chroma_nr_count).toString() + " " + PhotonCamera.getSettings().chromaCount));
             }
 
             @Override
@@ -117,8 +117,8 @@ public class SettingsActivity extends AppCompatActivity {
         lumenCount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().lumenCount = lumenCount.getProgress();
-                luma.setText((res.getText(R.string.luma_nr_count).toString() + " " + Interface.getSettings().lumenCount));
+                PhotonCamera.getSettings().lumenCount = lumenCount.getProgress();
+                luma.setText((res.getText(R.string.luma_nr_count).toString() + " " + PhotonCamera.getSettings().lumenCount));
             }
 
             @Override
@@ -132,9 +132,9 @@ public class SettingsActivity extends AppCompatActivity {
         frameCount.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().frameCount = frameCount.getProgress();
-                framestext.setText((res.getText(R.string.frame_count).toString() + " " + Interface.getSettings().frameCount));
-                if (Interface.getSettings().frameCount == 1) framestext.setText("Unprocessed Output");
+                PhotonCamera.getSettings().frameCount = frameCount.getProgress();
+                framestext.setText((res.getText(R.string.frame_count).toString() + " " + PhotonCamera.getSettings().frameCount));
+                if (PhotonCamera.getSettings().frameCount == 1) framestext.setText("Unprocessed Output");
             }
 
             @Override
@@ -148,8 +148,8 @@ public class SettingsActivity extends AppCompatActivity {
         contrastconst.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().contrastConst = contrastconst.getProgress();
-                contrasttext.setText((res.getText(R.string.contrmul) + String.valueOf(Interface.getSettings().contrastMpy) + " " + res.getText(R.string.contrconst) + " " + Interface.getSettings().contrastConst));
+                PhotonCamera.getSettings().contrastConst = contrastconst.getProgress();
+                contrasttext.setText((res.getText(R.string.contrmul) + String.valueOf(PhotonCamera.getSettings().contrastMpy) + " " + res.getText(R.string.contrconst) + " " + PhotonCamera.getSettings().contrastConst));
             }
 
             @Override
@@ -163,8 +163,8 @@ public class SettingsActivity extends AppCompatActivity {
         contrastmul.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().contrastMpy = getDouble(contrastmul.getProgress());
-                contrasttext.setText((res.getText(R.string.contrmul) + " " + Interface.getSettings().contrastMpy + " " + res.getText(R.string.contrconst) + " " + Interface.getSettings().contrastConst));
+                PhotonCamera.getSettings().contrastMpy = getDouble(contrastmul.getProgress());
+                contrasttext.setText((res.getText(R.string.contrmul) + " " + PhotonCamera.getSettings().contrastMpy + " " + res.getText(R.string.contrconst) + " " + PhotonCamera.getSettings().contrastConst));
             }
 
             @Override
@@ -178,8 +178,8 @@ public class SettingsActivity extends AppCompatActivity {
         sharp.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().sharpness = getDouble(sharp.getProgress());
-                sharptext.setText((res.getText(R.string.sharpness) + " " + Interface.getSettings().sharpness));
+                PhotonCamera.getSettings().sharpness = getDouble(sharp.getProgress());
+                sharptext.setText((res.getText(R.string.sharpness) + " " + PhotonCamera.getSettings().sharpness));
             }
 
             @Override
@@ -193,8 +193,8 @@ public class SettingsActivity extends AppCompatActivity {
         satur.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().saturation = getDouble(satur.getProgress());
-                sattext.setText((res.getText(R.string.saturation).toString() + " " + Interface.getSettings().saturation));
+                PhotonCamera.getSettings().saturation = getDouble(satur.getProgress());
+                sattext.setText((res.getText(R.string.saturation).toString() + " " + PhotonCamera.getSettings().saturation));
             }
 
             @Override
@@ -208,8 +208,8 @@ public class SettingsActivity extends AppCompatActivity {
         compress.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().compressor = getDouble(compress.getProgress());
-                compgaintext.setText((res.getText(R.string.comp) + String.valueOf(Interface.getSettings().compressor) + " " + res.getText(R.string.gain) + " " + Interface.getSettings().gain));
+                PhotonCamera.getSettings().compressor = getDouble(compress.getProgress());
+                compgaintext.setText((res.getText(R.string.comp) + String.valueOf(PhotonCamera.getSettings().compressor) + " " + res.getText(R.string.gain) + " " + PhotonCamera.getSettings().gain));
             }
 
             @Override
@@ -223,8 +223,8 @@ public class SettingsActivity extends AppCompatActivity {
         gains.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                Interface.getSettings().gain = getDouble(gains.getProgress());
-                compgaintext.setText((res.getText(R.string.comp) + " " + Interface.getSettings().compressor + "  " + res.getText(R.string.gain) + " " + Interface.getSettings().gain));
+                PhotonCamera.getSettings().gain = getDouble(gains.getProgress());
+                compgaintext.setText((res.getText(R.string.comp) + " " + PhotonCamera.getSettings().compressor + "  " + res.getText(R.string.gain) + " " + PhotonCamera.getSettings().gain));
             }
 
             @Override
@@ -241,17 +241,23 @@ public class SettingsActivity extends AppCompatActivity {
               public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                   Log.d("Settings","Position:"+position);
                   switch (position){
-                      case(0):Interface.getSettings().cfaPattern = -1; break;
-                      case(1):Interface.getSettings().cfaPattern = 0; break;
-                      case(2):Interface.getSettings().cfaPattern = 3; break;
-                      case(3):Interface.getSettings().cfaPattern = 1; break;
-                      case(4):Interface.getSettings().cfaPattern = 2; break;
-                      case(5):Interface.getSettings().cfaPattern = -2; break;
+                      case(0):
+                          PhotonCamera.getSettings().cfaPattern = -1; break;
+                      case(1):
+                          PhotonCamera.getSettings().cfaPattern = 0; break;
+                      case(2):
+                          PhotonCamera.getSettings().cfaPattern = 3; break;
+                      case(3):
+                          PhotonCamera.getSettings().cfaPattern = 1; break;
+                      case(4):
+                          PhotonCamera.getSettings().cfaPattern = 2; break;
+                      case(5):
+                          PhotonCamera.getSettings().cfaPattern = -2; break;
                   }
               }
               @Override
               public void onNothingSelected(AdapterView<?> parent) {
-                  Interface.getSettings().cfaPattern = -1;
+                  PhotonCamera.getSettings().cfaPattern = -1;
               }
           }
 
@@ -260,11 +266,11 @@ public class SettingsActivity extends AppCompatActivity {
                                               @Override
                                               public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                                                   Log.d("Settings","Position:"+position);
-                                                  Interface.getSettings().alignAlgorithm = position;
+                                                  PhotonCamera.getSettings().alignAlgorithm = position;
                                               }
                                               @Override
                                               public void onNothingSelected(AdapterView<?> parent) {
-                                                  Interface.getSettings().alignAlgorithm = 0;
+                                                  PhotonCamera.getSettings().alignAlgorithm = 0;
                                               }
         }
         );
@@ -283,27 +289,27 @@ public class SettingsActivity extends AppCompatActivity {
 
     //Here
     public void set() {
-        setv(disablealign, !Interface.getSettings().align);
-        setv(frameCount, Interface.getSettings().frameCount);
-        setv(chromaCount, Interface.getSettings().chromaCount);
-        setv(lumenCount, Interface.getSettings().lumenCount);
-        setv(enhanced, Interface.getSettings().enhancedProcess);
-        setv(gridOnOff, Interface.getSettings().grid);
-        setv(roundoption, Interface.getSettings().roundedge);
-        setv(rawSaving,Interface.getSettings().rawSaver);
-        setv(remosaic,Interface.getSettings().remosaic);
-        setv(watermarkOnOff, Interface.getSettings().watermark);
-        setv(afdataOnOff, Interface.getSettings().afdata);
+        setv(disablealign, !PhotonCamera.getSettings().align);
+        setv(frameCount, PhotonCamera.getSettings().frameCount);
+        setv(chromaCount, PhotonCamera.getSettings().chromaCount);
+        setv(lumenCount, PhotonCamera.getSettings().lumenCount);
+        setv(enhanced, PhotonCamera.getSettings().enhancedProcess);
+        setv(gridOnOff, PhotonCamera.getSettings().grid);
+        setv(roundoption, PhotonCamera.getSettings().roundedge);
+        setv(rawSaving, PhotonCamera.getSettings().rawSaver);
+        setv(remosaic, PhotonCamera.getSettings().remosaic);
+        setv(watermarkOnOff, PhotonCamera.getSettings().watermark);
+        setv(afdataOnOff, PhotonCamera.getSettings().afdata);
 
-        setv(hdrxNR,Interface.getSettings().hdrxNR);
-        setv(sharp, Interface.getSettings().sharpness);
-        setv(contrastconst, Interface.getSettings().contrastConst);
-        setv(contrastmul, Interface.getSettings().contrastMpy);
-        setv(compress, Interface.getSettings().compressor);
-        setv(gains, Interface.getSettings().gain);
-        setv(satur, Interface.getSettings().saturation);
-        setv(cfaList,Interface.getSettings().cfaPattern);
-        setv(alignList,Interface.getSettings().alignAlgorithm);
+        setv(hdrxNR, PhotonCamera.getSettings().hdrxNR);
+        setv(sharp, PhotonCamera.getSettings().sharpness);
+        setv(contrastconst, PhotonCamera.getSettings().contrastConst);
+        setv(contrastmul, PhotonCamera.getSettings().contrastMpy);
+        setv(compress, PhotonCamera.getSettings().compressor);
+        setv(gains, PhotonCamera.getSettings().gain);
+        setv(satur, PhotonCamera.getSettings().saturation);
+        setv(cfaList, PhotonCamera.getSettings().cfaPattern);
+        setv(alignList, PhotonCamera.getSettings().alignAlgorithm);
         load();
     }
     //And here
@@ -341,17 +347,17 @@ public class SettingsActivity extends AppCompatActivity {
     //Also here
     public void get() {
         views();
-        if (turnNR.isChecked()) Interface.getSettings().noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
-        else Interface.getSettings().noiseReduction = NOISE_REDUCTION_MODE_OFF;
-        Interface.getSettings().hdrxNR = hdrxNR.isChecked();
-        Interface.getSettings().align = !disablealign.isChecked();
-        Interface.getSettings().enhancedProcess = enhanced.isChecked();
-        Interface.getSettings().grid = gridOnOff.isChecked();
-        Interface.getSettings().roundedge = roundoption.isChecked();
-        Interface.getSettings().rawSaver = rawSaving.isChecked();
-        Interface.getSettings().remosaic = remosaic.isChecked();
-        Interface.getSettings().watermark = watermarkOnOff.isChecked();
-        Interface.getSettings().afdata = afdataOnOff.isChecked();
+        if (turnNR.isChecked()) PhotonCamera.getSettings().noiseReduction = NOISE_REDUCTION_MODE_HIGH_QUALITY;
+        else PhotonCamera.getSettings().noiseReduction = NOISE_REDUCTION_MODE_OFF;
+        PhotonCamera.getSettings().hdrxNR = hdrxNR.isChecked();
+        PhotonCamera.getSettings().align = !disablealign.isChecked();
+        PhotonCamera.getSettings().enhancedProcess = enhanced.isChecked();
+        PhotonCamera.getSettings().grid = gridOnOff.isChecked();
+        PhotonCamera.getSettings().roundedge = roundoption.isChecked();
+        PhotonCamera.getSettings().rawSaver = rawSaving.isChecked();
+        PhotonCamera.getSettings().remosaic = remosaic.isChecked();
+        PhotonCamera.getSettings().watermark = watermarkOnOff.isChecked();
+        PhotonCamera.getSettings().afdata = afdataOnOff.isChecked();
         save();
     }
 
@@ -376,32 +382,32 @@ public class SettingsActivity extends AppCompatActivity {
     int cnt2 = 0;
 
     void putview(Switch in) {
-        sharedPreferencesEditor.putBoolean(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.isChecked());
+        sharedPreferencesEditor.putBoolean(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.isChecked());
         cnt2++;
     }
 
     void putview(TextView in) {
-        sharedPreferencesEditor.putString(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.getText().toString());
+        sharedPreferencesEditor.putString(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.getText().toString());
         cnt2++;
     }
 
     void putview(SeekBar in) {
-        sharedPreferencesEditor.putInt(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.getProgress());
+        sharedPreferencesEditor.putInt(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.getProgress());
         cnt2++;
     }
 
     void getview(Switch in) {
-        in.setChecked(sharedPreferences.getBoolean(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.isChecked()));
+        in.setChecked(sharedPreferences.getBoolean(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.isChecked()));
         cnt2++;
     }
 
     void getview(TextView in) {
-        in.setText(sharedPreferences.getString(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.getText().toString()));
+        in.setText(sharedPreferences.getString(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.getText().toString()));
         cnt2++;
     }
 
     void getview(SeekBar in) {
-        in.setProgress(sharedPreferences.getInt(Interface.getSettings().mCameraID+"SettingsView:" + cnt2, in.getProgress()));
+        in.setProgress(sharedPreferences.getInt(PhotonCamera.getSettings().mCameraID+"SettingsView:" + cnt2, in.getProgress()));
         cnt2++;
     }
 
@@ -433,10 +439,10 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void export_settings(View view) {
-        Interface.getSettings().ExportSettings();
+        PhotonCamera.getSettings().ExportSettings();
     }
 
     public void import_settings(View view) {
-        Interface.getSettings().ImportSettings();
+        PhotonCamera.getSettings().ImportSettings();
     }
 }

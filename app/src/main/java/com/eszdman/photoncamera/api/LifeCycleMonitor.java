@@ -16,42 +16,42 @@ public class LifeCycleMonitor implements Application.ActivityLifecycleCallbacks 
 
     @Override
     public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle bundle) {
-        log(activity.getLocalClassName() + " : onActivityCreated");
+        log(activity.getLocalClassName() + " : onCreated");
     }
 
     @Override
     public void onActivityStarted(@NonNull Activity activity) {
-        log(activity.getLocalClassName() + " : onActivityStarted");
+        log(activity.getLocalClassName() + " : onStarted");
 
     }
 
     @Override
     public void onActivityResumed(@NonNull Activity activity) {
-        log(activity.getLocalClassName() + " : onActivityResumed");
+        log(activity.getLocalClassName() + " : onResumed");
 
     }
 
     @Override
     public void onActivityPaused(@NonNull Activity activity) {
-        log(activity.getLocalClassName() + " : onActivityPaused");
+        log(activity.getLocalClassName() + " : onPaused");
 
     }
 
     @Override
     public void onActivityStopped(@NonNull Activity activity) {
-        log(activity.getLocalClassName() + " : onActivityStopped");
+        log(activity.getLocalClassName() + " : onStopped");
 
     }
 
     @Override
     public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle bundle) {
-        log(activity.getLocalClassName() + " : onActivitySaveInstanceState");
+        log(activity.getLocalClassName() + " : onSaveInstanceState");
 
     }
 
     @Override
     public void onActivityDestroyed(@NonNull Activity activity) {
-        log(activity.getLocalClassName() + " : onActivityDestroyed");
+        log(activity.getLocalClassName() + " : onDestroyed");
 
     }
 }

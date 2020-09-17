@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Range;
 import android.widget.Toast;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.File;
@@ -167,11 +168,11 @@ public class Settings {
         Object focus = captureBuilder.get(CONTROL_AF_MODE);
         Log.d(TAG, "InDeviceFocus:" + (int) (focus));
         if (focus != null) afMode = (int) focus;
-        Interface.getTouchFocus().onConfigured = false;
+        PhotonCamera.getTouchFocus().onConfigured = false;
         initialAF = captureBuilder.get(CONTROL_AF_REGIONS);
         initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
         //Interface.getTouchFocus().setFocus(size.x/2,size.y/2);
-        Interface.getTouchFocus().onConfigured = true;
+        PhotonCamera.getTouchFocus().onConfigured = true;
         captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
         float[] rgb = new float[64];
         for (int i = 0; i < 64; i += 2) {
@@ -212,7 +213,7 @@ public class Settings {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        final Activity activity = Interface.getMainActivity();
+        final Activity activity = PhotonCamera.getMainActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Exported", Toast.LENGTH_SHORT).show());
         }
@@ -270,8 +271,8 @@ public class Settings {
         }
         sharedPreferencesEditor.apply();
         loadCache();
-        Interface.getSettingsActivity().set();
-        final Activity activity = Interface.getMainActivity();
+        PhotonCamera.getSettingsActivity().set();
+        final Activity activity = PhotonCamera.getMainActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
         }

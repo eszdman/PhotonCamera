@@ -1,16 +1,14 @@
 package com.eszdman.photoncamera.api;
 
-import android.content.SharedPreferences;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import static android.content.Context.MODE_PRIVATE;
 
 public class CameraManager2 {
     private static final String TAG = "CameraManager2";
@@ -26,12 +24,12 @@ public class CameraManager2 {
         manager = manag;
 //        sharedPreferences = Interface.getMainActivity().getPreferences(MODE_PRIVATE);
 //        if(!sharedPreferences.getBoolean("GotAux",false)){
-        if(!Interface.getSettingsManager().getBoolean(preferenceName,"GotAux")){
+        if(!PhotonCamera.getSettingsManager().getBoolean(preferenceName,"GotAux")){
             getCameraId();
             save();
         } else {
 //            mCameraIDs = sharedPreferences.getStringSet("Cameras",null);
-            mCameraIDs = Interface.getSettingsManager().getStringSet(preferenceName,"Cameras",null);
+            mCameraIDs = PhotonCamera.getSettingsManager().getStringSet(preferenceName,"Cameras",null);
         }
     }
     public String[] getCameraIdList(){
@@ -100,9 +98,9 @@ public class CameraManager2 {
     void save() {
 //        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
 //        sharedPreferencesEditor.putBoolean("GotAux", true);
-        Interface.getSettingsManager().set(preferenceName,"GotAux",true);
+        PhotonCamera.getSettingsManager().set(preferenceName,"GotAux",true);
 //        sharedPreferencesEditor.putStringSet("Cameras",mCameraIDs);
-        Interface.getSettingsManager().set(preferenceName,"Cameras",mCameraIDs);
+        PhotonCamera.getSettingsManager().set(preferenceName,"Cameras",mCameraIDs);
 //        sharedPreferencesEditor.apply();
     }
 }

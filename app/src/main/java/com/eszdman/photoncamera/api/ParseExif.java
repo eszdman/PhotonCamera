@@ -9,6 +9,7 @@ import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -40,10 +41,10 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = Interface.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getGravity().getCameraRotation();
         String TAG = "ParseExif";
-        Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
-        Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
+        Log.d(TAG,"Gravity rotation:"+ PhotonCamera.getGravity().getRotation());
+        Log.d(TAG,"Sensor rotation:"+ PhotonCamera.getCameraFragment().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:
@@ -78,12 +79,12 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         String version = "";
         try {
-            PackageInfo pInfo = Interface.getMainActivity().getPackageManager().getPackageInfo(Interface.getMainActivity().getPackageName(), 0);
+            PackageInfo pInfo = PhotonCamera.getMainActivity().getPackageManager().getPackageInfo(PhotonCamera.getMainActivity().getPackageName(), 0);
             version = pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.getParameters().toString()+
+        inter.setAttribute(TAG_IMAGE_DESCRIPTION, PhotonCamera.getParameters().toString()+
                 "\n"+"Version:" + version);
         return inter;
     }

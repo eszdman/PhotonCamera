@@ -1,13 +1,12 @@
 package com.eszdman.photoncamera.Control;
 
-import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 public class Gravity {
     private static final String TAG = "Gravity";
@@ -16,15 +15,15 @@ public class Gravity {
     public float[] mGravity;
 
 
-    public Gravity(){
-        mSensorManager = (SensorManager) Interface.getMainActivity().getSystemService(Context.SENSOR_SERVICE);
+    public Gravity(SensorManager sensorManager){
+        mSensorManager = sensorManager;
         mGravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 
     }
-    public void run(){
+    public void register(){
         mSensorManager.registerListener(mGravityTracker,mGravitySensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
-    public void stop(){
+    public void unregister(){
         if(mGravity != null)
         mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGravitySensor);
@@ -60,6 +59,6 @@ public class Gravity {
         }
     }
     public int getCameraRotation(){
-       return (Interface.getCameraFragment().mSensorOrientation+Interface.getGravity().getRotation()+270) % 360;
+       return (PhotonCamera.getCameraFragment().mSensorOrientation+ PhotonCamera.getGravity().getRotation()+270) % 360;
     }
 }

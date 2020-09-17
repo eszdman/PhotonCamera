@@ -3,7 +3,7 @@ package com.eszdman.photoncamera.settings;
 import android.content.res.Resources;
 import android.util.Log;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 /**
  * Created by Vibhor 06/09/2020
@@ -55,8 +55,8 @@ public class PreferenceKeys {
     public static String current_scope = SCOPE_GLOBAL;
 
     public static void setDefaults() {
-        SettingsManager settingsManager = Interface.getSettingsManager();
-        Resources resources = Interface.getMainActivity().getResources();
+        SettingsManager settingsManager = PhotonCamera.getSettingsManager();
+        Resources resources = PhotonCamera.getMainActivity().getResources();
         settingsManager.setDefaults(KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setDefaults(KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setDefaults(KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
@@ -67,7 +67,7 @@ public class PreferenceKeys {
         settingsManager.addListener(new SettingsManager.OnSettingChangedListener() {
             @Override
             public void onSettingChanged(SettingsManager settingsManager, String key) {
-                Interface.getSettings().loadCache();
+                PhotonCamera.getSettings().loadCache();
                 Log.d(TAG,key+" : changed!");
             }
         });
@@ -77,150 +77,150 @@ public class PreferenceKeys {
      * Helper functions for some keys defined in PreferenceFragment.
      */
     public static boolean isAfDataOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SHOW_AF_DATA);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SHOW_AF_DATA);
     }
 
     public static int isSystemNrOn() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_ENABLE_SYSTEM_NR);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_ENABLE_SYSTEM_NR);
     }
 
     public static boolean isRemosaicOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_REMOSAIC);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_REMOSAIC);
     }
 
     public static boolean isDisableAligningOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_DISABLE_ALIGNINIG);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_DISABLE_ALIGNINIG);
     }
 
     public static boolean isShowWatermarkOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SHOW_WATERMARK);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SHOW_WATERMARK);
     }
 
     public static boolean isPerLensSettingsOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SAVE_PER_LENS_SETTINGS);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SAVE_PER_LENS_SETTINGS);
     }
 
     public static boolean isEnhancedProcessionOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_ENHANCED_PROCESSING);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_ENHANCED_PROCESSING);
     }
 
     public static boolean isHdrxNrOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_HDRX_NR);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_HDRX_NR);
     }
 
     public static boolean isSaveRawOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SAVE_RAW);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SAVE_RAW);
     }
 
     public static boolean isRoundEdgeOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SHOW_ROUND_EDGE);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SHOW_ROUND_EDGE);
     }
 
     public static boolean isShowGridOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_SHOW_GRID);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_SHOW_GRID);
     }
 
     public static boolean isCameraSoundsOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_CAMERA_SOUNDS);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_CAMERA_SOUNDS);
     }
 
     public static int getChromaNrValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_CHROMA_NR_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_CHROMA_NR_SEEKBAR);
     }
 
     public static int getLumaNrValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_LUMA_NR_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_LUMA_NR_SEEKBAR);
     }
 
     public static int getFrameCountValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_FRAME_COUNT);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_FRAME_COUNT);
     }
 
     public static float getSharpnessValue() {
-        return Interface.getSettingsManager().getFloat(current_scope, KEY_SHARPNESS_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, KEY_SHARPNESS_SEEKBAR);
     }
 
     public static float getCompressorValue() {
-        return Interface.getSettingsManager().getFloat(current_scope, KEY_COMPRESSOR_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, KEY_COMPRESSOR_SEEKBAR);
     }
 
     public static float getGainValue() {
-        return Interface.getSettingsManager().getFloat(current_scope, KEY_GAIN_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, KEY_GAIN_SEEKBAR);
     }
 
     public static float getSaturationValue() {
-        return Interface.getSettingsManager().getFloat(current_scope, KEY_SATURATION_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, KEY_SATURATION_SEEKBAR);
     }
 
     public static float getContrastValue() {
-        return Interface.getSettingsManager().getFloat(current_scope, KEY_CONTRAST_SEEKBAR);
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, KEY_CONTRAST_SEEKBAR);
     }
 
     public static int getAlignMethodValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_ALIGN_METHOD);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_ALIGN_METHOD);
     }
 
     public static int getCFAValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_CFA);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_CFA);
     }
 
     public static int getThemeValue() {
-        return Interface.getSettingsManager().getInteger(current_scope, KEY_THEME);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, KEY_THEME);
     }
 
     /**
      * Helper functions for other keys such as viewfinder buttons, etc.
      */
     public static boolean isHdrXOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_HDRX);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_HDRX);
     }
 
     public static void setHdrX(boolean value) {
-        Interface.getSettingsManager().set(current_scope, KEY_HDRX, value);
+        PhotonCamera.getSettingsManager().set(current_scope, KEY_HDRX, value);
     }
 
     public static boolean isEisPhotoOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_EIS_PHOTO);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_EIS_PHOTO);
     }
 
     public static void setEisPhoto(boolean value) {
-        Interface.getSettingsManager().set(current_scope, KEY_EIS_PHOTO, value);
+        PhotonCamera.getSettingsManager().set(current_scope, KEY_EIS_PHOTO, value);
     }
 
     public static boolean isFpsPreviewOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_FPS_PREVIEW);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_FPS_PREVIEW);
     }
 
     public static void setFpsPreview(boolean value) {
-        Interface.getSettingsManager().set(current_scope, KEY_FPS_PREVIEW, value);
+        PhotonCamera.getSettingsManager().set(current_scope, KEY_FPS_PREVIEW, value);
     }
 
     public static boolean isQuadBayerOn() {
-        return Interface.getSettingsManager().getBoolean(current_scope, KEY_QUAD_BAYER);
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, KEY_QUAD_BAYER);
     }
 
     public static void setQuadBayer(boolean value) {
-        Interface.getSettingsManager().set(current_scope, KEY_QUAD_BAYER, value);
+        PhotonCamera.getSettingsManager().set(current_scope, KEY_QUAD_BAYER, value);
     }
 
     public static String getCameraID() {
-        return Interface.getSettingsManager().getString(current_scope, CAMERA_ID);
+        return PhotonCamera.getSettingsManager().getString(current_scope, CAMERA_ID);
     }
 
     public static void setCameraID(String value) {
-        Interface.getSettingsManager().set(current_scope, CAMERA_ID, value);
+        PhotonCamera.getSettingsManager().set(current_scope, CAMERA_ID, value);
     }
 
     public static int getCameraMode() {
-        return Interface.getSettingsManager().getInteger(current_scope, CAMERA_MODE);
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, CAMERA_MODE);
     }
 
     public static void setCameraMode(int value) {
-        Interface.getSettingsManager().set(current_scope, CAMERA_MODE, value);
+        PhotonCamera.getSettingsManager().set(current_scope, CAMERA_MODE, value);
     }
 
     public static String getTonemap() {
-        return Interface.getSettingsManager().getString(current_scope, TONEMAP);
+        return PhotonCamera.getSettingsManager().getString(current_scope, TONEMAP);
     }
 
 }

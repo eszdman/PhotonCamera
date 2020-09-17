@@ -16,7 +16,7 @@ import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
@@ -41,7 +41,7 @@ public class PostPipeline extends GLBasePipeline {
         Paint paint;
         Matrix matrix;
         RectF r;
-        Bitmap watermark = BitmapFactory.decodeResource(Interface.getMainActivity().getResources(), R.drawable.photoncamera_watermark);
+        Bitmap watermark = BitmapFactory.decodeResource(PhotonCamera.getMainActivity().getResources(), R.drawable.photoncamera_watermark);
         int width, height;
         float scale;
         width = source.getWidth();
@@ -77,10 +77,10 @@ public class PostPipeline extends GLBasePipeline {
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
     public int getRotation() {
-        int rotation = Interface.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getGravity().getCameraRotation();
         String TAG = "ParseExif";
-        Log.d(TAG, "Gravity rotation:" + Interface.getGravity().getRotation());
-        Log.d(TAG, "Sensor rotation:" + Interface.getCameraFragment().mSensorOrientation);
+        Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
+        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
         int orientation = 0;
         switch (rotation) {
             case 90:
@@ -102,7 +102,7 @@ public class PostPipeline extends GLBasePipeline {
         stackFrame = inBuffer;
         glint.parameters = parameters;
         if(!IsoExpoSelector.HDR) {
-            if (Interface.getSettings().cfaPattern != -2) {
+            if (PhotonCamera.getSettings().cfaPattern != -2) {
                 add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
                 add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
@@ -113,7 +113,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
-        if(Interface.getSettings().hdrxNR) {
+        if(PhotonCamera.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));

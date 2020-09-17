@@ -1,7 +1,7 @@
 package com.eszdman.photoncamera.OpenGL;
 
 import com.eszdman.photoncamera.Render.Parameters;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
@@ -22,7 +22,7 @@ public class GLInterface {
 
     static public String loadShader(int fragment) {
         StringBuilder source = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(Interface.getMainActivity().getResources().openRawResource(fragment)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getMainActivity().getResources().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
             source.append(line).append("\n");
         }

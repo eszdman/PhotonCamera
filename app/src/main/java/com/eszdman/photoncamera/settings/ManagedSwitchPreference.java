@@ -19,7 +19,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import androidx.preference.SwitchPreferenceCompat;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 /**
  * This class allows Settings UIs to display and set boolean values controlled
@@ -45,8 +45,8 @@ public class ManagedSwitchPreference extends SwitchPreferenceCompat {
 
     @Override
     public boolean getPersistedBoolean(boolean defaultReturnValue) {
-        if (Interface.getSettingsManager() != null)
-            return Interface.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL, getKey(), defaultReturnValue);
+        if (PhotonCamera.getSettingsManager() != null)
+            return PhotonCamera.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL, getKey(), defaultReturnValue);
         else
             return defaultReturnValue;
 
@@ -54,8 +54,8 @@ public class ManagedSwitchPreference extends SwitchPreferenceCompat {
 
     @Override
     public boolean persistBoolean(boolean value) {
-        if (Interface.getSettingsManager() != null) {
-            Interface.getSettingsManager().set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
+        if (PhotonCamera.getSettingsManager() != null) {
+            PhotonCamera.getSettingsManager().set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
             return true;
         } else
             return false;

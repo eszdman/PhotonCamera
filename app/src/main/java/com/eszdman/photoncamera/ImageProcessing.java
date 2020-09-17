@@ -18,7 +18,7 @@ import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ImageSaver;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
@@ -141,7 +141,7 @@ public class ImageProcessing {
 
 
     void processingstep() {
-        Interface.getCameraUI().incrementProcessingCycle();
+        PhotonCamera.getCameraUI().incrementProcessingCycle();
     }
     void ApplyStabilization() {
         Mat[] grey;
@@ -210,17 +210,17 @@ public class ImageProcessing {
                     Imgproc.pyrDown(temp, temp);
                     Imgproc.pyrDown(temp, temp);
                     Mat diff = new Mat();
-                    Photo.fastNlMeansDenoising(temp, diff, (float) (Interface.getSettings().lumenCount) / 10, 7, 15);
+                    Photo.fastNlMeansDenoising(temp, diff, (float) (PhotonCamera.getSettings().lumenCount) / 10, 7, 15);
                     Core.subtract(temp, diff, diff);
                     Imgproc.pyrUp(diff, diff);
                     Imgproc.pyrUp(diff, diff, new Size(cur.width(), cur.height()));
                     Core.addWeighted(cur, 1, diff, -1, 0, cur);
                     if (!PreferenceKeys.isEnhancedProcessionOn()) {
                         Imgproc.blur(cur, cur, new Size(2, 2));
-                        Imgproc.bilateralFilter(cur, out, Interface.getSettings().lumenCount / 4, Interface.getSettings().lumenCount, Interface.getSettings().lumenCount);
+                        Imgproc.bilateralFilter(cur, out, PhotonCamera.getSettings().lumenCount / 4, PhotonCamera.getSettings().lumenCount, PhotonCamera.getSettings().lumenCount);
                     }
                     if (PreferenceKeys.isEnhancedProcessionOn())
-                        Photo.fastNlMeansDenoising(cur, out, (float) (Interface.getSettings().lumenCount) / 6.5f, 3, 15);
+                        Photo.fastNlMeansDenoising(cur, out, (float) (PhotonCamera.getSettings().lumenCount) / 6.5f, 3, 15);
                     out.copyTo(temp);
                     Imgproc.blur(temp, temp, new Size(4, 4));
                     Core.subtract(out, temp, sharp);
@@ -230,7 +230,7 @@ public class ImageProcessing {
                 if (i != 0) {
                     Size bef = cur.size();
                     Imgproc.pyrDown(cur, cur);
-                    Imgproc.bilateralFilter(cur, out, Interface.getSettings().chromaCount, Interface.getSettings().chromaCount * 3, Interface.getSettings().chromaCount * 3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
+                    Imgproc.bilateralFilter(cur, out, PhotonCamera.getSettings().chromaCount, PhotonCamera.getSettings().chromaCount * 3, PhotonCamera.getSettings().chromaCount * 3);//Xphoto.oilPainting(cols2.get(i),cols2.get(i),Settings.instance.chromacount,(int)(Settings.instance.chromacount*0.1));
                     Imgproc.pyrUp(out, out, bef);
                 }
                 cur.release();
@@ -244,7 +244,7 @@ public class ImageProcessing {
     }
     void ApplyHdrX() {
         boolean debugAlignment = false;
-        if(Interface.getSettings().alignAlgorithm == 1) debugAlignment = true;
+        if(PhotonCamera.getSettings().alignAlgorithm == 1) debugAlignment = true;
         CaptureResult res = CameraFragment.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
@@ -287,8 +287,8 @@ public class ImageProcessing {
         }
         Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG,"Api Blacklevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        Interface.getParameters().FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
-        if(Interface.getParameters().realWL == -1) Interface.getParameters().realWL = levell;
+        PhotonCamera.getParameters().FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
+        if(PhotonCamera.getParameters().realWL == -1) PhotonCamera.getParameters().realWL = levell;
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ByteBuffer> images = new ArrayList<>();
@@ -320,7 +320,7 @@ public class ImageProcessing {
         }
         rawPipeline.imageobj = curimgs;
         rawPipeline.images = images;
-        Log.d(TAG,"WhiteLevel:"+Interface.getParameters().whitelevel);
+        Log.d(TAG,"WhiteLevel:"+ PhotonCamera.getParameters().whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
         Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
         if(sensitivity == null) sensitivity = (int)100;
@@ -363,28 +363,28 @@ public class ImageProcessing {
         }
         if(debugAlignment) rawPipeline.close();
         Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
-        if(Interface.getSettings().rawSaver) {
+        if(PhotonCamera.getSettings().rawSaver) {
             saveRaw(curimgs.get(0));
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        Interface.getParameters().path = path;
+        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;
-        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.getParameters());
+        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
         pipeline.close();
         curimgs.get(0).close();
     }
     void ProcessRaw(ByteBuffer input){
-        if(Interface.getSettings().rawSaver) {
+        if(PhotonCamera.getSettings().rawSaver) {
             saveRaw(curimgs.get(0));
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        Interface.getParameters().path = path;
+        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(),Interface.getParameters());
+        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
         pipeline.close();
         curimgs.get(0).close();
     }
@@ -392,10 +392,10 @@ public class ImageProcessing {
         DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
         try {
             FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
-            dngCreator.setDescription(Interface.getParameters().toString());
-            int rotation = Interface.getGravity().getCameraRotation();
-            Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
-            Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
+            dngCreator.setDescription(PhotonCamera.getParameters().toString());
+            int rotation = PhotonCamera.getGravity().getCameraRotation();
+            Log.d(TAG,"Gravity rotation:"+ PhotonCamera.getGravity().getRotation());
+            Log.d(TAG,"Sensor rotation:"+ PhotonCamera.getCameraFragment().mSensorOrientation);
             int orientation = ORIENTATION_NORMAL;
             switch (rotation) {
                 case 90:
@@ -421,11 +421,11 @@ public class ImageProcessing {
         int width = input.getPlanes()[0].getRowStride()
                 / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
-        Interface.getParameters().rawSize = new android.graphics.Point(width,height);
+        PhotonCamera.getParameters().rawSize = new android.graphics.Point(width,height);
         if(unlimitedBuffer == null){
             unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
         }
-        AverageRaw averageRaw = new AverageRaw(Interface.getParameters().rawSize,R.raw.average,"UnlimitedAvr");
+        AverageRaw averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize,R.raw.average,"UnlimitedAvr");
         averageRaw.additionalParams = new AverageParams(unlimitedBuffer,input.getPlanes()[0].getBuffer());
         averageRaw.Run();
         unlimitedBuffer = averageRaw.Output;
@@ -434,14 +434,14 @@ public class ImageProcessing {
     }
     public static void UnlimitedEnd(){
         Log.d(TAG, "Wrapper.processFrame()");
-        Interface.getParameters().FillParameters(CameraFragment.mCaptureResult,CameraFragment.mCameraCharacteristics,Interface.getParameters().rawSize);
-        Interface.getParameters().path = ImageSaver.outimg.getAbsolutePath();
+        PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult,CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+        PhotonCamera.getParameters().path = ImageSaver.outimg.getAbsolutePath();
         PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(unlimitedBuffer,Interface.getParameters());
+        pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
         pipeline.close();
         try {
             ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
-            if (!Interface.getSettings().rawSaver) {
+            if (!PhotonCamera.getSettings().rawSaver) {
                 try {
                     inter.saveAttributes();
                 } catch (IOException e) {
@@ -458,6 +458,6 @@ public class ImageProcessing {
         Camera2ApiAutoFix.ApplyRes();
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
-        Interface.getCameraUI().onProcessingEnd();
+        PhotonCamera.getCameraUI().onProcessingEnd();
     }
 }

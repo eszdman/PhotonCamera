@@ -8,7 +8,7 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
+        glProg.setvar("WhiteLevel",(float) PhotonCamera.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -38,7 +38,7 @@ public class AlignAndMerge extends Node {
     private GLTexture CorrectedRaw32(ByteBuffer input){
         glProg.useProgram(R.raw.precorrection);
         glProg.setTexture("InputBuffer",new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),input));
-        glProg.setvar("WhiteLevel",(float)Interface.getParameters().realWL);
+        glProg.setvar("WhiteLevel",(float) PhotonCamera.getParameters().realWL);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.FLOAT_32),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -47,7 +47,7 @@ public class AlignAndMerge extends Node {
     private GLTexture BoxDown22(GLTexture input){
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("CfaPattern",Interface.getParameters().cfaPattern);
+        glProg.setvar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
         GLTexture output = new GLTexture(new Point(rawsize.x/2,rawsize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),null);
         glProg.drawBlocks(output);
         glProg.close();
@@ -143,7 +143,7 @@ public class AlignAndMerge extends Node {
         startT();
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",input);
-        glProg.setvar("whitelevel", (float)Interface.getParameters().whitelevel);
+        glProg.setvar("whitelevel", (float) PhotonCamera.getParameters().whitelevel);
         GLTexture output = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
         //glProg.drawBlocks(output);
         glProg.close();

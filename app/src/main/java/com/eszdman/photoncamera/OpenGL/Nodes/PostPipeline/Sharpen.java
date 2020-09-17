@@ -8,7 +8,6 @@ import com.eszdman.photoncamera.OpenGL.GLProg;
 import com.eszdman.photoncamera.OpenGL.GLTexture;
 import com.eszdman.photoncamera.OpenGL.Nodes.Node;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.api.Interface;
 import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 

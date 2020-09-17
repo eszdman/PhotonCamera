@@ -5,7 +5,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.api.Settings;
 
 public class IsoExpoSelector {
@@ -17,8 +17,8 @@ public class IsoExpoSelector {
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         Log.d(TAG, "InputParams: " +
-                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(Interface.getCameraFragment().mPreviewExposuretime)) +
-                " iso:" + Interface.getCameraFragment().mPreviewIso);
+                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().mPreviewExposuretime)) +
+                " iso:" + PhotonCamera.getCameraFragment().mPreviewIso);
         ExpoPair pair = GenerateExpoPair(step);
         Log.d(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR);
@@ -33,7 +33,7 @@ public class IsoExpoSelector {
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime, getEXPLOW(), getEXPHIGH(),
                 CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH());
         pair.normalizeiso100();
-        if (Interface.getSettings().selectedMode == Settings.CameraMode.NIGHT)
+        if (PhotonCamera.getSettings().selectedMode == Settings.CameraMode.NIGHT)
             mpy = 2.0;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
@@ -42,10 +42,10 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if (step != baseFrame || !Interface.getSettings().eisPhoto) pair.ReduceIso();
+            if (step != baseFrame || !PhotonCamera.getSettings().eisPhoto) pair.ReduceIso();
         }
         if (pair.exposure < ExposureIndex.sec / 8 && pair.iso > 1500) {
-            if (step != baseFrame || !Interface.getSettings().eisPhoto) pair.ReduceIso(1.25);
+            if (step != baseFrame || !PhotonCamera.getSettings().eisPhoto) pair.ReduceIso(1.25);
         }
         if (pair.iso >= 12700) {
             pair.ReduceIso();
@@ -60,12 +60,12 @@ public class IsoExpoSelector {
             pair.MinIso();
         }
 
-        double currentManExp = Interface.getManualMode().getCurrentExposureValue();
-        double currentManISO = Interface.getManualMode().getCurrentISOValue();
+        double currentManExp = PhotonCamera.getManualMode().getCurrentExposureValue();
+        double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
 //        pair.exposure = currentManExp != -1 ? (long) currentManExp : pair.exposure; 
 //        pair.iso = currentManISO != -1 ? (int) currentManISO : pair.iso;
-        pair.exposure = currentManExp != -1 ? (long) currentManExp : Interface.getCameraFragment().mPreviewExposuretime; //override preview expo
-        pair.iso = currentManISO != -1 ? (int) currentManISO : Interface.getCameraFragment().mPreviewIso; //override preview iso
+        pair.exposure = currentManExp != -1 ? (long) currentManExp : PhotonCamera.getCameraFragment().mPreviewExposuretime; //override preview expo
+        pair.iso = currentManISO != -1 ? (int) currentManISO : PhotonCamera.getCameraFragment().mPreviewIso; //override preview iso
 
 
 //        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
@@ -78,20 +78,20 @@ public class IsoExpoSelector {
         if (step == 2 && HDR) {
             pair.ExpoCompensateLower(8.0);
         }
-        if (pair.exposure < ExposureIndex.sec / 90 && Interface.getSettings().eisPhoto) {
+        if (pair.exposure < ExposureIndex.sec / 90 && PhotonCamera.getSettings().eisPhoto) {
             //HDR = true;
         }
         if (step == baseFrame) {
-            if (pair.iso <= 120 && pair.exposure > ExposureIndex.sec / 70 && Interface.getSettings().eisPhoto) {
+            if (pair.iso <= 120 && pair.exposure > ExposureIndex.sec / 70 && PhotonCamera.getSettings().eisPhoto) {
                 pair.ReduceExpo();
             }
-            if (pair.iso <= 245 && pair.exposure > ExposureIndex.sec / 50 && Interface.getSettings().eisPhoto) {
+            if (pair.iso <= 245 && pair.exposure > ExposureIndex.sec / 50 && PhotonCamera.getSettings().eisPhoto) {
                 pair.ReduceExpo();
             }
-            if (pair.exposure < ExposureIndex.sec * 3.00 && pair.exposure > ExposureIndex.sec / 3 && pair.iso < 3200 && Interface.getSettings().eisPhoto) {
+            if (pair.exposure < ExposureIndex.sec * 3.00 && pair.exposure > ExposureIndex.sec / 3 && pair.iso < 3200 && PhotonCamera.getSettings().eisPhoto) {
                 pair.FixedExpo(1.0 / 8);
                 if (pair.normalizeCheck())
-                    Interface.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
+                    PhotonCamera.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
             }
         }
         pair.denormalizeSystem();

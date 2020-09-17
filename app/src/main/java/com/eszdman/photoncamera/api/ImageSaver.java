@@ -13,6 +13,8 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.ImageProcessing;
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
+import com.eszdman.photoncamera.app.PhotonCamera;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,11 +35,11 @@ public class ImageSaver implements Runnable {
      */
     public static ArrayList<Image> imageBuffer = new ArrayList<>();
     public ImageProcessing processing(){
-        return Interface.getImageProcessing();
+        return PhotonCamera.getImageProcessing();
     }
     public void done(ImageProcessing proc){
         //proc.Run();
-        Interface.getImageProcessing().curimgs = imageBuffer;
+        PhotonCamera.getImageProcessing().curimgs = imageBuffer;
         proc.Run();
         imageBuffer = new ArrayList<>();
         Log.d(TAG,"ImageSaver Done!");
@@ -52,7 +54,7 @@ public class ImageSaver implements Runnable {
     static String curDir(){
         File dir;
         dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//Camera//");
-        if(Interface.getSettings().rawSaver) dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Raw//");
+        if(PhotonCamera.getSettings().rawSaver) dir = new File(Environment.getExternalStorageDirectory()+"//DCIM//PhotonCamera//Raw//");
         if(!dir.exists()) //noinspection ResultOfMethodCallIgnored
             dir.mkdirs();
         return dir.getAbsolutePath();
@@ -69,7 +71,7 @@ public class ImageSaver implements Runnable {
             e.printStackTrace();
         }
         imageBuffer.clear();
-        Interface.getCameraUI().burstUnlock();
+        PhotonCamera.getCameraUI().burstUnlock();
     }
     public Handler ProcessCall;
     @Override
@@ -92,7 +94,7 @@ public class ImageSaver implements Runnable {
                     bcnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     outimg =  new File(curDir(),curName()+".jpg");
-                    if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.getSettings().frameCount != 1) {
+                    if(imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
                         //unlock();
                         output = new FileOutputStream(outimg);
                         buffer.duplicate().get(bytes);
@@ -108,14 +110,14 @@ public class ImageSaver implements Runnable {
                         Photo.instance.SaveImg(outimg);
                         end(mReader);
                     }
-                    if(Interface.getSettings().frameCount == 1){
+                    if(PhotonCamera.getSettings().frameCount == 1){
                         imageBuffer = new ArrayList<>();
                         output = new FileOutputStream(outimg);
                         buffer.get(bytes);
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        Interface.getCameraUI().burstUnlock();
+                        PhotonCamera.getCameraUI().burstUnlock();
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -136,7 +138,7 @@ public class ImageSaver implements Runnable {
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
                     imageBuffer.add(mImage);
-                    if (imageBuffer.size() == FrameNumberSelector.frameCount && Interface.getSettings().frameCount != 1) {
+                    if (imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
                         //unlock();
                         ImageProcessing processing = processing();
                         processing.isyuv = true;
@@ -148,10 +150,10 @@ public class ImageSaver implements Runnable {
                         Photo.instance.SaveImg(outimg);
                         end(mReader);
                     }
-                    if (Interface.getSettings().frameCount == 1) {
+                    if (PhotonCamera.getSettings().frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        Interface.getCameraUI().burstUnlock();
+                        PhotonCamera.getCameraUI().burstUnlock();
                     }
                     bcnt++;
                 } catch (IOException e) {
@@ -162,17 +164,17 @@ public class ImageSaver implements Runnable {
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR: {
                 String ext = ".jpg";
-                if(Interface.getSettings().rawSaver) ext = ".dng";
+                if(PhotonCamera.getSettings().rawSaver) ext = ".dng";
                 outimg =  new File(curDir(),curName()+ext);
                 String path = curDir()+curName()+ext;
                 try {
                     Log.d(TAG,"start buffersize:"+imageBuffer.size());
-                    if(Interface.getSettings().selectedMode == Settings.CameraMode.UNLIMITED){
+                    if(PhotonCamera.getSettings().selectedMode == Settings.CameraMode.UNLIMITED){
                         ImageProcessing.UnlimitedCycle(mImage);
                         return;
                     }
                     imageBuffer.add(mImage);
-                    if(imageBuffer.size() == FrameNumberSelector.frameCount && Interface.getSettings().frameCount != 1) {
+                    if(imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
                         //unlock();
                         ImageProcessing processing = processing();
                         processing.isyuv = false;
@@ -180,11 +182,11 @@ public class ImageSaver implements Runnable {
                         processing.path = path;
                         done(processing);
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult,outimg.getAbsolutePath());
-                        if(!Interface.getSettings().rawSaver) inter.saveAttributes();
+                        if(!PhotonCamera.getSettings().rawSaver) inter.saveAttributes();
                         Photo.instance.SaveImg(outimg);
                         end(mReader);
                     }
-                    if(Interface.getSettings().frameCount == 1) {
+                    if(PhotonCamera.getSettings().frameCount == 1) {
                         Log.d(TAG,"activearr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"precorr:"+ CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG,"image:"+mImage.getCropRect());
@@ -194,7 +196,7 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        Interface.getCameraUI().burstUnlock();
+                        PhotonCamera.getCameraUI().burstUnlock();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

@@ -12,7 +12,7 @@ import android.util.Log;
 import android.util.Rational;
 
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.File;
@@ -40,7 +40,7 @@ public class Parameters {
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         for (int i = 0; i < 4; i++) blacklevel[i] = 64;
-        tonemapStrength = (float) Interface.getSettings().compressor;
+        tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         int[] blarr = new int[4];
         BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (level != null) {
@@ -49,8 +49,8 @@ public class Parameters {
         }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
-        if(Interface.getSettings().cfaPattern != -1){
-            cfaPattern = (byte)Interface.getSettings().cfaPattern;
+        if(PhotonCamera.getSettings().cfaPattern != -1){
+            cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         Object wlevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (wlevel != null) whitelevel = ((int)wlevel);
@@ -137,7 +137,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / neutral[2].floatValue();
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        ColorSpaceTransform CCT = Interface.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         if(CCT != null) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);
@@ -178,9 +178,9 @@ public class Parameters {
         return "Parameters:" +
                 ", hasGainMap=" + hasGainMap +
                 ", framecount=" + FrameNumberSelector.frameCount +
-                ", CameraID=" + Interface.getSettings().mCameraID +
+                ", CameraID=" + PhotonCamera.getSettings().mCameraID +
                 ", Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                ", Gain=" + FltFormat(Interface.getSettings().gain) +
+                ", Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
                 ", Sharpness=" + FltFormat(PreferenceKeys.getSharpnessValue());
     }
 
