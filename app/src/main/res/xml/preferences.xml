@@ -238,7 +238,7 @@
                     android:key="pref_contributors"
                     android:icon="@drawable/ic_github"
                     android:title="Contributors"
-                    android:summary="assassinfil, eszdman, killerink, mirai, Urnyx05, vibhorSrv"/>
+                    android:summary="eszdman, assasinfil, killerink, mirai, Urnyx05, vibhorSrv"/>
             <Preference
                     android:layout="@layout/preference_about"
                     android:title="@string/telegram"
