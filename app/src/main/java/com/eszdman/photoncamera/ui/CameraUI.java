@@ -4,17 +4,17 @@ import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.View;
 import android.widget.*;
-
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.CameraManager2;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.api.Settings;
-
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.wefika.horizontalpicker.HorizontalPicker;
 import de.hdodenhof.circleimageview.CircleImageView;
+
+import java.util.Set;
 
 public class CameraUI {
     private static final String TAG = "CameraUI";
@@ -34,26 +34,12 @@ public class CameraUI {
     @SuppressLint("ResourceType")
     public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
-        String[] cameras = CameraManager2.cameraManager2.getCameraIdList();
-        if (auxGroup.getChildCount() == 0 && cameras.length > 2) {
-            for (int i = 1; i < cameras.length; i++) {
-                RadioButton rb = new RadioButton(PhotonCamera.getMainActivity());
-                rb.setText("");
-                auxGroup.addView(rb);
-            }
-            PhotonCamera.getSettings().mCameraID = "0";
-            auxGroup.check(1);
-            auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
-                if (i >= 2 && CameraManager2.cameraManager2.supportFrontCamera) i++;
-                PhotonCamera.getSettings().mCameraID = PhotonCamera.getCameraFragment().mCameraIds[i - 1];
-                PhotonCamera.getCameraFragment().restartCamera();
-            });
-        }
+        setAuxButtons();
         PhotonCamera.getManualMode().init();
     }
 
     public void onCameraViewCreated() {
-        PhotonCamera.getSettings().mCameraID = "0";
+        PhotonCamera.getSettings().mCameraID = PreferenceKeys.getCameraID();
         lightcycle = PhotonCamera.getMainActivity().findViewById(R.id.lightCycle);
         lightcycle.setAlpha(0);
         lightcycle.setMax(PhotonCamera.getSettings().frameCount);
@@ -94,7 +80,7 @@ public class CameraUI {
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
             PhotonCamera.getCameraFragment().mTextureView.animate().rotationBy(360).setDuration(450).start();
-            PreferenceKeys.setCameraID(PhotonCamera.getCameraFragment().cycler(PhotonCamera.getSettings().mCameraID));
+            PreferenceKeys.setCameraID(PhotonCamera.getCameraFragment().cycler());
             PhotonCamera.getCameraFragment().restartCamera();
         });
         settings = PhotonCamera.getMainActivity().findViewById(R.id.settings);
@@ -175,6 +161,34 @@ public class CameraUI {
         hdrX.setChecked(PreferenceKeys.isHdrXOn());
         burstUnlock();
         clearProcessingCycle();
+    }
+
+    private void setAuxButtons() {
+        if (CameraManager2.cameraManager2 != null) {
+            Set<String> cameraSet = CameraManager2.cameraManager2.mCameraIDs;
+            cameraSet.remove("1");  //Assuming that front camera id is 1
+            String[] backCameraArray = cameraSet.toArray(new String[0]);
+            if (auxGroup.getChildCount() == 0 && cameraSet.size() > 1) {
+                for (String id : backCameraArray) {
+                    RadioButton rb = new RadioButton(PhotonCamera.getMainActivity());
+                    rb.setText("");
+                    rb.setId(Integer.parseInt(id)); //here actual camera id assigned as RadioButton's resource ID
+                    auxGroup.addView(rb);
+                }
+                if (PreferenceKeys.getCameraID().equals("1")) {
+                    auxGroup.setVisibility(View.INVISIBLE);
+                    auxGroup.check(Integer.parseInt(CameraFragment.sActiveBackCamId));
+                } else {
+                    auxGroup.setVisibility(View.VISIBLE);
+                    CameraFragment.sActiveBackCamId = PreferenceKeys.getCameraID();
+                    auxGroup.check(Integer.parseInt(PreferenceKeys.getCameraID()));
+                }
+                auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
+                    PreferenceKeys.setCameraID(String.valueOf(i));  //i = RadioButton's resource ID
+                    PhotonCamera.getCameraFragment().restartCamera();
+                });
+            }
+        }
     }
     public void onProcessingEnd(){
         clearProcessingCycle();

@@ -38,6 +38,7 @@ import android.util.*;
 import android.view.*;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -682,9 +683,30 @@ public class CameraFragment extends Fragment
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+    }
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (PhotonCamera.DEBUG)
+            Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
+        if (savedInstanceState != null) {
+            sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
+        }
     }
 
     public void loadGalleryButtonImage() {
@@ -1454,30 +1476,24 @@ public class CameraFragment extends Fragment
         //        mBackgroundHandler);
     }
 
+    /**
+     * sActiveBackCamId is either
+     * = 0 or camera_id stored in SharedPreferences in case of fresh application Start; or
+     * = camera id set from {@link CameraFragment#onViewStateRestored(Bundle)} if Activity re-created due to configuration change.
+     * it will NEVER be = 1 *assuming* that 1 is the id of Front Camera on most devices
+     */
+    public static String sActiveBackCamId = "0";
+    private static final String ACTIVE_BACKCAM_ID = "ACTIVE_BACKCAM_ID"; //key for savedInstanceState
 
-    public String cycler(String id) {
-        String[] ids;
-        if(CameraManager2.cameraManager2.supportFrontCamera) {
-            if(PhotonCamera.getCameraUI().auxGroup.getChildCount() != 0) {
-                int i = PhotonCamera.getCameraUI().auxGroup.getCheckedRadioButtonId();
-                if (i >= 2) i++;
-                ids = new String[]{mCameraIds[i - 1], "1"};
-            } else ids = new String[]{"0","1"};
-        }
-        else {
-           return "0";
-        }
-        int n = 0;
-        for (int i = 0; i < ids.length; i++) {
-            if (id.equals(ids[i])) n = i;
-        }
-        n++;
-        n %= ids.length;
-        if(n == 1) PhotonCamera.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
-        else {
+    public String cycler() {
+        if (!PreferenceKeys.getCameraID().equals("1")) {
+            sActiveBackCamId = PreferenceKeys.getCameraID();
+            PhotonCamera.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
+            return "1";
+        } else {
             PhotonCamera.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
+            return sActiveBackCamId;
         }
-        return ids[n];
     }
 
     public void setAutoFlash() {
