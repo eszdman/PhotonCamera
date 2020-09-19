@@ -50,17 +50,6 @@ public class CameraManager2 {
     private boolean getBit(int pos, int val){
         return ((val >> (pos - 1)) & 1) == 1;
     }
-    private boolean checkCaps(String caps, ArrayList<String> capsarr){
-        boolean same = false;
-        if(capsarr.size() != 0)
-        for(String capsin : capsarr){
-            if (capsin.equals(caps)) {
-                same = true;
-                break;
-            }
-        }
-        return same;
-    }
     private void getCameraId() {
         ArrayList<String> CameraIDs = new ArrayList<>();
         ArrayList<String> Caps = new ArrayList<>();
@@ -84,7 +73,7 @@ public class CameraManager2 {
                         caps+=(String.valueOf(aper[0]));
                     }
                     Log.d(TAG,"Caps:"+caps);
-                    if((id == 0 || id == 1 || !getBit(6,id)) && !checkCaps(caps,Caps)){
+                    if((id == 0 || id == 1 || !getBit(6,id)) && !Caps.contains(caps)){
                         Caps.add(caps);
                         mCameraIDs.add(nextId);
                     }
