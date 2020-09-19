@@ -96,7 +96,9 @@ public final class ManualModeImpl implements ManualMode {
     @Override
     public void retractAllKnobs() {
         defaultKnobView.setVisibility(View.GONE);
+        knob_container.setVisibility(View.GONE);
         defaultKnobView.resetKnob();
+        selectedModel = null;
         mfModel.resetModel();
         expotimeModel.resetModel();
         isoModel.resetModel();
