@@ -5,6 +5,7 @@ android {
     def versionBuild
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
+    ndkVersion '21.3.6528147'
     lintOptions {
         abortOnError false
     }
@@ -84,14 +85,14 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.1'
     implementation 'androidx.preference:preference:1.1.1'
     implementation 'org.jetbrains:annotations:15.0'
     testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'com.mytechia:opencv:4.1.0-my'
-    implementation 'androidx.exifinterface:exifinterface:1.3.0-beta01'
+    implementation 'androidx.exifinterface:exifinterface:1.3.0-rc01'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'org.jocl:jocl:2.0.2'
