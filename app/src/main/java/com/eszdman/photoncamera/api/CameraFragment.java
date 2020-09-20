@@ -55,7 +55,7 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.MainActivity;
-import com.eszdman.photoncamera.ui.SettingsActivity2;
+import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.eszdman.photoncamera.util.CustomLogger;
 import com.eszdman.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
@@ -650,7 +650,7 @@ public class CameraFragment extends Fragment
             case R.id.settings: {
 //                closeCamera();
 //                Interface.getSettings().openSettingsActivity();
-                Intent intent = new Intent(MainActivity.act, SettingsActivity2.class);
+                Intent intent = new Intent(MainActivity.act, SettingsActivity.class);
                 startActivity(intent);
                 break;
             }

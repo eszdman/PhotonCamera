@@ -171,7 +171,11 @@ public class CameraUI {
             if (auxGroup.getChildCount() == 0 && cameraSet.size() > 1) {
                 for (String id : backCameraArray) {
                     RadioButton rb = new RadioButton(PhotonCamera.getMainActivity());
-                    rb.setText("");
+                    rb.setText(id);
+                    rb.setButtonDrawable(R.drawable.custom_aux_switch_thumb);
+                    int padding = (int) rb.getContext().getResources().getDimension(R.dimen.aux_button_padding);
+                    rb.setPaddingRelative(padding, padding, padding, padding);
+                    rb.setTextAppearance(R.style.ManualModeKnobText);
                     rb.setId(Integer.parseInt(id)); //here actual camera id assigned as RadioButton's resource ID
                     auxGroup.addView(rb);
                 }

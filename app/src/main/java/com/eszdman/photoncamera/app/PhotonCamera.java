@@ -16,7 +16,6 @@ import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.CameraUI;
 import com.eszdman.photoncamera.ui.MainActivity;
-import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.manual.ManualMode;
 
 public class PhotonCamera extends Application {
@@ -34,7 +33,6 @@ public class PhotonCamera extends Application {
     private CameraUI cameraUI;
     private CameraFragment cameraFragment;
     private ManualMode manualMode;
-    private SettingsActivity settingsActivity;
     private SettingsManager settingsManager;
 
     public static MainActivity getMainActivity() {
@@ -87,19 +85,6 @@ public class PhotonCamera extends Application {
 
     public static void setCameraFragment(CameraFragment cameraFragment) {
         sPhotonCamera.cameraFragment = cameraFragment;
-    }
-
-    /**
-     * Not required anymore, replaced by {@link com.eszdman.photoncamera.ui.SettingsActivity2}
-     */
-    @Deprecated
-    public static SettingsActivity getSettingsActivity() {
-        return sPhotonCamera.settingsActivity;
-    }
-
-    @Deprecated
-    public static void setSettingsActivity(SettingsActivity settingsActivity) {
-        sPhotonCamera.settingsActivity = settingsActivity;
     }
 
     public static ManualMode getManualMode() {

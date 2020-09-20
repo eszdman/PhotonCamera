@@ -33,4 +33,5 @@
     <dimen name="preference_seekbar_padding">10dp</dimen>
     <dimen name="preference_seekbar_value_padding">5dp</dimen>
     <dimen name="preference_seekbar_value_text_width">50dp</dimen>
+    <dimen name="aux_button_padding">6dp</dimen>
 </resources>

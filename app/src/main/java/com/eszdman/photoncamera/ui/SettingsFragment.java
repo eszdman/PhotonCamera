@@ -76,7 +76,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME)) {
             if (getContext() != null) {
-                Intent intent = new Intent(getContext(), SettingsActivity2.class);
+                Intent intent = new Intent(getContext(), SettingsActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
             }

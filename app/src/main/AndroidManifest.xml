@@ -25,9 +25,8 @@
             android:supportsRtl="true"
             android:theme="@style/Theme.Photon.BaseApp"
             tools:targetApi="q">
-        <activity android:name=".ui.SettingsActivity"/>
         <activity
-                android:name=".ui.SettingsActivity2"
+                android:name=".ui.SettingsActivity"
                 android:theme="@style/Theme.Photon.SettingsActivity"/>
         <activity
                 android:name=".ui.SplashActivity"

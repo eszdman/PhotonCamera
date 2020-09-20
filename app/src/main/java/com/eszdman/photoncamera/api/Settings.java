@@ -271,7 +271,7 @@ public class Settings {
         }
         sharedPreferencesEditor.apply();
         loadCache();
-        PhotonCamera.getSettingsActivity().set();
+//        PhotonCamera.getSettingsActivity().set();
         final Activity activity = PhotonCamera.getMainActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
