@@ -190,7 +190,7 @@ public class Settings {
 
     // =================================================================================================================
     //TODO fix Import Export
-
+/*
     public void ExportSettings() {
 //        save();
         Map<String, ?> allKeys = sharedPreferences.getAll();
@@ -277,7 +277,7 @@ public class Settings {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
         }
     }
-
+*/
     public enum CameraMode {
         UNLIMITED(2),
         PHOTO(0),

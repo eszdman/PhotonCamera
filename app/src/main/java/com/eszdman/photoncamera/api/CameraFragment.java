@@ -54,6 +54,7 @@ import com.eszdman.photoncamera.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.MainActivity;
 import com.eszdman.photoncamera.ui.SettingsActivity;
 import com.eszdman.photoncamera.util.CustomLogger;
@@ -146,6 +147,7 @@ public class CameraFragment extends Fragment
     Range FpsRangeDef;
     Range FpsRangeHigh;
     private float mFocus;
+    private CameraManager mCameraManager;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -179,7 +181,11 @@ public class CameraFragment extends Fragment
      * ID of the current {@link CameraDevice}.
      */
 
-    public String[] mCameraIds;
+    public String[] mAllCameraIds;
+
+    public Set<String> mFrontCameraIDs;
+
+    public Set<String> mBackCameraIDs;
 
     /**
      * An {@link AutoFitTextureView} for camera preview.
@@ -697,6 +703,7 @@ public class CameraFragment extends Fragment
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
+        outState.putString(ACTIVE_FRONTCAM_ID, sActiveFrontCamId);
     }
 
     @Override
@@ -706,6 +713,7 @@ public class CameraFragment extends Fragment
             Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
         if (savedInstanceState != null) {
             sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
+            sActiveFrontCamId = savedInstanceState.getString(ACTIVE_FRONTCAM_ID);
         }
     }
 
@@ -826,12 +834,8 @@ public class CameraFragment extends Fragment
      * @param height The height of available size for camera preview
      */
     private void setUpCameraOutputs(int width, int height) {
-        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
-        CameraManager2 manager2 = new CameraManager2(manager);
-        manager2.getCameraIdList();
-        // manager2.CameraArr(manager);
         try {
-                mCameraCharacteristics = manager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
+                mCameraCharacteristics = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
                 mPreviewwidth = width;
                 mPreviewheight = height;
                 UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
@@ -852,11 +856,9 @@ public class CameraFragment extends Fragment
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
-        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
-        CameraCharacteristics characteristics
-                = null;
+        CameraCharacteristics characteristics = null;
         try {
-            characteristics = manager.getCameraCharacteristics(cameraId);
+            characteristics = this.mCameraManager.getCameraCharacteristics(cameraId);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -981,6 +983,7 @@ public class CameraFragment extends Fragment
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available == null ? false : available;
         PhotonCamera.getCameraUI().onCameraInitialization();
+        PhotonCamera.getCameraUI().initAuxButtons(mBackCameraIDs, mFrontCameraIDs);
     }
 
     @SuppressLint("MissingPermission")
@@ -1014,15 +1017,17 @@ public class CameraFragment extends Fragment
             mCameraOpenCloseLock.release();
         }
 
-        Activity activity = getActivity();
-        CameraManager manager = null;
-        if (activity != null) {
-            manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        if (this.mCameraManager == null) {
+            Activity activity = getActivity();
+            if (activity == null)
+                return;
+            else
+                this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+
         }
-        if(manager == null) return;
         StreamConfigurationMap map = null;
         try {
-            map = manager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID).get(
+            map = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -1046,7 +1051,7 @@ public class CameraFragment extends Fragment
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Time out waiting to lock camera opening.");
             }
-            manager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
+            this.mCameraManager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -1066,7 +1071,7 @@ public class CameraFragment extends Fragment
     }*/
 
     /**
-     * Opens the camera specified by {@link CameraFragment#mCameraIds}.
+     * Opens the camera specified by {@link Settings#mCameraID}.
      */
     private void openCamera(int width, int height) {
         context = this;
@@ -1075,21 +1080,30 @@ public class CameraFragment extends Fragment
             //requestCameraPermission();
             return;
         }
-        setUpCameraOutputs(width, height);
-        configureTransform(width, height);
-        CameraManager manager = (CameraManager) PhotonCamera.getMainActivity().getSystemService(Context.CAMERA_SERVICE);
-        CameraManager2 manager2 = new CameraManager2(manager);
-        mCameraIds = manager2.getCameraIdList();
-        try {
-            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
+        Activity activity = getActivity();
+        if (activity != null) {
+            this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+            initCameraIDLists(this.mCameraManager);
+            setUpCameraOutputs(width, height);
+            configureTransform(width, height);
+            try {
+                if (!mCameraOpenCloseLock.tryAcquire(3000, TimeUnit.MILLISECONDS)) {
 //                throw new RuntimeException("Time out waiting to lock camera opening.");
+                }
+                this.mCameraManager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
             }
-            manager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
         }
+    }
+
+    private void initCameraIDLists(CameraManager cameraManager) {
+        CameraManager2 manager2 = new CameraManager2(cameraManager, new SettingsManager(getContext()));
+        this.mAllCameraIds = manager2.getCameraIdList();
+        this.mBackCameraIDs = manager2.getBackIDsSet();
+        this.mFrontCameraIDs = manager2.getFrontIDsSet();
     }
 
     /**
@@ -1483,15 +1497,18 @@ public class CameraFragment extends Fragment
      * it will NEVER be = 1 *assuming* that 1 is the id of Front Camera on most devices
      */
     public static String sActiveBackCamId = "0";
+    public static String sActiveFrontCamId = "1";
     private static final String ACTIVE_BACKCAM_ID = "ACTIVE_BACKCAM_ID"; //key for savedInstanceState
+    private static final String ACTIVE_FRONTCAM_ID = "ACTIVE_FRONTCAM_ID"; //key for savedInstanceState
 
-    public String cycler() {
-        if (!PreferenceKeys.getCameraID().equals("1")) {
-            sActiveBackCamId = PreferenceKeys.getCameraID();
-            PhotonCamera.getCameraUI().auxGroup.setVisibility(View.INVISIBLE);
-            return "1";
+    public String cycler(String savedCameraID) {
+        if (mBackCameraIDs.contains(savedCameraID)) {
+            sActiveBackCamId = savedCameraID;
+            PhotonCamera.getCameraUI().setAuxButtons(mFrontCameraIDs, sActiveFrontCamId);
+            return sActiveFrontCamId;
         } else {
-            PhotonCamera.getCameraUI().auxGroup.setVisibility(View.VISIBLE);
+            sActiveFrontCamId = savedCameraID;
+            PhotonCamera.getCameraUI().setAuxButtons(mBackCameraIDs, sActiveBackCamId);
             return sActiveBackCamId;
         }
     }

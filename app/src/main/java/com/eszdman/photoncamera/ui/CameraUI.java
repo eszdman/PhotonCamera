@@ -6,8 +6,6 @@ import android.view.View;
 import android.widget.*;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
-import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
@@ -23,6 +21,7 @@ public class CameraUI {
     public ProgressBar loadingcycle;
     public CircleImageView galleryImageButton;
     public RadioGroup auxGroup;
+    public FrameLayout auxGroupContainer;
     HorizontalPicker modePicker;
     ToggleButton fpsPreview;
     ToggleButton quadResolution;
@@ -34,7 +33,6 @@ public class CameraUI {
     @SuppressLint("ResourceType")
     public void onCameraInitialization() {
         Camera2ApiAutoFix.Init();
-        setAuxButtons();
         PhotonCamera.getManualMode().init();
     }
 
@@ -80,7 +78,7 @@ public class CameraUI {
         flip.setOnClickListener(v -> {
             flip.animate().rotationBy(180).setDuration(450).start();
             PhotonCamera.getCameraFragment().mTextureView.animate().rotationBy(360).setDuration(450).start();
-            PreferenceKeys.setCameraID(PhotonCamera.getCameraFragment().cycler());
+            PreferenceKeys.setCameraID(PhotonCamera.getCameraFragment().cycler(PreferenceKeys.getCameraID()));
             PhotonCamera.getCameraFragment().restartCamera();
         });
         settings = PhotonCamera.getMainActivity().findViewById(R.id.settings);
@@ -94,7 +92,8 @@ public class CameraUI {
         modePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         modePicker.setOnItemSelectedListener(index -> switchToMode(Settings.CameraMode.valueOf(modes[index])));
         modePicker.setSelectedItem(1);
-        auxGroup = PhotonCamera.getMainActivity().findViewById(R.id.auxButtons);
+        auxGroup = new RadioGroup(PhotonCamera.getMainActivity());
+        auxGroupContainer = PhotonCamera.getMainActivity().findViewById(R.id.aux_buttons_container);
     }
 
     public void switchToMode(Settings.CameraMode cameraMode) {
@@ -135,13 +134,15 @@ public class CameraUI {
                 break;
         }
     }
-    public void onCameraPause(){
+
+    public void onCameraPause() {
         PhotonCamera.getGravity().unregister();
         PhotonCamera.getSensors().unregister();
         PhotonCamera.getSettings().saveID();
     }
-    public void onCameraResume(){
-        Log.d(TAG,"CameraResume");
+
+    public void onCameraResume() {
+        Log.d(TAG, "CameraResume");
         PhotonCamera.getSwipe().init();
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
@@ -163,57 +164,76 @@ public class CameraUI {
         clearProcessingCycle();
     }
 
-    private void setAuxButtons() {
-        if (CameraManager2.cameraManager2 != null) {
-            Set<String> cameraSet = CameraManager2.cameraManager2.mCameraIDs;
-            cameraSet.remove("1");  //Assuming that front camera id is 1
-            String[] backCameraArray = cameraSet.toArray(new String[0]);
-            if (auxGroup.getChildCount() == 0 && cameraSet.size() > 1) {
-                for (String id : backCameraArray) {
-                    RadioButton rb = new RadioButton(PhotonCamera.getMainActivity());
-                    rb.setText(id);
-                    rb.setButtonDrawable(R.drawable.custom_aux_switch_thumb);
-                    int padding = (int) rb.getContext().getResources().getDimension(R.dimen.aux_button_padding);
-                    rb.setPaddingRelative(padding, padding, padding, padding);
-                    rb.setTextAppearance(R.style.ManualModeKnobText);
-                    rb.setId(Integer.parseInt(id)); //here actual camera id assigned as RadioButton's resource ID
-                    auxGroup.addView(rb);
-                }
-                if (PreferenceKeys.getCameraID().equals("1")) {
-                    auxGroup.setVisibility(View.INVISIBLE);
-                    auxGroup.check(Integer.parseInt(CameraFragment.sActiveBackCamId));
-                } else {
-                    auxGroup.setVisibility(View.VISIBLE);
-                    CameraFragment.sActiveBackCamId = PreferenceKeys.getCameraID();
-                    auxGroup.check(Integer.parseInt(PreferenceKeys.getCameraID()));
-                }
-                auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
-                    PreferenceKeys.setCameraID(String.valueOf(i));  //i = RadioButton's resource ID
-                    PhotonCamera.getCameraFragment().restartCamera();
-                });
+    void log(String msg) {
+        Log.d(TAG, msg);
+    }
+
+    public void initAuxButtons(Set<String> backCameraIdsList, Set<String> frontCameraIdsList) {
+        String savedCameraID = PreferenceKeys.getCameraID();
+        if (auxGroupContainer.getChildCount() == 0) {
+            if (backCameraIdsList.contains(savedCameraID)) {
+                setAuxButtons(backCameraIdsList, savedCameraID);
+            } else if (frontCameraIdsList.contains(savedCameraID)) {
+                setAuxButtons(frontCameraIdsList, savedCameraID);
             }
         }
     }
-    public void onProcessingEnd(){
+
+    public void setAuxButtons(Set<String> idsList, String active) {
+        auxGroupContainer.removeAllViews();
+        if (idsList.size() > 1) {
+            auxGroup = new RadioGroup(PhotonCamera.getMainActivity());
+            auxGroup.setOrientation(LinearLayout.VERTICAL);
+            for (String id : idsList) {
+                addToAuxGroupButtons(id);
+            }
+            auxGroup.check(Integer.parseInt(active));
+            auxGroup.setOnCheckedChangeListener((radioGroup, i) -> {
+                PreferenceKeys.setCameraID(String.valueOf(i));  //i = RadioButton's resource ID
+                PhotonCamera.getCameraFragment().restartCamera();
+                log(String.valueOf(auxGroup.getChildCount()));
+            });
+            auxGroup.setVisibility(View.VISIBLE);
+            auxGroupContainer.addView(auxGroup);
+        }
+
+
+    }
+
+    private void addToAuxGroupButtons(String id) {
+        RadioButton rb = new RadioButton(PhotonCamera.getMainActivity());
+        rb.setText(id);
+        rb.setButtonDrawable(R.drawable.custom_aux_switch_thumb);
+        int padding = (int) rb.getContext().getResources().getDimension(R.dimen.aux_button_padding);
+        rb.setPaddingRelative(padding, padding, padding, padding);
+        rb.setTextAppearance(R.style.ManualModeKnobText);
+        rb.setId(Integer.parseInt(id)); //here actual camera id assigned as RadioButton's resource ID
+        auxGroup.addView(rb);
+    }
+
+    public void onProcessingEnd() {
         clearProcessingCycle();
     }
-    public void burstUnlock(){
+
+    public void burstUnlock() {
         PhotonCamera.getCameraUI().shot.setActivated(true);
         PhotonCamera.getCameraUI().shot.setClickable(true);
     }
-    public void clearProcessingCycle(){
+
+    public void clearProcessingCycle() {
         try {
             PhotonCamera.getCameraUI().loadingcycle.setProgress(0);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    public void incrementProcessingCycle(){
+
+    public void incrementProcessingCycle() {
         try {
             int progress = (PhotonCamera.getCameraUI().loadingcycle.getProgress() + 1) % (PhotonCamera.getCameraUI().loadingcycle.getMax() + 1);
             progress = Math.max(1, progress);
             PhotonCamera.getCameraUI().loadingcycle.setProgress(progress);
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
