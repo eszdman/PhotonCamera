@@ -113,6 +113,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
+        add(new GlobalTonemaping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
