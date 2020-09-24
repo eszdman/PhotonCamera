@@ -23,7 +23,7 @@
             app:layout_constraintStart_toStartOf="parent"
             
     >
-        <Button
+        <ImageButton
                 android:id="@+id/settings"
                 style="@style/Widget.AppCompat.Button"
                 android:layout_width="@dimen/topbar_icon_size"

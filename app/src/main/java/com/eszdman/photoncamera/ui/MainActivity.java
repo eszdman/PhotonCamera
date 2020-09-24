@@ -5,16 +5,16 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ToggleButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.log.FragmentLifeCycleMonitor;
 import com.eszdman.photoncamera.api.Permissions;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.log.FragmentLifeCycleMonitor;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.manual.ManualMode;
@@ -67,11 +67,8 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onSimpleOrientationChanged(int orientation) {
                         ToggleButton stacking = findViewById(R.id.stacking);
-                        Button settings = findViewById(R.id.settings);
+                        ImageButton settings = findViewById(R.id.settings);
                         CircleImageView gallery = findViewById(R.id.ImageOut);
-//                        ImageView expText = findViewById(R.id.expText);
-//                        ImageView isoText = findViewById(R.id.isoText);
-//                        ImageView focusText = findViewById(R.id.focusText);
                         ToggleButton eis = findViewById(R.id.eisPhoto);
                         ToggleButton fpsPreview = findViewById(R.id.fpsPreview);
                         ToggleButton quadres = findViewById(R.id.quadRes);
@@ -93,9 +90,6 @@ public class MainActivity extends AppCompatActivity {
                         stacking.animate().rotation(rot).setDuration(RotationDur).start();
                         settings.animate().rotation(rot).setDuration(RotationDur).start();
                         gallery.animate().rotation(rot).setDuration(RotationDur).start();
-//                        expText.animate().rotation(rot).setDuration(RotationDur).start();
-//                        isoText.animate().rotation(rot).setDuration(RotationDur).start();
-//                        focusText.animate().rotation(rot).setDuration(RotationDur).start();
                         eis.animate().rotation(rot).setDuration(RotationDur).start();
                         fpsPreview.animate().rotation(rot).setDuration(RotationDur).start();
                         quadres.animate().rotation(rot).setDuration(RotationDur).start();

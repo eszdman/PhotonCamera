@@ -1,18 +1,8 @@
 package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.*;
 import android.util.Log;
-
-import com.eszdman.photoncamera.OpenGL.GLBasePipeline;
-import com.eszdman.photoncamera.OpenGL.GLCoreBlockProcessing;
-import com.eszdman.photoncamera.OpenGL.GLFormat;
-import com.eszdman.photoncamera.OpenGL.GLInterface;
-import com.eszdman.photoncamera.OpenGL.GLTexture;
+import com.eszdman.photoncamera.OpenGL.*;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Render.Parameters;
@@ -22,7 +12,7 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 
-import static com.eszdman.photoncamera.api.ImageSaver.outimg;
+import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
@@ -131,8 +121,8 @@ public class PostPipeline extends GLBasePipeline {
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);
         try {
             //noinspection ResultOfMethodCallIgnored
-            outimg.createNewFile();
-            FileOutputStream fOut = new FileOutputStream(outimg);
+            imageFileToSave.createNewFile();
+            FileOutputStream fOut = new FileOutputStream(imageFileToSave);
             img.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
             fOut.flush();
             fOut.close();

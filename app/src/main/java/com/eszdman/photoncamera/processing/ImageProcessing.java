@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera;
+package com.eszdman.photoncamera.processing;
 
 
 import android.graphics.ImageFormat;
@@ -9,30 +9,26 @@ import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
-
 import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
 import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline.RawPipeline;
 import com.eszdman.photoncamera.OpenGL.Scripts.AverageParams;
 import com.eszdman.photoncamera.OpenGL.Scripts.AverageRaw;
 import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
-import com.eszdman.photoncamera.api.CameraReflectionApi;
-import com.eszdman.photoncamera.api.ImageSaver;
-import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
+import com.eszdman.photoncamera.api.ParseExif;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.Point;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignMTB;
 import org.opencv.photo.MergeMertens;
 import org.opencv.photo.Photo;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -42,69 +38,87 @@ import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
 
 public class ImageProcessing {
-    static final String TAG = "ImageProcessing";
-    public ArrayList<Image> curimgs;
+    private static final String TAG = "ImageProcessing";
+    private static ByteBuffer unlimitedBuffer;
+    private final ProcessingEventsListener processingEventsListener;
     public Boolean israw;
     public Boolean isyuv;
     public String path;
-    //public ImageProcessing(ArrayList<Image> images) {
-    //    curimgs = images;
-    //}
-    public ImageProcessing() {
+    public ArrayList<Image> imageFramesToProcess;
+
+    public ImageProcessing(ProcessingEventsListener processingEventsListener) {
+        this.processingEventsListener = processingEventsListener;
     }
-    Mat convertyuv(Image image) {
-        byte[] nv21;
-        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-        int error = image.getPlanes()[0].getRowStride() - image.getWidth(); //BufferFix
-        int ySize = yBuffer.remaining();
-        int uSize = uBuffer.remaining();
-        int vSize = vBuffer.remaining();
-        nv21 = new byte[ySize + uSize + vSize];
-        //U and V are swapped
-        yBuffer.get(nv21, 0, ySize);
-        vBuffer.get(nv21, ySize + error, vSize - error);
-        uBuffer.get(nv21, ySize + vSize + error, uSize - error);
-        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth() + error, CvType.CV_8UC1);
-        mYuv.put(0, 0, nv21);
-        Imgproc.cvtColor(mYuv, mYuv, Imgproc.COLOR_YUV2BGR_NV21, 3);
-        mYuv = mYuv.colRange(0, image.getWidth());
-        return mYuv;
-    }
-    Mat load_rawsensor(Image image) {
-        Image.Plane plane = image.getPlanes()[0];
-        Mat mat = new Mat();
-        if (israw) {
-            if (image.getFormat() == ImageFormat.RAW_SENSOR)
-                mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_16UC1, plane.getBuffer());
-            if (image.getFormat() == ImageFormat.RAW10)
-                mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_16UC1, plane.getBuffer());
-        } else {
-            if (!isyuv)
-                mat = Imgcodecs.imdecode(new Mat(1, plane.getBuffer().remaining(), CvType.CV_8U, plane.getBuffer()), Imgcodecs.IMREAD_UNCHANGED);
+
+    public static void UnlimitedCycle(Image input) {
+        int width = input.getPlanes()[0].getRowStride()
+                / input.getPlanes()[0].getPixelStride();
+        int height = input.getHeight();
+        PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
+        if (unlimitedBuffer == null) {
+            unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
         }
-        if (isyuv) {
-            mat = convertyuv(image);
-        }
-        return mat;
+        AverageRaw averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, R.raw.average, "UnlimitedAvr");
+        averageRaw.additionalParams = new AverageParams(unlimitedBuffer, input.getPlanes()[0].getBuffer());
+        averageRaw.Run();
+        unlimitedBuffer = averageRaw.Output;
+        averageRaw.close();
+        input.close();
     }
-    Mat[][] EqualizeImages() {
-        Mat[][] out = new Mat[2][curimgs.size()];
-        for (int i = 0; i < curimgs.size(); i++) {
-            out[0][i] = new Mat();
-            out[1][i] = new Mat();
-            if (israw) {
-                out[0][i] = load_rawsensor(curimgs.get(i));
-                out[0][i].convertTo(out[1][i], CvType.CV_8UC1);
-            } else {
-                out[0][i] = load_rawsensor(curimgs.get(i));
-                Imgproc.cvtColor(out[0][i], out[1][i], Imgproc.COLOR_BGR2GRAY);
+
+    public void UnlimitedEnd() {
+        Log.d(TAG, "Wrapper.processFrame()");
+        PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+//        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
+        PostPipeline pipeline = new PostPipeline();
+        pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
+        pipeline.close();
+        try {
+            ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
+            if (!PhotonCamera.getSettings().rawSaver) {
+                try {
+                    inter.saveAttributes();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-            processingstep();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return out;
+        unlimitedBuffer.clear();
+        processingEventsListener.onSaveImage(ImageSaver.imageFileToSave);
+//        ImageSaver.SaveImg(ImageSaver.imageFileToSave);
     }
+
+    private void saveRaw(Image in) {
+        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+        try {
+            FileOutputStream outB = new FileOutputStream(ImageSaver.imageFileToSave);
+            dngCreator.setDescription(PhotonCamera.getParameters().toString());
+            int rotation = PhotonCamera.getGravity().getCameraRotation();
+            Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
+            Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
+            int orientation = ORIENTATION_NORMAL;
+            switch (rotation) {
+                case 90:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_90;
+                    break;
+                case 180:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_180;
+                    break;
+                case 270:
+                    orientation = ExifInterface.ORIENTATION_ROTATE_270;
+                    break;
+            }
+            dngCreator.setOrientation(orientation);
+            dngCreator.writeImage(outB, in);
+            in.close();
+            outB.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     //final ORB orb = ORB.create();
     //final DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
     /*Mat findFrameHomography(Mat need, Mat from) {
@@ -139,17 +153,73 @@ public class ImageProcessing {
         return h;
     }*/
 
+    Mat convertyuv(Image image) {
+        byte[] nv21;
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+        int error = image.getPlanes()[0].getRowStride() - image.getWidth(); //BufferFix
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+        nv21 = new byte[ySize + uSize + vSize];
+        //U and V are swapped
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize + error, vSize - error);
+        uBuffer.get(nv21, ySize + vSize + error, uSize - error);
+        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth() + error, CvType.CV_8UC1);
+        mYuv.put(0, 0, nv21);
+        Imgproc.cvtColor(mYuv, mYuv, Imgproc.COLOR_YUV2BGR_NV21, 3);
+        mYuv = mYuv.colRange(0, image.getWidth());
+        return mYuv;
+    }
+
+    Mat load_rawsensor(Image image) {
+        Image.Plane plane = image.getPlanes()[0];
+        Mat mat = new Mat();
+        if (israw) {
+            if (image.getFormat() == ImageFormat.RAW_SENSOR)
+                mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_16UC1, plane.getBuffer());
+            if (image.getFormat() == ImageFormat.RAW10)
+                mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_16UC1, plane.getBuffer());
+        } else {
+            if (!isyuv)
+                mat = Imgcodecs.imdecode(new Mat(1, plane.getBuffer().remaining(), CvType.CV_8U, plane.getBuffer()), Imgcodecs.IMREAD_UNCHANGED);
+        }
+        if (isyuv) {
+            mat = convertyuv(image);
+        }
+        return mat;
+    }
+
+    Mat[][] EqualizeImages() {
+        Mat[][] out = new Mat[2][imageFramesToProcess.size()];
+        for (int i = 0; i < imageFramesToProcess.size(); i++) {
+            out[0][i] = new Mat();
+            out[1][i] = new Mat();
+            if (israw) {
+                out[0][i] = load_rawsensor(imageFramesToProcess.get(i));
+                out[0][i].convertTo(out[1][i], CvType.CV_8UC1);
+            } else {
+                out[0][i] = load_rawsensor(imageFramesToProcess.get(i));
+                Imgproc.cvtColor(out[0][i], out[1][i], Imgproc.COLOR_BGR2GRAY);
+            }
+            processingstep();
+        }
+        return out;
+    }
 
     void processingstep() {
-        PhotonCamera.getCameraUI().incrementProcessingCycle();
+        processingEventsListener.onProcessingChanged(1);
     }
+
     void ApplyStabilization() {
         Mat[] grey;
         Mat[] col;
         Mat[][] readed = EqualizeImages();
         col = readed[0];
         grey = readed[1];
-        Log.d("ImageProcessing Stab", "Curimgs size " + curimgs.size());
+        Log.d("ImageProcessing Stab", "Curimgs size " + imageFramesToProcess.size());
         Mat output = new Mat();
         col[col.length - 1].copyTo(output);
 //        boolean aligning = Interface.getSettings().align;
@@ -158,7 +228,7 @@ public class ImageProcessing {
         AlignMTB align = Photo.createAlignMTB();
         Point shiftprev = new Point();
         int alignopt = 2;
-        for (int i = 0; i < curimgs.size() - 1; i += alignopt) {
+        for (int i = 0; i < imageFramesToProcess.size() - 1; i += alignopt) {
             if (PreferenceKeys.isDisableAligningOn()) {
                 //Mat h=new Mat();
                 Point shift;
@@ -181,8 +251,8 @@ public class ImageProcessing {
         processingstep();
         if (!israw) {
             Object sensivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
-            if(sensivity == null) sensivity = (int)100;
-            double params = Math.sqrt(Math.log((int)sensivity) * 22) + 9;
+            if (sensivity == null) sensivity = (int) 100;
+            double params = Math.sqrt(Math.log((int) sensivity) * 22) + 9;
             Log.d("ImageProcessing Denoise", "params:" + params + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
             int ind = imgsmat.size() / 2;
             if (ind % 2 == 0) ind -= 1;
@@ -242,99 +312,99 @@ public class ImageProcessing {
             Imgcodecs.imwrite(path, output, new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 100));
         }
     }
+
     void ApplyHdrX() {
         boolean debugAlignment = false;
-        if(PhotonCamera.getSettings().alignAlgorithm == 1) debugAlignment = true;
+        if (PhotonCamera.getSettings().alignAlgorithm == 1) debugAlignment = true;
         CaptureResult res = CameraFragment.mCaptureResult;
         processingstep();
         long startTime = System.currentTimeMillis();
-        int width = curimgs.get(0).getPlanes()[0].getRowStride() / curimgs.get(0).getPlanes()[0].getPixelStride(); //curimgs.get(0).getWidth()*curimgs.get(0).getHeight()/(curimgs.get(0).getPlanes()[0].getRowStride()/curimgs.get(0).getPlanes()[0].getPixelStride());
-        int height = curimgs.get(0).getHeight();
-        Log.d(TAG, "APPLYHDRX: buffer:" + curimgs.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        if(!debugAlignment) {
-            if(IsoExpoSelector.HDR) Wrapper.init(width, height, curimgs.size()-2);
-            else Wrapper.init(width, height, curimgs.size());
+        int width = imageFramesToProcess.get(0).getPlanes()[0].getRowStride() / imageFramesToProcess.get(0).getPlanes()[0].getPixelStride(); //imageFramesToProcess.get(0).getWidth()*imageFramesToProcess.get(0).getHeight()/(imageFramesToProcess.get(0).getPlanes()[0].getRowStride()/imageFramesToProcess.get(0).getPlanes()[0].getPixelStride());
+        int height = imageFramesToProcess.get(0).getHeight();
+        Log.d(TAG, "APPLYHDRX: buffer:" + imageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
+        Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        if (!debugAlignment) {
+            if (IsoExpoSelector.HDR) Wrapper.init(width, height, imageFramesToProcess.size() - 2);
+            else Wrapper.init(width, height, imageFramesToProcess.size());
         }
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
-        if(level !=null) levell = (int)level;
+        if (level != null) levell = (int) level;
         float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
-        float k = fakelevel/levell;
-        CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL,(int)fakelevel);
+        float k = fakelevel / levell;
+        CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, (int) fakelevel);
         BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelarr = new int[4];
-        if(blevel !=null){
-            blevel.copyTo(levelarr,0);
-            for(int i =0; i<4;i++){
-                levelarr[i]=(int)(levelarr[i]*k);
+        if (blevel != null) {
+            blevel.copyTo(levelarr, 0);
+            for (int i = 0; i < 4; i++) {
+                levelarr[i] = (int) (levelarr[i] * k);
             }
-            CameraReflectionApi.PatchBL(blevel,levelarr);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN,blevel);
+            CameraReflectionApi.PatchBL(blevel, levelarr);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blevel);
         }
         float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
-        if(dynBL != null){
-            for(int i =0; i<dynBL.length;i++){
-                dynBL[i]*=k;
+        if (dynBL != null) {
+            for (int i = 0; i < dynBL.length; i++) {
+                dynBL[i] *= k;
             }
-            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL,dynBL,res);
+            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
         }
         Object wl = res.get(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL);
-        if(wl !=null){
-            int wll = (int)wl;
-            wl=(int)(wll*k);
-            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL,wll);
+        if (wl != null) {
+            int wll = (int) wl;
+            wl = (int) (wll * k);
+            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, wll);
         }
-        Log.d(TAG,"Api WhiteLevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Log.d(TAG,"Api Blacklevel:"+CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        PhotonCamera.getParameters().FillParameters(res,CameraFragment.mCameraCharacteristics, new android.graphics.Point(width,height));
-        if(PhotonCamera.getParameters().realWL == -1) PhotonCamera.getParameters().realWL = levell;
+        Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG, "Api Blacklevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
+        PhotonCamera.getParameters().FillParameters(res, CameraFragment.mCameraCharacteristics, new android.graphics.Point(width, height));
+        if (PhotonCamera.getParameters().realWL == -1) PhotonCamera.getParameters().realWL = levell;
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ByteBuffer> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        for (int i = 0; i < curimgs.size(); i++) {
+        for (int i = 0; i < imageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
-            if(i == 0){
-                byteBuffer = curimgs.get(baseFrame).getPlanes()[0].getBuffer();
-            } else
-            if(i == baseFrame){
-                byteBuffer = curimgs.get(0).getPlanes()[0].getBuffer();
+            if (i == 0) {
+                byteBuffer = imageFramesToProcess.get(baseFrame).getPlanes()[0].getBuffer();
+            } else if (i == baseFrame) {
+                byteBuffer = imageFramesToProcess.get(0).getPlanes()[0].getBuffer();
             } else {
-                byteBuffer = curimgs.get(i).getPlanes()[0].getBuffer();
+                byteBuffer = imageFramesToProcess.get(i).getPlanes()[0].getBuffer();
             }
-            if(i == 3 && IsoExpoSelector.HDR){
+            if (i == 3 && IsoExpoSelector.HDR) {
                 //rawPipeline.sensivity = k*0.7f;
                 highexp = byteBuffer;
                 continue;
             }
-            if(i == 2 && IsoExpoSelector.HDR){
+            if (i == 2 && IsoExpoSelector.HDR) {
                 //rawPipeline.sensivity = k*6.0f;
                 lowexp = byteBuffer;
                 continue;
             }
             byteBuffer.position(0);
             images.add(byteBuffer);
-            if(!debugAlignment) Wrapper.loadFrame(byteBuffer);
+            if (!debugAlignment) Wrapper.loadFrame(byteBuffer);
         }
-        rawPipeline.imageobj = curimgs;
+        rawPipeline.imageobj = imageFramesToProcess;
         rawPipeline.images = images;
-        Log.d(TAG,"WhiteLevel:"+ PhotonCamera.getParameters().whitelevel);
+        Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whitelevel);
         Log.d(TAG, "Wrapper.loadFrame");
         Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
-        if(sensitivity == null) sensitivity = (int)100;
-        float deghostlevel = (float)Math.sqrt(((int)sensitivity)* IsoExpoSelector.getMPY() - 50.)/16.2f;
-        deghostlevel = Math.min(0.25f,deghostlevel);
-        Log.d(TAG,"Deghosting level:"+deghostlevel);
+        if (sensitivity == null) sensitivity = (int) 100;
+        float deghostlevel = (float) Math.sqrt(((int) sensitivity) * IsoExpoSelector.getMPY() - 50.) / 16.2f;
+        deghostlevel = Math.min(0.25f, deghostlevel);
+        Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output = null;
-        if(!debugAlignment) output = Wrapper.processFrame(0.9f+deghostlevel);
+        if (!debugAlignment) output = Wrapper.processFrame(0.9f + deghostlevel);
         else output = rawPipeline.Run();
-        if(IsoExpoSelector.HDR){
+        if (IsoExpoSelector.HDR) {
             /*Wrapper.init(width,height,2);
             RawSensivity rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
             RawParams rawParams = new RawParams(res);
-            rawParams.input = curimgs.get(0).getPlanes()[0].getBuffer();
+            rawParams.input = imageFramesToProcess.get(0).getPlanes()[0].getBuffer();
             rawParams.sensivity = 0.7f;
             rawSensivity.additionalParams = rawParams;
             rawSensivity.Run();
@@ -345,7 +415,7 @@ public class ImageProcessing {
             Wrapper.init(width,height,2);
             rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
             rawParams = new RawParams(res);
-            rawParams.input = curimgs.get(0).getPlanes()[0].getBuffer();
+            rawParams.input = imageFramesToProcess.get(0).getPlanes()[0].getBuffer();
             rawParams.sensivity = 6.0f;
             rawSensivity.Run();
             Wrapper.loadFrame(rawSensivity.Output);
@@ -354,110 +424,48 @@ public class ImageProcessing {
             rawSensivity.close();*/
         }
         //Black shot fix
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        curimgs.get(0).getPlanes()[0].getBuffer().put(output);
-        curimgs.get(0).getPlanes()[0].getBuffer().position(0);
-        for (int i = 1; i < curimgs.size(); i++) {
-            if((i == 3 || i == 2) && IsoExpoSelector.HDR) continue;
-            curimgs.get(i).close();
+        imageFramesToProcess.get(0).getPlanes()[0].getBuffer().position(0);
+        imageFramesToProcess.get(0).getPlanes()[0].getBuffer().put(output);
+        imageFramesToProcess.get(0).getPlanes()[0].getBuffer().position(0);
+        for (int i = 1; i < imageFramesToProcess.size(); i++) {
+            if ((i == 3 || i == 2) && IsoExpoSelector.HDR) continue;
+            imageFramesToProcess.get(i).close();
         }
-        if(debugAlignment) rawPipeline.close();
-        Log.d(TAG,"HDRX Alignment elapsed:"+(System.currentTimeMillis()-startTime) + " ms");
-        if(PhotonCamera.getSettings().rawSaver) {
-            saveRaw(curimgs.get(0));
+        if (debugAlignment) rawPipeline.close();
+        Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
+        if (PhotonCamera.getSettings().rawSaver) {
+            saveRaw(imageFramesToProcess.get(0));
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        PhotonCamera.getParameters().path = path;
+//        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;
-        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
+        pipeline.Run(imageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
         pipeline.close();
-        curimgs.get(0).close();
+        imageFramesToProcess.get(0).close();
     }
-    void ProcessRaw(ByteBuffer input){
-        if(PhotonCamera.getSettings().rawSaver) {
-            saveRaw(curimgs.get(0));
+
+    void ProcessRaw(ByteBuffer input) {
+        if (PhotonCamera.getSettings().rawSaver) {
+            saveRaw(imageFramesToProcess.get(0));
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
-        PhotonCamera.getParameters().path = path;
+//        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(curimgs.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
+        pipeline.Run(imageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
         pipeline.close();
-        curimgs.get(0).close();
+        imageFramesToProcess.get(0).close();
     }
-    private static void saveRaw(Image in){
-        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
-        try {
-            FileOutputStream outB = new FileOutputStream(ImageSaver.outimg);
-            dngCreator.setDescription(PhotonCamera.getParameters().toString());
-            int rotation = PhotonCamera.getGravity().getCameraRotation();
-            Log.d(TAG,"Gravity rotation:"+ PhotonCamera.getGravity().getRotation());
-            Log.d(TAG,"Sensor rotation:"+ PhotonCamera.getCameraFragment().mSensorOrientation);
-            int orientation = ORIENTATION_NORMAL;
-            switch (rotation) {
-                case 90:
-                    orientation = ExifInterface.ORIENTATION_ROTATE_90;
-                    break;
-                case 180:
-                    orientation = ExifInterface.ORIENTATION_ROTATE_180;
-                    break;
-                case 270:
-                    orientation = ExifInterface.ORIENTATION_ROTATE_270;
-                    break;
-            }
-            dngCreator.setOrientation(orientation);
-            dngCreator.writeImage(outB, in);
-            in.close();
-            outB.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    static ByteBuffer unlimitedBuffer;
-    public static void UnlimitedCycle(Image input){
-        int width = input.getPlanes()[0].getRowStride()
-                / input.getPlanes()[0].getPixelStride();
-        int height = input.getHeight();
-        PhotonCamera.getParameters().rawSize = new android.graphics.Point(width,height);
-        if(unlimitedBuffer == null){
-            unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
-        }
-        AverageRaw averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize,R.raw.average,"UnlimitedAvr");
-        averageRaw.additionalParams = new AverageParams(unlimitedBuffer,input.getPlanes()[0].getBuffer());
-        averageRaw.Run();
-        unlimitedBuffer = averageRaw.Output;
-        averageRaw.close();
-        input.close();
-    }
-    public static void UnlimitedEnd(){
-        Log.d(TAG, "Wrapper.processFrame()");
-        PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult,CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
-        PhotonCamera.getParameters().path = ImageSaver.outimg.getAbsolutePath();
-        PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
-        pipeline.close();
-        try {
-            ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.outimg.getAbsolutePath());
-            if (!PhotonCamera.getSettings().rawSaver) {
-                try {
-                    inter.saveAttributes();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        unlimitedBuffer.clear();
-        com.eszdman.photoncamera.api.Photo.instance.SaveImg(ImageSaver.outimg);
-    }
+
     public void Run() {
         Camera2ApiAutoFix.ApplyRes();
         if (israw) ApplyHdrX();
         if (isyuv) ApplyStabilization();
-        PhotonCamera.getCameraUI().onProcessingEnd();
+//        PhotonCamera.getCameraUI().onProcessingEnd();
+        processingEventsListener.onProcessingFinished(null);
     }
+
 }

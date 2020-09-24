@@ -10,7 +10,6 @@ import android.hardware.camera2.params.LensShadingMap;
 import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
-
 import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
@@ -31,7 +30,7 @@ public class Parameters {
     public boolean hasGainMap;
     public Point mapsize;
     public float[] gainmap;
-    public String path;
+//    public String path;
     public float[] proPhotoToSRGB = new float[9];
     public final float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
