@@ -19,5 +19,5 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000"
-    tools:context="com.eszdman.photoncamera.ui.MainActivity" >
+    tools:context="com.eszdman.photoncamera.ui.camera.CameraActivity" >
 </androidx.constraintlayout.widget.ConstraintLayout>

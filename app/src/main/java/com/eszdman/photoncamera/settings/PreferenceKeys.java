@@ -56,7 +56,7 @@ public class PreferenceKeys {
 
     public static void setDefaults() {
         SettingsManager settingsManager = PhotonCamera.getSettingsManager();
-        Resources resources = PhotonCamera.getMainActivity().getResources();
+        Resources resources = PhotonCamera.getCameraActivity().getResources();
         settingsManager.setDefaults(KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setDefaults(KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setDefaults(KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));

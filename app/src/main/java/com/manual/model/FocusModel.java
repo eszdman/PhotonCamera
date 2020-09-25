@@ -23,7 +23,7 @@ public class FocusModel extends ManualModel<Float> {
         Drawable drawable;
         KnobItemInfo auto;
         if (range == null) {
-            auto = getNewAutoItem(-1.0d, PhotonCamera.getMainActivity().getString(R.string.manual_mode_fixed));
+            auto = getNewAutoItem(-1.0d, PhotonCamera.getCameraActivity().getString(R.string.manual_mode_fixed));
             getKnobInfoList().add(auto);
             currentInfo = auto;
             return;
@@ -41,9 +41,9 @@ public class FocusModel extends ManualModel<Float> {
         }
         for (int tick = 0; tick < values.size(); tick++) {
             if (tick == 0) {
-                drawable = PhotonCamera.getMainActivity().getDrawable(R.drawable.manual_icon_focus_near);
+                drawable = PhotonCamera.getCameraActivity().getDrawable(R.drawable.manual_icon_focus_near);
             } else if (tick == values.size() - 1) {
-                drawable = PhotonCamera.getMainActivity().getDrawable(R.drawable.manual_icon_focus_far);
+                drawable = PhotonCamera.getCameraActivity().getDrawable(R.drawable.manual_icon_focus_far);
             } else {
                 drawable = new ShadowTextDrawable();
             }
@@ -51,8 +51,8 @@ public class FocusModel extends ManualModel<Float> {
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }
-        int angle = PhotonCamera.getMainActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -values.size(), values.size(), PhotonCamera.getMainActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
+        int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
+        knobInfo = new KnobInfo(-angle, angle, -values.size(), values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
     }
 
     @Override

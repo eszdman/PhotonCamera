@@ -8,7 +8,7 @@ import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
-import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.io.IOException;
@@ -79,7 +79,7 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         String version = "";
         try {
-            PackageInfo pInfo = PhotonCamera.getMainActivity().getPackageManager().getPackageInfo(PhotonCamera.getMainActivity().getPackageName(), 0);
+            PackageInfo pInfo = PhotonCamera.getCameraActivity().getPackageManager().getPackageInfo(PhotonCamera.getCameraActivity().getPackageName(), 0);
             version = pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();

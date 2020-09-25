@@ -9,15 +9,15 @@ import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
-import com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline.PostPipeline;
-import com.eszdman.photoncamera.OpenGL.Nodes.RawPipeline.RawPipeline;
-import com.eszdman.photoncamera.OpenGL.Scripts.AverageParams;
-import com.eszdman.photoncamera.OpenGL.Scripts.AverageRaw;
-import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.opengl.nodes.postpipeline.PostPipeline;
+import com.eszdman.photoncamera.processing.opengl.nodes.rawpipeline.RawPipeline;
+import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
+import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
-import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -35,7 +35,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
-import static com.eszdman.photoncamera.Parameters.IsoExpoSelector.baseFrame;
+import static com.eszdman.photoncamera.processing.parameters.IsoExpoSelector.baseFrame;
 
 public class ImageProcessing {
     private static final String TAG = "ImageProcessing";
@@ -51,8 +51,7 @@ public class ImageProcessing {
     }
 
     public static void UnlimitedCycle(Image input) {
-        int width = input.getPlanes()[0].getRowStride()
-                / input.getPlanes()[0].getPixelStride();
+        int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
         PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
         if (unlimitedBuffer == null) {

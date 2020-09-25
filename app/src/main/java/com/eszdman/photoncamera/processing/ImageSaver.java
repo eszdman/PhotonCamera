@@ -12,12 +12,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
-import com.eszdman.photoncamera.Parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.api.CameraMode;
+import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.api.ParseExif;
-import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.ui.MainActivity;
+import com.eszdman.photoncamera.ui.camera.CameraActivity;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
@@ -39,11 +39,11 @@ public class ImageSaver implements Runnable {
     static int bcnt = 0;
     private final String TAG = "ImageSaver";
     private final ProcessingEventsListener processingEventsListener;
+    private final ImageProcessing mImageProcessing;
     public Handler ProcessCall;
-    ImageProcessing imageProcessing;
 
     public ImageSaver(ImageProcessing imageProcessing, ProcessingEventsListener processingEventsListener) {
-        this.imageProcessing = imageProcessing;
+        this.mImageProcessing = imageProcessing;
         this.processingEventsListener = processingEventsListener;
     }
 
@@ -71,7 +71,7 @@ public class ImageSaver implements Runnable {
         Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
         processingEventsListener.onImageSaved(bitmap);
         mediaScanIntent.setData(contentUri);
-        MainActivity.act.sendBroadcast(mediaScanIntent);
+        CameraActivity.act.sendBroadcast(mediaScanIntent);
     }
 
     public void done(ImageProcessing proc) {
@@ -127,10 +127,10 @@ public class ImageSaver implements Runnable {
                         buffer.duplicate().get(bytes);
                         output.write(bytes);
                         ExifInterface inter = new ExifInterface(imageFileToSave.getAbsolutePath());
-                        imageProcessing.isyuv = false;
-                        imageProcessing.israw = false;
-                        imageProcessing.path = imageFileToSave.getAbsolutePath();
-                        done(imageProcessing);
+                        mImageProcessing.isyuv = false;
+                        mImageProcessing.israw = false;
+                        mImageProcessing.path = imageFileToSave.getAbsolutePath();
+                        done(mImageProcessing);
                         Thread.sleep(25);
                         inter.saveAttributes();
                         SaveImg(imageFileToSave);
@@ -167,11 +167,11 @@ public class ImageSaver implements Runnable {
                     imageBuffer.add(mImage);
                     if (imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
                         //unlock();
-                        imageProcessing.isyuv = true;
-                        imageProcessing.israw = false;
-                        imageProcessing.path = imageFileToSave.getAbsolutePath();
-                        done(imageProcessing);
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, imageProcessing.path);
+                        mImageProcessing.isyuv = true;
+                        mImageProcessing.israw = false;
+                        mImageProcessing.path = imageFileToSave.getAbsolutePath();
+                        done(mImageProcessing);
+                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, mImageProcessing.path);
                         inter.saveAttributes();
                         SaveImg(imageFileToSave);
                         end(mReader);
@@ -197,17 +197,17 @@ public class ImageSaver implements Runnable {
                 String path = getCurrentDirectory() + generateNewFileName() + ext;
                 try {
                     Log.d(TAG, "start buffersize:" + imageBuffer.size());
-                    if (PhotonCamera.getSettings().selectedMode == Settings.CameraMode.UNLIMITED) {
+                    if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
                         ImageProcessing.UnlimitedCycle(mImage);
                         return;
                     }
                     imageBuffer.add(mImage);
                     if (imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
                         //unlock();
-                        imageProcessing.isyuv = false;
-                        imageProcessing.israw = true;
-                        imageProcessing.path = path;
-                        done(imageProcessing);
+                        mImageProcessing.isyuv = false;
+                        mImageProcessing.israw = true;
+                        mImageProcessing.path = path;
+                        done(mImageProcessing);
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, imageFileToSave.getAbsolutePath());
                         if (!PhotonCamera.getSettings().rawSaver) inter.saveAttributes();
                         SaveImg(imageFileToSave);

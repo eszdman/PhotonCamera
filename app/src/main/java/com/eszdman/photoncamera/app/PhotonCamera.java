@@ -3,82 +3,82 @@ package com.eszdman.photoncamera.app;
 import android.app.Application;
 import android.content.Context;
 import android.hardware.SensorManager;
-import com.eszdman.photoncamera.Control.Gravity;
-import com.eszdman.photoncamera.Control.Sensors;
-import com.eszdman.photoncamera.Control.Swipe;
-import com.eszdman.photoncamera.Control.TouchFocus;
-import com.eszdman.photoncamera.Render.Parameters;
-import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.api.Settings;
-import com.eszdman.photoncamera.log.ActivityLifecycleMonitor;
+import com.eszdman.photoncamera.control.Gravity;
+import com.eszdman.photoncamera.control.Sensors;
+import com.eszdman.photoncamera.control.Swipe;
+import com.eszdman.photoncamera.control.TouchFocus;
+import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
-import com.eszdman.photoncamera.ui.MainActivity;
+import com.eszdman.photoncamera.ui.camera.CameraActivity;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
 import com.manual.ManualMode;
 
 public class PhotonCamera extends Application {
     public static final boolean DEBUG = false;
     private static PhotonCamera sPhotonCamera;
-    private MainActivity mainActivity;
-    private Settings settings;
-    private Swipe swipe;
-    private Gravity gravity;
-    private Sensors sensors;
-    private Parameters parameters;
-    private TouchFocus touchFocus;
-    private CameraFragment cameraFragment;
-    private ManualMode manualMode;
-    private SettingsManager settingsManager;
+    private CameraActivity mCameraActivity;
+    private Settings mSettings;
+    private Swipe mSwipe;
+    private Gravity mGravity;
+    private Sensors mSensors;
+    private Parameters mParameters;
+    private TouchFocus mTouchFocus;
+    private CameraFragment mCameraFragment;
+    private ManualMode mManualMode;
+    private SettingsManager mSettingsManager;
 
-    public static MainActivity getMainActivity() {
-        return sPhotonCamera.mainActivity;
+    public static CameraActivity getCameraActivity() {
+        return sPhotonCamera.mCameraActivity;
     }
 
-    public static void setMainActivity(MainActivity mainActivity) {
-        sPhotonCamera.mainActivity = mainActivity;
+    public static void setCameraActivity(CameraActivity cameraActivity) {
+        sPhotonCamera.mCameraActivity = cameraActivity;
     }
 
     public static Settings getSettings() {
-        return sPhotonCamera.settings;
+        return sPhotonCamera.mSettings;
     }
 
     public static Swipe getSwipe() {
-        return sPhotonCamera.swipe;
+        return sPhotonCamera.mSwipe;
     }
 
     public static Gravity getGravity() {
-        return sPhotonCamera.gravity;
+        return sPhotonCamera.mGravity;
     }
 
     public static Sensors getSensors() {
-        return sPhotonCamera.sensors;
+        return sPhotonCamera.mSensors;
     }
 
     public static Parameters getParameters() {
-        return sPhotonCamera.parameters;
+        return sPhotonCamera.mParameters;
     }
 
     public static TouchFocus getTouchFocus() {
-        return sPhotonCamera.touchFocus;
+        return sPhotonCamera.mTouchFocus;
     }
 
     public static CameraFragment getCameraFragment() {
-        return sPhotonCamera.cameraFragment;
+        return sPhotonCamera.mCameraFragment;
     }
 
     public static void setCameraFragment(CameraFragment cameraFragment) {
-        sPhotonCamera.cameraFragment = cameraFragment;
+        sPhotonCamera.mCameraFragment = cameraFragment;
     }
 
     public static ManualMode getManualMode() {
-        return sPhotonCamera.manualMode;
+        return sPhotonCamera.mManualMode;
     }
 
     public static void setManualMode(ManualMode manualMode) {
-        sPhotonCamera.manualMode = manualMode;
+        sPhotonCamera.mManualMode = manualMode;
     }
 
     public static SettingsManager getSettingsManager() {
-        return sPhotonCamera.settingsManager;
+        return sPhotonCamera.mSettingsManager;
     }
 
     @Override
@@ -92,22 +92,22 @@ public class PhotonCamera extends Application {
     private void initModules() {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        gravity = new Gravity(sensorManager);
-        sensors = new Sensors(sensorManager);
+        mGravity = new Gravity(sensorManager);
+        mSensors = new Sensors(sensorManager);
 
-        swipe = new Swipe();
-        touchFocus = new TouchFocus();
+        mSwipe = new Swipe();
+        mTouchFocus = new TouchFocus();
 
-        settingsManager = new SettingsManager(this);
-        settings = new Settings();
+        mSettingsManager = new SettingsManager(this);
+        mSettings = new Settings();
 
-        parameters = new Parameters();
+        mParameters = new Parameters();
     }
 
 
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {
-        ActivityManager activityManager = (ActivityManager) mainActivity.SystemService(ACTIVITY_SERVICE);
+        ActivityManager activityManager = (ActivityManager) mCameraActivity.SystemService(ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         activityManager.getMemoryInfo(memoryInfo);
         return memoryInfo;
