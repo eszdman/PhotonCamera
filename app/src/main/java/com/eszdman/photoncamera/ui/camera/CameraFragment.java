@@ -41,19 +41,18 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
-import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.ImageProcessing;
+import com.eszdman.photoncamera.processing.ImageSaver;
+import com.eszdman.photoncamera.processing.ProcessingEventsListener;
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
-import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.ImageSaver;
-import com.eszdman.photoncamera.processing.ProcessingEventsListener;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.util.log.CustomLogger;
 
 import java.io.File;
@@ -428,6 +427,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         }
 
     };
+    private CustomOrientationEventListener mCustomOrientationEventListener;
 
     public CameraFragment() {
         super();
@@ -616,6 +616,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        initOrientationEventListener();
     }
 
     @Override
@@ -761,6 +762,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getGravity().register();
         PhotonCamera.getTouchFocus().ReInit();
         this.mCameraUIView.onCameraResume();
+        mCustomOrientationEventListener.enable();
         startBackgroundThread();
         if (mTextureView == null) mTextureView = new AutoFitTextureView(CameraActivity.act);
         if (mTextureView.isAvailable()) {
@@ -768,6 +770,35 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
+    }
+
+    void initOrientationEventListener() {
+        final int RotationDur = 350;
+        final int Rotation90 = 2;
+        final int Rotation180 = 3;
+        final int Rotation270 = 4;
+        mCustomOrientationEventListener = new CustomOrientationEventListener(getContext()) {
+            @Override
+            public void onSimpleOrientationChanged(int orientation) {
+                int rot = 0;
+                switch (orientation) {
+                    case Rotation90:
+                        rot = -90;
+                        //rotate as left on top
+                        break;
+                    case Rotation270:
+                        //rotate as right on top
+                        rot = 90;
+                        break;
+                    case Rotation180:
+                        //rotate as upside down
+                        rot = 180;
+                        break;
+                }
+                mCameraUIView.rotateViews(rot, RotationDur);
+                PhotonCamera.getManualMode().rotate(rot, RotationDur);
+            }
+        };
     }
 
     /**
@@ -830,6 +861,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSettings().saveID();
         closeCamera();
         stopBackgroundThread();
+        mCustomOrientationEventListener.disable();
         super.onPause();
     }
 

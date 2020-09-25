@@ -215,6 +215,15 @@ public class CameraUIView {
         this.mCameraUIEventsListener = cameraUIEventsListener;
     }
 
+    public void rotateViews(int rot, int duration) {
+        mHdrXButton.animate().rotation(rot).setDuration(duration).start();
+        mSettingsButton.animate().rotation(rot).setDuration(duration).start();
+        mGalleryImageButton.animate().rotation(rot).setDuration(duration).start();
+        mEisPhotoButton.animate().rotation(rot).setDuration(duration).start();
+        mFpsButton.animate().rotation(rot).setDuration(duration).start();
+        mQuadResolutionButton.animate().rotation(rot).setDuration(duration).start();
+    }
+
     public interface CameraUIEventsListener {
         void onClick(View v);
 
