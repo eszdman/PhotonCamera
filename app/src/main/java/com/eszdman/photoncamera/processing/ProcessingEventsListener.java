@@ -1,5 +1,8 @@
 package com.eszdman.photoncamera.processing;
 
+/**
+ * Interface that listens to events related to processing of image after it has been captured
+ */
 public interface ProcessingEventsListener {
     void onProcessingStarted(Object obj);
 

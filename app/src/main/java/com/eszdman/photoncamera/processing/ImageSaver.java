@@ -95,7 +95,7 @@ public class ImageSaver implements Runnable {
             e.printStackTrace();
         }
         imageBuffer.clear();
-        //PhotonCamera.getCameraUI().burstUnlock();
+        //PhotonCamera.getCameraUI().unlockShutterButton();
         processingEventsListener.onProcessingFinished(null);
 
     }
@@ -144,7 +144,7 @@ public class ImageSaver implements Runnable {
                         bcnt = 0;
                         mImage.close();
                         processingEventsListener.onProcessingFinished(null);
-//                        PhotonCamera.getCameraUI().burstUnlock();
+//                        PhotonCamera.getCameraUI().unlockShutterButton();
                     }
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -179,7 +179,7 @@ public class ImageSaver implements Runnable {
                     if (PhotonCamera.getSettings().frameCount == 1) {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
-                        //PhotonCamera.getCameraUI().burstUnlock();
+                        //PhotonCamera.getCameraUI().unlockShutterButton();
                         processingEventsListener.onProcessingFinished(null);
 
                     }
@@ -223,7 +223,7 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
-                        //PhotonCamera.getCameraUI().burstUnlock();
+                        //PhotonCamera.getCameraUI().unlockShutterButton();
                         processingEventsListener.onProcessingFinished(null);
                     }
                 } catch (IOException e) {

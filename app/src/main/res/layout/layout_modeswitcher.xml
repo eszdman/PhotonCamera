@@ -13,7 +13,7 @@
             app:selectedColor="?colorAccent"
             android:textSize="@dimen/mode_chip_text_size"
             android:marqueeRepeatLimit="-1"
-            android:id="@+id/modePicker"
+            android:id="@+id/mode_picker_view"
             android:ellipsize="middle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

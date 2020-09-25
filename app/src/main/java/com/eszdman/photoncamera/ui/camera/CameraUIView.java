@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.ui.camera;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.*;
@@ -16,7 +17,12 @@ import rapid.decoder.BitmapDecoder;
 import java.io.File;
 import java.util.Set;
 
-public class CameraUIView {
+/**
+ * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface
+ * <p>
+ * It gets instantiated in {@link CameraFragment#onViewCreated(View, Bundle)}
+ */
+public final class CameraUIView {
     private static final String TAG = "CameraUIView";
     private final View mRootView;
     public ProgressBar captureProgressBar;
@@ -44,25 +50,23 @@ public class CameraUIView {
     }
 
     private void initViews(View rootView) {
-        mGridView = rootView.findViewById(R.id.grid);
-        mRoundEdgesView = rootView.findViewById(R.id.edges);
-        captureProgressBar = rootView.findViewById(R.id.lightCycle);
-        mProcessingProgressBar = rootView.findViewById(R.id.progressloading);
-        mShutterButton = rootView.findViewById(R.id.picture);
-        mGalleryImageButton = rootView.findViewById(R.id.ImageOut);
-        mFpsButton = rootView.findViewById(R.id.fpsPreview);
-        mHdrXButton = rootView.findViewById(R.id.stacking);
-        mModePicker = rootView.findViewById(R.id.modePicker);
-        mQuadResolutionButton = rootView.findViewById(R.id.quadRes);
-        mEisPhotoButton = rootView.findViewById(R.id.eisPhoto);
-        mFlipCameraButton = rootView.findViewById(R.id.flip_camera);
-        mSettingsButton = rootView.findViewById(R.id.settings);
+        mGridView = rootView.findViewById(R.id.grid_view);
+        mRoundEdgesView = rootView.findViewById(R.id.round_edges_view);
+        captureProgressBar = rootView.findViewById(R.id.capture_progress_bar);
+        mProcessingProgressBar = rootView.findViewById(R.id.processing_progress_bar);
+        mShutterButton = rootView.findViewById(R.id.shutter_button);
+        mGalleryImageButton = rootView.findViewById(R.id.gallery_image_button);
+        mFpsButton = rootView.findViewById(R.id.fps_toggle_button);
+        mHdrXButton = rootView.findViewById(R.id.hdrx_toggle_button);
+        mModePicker = rootView.findViewById(R.id.mode_picker_view);
+        mQuadResolutionButton = rootView.findViewById(R.id.quad_res_toggle_button);
+        mEisPhotoButton = rootView.findViewById(R.id.eis_toggle_button);
+        mFlipCameraButton = rootView.findViewById(R.id.flip_camera_button);
+        mSettingsButton = rootView.findViewById(R.id.settings_button);
         mAuxGroupContainer = rootView.findViewById(R.id.aux_buttons_container);
-
     }
 
     private void initListeners() {
-
         captureProgressBar.setMax(PreferenceKeys.getFrameCountValue());
         captureProgressBar.setAlpha(0);
         mProcessingProgressBar.setMax(PreferenceKeys.getFrameCountValue());
@@ -86,20 +90,17 @@ public class CameraUIView {
         String[] modes = CameraMode.names();
 
         mModePicker.setValues(modes);
-
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
-
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
-
         mModePicker.setSelectedItem(1);
     }
 
-    public void burstUnlock() {
+    public void unlockShutterButton() {
         mShutterButton.setActivated(true);
         mShutterButton.setClickable(true);
     }
 
-    public void switchToMode(CameraMode cameraMode) {
+    private void switchToMode(CameraMode cameraMode) {
         this.mCameraUIEventsListener.onCameraModeChanged(cameraMode);
         reConfigureModeViews(cameraMode);
     }
@@ -135,8 +136,8 @@ public class CameraUIView {
             mRoundEdgesView.setVisibility(View.VISIBLE);
         else
             mRoundEdgesView.setVisibility(View.GONE);
-        burstUnlock();
-        clearProcessingCycle();
+        unlockShutterButton();
+        resetProcessingProgressBar();
     }
 
     public void initAuxButtons(Set<String> backCameraIdsList, Set<String> frontCameraIdsList) {
@@ -160,7 +161,7 @@ public class CameraUIView {
             }
             mAuxButtonsGroup.check(Integer.parseInt(active));
             mAuxButtonsGroup.setOnCheckedChangeListener((radioGroup, i) ->
-                    mCameraUIEventsListener.onAuxButtonClick(String.valueOf(i)));
+                    mCameraUIEventsListener.onAuxButtonClicked(String.valueOf(i)));
             mAuxButtonsGroup.setVisibility(View.VISIBLE);
             mAuxGroupContainer.addView(mAuxButtonsGroup);
         }
@@ -201,11 +202,11 @@ public class CameraUIView {
         mAuxButtonsGroup.addView(rb);
     }
 
-    public void clearProcessingCycle() {
+    public void resetProcessingProgressBar() {
         mProcessingProgressBar.setProgress(0);
     }
 
-    public void incrementProcessingCycle(int step) {
+    public void incrementProcessingProgressBar(int step) {
         int progress = (mProcessingProgressBar.getProgress() + step) % (mProcessingProgressBar.getMax() + step);
         progress = Math.max(step, progress);
         mProcessingProgressBar.setProgress(progress);
@@ -224,14 +225,17 @@ public class CameraUIView {
         mQuadResolutionButton.animate().rotation(rot).setDuration(duration).start();
     }
 
+    /**
+     * Interface which listens to input events from User
+     */
     public interface CameraUIEventsListener {
         void onClick(View v);
 
-        void onAuxButtonClick(String id);
+        void onAuxButtonClicked(String id);
 
         void onCameraModeChanged(CameraMode cameraMode);
 
-        void onUnlimitedButtonPressed();
+        void onUnlimitedButtonStopPressed();
 
     }
 }

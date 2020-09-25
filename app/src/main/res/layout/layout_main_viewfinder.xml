@@ -45,7 +45,7 @@
                 tools:visibility="visible"/>
         <!--GridLines-->
         <ImageView
-                android:id="@+id/grid"
+                android:id="@+id/grid_view"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:scaleType="fitXY"
@@ -57,7 +57,7 @@
                 tools:visibility="visible"/>
         <!--RoundCorners-->
         <ImageView
-                android:id="@+id/edges"
+                android:id="@+id/round_edges_view"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:scaleType="fitXY"
@@ -85,7 +85,7 @@
 
     <!--Capture Progress circle-->
     <ProgressBar
-            android:id="@+id/lightCycle"
+            android:id="@+id/capture_progress_bar"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="150dp"

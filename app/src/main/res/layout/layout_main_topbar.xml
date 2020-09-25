@@ -24,7 +24,7 @@
             
     >
         <ImageButton
-                android:id="@+id/settings"
+                android:id="@+id/settings_button"
                 style="@style/Widget.AppCompat.Button"
                 android:layout_width="@dimen/topbar_icon_size"
                 android:layout_height="0dp"
@@ -33,11 +33,11 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toEndOf="@id/fpsPreview"
+                app:layout_constraintStart_toEndOf="@id/fps_toggle_button"
         />
 
         <ToggleButton
-                android:id="@+id/stacking"
+                android:id="@+id/hdrx_toggle_button"
                 android:layout_width="@dimen/topbar_icon_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1:1"
@@ -48,11 +48,11 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/eisPhoto"
+                app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
                 tools:visibility="visible"/>
 
         <ToggleButton
-                android:id="@+id/eisPhoto"
+                android:id="@+id/eis_toggle_button"
                 android:layout_width="@dimen/topbar_icon_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1:1"
@@ -61,13 +61,13 @@
                 android:textOff=""
                 android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@id/stacking"
-                app:layout_constraintEnd_toStartOf="@+id/quadRes"
+                app:layout_constraintStart_toEndOf="@id/hdrx_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/quad_res_toggle_button"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible"/>
 
         <ToggleButton
-                android:id="@+id/quadRes"
+                android:id="@+id/quad_res_toggle_button"
                 android:layout_width="@dimen/topbar_icon_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1:1"
@@ -77,13 +77,13 @@
                 android:textOff=""
                 android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/eisPhoto"
-                app:layout_constraintEnd_toStartOf="@id/fpsPreview"
+                app:layout_constraintStart_toEndOf="@id/eis_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/fps_toggle_button"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible"/>
 
         <ToggleButton
-                android:id="@+id/fpsPreview"
+                android:id="@+id/fps_toggle_button"
                 android:layout_width="@dimen/topbar_icon_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1:1"
@@ -93,8 +93,8 @@
                 android:textOff=""
                 android:textOn=""
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/quadRes"
-                app:layout_constraintEnd_toStartOf="@+id/settings"
+                app:layout_constraintStart_toEndOf="@id/quad_res_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/settings_button"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:visibility="visible"/>
 

@@ -1,17 +1,19 @@
 package com.eszdman.photoncamera.ui.camera;
 
-import android.content.Intent;
 import android.hardware.camera2.CameraAccessException;
 import android.util.Log;
 import android.view.View;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
-import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 
-public class CameraUIController implements CameraUIView.CameraUIEventsListener {
+/**
+ * Implementation of {@link CameraUIView.CameraUIEventsListener}
+ * <p>
+ * Responsible for converting user inputs into actions
+ */
+public final class CameraUIController implements CameraUIView.CameraUIEventsListener {
     private static final String TAG = "CameraUIController";
     private final CameraFragment mCameraFragment;
 
@@ -19,10 +21,14 @@ public class CameraUIController implements CameraUIView.CameraUIEventsListener {
         this.mCameraFragment = cameraFragment;
     }
 
+    private void restartCamera() {
+        this.mCameraFragment.restartCamera();
+    }
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.picture:
+            case R.id.shutter_button:
                 if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
                     view.setActivated(false);
                     view.setClickable(false);
@@ -39,7 +45,7 @@ public class CameraUIController implements CameraUIView.CameraUIEventsListener {
                         mCameraFragment.onUnlimited = false;
                         try {
                             mCameraFragment.mCaptureSession.abortCaptures();
-                            onUnlimitedButtonPressed();
+                            onUnlimitedButtonStopPressed();
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
@@ -47,12 +53,12 @@ public class CameraUIController implements CameraUIView.CameraUIEventsListener {
                     }
                 }
                 break;
-            case R.id.settings:
-                Intent settingsIntent = new Intent(mCameraFragment.getActivity(), SettingsActivity.class);
-                mCameraFragment.startActivity(settingsIntent);
+
+            case R.id.settings_button:
+                mCameraFragment.launchSettings();
                 break;
 
-            case R.id.stacking:
+            case R.id.hdrx_toggle_button:
                 PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
                 if (PreferenceKeys.isHdrXOn())
                     CameraFragment.mTargetFormat = CameraFragment.rawFormat;
@@ -60,44 +66,43 @@ public class CameraUIController implements CameraUIView.CameraUIEventsListener {
                     CameraFragment.mTargetFormat = CameraFragment.yuvFormat;
                 restartCamera();
                 break;
-            case R.id.ImageOut:
-                Intent galleryIntent = new Intent(mCameraFragment.getActivity(), GalleryActivity.class);
-                mCameraFragment.startActivity(galleryIntent);
+
+            case R.id.gallery_image_button:
+                mCameraFragment.launchGallery();
                 break;
-            case R.id.eisPhoto:
+
+            case R.id.eis_toggle_button:
                 PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
                 break;
-            case R.id.fpsPreview:
+
+            case R.id.fps_toggle_button:
                 PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
                 break;
-            case R.id.quadRes:
+
+            case R.id.quad_res_toggle_button:
                 PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
                 restartCamera();
                 break;
-            case R.id.flip_camera:
+
+            case R.id.flip_camera_button:
                 view.animate().rotationBy(180).setDuration(450).start();
                 mCameraFragment.mTextureView.animate().rotationBy(360).setDuration(450).start();
-                PreferenceKeys.setCameraID(PhotonCamera.getCameraFragment().cycler(PreferenceKeys.getCameraID()));
+                PreferenceKeys.setCameraID(mCameraFragment.cycler(PreferenceKeys.getCameraID()));
                 restartCamera();
                 break;
-
         }
     }
 
-    private void restartCamera() {
-        this.mCameraFragment.restartCamera();
-    }
-
     @Override
-    public void onAuxButtonClick(String id) {
-        Log.d(TAG, "onAuxButtonClick() called with: id = [" + id + "]");
+    public void onAuxButtonClicked(String id) {
+        Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
         PreferenceKeys.setCameraID(String.valueOf(id));  //i = RadioButton's resource ID
         restartCamera();
 
     }
 
     @Override
-    public void onUnlimitedButtonPressed() {
+    public void onUnlimitedButtonStopPressed() {
         mCameraFragment.unlimitedEnd();
     }
 

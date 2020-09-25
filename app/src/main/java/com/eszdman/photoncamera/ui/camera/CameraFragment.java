@@ -22,6 +22,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.*;
@@ -44,6 +45,7 @@ import androidx.fragment.app.Fragment;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
 import com.eszdman.photoncamera.processing.ProcessingEventsListener;
@@ -53,6 +55,7 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
+import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.log.CustomLogger;
 
 import java.io.File;
@@ -63,7 +66,6 @@ import java.util.concurrent.TimeUnit;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
-@SuppressWarnings("rawtypes")
 public class CameraFragment extends Fragment implements ProcessingEventsListener {
 
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
@@ -764,6 +766,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         this.mCameraUIView.onCameraResume();
         mCustomOrientationEventListener.enable();
         startBackgroundThread();
+
         if (mTextureView == null) mTextureView = new AutoFitTextureView(CameraActivity.act);
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
@@ -1191,7 +1194,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
-        mFlashSupported = available == null ? false : available;
+        mFlashSupported = available != null && available;
         this.mCameraUIView.initAuxButtons(mBackCameraIDs, mFrontCameraIDs);
         Camera2ApiAutoFix.Init();
         PhotonCamera.getManualMode().init();
@@ -1490,13 +1493,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     @Override
     public void onProcessingChanged(Object obj) {
         if (obj instanceof Integer)
-            mCameraUIView.incrementProcessingCycle((int) obj);
+            mCameraUIView.incrementProcessingProgressBar((int) obj);
     }
 
     @Override
     public void onProcessingFinished(Object obj) {
-        mCameraUIView.clearProcessingCycle();
-        mCameraUIView.burstUnlock();
+        mCameraUIView.resetProcessingProgressBar();
+        mCameraUIView.unlockShutterButton();
     }
 
     @Override
@@ -1507,13 +1510,24 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     @Override
     public void onImageSaved(Object obj) {
-        if (obj instanceof Bitmap)
-            mCameraUIView.loadGalleryButtonImage((Bitmap) obj);
+        if (obj instanceof Bitmap) {
+            if (getActivity() != null)
+                getActivity().runOnUiThread(() -> mCameraUIView.loadGalleryButtonImage((Bitmap) obj));
+        }
     }
 
     public void unlimitedEnd() {
         mImageProcessing.UnlimitedEnd();
+    }
 
+    void launchGallery() {
+        Intent galleryIntent = new Intent(getActivity(), GalleryActivity.class);
+        startActivity(galleryIntent);
+    }
+
+    void launchSettings() {
+        Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
+        startActivity(settingsIntent);
     }
 
     /**
