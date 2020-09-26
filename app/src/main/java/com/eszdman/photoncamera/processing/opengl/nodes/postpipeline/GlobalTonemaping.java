@@ -1,12 +1,12 @@
-package com.eszdman.photoncamera.OpenGL.Nodes.PostPipeline;
+package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
 
 import android.graphics.Point;
 
-import com.eszdman.photoncamera.OpenGL.GLFormat;
-import com.eszdman.photoncamera.OpenGL.GLInterface;
-import com.eszdman.photoncamera.OpenGL.GLProg;
-import com.eszdman.photoncamera.OpenGL.GLTexture;
-import com.eszdman.photoncamera.OpenGL.Nodes.Node;
+import com.eszdman.photoncamera.processing.opengl.GLFormat;
+import com.eszdman.photoncamera.processing.opengl.GLInterface;
+import com.eszdman.photoncamera.processing.opengl.GLProg;
+import com.eszdman.photoncamera.processing.opengl.GLTexture;
+import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 
