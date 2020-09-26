@@ -11,20 +11,20 @@
             android:useLevel="false"
             android:angle="0"
             android:type="sweep"
-            android:thicknessRatio="30">
+            android:thicknessRatio="20">
             <solid android:color="@color/White"/>
         </shape>
 
     </item>
     <item android:id="@android:id/progress">
         <rotate
-            android:fromDegrees="270"
+            android:fromDegrees="0"
             android:toDegrees="270">
             <shape
                 android:shape="ring"
                 android:angle="0"
                 android:type="sweep"
-                android:thicknessRatio="30">
+                android:thicknessRatio="20">
                 <solid android:color="@color/colorAccent"/>
             </shape>
         </rotate>

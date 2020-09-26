@@ -32,6 +32,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.*;
 import android.util.*;
 import android.view.*;
@@ -56,7 +57,9 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
+import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.CustomLogger;
+import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -750,7 +753,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         mTextureView = view.findViewById(R.id.texture);
         surfaceView = view.findViewById(R.id.surfaceView);
         if (getView() != null) {
-            this.mCameraUIView = new CameraUIView(getView());
+            this.mCameraUIView = new CameraUIViewImpl(getView());
             this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
         }
         PhotonCamera.getTouchFocus().ReInit();
@@ -763,7 +766,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
         PhotonCamera.getTouchFocus().ReInit();
-        this.mCameraUIView.onCameraResume();
+        this.mCameraUIView.refresh();
+        this.mCameraUIView.setGalleryButtonImage(getLastImage());
         mCustomOrientationEventListener.enable();
         startBackgroundThread();
 
@@ -773,6 +777,28 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
+    }
+
+    private Bitmap getLastImage() {
+        Bitmap bitmap = null;
+        File[] files = FileManager.DCIM_CAMERA.listFiles((dir, name) -> name.toUpperCase().endsWith(".JPG"));
+        if (files != null) {
+            long lastModifiedTime = -1;
+            File lastImage = null;
+            for (File f : files) {      //finds the last modified file from the list
+                if (f.lastModified() > lastModifiedTime) {
+                    lastImage = f;
+                    lastModifiedTime = f.lastModified();
+                }
+            }
+            //Used fastest decoder on the wide west
+            if (lastImage != null) {
+                bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
+                        .scaleBy(0.1f)
+                        .decode();
+            }
+        }
+        return bitmap;
     }
 
     void initOrientationEventListener() {
@@ -1242,7 +1268,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                                 setAutoFlash();
                                 PhotonCamera.getSettings().applyPrev(mPreviewRequestBuilder);
 
-                                //captureProgressBar.setVisibility(View.INVISIBLE);
+                                //mCaptureProgressBar.setVisibility(View.INVISIBLE);
                                 // Finally, we start displaying the camera preview.
                                 if (PhotonCamera.getCameraFragment().is30Fps) {
                                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
@@ -1360,7 +1386,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captures = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
-            this.mCameraUIView.captureProgressBar.setMax(frameCount);
+            mCameraUIView.setCaptureProgressMax(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
@@ -1378,7 +1404,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             final int[] burstcount = {0, 0, frameCount};
             Log.d(TAG, "CaptureStarted!");
 
-            this.mCameraUIView.captureProgressBar.setAlpha(1.0f);
+            this.mCameraUIView.setCaptureProgressBarOpacity(1.0f);
 
             mTextureView.setAlpha(0.5f);
 
@@ -1389,7 +1415,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    mCameraUIView.captureProgressBar.setProgress(mCameraUIView.captureProgressBar.getProgress() + 1);
+                    mCameraUIView.incrementCaptureProgressBar(1);
                     if (PreferenceKeys.isCameraSoundsOn())
                         burstPlayer.start();
                     Log.v(TAG, "Completed!");
@@ -1407,8 +1433,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
                     try {
-                        mCameraUIView.captureProgressBar.setAlpha(0f);
-                        mCameraUIView.captureProgressBar.setProgress(0);
+                        mCameraUIView.resetCaptureProgressBar();
                         mTextureView.setAlpha(1f);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -1425,8 +1450,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                             try {
                                 mCaptureSession.abortCaptures();
-                                mCameraUIView.captureProgressBar.setAlpha(0f);
-                                mCameraUIView.captureProgressBar.setProgress(0);
+                                mCameraUIView.resetCaptureProgressBar();
                                 mTextureView.setAlpha(1f);
                                 createCameraPreviewSession();
                             } catch (CameraAccessException e) {
@@ -1487,19 +1511,23 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     @Override
     public void onProcessingStarted(Object obj) {
-
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> mCameraUIView.setProcessingProgressBarIndeterminate(true));
+        }
     }
 
     @Override
     public void onProcessingChanged(Object obj) {
-        if (obj instanceof Integer)
-            mCameraUIView.incrementProcessingProgressBar((int) obj);
     }
 
     @Override
     public void onProcessingFinished(Object obj) {
-        mCameraUIView.resetProcessingProgressBar();
-        mCameraUIView.unlockShutterButton();
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(() -> {
+                mCameraUIView.resetProcessingProgressBar();
+                mCameraUIView.activateShutterButton(true);
+            });
+        }
     }
 
     @Override
@@ -1512,7 +1540,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onImageSaved(Object obj) {
         if (obj instanceof Bitmap) {
             if (getActivity() != null)
-                getActivity().runOnUiThread(() -> mCameraUIView.loadGalleryButtonImage((Bitmap) obj));
+                getActivity().runOnUiThread(() -> mCameraUIView.setGalleryButtonImage((Bitmap) obj));
         }
     }
 

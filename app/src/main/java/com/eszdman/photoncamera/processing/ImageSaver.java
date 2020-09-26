@@ -13,11 +13,11 @@ import android.os.Handler;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.ui.camera.CameraActivity;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
@@ -57,10 +57,13 @@ public class ImageSaver implements Runnable {
     private String getCurrentDirectory() {
         File dir;
         dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
-        if (PhotonCamera.getSettings().rawSaver)
+        if (PhotonCamera.getSettings().rawSaver) {
             dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//Raw//");
+        }
         if (!dir.exists()) //noinspection ResultOfMethodCallIgnored
+        {
             dir.mkdirs();
+        }
         return dir.getAbsolutePath();
     }
 
@@ -88,7 +91,9 @@ public class ImageSaver implements Runnable {
         try {
             for (int i = 0; i < mReader.getMaxImages(); i++) {
                 Image cur = mReader.acquireNextImage();
-                if (cur == null) break;
+                if (cur == null) {
+                    break;
+                }
                 cur.close();
             }
         } catch (Exception e) {
@@ -192,7 +197,9 @@ public class ImageSaver implements Runnable {
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR: {
                 String ext = ".jpg";
-                if (PhotonCamera.getSettings().rawSaver) ext = ".dng";
+                if (PhotonCamera.getSettings().rawSaver) {
+                    ext = ".dng";
+                }
                 imageFileToSave = new File(getCurrentDirectory(), generateNewFileName() + ext);
                 String path = getCurrentDirectory() + generateNewFileName() + ext;
                 try {
@@ -209,7 +216,9 @@ public class ImageSaver implements Runnable {
                         mImageProcessing.path = path;
                         done(mImageProcessing);
                         ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, imageFileToSave.getAbsolutePath());
-                        if (!PhotonCamera.getSettings().rawSaver) inter.saveAttributes();
+                        if (!PhotonCamera.getSettings().rawSaver) {
+                            inter.saveAttributes();
+                        }
                         SaveImg(imageFileToSave);
                         end(mReader);
                     }

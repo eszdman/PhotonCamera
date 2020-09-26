@@ -45,7 +45,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                         mCameraFragment.onUnlimited = false;
                         try {
                             mCameraFragment.mCaptureSession.abortCaptures();
-                            onUnlimitedButtonStopPressed();
+                            mCameraFragment.unlimitedEnd();
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
@@ -99,11 +99,6 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
         PreferenceKeys.setCameraID(String.valueOf(id));  //i = RadioButton's resource ID
         restartCamera();
 
-    }
-
-    @Override
-    public void onUnlimitedButtonStopPressed() {
-        mCameraFragment.unlimitedEnd();
     }
 
     @Override
