@@ -30,7 +30,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
                 Log.e(TAG, "Canvas is null");
             } else {
                 canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
-                if (rectToDraw != null) {
+                if (rectToDraw != null && !rectToDraw.isEmpty()) {
                     Paint myPaint = new Paint();
                     myPaint.setColor(Color.rgb(0, 255, 0));
                     myPaint.setStrokeWidth(3);
