@@ -11,6 +11,8 @@ void main() {
     vec2 xyInterp = vec2(xy)/vec2(insize);
     vec4 lowrespix = vec4(texture(LowRes, xyInterp));
     //float weight = 1.0 + cos(avrbr*PI*1.0);
-    Output = texelFetch(InputBuffer, xy, 0)-lowrespix*0.3;
+    float br = length(lowrespix);
+    if(br<0.5) Output = texelFetch(InputBuffer, xy, 0)+((br-0.5)*0.14 + 0.1);
+    else Output = texelFetch(InputBuffer, xy, 0)+((br-0.5)*-0.1 + 0.1);
     //Output = lowrespix;
 }
