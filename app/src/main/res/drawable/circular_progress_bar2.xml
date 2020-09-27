@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android"
-    android:fromDegrees="270"
-    android:pivotX="50%"
-    android:pivotY="50%"
-    android:toDegrees="270">
+            android:fromDegrees="0"
+            android:pivotX="50%"
+            android:pivotY="50%"
+            android:toDegrees="360">
     <item android:id="@android:id/background">
         <shape
-            android:shape="ring"
-            android:useLevel="false"
-            android:angle="0"
-            android:type="sweep"
-            android:thicknessRatio="30">
-            <solid android:color="@color/White"/>
+                android:shape="ring"
+                android:useLevel="false"
+                android:angle="0"
+                android:type="sweep"
+                android:thicknessRatio="20">
+            <solid android:color="@android:color/white"/>
         </shape>
 
     </item>
     <item android:id="@android:id/progress">
         <rotate
-            android:fromDegrees="270"
-            android:toDegrees="270">
+                android:fromDegrees="0"
+                android:toDegrees="360">
             <shape
-                android:shape="ring"
-                android:angle="0"
-                android:type="sweep"
-                android:thicknessRatio="30">
-                <solid android:color="@color/colorAccent"/>
+                    android:shape="ring"
+                    android:angle="0"
+                    android:type="sweep"
+                    android:thicknessRatio="20">
+                <solid android:color="?colorAccent"/>
             </shape>
         </rotate>
     </item>

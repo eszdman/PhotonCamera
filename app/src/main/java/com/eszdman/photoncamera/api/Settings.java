@@ -1,23 +1,14 @@
 package com.eszdman.photoncamera.api;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
-import android.os.Environment;
 import android.util.Log;
 import android.util.Range;
-import android.widget.Toast;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Properties;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraMetadata.*;
@@ -189,9 +180,8 @@ public class Settings {
     }
 
     // =================================================================================================================
-    //TODO fix Import Export
-/*
-    public void ExportSettings() {
+//TODO fix Import Export
+    /*public void ExportSettings() {
 //        save();
         Map<String, ?> allKeys = sharedPreferences.getAll();
         File configFile = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//Settings.ini");
@@ -213,7 +203,7 @@ public class Settings {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        final Activity activity = PhotonCamera.getMainActivity();
+        final Activity activity = PhotonCamera.getCameraActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Exported", Toast.LENGTH_SHORT).show());
         }
@@ -272,30 +262,9 @@ public class Settings {
         sharedPreferencesEditor.apply();
         loadCache();
 //        PhotonCamera.getSettingsActivity().set();
-        final Activity activity = PhotonCamera.getMainActivity();
+        final Activity activity = PhotonCamera.getCameraActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, "Imported", Toast.LENGTH_SHORT).show());
         }
-    }
-*/
-    public enum CameraMode {
-        UNLIMITED(2),
-        PHOTO(0),
-        NIGHT(1),
-        ;
-        //VIDEO(3);
-        public final int mNum;
-
-        CameraMode(int number) {
-            mNum = number;
-        }
-
-        public static String[] names() {
-            String[] names = new String[values().length];
-            for (int i = 0; i < values().length; i++) {
-                names[i] = values()[i].name();
-            }
-            return names;
-        }
-    }
+    }*/
 }

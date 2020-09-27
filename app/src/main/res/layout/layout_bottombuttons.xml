@@ -14,12 +14,12 @@
         android:layout_height="59dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintDimensionRatio="1.0"
-        app:layout_constraintEnd_toStartOf="@id/shutter_button"
+        app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
-            android:id="@+id/flip_camera"
+            android:id="@+id/flip_camera_button"
             android:background="#00000000"
             android:clickable="true"
             android:contentDescription="Lens Switch Button"
@@ -44,7 +44,7 @@
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             app:layout_constraintDimensionRatio="1.0"
-            android:id="@+id/shutter_button"
+            android:id="@+id/shutter_button_container"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@+id/camera_switch_container"
             app:layout_constraintEnd_toStartOf="@id/galery_button_container"
@@ -52,7 +52,7 @@
     >
 
         <ImageButton
-            android:id="@+id/picture"
+            android:id="@+id/shutter_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/roundbutton"
@@ -62,24 +62,28 @@
             android:scaleY="1.0"
             android:textAppearance="@style/TextAppearance.AppCompat"
             android:visibility="visible"
-            app:layout_constraintBottom_toBottomOf="@id/progressloading"
+            app:layout_constraintBottom_toBottomOf="@id/processing_progress_bar"
             app:layout_constraintDimensionRatio="1.0"
-            app:layout_constraintEnd_toEndOf="@id/progressloading"
-            app:layout_constraintStart_toStartOf="@id/progressloading"
-            app:layout_constraintTop_toTopOf="@id/progressloading"
+            app:layout_constraintEnd_toEndOf="@id/processing_progress_bar"
+            app:layout_constraintStart_toStartOf="@id/processing_progress_bar"
+            app:layout_constraintTop_toTopOf="@id/processing_progress_bar"
             tools:ignore="HardcodedText"
             tools:text="Shot" />
 
         <ProgressBar
-            android:id="@+id/progressloading"
+            android:id="@+id/processing_progress_bar"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:indeterminate="false"
             android:max="100"
             android:progressDrawable="@drawable/circular_progress_bar2"
-            android:scaleX="1.35"
-            android:scaleY="1.35"
+            android:indeterminateBehavior="cycle"
+            android:indeterminateDuration="1250"
+            android:indeterminateDrawable="@drawable/circular_progress_bar2"
+            android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+            android:scaleX="1.30"
+            android:scaleY="1.30"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1.0"
             app:layout_constraintEnd_toEndOf="parent"
@@ -97,12 +101,12 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/shutter_button"
+            app:layout_constraintStart_toEndOf="@id/shutter_button_container"
 
     >
 
         <de.hdodenhof.circleimageview.CircleImageView
-                android:id="@+id/ImageOut"
+                android:id="@+id/gallery_image_button"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 app:layout_constraintStart_toStartOf="parent"
