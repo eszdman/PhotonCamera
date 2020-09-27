@@ -1236,7 +1236,6 @@ public class HorizontalPicker extends View {
                     + "}";
         }
 
-        @SuppressWarnings("hiding")
         public static final Creator<SavedState> CREATOR
                 = new Creator<SavedState>() {
             public SavedState createFromParcel(Parcel in) {

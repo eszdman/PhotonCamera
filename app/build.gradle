@@ -92,7 +92,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation 'com.mytechia:opencv:4.1.0-my'
-    implementation 'androidx.exifinterface:exifinterface:1.3.0-rc01'
+    implementation 'androidx.exifinterface:exifinterface:1.3.0'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'org.jocl:jocl:2.0.2'

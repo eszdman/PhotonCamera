@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle" android:tint="@color/White">
-            <stroke android:color="@color/White" android:width="2dp" />
-            <corners android:radius="@dimen/mode_chip_radius" />
-        </shape>
-    </item>
-</selector>
