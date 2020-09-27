@@ -3,16 +3,18 @@ uniform sampler2D InputBuffer;
 uniform sampler2D LowRes;
 uniform ivec2 insize;
 uniform ivec2 lowsize;
+uniform float str;
 uniform int yOffset;
 out vec4 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec2 xyInterp = vec2(xy)/vec2(insize);
-    vec4 lowrespix = vec4(texture(LowRes, xyInterp));
+    vec3 lowrespix = vec3(texture(LowRes, xyInterp).rgb);
     //float weight = 1.0 + cos(avrbr*PI*1.0);
-    float br = length(lowrespix);
-    if(br<0.5) Output = texelFetch(InputBuffer, xy, 0)+((br-0.5)*0.14 + 0.1);
-    else Output = texelFetch(InputBuffer, xy, 0)+((br-0.5)*-0.1 + 0.1);
+    float absbr = 0.5 - length(lowrespix);
+    if(absbr<0.0) Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*1.4),1.0);
+    else Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str),1.0);
+    //Output = texelFetch(InputBuffer, xy, 0)+((absbr)*str*1.4 + 0.05);
     //Output = lowrespix;
 }

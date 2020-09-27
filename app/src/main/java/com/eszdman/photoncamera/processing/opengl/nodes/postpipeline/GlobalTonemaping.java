@@ -41,7 +41,20 @@ public class GlobalTonemaping extends Node {
         glProg.setTexture("LowRes",lowres);
         glProg.setvar("insize",Previous.WorkingTexture.mSize.x,Previous.WorkingTexture.mSize.y);
         glProg.setvar("lowsize",lowres.mSize.x,lowres.mSize.y);
+        glProg.setvar("str",0.08f);
+        GLTexture out1 = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
+        glProg.drawBlocks(out1);
+        glProg.close();
+        GLTexture lowres2 = GaussDown88(lowres);
+        lowres.close();
+        lowres0.close();
+        glProg.useProgram(R.raw.globaltonemaping);
+        glProg.setTexture("InputBuffer",out1);
+        glProg.setTexture("LowRes",lowres2);
+        glProg.setvar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
+        glProg.setvar("lowsize",lowres2.mSize.x,lowres2.mSize.y);
+        glProg.setvar("str",0.07f);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }
