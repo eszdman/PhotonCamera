@@ -10,10 +10,10 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.CameraFragment;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.manual.model.*;
 
 /**
@@ -106,11 +106,11 @@ public final class ManualModeImpl implements ManualMode {
     }
 
     @Override
-    public void rotate(int orientation) {
+    public void rotate(int orientation, int duration) {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
             for (int i = 0; i < buttons_container.getChildCount(); i++) {
-                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(PhotonCamera.getMainActivity().RotationDur).start();
+                buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(duration).start();
             }
         }
     }

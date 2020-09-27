@@ -59,9 +59,9 @@ public class ShutterModel extends ManualModel<Long> {
         while (tick < candidates.size()) {
             boolean isLastItem = tick == candidates.size() - 1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(PhotonCamera.getMainActivity(), R.style.ManualModeKnobText);
+            drawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(PhotonCamera.getMainActivity(), R.style.ManualModeKnobTextSelected);
+            drawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
             if (tick % preferredIntervalCount == 0 || isLastItem) {
                 String text = candidates.get(tick);
                 drawable.setText(text);
@@ -76,11 +76,11 @@ public class ShutterModel extends ManualModel<Long> {
             tick++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = PhotonCamera.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
+        int angleMax = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), PhotonCamera.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override

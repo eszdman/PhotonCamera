@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;

@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 import android.graphics.RectF;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
@@ -26,8 +26,8 @@ public class Swipe {
     Animation slideDown;
     public void init(){
         Log.d(TAG,"SwipeDetection - ON");
-        manualmode = PhotonCamera.getMainActivity().findViewById(R.id.manual_mode);
-        ocmanual = PhotonCamera.getMainActivity().findViewById(R.id.open_close_manual);
+        manualmode = PhotonCamera.getCameraActivity().findViewById(R.id.manual_mode);
+        ocmanual = PhotonCamera.getCameraActivity().findViewById(R.id.open_close_manual);
         ocmanual.setOnClickListener((v) -> {
             if (arrowState == 0) {
                 SwipeUp();
@@ -37,9 +37,9 @@ public class Swipe {
                 Log.d(TAG, "Arrow Clicked:SwipeDown");
             }
         });
-        slideUp = AnimationUtils.loadAnimation(PhotonCamera.getMainActivity(), R.anim.slide_up);
-        slideDown = AnimationUtils.loadAnimation(PhotonCamera.getMainActivity(), R.anim.animate_slide_down_exit);
-        gestureDetector = new GestureDetector(PhotonCamera.getMainActivity(), new GestureDetector.SimpleOnGestureListener() {
+        slideUp = AnimationUtils.loadAnimation(PhotonCamera.getCameraActivity(), R.anim.slide_up);
+        slideDown = AnimationUtils.loadAnimation(PhotonCamera.getCameraActivity(), R.anim.animate_slide_down_exit);
+        gestureDetector = new GestureDetector(PhotonCamera.getCameraActivity(), new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
             @Override
@@ -82,7 +82,7 @@ public class Swipe {
             }
         });
         View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
-        View holder = PhotonCamera.getMainActivity().findViewById(R.id.textureHolder);
+        View holder = PhotonCamera.getCameraActivity().findViewById(R.id.textureHolder);
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);
     }
@@ -91,8 +91,8 @@ public class Swipe {
     {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
-        ConstraintLayout camera_container = PhotonCamera.getMainActivity().findViewById(R.id.camera_container);
-        ConstraintLayout layout_viewfinder = PhotonCamera.getMainActivity().findViewById(R.id.layout_viewfinder);
+        ConstraintLayout camera_container = PhotonCamera.getCameraActivity().findViewById(R.id.camera_container);
+        ConstraintLayout layout_viewfinder = PhotonCamera.getCameraActivity().findViewById(R.id.layout_viewfinder);
         RectF viewfinderRect = new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container

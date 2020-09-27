@@ -26,7 +26,7 @@
             android:theme="@style/Theme.Photon.BaseApp"
             tools:targetApi="q">
         <activity
-                android:name=".ui.SettingsActivity"
+                android:name=".ui.settings.SettingsActivity"
                 android:theme="@style/Theme.Photon.SettingsActivity"/>
         <activity
                 android:name=".ui.SplashActivity"
@@ -39,7 +39,7 @@
         </activity>
 
         <activity
-                android:name=".ui.MainActivity"
+                android:name=".ui.camera.CameraActivity"
                 android:configChanges="orientation|keyboardHidden|screenSize"/>
 
         <activity android:name=".gallery.GalleryActivity"/>

@@ -9,8 +9,9 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Rational;
 
-import com.eszdman.photoncamera.Parameters.ExposureIndex;
+import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.lang.reflect.Field;
 

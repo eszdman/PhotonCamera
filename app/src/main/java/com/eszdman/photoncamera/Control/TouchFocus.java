@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 
 import android.annotation.SuppressLint;
 import android.graphics.Point;
@@ -12,10 +12,10 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.ImageView;
 
-import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 public class TouchFocus {
     protected final String TAG = "TouchFocus";
@@ -25,9 +25,9 @@ public class TouchFocus {
     AutoFitTextureView preview;
     @SuppressLint("ClickableViewAccessibility")
     public void ReInit(){
-        focusEl = PhotonCamera.getMainActivity().findViewById(R.id.touchFocus);
+        focusEl = PhotonCamera.getCameraActivity().findViewById(R.id.touchFocus);
         focusEl.setOnTouchListener(focusListener);
-        preview = PhotonCamera.getMainActivity().findViewById(R.id.texture);
+        preview = PhotonCamera.getCameraActivity().findViewById(R.id.texture);
     }
 
     final OnTouchListener focusListener = new OnTouchListener() {
