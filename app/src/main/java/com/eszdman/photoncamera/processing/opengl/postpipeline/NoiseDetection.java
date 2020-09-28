@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
+package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;

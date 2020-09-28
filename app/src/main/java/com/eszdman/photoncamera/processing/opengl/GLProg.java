@@ -1,14 +1,21 @@
 package com.eszdman.photoncamera.processing.opengl;
 
+import android.graphics.Point;
 import android.opengl.GLES30;
 import android.util.Log;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static android.opengl.GLES20.GL_FLOAT;
+import static android.opengl.GLES20.GL_RGBA;
+import static android.opengl.GLES20.glGetError;
+import static android.opengl.GLES20.glReadPixels;
 import static android.opengl.GLES30.GL_FRAGMENT_SHADER;
+import static android.opengl.GLES30.GL_RGBA_INTEGER;
 import static android.opengl.GLES30.GL_TEXTURE0;
 import static android.opengl.GLES30.glGetAttribLocation;
 import static android.opengl.GLES30.glGetUniformLocation;
@@ -47,6 +54,7 @@ import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.c
 
 public class GLProg implements AutoCloseable  {
     private static final String TAG = "GLProgram";
+    private final ByteBuffer mFlushBuffer = ByteBuffer.allocateDirect(4 * 4 * 4096);
     private final List<Integer> mPrograms = new ArrayList<>();
     private final int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
@@ -61,6 +69,7 @@ public class GLProg implements AutoCloseable  {
             "}\n";
     public GLProg() {
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+        mFlushBuffer.mark();
     }
     public void useProgram(int fragmentRes) {
         int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
@@ -159,6 +168,36 @@ public class GLProg implements AutoCloseable  {
             draw();
         }
     }
+    public void drawBlocks(GLTexture texture, int bh) {
+        drawBlocks(texture, bh, false);
+    }
+    public void drawBlocks(GLTexture texture, int bh, boolean forceFlush) {
+        texture.BufferLoad();
+        drawBlocks(texture.mSize.x, texture.mSize.y, bh, -1, forceFlush ? texture.mFormat.mFormat.mID : -1);
+    }
+    public void drawBlocks(int w, int h, int bh, int flushFormat, int flushType) {
+        mFlushBuffer.reset();
+        if (flushFormat == -1) {
+            flushFormat = flushType == GL_FLOAT ? GL_RGBA : GL_RGBA_INTEGER;
+        }
+
+        GLBlockDivider divider = new GLBlockDivider(h, bh);
+        int[] row = new int[2];
+        while (divider.nextBlock(row)) {
+            glViewport(0, row[0], w, row[1]);
+            mSquare.draw(vPosition());
+
+            // Force flush.
+            glFlush();
+            if (flushType != -1) {
+                glReadPixels(0, row[0], 1, 1, flushFormat, flushType, mFlushBuffer);
+                int glError = glGetError();
+                if (glError != 0) {
+                    Log.d("GLPrograms", "GLError: " + glError);
+                }
+            }
+        }
+    }
 
     @SuppressWarnings("ConstantConditions")
     public void setTexture(String var, GLTexture tex) {
@@ -182,6 +221,9 @@ public class GLProg implements AutoCloseable  {
             case 4: glUniform4i(addr, vars[0], vars[1], vars[2], vars[3]); break;
             default: throw new RuntimeException("Wrong var size " + name);
         }
+    }
+    public void setvar(String name, Point in){
+        setvar(name,in.x,in.y);
     }
     public void setvar(String name, float ...vars){
         int addr = glGetUniformLocation(mCurrentProgramActive,name);

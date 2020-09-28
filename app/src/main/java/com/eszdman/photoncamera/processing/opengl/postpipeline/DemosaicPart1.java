@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
+package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
@@ -7,8 +7,8 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
-public class MonoDemosaic extends Node {
-    public MonoDemosaic(int rid, String name) {
+public class DemosaicPart1 extends Node {
+    public DemosaicPart1(int rid, String name) {
         super(rid, name);
     }
     @Override
@@ -21,6 +21,9 @@ public class MonoDemosaic extends Node {
         glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),postPipeline.stackFrame);
         glProg.setTexture("RawBuffer",glTexture);
         glProg.setvar("WhiteLevel",params.whitelevel);
-        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
+        glProg.setvar("CfaPattern",params.cfaPattern);
+        //glProg.servar("RawSizeX",params.rawSize.x);
+        //glProg.servar("RawSizeY",params.rawSize.y);
+        super.WorkingTexture = new GLTexture(params.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
     }
 }

@@ -31,6 +31,9 @@ public class GLTexture implements AutoCloseable {
     public final int mGLFormat;
     public final int mTextureID;
     public final GLFormat mFormat;
+    public GLTexture(int sizex,int sizey,GLFormat glFormat, Buffer pixels){
+        this(new Point(sizex,sizey),glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
+    }
     public GLTexture(Point size,GLFormat glFormat, Buffer pixels){
         this(size,glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
     }
@@ -51,7 +54,7 @@ public class GLTexture implements AutoCloseable {
         checkEglError("Tex glTexParameteri");
     }
 
-    void BufferLoad(){
+    public void BufferLoad(){
         int[] frameBuffer = new int[1];
         glGenFramebuffers(1, frameBuffer, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer[0]);
@@ -59,7 +62,7 @@ public class GLTexture implements AutoCloseable {
         glViewport(0, 0, mSize.x,mSize.y);
         checkEglError("Tex BufferLoad");
     }
-    void bind(int slot) {
+    public void bind(int slot) {
         glActiveTexture(slot);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         checkEglError("Tex bind");

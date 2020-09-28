@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.rawpipeline;
+package com.eszdman.photoncamera.processing.opengl.rawpipeline;
 
 import android.graphics.Point;
 import android.util.Log;

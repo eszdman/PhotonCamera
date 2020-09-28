@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
+package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Point;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;

@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
+package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Point;
 
@@ -8,7 +8,6 @@ import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;

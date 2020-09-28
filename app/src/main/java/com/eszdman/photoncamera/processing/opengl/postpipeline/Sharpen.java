@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.processing.opengl.nodes.postpipeline;
+package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
