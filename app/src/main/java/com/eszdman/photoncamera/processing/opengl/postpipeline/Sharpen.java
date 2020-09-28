@@ -26,7 +26,7 @@ public class Sharpen extends Node {
         sharpnessLevel = Math.min(1.5f, sharpnessLevel);
         Log.d("PostNode:"+Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setvar("size", sharpnessLevel);
-        glProg.setvar("strength", (float) PreferenceKeys.getSharpnessValue());
+        glProg.setvar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
         super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize,Previous.WorkingTexture.mFormat,null);
     }

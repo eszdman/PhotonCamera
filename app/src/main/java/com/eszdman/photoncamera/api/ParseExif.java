@@ -68,7 +68,7 @@ public class ParseExif {
         Log.d(TAG, "sensivity:"+isonum);
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
         inter.setAttribute(TAG_F_NUMBER,resultget(result,LENS_APERTURE));
-        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * (double)Double.parseDouble(resultget(result,LENS_FOCAL_LENGTH))))+"/100");
+        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * Double.parseDouble(resultget(result,LENS_FOCAL_LENGTH))))+"/100");
         //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,String.valueOf(result.get(LENS_APERTURE)));
