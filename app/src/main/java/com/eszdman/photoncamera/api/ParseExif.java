@@ -8,7 +8,8 @@ import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
-import com.eszdman.photoncamera.Parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -40,10 +41,10 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = Interface.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getGravity().getCameraRotation();
         String TAG = "ParseExif";
-        Log.d(TAG,"Gravity rotation:"+Interface.getGravity().getRotation());
-        Log.d(TAG,"Sensor rotation:"+Interface.getCameraFragment().mSensorOrientation);
+        Log.d(TAG,"Gravity rotation:"+ PhotonCamera.getGravity().getRotation());
+        Log.d(TAG,"Sensor rotation:"+ PhotonCamera.getCameraFragment().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:
@@ -67,7 +68,7 @@ public class ParseExif {
         Log.d(TAG, "sensivity:"+isonum);
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
         inter.setAttribute(TAG_F_NUMBER,resultget(result,LENS_APERTURE));
-        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * (double)Double.parseDouble(resultget(result,LENS_FOCAL_LENGTH))))+"/100");
+        inter.setAttribute(TAG_FOCAL_LENGTH,((int)(100 * Double.parseDouble(resultget(result,LENS_FOCAL_LENGTH))))+"/100");
         //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());
         inter.setAttribute(TAG_COPYRIGHT,"PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE,String.valueOf(result.get(LENS_APERTURE)));
@@ -78,12 +79,12 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION,"0231");
         String version = "";
         try {
-            PackageInfo pInfo = Interface.getMainActivity().getPackageManager().getPackageInfo(Interface.getMainActivity().getPackageName(), 0);
+            PackageInfo pInfo = PhotonCamera.getCameraActivity().getPackageManager().getPackageInfo(PhotonCamera.getCameraActivity().getPackageName(), 0);
             version = pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        inter.setAttribute(TAG_IMAGE_DESCRIPTION,Interface.getParameters().toString()+
+        inter.setAttribute(TAG_IMAGE_DESCRIPTION, PhotonCamera.getParameters().toString()+
                 "\n"+"Version:" + version);
         return inter;
     }

@@ -1,5 +1,4 @@
-package com.eszdman.photoncamera.Control;
-import android.annotation.SuppressLint;
+package com.eszdman.photoncamera.control;
 import android.graphics.RectF;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
@@ -15,9 +14,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
-import com.eszdman.photoncamera.api.Interface;
-
-import java.util.logging.Handler;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 public class Swipe {
     private static final String TAG = "Swipe";
@@ -27,11 +24,10 @@ public class Swipe {
     private static int arrowState;
     Animation slideUp;
     Animation slideDown;
-    @SuppressLint("ClickableViewAccessibility")
-    public void RunDetection(){
+    public void init(){
         Log.d(TAG,"SwipeDetection - ON");
-        manualmode = Interface.getMainActivity().findViewById(R.id.manual_mode);
-        ocmanual = Interface.getMainActivity().findViewById(R.id.open_close_manual);
+        manualmode = PhotonCamera.getCameraActivity().findViewById(R.id.manual_mode);
+        ocmanual = PhotonCamera.getCameraActivity().findViewById(R.id.open_close_manual);
         ocmanual.setOnClickListener((v) -> {
             if (arrowState == 0) {
                 SwipeUp();
@@ -41,9 +37,9 @@ public class Swipe {
                 Log.d(TAG, "Arrow Clicked:SwipeDown");
             }
         });
-        slideUp = AnimationUtils.loadAnimation(Interface.getMainActivity(), R.anim.slide_up);
-        slideDown = AnimationUtils.loadAnimation(Interface.getMainActivity(), R.anim.animate_slide_down_exit);
-        gestureDetector = new GestureDetector(Interface.getMainActivity(), new GestureDetector.SimpleOnGestureListener() {
+        slideUp = AnimationUtils.loadAnimation(PhotonCamera.getCameraActivity(), R.anim.slide_up);
+        slideDown = AnimationUtils.loadAnimation(PhotonCamera.getCameraActivity(), R.anim.animate_slide_down_exit);
+        gestureDetector = new GestureDetector(PhotonCamera.getCameraActivity(), new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
             @Override
@@ -86,7 +82,7 @@ public class Swipe {
             }
         });
         View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
-        View holder = Interface.getMainActivity().findViewById(R.id.textureHolder);
+        View holder = PhotonCamera.getCameraActivity().findViewById(R.id.textureHolder);
         Log.d(TAG,"input:"+holder);
         if(holder != null) holder.setOnTouchListener(touchListener);
     }
@@ -95,8 +91,8 @@ public class Swipe {
     {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
-        ConstraintLayout camera_container = Interface.getMainActivity().findViewById(R.id.camera_container);
-        ConstraintLayout layout_viewfinder = Interface.getMainActivity().findViewById(R.id.layout_viewfinder);
+        ConstraintLayout camera_container = PhotonCamera.getCameraActivity().findViewById(R.id.camera_container);
+        ConstraintLayout layout_viewfinder = PhotonCamera.getCameraActivity().findViewById(R.id.layout_viewfinder);
         RectF viewfinderRect = new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container
@@ -107,33 +103,33 @@ public class Swipe {
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            if (Interface.getManualMode().getCurrentFocusValue() == -1.0)
-                Interface.getTouchFocus().processTochToFocus(translateX,translateY);
+            if (PhotonCamera.getManualMode().getCurrentFocusValue() == -1.0)
+                PhotonCamera.getTouchFocus().processTochToFocus(translateX,translateY);
         }
     }
 
     public void SwipeUp(){
-        if(!Interface.getSettings().ManualMode) {
+        if(!PhotonCamera.getSettings().ManualMode) {
             manualmode.startAnimation(slideUp);
-            Interface.getSettings().ManualMode = true;
+            PhotonCamera.getSettings().ManualMode = true;
             ocmanual.animate().rotation(180).setDuration(250).start();
         }
-        Interface.getCameraFragment().rebuildPreview();
+        PhotonCamera.getCameraFragment().rebuildPreview();
         manualmode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
     public void SwipeDown(){
-        if(Interface.getSettings().ManualMode) {
+        if(PhotonCamera.getSettings().ManualMode) {
             manualmode.startAnimation(slideDown);
             ocmanual.animate().rotation(0).setDuration(250).start();
         }
-        Interface.getSettings().ManualMode = false;
+        PhotonCamera.getSettings().ManualMode = false;
 
-        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,Interface.getSettings().aeModeOn);
-        CameraReflectionApi.set(Interface.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE,Interface.getSettings().afMode);
-        Interface.getCameraFragment().rebuildPreview();
+        CameraReflectionApi.set(PhotonCamera.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
+        CameraReflectionApi.set(PhotonCamera.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
+        PhotonCamera.getCameraFragment().rebuildPreview();
         manualmode.setVisibility(View.GONE);
-        Interface.getManualMode().retractAllKnobs();
+        PhotonCamera.getManualMode().retractAllKnobs();
         arrowState ^= 1;
     }
     public void SwipeRight(){

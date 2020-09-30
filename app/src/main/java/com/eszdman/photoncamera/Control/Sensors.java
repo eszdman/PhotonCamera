@@ -1,12 +1,9 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 
-import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-
-import com.eszdman.photoncamera.api.Interface;
 
 public class Sensors {
     private static final String TAG = "Gyroscope";
@@ -14,14 +11,14 @@ public class Sensors {
     private final Sensor mGyroSensor;
     public float[] mAngles;
 
-    public Sensors() {
-        mSensorManager = (SensorManager) Interface.getMainActivity().getSystemService(Context.SENSOR_SERVICE);
+    public Sensors(SensorManager sensorManager) {
+        mSensorManager = sensorManager;
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
     }
-    public void run(){
+    public void register(){
         mSensorManager.registerListener(mGravityTracker,mGyroSensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
-    public void stop(){
+    public void unregister(){
         if(mAngles != null)
         mAngles = mAngles.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGyroSensor);

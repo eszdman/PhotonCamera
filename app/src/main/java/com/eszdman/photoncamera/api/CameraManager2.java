@@ -1,103 +1,142 @@
 package com.eszdman.photoncamera.api;
 
-import android.content.SharedPreferences;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+import androidx.core.util.Pair;
+import com.eszdman.photoncamera.settings.SettingsManager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-import static android.content.Context.MODE_PRIVATE;
-
-public class CameraManager2 {
+/**
+ * Responsible for Scanning all Camera IDs on a Device and Storing them in SharedPreferences as a {@link Set<String>}
+ */
+public final class CameraManager2 {
     private static final String TAG = "CameraManager2";
-    public static CameraManager2 cameraManager2;
-    private final CameraManager manager;
-    private final SharedPreferences sharedPreferences;
-    public boolean supportFrontCamera = false;
-    public Set<String> mCameraIDs = new HashSet<>();
-    //public String[] mCameras;
-    public CameraManager2(CameraManager manag) {
-        cameraManager2 = this;
-        manager = manag;
-        sharedPreferences = Interface.getMainActivity().getPreferences(MODE_PRIVATE);
-        if(!sharedPreferences.getBoolean("GotAux",false)){
-            getCameraId();
+    private static final String PREFERENCE_FILE_NAME = "_cameras";
+    private static final String ALL_CAMERA_IDS_KEY = "all_camera_ids";
+    private static final String FRONT_IDS_KEY = "front_camera_ids";
+    private static final String BACK_IDS_KEY = "back_camera_ids";
+    private static final String CAMERA_COUNT_KEY = "all_camera_count";
+
+    private final SettingsManager mSettingsManager;
+    private final Map<String, Pair<Float, Float>> mFocalLengthAperturePairList = new LinkedHashMap<>();
+    private Set<String> mAllCameraIDs = new LinkedHashSet<>();
+    private Set<String> mFrontIDs = new LinkedHashSet<>();
+    private Set<String> mBackIDs = new LinkedHashSet<>();
+
+    /**
+     * Initialise this class.
+     *
+     * @param cameraManager   {@link CameraManager} instance from {@link android.content.Context#CAMERA_SERVICE}
+     * @param settingsManager {@link SettingsManager}
+     */
+    public CameraManager2(CameraManager cameraManager, SettingsManager settingsManager) {
+        this.mSettingsManager = settingsManager;
+        init(cameraManager);
+    }
+
+    private void init(CameraManager cameraManager) {
+        if (!mSettingsManager.isSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY)) {
+            scanAllCameras(cameraManager);
             save();
         } else {
-            mCameraIDs = sharedPreferences.getStringSet("Cameras",null);
+            mAllCameraIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, null);
+            mFrontIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, null);
+            mBackIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, BACK_IDS_KEY, null);
         }
     }
-    public String[] getCameraIdList(){
-        String[] arr = mCameraIDs.toArray(new String[0]);
-        int[] idarr = new int[arr.length];
-        for(int i =0; i<arr.length;i++) {
-            idarr[i] = Integer.parseInt(arr[i]);
-            if(idarr[i] == 1) supportFrontCamera = true;
+
+    private void scanAllCameras(CameraManager cameraManager) {
+        for (int num = 0; num < 121; num++) {
+            CameraCharacteristics cameraCharacteristics;
+            try {
+                cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+                log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
+                float[] focalLength = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                float[] aperture = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+                if (focalLength != null && aperture != null) {
+                    Pair<Float, Float> focalAperturePair = new Pair<>(focalLength[0], aperture[0]);
+                    if (!getBit(6, num) && !mFocalLengthAperturePairList.containsValue(focalAperturePair)) {
+                        mFocalLengthAperturePairList.put(String.valueOf(num), focalAperturePair);
+                        mAllCameraIDs.add(String.valueOf(num));
+                        fillBackFrontLists(cameraCharacteristics.get(CameraCharacteristics.LENS_FACING), String.valueOf(num));
+                    }
+                }
+            } catch (IllegalArgumentException ignored) {
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        Arrays.sort(idarr);
-        for(int i =0; i<arr.length;i++) {
-            arr[i] = String.valueOf(idarr[i]);
-            Log.d(TAG, "GotArray:" + arr[i]);
-        }
-        return arr;
     }
-    //Bit analyzer for AUX number
-    private boolean getBit(int pos, int val){
+
+    private void log(String msg) {
+        Log.d(TAG, msg);
+    }
+
+    private void fillBackFrontLists(Integer lensFacing, String id) {
+        if (lensFacing == CameraCharacteristics.LENS_FACING_FRONT)
+            mFrontIDs.add(id);
+        else if (lensFacing == CameraCharacteristics.LENS_FACING_BACK)
+            mBackIDs.add(id);
+    }
+
+    private void save() {
+        mSettingsManager.set(PREFERENCE_FILE_NAME, CAMERA_COUNT_KEY, mAllCameraIDs.size());
+        mSettingsManager.set(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
+        mSettingsManager.set(PREFERENCE_FILE_NAME, BACK_IDS_KEY, mBackIDs);
+        mSettingsManager.set(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, mFrontIDs);
+    }
+
+    //Getters===========================================================================================================
+
+    /**
+     * @return the list of scanned Camera IDs
+     */
+    public String[] getCameraIdList() {
+        log("CameraCount:" + mAllCameraIDs.size()
+                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
+        return mAllCameraIDs.toArray(new String[0]);
+    }
+
+    /**
+     * @return the list of scanned Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getCameraIDsSet() {
+        log("CameraCount:" + mAllCameraIDs.size()
+                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
+        return mAllCameraIDs;
+    }
+
+    /**
+     * @return the list of scanned Front Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getFrontIDsSet() {
+        log("FrontCamerasCount:" + mFrontIDs.size()
+                + ", FrontCameraIDs:" + Arrays.toString(mFrontIDs.toArray(new String[0])));
+        return mFrontIDs;
+    }
+
+    /**
+     * @return the list of scanned Back Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getBackIDsSet() {
+        log("BackCamerasCount:" + mBackIDs.size()
+                + ", BackCameraIDs:" + Arrays.toString(mBackIDs.toArray(new String[0])));
+        return mBackIDs;
+    }
+
+    //Bit analyzer for AUX number=======================================================================================
+
+    private boolean getBit(int pos, int val) {
         return ((val >> (pos - 1)) & 1) == 1;
     }
-    private boolean checkCaps(String caps, ArrayList<String> capsarr){
-        boolean same = false;
-        if(capsarr.size() != 0)
-        for(String capsin : capsarr){
-            if (capsin.equals(caps)) {
-                same = true;
-                break;
-            }
-        }
-        return same;
-    }
-    private void getCameraId() {
-        ArrayList<String> CameraIDs = new ArrayList<>();
-        ArrayList<String> Caps = new ArrayList<>();
-        for(int i =0; i<121;i++){
-            CameraIDs.add(String.valueOf(i));
-        }
-        try {
-            for (String nextId : CameraIDs) {
-                CameraCharacteristics cameraCharacteristics;
-                try {
-                    cameraCharacteristics = manager.getCameraCharacteristics(nextId);
-                    int id = Integer.parseInt(nextId);
-                    Log.d(TAG,"Number:"+nextId+" bit 4:"+getBit(4,id)+" bit 5:"+getBit(5,id)+" bit 6:"+getBit(6,id)+ " bit 7:"+ getBit(7,id)+" bit 8:"+ getBit(8,id));
-                    float[] flen = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-                    float[] aper = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
-                    String caps = "";
-                    if(flen != null){
-                        caps+=(String.valueOf(flen[0]));
-                    }
-                    if(aper != null){
-                        caps+=(String.valueOf(aper[0]));
-                    }
-                    Log.d(TAG,"Caps:"+caps);
-                    if((id == 0 || id == 1 || !getBit(6,id)) && !checkCaps(caps,Caps)){
-                        Caps.add(caps);
-                        mCameraIDs.add(nextId);
-                    }
 
-                } catch(Exception ignored){}
-            }
-        } catch(Exception ignored){}
-        mCameraIDs.toArray();
-    }
-
-    void save() {
-        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-        sharedPreferencesEditor.putBoolean("GotAux", true);
-        sharedPreferencesEditor.putStringSet("Cameras",mCameraIDs);
-        sharedPreferencesEditor.apply();
+    private String intToReverseBinary(int num) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 8; i++) {
+            sb.append(getBit(i, num) ? "1" : "0");
+        }
+        return sb.toString();
     }
 }

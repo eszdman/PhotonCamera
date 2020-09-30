@@ -6,14 +6,13 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import android.util.Rational;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
 import com.manual.ShadowTextDrawable;
 
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class ShutterModel extends ManualModel<Long> {
 
@@ -60,9 +59,9 @@ public class ShutterModel extends ManualModel<Long> {
         while (tick < candidates.size()) {
             boolean isLastItem = tick == candidates.size() - 1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
+            drawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
+            drawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
             if (tick % preferredIntervalCount == 0 || isLastItem) {
                 String text = candidates.get(tick);
                 drawable.setText(text);
@@ -77,11 +76,11 @@ public class ShutterModel extends ManualModel<Long> {
             tick++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
+        int angleMax = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), Interface.getMainActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override
@@ -93,21 +92,21 @@ public class ShutterModel extends ManualModel<Long> {
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
         try {
-            Interface.getCameraFragment().mCaptureSession.abortCaptures();
+            PhotonCamera.getCameraFragment().mCaptureSession.abortCaptures();
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
-            if (Interface.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
+            if (PhotonCamera.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             Range<Long> clampedRange = new Range<>(1000000L, 100000000L); //clamped between 1/1000s to 1/10s
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, clampedRange.clamp((long) (knobItemInfo.value)));
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, Interface.getCameraFragment().mPreviewIso);
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, PhotonCamera.getCameraFragment().mPreviewIso);
         }
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);
     }
 

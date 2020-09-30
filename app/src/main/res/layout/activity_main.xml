@@ -32,95 +32,95 @@
 
         <!--    Block 1.1-->
         <!--    includes the Layout resource of ViewFinder-->
-        <include layout="@layout/layout_main_viewfinder"
-                 android:id="@+id/layout_viewfinder"
-                 android:layout_width="0dp"
-                 android:layout_height="wrap_content"
-                 app:layout_constraintStart_toStartOf="parent"
-                 app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintTop_toTopOf="parent"
-                 tools:visibility="visible"
-                 app:layout_constraintHorizontal_bias="0.0">
+        <include
+                layout="@layout/layout_main_viewfinder"
+                android:id="@+id/layout_viewfinder"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible"
+                app:layout_constraintHorizontal_bias="0.0">
         </include>
 
         <!--    Block 1.2-->
         <!--    includes the Layout resource of BottomBar-->
-        <include layout="@layout/layout_main_bottombar"
-                 android:id="@+id/layout_bottombar"
-                 android:layout_width="0dp"
-                 android:layout_height="wrap_content"
-                 app:layout_constraintStart_toStartOf="parent"
-                 app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintBottom_toBottomOf="parent"
-                 app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
-                 app:layout_constraintVertical_bias="0.0"
-        >
+        <include
+                layout="@layout/layout_main_bottombar"
+                android:id="@+id/layout_bottombar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
+                app:layout_constraintVertical_bias="0.0"
+                >
         </include>
-
         <!--    Block 1.3-->
-        <!--   includes the Layout resource of Manual Mode palette-->
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            app:layout_constraintBottom_toTopOf="@+id/open_close_manual"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.496"
-            app:layout_constraintStart_toStartOf="parent">
-
-            <RadioGroup
-                android:id="@+id/auxButtons"
+        <!--   includes the Layout resource of Aux Buttons palette-->
+        <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                app:layout_constraintBottom_toBottomOf="parent"
+                android:id="@+id/aux_buttons_container"
+                app:layout_constraintBottom_toTopOf="@+id/manual_mode"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="1"
+                app:layout_constraintVertical_bias="0.9"
+                android:layout_marginEnd="@dimen/aux_button_padding"
+                app:layout_constraintStart_toStartOf="parent">
+        </FrameLayout>
+        <!--    Block 1.4-->
+        <!--   includes the Layout resource of Manual Mode palette-->
+        <include
+                layout="@layout/layout_main_manualbar"
+                android:id="@+id/manual_mode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <include layout="@layout/layout_main_manualbar"
-                 android:id="@+id/manual_mode"
-                 android:layout_width="0dp"
-                 android:layout_height="wrap_content"
-                 app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
-                 app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintStart_toStartOf="parent"
-                 tools:visibility="visible"
-        >
+                tools:visibility="visible"
+                >
         </include>
 
-        <!--    Block 1.4-->
+        <!--    Block 1.5-->
         <!--Arrow-->
         <ImageView
-            android:id="@+id/open_close_manual"
-            android:layout_width="@dimen/arrow_size"
-            android:layout_height="@dimen/arrow_size"
-            android:background="@drawable/chevron_up"
-            android:contentDescription="Arrow"
-            android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+                android:id="@+id/open_close_manual"
+                android:layout_width="@dimen/arrow_size"
+                android:layout_height="@dimen/arrow_size"
+                android:background="@drawable/chevron_up"
+                android:contentDescription="Arrow"
+                android:visibility="visible"
+                app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!--    Block 2-->
     <!--    includes the Layout resource of TopBar-->
-    <include layout="@layout/layout_main_topbar"
-             android:id="@+id/layout_topbar"
-             android:layout_width="0dp"
-             android:layout_height="wrap_content"
-             app:layout_constraintStart_toStartOf="parent"
-             app:layout_constraintEnd_toEndOf="parent"
-             app:layout_constraintTop_toTopOf="parent"
-    >
+    <include
+            layout="@layout/layout_main_topbar"
+            android:id="@+id/layout_topbar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            >
     </include>
-    <include layout="@layout/screen_log"
-             android:id="@+id/screen_log"
-             android:layout_width="0dp"
-             android:layout_height="wrap_content"
-             app:layout_constraintStart_toStartOf="parent"
-             app:layout_constraintEnd_toEndOf="parent"
-             app:layout_constraintTop_toBottomOf="@id/layout_topbar">
+
+    <include
+            layout="@layout/screen_log"
+            android:id="@+id/screen_log"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_topbar">
     </include>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

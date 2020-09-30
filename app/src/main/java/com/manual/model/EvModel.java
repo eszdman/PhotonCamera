@@ -6,8 +6,8 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.CameraFragment;
-import com.eszdman.photoncamera.api.Interface;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
@@ -56,9 +56,9 @@ public class EvModel extends ManualModel<Float> {
             float value = values.get(tick);
             if (!isZero(value)) {
                 ShadowTextDrawable drawable = new ShadowTextDrawable();
-                drawable.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobText);
+                drawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
                 ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-                drawableSelected.setTextAppearance(Interface.getMainActivity(), R.style.ManualModeKnobTextSelected);
+                drawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
                 if (isInteger(value)) {
                     String valueStr = String.valueOf((int) value);
                     if (value > 0.0f) {
@@ -78,8 +78,8 @@ public class EvModel extends ManualModel<Float> {
                 }
             }
         }
-        int angle = Interface.getMainActivity().getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -negtiveValueCount, positiveValueCount, Interface.getMainActivity().getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
+        int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
+        knobInfo = new KnobInfo(-angle, angle, -negtiveValueCount, positiveValueCount, PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
 
     @Override
@@ -90,9 +90,9 @@ public class EvModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
         builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo.text);
     }
 

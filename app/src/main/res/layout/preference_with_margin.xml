@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:gravity="top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?android:listPreferredItemHeight"
+        android:paddingEnd="?android:scrollbarSize"
+        android:paddingStart="?android:scrollbarSize"
+>
+    <ImageView
+            android:layout_gravity="center_vertical"
+            android:id="@android:id/icon"
+            android:layout_width="@dimen/camera_settings_icon_size"
+            android:layout_height="@dimen/camera_settings_icon_size"
+            tools:src="@drawable/ic_focus"
+            android:layout_marginStart="@dimen/camera_settings_entry_margin"
+            android:contentDescription="@string/icon_string"/>
+    <RelativeLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/camera_settings_entry_margin"
+            android:layout_marginBottom="@dimen/camera_settings_entry_margin"
+            android:layout_weight="1.0"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/camera_settings_icon_size"
+            android:layout_marginEnd="@dimen/camera_settings_icon_size">
+        <TextView
+                android:textSize="@dimen/camera_settings_preference_font_size"
+                android:ellipsize="marquee"
+                android:id="@android:id/title"
+                android:fadingEdge="horizontal"
+                tools:text="Preference Title"
+                android:textColor="?android:textColorPrimary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        <TextView
+                android:textAppearance="?android:textAppearanceSmall"
+                android:textColor="?android:textColorSecondary"
+                android:id="@android:id/summary"
+                android:layout_width="wrap_content"
+                tools:text="Preference Description"
+                android:layout_height="wrap_content"
+                android:layout_below="@android:id/title"
+                android:layout_alignStart="@android:id/title"/>
+    </RelativeLayout>
+    <LinearLayout
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:id="@android:id/widget_frame"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingEnd="@dimen/camera_settings_entry_margin"
+            android:paddingStart="?android:scrollbarSize"/>
+</LinearLayout>

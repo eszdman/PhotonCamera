@@ -1,4 +1,4 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 
 import android.annotation.SuppressLint;
 import android.graphics.Point;
@@ -12,10 +12,10 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.ImageView;
 
-import com.eszdman.photoncamera.AutoFitTextureView;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Interface;
-import com.eszdman.photoncamera.api.CameraFragment;
+import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 public class TouchFocus {
     protected final String TAG = "TouchFocus";
@@ -25,9 +25,9 @@ public class TouchFocus {
     AutoFitTextureView preview;
     @SuppressLint("ClickableViewAccessibility")
     public void ReInit(){
-        focusEl = Interface.getMainActivity().findViewById(R.id.touchFocus);
+        focusEl = PhotonCamera.getCameraActivity().findViewById(R.id.touchFocus);
         focusEl.setOnTouchListener(focusListener);
-        preview = Interface.getMainActivity().findViewById(R.id.texture);
+        preview = PhotonCamera.getCameraActivity().findViewById(R.id.texture);
     }
 
     final OnTouchListener focusListener = new OnTouchListener() {
@@ -56,18 +56,18 @@ public class TouchFocus {
         focusEl.setY(fy-focusEl.getMeasuredHeight()/2.0f);
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int)fy,(int)fx);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
     }
     public void setInitialAFAE(){
-        CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
-        build.set(CaptureRequest.CONTROL_AF_REGIONS,Interface.getSettings().initialAF);
-        build.set(CaptureRequest.CONTROL_AE_REGIONS,Interface.getSettings().initialAE);
-        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
+        CaptureRequest.Builder build = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
+        build.set(CaptureRequest.CONTROL_AF_REGIONS, PhotonCamera.getSettings().initialAF);
+        build.set(CaptureRequest.CONTROL_AE_REGIONS, PhotonCamera.getSettings().initialAE);
+        build.set(CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
         build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
-        Interface.getCameraFragment().rebuildPreviewBuilder();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
     }
     public void setFocus(int x, int y){
-        Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
+        Point size = new Point(PhotonCamera.getCameraFragment().mImageReaderPreview.getWidth(), PhotonCamera.getCameraFragment().mImageReaderPreview.getHeight());
         Point CurUi = getMax();
         Rect sizee = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if(sizee == null){
@@ -105,11 +105,11 @@ public class TouchFocus {
                 "scale x/y:" + x_scale+"/"+y_scale+"\n"+
                 "final rect :" + rect_to_set.toString());
         rectaf[0] = rect_to_set;
-        CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder build = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
         build.set(CaptureRequest.CONTROL_AF_REGIONS,rectaf);
         build.set(CaptureRequest.CONTROL_AE_REGIONS,rectaf);
         build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
+        build.set(CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
         build.set(CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_ON);
         //set focus area repeating,else cam forget after one frame where it should focus
         //Interface.getCameraFragment().rebuildPreviewBuilder();
@@ -117,11 +117,11 @@ public class TouchFocus {
         if(onConfigured){
         build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-        Interface.getCameraFragment().rebuildPreviewBuilderOneShot();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
         build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-        Interface.getCameraFragment().rebuildPreviewBuilderOneShot();
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
         }
     }
     public Point getMax(){
