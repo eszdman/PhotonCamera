@@ -48,7 +48,13 @@ public class ImageSaver implements Runnable {
     public void run() {
         startProcessingThread();
         processingHandler = new Handler(processingThread.getLooper(), msg -> {
-            initProcess((ImageReader) msg.obj);
+            try {
+                initProcess((ImageReader) msg.obj);
+            } catch (Exception e) {
+                Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
+                processingEventsListener.onErrorOccured(ProcessingEventsListener.FAILED_MSG);
+                e.printStackTrace();
+            }
             return true;
         });
     }

@@ -1567,6 +1567,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             getActivity().runOnUiThread(() -> mCameraUIView.setGalleryButtonImage(getLastImage()));
     }
 
+    @Override
+    public void onErrorOccured(Object obj) {
+        if (obj instanceof String)
+            showToast((String)obj);
+        onProcessingFinished("Unexpectedly");
+    }
+
     public void unlimitedEnd() {
         mImageProcessing.unlimitedEnd();
     }

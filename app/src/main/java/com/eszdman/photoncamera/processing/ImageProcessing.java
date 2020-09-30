@@ -55,15 +55,21 @@ public class ImageProcessing {
      * based on image type
      */
     public void Run() {
-        Camera2ApiAutoFix.ApplyRes();
-        processingEventsListener.onProcessingStarted(null);
-        if (isRaw) {
-            ApplyHdrX();
+        try {
+            Camera2ApiAutoFix.ApplyRes();
+            processingEventsListener.onProcessingStarted(null);
+            if (isRaw) {
+                ApplyHdrX();
+            }
+            if (isYuv) {
+                ApplyStabilization();
+            }
+            processingEventsListener.onProcessingFinished(null);
+        } catch (Exception e) {
+            Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
+            e.printStackTrace();
+            processingEventsListener.onErrorOccured(ProcessingEventsListener.FAILED_MSG);
         }
-        if (isYuv) {
-            ApplyStabilization();
-        }
-        processingEventsListener.onProcessingFinished(null);
     }
 
     public void unlimitedCycle(Image input) {
@@ -105,7 +111,7 @@ public class ImageProcessing {
 //        ImageSaver.triggerMediaScanner(ImageSaver.imageFileToSave);
     }
 
-    //================================================Setters================================================
+    //================================================Setters/Getters================================================
 
     public void setImageFramesToProcess(ArrayList<Image> mImageFramesToProcess) {
         this.mImageFramesToProcess = mImageFramesToProcess;
@@ -121,6 +127,10 @@ public class ImageProcessing {
 
     public void setFilePath(String filePath) {
         this.filePath = filePath;
+    }
+
+    public String getFilePath() {
+        return filePath;
     }
 
     //================================================Private Methods================================================
