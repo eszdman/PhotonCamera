@@ -84,7 +84,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     /**
      * Tag for the {@link Log}.
      */
-    private static final String TAG = "Camera2Api";
+    private static final String TAG = "CameraFragment";
     /**
      * Camera state: Showing camera preview.
      */
@@ -215,10 +215,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         @Override
         public void onImageAvailable(ImageReader reader) {
             //mImageSaver.mImage = reader.acquireNextImage();
-            //mImageSaver.Process(reader);
+            //mImageSaver.initProcess(reader);
             Message msg = new Message();
             msg.obj = reader;
-            mImageSaver.ProcessCall.sendMessage(msg);
+            mImageSaver.processingHandler.sendMessage(msg);
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
     };
@@ -231,7 +231,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             //mImageSaver.mImage = reader.acquireNextImage();
             Message msg = new Message();
             msg.obj = reader;
-            mImageSaver.ProcessCall.sendMessage(msg);
+            mImageSaver.processingHandler.sendMessage(msg);
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 
@@ -862,9 +862,12 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * Starts a background thread and its {@link Handler}.
      */
     public void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("CameraBackground");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+        if (mBackgroundThread == null) {
+            mBackgroundThread = new HandlerThread("CameraBackground");
+            mBackgroundThread.start();
+            mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+            Log.d(TAG, "startBackgroundThread() called from \"" + Thread.currentThread().getName() + "\" Thread");
+        }
         //mBackgroundHandler.post(mImageSaver);
     }
 
@@ -872,12 +875,14 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * Stops the background thread and its {@link Handler}.
      */
     private void stopBackgroundThread() {
-        if (mBackgroundThread == null) return;
+        if (mBackgroundThread == null)
+            return;
         mBackgroundThread.quitSafely();
         try {
             mBackgroundThread.join();
             mBackgroundThread = null;
             mBackgroundHandler = null;
+            Log.d(TAG, "stopBackgroundThread() called from \"" + Thread.currentThread().getName() + "\" Thread");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -889,9 +894,20 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSensors().unregister();
         PhotonCamera.getSettings().saveID();
         closeCamera();
-        stopBackgroundThread();
+//        stopBackgroundThread();
         mCustomOrientationEventListener.disable();
         super.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            stopBackgroundThread();
+            mImageSaver.stopProcessingThread();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void rebuildPreview() {
@@ -975,7 +991,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (null != mPreviewRequestBuilder) {
                 mPreviewRequestBuilder = null;
             }
-            stopBackgroundThread();
+//            stopBackgroundThread();
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
         } catch (Exception e) {
             e.printStackTrace();
@@ -1508,7 +1524,15 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             return sActiveBackCamId;
         }
     }
-
+    private void triggerMediaScanner(File imageToSave) {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        PhotonCamera.getSettings().setLastPicture(imageToSave.getAbsolutePath());
+        Uri contentUri = Uri.fromFile(imageToSave);
+//        Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
+        mediaScanIntent.setData(contentUri);
+        if (getActivity() != null)
+            getActivity().sendBroadcast(mediaScanIntent);
+    }
     @Override
     public void onProcessingStarted(Object obj) {
         if (getActivity() != null) {
@@ -1532,20 +1556,19 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     @Override
     public void onSaveImage(Object obj) {
-        if (obj instanceof File)
-            mImageSaver.SaveImg((File) obj);
     }
 
     @Override
     public void onImageSaved(Object obj) {
-        if (obj instanceof Bitmap) {
-            if (getActivity() != null)
-                getActivity().runOnUiThread(() -> mCameraUIView.setGalleryButtonImage((Bitmap) obj));
+        if (obj instanceof File) {
+            triggerMediaScanner((File) obj);
         }
+        if (getActivity() != null)
+            getActivity().runOnUiThread(() -> mCameraUIView.setGalleryButtonImage(getLastImage()));
     }
 
     public void unlimitedEnd() {
-        mImageProcessing.UnlimitedEnd();
+        mImageProcessing.unlimitedEnd();
     }
 
     void launchGallery() {
