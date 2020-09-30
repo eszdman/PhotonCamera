@@ -14,6 +14,8 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.RecommendedStreamConfigurationMap;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -39,8 +41,10 @@ import com.eszdman.photoncamera.api.capture.ZslCapture;
 import com.eszdman.photoncamera.api.session.CaptureSessionController;
 import com.eszdman.photoncamera.api.session.CaptureSessionImpl;
 import com.eszdman.photoncamera.api.session.ICaptureSession;
+import com.eszdman.photoncamera.util.LogHelper;
 
 import java.util.Comparator;
+import java.util.Map;
 
 public class CameraController implements ICamera.CameraEvents, ICaptureSession.CaptureSessionEvents, ImageCaptureResultCallback.CaptureEvents, ICameraController
 {
@@ -255,6 +259,17 @@ public class CameraController implements ICamera.CameraEvents, ICaptureSession.C
         mCameraIds = manager2.getCameraIdList();
         try {
             mCameraCharacteristics = manager.getCameraCharacteristics(Interface.getSettings().mCameraID);
+            StreamConfigurationMap m = mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            int[] inputformats = m.getInputFormats();
+            int[] outputformats =  m.getOutputFormats();
+            StringBuilder builder = new StringBuilder();
+            builder.append("InputFormats: ");
+            for (int s : inputformats)
+                builder.append(LogHelper.getImageFormat(s)).append(" ");
+            builder.append("\nOutputFormats: ");
+            for (int s : outputformats)
+                builder.append(LogHelper.getImageFormat(s)).append(" ");
+            Log.v(TAG,builder.toString());
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
