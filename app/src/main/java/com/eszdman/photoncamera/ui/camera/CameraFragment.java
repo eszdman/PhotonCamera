@@ -1535,6 +1535,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
     @Override
     public void onProcessingStarted(Object obj) {
+        log("Started: " + obj);
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> mCameraUIView.setProcessingProgressBarIndeterminate(true));
         }
@@ -1546,6 +1547,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     @Override
     public void onProcessingFinished(Object obj) {
+        log("Finished: " + obj);
         if (getActivity() != null) {
             getActivity().runOnUiThread(() -> {
                 mCameraUIView.resetProcessingProgressBar();
@@ -1561,6 +1563,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     @Override
     public void onImageSaved(Object obj) {
         if (obj instanceof File) {
+            log("Saved: "+ ((File) obj).getAbsolutePath());
             triggerMediaScanner((File) obj);
         }
         if (getActivity() != null)
@@ -1571,7 +1574,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onErrorOccured(Object obj) {
         if (obj instanceof String)
             showToast((String)obj);
-        onProcessingFinished("Unexpectedly");
+        onProcessingFinished("Processing Finished Unexpectedly!!");
     }
 
     public void unlimitedEnd() {

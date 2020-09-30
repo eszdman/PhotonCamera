@@ -125,7 +125,8 @@ public class ImageSaver implements Runnable {
                         output.write(bytes);
                         bcnt = 0;
                         mImage.close();
-                        processingEventsListener.onProcessingFinished(null);
+                        processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
+                        processingEventsListener.onImageSaved(imageFileToSave);
 //                        PhotonCamera.getCameraUI().unlockShutterButton();
                     }
                 } catch (IOException | InterruptedException e) {
@@ -164,7 +165,7 @@ public class ImageSaver implements Runnable {
                         imageBuffer = new ArrayList<>();
                         bcnt = 0;
                         //PhotonCamera.getCameraUI().unlockShutterButton();
-                        processingEventsListener.onProcessingFinished(null);
+                        processingEventsListener.onProcessingFinished("YUV: Single Frame, Not Processed!");
 
                     }
                     bcnt++;
@@ -195,7 +196,7 @@ public class ImageSaver implements Runnable {
                         mImageProcessing.setRaw(true);
                         begin(mImageProcessing);
 
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, imageFileToSave.getAbsolutePath());
+                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, mImageProcessing.getFilePath());
                         if (!PhotonCamera.getSettings().rawSaver) {
                             inter.saveAttributes();
                         }
@@ -208,13 +209,15 @@ public class ImageSaver implements Runnable {
                         Log.d(TAG, "precorr:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG, "image:" + mImage.getCropRect());
                         DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
-                        output = new FileOutputStream(new File(getCurrentDirectory(), generateNewFileName() + ".dng"));
+                        File dngFileToSave = new File(getCurrentDirectory(), generateNewFileName() + ".dng");
+                        output = new FileOutputStream(dngFileToSave);
                         dngCreator.writeImage(output, mImage);
                         imageBuffer = new ArrayList<>();
                         mImage.close();
                         output.close();
                         //PhotonCamera.getCameraUI().unlockShutterButton();
-                        processingEventsListener.onProcessingFinished(null);
+                        processingEventsListener.onProcessingFinished("RAW_SENSOR: Single Frame, Not Processed!");
+                        processingEventsListener.onImageSaved(dngFileToSave);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -252,7 +255,7 @@ public class ImageSaver implements Runnable {
         }
         imageBuffer.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
-        processingEventsListener.onProcessingFinished(null);
+        processingEventsListener.onProcessingFinished("Processing Cycle Ended!");
     }
 
     private String generateNewFileName() {

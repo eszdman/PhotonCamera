@@ -57,14 +57,14 @@ public class ImageProcessing {
     public void Run() {
         try {
             Camera2ApiAutoFix.ApplyRes();
-            processingEventsListener.onProcessingStarted(null);
+            processingEventsListener.onProcessingStarted("Multi Frames Processing Started");
             if (isRaw) {
                 ApplyHdrX();
             }
             if (isYuv) {
                 ApplyStabilization();
             }
-            processingEventsListener.onProcessingFinished(null);
+            processingEventsListener.onProcessingFinished((isRaw ? "HDRX" : isYuv ? "Stablisation" : "") + " Processing Finished Successfully");
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
