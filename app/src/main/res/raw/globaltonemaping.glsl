@@ -12,9 +12,9 @@ void main() {
     vec2 xyInterp = vec2(xy)/vec2(insize);
     vec3 lowrespix = vec3(texture(LowRes, xyInterp).rgb);
     //float weight = 1.0 + cos(avrbr*PI*1.0);
-    float absbr = 0.5 - length(lowrespix);
+    float absbr = 0.7 - length(vec4(lowrespix,(lowrespix.r+lowrespix.g+lowrespix.b)/3.0));
     if(absbr<0.0) Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*1.4),1.0);
-    else Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str),1.0);
+    else Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*0.7),1.0);
     //Output = texelFetch(InputBuffer, xy, 0)+((absbr)*str*1.4 + 0.05);
     //Output = lowrespix;
 }

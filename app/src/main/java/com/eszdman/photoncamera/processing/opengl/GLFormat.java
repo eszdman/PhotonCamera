@@ -1,4 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl;
+import android.graphics.Bitmap;
+
 import static android.opengl.GLES30.*;
 public class GLFormat {
     final int mChannels;
@@ -94,6 +96,17 @@ public class GLFormat {
                 }
         }
         return 0;
+    }
+    public Bitmap.Config getBitmapConfig(){
+        switch (mFormat) {
+            case NONE: break;
+            case FLOAT_16: return Bitmap.Config.RGBA_F16;
+            case FLOAT_32: return Bitmap.Config.HARDWARE;
+            case UNSIGNED_8: return Bitmap.Config.ARGB_8888;
+            case UNSIGNED_16:return Bitmap.Config.HARDWARE;
+            case SIGNED_8: return Bitmap.Config.ARGB_8888;
+        }
+        return Bitmap.Config.ARGB_8888;
     }
     public int getGLFormatExternal(){
         switch (mFormat) {

@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing.opengl;
 import android.graphics.Point;
 
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
@@ -18,6 +19,7 @@ import static android.opengl.GLES20.glDeleteTextures;
 import static android.opengl.GLES20.glFramebufferTexture2D;
 import static android.opengl.GLES20.glGenFramebuffers;
 import static android.opengl.GLES20.glGenTextures;
+import static android.opengl.GLES20.glReadPixels;
 import static android.opengl.GLES20.glTexImage2D;
 import static android.opengl.GLES20.glTexParameteri;
 import static android.opengl.GLES20.glViewport;
@@ -67,7 +69,11 @@ public class GLTexture implements AutoCloseable {
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         checkEglError("Tex bind");
     }
-
+    public ByteBuffer textureBuffer(){
+        ByteBuffer buffer = ByteBuffer.allocate(mSize.x*mSize.y*mFormat.mFormat.mSize*mFormat.mChannels);
+        glReadPixels(0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), mFormat.getGLType(), buffer);
+        return buffer;
+    }
     @androidx.annotation.NonNull
     @Override
     public String toString() {

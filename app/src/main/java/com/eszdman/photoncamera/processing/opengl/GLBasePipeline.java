@@ -82,7 +82,12 @@ public class GLBasePipeline implements AutoCloseable {
         Nodes.clear();
         return glint.glProc.mOutBuffer;
     }
-
+    public Bitmap getBitmap(GLTexture in){
+        glint.glProc.drawBlocksToOutput();
+        Bitmap bmp = Bitmap.createBitmap(in.mSize.x,in.mSize.y, in.mFormat.getBitmapConfig());
+        bmp.copyPixelsFromBuffer(in.textureBuffer());
+        return bmp;
+    }
     @Override
     public void close() {
         if(glint.glProc != null) glint.glProc.close();

@@ -306,6 +306,7 @@ public class AlignAndMergeNCam extends Node {
         mWeights.bind(GL_TEXTURE0 + 2 * (images.size() + 1));
         WorkingTexture = new GLTexture( mTextures.get(0).mSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);
         WorkingTexture.BufferLoad();
+        glProg.close();
     }
     @Override
     public void Run() {
@@ -317,8 +318,8 @@ public class AlignAndMergeNCam extends Node {
         //GLTexture BaseFrame88 = GaussDown44(BaseFrame22);
         //GLTexture BaseFrame3232 = GaussDown44(BaseFrame88);
         //GLTexture Output = CorrectedRaw(images.get(0));
-        for (int i = 1; i < images.size(); i++) {
-            GLTexture inputraw = CorrectedRaw(images.get(i));
+        for (int i = 1; i < 5; i++) {
+            GLTexture inputraw = CorrectedRaw(images.get(i%images.size()));
             mTextures.add(inputraw);
         }
 

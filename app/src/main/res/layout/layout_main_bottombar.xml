@@ -6,39 +6,38 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/rectangle">
+
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/updatetheme"
+        android:paddingBottom="@dimen/bottombar_padding"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+        <!--includes the Layout resource of ModeSwitcher-->
+        <include
+            android:id="@+id/mode_switcher"
+            layout="@layout/layout_modeswitcher"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/bottom_buttons"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:paddingBottom="@dimen/bottombar_padding"
-    >
-        <!--includes the Layout resource of ModeSwitcher-->
-        <include layout="@layout/layout_modeswitcher"
-                 android:id="@+id/mode_switcher"
-                 android:layout_width="0dp"
-                 android:layout_height="wrap_content"
-                 app:layout_constraintStart_toStartOf="parent"
-                 app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintBottom_toTopOf="@id/bottom_buttons"
-                 app:layout_constraintTop_toTopOf="parent"
-        >
-        </include>
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"></include>
 
         <!--includes the Layout resource of BottomBarButtons-->
-        <include layout="@layout/layout_bottombuttons"
-                 android:layout_width="0dp"
-                 android:layout_height="wrap_content"
-                 android:id="@+id/bottom_buttons"
-                 android:layout_marginTop="@dimen/bottombar_to_modeswitcher_margin"
-                 app:layout_constraintStart_toStartOf="parent"
-                 app:layout_constraintEnd_toEndOf="parent"
-                 app:layout_constraintTop_toBottomOf="@id/mode_switcher"
-                 app:layout_constraintBottom_toBottomOf="parent"
-        >
-        </include>
+        <include
+            android:id="@+id/bottom_buttons"
+            layout="@layout/layout_bottombuttons"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/bottombar_to_modeswitcher_margin"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mode_switcher"></include>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
