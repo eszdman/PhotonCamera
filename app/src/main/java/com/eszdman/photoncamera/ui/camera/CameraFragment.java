@@ -735,7 +735,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        //initOrientationEventListener();
     }
 
     @Override
@@ -818,35 +817,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         return bitmap;
     }
 
-    /*void initOrientationEventListener() {
-        final int RotationDur = 350;
-        final int Rotation90 = 2;
-        final int Rotation180 = 3;
-        final int Rotation270 = 4;
-        mCustomOrientationEventListener = new CustomOrientationEventListener(getContext()) {
-            @Override
-            public void onSimpleOrientationChanged(int orientation) {
-                int rot = 0;
-                switch (orientation) {
-                    case Rotation90:
-                        rot = -90;
-                        //rotate as left on top
-                        break;
-                    case Rotation270:
-                        //rotate as right on top
-                        rot = 90;
-                        break;
-                    case Rotation180:
-                        //rotate as upside down
-                        rot = 180;
-                        break;
-                }
-                mCameraUIView.rotateViews(rot, RotationDur);
-                PhotonCamera.getManualMode().rotate(rot, RotationDur);
-            }
-        };
-    }*/
-
     /**
      * Closes the current {@link CameraDevice}.
      */
@@ -912,7 +882,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSettings().saveID();
         closeCamera();
 //        stopBackgroundThread();
-        //mCustomOrientationEventListener.disable();
         cameraFragmentViewModel.onPause();
         super.onPause();
     }
