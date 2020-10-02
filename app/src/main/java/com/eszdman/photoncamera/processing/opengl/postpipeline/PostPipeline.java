@@ -105,6 +105,7 @@ public class PostPipeline extends GLBasePipeline {
         add(new Initial(R.raw.initial,"Initial"));
         //add(new AWB(0,"AWB"));
         add(new GlobalTonemaping(0,"GlobalTonemap"));
+        //fix yellow AWB - Urnyx05
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
