@@ -59,6 +59,12 @@ public class IsoExpoSelector {
         if (useTripod) {
             pair.MinIso();
         }
+
+        double currentManExp = PhotonCamera.getManualMode().getCurrentExposureValue();
+        double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
+        pair.exposure = currentManExp != -1 ? (long) currentManExp : pair.exposure;
+        pair.iso = currentManISO != -1 ? (int) currentManISO : pair.iso;
+
         if (step == 3 && HDR) {
             pair.ExpoCompensateLower(1.0 / 1.0);
         }
