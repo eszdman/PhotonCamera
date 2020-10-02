@@ -1,19 +1,25 @@
-package com.eszdman.photoncamera.ui.camera;
+package com.eszdman.photoncamera.ui.camera.viewmodel;
 
 import android.content.Context;
 import android.util.Log;
 
-import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.ViewModel;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.manual.Rotation;
+import com.eszdman.photoncamera.ui.camera.CustomOrientationEventListener;
+import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
 
+/**
+ * Class get used to update the Models binded to the ui
+ * it should not contain any ref to ui
+ */
 public class CameraFragmentViewModel extends ViewModel {
 
     private static final String TAG = CameraFragmentViewModel.class.getSimpleName();
     private Context context;
+    //Model binded to the ui
     private CameraFragmentModel cameraFragmentModel;
+    //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
 
     public void create(Context context)
@@ -65,7 +71,7 @@ public class CameraFragmentViewModel extends ViewModel {
                 cameraFragmentModel.setOrientation(rot);
 
                 //mCameraUIView.rotateViews(rot, RotationDur);
-                PhotonCamera.getManualMode().rotate(rot, RotationDur);
+                //PhotonCamera.getManualMode().rotate(rot, RotationDur);
             }
         };
     }

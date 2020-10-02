@@ -16,7 +16,7 @@
     <data>
         <variable
             name="uimodel"
-            type="com.eszdman.photoncamera.ui.camera.CameraFragmentModel" />
+            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
     </data>
 
 <androidx.constraintlayout.widget.ConstraintLayout

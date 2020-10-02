@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+    <data>
+        <variable
+            name="uimodel"
+            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
+    </data>
 <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-
->
+        android:layout_height="wrap_content">
     <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="100dp"
@@ -23,6 +27,7 @@
             android:paddingBottom="15dp"
             android:orientation="horizontal"
             android:background="@color/panel_transparency"
+        bindChildsRotate="@{uimodel}"
     >
         <LinearLayout
                 android:id="@+id/focus_button_container"
@@ -48,7 +53,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="#00000000"
-                    app:srcCompat="@drawable/manual_control_icon_focus"/>
+                    app:srcCompat="@drawable/manual_control_icon_focus"
+                bindRotate="@{uimodel}"/>
 
 
         </LinearLayout>
@@ -80,7 +86,8 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:background="#00000000"
-                    app:srcCompat="@drawable/manual_control_icon_exposure"/>
+                    app:srcCompat="@drawable/manual_control_icon_exposure"
+                bindRotate="@{uimodel}"/>
         </LinearLayout>
         <LinearLayout
                 android:layout_width="match_parent"
@@ -105,7 +112,8 @@
                          android:id="@+id/iso_option"
                          app:srcCompat="@drawable/manual_control_icon_iso"
                          android:layout_gravity="center"
-                         android:background="#00000000"/>
+                         android:background="#00000000"
+                bindRotate="@{uimodel}"/>
 
         </LinearLayout>
         <LinearLayout
@@ -132,7 +140,9 @@
                          android:id="@+id/ev_option"
                          app:srcCompat="@drawable/ic_exposure"
                          android:layout_gravity="center"
-                         android:background="#00000000"/>
+                         android:background="#00000000"
+                bindRotate="@{uimodel}"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
+</layout>

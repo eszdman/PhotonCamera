@@ -105,7 +105,7 @@ public final class ManualModeImpl implements ManualMode {
         evModel.resetModel();
     }
 
-    @Override
+   /* @Override
     public void rotate(int orientation, int duration) {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
@@ -113,7 +113,7 @@ public final class ManualModeImpl implements ManualMode {
                 buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(duration).start();
             }
         }
-    }
+    }*/
 
     private void initialiseDataMembers() {
         knob_container = activity.findViewById(R.id.knob_container);
