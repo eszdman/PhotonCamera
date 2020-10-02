@@ -170,6 +170,7 @@ vec3 linearizeAndGainMap(ivec2 coords){
     pRGB.g = ((gains.g+gains.b)/2.)*float(inbuff.g-(blackLevel.g+blackLevel.b)/2.);
     pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
     pRGB/=(1.0-blackLevel.g);
+    pRGB*=1.2;
     //pRGB = clamp(pRGB,0.0,1.0);
     return pRGB;
 }
@@ -197,6 +198,6 @@ void main() {
     vec3 pRGB = linearizeAndGainMap(xy);
     vec3 sRGB = applyColorSpace(pRGB);
     sRGB = saturate(sRGB);
-    sRGB = clamp(sRGB,0.0,1.0);
+    //sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
 }

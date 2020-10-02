@@ -16,11 +16,11 @@ public class IsoExpoSelector {
 
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
-        Log.d(TAG, "InputParams: " +
+        Log.v(TAG, "InputParams: " +
                 "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().mPreviewExposuretime)) +
                 " iso:" + PhotonCamera.getCameraFragment().mPreviewIso);
         ExpoPair pair = GenerateExpoPair(step);
-        Log.d(TAG, "IsoSelected:" + pair.iso +
+        Log.v(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR);
 
         builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
@@ -29,7 +29,7 @@ public class IsoExpoSelector {
     }
 
     public static ExpoPair GenerateExpoPair(int step) {
-        double mpy = 0.8;
+        double mpy = 0.7;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime, getEXPLOW(), getEXPHIGH(),
                 CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH());
         pair.normalizeiso100();
@@ -59,19 +59,6 @@ public class IsoExpoSelector {
         if (useTripod) {
             pair.MinIso();
         }
-
-        double currentManExp = PhotonCamera.getManualMode().getCurrentExposureValue();
-        double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
-//        pair.exposure = currentManExp != -1 ? (long) currentManExp : pair.exposure; 
-//        pair.iso = currentManISO != -1 ? (int) currentManISO : pair.iso;
-        pair.exposure = currentManExp != -1 ? (long) currentManExp : PhotonCamera.getCameraFragment().mPreviewExposuretime; //override preview expo
-        pair.iso = currentManISO != -1 ? (int) currentManISO : PhotonCamera.getCameraFragment().mPreviewIso; //override preview iso
-
-
-//        if(Interface.i.settings.ManualMode && Interface.i.manual.exposure){
-//            pair.exposure = (long)(ExposureIndex.sec*Interface.i.manual.expvalue);
-//            pair.iso = (int)(Interface.i.manual.isovalue/getMPY());
-//        }
         if (step == 3 && HDR) {
             pair.ExpoCompensateLower(1.0 / 1.0);
         }

@@ -34,7 +34,7 @@ public class Sensors {
         public void onAccuracyChanged(Sensor sensor, int i) { }
     };
     private int filter = -1;
-    protected final float fk = 0.7f;
+    protected final float fk = 0.8f;
     public int getShakeness() {
         if (mAngles == null) {
             return 0;

@@ -1406,7 +1406,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakeness() < 5;
+            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakeness() < 2;
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());

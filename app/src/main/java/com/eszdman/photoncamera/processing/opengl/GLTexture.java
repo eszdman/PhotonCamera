@@ -33,12 +33,16 @@ public class GLTexture implements AutoCloseable {
     public final int mGLFormat;
     public final int mTextureID;
     public final GLFormat mFormat;
+    public GLTexture(GLTexture in){
+        this(in.mSize,in.mFormat,null);
+    }
     public GLTexture(int sizex,int sizey,GLFormat glFormat, Buffer pixels){
         this(new Point(sizex,sizey),glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
     }
     public GLTexture(Point size,GLFormat glFormat, Buffer pixels){
         this(size,glFormat,pixels,GL_NEAREST,GL_CLAMP_TO_EDGE);
     }
+
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper) {
         mFormat = glFormat;
         this.mSize = size;
@@ -69,9 +73,9 @@ public class GLTexture implements AutoCloseable {
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         checkEglError("Tex bind");
     }
-    public ByteBuffer textureBuffer(){
-        ByteBuffer buffer = ByteBuffer.allocate(mSize.x*mSize.y*mFormat.mFormat.mSize*mFormat.mChannels);
-        glReadPixels(0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), mFormat.getGLType(), buffer);
+    public ByteBuffer textureBuffer(GLFormat outputFormat){
+        ByteBuffer buffer = ByteBuffer.allocate(mSize.x*mSize.y*outputFormat.mFormat.mSize*outputFormat.mChannels);
+        glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
         return buffer;
     }
     @androidx.annotation.NonNull
