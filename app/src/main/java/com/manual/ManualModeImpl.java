@@ -106,7 +106,7 @@ public final class ManualModeImpl implements ManualMode {
         evModel.resetModel();
     }
 
-    @Override
+   /* @Override
     public void rotate(int orientation, int duration) {
         if (defaultKnobView != null) {
             defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
@@ -114,10 +114,11 @@ public final class ManualModeImpl implements ManualMode {
                 buttons_container.getChildAt(i).animate().rotation(orientation).setDuration(duration).start();
             }
         }
-    }
+    }*/
 
     private void initialiseDataMembers() {
         knob_container = activity.findViewById(R.id.knob_container);
+        defaultKnobView = activity.findViewById(R.id.knobView);
         buttons_container = activity.findViewById(R.id.buttons_container);
         focusButton = activity.findViewById(R.id.focus_option);
         exposureButton = activity.findViewById(R.id.exposure_option);
@@ -131,9 +132,6 @@ public final class ManualModeImpl implements ManualMode {
 
     private void addKnobs() {
         Timer timer = Timer.InitTimer(TAG,"addKnobs");
-        knob_container.removeAllViews();
-        defaultKnobView = new KnobView(activity);
-
         CameraCharactersticsOldWay aClass = new CameraCharactersticsOldWay();
         mfModel = new FocusModel(aClass.focusRange, mfchanged);
         evModel = new EvModel(aClass.evRange, evchanged);
@@ -141,7 +139,6 @@ public final class ManualModeImpl implements ManualMode {
         expotimeModel = new ShutterModel(aClass.expRange, expochanged);
 
         aClass.logIt();
-        knob_container.addView(defaultKnobView);
         knob_container.setVisibility(View.GONE);
         timer.endTimer();
     }

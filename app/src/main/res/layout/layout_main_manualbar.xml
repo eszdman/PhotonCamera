@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<layout>
+    <data>
+        <variable
+            name="uimodel"
+            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
+    </data>
 <FrameLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
@@ -8,8 +14,10 @@
         android:visibility="gone"
         tools:visibility="visible">
     <include layout="@layout/manual_palette"
+            android:id="@+id/manual_palette"
              android:layout_height="match_parent"
              android:layout_width="match_parent"
     >
     </include>
 </FrameLayout>
+</layout>

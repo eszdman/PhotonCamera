@@ -68,14 +68,6 @@ public interface CameraUIView {
     void setCaptureProgressMax(int max);
 
     /**
-     * Should change Rotation of all views
-     *
-     * @param degree   target degrees of rotation
-     * @param duration animation duration
-     */
-    void rotateViews(int degree, int duration);
-
-    /**
      * Setter for CameraUIEventsListener
      *
      * @param cameraUIEventsListener instance of class which has implemented {@link CameraUIEventsListener}

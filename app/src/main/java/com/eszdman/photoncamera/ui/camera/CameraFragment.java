@@ -41,11 +41,15 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
+import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
@@ -54,6 +58,7 @@ import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
@@ -84,7 +89,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     /**
      * Tag for the {@link Log}.
      */
-    private static final String TAG = "CameraFragment";
+    private static final String TAG = CameraFragment.class.getSimpleName();
     /**
      * Camera state: Showing camera preview.
      */
@@ -432,7 +437,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         }
 
     };
-    private CustomOrientationEventListener mCustomOrientationEventListener;
 
     public CameraFragment() {
         super();
@@ -607,59 +611,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         Log.i(TAG, "SmallestWidth = " + (int) (dm.widthPixels / (dm.densityDpi / 160f)) + "dp");
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        logDisplayProperties(dm);
-        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
-        ConstraintLayout activity_main = (ConstraintLayout) inflater.inflate(R.layout.activity_main, container, false);
-        return getAdjustedLayout(aspectRatio, activity_main);
-    }
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setRetainInstance(true);
-        initOrientationEventListener();
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
-        outState.putString(ACTIVE_FRONTCAM_ID, sActiveFrontCamId);
-    }
-
-    @Override
-    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
-        super.onViewStateRestored(savedInstanceState);
-        if (PhotonCamera.DEBUG)
-            Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
-        if (savedInstanceState != null) {
-            sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
-            sActiveFrontCamId = savedInstanceState.getString(ACTIVE_FRONTCAM_ID);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                ErrorDialog.newInstance(getString(R.string.request_permission))
-                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
 
     private void mul(Rect in, double k) {
         in.bottom *= k;
@@ -759,6 +711,74 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getTouchFocus().ReInit();
     }
 
+    private CameraFragmentViewModel cameraFragmentViewModel;
+    private CameraFragmentBinding cameraFragmentBinding;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        //create the ui binding
+        cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
+        //create the modelview wich updated the model
+        cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
+        cameraFragmentViewModel.create(getContext());
+        //bind the model to the ui, it applies changes when the model values get changed
+        cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
+        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
+        outState.putString(ACTIVE_FRONTCAM_ID, sActiveFrontCamId);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (PhotonCamera.DEBUG)
+            Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
+        if (savedInstanceState != null) {
+            sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
+            sActiveFrontCamId = savedInstanceState.getString(ACTIVE_FRONTCAM_ID);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                ErrorDialog.newInstance(getString(R.string.request_permission))
+                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -766,9 +786,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
         PhotonCamera.getTouchFocus().ReInit();
+
         this.mCameraUIView.refresh();
         this.mCameraUIView.setGalleryButtonImage(getLastImage());
-        mCustomOrientationEventListener.enable();
+        cameraFragmentViewModel.onResume();
         startBackgroundThread();
 
         if (mTextureView == null) mTextureView = new AutoFitTextureView(CameraActivity.act);
@@ -799,35 +820,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             }
         }
         return bitmap;
-    }
-
-    void initOrientationEventListener() {
-        final int RotationDur = 350;
-        final int Rotation90 = 2;
-        final int Rotation180 = 3;
-        final int Rotation270 = 4;
-        mCustomOrientationEventListener = new CustomOrientationEventListener(getContext()) {
-            @Override
-            public void onSimpleOrientationChanged(int orientation) {
-                int rot = 0;
-                switch (orientation) {
-                    case Rotation90:
-                        rot = -90;
-                        //rotate as left on top
-                        break;
-                    case Rotation270:
-                        //rotate as right on top
-                        rot = 90;
-                        break;
-                    case Rotation180:
-                        //rotate as upside down
-                        rot = 180;
-                        break;
-                }
-                mCameraUIView.rotateViews(rot, RotationDur);
-                PhotonCamera.getManualMode().rotate(rot, RotationDur);
-            }
-        };
     }
 
     /**
@@ -895,7 +887,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSettings().saveID();
         closeCamera();
 //        stopBackgroundThread();
-        mCustomOrientationEventListener.disable();
+        cameraFragmentViewModel.onPause();
         super.onPause();
     }
 
