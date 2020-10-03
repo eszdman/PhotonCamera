@@ -991,7 +991,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (null != mPreviewRequestBuilder) {
                 mPreviewRequestBuilder = null;
             }
-//            stopBackgroundThread();
+            stopBackgroundThread();
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
         } catch (Exception e) {
             e.printStackTrace();
