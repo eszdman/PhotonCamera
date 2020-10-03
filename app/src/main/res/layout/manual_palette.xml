@@ -41,6 +41,7 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:textAlignment="center"
+                bindRotate="@{uimodel}"
         >
             <TextView
                     android:id="@+id/focus_option_tv"
@@ -59,7 +60,7 @@
                     android:layout_height="wrap_content"
                     android:background="#00000000"
                     app:srcCompat="@drawable/manual_control_icon_focus"
-                bindRotate="@{uimodel}"/>
+                />
 
 
         </LinearLayout>
@@ -71,6 +72,7 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:textAlignment="center"
+                bindRotate="@{uimodel}"
                >
 
             <TextView
@@ -92,7 +94,7 @@
                     android:layout_gravity="center"
                     android:background="#00000000"
                     app:srcCompat="@drawable/manual_control_icon_exposure"
-                bindRotate="@{uimodel}"/>
+                />
         </LinearLayout>
         <LinearLayout
                 android:layout_width="match_parent"
@@ -100,6 +102,7 @@
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:id="@+id/iso_button_container"
+                bindRotate="@{uimodel}"
 
         >
             <TextView android:layout_width="match_parent"
@@ -118,7 +121,7 @@
                          app:srcCompat="@drawable/manual_control_icon_iso"
                          android:layout_gravity="center"
                          android:background="#00000000"
-                bindRotate="@{uimodel}"/>
+                    />
 
         </LinearLayout>
         <LinearLayout
@@ -127,6 +130,7 @@
                 android:id="@+id/ev_button_container"
                 android:layout_weight="1"
                 android:orientation="vertical"
+                bindRotate="@{uimodel}"
 
         >
 
@@ -146,7 +150,7 @@
                          app:srcCompat="@drawable/ic_exposure"
                          android:layout_gravity="center"
                          android:background="#00000000"
-                bindRotate="@{uimodel}"/>
+                />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
