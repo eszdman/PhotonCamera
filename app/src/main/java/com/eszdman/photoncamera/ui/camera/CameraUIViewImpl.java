@@ -220,16 +220,5 @@ public final class CameraUIViewImpl implements CameraUIView {
     public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
         this.mCameraUIEventsListener = cameraUIEventsListener;
     }
-
-    @Override
-    public void rotateViews(int degree, int duration) {
-        mHdrXButton.animate().rotation(degree).setDuration(duration).start();
-        mSettingsButton.animate().rotation(degree).setDuration(duration).start();
-        mGalleryImageButton.animate().rotation(degree).setDuration(duration).start();
-        mEisPhotoButton.animate().rotation(degree).setDuration(duration).start();
-        mFpsButton.animate().rotation(degree).setDuration(duration).start();
-        mQuadResolutionButton.animate().rotation(degree).setDuration(duration).start();
-    }
-
 }
 

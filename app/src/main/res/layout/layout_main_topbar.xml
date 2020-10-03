@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <data>
+        <variable
+            name="uimodel"
+            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
+    </data>
 <androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        xmlns:android="http://schemas.android.com/apk/res/android"
+
         android:background="@drawable/rectangle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -49,7 +55,8 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
-                tools:visibility="visible"/>
+                tools:visibility="visible"
+            bindRotate="@{uimodel}"/>
 
         <ToggleButton
                 android:id="@+id/eis_toggle_button"
@@ -64,7 +71,8 @@
                 app:layout_constraintStart_toEndOf="@id/hdrx_toggle_button"
                 app:layout_constraintEnd_toStartOf="@id/quad_res_toggle_button"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible"/>
+                tools:visibility="visible"
+            bindRotate="@{uimodel}"/>
 
         <ToggleButton
                 android:id="@+id/quad_res_toggle_button"
@@ -80,7 +88,8 @@
                 app:layout_constraintStart_toEndOf="@id/eis_toggle_button"
                 app:layout_constraintEnd_toStartOf="@id/fps_toggle_button"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible"/>
+                tools:visibility="visible"
+            bindRotate="@{uimodel}"/>
 
         <ToggleButton
                 android:id="@+id/fps_toggle_button"
@@ -96,9 +105,11 @@
                 app:layout_constraintStart_toEndOf="@id/quad_res_toggle_button"
                 app:layout_constraintEnd_toStartOf="@id/settings_button"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible"/>
+                tools:visibility="visible"
+            bindRotate="@{uimodel}"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
