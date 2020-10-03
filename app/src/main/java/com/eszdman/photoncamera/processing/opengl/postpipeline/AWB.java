@@ -9,14 +9,6 @@ import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Vector;
-
-import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
-
 public class AWB extends Node {
     GLProg glProg;
     public AWB(int rid, String name) {

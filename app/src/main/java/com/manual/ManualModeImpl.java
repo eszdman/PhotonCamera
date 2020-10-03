@@ -14,6 +14,7 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.util.Timer;
 import com.manual.model.*;
 
 /**
@@ -129,6 +130,7 @@ public final class ManualModeImpl implements ManualMode {
     }
 
     private void addKnobs() {
+        Timer timer = Timer.InitTimer(TAG,"addKnobs");
         knob_container.removeAllViews();
         defaultKnobView = new KnobView(activity);
 
@@ -141,6 +143,7 @@ public final class ManualModeImpl implements ManualMode {
         aClass.logIt();
         knob_container.addView(defaultKnobView);
         knob_container.setVisibility(View.GONE);
+        timer.endTimer();
     }
 
     private void setupOnClickListeners() {
