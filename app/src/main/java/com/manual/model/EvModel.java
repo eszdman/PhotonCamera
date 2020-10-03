@@ -38,8 +38,9 @@ public class EvModel extends ManualModel<Float> {
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
         evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
+        float step = 0.25f;
         ArrayList<Float> values = new ArrayList<>();
-        for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= evStep) {
+        for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= step) {
             float roundedValue = ((float) Math.round(10000.0f * fValue)) / 10000.0f;
             if (!isZero(fValue)) {
                 if (fValue > 0.0f) {
