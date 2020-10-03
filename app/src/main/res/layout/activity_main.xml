@@ -46,20 +46,19 @@
 
         <!--    Block 1.2-->
         <!--    includes the Layout resource of BottomBar-->
-        <include
-                layout="@layout/layout_main_bottombar"
-                android:id="@+id/layout_bottombar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
-                app:layout_constraintVertical_bias="0.0"
-                >
-        </include>
         <!--    Block 1.3-->
         <!--   includes the Layout resource of Aux Buttons palette-->
+        <include
+            android:id="@+id/layout_bottombar"
+            layout="@layout/layout_main_bottombar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
+            app:layout_constraintVertical_bias="0.0"></include>
+
         <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
