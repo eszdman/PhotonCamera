@@ -1,44 +1,37 @@
-package com.eszdman.photoncamera.Control;
+package com.eszdman.photoncamera.control;
 
-import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
-import com.eszdman.photoncamera.api.Interface;
-
-import java.nio.IntBuffer;
+import com.eszdman.photoncamera.app.PhotonCamera;
 
 public class Gravity {
-    private static String TAG = "Gravity";
-    private SensorManager mSensorManager;
-    private Sensor mGravitySensor;
+    private static final String TAG = "Gravity";
+    private final SensorManager mSensorManager;
+    private final Sensor mGravitySensor;
     public float[] mGravity;
 
 
-    public Gravity(){
-        mSensorManager = (SensorManager) Interface.i.mainActivity.getSystemService(Context.SENSOR_SERVICE);
+    public Gravity(SensorManager sensorManager){
+        mSensorManager = sensorManager;
         mGravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 
     }
-    public void run(){
+    public void register(){
         mSensorManager.registerListener(mGravityTracker,mGravitySensor,SensorManager.SENSOR_DELAY_FASTEST);
     }
-    public void stop(){
+    public void unregister(){
+        if(mGravity != null)
+        mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker,mGravitySensor);
     }
-    private SensorEventListener mGravityTracker = new SensorEventListener() {
+    private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            if (mGravity == null) {
-                mGravity = sensorEvent.values.clone();
-            }
-
-            for (int i = 0; i < sensorEvent.values.length; i++) {
-                mGravity[i] = sensorEvent.values[i];
-            }
+            mGravity = sensorEvent.values;
         }
 
         @Override
@@ -66,6 +59,6 @@ public class Gravity {
         }
     }
     public int getCameraRotation(){
-       return (Interface.i.camera.mSensorOrientation+Interface.i.gravity.getRotation()+270) % 360;
+       return (PhotonCamera.getCameraFragment().mSensorOrientation+ PhotonCamera.getGravity().getRotation()+270) % 360;
     }
 }

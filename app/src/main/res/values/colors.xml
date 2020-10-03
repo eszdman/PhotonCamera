@@ -14,4 +14,10 @@
     <color name="controlCol">#33000000</color>
     <color name="LauncherBackground">#00000000</color>
     <color name="colorText">#B794F6</color>
+    <color name="colorSeparator">#616161</color>
+    <color name="panel_transparency">#40000000</color>
+    <color name="transparent_focus_circle">@color/panel_transparency</color>
+    <color name="white">#FFFFFF</color>
+    <color name="manual_icon_text">@color/white</color>
+    <color name="manual_icon_text_selected">@color/white</color>
 </resources>

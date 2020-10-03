@@ -9,15 +9,17 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Rational;
 
-import com.eszdman.photoncamera.Parameters.ExposureIndex;
-import com.eszdman.photoncamera.ui.CameraFragment;
+import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
+import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.lang.reflect.Field;
 
 import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
+@SuppressWarnings("ALL")
 public class Camera2ApiAutoFix {
-    private static String TAG = "Camera2ApiAutoFix";
+    private static final String TAG = "Camera2ApiAutoFix";
     private CameraCharacteristics characteristics;
     private CaptureResult result;
     Camera2ApiAutoFix(CameraCharacteristics characteristic) {
@@ -33,13 +35,21 @@ public class Camera2ApiAutoFix {
     public static void Apply(){
         CameraCharacteristics  characteristics= CameraFragment.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
+        fix.MaxRegionsAF();
     }
     public static void ApplyRes(){
         CaptureResult characteristics= CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
-        Log.d(TAG,"Get:"+characteristics.get(TONEMAP_CURVE));
-        fix.gains();
-        fix.dynBL();
+        //fix.gains();
+        fix.BL();
+        fix.whitePoint();
+        fix.CCM();
+    }
+    private void whitePoint(){
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, PhotonCamera.getCameraFragment().mPreviewTemp);
+    }
+    private void CCM(){
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM, PhotonCamera.getCameraFragment().mColorSpaceTransform);
     }
     public void curve(){
         CameraReflectionApi.set(TONEMAP_MAX_CURVE_POINTS,128);
@@ -51,10 +61,17 @@ public class Camera2ApiAutoFix {
         Range exprange = characteristics.get(SENSOR_INFO_EXPOSURE_TIME_RANGE);
         if(exprange == null) return;
         if((long)exprange.getUpper() < ExposureIndex.sec/7){
-            Log.d(TAG,"Applied Fix ExposureTime");
+            Log.d(TAG,"Applied Fix ExposureTime no CIT");
             Range nrange = new Range(exprange.getLower(),ExposureIndex.sec/3);
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE,nrange);
+        } else if((long)exprange.getUpper() > ExposureIndex.sec*5/6 && (long)exprange.getUpper() < ExposureIndex.sec*2){
+            Log.d(TAG,"Applied Fix ExposureTime2 CIT SHIFT");
+            Range nrange = new Range(exprange.getLower(),(long)(ExposureIndex.sec*5.2));
+            CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE,nrange);
         }
+    }
+    private void MaxRegionsAF(){
+        //CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
     }
     public void gains(){
         CameraReflectionApi.setVERBOSE(true);
@@ -87,7 +104,7 @@ public class Camera2ApiAutoFix {
         Log.d(TAG,"Overrided channelVector:"+rggbChannelVector.toString());
     }
     @SuppressLint("NewApi")
-    public void dynBL(){
+    public void BL(){
        float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
         BlackLevelPattern ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if(ptr == null) return;
@@ -97,7 +114,6 @@ public class Camera2ApiAutoFix {
                level[i] = ptr.getOffsetForIndex(i%2,i/2);
            }
            CameraReflectionApi.set(SENSOR_DYNAMIC_BLACK_LEVEL,level);
-           return;
        }
     }
 }

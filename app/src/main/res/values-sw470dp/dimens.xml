@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="bottombar_padding">24dp</dimen>
+    <dimen name="shutter_progress_bar_size">120dp</dimen>
+    <dimen name="shutter_button_size">90dp</dimen>
+</resources>

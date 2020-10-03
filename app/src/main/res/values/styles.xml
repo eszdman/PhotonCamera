@@ -1,9 +1,63 @@
 <resources>
+    <!--Activity Themes-->
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
-    <item name="colorPrimary">@color/colorPrimary</item>
-    <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-    <item name="colorAccent">@color/colorAccent</item>
+    <style name="Theme.Photon.BaseApp" parent="@style/Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="iconTint">?android:textColorPrimary</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
     </style>
+
+    <style name="Theme.Photon.Splash" parent="Theme.Photon.BaseApp">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+
+    <style name="Theme.Photon.SettingsActivity" parent="Theme.Photon.BaseApp">
+
+    </style>
+
+    <!--    <style name="Theme.Photon.CameraActivity" parent="Theme.AppCompat.NoActionBar">-->
+    <!--        <item name="android:windowNoTitle">true</item>-->
+    <!--        <item name="android:windowActionBar">false</item>-->
+    <!--        <item name="android:windowFullscreen">true</item>-->
+    <!--        <item name="android:windowContentOverlay">@null</item>-->
+    <!--        <item name="colorPrimary">@color/colorPrimary</item>-->
+    <!--        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>-->
+    <!--        <item name="colorAccent">@color/colorAccent</item>-->
+    <!--    </style>-->
+
+    <!--Other Styles-->
+
+    <style name="ManualModeKnobText">
+        <item name="android:textSize">@dimen/manual_knob_text_size</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/manual_icon_text</item>
+        <item name="android:shadowColor">@android:color/black</item>
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">1</item>
+
+
+    </style>
+
+    <style name="ManualModeKnobTextSelected">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/Blue</item>
+    </style>
+
+    <style name="PreferenceActionBarStyle">
+        <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
+    </style>
+
+    <style name="SettingsTitleTextAppearance">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">?android:textColorPrimary</item>
+    </style>
+
+
 </resources>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+>
+    <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:id="@+id/knob_container"
+            android:orientation="horizontal"
+    >
+    </FrameLayout>
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/buttons_container"
+            android:paddingBottom="15dp"
+            android:orientation="horizontal"
+            android:background="@color/panel_transparency"
+    >
+        <LinearLayout
+                android:id="@+id/focus_button_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:textAlignment="center"
+        >
+            <TextView
+                    android:id="@+id/focus_option_tv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:paddingTop="5dp"
+                    android:textColor="@color/manual_text_color"
+                    tools:textColor="@color/White"
+                    android:textSize="15sp"
+                    tools:text="NULL"
+                    android:textAlignment="center"/>
+            <ImageButton
+                    android:id="@+id/focus_option"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#00000000"
+                    app:srcCompat="@drawable/manual_control_icon_focus"/>
+
+
+        </LinearLayout>
+
+        <LinearLayout
+                android:id="@+id/shutter_button_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:textAlignment="center"
+               >
+
+            <TextView
+                    android:id="@+id/exposure_option_tv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:paddingTop="5dp"
+                    android:textColor="@color/manual_text_color"
+                    tools:textColor="@color/White"
+                    android:textIsSelectable="true"
+                    android:textSize="15sp"
+                    android:textAlignment="center"
+                    tools:text="NULL"/>
+            <ImageButton
+                    android:id="@+id/exposure_option"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="#00000000"
+                    app:srcCompat="@drawable/manual_control_icon_exposure"/>
+        </LinearLayout>
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:id="@+id/iso_button_container"
+
+        >
+            <TextView android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      tools:text="NULL"
+                      android:paddingTop="5dp"
+                      android:textColor="@color/manual_text_color"
+                      tools:textColor="@color/White"
+                      android:id="@+id/iso_option_tv"
+                      android:layout_gravity="center"
+                      android:textAlignment="center"
+                      android:textSize="15sp"/>
+            <ImageButton android:layout_width="match_parent"
+                         android:layout_height="wrap_content"
+                         android:id="@+id/iso_option"
+                         app:srcCompat="@drawable/manual_control_icon_iso"
+                         android:layout_gravity="center"
+                         android:background="#00000000"/>
+
+        </LinearLayout>
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/ev_button_container"
+                android:layout_weight="1"
+                android:orientation="vertical"
+
+        >
+
+            <TextView android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      tools:text="NULL"
+                      android:paddingTop="5dp"
+                      android:textColor="@color/manual_text_color"
+                      tools:textColor="@color/White"
+                      android:id="@+id/ev_option_tv"
+                      android:layout_gravity="center"
+                      android:textAlignment="center"
+                      android:textSize="15sp"/>
+            <ImageButton android:layout_width="match_parent"
+                         android:layout_height="wrap_content"
+                         android:id="@+id/ev_option"
+                         app:srcCompat="@drawable/ic_exposure"
+                         android:layout_gravity="center"
+                         android:background="#00000000"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

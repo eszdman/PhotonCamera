@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:background="@drawable/rectangle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        tools:visibility="visible"
+>
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:background="@drawable/rectangle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/topbar_padding"
+            android:paddingBottom="@dimen/topbar_padding"
+            android:visibility="visible"
+            tools:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            
+    >
+        <ImageButton
+                android:id="@+id/settings_button"
+                style="@style/Widget.AppCompat.Button"
+                android:layout_width="@dimen/topbar_icon_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1:1"
+                android:background="@drawable/ic_settings"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@id/fps_toggle_button"
+        />
+
+        <ToggleButton
+                android:id="@+id/hdrx_toggle_button"
+                android:layout_width="@dimen/topbar_icon_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1:1"
+                android:background="@drawable/raw_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
+                tools:visibility="visible"/>
+
+        <ToggleButton
+                android:id="@+id/eis_toggle_button"
+                android:layout_width="@dimen/topbar_icon_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1:1"
+                android:background="@drawable/eis_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/hdrx_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/quad_res_toggle_button"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible"/>
+
+        <ToggleButton
+                android:id="@+id/quad_res_toggle_button"
+                android:layout_width="@dimen/topbar_icon_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1:1"
+                
+                android:background="@drawable/quad_button"
+                android:checked="false"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/eis_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/fps_toggle_button"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible"/>
+
+        <ToggleButton
+                android:id="@+id/fps_toggle_button"
+                android:layout_width="@dimen/topbar_icon_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1:1"
+                
+                android:background="@drawable/fps_button"
+                android:checked="true"
+                android:textOff=""
+                android:textOn=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/quad_res_toggle_button"
+                app:layout_constraintEnd_toStartOf="@id/settings_button"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

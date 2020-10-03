@@ -1,177 +1,142 @@
 package com.eszdman.photoncamera.api;
 
-import android.annotation.SuppressLint;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
-import android.util.ArrayMap;
 import android.util.Log;
-import android.widget.ImageView;
+import androidx.core.util.Pair;
+import com.eszdman.photoncamera.settings.SettingsManager;
 
-import org.chickenhook.restrictionbypass.RestrictionBypass;
+import java.util.*;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
+/**
+ * Responsible for Scanning all Camera IDs on a Device and Storing them in SharedPreferences as a {@link Set<String>}
+ */
+public final class CameraManager2 {
+    private static final String TAG = "CameraManager2";
+    private static final String PREFERENCE_FILE_NAME = "_cameras";
+    private static final String ALL_CAMERA_IDS_KEY = "all_camera_ids";
+    private static final String FRONT_IDS_KEY = "front_camera_ids";
+    private static final String BACK_IDS_KEY = "back_camera_ids";
+    private static final String CAMERA_COUNT_KEY = "all_camera_count";
 
-public class CameraManager2 {
-    private static String TAG = "CameraManager2";
-    Object manager = null;
-    private ArrayMap<String, Integer> mDeviceStatus = new ArrayMap<>();
-    private ArrayList<String> mDeviceIdList;
-    private Object mLock = new Object();
-    boolean exposeAux = true;
-    private void connectCameraServiceLocked(){
-        Log.d(TAG,"Trying to connect Service");
-        try {
-            Method connect = RestrictionBypass.getDeclaredMethod(manager.getClass(),"connectCameraServiceLocked");
-            connect.setAccessible(true);
-            connect.invoke(manager);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            e.printStackTrace();
+    private final SettingsManager mSettingsManager;
+    private final Map<String, Pair<Float, Float>> mFocalLengthAperturePairList = new LinkedHashMap<>();
+    private Set<String> mAllCameraIDs = new LinkedHashSet<>();
+    private Set<String> mFrontIDs = new LinkedHashSet<>();
+    private Set<String> mBackIDs = new LinkedHashSet<>();
+
+    /**
+     * Initialise this class.
+     *
+     * @param cameraManager   {@link CameraManager} instance from {@link android.content.Context#CAMERA_SERVICE}
+     * @param settingsManager {@link SettingsManager}
+     */
+    public CameraManager2(CameraManager cameraManager, SettingsManager settingsManager) {
+        this.mSettingsManager = settingsManager;
+        init(cameraManager);
+    }
+
+    private void init(CameraManager cameraManager) {
+        if (!mSettingsManager.isSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY)) {
+            scanAllCameras(cameraManager);
+            save();
+        } else {
+            mAllCameraIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, null);
+            mFrontIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, null);
+            mBackIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, BACK_IDS_KEY, null);
         }
     }
-    Object[] camsArr(Object icameraService) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        CameraReflectionApi.PrintMethods(icameraService);
-        Method m = icameraService.getClass().getDeclaredMethods()[0];
-        m.setAccessible(true);
-        Log.d(TAG,"Manager:"+manager);
-        Object[] cams = (Object[])m.invoke(icameraService,manager);
-        for(int i =0; i<cams.length;i++){
-            Log.d(TAG,"Camera i"+i+":"+cams[i]);
-        }
-        return cams;
-    }
-    @SuppressLint("BlockedPrivateApi")
-    public String[] CameraArr(CameraManager manag) {
-        try {
-            Method m = manag.getClass().getDeclaredMethod("isHiddenPhysicalCamera", String.class);
-            m.setAccessible(true);
-            int cameraid = 0;
-            for(int i =0; i<1000; i++) {
-                boolean phys = (boolean) m.invoke(null, String.valueOf(i));
-                Log.d(TAG, "Physical CameraID:" + i + " :" + phys);
-            }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    public CameraManager2(CameraManager manag) {
-        //manager = manag;
-        Log.d(TAG,"Trying to get status");
-        try {
-            Field devicelist = manag.getClass().getDeclaredField("mDeviceIdList");
 
-            devicelist.setAccessible(true);
-            mDeviceIdList = (ArrayList<String>) devicelist.get(manag);
-            Class clazz = Class.forName("android.hardware.camera2.CameraManager$CameraManagerGlobal");
-            Log.d(TAG,"Find class:"+clazz);
-            Method getmanag = RestrictionBypass.getDeclaredMethod(clazz,"get");
-            getmanag.setAccessible(true);
-            manager = getmanag.invoke(null);
+    private void scanAllCameras(CameraManager cameraManager) {
+        for (int num = 0; num < 121; num++) {
+            CameraCharacteristics cameraCharacteristics;
             try {
-                Method[] methods = manager.getClass().getDeclaredMethods();
-                for(Method m : methods){
-                    Log.d(TAG,"Method:"+m);
+                cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+                log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
+                float[] focalLength = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                float[] aperture = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+                if (focalLength != null && aperture != null) {
+                    Pair<Float, Float> focalAperturePair = new Pair<>(focalLength[0], aperture[0]);
+                    if (!getBit(6, num) && !mFocalLengthAperturePairList.containsValue(focalAperturePair)) {
+                        mFocalLengthAperturePairList.put(String.valueOf(num), focalAperturePair);
+                        mAllCameraIDs.add(String.valueOf(num));
+                        fillBackFrontLists(cameraCharacteristics.get(CameraCharacteristics.LENS_FACING), String.valueOf(num));
+                    }
                 }
-                Object service = manager.getClass().getDeclaredMethod("getCameraService").invoke(manager);
-                Object camser = service;
-                Object[] arr = camsArr(camser);
-            } catch (Exception e){
+            } catch (IllegalArgumentException ignored) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
-            Field[] fields = manager.getClass().getDeclaredFields();
-            Object[] objects = new Object[fields.length];
-            for(int i = 0;i<fields.length;i++) {
-                fields[i].setAccessible(true);
-                objects[i] = fields[i].get(manager);
-                Log.d(TAG,"CurrentField:"+objects[i]);
-            }
-            Field stat = RestrictionBypass.getDeclaredField(manager.getClass(),"mDeviceStatus");
-            stat.setAccessible(true);
-            mDeviceStatus = (ArrayMap<String, Integer>) stat.get(manager);
-            Field lock = RestrictionBypass.getDeclaredField(manager.getClass(), "mLock");
-            lock.setAccessible(true);
-            mLock = lock.get(manager);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | ClassNotFoundException | NoSuchFieldException e) {
-            e.printStackTrace();
         }
     }
+
+    private void log(String msg) {
+        Log.d(TAG, msg);
+    }
+
+    private void fillBackFrontLists(Integer lensFacing, String id) {
+        if (lensFacing == CameraCharacteristics.LENS_FACING_FRONT)
+            mFrontIDs.add(id);
+        else if (lensFacing == CameraCharacteristics.LENS_FACING_BACK)
+            mBackIDs.add(id);
+    }
+
+    private void save() {
+        mSettingsManager.set(PREFERENCE_FILE_NAME, CAMERA_COUNT_KEY, mAllCameraIDs.size());
+        mSettingsManager.set(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
+        mSettingsManager.set(PREFERENCE_FILE_NAME, BACK_IDS_KEY, mBackIDs);
+        mSettingsManager.set(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, mFrontIDs);
+    }
+
+    //Getters===========================================================================================================
+
+    /**
+     * @return the list of scanned Camera IDs
+     */
     public String[] getCameraIdList() {
-        String[] strArr;
-        synchronized (mLock) {
-            connectCameraServiceLocked();
-            boolean isExposeAuxCamera = exposeAux;
-            int i = 0;
-            int i2 = 0;
-            int i3 = 0;
-            while (true) {
-                if (i3 < this.mDeviceStatus.size()) {
-                    if (!isExposeAuxCamera && i3 == 2) {
-                        break;
-                    }
-                    int intValue = this.mDeviceStatus.valueAt(i3).intValue();
-                    if (intValue != 0) {
-                        if (intValue != 2) {
-                            i++;
-                        }
-                    }
-                    i3++;
-                } else {
-                    break;
-                }
-            }
-            strArr = new String[i];
-            Log.d(TAG,"Devices:"+mDeviceIdList.size());
-            Log.d(TAG,"Counter:"+i);
-            int i4 = 0;
-            while (true) {
-                if (i2 < this.mDeviceStatus.size()) {
-                    if (!isExposeAuxCamera && i2 == 2) {
-                        break;
-                    }
-                    int intValue2 = mDeviceStatus.valueAt(i2).intValue();
-                    if (intValue2 != 0) {
-                        if (intValue2 != 2) {
-                            strArr[i4] = this.mDeviceStatus.keyAt(i2);
-                            Log.d(TAG,"Added:"+strArr[i4]);
-                            i4++;
-                        }
-                    }
-                    i2++;
-                } else {
-                    break;
-                }
-            }
+        log("CameraCount:" + mAllCameraIDs.size()
+                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
+        return mAllCameraIDs.toArray(new String[0]);
+    }
+
+    /**
+     * @return the list of scanned Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getCameraIDsSet() {
+        log("CameraCount:" + mAllCameraIDs.size()
+                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
+        return mAllCameraIDs;
+    }
+
+    /**
+     * @return the list of scanned Front Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getFrontIDsSet() {
+        log("FrontCamerasCount:" + mFrontIDs.size()
+                + ", FrontCameraIDs:" + Arrays.toString(mFrontIDs.toArray(new String[0])));
+        return mFrontIDs;
+    }
+
+    /**
+     * @return the list of scanned Back Camera IDs as a {@link Set<String>}
+     */
+    public Set<String> getBackIDsSet() {
+        log("BackCamerasCount:" + mBackIDs.size()
+                + ", BackCameraIDs:" + Arrays.toString(mBackIDs.toArray(new String[0])));
+        return mBackIDs;
+    }
+
+    //Bit analyzer for AUX number=======================================================================================
+
+    private boolean getBit(int pos, int val) {
+        return ((val >> (pos - 1)) & 1) == 1;
+    }
+
+    private String intToReverseBinary(int num) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 8; i++) {
+            sb.append(getBit(i, num) ? "1" : "0");
         }
-        Arrays.sort(strArr, new Comparator<String>() {
-            public int compare(String str, String str2) {
-                int i;
-                int i2;
-                try {
-                    i = Integer.parseInt(str);
-                } catch (NumberFormatException e) {
-                    i = -1;
-                }
-                try {
-                    i2 = Integer.parseInt(str2);
-                } catch (NumberFormatException e2) {
-                    i2 = -1;
-                }
-                if (i >= 0 && i2 >= 0) {
-                    return i - i2;
-                }
-                if (i >= 0) {
-                    return -1;
-                }
-                if (i2 >= 0) {
-                    return 1;
-                }
-                return str.compareTo(str2);
-            }
-        });
-        return strArr;
+        return sb.toString();
     }
 }

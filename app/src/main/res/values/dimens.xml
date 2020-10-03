@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="SettingSize1">60dp</dimen>
+    <dimen name="SettingSize1">50dp</dimen>
     <dimen name="SettingSize2">45dp</dimen>
+    <dimen name="topbar_padding">10dp</dimen>
+    <dimen name="topbar_icon_size">30dp</dimen>
+    <dimen name="viewfinder_top_padding">0dp</dimen>
+    <dimen name="mode_chip_height">30dp</dimen>
+    <dimen name="flip_camera_size">50dp</dimen>
+    <dimen name="gallery_button_size">60dp</dimen>
+    <dimen name="bottombar_to_modeswitcher_margin">@dimen/bottombar_padding</dimen>
+    <dimen name="bottombar_padding">0dp</dimen>
+    <dimen name="shutter_progress_bar_size">70dp</dimen>
+    <dimen name="shutter_button_size">70dp</dimen>
+    <dimen name="mode_chip_side_margin">5dp</dimen>
+    <dimen name="mode_chip_radius">100dp</dimen>
+    <dimen name="arrow_size">35dp</dimen>
+    <dimen name="mode_switcher_pading">@dimen/bottombar_padding</dimen>
+    <dimen name="focus_circle_size">80dp</dimen>
+    <dimen name="mode_chip_text_size">15sp</dimen>
+    <dimen name="exif_dialog_width">320dp</dimen>
+    <dimen name="mode_switcher_padding">10dp</dimen>
+    <dimen name="manual_knob_dash_length">6dp</dimen>
+    <dimen name="manual_knob_dash_padding">11dp</dimen>
+    <dimen name="manual_knob_icon_padding">7dp</dimen>
+    <dimen name="manual_knob_text_size">14dp</dimen>
+    <dimen name="manual_knob_icon_size">17dp</dimen>
+    <dimen name="camera_settings_preference_font_size">15sp</dimen>
+    <dimen name="camera_settings_entry_left_margin">16dp</dimen>
+    <dimen name="camera_settings_icon_size">24dp</dimen>
+    <dimen name="preference_category_text_height">50dp</dimen>
+    <dimen name="camera_settings_entry_margin">16dp</dimen>
+    <dimen name="preference_seekbar_padding">10dp</dimen>
+    <dimen name="preference_seekbar_value_padding">5dp</dimen>
+    <dimen name="preference_seekbar_value_text_width">50dp</dimen>
+    <dimen name="aux_button_padding">6dp</dimen>
 </resources>

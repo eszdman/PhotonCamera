@@ -20,4 +20,21 @@
     <string name="turn_on_grid">Сетка</string>
     <string name="turn_on_round_edges">Скругления</string>
     <string name="enable_remosaic">Включить ремозаик</string>
+    <string name="telegram">Группа телеграм</string>
+    <string name="hdrxNR">HDRX Шумоподавление</string>
+    <string name="turn_on_watermark">Водяной знак</string>
+    <string name="export_settings">Экспортировать</string>
+    <string name="import_settings">Импортировать</string>
+    <string name="histogram">Гистограмма</string>
+    <string name="turn_on_afdata">Дебаг данные</string>
+    <string name="filename">Файл:</string>
+    <string name="info">Инфо</string>
+    <string name="image_deleted">Изображение удалено</string>
+    <string name="yes">Да</string>
+    <string name="cancel">Отмена</string>
+    <string name="sure_delete">Вы уверены что хотите удалить?</string>
+    <string name="general">Основные</string>
+    <string name="raw">Исходник</string>
+    <string name="close">Закрыть</string>
+    <string name="unknown">Неизвестно</string>
 </resources>

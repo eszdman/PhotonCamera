@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <solid android:shape="rectangle" android:color="@color/panel_transparency"/>
+
+        </shape>
+    </item>
+</selector>

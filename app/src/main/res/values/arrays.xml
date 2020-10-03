@@ -1,10 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="cfapat">
+    <string-array name="cfapat_entries">
         <item>AUTO</item>
         <item>RGGB</item>
         <item>BGGR</item>
         <item>GRBG</item>
         <item>GBRG</item>
+        <item>MONO</item>
+    </string-array>
+    <string-array name="cfapat_entryValues">
+        <item>-1</item>
+        <item>0</item>
+        <item>3</item>
+        <item>1</item>
+        <item>2</item>
+        <item>-2</item>
+    </string-array>
+    <string-array name="alignset_entries">
+        <item>PCam CPU</item>
+        <item>PCam GPU</item>
+        <item>NightCam GPU(not working)</item>
+    </string-array>
+    <string-array name="alignset_entryValues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="theme_entries">
+        <item>@string/theme_follow_system</item>
+        <item>@string/theme_light</item>
+        <item>@string/theme_dark</item>
+    </string-array>
+    <string-array name="theme_entryValues">
+        <item>-1</item>
+        <item>1</item>
+        <item>2</item>
     </string-array>
 </resources>
