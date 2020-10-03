@@ -6,8 +6,8 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
@@ -19,6 +19,7 @@ import java.util.Locale;
 public class EvModel extends ManualModel<Float> {
 
     private final String TAG = EvModel.class.getSimpleName();
+    private float evStep;
 
     public EvModel(Range range, ValueChangedEvent valueChangedEvent) {
         super(range, valueChangedEvent);
@@ -36,7 +37,7 @@ public class EvModel extends ManualModel<Float> {
         currentInfo = auto;
         int positiveValueCount = 0;
         int negtiveValueCount = 0;
-        float evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
+        evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
         ArrayList<Float> values = new ArrayList<>();
         for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= evStep) {
             float roundedValue = ((float) Math.round(10000.0f * fValue)) / 10000.0f;
@@ -91,7 +92,7 @@ public class EvModel extends ManualModel<Float> {
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
         CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value);
+        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) (knobItemInfo.value  / evStep));
         PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo.text);
     }
