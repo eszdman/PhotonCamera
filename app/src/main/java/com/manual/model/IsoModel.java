@@ -52,7 +52,7 @@ public class IsoModel extends ManualModel<Integer> {
             StateListDrawable stateDrawable = new StateListDrawable();
             stateDrawable.addState(new int[]{-16842913}, drawable);
             stateDrawable.addState(new int[]{-16842913}, drawableSelected);
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), values.get(tick)));
+//            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, values.get(tick)));
             tick++;
         }
@@ -61,7 +61,7 @@ public class IsoModel extends ManualModel<Integer> {
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
+        knobInfo = new KnobInfo(0, angle, 0, candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
     }
 
     @Override
@@ -86,7 +86,7 @@ public class IsoModel extends ManualModel<Integer> {
     }
 
     private int findPreferredKnobViewAngle(int indicatorCount) {
-        return (indicatorCount - 1) * 25;
+        return (indicatorCount - 1) * 30;
     }
     private int findPreferredIntervalCount(int totalCount) {
         int result = 9;

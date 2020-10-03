@@ -71,7 +71,7 @@ public class ShutterModel extends ManualModel<Long> {
             StateListDrawable stateDrawable = new StateListDrawable();
             stateDrawable.addState(new int[]{-16842913}, drawable);
             stateDrawable.addState(new int[]{-16842913}, drawableSelected);
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), (double) values.get(tick)));
+//            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, (double) values.get(tick)));
             tick++;
         }
@@ -80,7 +80,7 @@ public class ShutterModel extends ManualModel<Long> {
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(-angle, angle, -candidates.size(), candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
+        knobInfo = new KnobInfo(0, angle,0, candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override
@@ -126,6 +126,6 @@ public class ShutterModel extends ManualModel<Long> {
     }
 
     private int findPreferredKnobViewAngle(int indicatorCount) {
-        return (indicatorCount - 1) * 25;
+        return (indicatorCount - 1) * 30;
     }
 }

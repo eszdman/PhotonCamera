@@ -48,11 +48,11 @@ public class FocusModel extends ManualModel<Float> {
                 drawable = new ShadowTextDrawable();
             }
             String text = String.format("%.2f", values.get(tick));
-            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
+//            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }
         int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -values.size(), values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
+        knobInfo = new KnobInfo(0, angle, 0, values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
     }
 
     @Override
