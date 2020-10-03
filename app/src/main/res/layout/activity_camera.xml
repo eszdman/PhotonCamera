@@ -18,6 +18,6 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000"
+    android:background="@drawable/activity_background"
     tools:context="com.eszdman.photoncamera.ui.camera.CameraActivity" >
 </androidx.constraintlayout.widget.ConstraintLayout>

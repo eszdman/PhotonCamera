@@ -5,12 +5,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/rectangle">
+        >
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/updatetheme"
         android:paddingBottom="@dimen/bottombar_padding"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -25,7 +24,8 @@
             app:layout_constraintBottom_toTopOf="@id/bottom_buttons"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"></include>
+            app:layout_constraintTop_toTopOf="parent">
+        </include>
 
         <!--includes the Layout resource of BottomBarButtons-->
         <include
@@ -37,7 +37,8 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/mode_switcher"></include>
+            app:layout_constraintTop_toBottomOf="@id/mode_switcher">
+        </include>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
