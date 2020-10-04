@@ -198,6 +198,6 @@ void main() {
     vec3 pRGB = linearizeAndGainMap(xy);
     vec3 sRGB = applyColorSpace(pRGB);
     sRGB = saturate(sRGB);
-    //sRGB = clamp(sRGB,0.0,1.0);
+    sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
 }

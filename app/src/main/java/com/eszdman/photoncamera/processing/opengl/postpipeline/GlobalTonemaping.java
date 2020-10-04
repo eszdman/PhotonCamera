@@ -40,7 +40,7 @@ public class GlobalTonemaping extends Node {
         glProg.setTexture("LowRes",lowres);
         glProg.setvar("insize",Previous.WorkingTexture.mSize.x,Previous.WorkingTexture.mSize.y);
         glProg.setvar("lowsize",lowres.mSize.x,lowres.mSize.y);
-        glProg.setvar("str",0.05f);
+        glProg.setvar("str",0.015f);
         GLTexture out1 = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         glProg.drawBlocks(out1);
@@ -53,7 +53,7 @@ public class GlobalTonemaping extends Node {
         glProg.setTexture("LowRes",lowres2);
         glProg.setvar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
         glProg.setvar("lowsize",lowres2.mSize.x,lowres2.mSize.y);
-        glProg.setvar("str",0.07f);
+        glProg.setvar("str",0.045f);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }

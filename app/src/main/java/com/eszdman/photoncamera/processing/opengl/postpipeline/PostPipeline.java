@@ -114,6 +114,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new Bilateral(R.raw.bilateral, "Bilateral"));
         }
         add(new Sharpen(selectSharp(),"Sharpening"));
+        add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));
 
         Bitmap img = runAll();
