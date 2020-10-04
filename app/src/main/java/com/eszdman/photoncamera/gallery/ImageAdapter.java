@@ -7,10 +7,10 @@ import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 
 import com.bumptech.glide.Glide;
 
-import org.apache.commons.io.comparator.LastModifiedFileComparator;
 
 public class ImageAdapter extends PagerAdapter {
     private final Context context;
@@ -31,7 +31,7 @@ public class ImageAdapter extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        Arrays.sort(file, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
+        Arrays.sort(file, Collections.reverseOrder());
         TouchImageView imageView = new TouchImageView(context);
         Glide
                 .with(context)

@@ -32,7 +32,6 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +43,8 @@ import java.util.Locale;
 import java.util.Objects;
 
 import rapid.decoder.BitmapDecoder;
+
+import static org.apache.commons.io.FileUtils.getExtension;
 
 public class GalleryActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -131,7 +132,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 int position = viewPager.getCurrentItem();
                 File newFile = new File(String.valueOf(file[position]));
                 String fileName = newFile.getName();
-                String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
+                String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
                 Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".provider", new File(path + "/" + fileName));
                 Intent intent = new Intent(Intent.ACTION_SEND);
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
@@ -218,7 +219,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                     exp.setText((exposureTime + "s"));
                     isospeed.setText(("ISO" + iso));
                     fnumber.setText(("\u0192/" + fnum));
-                    fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
+                    fileSize.setText(FileUtils.byteCountToDisplaySize((int) currentFile.length()));
                     if(focal != null) {
                         //Improved uwu code
                         int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));

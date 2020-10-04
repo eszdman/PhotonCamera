@@ -4,7 +4,7 @@ android {
     def versionPropsFile = file('version.properties')
     def versionBuild
     compileSdkVersion 30
-    buildToolsVersion "29.0.3"
+    buildToolsVersion '30.0.2'
     lintOptions {
         abortOnError false
     }
@@ -101,7 +101,7 @@ dependencies {
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
-    implementation group: 'commons-io', name: 'commons-io', version: '2.7'
+    implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
     implementation 'rapid.decoder:jpeg-decoder:0.3.0'
     implementation 'rapid.decoder:png-decoder:0.3.0'
