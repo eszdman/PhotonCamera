@@ -61,4 +61,12 @@
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="theme_accent">Theme Color</string>
+    <string name="Default">Default</string>
+    <string name="theme_accent_blue_gradient">Blue with Gradient</string>
+    <string name="theme_accent_red_gradient">Red with Gradient</string>
+    <string name="theme_accent_orange_gradient">Orange with Gradient</string>
+    <string name="theme_accent_blue">Blue</string>
+    <string name="theme_accent_red">Red</string>
+    <string name="theme_accent_orange">Orange</string>
 </resources>

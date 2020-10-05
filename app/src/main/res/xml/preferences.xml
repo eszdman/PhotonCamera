@@ -76,6 +76,16 @@
             android:entryValues="@array/theme_entryValues"
             android:defaultValue="@string/pref_theme_default_value"
             />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_theme_accent_key"
+                android:title="@string/theme_accent"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_theme"
+                android:entries="@array/theme_accent_entries"
+                android:entryValues="@array/theme_accent_entryValues"
+                android:defaultValue="@string/pref_theme_accent_default_value"
+                />
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

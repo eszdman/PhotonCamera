@@ -1,9 +1,13 @@
 package com.eszdman.photoncamera.settings;
 
+import android.app.Activity;
 import android.content.res.Resources;
 import android.util.Log;
+import androidx.preference.PreferenceManager;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
+
+import java.lang.reflect.Field;
 
 /**
  * Created by Vibhor 06/09/2020
@@ -39,6 +43,7 @@ public class PreferenceKeys {
     public static final String KEY_TELEGRAM = "pref_telegram_channel";
     public static final String KEY_CONTRIBUTORS = "pref_contributors";
     public static final String KEY_THEME = "pref_theme_key";
+    public static final String KEY_THEME_ACCENT = "pref_theme_accent_key";
     /**
      * Other Keys
      */
@@ -72,7 +77,16 @@ public class PreferenceKeys {
             }
         });
     }
-
+   public static void setActivityTheme(Activity activity){
+       String theme = PreferenceManager.getDefaultSharedPreferences(activity.getApplication()).getString(PreferenceKeys.KEY_THEME_ACCENT, activity.getString(R.string.pref_theme_accent_default_value));
+       try {
+           Field resourceField = R.style.class.getDeclaredField(theme);
+           int resourceId = resourceField.getInt(resourceField);
+           activity.setTheme(resourceId);
+       } catch (Exception e) {
+           e.printStackTrace();
+       }
+   }
     /**
      * Helper functions for some keys defined in PreferenceFragment.
      */

@@ -37,4 +37,7 @@
         <attr name="isFloat" format="boolean"/>
         <attr name="showSeekBarValue" format="boolean"/>
     </declare-styleable>
+
+    <attr name="cameraFragmentBackground" format="reference"/>
+
 </resources>

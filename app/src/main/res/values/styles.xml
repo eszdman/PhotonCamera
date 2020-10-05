@@ -11,6 +11,7 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="cameraFragmentBackground">@android:color/black</item>
     </style>
 
     <style name="Theme.Photon.Splash" parent="Theme.Photon.BaseApp">

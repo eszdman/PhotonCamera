@@ -8,11 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceCategory;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceManager;
-import androidx.preference.PreferenceScreen;
+import androidx.preference.*;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
@@ -75,11 +71,19 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME)) {
-            if (getContext() != null) {
-                Intent intent = new Intent(getContext(), SettingsActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-            }
+            restartActivity();
+        }
+        if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME_ACCENT)) {
+            restartActivity();
+            SettingsActivity.toRestartApp = true;
+        }
+    }
+
+    private void restartActivity() {
+        if (getActivity() != null) {
+            Intent intent = new Intent(getContext(), getActivity().getClass());
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
         }
     }
 

@@ -29,6 +29,7 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        PreferenceKeys.setActivityTheme(CameraActivity.this);
         super.onCreate(savedInstanceState);
         act = this;
         PhotonCamera.setCameraActivity(this);

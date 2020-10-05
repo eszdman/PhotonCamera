@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.ui.settings;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,13 +9,17 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.SplashActivity;
+import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
 
 public class SettingsActivity extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
+    public static boolean toRestartApp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        PreferenceKeys.setActivityTheme(SettingsActivity.this);
         super.onCreate(savedInstanceState);
 //        AppCompatDelegate.setDefaultNightMode(PhotonCamera.getSettings().theme);
         getDelegate().setLocalNightMode(PhotonCamera.getSettings().theme);
@@ -44,5 +50,28 @@ public class SettingsActivity extends AppCompatActivity implements PreferenceFra
         ft.addToBackStack(preferenceScreen.getKey());
         ft.commit();
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (toRestartApp) {
+            restartApp();
+        }
+        super.onBackPressed();
+    }
+
+    private void restartApp() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Context context = getApplicationContext();
+        Intent intent = new Intent(context, SplashActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        context.startActivity(intent);
+        System.exit(0);
     }
 }

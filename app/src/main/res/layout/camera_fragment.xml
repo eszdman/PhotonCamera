@@ -23,7 +23,8 @@
         android:id="@+id/textureHolder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/updatetheme">
+        android:background="?cameraFragmentBackground"
+        >
 
         <!--    Block 1-->
         <!--    Contains viewfinder,bottombar and manualbar-->

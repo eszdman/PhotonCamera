@@ -29,6 +29,7 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
@@ -63,6 +64,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        PreferenceKeys.setActivityTheme(GalleryActivity.this);
         super.onCreate(savedInstanceState);
         activity = this;
         setContentView(R.layout.activity_gallery);
