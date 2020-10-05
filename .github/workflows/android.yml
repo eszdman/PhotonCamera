@@ -32,13 +32,15 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v1
         with:
+          artifactName: app-debug.apk
           name: app
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/
       - name: Upload release APK
         uses: actions/upload-artifact@v1
         with:
+          artifactName: app-release-unsigned.apk
           name: app
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          path: app/build/outputs/apk/release/
       - name: Sign Android release
         uses: r0adkll/sign-android-release@v1
         with:
@@ -51,5 +53,6 @@ jobs:
       - name: Upload signed release APK
         uses: actions/upload-artifact@v1
         with:
+          artifactName: PhotonCamera.apk
           name: app
           path: app/build/outputs/apk/release/PhotonCamera.apk
