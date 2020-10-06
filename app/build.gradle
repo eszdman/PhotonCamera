@@ -39,7 +39,7 @@ android {
         targetSdkVersion 30
         renderscriptTargetApi 24
         renderscriptSupportModeEnabled false
-        versionCode versionCode
+        versionCode versionBuild
         versionName '0.66'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -79,7 +79,7 @@ android {
     }
     applicationVariants.all {
         variant -> variant.outputs.all {
-            outputFileName = "PhotonCamera-${variant.name}.apk"
+            outputFileName = "PhotonCamera-${versionName}${versionBuild}-${variant.name}.apk"
         }
     }
 }

@@ -47,10 +47,10 @@
     <string name="theme_accent">Цвет темы</string>
     <string name="theme_accent_blue_gradient">Синий градиент</string>
     <string name="theme_accent_red_gradient">Красный градиент</string>
-    <string name="theme_accent_orange_gradient">Оранджевый градиент</string>
+    <string name="theme_accent_orange_gradient">Оранжевый градиент</string>
     <string name="theme_accent_blue">Синий</string>
     <string name="theme_accent_red">Красный</string>
-    <string name="theme_accent_orange">Оранджевый</string>
+    <string name="theme_accent_orange">Оранжевый</string>
     <string name="Default">По умолчанию</string>
     <string name="resolution">Разрешение</string>
     <string name="size">Размер файла</string>
