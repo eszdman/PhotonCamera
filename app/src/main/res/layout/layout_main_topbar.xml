@@ -35,6 +35,7 @@
             style="@style/Widget.AppCompat.ImageButton"
             android:layout_width="@dimen/topbar_icon_size"
             android:layout_height="0dp"
+            android:background="@drawable/ic_settings"
             android:src="@drawable/ic_settings"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="1:1"
