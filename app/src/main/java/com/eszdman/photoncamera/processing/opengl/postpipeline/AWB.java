@@ -72,8 +72,8 @@ public class AWB extends Node {
         }
         float[] output = new float[3];
         Log.v("AWB","Color correction vector:"+vec3[0]+" ,"+vec3[1]+ " ,"+ vec3[2]);
-        output[0] = (float) (255/(vec3[0]));
-        output[1] = (float) (247/(vec3[1]));
+        output[0] = (float) (250/(vec3[0]));
+        output[1] = (float) (255/(vec3[1]));
         output[2] = (float) (247/(vec3[2]));
         float norm = (float)Math.sqrt(output[0]*output[0]+output[1]*output[1]+output[2]*output[2]);
         float E = 1.f/output[1];
