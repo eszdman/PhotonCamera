@@ -33,7 +33,7 @@ public class ImageAdapter extends PagerAdapter {
     Comparator c = (Comparator<File>) (file1, file2) -> {
         long tsFile1 = file1.lastModified();
         long tsFile2 = file2.lastModified();
-        return Long.compare(tsFile1, tsFile2);
+        return Long.compare(tsFile2, tsFile1);
     };
 
     @NonNull
