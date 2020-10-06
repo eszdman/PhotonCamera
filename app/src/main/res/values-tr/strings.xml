@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Photon Camera</string>
     <string name="request_permission">Bu uygulama kamera iznine ihtiyaç duyuyor.</string>
     <string name="camera_error">Bu cihazın Camera2 API desteği yok.</string>
     <string name="luma_nr_count">Luma NR sayısı:</string>
@@ -36,7 +35,6 @@
     <string name="size">"Dosya boyutu: "</string>
     <string name="device">"Cihaz: "</string>
     <string name="date">"Tarih: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Pozlama süresi: "</string>
     <string name="aperture">"Diyafram: "</string>
     <string name="flength">"Odak uzaklığı: "</string>

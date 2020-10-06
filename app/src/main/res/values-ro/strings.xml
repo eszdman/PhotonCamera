@@ -35,7 +35,6 @@
     <string name="size">"Mărime fişier: "</string>
     <string name="device">"Dispozitiv: "</string>
     <string name="date">"Dată: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Timp de expunere: "</string>
     <string name="aperture">"Apertură: "</string>
     <string name="flength">"Distanță focală: "</string>

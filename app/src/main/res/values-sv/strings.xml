@@ -35,7 +35,6 @@
     <string name="size">"Filstorlek: "</string>
     <string name="device">"Enhet: "</string>
     <string name="date">"Datum: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Exponeringstid: "</string>
     <string name="aperture">"Bländare: "</string>
     <string name="flength">"Brännvidd: "</string>

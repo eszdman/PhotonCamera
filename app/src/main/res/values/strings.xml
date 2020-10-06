@@ -36,7 +36,7 @@
     <string name="size">"File Size: "</string>
     <string name="device">"Device: "</string>
     <string name="date">"Date: "</string>
-    <string name="iso">"ISO: "</string>
+    <string name="iso" translatable="false">"ISO: "</string>
     <string name="exposure_time">"Exposure Time: "</string>
     <string name="aperture">"Aperture: "</string>
     <string name="flength">"Focal Length: "</string>
@@ -46,9 +46,9 @@
     <string name="histogram">Histogram</string>
     <string name="export_settings">Export Settings</string>
     <string name="import_settings">Import Settings</string>
-    <string name="manual_mode_auto">Auto</string>
-    <string name="manual_mode_manual">Manual</string>
-    <string name="manual_mode_fixed">Fixed</string>
+    <string name="manual_mode_auto" translatable="false">Auto</string>
+    <string name="manual_mode_manual" translatable="false">Manual</string>
+    <string name="manual_mode_fixed" translatable="false">Fixed</string>
     <string name="pref_show_grid_title">Show Grid</string>
     <string name="cfa">CFA Pattern</string>
     <string name="align_method">Align Method</string>

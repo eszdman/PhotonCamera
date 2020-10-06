@@ -32,7 +32,6 @@
     <string name="size">"Dimensioni file: "</string>
     <string name="device">"Dispositivo: "</string>
     <string name="date">"Data: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Tempo di esposizione: "</string>
     <string name="aperture">"Apertura: "</string>
     <string name="flength">"Lunghezza focale: "</string>

@@ -35,7 +35,6 @@
     <string name="size">"Veličina datoteke:"</string>
     <string name="device">"Uređaj:"</string>
     <string name="date">"Datum: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Vrijeme ekspozicije: "</string>
     <string name="aperture">"Apertura:"</string>
     <string name="flength">"Fokalna duljina: "</string>

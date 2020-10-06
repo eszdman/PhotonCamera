@@ -35,7 +35,6 @@
     <string name="size">"Големина на фалј: "</string>
     <string name="device">"Уред: "</string>
     <string name="date">"Датум: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Време на изложеност: "</string>
     <string name="aperture">"Aperture: "</string>
     <string name="flength">"Focal length: "</string>
