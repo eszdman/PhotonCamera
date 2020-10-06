@@ -1,11 +1,9 @@
 package com.eszdman.photoncamera.ui.camera.binding;
 
 import android.view.View;
-import android.widget.LinearLayout;
 
 import androidx.databinding.BindingAdapter;
 
-import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.manual.KnobView;
 import com.manual.Rotation;

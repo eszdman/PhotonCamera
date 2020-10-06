@@ -2,7 +2,6 @@ package com.eszdman.photoncamera.processing.opengl.rawpipeline;
 
 import android.graphics.Point;
 import android.util.Log;
-import android.widget.PopupWindow;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;

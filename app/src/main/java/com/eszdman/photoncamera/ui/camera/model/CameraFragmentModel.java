@@ -2,8 +2,6 @@ package com.eszdman.photoncamera.ui.camera.model;
 
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
-import androidx.databinding.ObservableField;
-import androidx.databinding.ObservableInt;
 
 /**
  * Class that holds the ui state, for now the orientation

@@ -3,14 +3,15 @@ package com.eszdman.photoncamera.gallery;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 
 import com.bumptech.glide.Glide;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
 
 
 public class ImageAdapter extends PagerAdapter {

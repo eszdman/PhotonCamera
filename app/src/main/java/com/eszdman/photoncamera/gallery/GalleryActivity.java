@@ -45,8 +45,6 @@ import java.util.Objects;
 
 import rapid.decoder.BitmapDecoder;
 
-import static org.apache.commons.io.FileUtils.getExtension;
-
 public class GalleryActivity extends AppCompatActivity implements View.OnClickListener {
 
     public static final List<String> EXTENSION_WHITELIST = Collections.singletonList("JPG");

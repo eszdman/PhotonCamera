@@ -11,7 +11,6 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
-import static android.hardware.camera2.CameraMetadata.*;
 import static android.hardware.camera2.CaptureRequest.*;
 
 public class Settings {

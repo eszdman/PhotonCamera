@@ -5,7 +5,6 @@ import android.util.Log;
 
 import androidx.lifecycle.ViewModel;
 
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
 
