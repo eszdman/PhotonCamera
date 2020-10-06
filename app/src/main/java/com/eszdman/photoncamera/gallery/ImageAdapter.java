@@ -8,6 +8,7 @@ import androidx.viewpager.widget.PagerAdapter;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 
 import com.bumptech.glide.Glide;
 
@@ -28,10 +29,17 @@ public class ImageAdapter extends PagerAdapter {
     public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
         return view == object;
     }
+
+    Comparator c = (Comparator<File>) (file1, file2) -> {
+        long tsFile1 = file1.lastModified();
+        long tsFile2 = file2.lastModified();
+        return Long.compare(tsFile1, tsFile2);
+    };
+
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        Arrays.sort(file, Collections.reverseOrder());
+        Arrays.sort(file, c);
         TouchImageView imageView = new TouchImageView(context);
         Glide
                 .with(context)
