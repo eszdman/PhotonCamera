@@ -152,6 +152,78 @@ public class GLFormat {
         }
         return 0;
     }
+    public String getTemVar(){
+        switch (mFormat) {
+            case NONE:
+                break;
+            case FLOAT_16:
+            case FLOAT_32:
+            case FLOAT_64:
+                switch (mChannels) {
+                    case 1: return "float";
+                    case 2: return "vec2";
+                    case 3: return "vec3";
+                    case 4: return "vec4";
+                }
+
+            case UNSIGNED_8:
+            case UNSIGNED_16:
+            case UNSIGNED_32:
+            case UNSIGNED_64:
+                switch (mChannels) {
+                    case 1: return "uint";
+                    case 2: return "uvec2";
+                    case 3: return "uvec3";
+                    case 4: return "uvec4";
+                }
+            case SIGNED_8:
+            case SIGNED_16:
+            case SIGNED_32:
+            case SIGNED_64:
+                switch (mChannels) {
+                    case 1: return "int";
+                    case 2: return "ivec2";
+                    case 3: return "ivec3";
+                    case 4: return "ivec4";
+                }
+        }
+        return "vec4";
+    }
+    public String getScalar(){
+        switch (mFormat) {
+            case NONE:
+                break;
+            case FLOAT_16:
+            case FLOAT_32:
+            case FLOAT_64:
+                    return "float";
+            case UNSIGNED_8:
+            case UNSIGNED_16:
+            case UNSIGNED_32:
+            case UNSIGNED_64:
+                    return "uint";
+            case SIGNED_8:
+            case SIGNED_16:
+            case SIGNED_32:
+            case SIGNED_64:
+                    return "int";
+        }
+        return "float";
+    }
+    public String getTemSamp(){
+        switch (mFormat) {
+            case FLOAT_32:
+            case FLOAT_64:
+            case FLOAT_16: return "sampler2D";
+            case UNSIGNED_8: return "usampler2D";
+            case UNSIGNED_16: return "usampler2D";
+            case UNSIGNED_32: return "usampler2D";
+            case SIGNED_8: return "sampler2D";
+            case SIGNED_16: return "sampler2D";
+            case SIGNED_32: return "sampler2D";
+        }
+        return "sampler2D";
+    }
     @androidx.annotation.NonNull
     @Override
     public String toString() {

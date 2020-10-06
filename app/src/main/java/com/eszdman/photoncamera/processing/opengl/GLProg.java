@@ -84,6 +84,19 @@ public class GLProg implements AutoCloseable  {
         mTextureBinds.clear();
         mNewTextureId = 0;
     }
+    public void useProgram(String prog) {
+        int nShader = compileShader(GL_FRAGMENT_SHADER, prog);
+        //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+        int program = createProgram(vertexShader,nShader);
+        glLinkProgram(program);
+        GLES30.glGetError();
+        //checkEglError("glLinkProgram");
+        glUseProgram(program);
+        checkEglError("glUseProgram");
+        mCurrentProgramActive = program;
+        mTextureBinds.clear();
+        mNewTextureId = 0;
+    }
     /**
      * Helper function to compile a shader.
      *

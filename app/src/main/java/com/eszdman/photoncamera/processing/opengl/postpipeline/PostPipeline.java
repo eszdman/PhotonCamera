@@ -103,9 +103,8 @@ public class PostPipeline extends GLBasePipeline {
             add(new LFHDR(0, "LFHDR"));
         }
         add(new Initial(R.raw.initial,"Initial"));
-        //add(new AWB(0,"AWB"));
+        add(new AWB(0,"AWB"));
         add(new GlobalTonemaping(0,"GlobalTonemap"));
-        //fix yellow AWB - Urnyx05
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
@@ -114,7 +113,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new Bilateral(R.raw.bilateral, "Bilateral"));
         }
         add(new Sharpen(selectSharp(),"Sharpening"));
-        add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
+        //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));
 
         Bitmap img = runAll();

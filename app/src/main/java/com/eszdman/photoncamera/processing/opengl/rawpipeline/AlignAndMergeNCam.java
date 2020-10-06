@@ -292,8 +292,8 @@ public class AlignAndMergeNCam extends Node {
     private void Merge(){
         // Assume same size.
         List<GLTexture> images = mTextures;
-        glProg.setvar("alignCount", images.size() - 1);
-        glProg.setvar("frameSize", mTextures.get(0).mSize);
+        glProg.setvar("alignCount", 5);
+        glProg.setvar("frameSize", images.get(0).mSize);
         glProg.setvar("refFrame", 0);
         images.get(0).bind(GL_TEXTURE0);
         for (int i = 1; i < images.size(); i++) {
@@ -318,11 +318,6 @@ public class AlignAndMergeNCam extends Node {
         //GLTexture BaseFrame88 = GaussDown44(BaseFrame22);
         //GLTexture BaseFrame3232 = GaussDown44(BaseFrame88);
         //GLTexture Output = CorrectedRaw(images.get(0));
-        for (int i = 1; i < 5; i++) {
-            GLTexture inputraw = CorrectedRaw(images.get(i%images.size()));
-            mTextures.add(inputraw);
-        }
-
         long time = System.currentTimeMillis();
         //GLTexture BaseFrame = CorrectedRaw(images.get(0));
         // Remove all previous textures.
@@ -330,7 +325,12 @@ public class AlignAndMergeNCam extends Node {
             texture.close();
         }
         mTextures.clear();
-        if (images.size() == 5) {
+        for (int i = 0; i < 5; i++) {
+            //GLTexture inputraw = CorrectedRaw(images.get(i%images.size()));
+            GLTexture input = new GLTexture(rawsize,new GLFormat(GLFormat.DataType.UNSIGNED_16),images.get((i%images.size())));
+            mTextures.add(input);
+        }
+        if (mTextures.size() == 5) {
             TexPyramid pyramid = new TexPyramid();
             pyramid.downsample();
             pyramid.integrate();
@@ -339,8 +339,8 @@ public class AlignAndMergeNCam extends Node {
             pyramid.weigh();
             mAlign = pyramid.mLargeAlign;
             mWeights = pyramid.mLargeWeights;
+            Merge();
         }
-        Merge();
         Log.d("AlignAndMerge", "AlignmentAndMerge elapsed time:" + (System.currentTimeMillis() - time) + " ms");
     }
 }

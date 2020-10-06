@@ -10,6 +10,7 @@ public class GLInterface {
     public Parameters parameters;
     public GLCoreBlockProcessing glProc;
     public GLContext glContext;
+    public GLUtils glUtils;
     public GLInterface(GLCoreBlockProcessing processing){
         glProc = processing;
         glprogram = glProc.mProgram;
