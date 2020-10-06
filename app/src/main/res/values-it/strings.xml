@@ -40,4 +40,20 @@
     <string name="turn_on_afdata">Mostra dati AF</string>
     <string name="histogram">Istogramma</string>
     <string name="gain">Amplificazione:</string>
+    <string name="pref_save_per_lens_string">Salva impostazioni per ogni lente</string>
+    <string name="compressor">Compressore</string>
+    <string name="about">Informazioni</string>
+    <string name="camera_sounds">Suoni fotocamera</string>
+    <string name="theme">Tema</string>
+    <string name="theme_follow_system">Segui sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="theme_accent">Colore tema</string>
+    <string name="Default">Predefinito</string>
+    <string name="theme_accent_blue_gradient">Blu con Sfumatura</string>
+    <string name="theme_accent_red_gradient">Rosso con Sfumatura</string>
+    <string name="theme_accent_orange_gradient">Arancione con Sfumatura</string>
+    <string name="theme_accent_blue">Blu</string>
+    <string name="theme_accent_red">Rosso</string>
+    <string name="theme_accent_orange">Arancione</string>
 </resources>

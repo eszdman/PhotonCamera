@@ -66,26 +66,6 @@
                 app:defaultValue="false"
                 android:enabled="false"
                 />
-        <ListPreference
-            android:layout="@layout/preference_with_margin"
-            android:key="pref_theme_key"
-            android:title="@string/theme"
-            app:useSimpleSummaryProvider="true"
-            android:icon="@drawable/ic_theme"
-            android:entries="@array/theme_entries"
-            android:entryValues="@array/theme_entryValues"
-            android:defaultValue="@string/pref_theme_default_value"
-            />
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="pref_theme_accent_key"
-                android:title="@string/theme_accent"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_theme"
-                android:entries="@array/theme_accent_entries"
-                android:entryValues="@array/theme_accent_entryValues"
-                android:defaultValue="@string/pref_theme_accent_default_value"
-                />
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
@@ -227,12 +207,38 @@
                 />
     </PreferenceCategory>
     <PreferenceCategory
+        android:layout="@layout/preference_category_layout"
+        android:key="pref_theme_category_key"
+        android:title="@string/theme">
+
+        <ListPreference
+            android:layout="@layout/preference_with_margin"
+            android:key="pref_theme_key"
+            android:title="@string/theme"
+            app:useSimpleSummaryProvider="true"
+            android:icon="@drawable/ic_theme"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_entryValues"
+            android:defaultValue="@string/pref_theme_default_value"
+            />
+        <ListPreference
+            android:layout="@layout/preference_with_margin"
+            android:key="pref_theme_accent_key"
+            android:title="@string/theme_accent"
+            app:useSimpleSummaryProvider="true"
+            android:icon="@drawable/ic_saturation"
+            android:entries="@array/theme_accent_entries"
+            android:entryValues="@array/theme_accent_entryValues"
+            android:defaultValue="@string/pref_theme_accent_default_value"
+            />
+    </PreferenceCategory>
+    <PreferenceCategory
             android:layout="@layout/preference_category_layout"
             android:key="pref_category_about"
             android:title="@string/about">
         <PreferenceScreen
                 android:layout="@layout/preference_with_margin"
-                android:title="About"
+                android:title="@string/about"
                 android:key="pref_about_key"
                 android:icon="@drawable/ic_baseline_info_24">
             <Preference
