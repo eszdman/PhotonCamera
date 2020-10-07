@@ -6,8 +6,8 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="@dimen/camera_settings_entry_margin"
-        android:paddingBottom="@dimen/camera_settings_entry_margin"
+        android:paddingTop="@dimen/camera_preference_about_padding"
+        android:paddingBottom="@dimen/camera_preference_about_padding"
         android:minHeight="?android:listPreferredItemHeight"
         android:paddingEnd="?android:scrollbarSize"
         android:paddingStart="?android:scrollbarSize"
@@ -22,7 +22,7 @@
             android:contentDescription="@string/icon_string"/>
 
     <TextView
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:ellipsize="marquee"
             android:id="@android:id/title"
             android:fadingEdge="horizontal"
@@ -31,14 +31,16 @@
             android:paddingEnd="@dimen/camera_settings_icon_size"
             android:paddingBottom="10dp"
             android:paddingTop="10dp"
+            android:textAlignment="center"
             tools:text="Title"
-            android:textColor="?android:textColorPrimary"
+            android:textColor="?android:textColorPrimaryNoDisable"
+            android:textStyle="bold"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
     <TextView
             android:textAppearance="?android:textAppearanceSmall"
-            android:textColor="?android:textColorSecondary"
+            android:textColor="?android:textColorPrimaryNoDisable"
             android:id="@android:id/summary"
             tools:text="Summary"
             android:paddingStart="@dimen/camera_settings_icon_size"

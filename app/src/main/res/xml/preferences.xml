@@ -243,17 +243,24 @@
                 android:icon="@drawable/ic_baseline_info_24">
             <Preference
                     android:layout="@layout/preference_about"
-                    app:title="Photon Camera\u2122"
-                    android:summary="An Open Source Android Camera with\n Enhanced Image Processing"
+                    android:title="@string/app_name"
+                    android:summary="@string/photon_camera_summary"
                     android:key="pref_photoncamera"
-                    android:selectable="false"
+                    android:enabled="false"
                     android:icon="@drawable/ic_splash">
             </Preference>
+            <Preference
+                    android:key="pref_version_key"
+                    android:title="@string/version_title"
+                    android:layout="@layout/preference_about"
+                    android:summary="@string/version_summary"
+                    android:enabled="false"
+                    />
             <Preference
                     android:layout="@layout/preference_about"
                     android:key="pref_contributors"
                     android:icon="@drawable/ic_github"
-                    android:title="Contributors"
+                    android:title="@string/contributors_title"
                     android:summary="eszdman, assasinfil, killerink, mirai, Urnyx05, vibhorSrv"/>
             <Preference
                     android:layout="@layout/preference_about"

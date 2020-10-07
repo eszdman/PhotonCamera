@@ -2,8 +2,12 @@ package com.eszdman.photoncamera.ui.settings;
 
 
 import android.app.Activity;
+import android.app.ActivityOptions;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
@@ -13,10 +17,15 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
     private static final String KEY_MAIN_PARENT_SCREEN = "prefscreen";
     private Activity activity;
     private SettingsManager mSettingsManager;
+    private Context mContext;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -28,6 +37,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         super.onCreate(savedInstanceState);
         activity = getActivity();
         mSettingsManager = new SettingsManager(getContext());
+        mContext = getContext();
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
         if (PreferenceKeys.isHdrXOn())
@@ -41,6 +51,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 category.removePreference(hide);
         }
         setFramesSummary();
+        setVersionDetails();
     }
 
     @Override
@@ -101,7 +112,29 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         if (getActivity() != null) {
             Intent intent = new Intent(getContext(), getActivity().getClass());
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            startActivity(intent);
+            startActivity(intent,
+                    ActivityOptions.makeCustomAnimation(getContext(), R.anim.fade_in, R.anim.fade_out).toBundle());
+        }
+    }
+
+    private void setVersionDetails() {
+        Preference about = findPreference("pref_version_key");
+        if (about != null && mContext != null) {
+            try {
+                PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                String versionName = packageInfo.versionName;
+                long versionCode = packageInfo.getLongVersionCode();
+
+                Date date = new Date(packageInfo.lastUpdateTime);
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+                about.setSummary(getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
+
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 

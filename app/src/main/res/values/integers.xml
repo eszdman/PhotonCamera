@@ -12,4 +12,5 @@
     <integer name="manual_iso_knob_view_auto_angle">30</integer>
     <integer name="manual_ev_knob_view_angle_half">40</integer>
     <integer name="manual_ev_knob_view_auto_angle">5</integer>
+    <integer name="config_settingsFadeAnimationDuration">250</integer>
 </resources>
