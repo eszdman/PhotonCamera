@@ -11,10 +11,12 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.preference.*;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.settings.SettingsManager;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
     private static final String KEY_MAIN_PARENT_SCREEN = "prefscreen";
     private Activity activity;
+    private SettingsManager mSettingsManager;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -25,6 +27,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = getActivity();
+        mSettingsManager = new SettingsManager(getContext());
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
         if (PreferenceKeys.isHdrXOn())
@@ -37,6 +40,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         if (category != null && hide != null) {
                 category.removePreference(hide);
         }
+        setFramesSummary();
     }
 
     @Override
@@ -76,6 +80,20 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME_ACCENT)) {
             restartActivity();
             SettingsActivity.toRestartApp = true;
+        }
+        if (key.equalsIgnoreCase(PreferenceKeys.KEY_FRAME_COUNT)) {
+            setFramesSummary();
+        }
+    }
+
+    private void setFramesSummary() {
+        Preference frameCountPreference = findPreference(PreferenceKeys.KEY_FRAME_COUNT);
+        if (frameCountPreference != null && getContext() != null) {
+            if (mSettingsManager.getInteger(PreferenceKeys.current_scope, PreferenceKeys.KEY_FRAME_COUNT) == 1) {
+                frameCountPreference.setSummary(getString(R.string.unprocessed_raw));
+            } else {
+                frameCountPreference.setSummary(getString(R.string.frame_count_summary));
+            }
         }
     }
 

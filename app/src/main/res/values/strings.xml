@@ -19,7 +19,7 @@
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
-    <string name="raw">Save RAW</string>
+    <string name="raw">Save Stacked RAW</string>
     <string name="turn_on_round_edges">Enable Round Edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>
@@ -69,4 +69,6 @@
     <string name="theme_accent_blue">Blue</string>
     <string name="theme_accent_red">Red</string>
     <string name="theme_accent_orange">Orange</string>
+    <string name="unprocessed_raw">Unprocessed RAW</string>
+    <string name="frame_count_summary">Number of image frames to be stacked</string>
 </resources>
