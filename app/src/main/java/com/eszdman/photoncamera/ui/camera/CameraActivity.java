@@ -14,18 +14,11 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
 import com.manual.ManualMode;
-import org.opencv.android.OpenCVLoader;
 
 
 public class CameraActivity extends AppCompatActivity {
 
     public static CameraActivity act;
-
-    static {
-        if (!OpenCVLoader.initDebug()) {
-            // Handle initialization error
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

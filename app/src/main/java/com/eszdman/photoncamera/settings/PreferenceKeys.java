@@ -69,17 +69,15 @@ public class PreferenceKeys {
         settingsManager.setDefaults(KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
         settingsManager.setDefaults(CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{""});
         settingsManager.setDefaults(TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
-        settingsManager.addListener(new SettingsManager.OnSettingChangedListener() {
-            @Override
-            public void onSettingChanged(SettingsManager settingsManager, String key) {
-                PhotonCamera.getSettings().loadCache();
-                Log.d(TAG,key+" : changed!");
-            }
+        settingsManager.addListener((settingsManager1, key) -> {
+            PhotonCamera.getSettings().loadCache();
+            Log.d(TAG,key+" : changed!");
         });
     }
    public static void setActivityTheme(Activity activity){
        String theme = PreferenceManager.getDefaultSharedPreferences(activity.getApplication()).getString(PreferenceKeys.KEY_THEME_ACCENT, activity.getString(R.string.pref_theme_accent_default_value));
        try {
+           assert theme != null;
            Field resourceField = R.style.class.getDeclaredField(theme);
            int resourceId = resourceField.getInt(resourceField);
            activity.setTheme(resourceId);
@@ -233,7 +231,7 @@ public class PreferenceKeys {
         PhotonCamera.getSettingsManager().set(current_scope, CAMERA_MODE, value);
     }
 
-    public static String getTonemap() {
+    public static String getToneMap() {
         return PhotonCamera.getSettingsManager().getString(current_scope, TONEMAP);
     }
 

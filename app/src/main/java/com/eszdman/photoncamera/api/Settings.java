@@ -101,7 +101,7 @@ public class Settings {
     }
 
     float[] parseToneMapArray() {
-        String savedArrayAsString = PreferenceKeys.getTonemap();
+        String savedArrayAsString = PreferenceKeys.getToneMap();
         if (savedArrayAsString == null)
             return new float[0];
         String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");

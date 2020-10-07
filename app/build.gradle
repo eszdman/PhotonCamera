@@ -101,5 +101,4 @@ dependencies {
     implementation 'rapid.decoder:library:0.3.0'
     implementation 'rapid.decoder:jpeg-decoder:0.3.0'
     implementation 'rapid.decoder:png-decoder:0.3.0'
-    implementation 'com.quickbirdstudios:opencv:4.3.0'
 }
