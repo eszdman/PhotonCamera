@@ -68,10 +68,6 @@ public class AWB extends Node {
         return colorsMap;
     }
 
-    private double normPDF(double dist) {
-        return (0.39894 * Math.exp(-0.5 * dist * dist / (0.3 * 0.3)) / 0.3);
-    }
-
     //Yellow point 0xE3BFA5
     //Averaged white point 0xC2C2C2
     //Color average point 210 192 179
@@ -86,9 +82,6 @@ public class AWB extends Node {
             for (short j = 7; j < SIZE-7; j++) {
                 for (short k = 7; k < SIZE-7; k++) {
                     int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
-                    //for(short c = (short) (-5); c<5; c++){
-                    //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
-                    //}
                     if (min > maxHistH) {
                         maxHistH = min;
                         redVector = i;
@@ -98,7 +91,6 @@ public class AWB extends Node {
                 }
             }
         }
-        Log.v("AWB", "Color correction vector1:" + redVector + " ," + greenVector + " ," + blueVector);
         float mean = (float) (redVector + greenVector + blueVector) / 3;
         float[] output = new float[3];
         output[0] = blueVector / mean;
