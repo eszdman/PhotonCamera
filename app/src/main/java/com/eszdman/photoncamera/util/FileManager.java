@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.util;
 
 import android.os.Environment;
+
 import java.io.File;
 
 public class FileManager {

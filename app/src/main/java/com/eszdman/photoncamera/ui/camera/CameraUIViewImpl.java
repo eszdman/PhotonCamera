@@ -4,14 +4,23 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.*;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.ToggleButton;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
-import de.hdodenhof.circleimageview.CircleImageView;
 
 import java.util.Set;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 /**
  * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface
@@ -83,7 +92,7 @@ public final class CameraUIViewImpl implements CameraUIView {
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
         mModePicker.setSelectedItem(1);
-        PreferenceKeys.setCameraMode(0); //this shouldnt be here,Temporary
+        PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
     }
 
     @Override

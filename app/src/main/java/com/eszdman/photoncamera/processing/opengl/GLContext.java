@@ -4,6 +4,7 @@ import android.opengl.EGLConfig;
 import android.opengl.EGLContext;
 import android.opengl.EGLDisplay;
 import android.opengl.EGLSurface;
+
 import static android.opengl.EGL14.EGL_HEIGHT;
 import static android.opengl.EGL14.EGL_NONE;
 import static android.opengl.EGL14.EGL_NO_CONTEXT;
@@ -24,6 +25,7 @@ public class GLContext implements AutoCloseable {
     private final EGLContext mContext;
     private final EGLSurface mSurface;
     public GLProg mProgram;
+
     public GLContext(int surfaceWidth, int surfaceHeight) {
         int[] major = new int[2];
         int[] minor = new int[2];
@@ -44,8 +46,8 @@ public class GLContext implements AutoCloseable {
         if (configs[0] == null) {
             throw new RuntimeException("OpenGL config is null");
         }
-        mContext = eglCreateContext(mDisplay, configs[0], EGL_NO_CONTEXT, GLConst.contextattribList, 0);
-        mSurface = eglCreatePbufferSurface(mDisplay, configs[0], new int[] {
+        mContext = eglCreateContext(mDisplay, configs[0], EGL_NO_CONTEXT, GLConst.contextAttributeList, 0);
+        mSurface = eglCreatePbufferSurface(mDisplay, configs[0], new int[]{
                 EGL_WIDTH, surfaceWidth,
                 EGL_HEIGHT, surfaceHeight,
                 EGL_NONE
@@ -55,7 +57,7 @@ public class GLContext implements AutoCloseable {
     }
 
     @Override
-    public void close(){
+    public void close() {
         mProgram.close();
         eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(mDisplay, mContext);

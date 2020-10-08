@@ -2,10 +2,15 @@ package com.manual;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.*;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.util.Size;
+
 import androidx.annotation.RequiresApi;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)

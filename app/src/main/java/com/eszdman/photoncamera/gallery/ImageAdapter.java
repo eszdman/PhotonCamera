@@ -22,25 +22,22 @@ public class ImageAdapter extends PagerAdapter {
         this.context = context;
         this.file = file;
     }
+
     @Override
     public int getCount() {
         return file.length;
     }
+
     @Override
     public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
         return view == object;
     }
 
-    Comparator c = (Comparator<File>) (file1, file2) -> {
-        long tsFile1 = file1.lastModified();
-        long tsFile2 = file2.lastModified();
-        return Long.compare(tsFile2, tsFile1);
-    };
 
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        Arrays.sort(file, c);
+        Arrays.sort(file, (file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
         TouchImageView imageView = new TouchImageView(context);
         Glide
                 .with(context)
@@ -49,6 +46,7 @@ public class ImageAdapter extends PagerAdapter {
         container.addView(imageView);
         return imageView;
     }
+
     @Override
     public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         container.removeView((View) object);

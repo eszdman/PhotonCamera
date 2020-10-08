@@ -5,7 +5,7 @@ import android.provider.Settings;
 import android.view.OrientationEventListener;
 import android.view.Surface;
 
-public abstract class CustomOrientationEventListener  extends OrientationEventListener {
+public abstract class CustomOrientationEventListener extends OrientationEventListener {
 
 
     private static final String TAG = "CustomOrientationEvent";

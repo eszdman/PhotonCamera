@@ -14,23 +14,11 @@ import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_RGBA;
 import static android.opengl.GLES20.glGetError;
 import static android.opengl.GLES20.glReadPixels;
+import static android.opengl.GLES30.GL_COMPILE_STATUS;
 import static android.opengl.GLES30.GL_FRAGMENT_SHADER;
+import static android.opengl.GLES30.GL_LINK_STATUS;
 import static android.opengl.GLES30.GL_RGBA_INTEGER;
 import static android.opengl.GLES30.GL_TEXTURE0;
-import static android.opengl.GLES30.glGetAttribLocation;
-import static android.opengl.GLES30.glGetUniformLocation;
-import static android.opengl.GLES30.glUniform1f;
-import static android.opengl.GLES30.glUniform1i;
-import static android.opengl.GLES30.glUniform2f;
-import static android.opengl.GLES30.glUniform2i;
-import static android.opengl.GLES30.glUniform3f;
-import static android.opengl.GLES30.glUniform3i;
-import static android.opengl.GLES30.glUniform4f;
-import static android.opengl.GLES30.glUniform4i;
-import static android.opengl.GLES30.glUniformMatrix3fv;
-import static android.opengl.GLES30.glUseProgram;
-import static android.opengl.GLES30.GL_COMPILE_STATUS;
-import static android.opengl.GLES30.GL_LINK_STATUS;
 import static android.opengl.GLES30.GL_VERTEX_SHADER;
 import static android.opengl.GLES30.glAttachShader;
 import static android.opengl.GLES30.glCompileShader;
@@ -39,20 +27,32 @@ import static android.opengl.GLES30.glCreateShader;
 import static android.opengl.GLES30.glDeleteProgram;
 import static android.opengl.GLES30.glDeleteShader;
 import static android.opengl.GLES30.glFlush;
+import static android.opengl.GLES30.glGetAttribLocation;
 import static android.opengl.GLES30.glGetProgramInfoLog;
 import static android.opengl.GLES30.glGetProgramiv;
 import static android.opengl.GLES30.glGetShaderInfoLog;
 import static android.opengl.GLES30.glGetShaderiv;
+import static android.opengl.GLES30.glGetUniformLocation;
 import static android.opengl.GLES30.glLinkProgram;
 import static android.opengl.GLES30.glShaderSource;
+import static android.opengl.GLES30.glUniform1f;
+import static android.opengl.GLES30.glUniform1i;
 import static android.opengl.GLES30.glUniform1ui;
+import static android.opengl.GLES30.glUniform2f;
+import static android.opengl.GLES30.glUniform2i;
 import static android.opengl.GLES30.glUniform2ui;
+import static android.opengl.GLES30.glUniform3f;
+import static android.opengl.GLES30.glUniform3i;
 import static android.opengl.GLES30.glUniform3ui;
+import static android.opengl.GLES30.glUniform4f;
+import static android.opengl.GLES30.glUniform4i;
 import static android.opengl.GLES30.glUniform4ui;
+import static android.opengl.GLES30.glUniformMatrix3fv;
+import static android.opengl.GLES30.glUseProgram;
 import static android.opengl.GLES30.glViewport;
 import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
 
-public class GLProg implements AutoCloseable  {
+public class GLProg implements AutoCloseable {
     private static final String TAG = "GLProgram";
     private final ByteBuffer mFlushBuffer = ByteBuffer.allocateDirect(4 * 4 * 4096);
     private final List<Integer> mPrograms = new ArrayList<>();
@@ -67,14 +67,16 @@ public class GLProg implements AutoCloseable  {
             "void main() {\n" +
             "gl_Position = vPosition;\n" +
             "}\n";
+
     public GLProg() {
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         mFlushBuffer.mark();
     }
+
     public void useProgram(int fragmentRes) {
         int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-        int program = createProgram(vertexShader,nShader);
+        int program = createProgram(vertexShader, nShader);
         glLinkProgram(program);
         GLES30.glGetError();
         //checkEglError("glLinkProgram");
@@ -84,10 +86,11 @@ public class GLProg implements AutoCloseable  {
         mTextureBinds.clear();
         mNewTextureId = 0;
     }
+
     public void useProgram(String prog) {
         int nShader = compileShader(GL_FRAGMENT_SHADER, prog);
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-        int program = createProgram(vertexShader,nShader);
+        int program = createProgram(vertexShader, nShader);
         glLinkProgram(program);
         GLES30.glGetError();
         //checkEglError("glLinkProgram");
@@ -97,6 +100,7 @@ public class GLProg implements AutoCloseable  {
         mTextureBinds.clear();
         mNewTextureId = 0;
     }
+
     /**
      * Helper function to compile a shader.
      *
@@ -126,6 +130,7 @@ public class GLProg implements AutoCloseable  {
         }
         return shaderHandle;
     }
+
     /**
      * Helper function to compile and link a program.
      *
@@ -181,13 +186,16 @@ public class GLProg implements AutoCloseable  {
             draw();
         }
     }
+
     public void drawBlocks(GLTexture texture, int bh) {
         drawBlocks(texture, bh, false);
     }
+
     public void drawBlocks(GLTexture texture, int bh, boolean forceFlush) {
         texture.BufferLoad();
         drawBlocks(texture.mSize.x, texture.mSize.y, bh, -1, forceFlush ? texture.mFormat.mFormat.mID : -1);
     }
+
     public void drawBlocks(int w, int h, int bh, int flushFormat, int flushType) {
         mFlushBuffer.reset();
         if (flushFormat == -1) {
@@ -222,48 +230,81 @@ public class GLProg implements AutoCloseable  {
             mTextureBinds.put(var, textureId);
             mNewTextureId += 2;
         }
-        setvar(var, textureId);
+        setVar(var, textureId);
         tex.bind(GL_TEXTURE0 + textureId);
     }
-    public void setvar(String name, int ...vars){
-        int addr = glGetUniformLocation(mCurrentProgramActive,name);
+
+    public void setVar(String name, int... vars) {
+        int addr = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
-            case 1: glUniform1i(addr, vars[0]); break;
-            case 2: glUniform2i(addr, vars[0], vars[1]); break;
-            case 3: glUniform3i(addr, vars[0], vars[1], vars[2]); break;
-            case 4: glUniform4i(addr, vars[0], vars[1], vars[2], vars[3]); break;
-            default: throw new RuntimeException("Wrong var size " + name);
+            case 1:
+                glUniform1i(addr, vars[0]);
+                break;
+            case 2:
+                glUniform2i(addr, vars[0], vars[1]);
+                break;
+            case 3:
+                glUniform3i(addr, vars[0], vars[1], vars[2]);
+                break;
+            case 4:
+                glUniform4i(addr, vars[0], vars[1], vars[2], vars[3]);
+                break;
+            default:
+                throw new RuntimeException("Wrong var size " + name);
         }
     }
-    public void setvar(String name, Point in){
-        setvar(name,in.x,in.y);
+
+    public void setVar(String name, Point in) {
+        setVar(name, in.x, in.y);
     }
-    public void setvar(String name, float ...vars){
-        int addr = glGetUniformLocation(mCurrentProgramActive,name);
+
+    public void setVar(String name, float... vars) {
+        int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
-            case 1: glUniform1f(addr, vars[0]); break;
-            case 2: glUniform2f(addr, vars[0], vars[1]); break;
-            case 3: glUniform3f(addr, vars[0], vars[1], vars[2]); break;
-            case 4: glUniform4f(addr, vars[0], vars[1], vars[2], vars[3]); break;
-            case 9: glUniformMatrix3fv(addr, 1, true, vars, 0); break;
-            default: throw new RuntimeException("Wrong var size " + name);
+            case 1:
+                glUniform1f(address, vars[0]);
+                break;
+            case 2:
+                glUniform2f(address, vars[0], vars[1]);
+                break;
+            case 3:
+                glUniform3f(address, vars[0], vars[1], vars[2]);
+                break;
+            case 4:
+                glUniform4f(address, vars[0], vars[1], vars[2], vars[3]);
+                break;
+            case 9:
+                glUniformMatrix3fv(address, 1, true, vars, 0);
+                break;
+            default:
+                throw new RuntimeException("Wrong var size " + name);
         }
     }
-    public void setvaru(String name, int ...vars){
-        int addr = glGetUniformLocation(mCurrentProgramActive,name);
+
+    public void setVarU(String name, int... vars) {
+        int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
-            case 1: glUniform1ui(addr, vars[0]); break;
-            case 2: glUniform2ui(addr, vars[0], vars[1]); break;
-            case 3: glUniform3ui(addr, vars[0], vars[1], vars[2]); break;
-            case 4: glUniform4ui(addr, vars[0], vars[1], vars[2], vars[3]); break;
-            default: throw new RuntimeException("Wrong var size " + name);
+            case 1:
+                glUniform1ui(address, vars[0]);
+                break;
+            case 2:
+                glUniform2ui(address, vars[0], vars[1]);
+                break;
+            case 3:
+                glUniform3ui(address, vars[0], vars[1], vars[2]);
+                break;
+            case 4:
+                glUniform4ui(address, vars[0], vars[1], vars[2], vars[3]);
+                break;
+            default:
+                throw new RuntimeException("Wrong var size " + name);
         }
     }
 
     @Override
     public void close() {
-        for(int prog : mPrograms){
-            glDeleteProgram(prog);
+        for (int program : mPrograms) {
+            glDeleteProgram(program);
         }
     }
 }

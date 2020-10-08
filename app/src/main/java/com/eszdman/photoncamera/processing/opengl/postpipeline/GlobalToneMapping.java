@@ -12,15 +12,15 @@ import com.eszdman.photoncamera.R;
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
-public class GlobalTonemaping extends Node {
-    public GlobalTonemaping(int rid, String name) {
+public class GlobalToneMapping extends Node {
+    public GlobalToneMapping(int rid, String name) {
         super(rid, name);
     }
     @Override
     public void Compile() {}
     private GLTexture GaussDown88(GLTexture input){
         GLInterface glint = basePipeline.glint;
-        GLProg glProg = glint.glprogram;
+        GLProg glProg = glint.glProgram;
         glProg.useProgram(R.raw.gaussdown884);
         GLTexture output = new GLTexture(new Point(input.mSize.x/8,input.mSize.y/8),input.mFormat,null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("InputBuffer",input);
@@ -32,28 +32,28 @@ public class GlobalTonemaping extends Node {
     public void Run() {
         Node Previous = super.previousNode;
         GLInterface glint = basePipeline.glint;
-        GLProg glProg = glint.glprogram;
-        GLTexture lowres0 = GaussDown88(Previous.WorkingTexture);
-        GLTexture lowres = GaussDown88(lowres0);
+        GLProg glProg = glint.glProgram;
+        GLTexture lowRes0 = GaussDown88(Previous.WorkingTexture);
+        GLTexture lowRes = GaussDown88(lowRes0);
         glProg.useProgram(R.raw.globaltonemaping);
         glProg.setTexture("InputBuffer",Previous.WorkingTexture);
-        glProg.setTexture("LowRes",lowres);
-        glProg.setvar("insize",Previous.WorkingTexture.mSize.x,Previous.WorkingTexture.mSize.y);
-        glProg.setvar("lowsize",lowres.mSize.x,lowres.mSize.y);
-        glProg.setvar("str",0.015f);
+        glProg.setTexture("LowRes",lowRes);
+        glProg.setVar("insize",Previous.WorkingTexture.mSize.x,Previous.WorkingTexture.mSize.y);
+        glProg.setVar("lowsize",lowRes.mSize.x,lowRes.mSize.y);
+        glProg.setVar("str",0.015f);
         GLTexture out1 = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         glProg.drawBlocks(out1);
         glProg.close();
-        GLTexture lowres2 = GaussDown88(lowres);
-        lowres.close();
-        lowres0.close();
+        GLTexture lowRes2 = GaussDown88(lowRes);
+        lowRes.close();
+        lowRes0.close();
         glProg.useProgram(R.raw.globaltonemaping);
         glProg.setTexture("InputBuffer",out1);
-        glProg.setTexture("LowRes",lowres2);
-        glProg.setvar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
-        glProg.setvar("lowsize",lowres2.mSize.x,lowres2.mSize.y);
-        glProg.setvar("str",0.045f);
+        glProg.setTexture("LowRes",lowRes2);
+        glProg.setVar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
+        glProg.setVar("lowsize",lowRes2.mSize.x,lowRes2.mSize.y);
+        glProg.setVar("str",0.045f);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }

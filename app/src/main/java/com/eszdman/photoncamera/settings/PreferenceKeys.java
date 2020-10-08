@@ -3,7 +3,9 @@ package com.eszdman.photoncamera.settings;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.util.Log;
+
 import androidx.preference.PreferenceManager;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 
@@ -71,20 +73,22 @@ public class PreferenceKeys {
         settingsManager.setDefaults(TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.addListener((settingsManager1, key) -> {
             PhotonCamera.getSettings().loadCache();
-            Log.d(TAG,key+" : changed!");
+            Log.d(TAG, key + " : changed!");
         });
     }
-   public static void setActivityTheme(Activity activity){
-       String theme = PreferenceManager.getDefaultSharedPreferences(activity.getApplication()).getString(PreferenceKeys.KEY_THEME_ACCENT, activity.getString(R.string.pref_theme_accent_default_value));
-       try {
-           assert theme != null;
-           Field resourceField = R.style.class.getDeclaredField(theme);
-           int resourceId = resourceField.getInt(resourceField);
-           activity.setTheme(resourceId);
-       } catch (Exception e) {
-           e.printStackTrace();
-       }
-   }
+
+    public static void setActivityTheme(Activity activity) {
+        String theme = PreferenceManager.getDefaultSharedPreferences(activity.getApplication()).getString(PreferenceKeys.KEY_THEME_ACCENT, activity.getString(R.string.pref_theme_accent_default_value));
+        try {
+            assert theme != null;
+            Field resourceField = R.style.class.getDeclaredField(theme);
+            int resourceId = resourceField.getInt(resourceField);
+            activity.setTheme(resourceId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Helper functions for some keys defined in PreferenceFragment.
      */

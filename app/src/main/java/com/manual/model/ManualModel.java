@@ -1,13 +1,24 @@
 package com.manual.model;
 
 import android.graphics.drawable.StateListDrawable;
-import android.os.*;
+import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.util.Range;
+
 import androidx.annotation.NonNull;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.manual.*;
+import com.manual.KnobInfo;
+import com.manual.KnobItemInfo;
+import com.manual.KnobView;
+import com.manual.KnobViewChangedListener;
+import com.manual.ManualMode;
+import com.manual.ShadowTextDrawable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,27 +29,28 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     //    private Handler mainHandler;
     private final HandlerThread mBackgroundThread;
 
-  /*  private class UpdateTextHandler extends Handler
-    {
-        public UpdateTextHandler(Looper mainLooper) {
-            super(mainLooper);
-        }
+    /*  private class UpdateTextHandler extends Handler
+      {
+          public UpdateTextHandler(Looper mainLooper) {
+              super(mainLooper);
+          }
 
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            if (msg.arg1 == UPDATE_TEXT) {
-                if (valueChangedEvent != null)
-                    valueChangedEvent.onValueChanged((String)msg.obj);
-            }
-        }
-    }*/
+          @Override
+          public void handleMessage(@NonNull Message msg) {
+              if (msg.arg1 == UPDATE_TEXT) {
+                  if (valueChangedEvent != null)
+                      valueChangedEvent.onValueChanged((String)msg.obj);
+              }
+          }
+      }*/
     protected Range<T> range;
     protected KnobInfo knobInfo;
     private final List<KnobItemInfo> knobInfoList;
     private final ValueChangedEvent valueChangedEvent;
     private final Handler backgroundHandler;
-//    private final int UPDATE_TEXT = 1;
+    //    private final int UPDATE_TEXT = 1;
     protected KnobItemInfo currentInfo, autoModel;
+
     public ManualModel(Range range, ValueChangedEvent valueChangedEvent) {
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
@@ -52,10 +64,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     @Override
     protected void finalize() throws Throwable {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            mBackgroundThread.quitSafely();
-        } else
-            mBackgroundThread.quit();
+        mBackgroundThread.quitSafely();
         super.finalize();
     }
 
@@ -74,18 +83,18 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     protected KnobItemInfo getNewAutoItem(double defaultVal, String defaultText) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-        String auto_sring = PhotonCamera.getCameraActivity().getString(R.string.manual_mode_auto);
+        String auto_string = PhotonCamera.getCameraActivity().getString(R.string.manual_mode_auto);
         if (defaultText != null)
-            auto_sring = defaultText;
-        autoDrawable.setText(auto_sring);
+            auto_string = defaultText;
+        autoDrawable.setText(auto_string);
         autoDrawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
-        autoDrawableSelected.setText(auto_sring);
+        autoDrawableSelected.setText(auto_string);
         autoDrawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
-        autoModel = new KnobItemInfo(autoStateDrawable, auto_sring, 0, defaultVal);
+        autoModel = new KnobItemInfo(autoStateDrawable, auto_string, 0, defaultVal);
         return autoModel;
     }
 
@@ -133,8 +142,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         //backgroundHandler.post(()->onSelectedKnobItemChanged(knobItemInfo2));
     }
 
-    public void resetModel(){
-        onSelectedKnobItemChanged(null,null,autoModel);
+    public void resetModel() {
+        onSelectedKnobItemChanged(null, null, autoModel);
     }
 
     public abstract void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2);

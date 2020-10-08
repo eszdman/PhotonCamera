@@ -12,13 +12,14 @@ public class Debug2 extends Node {
     public Debug2(int rid, String name) {
         super(rid, name);
     }
+
     @Override
     public void Run() {
-        PostPipeline rawPipeline = (PostPipeline)basePipeline;
+        PostPipeline rawPipeline = (PostPipeline) basePipeline;
         GLInterface glint = rawPipeline.glint;
-        GLProg glProg = glint.glprogram;
+        GLProg glProg = glint.glProgram;
         Parameters params = glint.parameters;
-        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawPipeline.stackFrame);
-        glProg.setTexture("InputBuffer",glTexture);
+        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), rawPipeline.stackFrame);
+        glProg.setTexture("InputBuffer", glTexture);
     }
 }

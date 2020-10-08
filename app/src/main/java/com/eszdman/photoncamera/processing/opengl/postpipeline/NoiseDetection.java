@@ -12,9 +12,9 @@ public class NoiseDetection extends Node {
 
     @Override
     public void Run() {
-        PostPipeline postPipeline = (PostPipeline)super.basePipeline;
-        GLProg glProg = basePipeline.glint.glprogram;
-        glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        WorkingTexture = new GLTexture(previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_32),null);
+        PostPipeline postPipeline = (PostPipeline) super.basePipeline;
+        GLProg glProg = basePipeline.glint.glProgram;
+        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
+        WorkingTexture = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_32), null);
     }
 }

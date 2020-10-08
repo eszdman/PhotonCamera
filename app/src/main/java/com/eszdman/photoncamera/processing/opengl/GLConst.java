@@ -31,7 +31,7 @@ public class GLConst {
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_NONE
     };
-    final static int[] contextattribList = new int[] {
+    final static int[] contextAttributeList = new int[]{
             EGL_CONTEXT_CLIENT_VERSION, 3,
             EGL_NONE
     };

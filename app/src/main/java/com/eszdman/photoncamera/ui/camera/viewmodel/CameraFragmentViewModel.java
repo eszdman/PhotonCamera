@@ -21,8 +21,7 @@ public class CameraFragmentViewModel extends ViewModel {
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
 
-    public void create(Context context)
-    {
+    public void create(Context context) {
         this.context = context;
         cameraFragmentModel = new CameraFragmentModel();
         initOrientationEventListener();
@@ -32,13 +31,11 @@ public class CameraFragmentViewModel extends ViewModel {
         return cameraFragmentModel;
     }
 
-    public void onResume()
-    {
+    public void onResume() {
         mCustomOrientationEventListener.enable();
     }
 
-    public void onPause()
-    {
+    public void onPause() {
         mCustomOrientationEventListener.disable();
     }
 
@@ -65,7 +62,7 @@ public class CameraFragmentViewModel extends ViewModel {
                         rot = 180;
                         break;
                 }
-                Log.d(TAG,"onSimpleOrientationChanged" +rot);
+                Log.d(TAG, "onSimpleOrientationChanged" + rot);
                 cameraFragmentModel.setDuration(RotationDur);
                 cameraFragmentModel.setOrientation(rot);
 

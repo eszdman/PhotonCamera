@@ -34,12 +34,11 @@ public enum Rotation {
         switch (screenOrientation) {
             case 0:
                 return LANDSCAPE;
-            case 1:
-                return PORTRAIT;
             case 8:
                 return INVERSE_LANDSCAPE;
             case 9:
                 return INVERSE_PORTRAIT;
+            case 1:
             default:
                 return PORTRAIT;
         }

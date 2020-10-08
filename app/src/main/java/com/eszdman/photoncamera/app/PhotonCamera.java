@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.app;
 import android.app.Application;
 import android.content.Context;
 import android.hardware.SensorManager;
+
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;

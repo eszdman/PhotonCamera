@@ -4,9 +4,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
+
 import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 public class IsoExpoSelector {
     public static final int baseFrame = 1;
@@ -17,7 +18,7 @@ public class IsoExpoSelector {
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         Log.v(TAG, "InputParams: " +
-                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().mPreviewExposuretime)) +
+                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().mPreviewExposureTime)) +
                 " iso:" + PhotonCamera.getCameraFragment().mPreviewIso);
         ExpoPair pair = GenerateExpoPair(step);
         Log.v(TAG, "IsoSelected:" + pair.iso +
@@ -30,7 +31,7 @@ public class IsoExpoSelector {
 
     public static ExpoPair GenerateExpoPair(int step) {
         double mpy = 0.7;
-        ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposuretime, getEXPLOW(), getEXPHIGH(),
+        ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
                 CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH());
         pair.normalizeiso100();
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)

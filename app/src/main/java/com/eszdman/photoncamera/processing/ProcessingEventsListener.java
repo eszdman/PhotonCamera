@@ -19,7 +19,7 @@ public interface ProcessingEventsListener {
 
     void onSaveImage(Object obj);
 
-    void onErrorOccured(Object obj);
+    void onErrorOccurred(Object obj);
 
     default void log(String msg) {
         Log.d(TAG, msg);

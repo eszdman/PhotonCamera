@@ -25,18 +25,46 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.*;
-import android.hardware.camera2.*;
+import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.*;
-import android.util.*;
-import android.view.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+import android.os.SystemClock;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.util.Range;
+import android.util.Rational;
+import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.LayoutInflater;
+import android.view.Surface;
+import android.view.TextureView;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -47,9 +75,12 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.*;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.CameraMode;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
@@ -64,13 +95,20 @@ import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfi
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.CustomLogger;
-import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import rapid.decoder.BitmapDecoder;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -152,7 +190,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
     private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
-    public long mPreviewExposuretime;
+    public long mPreviewExposureTime;
     public int mPreviewIso;
     public Rational[] mPreviewTemp;
     public ColorSpaceTransform mColorSpaceTransform;
@@ -197,8 +235,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     Range FpsRangeDef;
     Range FpsRangeHigh;
     int[] mCameraAfModes;
-    int mPreviewwidth;
-    int mPreviewheight;
+    int mPreviewWidth;
+    int mPreviewHeight;
     ArrayList<CaptureRequest> captures;
     CameraCaptureSession.CaptureCallback CaptureCallback;
     private Size target;
@@ -321,7 +359,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                             mPreviewResult = result;
                             captureStillPicture();
                         } else {
-                            runPrecaptureSequence();
+                            runPreCaptureSequence();
                         }
                     }
                     break;
@@ -368,11 +406,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
             Object focus = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
-            Rational[] mtemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-            if (exposure != null) mPreviewExposuretime = (long) exposure;
+            Rational[] mTemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+            if (exposure != null) mPreviewExposureTime = (long) exposure;
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
-            mPreviewTemp = mtemp;
+            mPreviewTemp = mTemp;
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
             updateScreenLog(result);
@@ -498,7 +536,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (PhotonCamera.getSettings().afdata) {
+        if (PhotonCamera.getSettings().afData) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -509,7 +547,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 //            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
 //            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakeness()));
+            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
             if (rectobj != null && rectobj.length > 0) {
@@ -612,7 +650,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
 
-
     private void mul(Rect in, double k) {
         in.bottom *= k;
         in.left *= k;
@@ -680,8 +717,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     private void setUpCameraOutputs(int width, int height) {
         try {
             mCameraCharacteristics = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            mPreviewwidth = width;
-            mPreviewheight = height;
+            mPreviewWidth = width;
+            mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
             mImageProcessing = new ImageProcessing(this);
             mImageSaver = new ImageSaver(mImageProcessing, this);
@@ -712,13 +749,12 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     private CameraFragmentViewModel cameraFragmentViewModel;
-    private CameraFragmentBinding cameraFragmentBinding;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //create the ui binding
-        cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
+        com.eszdman.photoncamera.databinding.CameraFragmentBinding cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
         //create the modelview wich updated the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         cameraFragmentViewModel.create(getContext());
@@ -1060,7 +1096,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * Run the precapture sequence for capturing a still image. This method should be called when
      * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
      */
-    private void runPrecaptureSequence() {
+    private void runPreCaptureSequence() {
         try {
             // This is how to tell the camera to trigger.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
@@ -1185,14 +1221,14 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
         PhotonCamera.getCameraActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
-        int rotatedPreviewWidth = mPreviewwidth;
-        int rotatedPreviewHeight = mPreviewheight;
+        int rotatedPreviewWidth = mPreviewWidth;
+        int rotatedPreviewHeight = mPreviewHeight;
         int maxPreviewWidth = displaySize.x;
         int maxPreviewHeight = displaySize.y;
 
         if (swappedDimensions) {
-            rotatedPreviewWidth = mPreviewheight;
-            rotatedPreviewHeight = mPreviewwidth;
+            rotatedPreviewWidth = mPreviewHeight;
+            rotatedPreviewHeight = mPreviewWidth;
             //noinspection SuspiciousNameCombination
             maxPreviewWidth = displaySize.y;
             //noinspection SuspiciousNameCombination
@@ -1398,7 +1434,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakeness() < 2;
+            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
@@ -1516,6 +1552,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             return sActiveBackCamId;
         }
     }
+
     private void triggerMediaScanner(File imageToSave) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         PhotonCamera.getSettings().setLastPicture(imageToSave.getAbsolutePath());
@@ -1525,6 +1562,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         if (getActivity() != null)
             getActivity().sendBroadcast(mediaScanIntent);
     }
+
     @Override
     public void onProcessingStarted(Object obj) {
         log("Started: " + obj);
@@ -1555,7 +1593,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     @Override
     public void onImageSaved(Object obj) {
         if (obj instanceof File) {
-            log("Saved: "+ ((File) obj).getAbsolutePath());
+            log("Saved: " + ((File) obj).getAbsolutePath());
             triggerMediaScanner((File) obj);
         }
         if (getActivity() != null)
@@ -1563,9 +1601,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     @Override
-    public void onErrorOccured(Object obj) {
+    public void onErrorOccurred(Object obj) {
         if (obj instanceof String)
-            showToast((String)obj);
+            showToast((String) obj);
         onProcessingFinished("Processing Finished Unexpectedly!!");
     }
 

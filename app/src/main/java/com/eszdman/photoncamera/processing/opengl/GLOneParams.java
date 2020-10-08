@@ -4,19 +4,22 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class GLOneParams {
-    public final GLProg glprogram;
-    public final GLCoreBlockProcessing glProc;
-    public GLOneParams(Point size, Bitmap out, GLFormat glFormat){
-        glProc = new GLCoreBlockProcessing(size,out,glFormat);
-        glprogram = glProc.mProgram;
+    public final GLProg glProgram;
+    public final GLCoreBlockProcessing glProcessing;
+
+    public GLOneParams(Point size, Bitmap out, GLFormat glFormat) {
+        glProcessing = new GLCoreBlockProcessing(size, out, glFormat);
+        glProgram = glProcessing.mProgram;
     }
-    public GLOneParams(GLCoreBlockProcessing glCoreBlockProcessing){
-        glProc = glCoreBlockProcessing;
-        glprogram = glProc.mProgram;
+
+    public GLOneParams(GLCoreBlockProcessing glCoreBlockProcessing) {
+        glProcessing = glCoreBlockProcessing;
+        glProgram = glProcessing.mProgram;
     }
 
     static public String loadShader(int fragment) {

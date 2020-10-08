@@ -4,10 +4,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
@@ -28,7 +30,7 @@ public class SettingsActivity extends AppCompatActivity implements PreferenceFra
                 .beginTransaction()
                 .replace(R.id.settings_container, new SettingsFragment())
                 .commit();
-        getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(),true);
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(), true);
 
     }
 

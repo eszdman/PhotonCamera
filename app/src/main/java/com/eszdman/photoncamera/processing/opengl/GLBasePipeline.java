@@ -17,74 +17,82 @@ import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.c
 public class GLBasePipeline implements AutoCloseable {
     public final ArrayList<Node> Nodes = new ArrayList<Node>();
     public GLInterface glint = null;
-    private long timestart;
+    private long timeStart;
     private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
-    public void startT(){
-        timestart = System.currentTimeMillis();
+
+    public void startT() {
+        timeStart = System.currentTimeMillis();
     }
-    public void endT(String Name){
-        Log.d("Pipeline","Node:"+Name+" elapsed:"+(System.currentTimeMillis()-timestart)+ " ms");
+
+    public void endT(String Name) {
+        Log.d("Pipeline", "Node:" + Name + " elapsed:" + (System.currentTimeMillis() - timeStart) + " ms");
     }
-    public void add(Node in){
-        if(Nodes.size() != 0) in.previousNode = Nodes.get(Nodes.size()-1);
+
+    public void add(Node in) {
+        if (Nodes.size() != 0) in.previousNode = Nodes.get(Nodes.size() - 1);
         in.basePipeline = this;
         Nodes.add(in);
-        Log.d(TAG,"Added:"+in.Name+" Nodes size:"+Nodes.size());
+        Log.d(TAG, "Added:" + in.Name + " Nodes size:" + Nodes.size());
     }
-    private void lasti(){
+
+    private void lastI() {
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, bind, 0);
         checkEglError("glGetIntegerv");
     }
-    private void lastr(){
+
+    private void lastR() {
         glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
         checkEglError("glBindFramebuffer");
     }
-    public Bitmap runAll(){
-        lasti();
-        for(int i = 0; i<Nodes.size();i++){
+
+    public Bitmap runAll() {
+        lastI();
+        for (int i = 0; i < Nodes.size(); i++) {
             Nodes.get(i).Compile();
-            if(i == Nodes.size()-1) {
-                lastr();
+            if (i == Nodes.size() - 1) {
+                lastR();
             }
             startT();
             Nodes.get(i).Run();
             endT(Nodes.get(i).Name);
-            if(i != Nodes.size()-1) {
-                glint.glprogram.drawBlocks(Nodes.get(i).GetProgTex());
-                glint.glprogram.close();
+            if (i != Nodes.size() - 1) {
+                glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
+                glint.glProgram.close();
             }
         }
-        glint.glProc.drawBlocksToOutput();
-        glint.glprogram.close();
+        glint.glProcessing.drawBlocksToOutput();
+        glint.glProgram.close();
         Nodes.clear();
-        return glint.glProc.mOut;
+        return glint.glProcessing.mOut;
     }
-    public ByteBuffer runAllRaw(){
-        lasti();
-        for(int i = 0; i<Nodes.size();i++){
+
+    public ByteBuffer runAllRaw() {
+        lastI();
+        for (int i = 0; i < Nodes.size(); i++) {
             Nodes.get(i).Compile();
-            if(i == Nodes.size()-1) {
-                lastr();
+            if (i == Nodes.size() - 1) {
+                lastR();
             }
             startT();
             Nodes.get(i).Run();
-            if(i != Nodes.size()-1) {
-                Log.d(TAG,"i:"+i+" size:"+Nodes.size());
-                glint.glprogram.drawBlocks(Nodes.get(i).GetProgTex());
-                glint.glprogram.close();
+            if (i != Nodes.size() - 1) {
+                Log.d(TAG, "i:" + i + " size:" + Nodes.size());
+                glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
+                glint.glProgram.close();
             }
             endT(Nodes.get(i).Name);
         }
-        glint.glprogram.drawBlocks(Nodes.get(Nodes.size()-1).GetProgTex());
-        glint.glProc.drawBlocksToOutput();
-        glint.glprogram.close();
+        glint.glProgram.drawBlocks(Nodes.get(Nodes.size() - 1).GetProgTex());
+        glint.glProcessing.drawBlocksToOutput();
+        glint.glProgram.close();
         Nodes.clear();
-        return glint.glProc.mOutBuffer;
+        return glint.glProcessing.mOutBuffer;
     }
+
     @Override
     public void close() {
-        if(glint.glProc != null) glint.glProc.close();
-        if(glint.glContext != null) glint.glContext.close();
+        if (glint.glProcessing != null) glint.glProcessing.close();
+        if (glint.glContext != null) glint.glContext.close();
     }
 }

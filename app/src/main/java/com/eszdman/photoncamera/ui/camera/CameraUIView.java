@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.ui.camera;
 
 import android.graphics.Bitmap;
 import android.view.View;
+
 import com.eszdman.photoncamera.api.CameraMode;
 
 import java.util.Set;

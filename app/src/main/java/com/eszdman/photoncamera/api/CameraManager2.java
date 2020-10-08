@@ -3,7 +3,9 @@ package com.eszdman.photoncamera.api;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+
 import androidx.core.util.Pair;
+
 import com.eszdman.photoncamera.settings.SettingsManager;
 
 import java.util.*;

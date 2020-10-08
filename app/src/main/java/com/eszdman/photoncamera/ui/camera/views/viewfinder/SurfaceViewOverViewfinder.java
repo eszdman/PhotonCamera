@@ -1,11 +1,17 @@
 package com.eszdman.photoncamera.ui.camera.views.viewfinder;
 
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
 import androidx.annotation.NonNull;
 
 public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHolder.Callback {

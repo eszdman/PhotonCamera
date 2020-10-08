@@ -1,24 +1,26 @@
 package com.eszdman.photoncamera.processing.opengl;
 
-import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.render.Parameters;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class GLInterface {
-    public final GLProg glprogram;
+    public final GLProg glProgram;
     public Parameters parameters;
-    public GLCoreBlockProcessing glProc;
+    public GLCoreBlockProcessing glProcessing;
     public GLContext glContext;
     public GLUtils glUtils;
-    public GLInterface(GLCoreBlockProcessing processing){
-        glProc = processing;
-        glprogram = glProc.mProgram;
+
+    public GLInterface(GLCoreBlockProcessing processing) {
+        glProcessing = processing;
+        glProgram = glProcessing.mProgram;
     }
 
-    public GLInterface(GLContext context){
+    public GLInterface(GLContext context) {
         glContext = context;
-        glprogram = glContext.mProgram;
+        glProgram = glContext.mProgram;
     }
 
     static public String loadShader(int fragment) {

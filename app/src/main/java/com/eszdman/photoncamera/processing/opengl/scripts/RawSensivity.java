@@ -16,11 +16,11 @@ public class RawSensivity extends GLOneScript {
     @Override
     public void StartScript() {
         RawParams rawParams = (RawParams)additionalParams;
-        GLProg glProg = glOne.glprogram;
+        GLProg glProg = glOne.glProgram;
         GLTexture glTexture = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16),rawParams.input);
         glProg.setTexture("RawBuffer",glTexture);
-        glProg.setvar("whitelevel",rawParams.oldwhitelevel);
-        glProg.setvar("PostRawSensivity",rawParams.sensivity);
+        glProg.setVar("whitelevel",rawParams.oldWhiteLevel);
+        glProg.setVar("PostRawSensivity",rawParams.sensitivity);
         WorkingTexture = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();

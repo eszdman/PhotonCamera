@@ -23,27 +23,27 @@ public class Initial extends Node {
     public void Run() {
         Node Previous = super.previousNode;
         GLInterface glint = basePipeline.glint;
-        GLProg glProg = glint.glprogram;
+        GLProg glProg = glint.glProgram;
         Parameters params = glint.parameters;
-        GLTexture GainMapTex = new GLTexture(params.mapsize, new GLFormat(GLFormat.DataType.FLOAT_16,4),FloatBuffer.wrap(params.gainmap),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().tonemap));
+        GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().toneMap));
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("Fullbuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("GainMap",GainMapTex);
-        glProg.setvar("RawSizeX",params.rawSize.x);
-        glProg.setvar("RawSizeY",params.rawSize.y);
-        glProg.setvar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
-        glProg.setvar("sensorToIntermediate",params.sensorToProPhoto);
-        glProg.setvar("intermediateToSRGB",params.proPhotoToSRGB);
-        glProg.setvar("gain", (float) PhotonCamera.getSettings().gain);
-        glProg.setvar("neutralPoint",params.whitepoint);
+        glProg.setVar("RawSizeX",params.rawSize.x);
+        glProg.setVar("RawSizeY",params.rawSize.y);
+        glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
+        glProg.setVar("sensorToIntermediate",params.sensorToProPhoto);
+        glProg.setVar("intermediateToSRGB",params.proPhotoToSRGB);
+        glProg.setVar("gain", (float) PhotonCamera.getSettings().gain);
+        glProg.setVar("neutralPoint",params.whitePoint);
         float sat =(float) PhotonCamera.getSettings().saturation;
         if(PhotonCamera.getSettings().cfaPattern == -2) sat = 0.f;
-        glProg.setvar("saturation",sat);
+        glProg.setVar("saturation",sat);
         for(int i =0; i<4;i++){
-            params.blacklevel[i]/=params.whitelevel;
+            params.blackLevel[i]/=params.whiteLevel;
         }
-        glProg.setvar("blackLevel",params.blacklevel);
+        glProg.setVar("blackLevel",params.blackLevel);
         super.WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
     }
 }

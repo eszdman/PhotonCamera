@@ -1,4 +1,5 @@
 package com.eszdman.photoncamera.control;
+
 import android.graphics.RectF;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
@@ -19,16 +20,17 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 public class Swipe {
     private static final String TAG = "Swipe";
     private GestureDetector gestureDetector;
-    FrameLayout manualmode;
-    ImageView ocmanual;
+    FrameLayout manualMode;
+    ImageView ocManual;
     private static int arrowState;
     Animation slideUp;
     Animation slideDown;
-    public void init(){
-        Log.d(TAG,"SwipeDetection - ON");
-        manualmode = PhotonCamera.getCameraActivity().findViewById(R.id.manual_mode);
-        ocmanual = PhotonCamera.getCameraActivity().findViewById(R.id.open_close_manual);
-        ocmanual.setOnClickListener((v) -> {
+
+    public void init() {
+        Log.d(TAG, "SwipeDetection - ON");
+        manualMode = PhotonCamera.getCameraActivity().findViewById(R.id.manual_mode);
+        ocManual = PhotonCamera.getCameraActivity().findViewById(R.id.open_close_manual);
+        ocManual.setOnClickListener((v) -> {
             if (arrowState == 0) {
                 SwipeUp();
                 Log.d(TAG, "Arrow Clicked:SwipeUp");
@@ -42,6 +44,7 @@ public class Swipe {
         gestureDetector = new GestureDetector(PhotonCamera.getCameraActivity(), new GestureDetector.SimpleOnGestureListener() {
             private static final int SWIPE_THRESHOLD = 100;
             private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
             @Override
             public boolean onDown(MotionEvent e) {
                 return true;
@@ -83,12 +86,11 @@ public class Swipe {
         });
         View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
         View holder = PhotonCamera.getCameraActivity().findViewById(R.id.textureHolder);
-        Log.d(TAG,"input:"+holder);
-        if(holder != null) holder.setOnTouchListener(touchListener);
+        Log.d(TAG, "input:" + holder);
+        if (holder != null) holder.setOnTouchListener(touchListener);
     }
 
-    private void startTouchToFocus(MotionEvent event)
-    {
+    private void startTouchToFocus(MotionEvent event) {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
         ConstraintLayout camera_container = PhotonCamera.getCameraActivity().findViewById(R.id.camera_container);
@@ -104,38 +106,41 @@ public class Swipe {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
             if (PhotonCamera.getManualMode().getCurrentFocusValue() == -1.0)
-                PhotonCamera.getTouchFocus().processTochToFocus(translateX,translateY);
+                PhotonCamera.getTouchFocus().processTouchToFocus(translateX, translateY);
         }
     }
 
-    public void SwipeUp(){
-        if(!PhotonCamera.getSettings().ManualMode) {
-            manualmode.startAnimation(slideUp);
+    public void SwipeUp() {
+        if (!PhotonCamera.getSettings().ManualMode) {
+            manualMode.startAnimation(slideUp);
             PhotonCamera.getSettings().ManualMode = true;
-            ocmanual.animate().rotation(180).setDuration(250).start();
+            ocManual.animate().rotation(180).setDuration(250).start();
         }
         PhotonCamera.getCameraFragment().rebuildPreview();
-        manualmode.setVisibility(View.VISIBLE);
+        manualMode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
-    public void SwipeDown(){
-        if(PhotonCamera.getSettings().ManualMode) {
-            manualmode.startAnimation(slideDown);
-            ocmanual.animate().rotation(0).setDuration(250).start();
+
+    public void SwipeDown() {
+        if (PhotonCamera.getSettings().ManualMode) {
+            manualMode.startAnimation(slideDown);
+            ocManual.animate().rotation(0).setDuration(250).start();
         }
         PhotonCamera.getSettings().ManualMode = false;
 
-        CameraReflectionApi.set(PhotonCamera.getCameraFragment().mPreviewRequest,CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
+        CameraReflectionApi.set(PhotonCamera.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
         CameraReflectionApi.set(PhotonCamera.getCameraFragment().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
         PhotonCamera.getCameraFragment().rebuildPreview();
-        manualmode.setVisibility(View.GONE);
+        manualMode.setVisibility(View.GONE);
         PhotonCamera.getManualMode().retractAllKnobs();
         arrowState ^= 1;
     }
-    public void SwipeRight(){
+
+    public void SwipeRight() {
 
     }
-    public void SwipeLeft(){
+
+    public void SwipeLeft() {
 
     }
 }

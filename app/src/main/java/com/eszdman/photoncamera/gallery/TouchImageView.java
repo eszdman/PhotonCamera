@@ -10,6 +10,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.widget.Button;
+
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
@@ -83,7 +84,7 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
                                 origWidth * saveScale);
                         float fixTransY = getFixDragTrans(deltaY, viewHeight,
                                 origHeight * saveScale);
-                        if(saveScale == 1.0 )
+                        if (saveScale == 1.0)
                             startInterceptEvent();
                         else
                             stopInterceptEvent();
@@ -108,6 +109,7 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
             return true; // indicate event was handled
         });
     }
+
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
         return false;
@@ -271,11 +273,11 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
             Log.d(TAG, "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
             Button exif = GalleryActivity.activity.findViewById(R.id.exif);
             ConstraintLayout exiflayout = GalleryActivity.activity.findViewById(R.id.exif_layout);
-            if(exiflayout.getVisibility() == VISIBLE){
+            if (exiflayout.getVisibility() == VISIBLE) {
                 exif.callOnClick();
                 GalleryActivity.activity.startUpdate = true;
             }
-            if(exiflayout.getVisibility() == INVISIBLE && GalleryActivity.activity.startUpdate){
+            if (exiflayout.getVisibility() == INVISIBLE && GalleryActivity.activity.startUpdate) {
                 exif.callOnClick();
                 GalleryActivity.activity.startUpdate = false;
             }
@@ -301,13 +303,11 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
         fixTrans();
     }
 
-    private void stopInterceptEvent()
-    {
+    private void stopInterceptEvent() {
         getParent().requestDisallowInterceptTouchEvent(true);
     }
 
-    private void startInterceptEvent()
-    {
+    private void startInterceptEvent() {
         getParent().requestDisallowInterceptTouchEvent(false);
     }
 }

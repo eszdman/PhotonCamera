@@ -18,7 +18,9 @@ package com.eszdman.photoncamera.ui.settings.custompreferences;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
+
 import androidx.preference.SwitchPreferenceCompat;
+
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.SettingsManager;
 

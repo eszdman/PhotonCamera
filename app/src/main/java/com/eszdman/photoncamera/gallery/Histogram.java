@@ -15,10 +15,10 @@ public class Histogram extends View {
     private int maxY = 0;
     float offset = 1;
     private int[][] colorsMap;
-    Paint wallpaint;
+    Paint wallPaint;
     public Histogram(Context context) {
         super(context);
-        wallpaint = new Paint();
+        wallPaint = new Paint();
     }
     public void Analyze(Bitmap bitmap){
         colorsMap = new int[3][SIZE];
@@ -53,34 +53,34 @@ public class Histogram extends View {
         int width = getWidth();
         int height = getHeight();
         float xInterval =((float)getWidth()/((float)SIZE+1));
-        wallpaint.setAntiAlias(true);
-        wallpaint.setStyle(Paint.Style.STROKE);
-        wallpaint.setARGB(100,255,255,255);
-        canvas.drawRect(0,0,width,height,wallpaint);
-        canvas.drawLine(width/3.f,0,width/3.f,height,wallpaint);
-        canvas.drawLine(2.f*width/3.f,0,2.f*width/3.f,height,wallpaint);
-        Path wallpath = new Path();
+        wallPaint.setAntiAlias(true);
+        wallPaint.setStyle(Paint.Style.STROKE);
+        wallPaint.setARGB(100,255,255,255);
+        canvas.drawRect(0,0,width,height, wallPaint);
+        canvas.drawLine(width/3.f,0,width/3.f,height, wallPaint);
+        canvas.drawLine(2.f*width/3.f,0,2.f*width/3.f,height, wallPaint);
+        Path wallPath = new Path();
         for (int i = 0; i < 3; i++) {
                 if (i == 0) {
                     //wallpaint.setColor(0xFF0700);
-                    wallpaint.setARGB(0xFF,0xFF,0x07,0x00);
+                    wallPaint.setARGB(0xFF,0xFF,0x07,0x00);
                 } else if (i == 1) {
                     //wallpaint.setColor(0x1924B1);
-                    wallpaint.setARGB(0xFF,0x19,0x24,0xB1);
+                    wallPaint.setARGB(0xFF,0x19,0x24,0xB1);
                 } else {
                     //wallpaint.setColor(0x00C90D);
-                    wallpaint.setARGB(0xFF,0x00,0xC9,0x0D);
+                    wallPaint.setARGB(0xFF,0x00,0xC9,0x0D);
                 }
-            wallpaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
-            wallpaint.setStyle(Paint.Style.FILL);
-            wallpath.reset();
-            wallpath.moveTo(0, height);
+            wallPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+            wallPaint.setStyle(Paint.Style.FILL);
+            wallPath.reset();
+            wallPath.moveTo(0, height);
             for (int j = 0; j < SIZE; j++) {
                 float value = (((float)colorsMap[i][j])*((float)(height)/maxY));
-                wallpath.lineTo(j * xInterval, height - value);
+                wallPath.lineTo(j * xInterval, height - value);
             }
-            wallpath.lineTo(SIZE * offset, height);
-            canvas.drawPath(wallpath, wallpaint);
+            wallPath.lineTo(SIZE * offset, height);
+            canvas.drawPath(wallPath, wallPaint);
         }
 
     }

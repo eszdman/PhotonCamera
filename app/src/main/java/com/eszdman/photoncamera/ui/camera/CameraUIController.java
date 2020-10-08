@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.ui.camera;
 import android.hardware.camera2.CameraAccessException;
 import android.util.Log;
 import android.view.View;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;

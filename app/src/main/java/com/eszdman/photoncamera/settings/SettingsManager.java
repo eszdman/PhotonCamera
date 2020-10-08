@@ -20,6 +20,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.util.Log;
 import android.util.Size;
+
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
@@ -83,13 +84,13 @@ public class SettingsManager {
      * listeners and prevent duplicate registering.
      */
     private final List<OnSettingChangedListener> mListeners =
-            new ArrayList<OnSettingChangedListener>();
+            new ArrayList<>();
     /**
      * A List of OnSharedPreferenceChangeListener's, maintained to hold pointers
      * to actually registered listeners, so they can be unregistered.
      */
     private final List<OnSharedPreferenceChangeListener> mSharedPreferenceListeners =
-            new ArrayList<OnSharedPreferenceChangeListener>();
+            new ArrayList<>();
     private SharedPreferences mCustomPreferences;
 
     public SettingsManager(Context context) {
@@ -539,6 +540,6 @@ public class SettingsManager {
         /**
          * Called every time a SharedPreference has been changed.
          */
-        public void onSettingChanged(SettingsManager settingsManager, String key);
+        void onSettingChanged(SettingsManager settingsManager, String key);
     }
 }

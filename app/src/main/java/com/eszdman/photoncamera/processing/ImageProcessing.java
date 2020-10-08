@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.processing;
 
 
-import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
@@ -22,7 +21,6 @@ import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.io.FileOutputStream;
@@ -57,14 +55,14 @@ public class ImageProcessing {
             if (isRaw) {
                 ApplyHdrX();
             }
-            if (isYuv) {
+//            if (isYuv) {
 //                ApplyStabilization();
-            }
+//            }
             processingEventsListener.onProcessingFinished((isRaw ? "HDRX" : isYuv ? "Stablisation" : "") + " Processing Finished Successfully");
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
-            processingEventsListener.onErrorOccured(ProcessingEventsListener.FAILED_MSG);
+            processingEventsListener.onErrorOccurred(ProcessingEventsListener.FAILED_MSG);
         }
     }
 
@@ -156,15 +154,15 @@ public class ImageProcessing {
         float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
         float k = fakelevel / levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, (int) fakelevel);
-        BlackLevelPattern blevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        int[] levelarr = new int[4];
-        if (blevel != null) {
-            blevel.copyTo(levelarr, 0);
+        BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        int[] levelArr = new int[4];
+        if (blackLevel != null) {
+            blackLevel.copyTo(levelArr, 0);
             for (int i = 0; i < 4; i++) {
-                levelarr[i] = (int) (levelarr[i] * k);
+                levelArr[i] = (int) (levelArr[i] * k);
             }
-            CameraReflectionApi.PatchBL(blevel, levelarr);
-            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blevel);
+            CameraReflectionApi.PatchBL(blackLevel, levelArr);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
         }
         float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
         if (dynBL != null) {
@@ -180,7 +178,7 @@ public class ImageProcessing {
             CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, wll);
         }
         Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Log.d(TAG, "Api Blacklevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
+        Log.d(TAG, "Api BlackLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillParameters(res, CameraFragment.mCameraCharacteristics, new android.graphics.Point(width, height));
         if (PhotonCamera.getParameters().realWL == -1) {
             PhotonCamera.getParameters().realWL = levell;
@@ -214,9 +212,9 @@ public class ImageProcessing {
             if (!debugAlignment)
                 Wrapper.loadFrame(byteBuffer);
         }
-        rawPipeline.imageobj = mImageFramesToProcess;
+        rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
-        Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whitelevel);
+        Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
         Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
         if (sensitivity == null) {

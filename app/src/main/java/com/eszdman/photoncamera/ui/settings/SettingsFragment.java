@@ -10,15 +10,22 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
-import androidx.preference.*;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
+import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceManager;
+import androidx.preference.PreferenceScreen;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import java.util.TimeZone;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
@@ -41,14 +48,14 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
         if (PreferenceKeys.isHdrXOn())
-            removePreferenceFromScreen("pref_category_jpg", KEY_MAIN_PARENT_SCREEN);
+            removePreferenceFromScreen("pref_category_jpg");
         else
-            removePreferenceFromScreen("pref_category_hdrx", KEY_MAIN_PARENT_SCREEN);
+            removePreferenceFromScreen("pref_category_hdrx");
 
         Preference hide = findPreference(PreferenceKeys.KEY_SAVE_PER_LENS_SETTINGS);
         PreferenceCategory category = findPreference("pref_category_general");
         if (category != null && hide != null) {
-                category.removePreference(hide);
+            category.removePreference(hide);
         }
         setFramesSummary();
         setVersionDetails();
@@ -62,24 +69,24 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         Preference myPref = findPreference(PreferenceKeys.KEY_TELEGRAM);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
-                Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
-                startActivity(browserint);
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
+                startActivity(browserIntent);
                 return true;
             });
         Preference github = findPreference(PreferenceKeys.KEY_CONTRIBUTORS);
         if (github != null)
             github.setOnPreferenceClickListener(preference -> {
-                Intent browserint = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
-                startActivity(browserint);
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
+                startActivity(browserIntent);
                 return true;
             });
     }
 
-    private void removePreferenceFromScreen(String preferenceKey, String parentScreenKey) {
-        PreferenceScreen parentScreen = findPreference(parentScreenKey);
+    private void removePreferenceFromScreen(String preferenceKey) {
+        PreferenceScreen parentScreen = findPreference(SettingsFragment.KEY_MAIN_PARENT_SCREEN);
         if (parentScreen != null)
             if (parentScreen.findPreference(preferenceKey) != null) {
-                parentScreen.removePreference(parentScreen.findPreference(preferenceKey));
+                parentScreen.removePreference(Objects.requireNonNull(parentScreen.findPreference(preferenceKey)));
             }
     }
 

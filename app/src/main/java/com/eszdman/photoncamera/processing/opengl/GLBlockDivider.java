@@ -9,6 +9,7 @@ public class GLBlockDivider {
         mSize = size;
         mBlock = block;
     }
+
     // Out: pos, size
     public boolean nextBlock(int[] out) {
         final int remaining = mSize - mPassed;

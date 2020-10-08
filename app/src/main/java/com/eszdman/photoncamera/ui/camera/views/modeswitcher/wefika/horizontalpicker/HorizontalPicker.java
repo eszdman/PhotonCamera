@@ -113,7 +113,7 @@ public class HorizontalPicker extends View {
     private int pressedItem = -1;
 
     private ColorStateList textColor;
-    private int selectedtextColor;
+    private int selectedTextColor;
 
     private OnItemSelected onItemSelected;
     private OnItemClicked onItemClicked;
@@ -171,7 +171,7 @@ public class HorizontalPicker extends View {
             marqueeRepeatLimit = a.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
             dividerSize = a.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
             sideItems = a.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
-            selectedtextColor = a.getColor(R.styleable.HorizontalPicker_selectedColor,0XFFFFFFFF);
+            selectedTextColor = a.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
             float textSize = a.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
@@ -224,8 +224,8 @@ public class HorizontalPicker extends View {
 
         touchHelper = new PickerTouchHelper(this);
         ViewCompat.setAccessibilityDelegate(this, touchHelper);
-        leftEdgeEffect = new EdgeEffect(context);//Vibhor
-        rightEdgeEffect = new EdgeEffect(context);//Vibhor
+        leftEdgeEffect = new EdgeEffect(context);
+        rightEdgeEffect = new EdgeEffect(context);
 
     }
 
@@ -296,7 +296,7 @@ public class HorizontalPicker extends View {
                 }
 
                 // translate vertically to center
-                canvas.translate(-x, (canvas.getHeight() - layout.getHeight()) / 2);
+                canvas.translate(-x, (float) (getHeight() - layout.getHeight()) / 2);
 
                 RectF clipBounds;
                 if (x == 0) {
@@ -405,7 +405,7 @@ public class HorizontalPicker extends View {
 
             edgeEffect.setSize(height, width);
             if (edgeEffect.draw(canvas)) {
-                    postInvalidateOnAnimation();
+                postInvalidateOnAnimation();
             }
             canvas.restoreToCount(restoreCount);
         }
@@ -438,8 +438,8 @@ public class HorizontalPicker extends View {
     }
 
     @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
+    protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+        super.onSizeChanged(w, h, oldW, oldH);
 
         calculateItemSize(w, h);
     }
@@ -484,14 +484,14 @@ public class HorizontalPicker extends View {
 
                     final float pulledToX = getScrollX() + deltaMoveX;
                     if (pulledToX < 0) {
-                        if (leftEdgeEffect != null) {//Vibhor
+                        if (leftEdgeEffect != null) {
                             leftEdgeEffect.onPull((float) deltaMoveX / getWidth());
                             if (!rightEdgeEffect.isFinished()) {
                                 rightEdgeEffect.onRelease();
                             }
                         }
                     } else if (pulledToX > range) {
-                        if (rightEdgeEffect != null) {//Vibhor
+                        if (rightEdgeEffect != null) {
                             rightEdgeEffect.onPull((float) deltaMoveX / getWidth());
                             if (!leftEdgeEffect.isFinished()) {
                                 leftEdgeEffect.onRelease();
@@ -544,7 +544,7 @@ public class HorizontalPicker extends View {
                             smoothScrollBy(relativePos);
                         }
 
-                    } else if (scrollingX) {
+                    } else {
                         finishScrolling();
                     }
                 }
@@ -951,9 +951,9 @@ public class HorizontalPicker extends View {
         if (pressedItem == position) {
             defaultColor = textColor.getColorForState(new int[]{android.R.attr.state_pressed}, textColor.getDefaultColor());
             selectedColor = textColor.getColorForState(new int[]{android.R.attr.state_pressed, android.R.attr.state_selected}, defaultColor);
-        } else if (position == getSelectedItem()) { //Vibhor
+        } else if (position == getSelectedItem()) {
             defaultColor = textColor.getDefaultColor();
-            selectedColor = selectedtextColor;
+            selectedColor = selectedTextColor;
         } else {
             defaultColor = textColor.getDefaultColor();
             selectedColor = textColor.getColorForState(new int[]{android.R.attr.state_selected}, defaultColor);
@@ -1013,7 +1013,7 @@ public class HorizontalPicker extends View {
      *
      * @param x Scroll position to calculate.
      * @return {param x} if is within bounds of over scroller, otherwise it will return min/max
-     * value of scoll position.
+     * value of scroll position.
      */
     private int getInBoundsX(int x) {
 
@@ -1086,8 +1086,8 @@ public class HorizontalPicker extends View {
                 mScrollUnit = scrollUnit;
             }
 
-            mView = new WeakReference<HorizontalPicker>(v);
-            mLayout = new WeakReference<Layout>(l);
+            mView = new WeakReference<>(v);
+            mLayout = new WeakReference<>(l);
             mRtl = rtl;
         }
 

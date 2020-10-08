@@ -29,8 +29,7 @@ public class CustomBinding {
     {
         if (model != null) {
             int orientation = model.getOrientation();
-            KnobView defaultKnobView = view;
-            defaultKnobView.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
+            view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
         }
     }
 }

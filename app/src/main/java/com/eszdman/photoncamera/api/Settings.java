@@ -6,6 +6,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
+
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
@@ -24,8 +25,8 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean grid;
     public boolean watermark;
-    public boolean afdata;
-    public boolean roundedge;
+    public boolean afData;
+    public boolean roundEdge;
     public boolean align;
     public boolean hdrx;
     public boolean hdrxNR;
@@ -45,7 +46,7 @@ public class Settings {
     public int alignAlgorithm;
     public String mCameraID;
     public CameraMode selectedMode;
-    public float[] tonemap;
+    public float[] toneMap;
     //Other
     public boolean ManualMode = false;
     public String lastPicture = null;
@@ -72,8 +73,8 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
-        afdata = PreferenceKeys.isAfDataOn();
-        roundedge = PreferenceKeys.isRoundEdgeOn();
+        afData = PreferenceKeys.isAfDataOn();
+        roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
         contrastMpy = PreferenceKeys.getContrastValue();//TODO recheck
 //        contrastConst = get(contrastConst, "ContrastConst");///////TODO
@@ -91,7 +92,7 @@ public class Settings {
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
         selectedMode = getCameraMode();
-        tonemap = parseToneMapArray();
+        toneMap = parseToneMapArray();
         mCameraID = PreferenceKeys.getCameraID();
         theme = PreferenceKeys.getThemeValue();
     }

@@ -3,13 +3,18 @@ package com.manual;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.PointF;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Range;
 import android.view.MotionEvent;
 import android.view.View;
+
 import com.eszdman.photoncamera.R;
 
 import java.util.ArrayList;
