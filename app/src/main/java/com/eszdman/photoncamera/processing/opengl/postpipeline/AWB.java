@@ -83,34 +83,27 @@ public class AWB extends Node {
                 maxRed = i;
             }
         }
-        maxRedMean /= 255;
         maxCount = -1;
         for (short i = 0; i < 255; i++) {
-            maxGreenMean += input[0][i];
+            maxGreenMean += input[1][i];
             if (input[1][i] > maxCount) {
                 maxCount = input[1][i];
                 maxGreen = i;
             }
         }
-        maxGreenMean /= 255;
         maxCount = -1;
         for (short i = 0; i < 255; i++) {
-            maxBlueMean += input[0][i];
+            maxBlueMean += input[2][i];
             if (input[2][i] > maxCount) {
                 maxCount = input[2][i];
                 maxBlue = i;
             }
         }
-        maxBlueMean /= 255;
 
         float[] output = new float[3];
 
-        float maxMean = (float) (maxRed + maxGreen + maxBlue) / 3;
         float mean = (float) ((maxRed - maxRedMean) + (maxGreen - maxGreenMean) + (maxBlue - maxBlueMean)) / 3;
 
-//        output[0] = maxRed / mean - maxRedMean / mean;
-//        output[1] = maxGreen / mean - maxGreenMean / mean;
-//        output[2] = maxBlue / mean - maxBlueMean / mean;
         output[0] = (maxRed - maxRedMean) / mean;
         output[1] = (maxGreen - maxGreenMean) / mean;
         output[2] = (maxBlue - maxBlueMean) / mean;
