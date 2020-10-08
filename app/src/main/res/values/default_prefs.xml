@@ -55,7 +55,7 @@
     <string name="pref_sharpness_seekbar_default">0.69</string>
     <string name="pref_saturation_seekbar_default">1.0</string>
     <string name="pref_compressor_gain_seekbar_default">1.6</string>
-    <string name="pref_align_method_default">1</string>
+    <string name="pref_align_method_default">0</string>
     <string name="pref_cfa_default_value">-1</string>
     <string name="pref_theme_default_value">-1</string>
     <string name="pref_theme_accent_default_value">Theme_Photon_BaseApp</string>

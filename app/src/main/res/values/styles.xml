@@ -33,17 +33,20 @@
     <!--    </style>-->
 
     <!--Other Styles-->
-
-    <style name="ManualModeKnobText">
-        <item name="android:textSize">@dimen/manual_knob_text_size</item>
+    <style name="BoldTextWithShadow">
+        <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/manual_icon_text</item>
+        <item name="android:textColor">@android:color/white</item>
         <item name="android:shadowColor">@android:color/black</item>
         <item name="android:shadowDx">1</item>
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">1</item>
+    </style>
 
-
+    <style name="ManualModeKnobText" parent="BoldTextWithShadow">
+        <item name="android:textSize">@dimen/manual_knob_text_size</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/manual_icon_text</item>
     </style>
 
     <style name="ManualModeKnobTextSelected">
@@ -59,6 +62,5 @@
         <item name="android:textSize">18sp</item>
         <item name="android:textColor">?android:textColorPrimary</item>
     </style>
-
 
 </resources>
