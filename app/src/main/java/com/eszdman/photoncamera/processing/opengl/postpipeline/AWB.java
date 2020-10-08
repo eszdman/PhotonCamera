@@ -71,36 +71,49 @@ public class AWB extends Node {
         short maxRed = -1;
         short maxGreen = -1;
         short maxBlue = -1;
+        short maxRedMean = 0;
+        short maxGreenMean = 0;
+        short maxBlueMean = 0;
 
         short maxCount = -1;
         for (short i = 0; i < 255; i++) {
+            maxRedMean += input[0][i];
             if (input[0][i] > maxCount) {
-                maxCount = input[1][i];
+                maxCount = input[0][i];
                 maxRed = i;
             }
         }
+        maxRedMean /= 255;
         maxCount = -1;
         for (short i = 0; i < 255; i++) {
+            maxGreenMean += input[0][i];
             if (input[1][i] > maxCount) {
                 maxCount = input[1][i];
                 maxGreen = i;
             }
         }
+        maxGreenMean /= 255;
         maxCount = -1;
         for (short i = 0; i < 255; i++) {
+            maxBlueMean += input[0][i];
             if (input[2][i] > maxCount) {
-                maxCount = input[1][i];
+                maxCount = input[2][i];
                 maxBlue = i;
             }
         }
+        maxBlueMean /= 255;
 
         float[] output = new float[3];
 
-        float mean = (float) (maxRed + maxGreen + maxBlue) / 3;
+        float maxMean = (float) (maxRed + maxGreen + maxBlue) / 3;
+        float mean = (float) (maxRedMean + maxGreenMean + maxBlueMean) / 3;
 
-        output[0] = maxRed / mean;
-        output[1] = maxGreen / mean;
-        output[2] = maxBlue / mean;
+//        output[0] = maxRed / mean - maxRedMean / mean;
+//        output[1] = maxGreen / mean - maxGreenMean / mean;
+//        output[2] = maxBlue / mean - maxBlueMean / mean;
+        output[0] = (maxRed - maxRedMean) / mean;
+        output[1] = (maxGreen - maxGreenMean) / mean;
+        output[2] = (maxBlue - maxBlueMean) / mean;
         Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
