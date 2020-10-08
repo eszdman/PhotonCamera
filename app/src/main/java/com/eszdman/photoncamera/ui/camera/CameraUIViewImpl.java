@@ -208,7 +208,9 @@ public final class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void setCaptureProgressBarOpacity(float alpha) {
-        mCaptureProgressBar.setAlpha(alpha);
+        try {
+            mCaptureProgressBar.setAlpha(alpha);
+        } catch (Exception ignore){}
     }
 
     @Override

@@ -71,12 +71,13 @@ public class AWB extends Node {
                 vec3[j][1] += (double) (input[1][i]) * pdf;
                 vec3[j][2] += (double) (input[2][i]) * pdf;
             }
-            vec3[j][0]=250/vec3[j][0];
+            vec3[j][0]=255/vec3[j][0];
             vec3[j][1]=255/vec3[j][1];
-            vec3[j][2]=247/vec3[j][2];
-            double E = 1./vec3[j][1];
+            vec3[j][2]=255/vec3[j][2];
+            double E = 3./(vec3[j][1]+vec3[j][0]+vec3[j][2]);
             vec3[j][0]*=E;
             vec3[j][1]*=E;
+            //vec3[j][1] = 1.0;
             vec3[j][2]*=E;
         }
         for(int i = 0; i<3;i++){
@@ -100,9 +101,17 @@ public class AWB extends Node {
         output[0]*=E;
         output[1]*=E;
         output[2]*=E;*/
-        output[0] = (float)vec3[1][0];
-        output[1] = (float)vec3[1][1];
-        output[2] = (float)vec3[1][2];
+        double dist = Math.abs(vec3[1][0]/(vec3[0][0]+vec3[2][0]))+Math.abs(vec3[1][2]/(vec3[0][2]+vec3[2][2]));
+        if(dist < 3.) {
+            output[0] = 1.f / (float) vec3[1][0];
+            output[1] = 1.f / (float) vec3[1][1];
+            output[2] = 1.f / (float) vec3[1][2];
+        } else {
+            output[0] = 2.f/(float)(vec3[0][0]+vec3[2][0]);
+            output[0] = 2.f/(float)(vec3[0][1]+vec3[2][1]);
+            output[0] = 2.f/(float)(vec3[0][2]+vec3[2][2]);
+            Log.v("AWB","Replaced vector");
+        }
         Log.v("AWB","Color correction vector2:"+output[0]+" ,"+output[1]+ " ,"+ output[2]);
         return output;
     }

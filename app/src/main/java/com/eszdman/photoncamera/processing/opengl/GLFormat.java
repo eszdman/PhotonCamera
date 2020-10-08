@@ -26,6 +26,10 @@ public class GLFormat {
             mSize = size;
         }
     }
+    public GLFormat(GLFormat in){
+        mFormat = in.mFormat;
+        mChannels = in.mChannels;
+    }
     public GLFormat(DataType format){
         mFormat = format;
         mChannels = 1;
@@ -189,6 +193,15 @@ public class GLFormat {
         }
         return "vec4";
     }
+    public String getTemExt(){
+                switch (mChannels) {
+                    case 1: return "r";
+                    case 2: return "rg";
+                    case 3: return "rgb";
+                    case 4: return "rgba";
+                }
+        return "rgba";
+    }
     public String getScalar(){
         switch (mFormat) {
             case NONE:
@@ -210,6 +223,7 @@ public class GLFormat {
         }
         return "float";
     }
+
     public String getTemSamp(){
         switch (mFormat) {
             case FLOAT_32:

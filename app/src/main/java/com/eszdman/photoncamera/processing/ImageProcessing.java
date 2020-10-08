@@ -67,7 +67,7 @@ public class ImageProcessing {
             processingEventsListener.onErrorOccured(ProcessingEventsListener.FAILED_MSG);
         }
     }
-
+    public static int unlimitedCounter = 0;
     public void unlimitedCycle(Image input) {
         int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
@@ -81,12 +81,14 @@ public class ImageProcessing {
         unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
         input.close();
+        unlimitedCounter++;
     }
 
     public void unlimitedEnd() {
         Log.d(TAG, "Wrapper.processFrame()");
         PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
+        unlimitedCounter = 0;
         PostPipeline pipeline = new PostPipeline();
         pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
         pipeline.close();
