@@ -92,27 +92,37 @@ public class AWB extends Node {
                 }
             }
         }
+        Log.v("AWB", "Color correction vector original:" + redVector + " ," + greenVector + " ," + blueVector);
         //Use WhiteWorld
-        if(minC > 85){
-            Log.d("AWB","Use WhiteWorld factor:"+minC);
+        if(maxmpy > 1.5 || blueVector-10 > redVector) {
+            Log.d("AWB", "Use WhiteWorld factor:" + maxmpy);
             maxHistH = -1;
-            for (short i = 190; i < 254; i++) {
-                for (short j = 190; j < 254; j++) {
-                    for (short k = 190; k < 254; k++) {
+            short rb = redVector;
+            short gb = greenVector;
+            short bb = blueVector;
+            for (short i = 160; i < 254; i++) {
+                for (short j = 160; j < 254; j++) {
+                    for (short k = 160; k < 254; k++) {
                         int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
                         //for(short c = (short) (-5); c<5; c++){
                         //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
                         //}
                         if (min > maxHistH) {
                             maxHistH = min;
-                            redVector = (short)((i));
-                            greenVector = (short)((j));
-                            blueVector = (short)((k));
+                            redVector = (short) ((i));
+                            greenVector = (short) ((j));
+                            blueVector = (short) ((k));
                         }
                     }
                 }
             }
+            if(bb > blueVector){
+                redVector = rb;
+                greenVector = gb;
+                blueVector = bb;
+            }
         }
+
         float mean = (float) (redVector + greenVector + blueVector) / 3;
         float[] output = new float[3];
         output[0] = blueVector / mean;
@@ -124,7 +134,7 @@ public class AWB extends Node {
         if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
         if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
         if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
-        Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
+        Log.v("AWB", "Color correction vector:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
 
