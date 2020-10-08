@@ -68,48 +68,39 @@ public class AWB extends Node {
     //Color average point 210 192 179
     //Max average point 255 233 217
     private float[] CCV(short[][] input) {
-        double[][] vec3 = new double[3][3];
-        for (int j = 0; j < 3; j++) {
-            for (int i = 0; i < SIZE; i++) {
-                double x = ((double) i) / (SIZE - 1);
-                x -= 0.33 * j + 0.15;
-                double pdf = normPDF(x);
-                vec3[j][0] += (double) (input[0][i]) * pdf;
-                vec3[j][1] += (double) (input[1][i]) * pdf;
-                vec3[j][2] += (double) (input[2][i]) * pdf;
-            }
-            vec3[j][0] = 250 / vec3[j][0];
-            vec3[j][1] = 255 / vec3[j][1];
-            vec3[j][2] = 247 / vec3[j][2];
-            double E = 1. / vec3[j][1];
-            vec3[j][0] *= E;
-            vec3[j][1] *= E;
-            vec3[j][2] *= E;
-        }
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                for (int k = 0; k < 2; k++) {
-                    if (vec3[i][k + 1] < vec3[i][k]) {
-                        double t = vec3[k + 1][i];
-                        vec3[k + 1][i] = vec3[k][i];
-                        vec3[k][i] = t;
-                    }
-                }
+        short maxRed = -1;
+        short maxGreen = -1;
+        short maxBlue = -1;
+
+        short maxCount = -1;
+        for (short i = 0; i < 255; i++) {
+            if (input[0][i] > maxCount) {
+                maxCount = input[1][i];
+                maxRed = i;
             }
         }
+        maxCount = -1;
+        for (short i = 0; i < 255; i++) {
+            if (input[1][i] > maxCount) {
+                maxCount = input[1][i];
+                maxGreen = i;
+            }
+        }
+        maxCount = -1;
+        for (short i = 0; i < 255; i++) {
+            if (input[2][i] > maxCount) {
+                maxCount = input[1][i];
+                maxBlue = i;
+            }
+        }
+
         float[] output = new float[3];
-        //Log.v("AWB","Color correction vector:"+vec3[1][0]+" ,"+vec3[1][1]+ " ,"+ vec3[1][2]);
-        /*output[0] = (float) (250/(vec3[1][0]));
-        output[1] = (float) (255/(vec3[1][1]));
-        output[2] = (float) (247/(vec3[1][2]));
-        float norm = (float)Math.sqrt(output[0]*output[0]+output[1]*output[1]+output[2]*output[2]);
-        float E = 1.f/output[1];
-        output[0]*=E;
-        output[1]*=E;
-        output[2]*=E;*/
-        output[0] = (float) vec3[1][0];
-        output[1] = (float) vec3[1][1];
-        output[2] = (float) vec3[1][2];
+
+        float mean = (float) (maxRed + maxGreen + maxBlue) / 3;
+
+        output[0] = maxRed / mean;
+        output[1] = maxGreen / mean;
+        output[2] = maxBlue / mean;
         Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
