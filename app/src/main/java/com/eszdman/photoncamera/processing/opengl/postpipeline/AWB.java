@@ -44,8 +44,14 @@ public class AWB extends Node {
                 colorsMap[0][(int)((double)(r)*(255.0)/(r+g+b))]++;
                 colorsMap[1][(int)((double)(g)*(255.0)/(r+g+b))]++;
                 colorsMap[2][(int)((double)(b)*(255.0)/(r+g+b))]++;
+                //colorsMap[0][r]++;
+                //colorsMap[1][g]++;
+                //colorsMap[2][b]++;
             }
         }
+        for(int i =0;i<SIZE;i++) Log.d("Hist","R el:"+i+" "+colorsMap[0][i]);
+        for(int i =0;i<SIZE;i++) Log.d("Hist","G el:"+i+" "+colorsMap[1][i]);
+        for(int i =0;i<SIZE;i++) Log.d("Hist","B el:"+i+" "+colorsMap[2][i]);
         //Find max
         for (int i = 0; i < SIZE; i++) {
             if (maxY < colorsMap[0][i]) {
@@ -76,9 +82,9 @@ public class AWB extends Node {
         short greenVector = 0;
         short blueVector = 0;
 
-        for (short i = 0; i < SIZE; i++) {
-            for (short j = 0; j < SIZE; j++) {
-                for (short k = 0; k < SIZE; k++) {
+        for (short i = 1; i < SIZE-1; i++) {
+            for (short j = 1; j < SIZE-1; j++) {
+                for (short k = 1; k < SIZE-1; k++) {
                     short min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
                     if (min > maxHistH) {
                         maxHistH = min;
@@ -89,11 +95,15 @@ public class AWB extends Node {
                 }
             }
         }
+        Log.v("AWB", "Color correction vector1:" + redVector + " ," + greenVector + " ," + blueVector);
         float mean = (float) (redVector + greenVector + blueVector) / 3;
         float[] output = new float[3];
         output[0] = redVector / mean;
         output[1] = greenVector / mean;
         output[2] = blueVector / mean;
+        output[0] = 1.f/output[0];
+        output[1] = 1.f/output[1];
+        output[2] = 1.f/output[2];
         Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
