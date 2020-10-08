@@ -106,7 +106,7 @@ public class AWB extends Node {
         float[] output = new float[3];
 
         float maxMean = (float) (maxRed + maxGreen + maxBlue) / 3;
-        float mean = (float) (maxRedMean + maxGreenMean + maxBlueMean) / 3;
+        float mean = (float) ((maxRed - maxRedMean) + (maxGreen - maxGreenMean) + (maxBlue - maxBlueMean)) / 3;
 
 //        output[0] = maxRed / mean - maxRedMean / mean;
 //        output[1] = maxGreen / mean - maxGreenMean / mean;
