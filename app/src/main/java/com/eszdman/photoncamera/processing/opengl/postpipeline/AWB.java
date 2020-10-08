@@ -68,45 +68,29 @@ public class AWB extends Node {
     //Color average point 210 192 179
     //Max average point 255 233 217
     private float[] CCV(short[][] input) {
-        short maxRed = -1;
-        short maxGreen = -1;
-        short maxBlue = -1;
-        short maxRedMean = 0;
-        short maxGreenMean = 0;
-        short maxBlueMean = 0;
+        short maxHistH = -1;
+        short redVector = 0;
+        short greenVector = 0;
+        short blueVector = 0;
 
-        short maxCount = -1;
-        for (short i = 0; i < 255; i++) {
-            maxRedMean += input[0][i];
-            if (input[0][i] > maxCount) {
-                maxCount = input[0][i];
-                maxRed = i;
+        for (short i = 0; i < SIZE; i++) {
+            for (short j = 0; j < SIZE; j++) {
+                for (short k = 0; k < SIZE; k++) {
+                    short min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
+                    if (min > maxHistH) {
+                        maxHistH = min;
+                        redVector = i;
+                        greenVector = j;
+                        blueVector = k;
+                    }
+                }
             }
         }
-        maxCount = -1;
-        for (short i = 0; i < 255; i++) {
-            maxGreenMean += input[1][i];
-            if (input[1][i] > maxCount) {
-                maxCount = input[1][i];
-                maxGreen = i;
-            }
-        }
-        maxCount = -1;
-        for (short i = 0; i < 255; i++) {
-            maxBlueMean += input[2][i];
-            if (input[2][i] > maxCount) {
-                maxCount = input[2][i];
-                maxBlue = i;
-            }
-        }
-
+        float mean = (float) (redVector + greenVector + blueVector) / 3;
         float[] output = new float[3];
-
-        float mean = (float) ((maxRed - maxRedMean) + (maxGreen - maxGreenMean) + (maxBlue - maxBlueMean)) / 3;
-
-        output[0] = (maxRed - maxRedMean) / mean;
-        output[1] = (maxGreen - maxGreenMean) / mean;
-        output[2] = (maxBlue - maxBlueMean) / mean;
+        output[0] = redVector / mean;
+        output[1] = greenVector / mean;
+        output[2] = blueVector / mean;
         Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
