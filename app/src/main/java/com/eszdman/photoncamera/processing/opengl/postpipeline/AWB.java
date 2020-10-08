@@ -77,15 +77,18 @@ public class AWB extends Node {
     //Color average point 210 192 179
     //Max average point 255 233 217
     private float[] CCV(short[][] input) {
-        short maxHistH = -1;
+        int maxHistH = -1;
         short redVector = 0;
         short greenVector = 0;
         short blueVector = 0;
 
-        for (short i = 1; i < SIZE-1; i++) {
-            for (short j = 1; j < SIZE-1; j++) {
-                for (short k = 1; k < SIZE-1; k++) {
-                    short min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
+        for (short i = 7; i < SIZE-7; i++) {
+            for (short j = 7; j < SIZE-7; j++) {
+                for (short k = 7; k < SIZE-7; k++) {
+                    int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
+                    //for(short c = (short) (-5); c<5; c++){
+                    //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
+                    //}
                     if (min > maxHistH) {
                         maxHistH = min;
                         redVector = i;
@@ -98,9 +101,9 @@ public class AWB extends Node {
         Log.v("AWB", "Color correction vector1:" + redVector + " ," + greenVector + " ," + blueVector);
         float mean = (float) (redVector + greenVector + blueVector) / 3;
         float[] output = new float[3];
-        output[0] = redVector / mean;
+        output[0] = blueVector / mean;
         output[1] = greenVector / mean;
-        output[2] = blueVector / mean;
+        output[2] = redVector / mean;
         output[0] = 1.f/output[0];
         output[1] = 1.f/output[1];
         output[2] = 1.f/output[2];
