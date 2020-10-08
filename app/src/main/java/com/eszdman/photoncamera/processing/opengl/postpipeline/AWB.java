@@ -49,9 +49,6 @@ public class AWB extends Node {
                 //colorsMap[2][b]++;
             }
         }
-        for(int i =0;i<SIZE;i++) Log.d("Hist","R el:"+i+" "+colorsMap[0][i]);
-        for(int i =0;i<SIZE;i++) Log.d("Hist","G el:"+i+" "+colorsMap[1][i]);
-        for(int i =0;i<SIZE;i++) Log.d("Hist","B el:"+i+" "+colorsMap[2][i]);
         //Find max
         for (int i = 0; i < SIZE; i++) {
             if (maxY < colorsMap[0][i]) {
@@ -81,10 +78,12 @@ public class AWB extends Node {
         short redVector = 0;
         short greenVector = 0;
         short blueVector = 0;
+        double maxmpy = 0;
+        short minC = 9999;
 
-        for (short i = 7; i < SIZE-7; i++) {
-            for (short j = 7; j < SIZE-7; j++) {
-                for (short k = 7; k < SIZE-7; k++) {
+        for (short i = 20; i < 120; i++) {
+            for (short j = 20; j < 120; j++) {
+                for (short k = 20; k < 120; k++) {
                     int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
                     //for(short c = (short) (-5); c<5; c++){
                     //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
@@ -94,6 +93,29 @@ public class AWB extends Node {
                         redVector = i;
                         greenVector = j;
                         blueVector = k;
+                        maxmpy = (double)Math.max(Math.max(redVector,greenVector),blueVector)/Math.min(Math.min(redVector,greenVector),blueVector);
+                        minC = (short)Math.max(Math.max(redVector,greenVector),blueVector);
+                    }
+                }
+            }
+        }
+        //Use WhiteWorld
+        if(minC > 85){
+            Log.d("AWB","Use WhiteWorld factor:"+minC);
+            maxHistH = -1;
+            for (short i = 190; i < 254; i++) {
+                for (short j = 190; j < 254; j++) {
+                    for (short k = 190; k < 254; k++) {
+                        int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
+                        //for(short c = (short) (-5); c<5; c++){
+                        //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
+                        //}
+                        if (min > maxHistH) {
+                            maxHistH = min;
+                            redVector = (short)((i));
+                            greenVector = (short)((j));
+                            blueVector = (short)((k));
+                        }
                     }
                 }
             }
@@ -107,6 +129,9 @@ public class AWB extends Node {
         output[0] = 1.f/output[0];
         output[1] = 1.f/output[1];
         output[2] = 1.f/output[2];
+        if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
+        if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
+        if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
         Log.v("AWB", "Color correction vector2:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
