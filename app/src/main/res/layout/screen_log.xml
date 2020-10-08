@@ -19,6 +19,7 @@
             android:paddingTop="10dp"
             android:textColor="@color/White"
             android:textStyle="normal"
+            android:textAppearance="@style/BoldTextWithShadow"
             android:textAlignment="center"
     />
 </androidx.constraintlayout.widget.ConstraintLayout>
