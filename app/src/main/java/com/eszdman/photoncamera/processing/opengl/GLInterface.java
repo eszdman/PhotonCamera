@@ -16,6 +16,7 @@ public class GLInterface {
     public GLInterface(GLCoreBlockProcessing processing) {
         glProcessing = processing;
         glProgram = glProcessing.mProgram;
+        glUtils = new GLUtils(glProcessing);
     }
 
     public GLInterface(GLContext context) {

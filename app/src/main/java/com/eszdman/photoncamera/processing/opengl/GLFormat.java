@@ -75,8 +75,15 @@ public class GLFormat {
             mID = id;
             mSize = size;
         }
+        DataType(DataType in) {
+            mID = in.mID;
+            mSize = in.mSize;
+        }
     }
-
+    public GLFormat(GLFormat in){
+        mFormat = in.mFormat;
+        mChannels = in.mChannels;
+    }
     public GLFormat(DataType format) {
         mFormat = format;
         mChannels = 1;
@@ -310,7 +317,15 @@ public class GLFormat {
         }
         return "vec4";
     }
-
+    public String getTemExt(){
+        switch (mChannels) {
+            case 1: return "r";
+            case 2: return "rg";
+            case 3: return "rgb";
+            case 4: return "rgba";
+        }
+        return "rgba";
+    }
     public String getScalar() {
         switch (mFormat) {
             case NONE:

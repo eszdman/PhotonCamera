@@ -94,7 +94,7 @@ public class AWB extends Node {
         }
         Log.v("AWB", "Color correction vector original:" + redVector + " ," + greenVector + " ," + blueVector);
         //Use WhiteWorld
-        if(maxmpy > 1.5 || blueVector-10 > redVector) {
+        if(maxmpy > 1.3 || blueVector-10 > redVector) {
             Log.d("AWB", "Use WhiteWorld factor:" + maxmpy);
             maxHistH = -1;
             short rb = redVector;
@@ -131,9 +131,9 @@ public class AWB extends Node {
         output[0] = 1.f/output[0];
         output[1] = 1.f/output[1];
         output[2] = 1.f/output[2];
-        if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
-        if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
-        if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
+        //if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
+        //if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
+        //if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
         Log.v("AWB", "Color correction vector:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }

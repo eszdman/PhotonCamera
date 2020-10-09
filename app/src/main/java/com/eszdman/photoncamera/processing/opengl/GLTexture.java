@@ -35,15 +35,13 @@ public class GLTexture implements AutoCloseable {
     public final GLFormat mFormat;
 
     public GLTexture(GLTexture in) {
-        this(in.mSize, in.mFormat, null);
+        this(in.mSize,in.mFormat,null);
     }
-
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels) {
-        this(new Point(sizeX, sizeY), glFormat, pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
     }
-
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels) {
-        this(size, glFormat, pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(size), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
     }
 
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper) {
