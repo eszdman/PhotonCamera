@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.processing;
 
 
+import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
@@ -210,6 +211,7 @@ public class ImageProcessing {
                 continue;
             }
             byteBuffer.position(0);
+            //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
             images.add(byteBuffer);
             if (!debugAlignment)
                 Wrapper.loadFrame(byteBuffer);

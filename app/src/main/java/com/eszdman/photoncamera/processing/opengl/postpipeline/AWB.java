@@ -4,13 +4,13 @@ import android.graphics.Bitmap;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
 public class AWB extends Node {
-    GLProg glProg;
 
     public AWB(int rid, String name) {
         super(rid, name);
@@ -75,7 +75,7 @@ public class AWB extends Node {
         short greenVector = 0;
         short blueVector = 0;
         double maxmpy = 0;
-        short minC = 9999;
+        short minC = 0;
 
         for (short i = 20; i < 120; i++) {
             for (short j = 20; j < 120; j++) {
@@ -140,26 +140,12 @@ public class AWB extends Node {
 
     @Override
     public void Run() {
-        glProg = basePipeline.glint.glProgram;
         GLTexture r0 = down8(previousNode.WorkingTexture);
         GLTexture r1 = down8(r0);
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
-        /*File debug = new File(imageFileToSave.getAbsolutePath()+"debug.jpg");
-        FileOutputStream fOut = null;
-        try {
-            debug.createNewFile();
-            fOut = new FileOutputStream(debug);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-        preview.copyPixelsFromBuffer(basePipeline.glint.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
-        //preview.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
-        glProg.useProgram(R.raw.applyvector);
-        glProg.setVar("colorvec", CCV(Histogram(preview)));
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
-        WorkingTexture = new GLTexture(previousNode.WorkingTexture);
-        glProg.drawBlocks(WorkingTexture);
-        glProg.close();
+        preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
+        if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
+        WorkingTexture = glUtils.mpy( previousNode.WorkingTexture,CCV(Histogram(preview)));
     }
 }

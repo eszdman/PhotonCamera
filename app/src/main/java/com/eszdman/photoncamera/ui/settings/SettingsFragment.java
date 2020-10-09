@@ -130,7 +130,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             try {
                 PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
                 String versionName = packageInfo.versionName;
-                long versionCode = packageInfo.getLongVersionCode();
+                long versionCode = packageInfo.versionCode;
 
                 Date date = new Date(packageInfo.lastUpdateTime);
                 SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z");

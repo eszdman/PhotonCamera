@@ -3,7 +3,10 @@ package com.eszdman.photoncamera.processing.opengl.nodes;
 import android.util.Log;
 
 import com.eszdman.photoncamera.processing.opengl.GLBasePipeline;
+import com.eszdman.photoncamera.processing.opengl.GLInterface;
+import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
+import com.eszdman.photoncamera.processing.opengl.GLUtils;
 
 public class Node {
     public GLTexture WorkingTexture;
@@ -12,6 +15,9 @@ public class Node {
     public int Rid;
     private long timeStart;
     public GLBasePipeline basePipeline;
+    public GLInterface glInt;
+    public GLUtils glUtils;
+    public GLProg glProg;
     public boolean LastNode = false;
 
     private Node() {

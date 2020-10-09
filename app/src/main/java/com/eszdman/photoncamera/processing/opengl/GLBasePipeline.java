@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
+import static android.opengl.GLES20.glBindAttribLocation;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
@@ -32,6 +33,9 @@ public class GLBasePipeline implements AutoCloseable {
     public void add(Node in) {
         if (Nodes.size() != 0) in.previousNode = Nodes.get(Nodes.size() - 1);
         in.basePipeline = this;
+        in.glInt = glint;
+        in.glUtils = glint.glUtils;
+        in.glProg = glint.glProgram;
         Nodes.add(in);
         Log.d(TAG, "Added:" + in.Name + " Nodes size:" + Nodes.size());
     }

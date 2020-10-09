@@ -14,6 +14,7 @@ import android.util.Rational;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,11 +32,11 @@ public class Parameters {
     public boolean hasGainMap;
     public Point mapSize;
     public float[] gainMap;
-    //    public String path;
     public float[] proPhotoToSRGB = new float[9];
     public final float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
+    public Point[] hotPixels;
 
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
@@ -80,6 +81,8 @@ public class Parameters {
                 mapSize = Const.mapSize;
             }
         }
+        //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
+        hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
         Rational[] neutral = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         ColorSpaceTransform calibration1 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
         ColorSpaceTransform calibration2 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM2);

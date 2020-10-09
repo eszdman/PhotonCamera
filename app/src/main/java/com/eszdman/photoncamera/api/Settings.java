@@ -25,7 +25,7 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean grid;
     public boolean watermark;
-    public boolean afData;
+    public boolean aFDebugData;
     public boolean roundEdge;
     public boolean align;
     public boolean hdrx;
@@ -73,7 +73,7 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
-        afData = PreferenceKeys.isAfDataOn();
+        aFDebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
         contrastMpy = PreferenceKeys.getContrastValue();//TODO recheck

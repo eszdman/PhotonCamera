@@ -536,7 +536,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (PhotonCamera.getSettings().afData) {
+        if (PhotonCamera.getSettings().aFDebugData) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));

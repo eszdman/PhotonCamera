@@ -1,5 +1,16 @@
 package com.eszdman.photoncamera.processing.opengl;
 
+import android.graphics.Bitmap;
+import android.graphics.Point;
+
+import com.eszdman.photoncamera.app.PhotonCamera;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
+
 public class GLUtils {
     private final GLProg glProg;
     private GLCoreBlockProcessing glProcessing;
@@ -75,6 +86,7 @@ public class GLUtils {
         glProg.setTexture("InputBuffer",out);
         GLTexture out2 = new GLTexture(out);
         glProg.drawBlocks(out2);
+        out.close();
         glProg.close();
         return out2;
     }
@@ -86,7 +98,7 @@ public class GLUtils {
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
                 "#define size1 ("+(double)k*0.3+")\n" +
-                "#define transpose ("+(int)(((double)5/k)+1)+")\n" +
+                "#define transpose ("+(int)((4.5/k)+1)+")\n" +
                 "#define MSIZE1 5\n" +
                 "#define resize ("+k+")\n" +
                 "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
@@ -117,5 +129,45 @@ public class GLUtils {
         glProg.drawBlocks(out);
         glProg.close();
         return out;
+    }
+    public GLTexture mpy(GLTexture in, float[] vecmat){
+        String vecext = "vec3";
+        if(vecmat.length == 9) vecext = "mat3";
+        glProg.useProgram("#version 300 es\n" +
+                "precision mediump float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform "+vecext+" colorvec;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    Output = tvar(texelFetch(InputBuffer, xy, 0).rgb*colorvec,1.0);\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setVar("colorvec",vecmat);
+        GLTexture out = new GLTexture(in);
+        glProg.drawBlocks(out);
+        glProg.close();
+        return out;
+    }
+    public void SaveProgResult(Point size, String namesuffix){
+        SaveProgResult(size, namesuffix, 4);
+    }
+    public void SaveProgResult(Point size, String namesuffix, int channels){
+        GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
+        Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
+        File debug = new File(imageFileToSave.getAbsolutePath()+namesuffix+".jpg");
+        FileOutputStream fOut = null;
+        try {
+            debug.createNewFile();
+            fOut = new FileOutputStream(debug);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
+        preview.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
     }
 }

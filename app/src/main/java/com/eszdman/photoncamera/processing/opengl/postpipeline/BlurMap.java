@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
@@ -15,7 +16,7 @@ public class BlurMap extends Node {
 
     @Override
     public void Run() {
-        basePipeline.glint.glProgram.setTexture("InputBuffer", previousNode.WorkingTexture);
+        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         WorkingTexture = previousNode.previousNode.previousNode.WorkingTexture;
         ResizedBlurredMap = new GLTexture(previousNode.WorkingTexture.mSize, previousNode.WorkingTexture.mFormat, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
     }
