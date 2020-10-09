@@ -30,6 +30,6 @@ public class Bilateral extends Node {
         glProg.setVar("mapsize", (float) Previous.WorkingTexture.mSize.x, (float) Previous.WorkingTexture.mSize.y);
         glProg.setTexture("InputBuffer", Previous.WorkingTexture);
         glProg.setTexture("NoiseMap", postPipeline.noiseMap);
-        super.WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize, Previous.WorkingTexture.mFormat, null);
+        WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize, Previous.WorkingTexture.mFormat, null);
     }
 }

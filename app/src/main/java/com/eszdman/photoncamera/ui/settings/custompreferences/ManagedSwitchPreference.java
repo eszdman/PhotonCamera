@@ -22,6 +22,7 @@ import android.util.AttributeSet;
 import androidx.preference.SwitchPreferenceCompat;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 
 /**
@@ -49,7 +50,7 @@ public class ManagedSwitchPreference extends SwitchPreferenceCompat {
     @Override
     public boolean getPersistedBoolean(boolean defaultReturnValue) {
         if (PhotonCamera.getSettingsManager() != null)
-            return PhotonCamera.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL, getKey(), defaultReturnValue);
+            return PhotonCamera.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,getKey(), defaultReturnValue);
         else
             return defaultReturnValue;
 

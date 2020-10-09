@@ -20,6 +20,10 @@ public class Initial extends Node {
         super(rid, name);
     }
     @Override
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
+    }
+    @Override
     public void Run() {
         Node Previous = super.previousNode;
         GLInterface glint = basePipeline.glint;
@@ -44,6 +48,6 @@ public class Initial extends Node {
             params.blackLevel[i]/=params.whiteLevel;
         }
         glProg.setVar("blackLevel",params.blackLevel);
-        super.WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
+        WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
     }
 }

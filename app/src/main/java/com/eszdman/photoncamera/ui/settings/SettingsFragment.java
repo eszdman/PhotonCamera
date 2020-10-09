@@ -52,7 +52,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         else
             removePreferenceFromScreen("pref_category_hdrx");
 
-        Preference hide = findPreference(PreferenceKeys.KEY_SAVE_PER_LENS_SETTINGS);
+        Preference hide = findPreference(PreferenceKeys.Preference.KEY_SAVE_PER_LENS_SETTINGS.mValue);
         PreferenceCategory category = findPreference("pref_category_general");
         if (category != null && hide != null) {
             category.removePreference(hide);
@@ -66,14 +66,14 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         super.onResume();
         Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
         toolbar.setTitle(getPreferenceScreen().getTitle());
-        Preference myPref = findPreference(PreferenceKeys.KEY_TELEGRAM);
+        Preference myPref = findPreference(PreferenceKeys.Preference.KEY_TELEGRAM.mValue);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
                 startActivity(browserIntent);
                 return true;
             });
-        Preference github = findPreference(PreferenceKeys.KEY_CONTRIBUTORS);
+        Preference github = findPreference(PreferenceKeys.Preference.KEY_CONTRIBUTORS.mValue);
         if (github != null)
             github.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
@@ -92,22 +92,22 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME.mValue)) {
             restartActivity();
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.KEY_THEME_ACCENT)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME_ACCENT.mValue)) {
             restartActivity();
             SettingsActivity.toRestartApp = true;
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.KEY_FRAME_COUNT)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue)) {
             setFramesSummary();
         }
     }
 
     private void setFramesSummary() {
-        Preference frameCountPreference = findPreference(PreferenceKeys.KEY_FRAME_COUNT);
+        Preference frameCountPreference = findPreference(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue);
         if (frameCountPreference != null && getContext() != null) {
-            if (mSettingsManager.getInteger(PreferenceKeys.current_scope, PreferenceKeys.KEY_FRAME_COUNT) == 1) {
+            if (mSettingsManager.getInteger(PreferenceKeys.current_scope, PreferenceKeys.Preference.KEY_FRAME_COUNT) == 1) {
                 frameCountPreference.setSummary(getString(R.string.unprocessed_raw));
             } else {
                 frameCountPreference.setSummary(getString(R.string.frame_count_summary));

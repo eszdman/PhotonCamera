@@ -17,6 +17,10 @@ public class GlobalToneMapping extends Node {
         super(rid, name);
     }
     @Override
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
+    }
+    @Override
     public void Compile() {}
     private GLTexture GaussDown88(GLTexture input){
         GLInterface glint = basePipeline.glint;

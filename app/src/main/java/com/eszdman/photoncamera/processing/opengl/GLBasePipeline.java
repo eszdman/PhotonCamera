@@ -54,6 +54,7 @@ public class GLBasePipeline implements AutoCloseable {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
             Nodes.get(i).Compile();
+            Nodes.get(i).BeforeRun();
             if (i == Nodes.size() - 1) {
                 lastR();
             }
@@ -64,6 +65,7 @@ public class GLBasePipeline implements AutoCloseable {
                 glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
                 glint.glProgram.close();
             }
+            Nodes.get(i).AfterRun();
         }
         glint.glProcessing.drawBlocksToOutput();
         glint.glProgram.close();
@@ -75,6 +77,7 @@ public class GLBasePipeline implements AutoCloseable {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
             Nodes.get(i).Compile();
+            Nodes.get(i).BeforeRun();
             if (i == Nodes.size() - 1) {
                 lastR();
             }
@@ -85,6 +88,7 @@ public class GLBasePipeline implements AutoCloseable {
                 glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
                 glint.glProgram.close();
             }
+            Nodes.get(i).AfterRun();
             endT(Nodes.get(i).Name);
         }
         glint.glProgram.drawBlocks(Nodes.get(Nodes.size() - 1).GetProgTex());

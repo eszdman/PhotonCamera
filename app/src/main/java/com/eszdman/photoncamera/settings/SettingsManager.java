@@ -258,8 +258,8 @@ public class SettingsManager {
      * a set of String possible values that are already defined.
      * This is not required.
      */
-    public void setDefaults(String key, String defaultValue, String[] possibleValues) {
-        mDefaultsStore.storeDefaults(key, defaultValue, possibleValues);
+    public void setDefaults(PreferenceKeys.Preference key, String defaultValue, String[] possibleValues) {
+        mDefaultsStore.storeDefaults(key.mValue, defaultValue, possibleValues);
     }
 
     /**
@@ -267,13 +267,13 @@ public class SettingsManager {
      * a set of Integer possible values that are already defined.
      * This is not required.
      */
-    public void setDefaults(String key, int defaultValue, int[] possibleValues) {
+    public void setDefaults(PreferenceKeys.Preference key, int defaultValue, int[] possibleValues) {
         String defaultValueString = Integer.toString(defaultValue);
         String[] possibleValuesString = new String[possibleValues.length];
         for (int i = 0; i < possibleValues.length; i++) {
             possibleValuesString[i] = Integer.toString(possibleValues[i]);
         }
-        mDefaultsStore.storeDefaults(key, defaultValueString, possibleValuesString);
+        mDefaultsStore.storeDefaults(key.mValue, defaultValueString, possibleValuesString);
     }
 
     /**
@@ -281,40 +281,40 @@ public class SettingsManager {
      * The set of boolean possible values is always { false, true }.
      * This is not required.
      */
-    public void setDefaults(String key, boolean defaultValue) {
+    public void setDefaults(PreferenceKeys.Preference key, boolean defaultValue) {
         String defaultValueString = defaultValue ? "1" : "0";
         String[] possibleValues = {"0", "1"};
-        mDefaultsStore.storeDefaults(key, defaultValueString, possibleValues);
+        mDefaultsStore.storeDefaults(key.mValue, defaultValueString, possibleValues);
     }
 
     /**
      * Retrieve a default from the DefaultsStore as a String.
      */
-    public String getStringDefault(String key) {
-        return mDefaultsStore.getDefaultValue(key);
+    public String getStringDefault(PreferenceKeys.Preference key) {
+        return mDefaultsStore.getDefaultValue(key.mValue);
     }
 
     /**
      * Retrieve a default from the DefaultsStore as an Integer.
      */
-    public Integer getIntegerDefault(String key) {
-        String defaultValueString = mDefaultsStore.getDefaultValue(key);
+    public Integer getIntegerDefault(PreferenceKeys.Preference key) {
+        String defaultValueString = mDefaultsStore.getDefaultValue(key.mValue);
         return defaultValueString == null ? 0 : Integer.parseInt(defaultValueString);
     }
 
     /**
      * Retrieve a default from the DefaultsStore as a Float.
      */
-    public Float getFloatDefault(String key) {
-        String defaultValueString = mDefaultsStore.getDefaultValue(key);
+    public Float getFloatDefault(PreferenceKeys.Preference key) {
+        String defaultValueString = mDefaultsStore.getDefaultValue(key.mValue);
         return defaultValueString == null ? 0.0f : Float.parseFloat(defaultValueString);
     }
 
     /**
      * Retrieve a default from the DefaultsStore as a boolean.
      */
-    public boolean getBooleanDefault(String key) {
-        String defaultValueString = mDefaultsStore.getDefaultValue(key);
+    public boolean getBooleanDefault(PreferenceKeys.Preference key) {
+        String defaultValueString = mDefaultsStore.getDefaultValue(key.mValue);
         return defaultValueString != null && (Integer.parseInt(defaultValueString) != 0);
     }
 
@@ -322,21 +322,25 @@ public class SettingsManager {
      * Retrieve a setting's value as a String, manually specifiying
      * a default value.
      */
+    public String getString(String scope, PreferenceKeys.Preference key, String defaultValue) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        return preferences.getString(key.mValue, defaultValue);
+    }
     public String getString(String scope, String key, String defaultValue) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         return preferences.getString(key, defaultValue);
     }
 
-    public Set<String> getStringSet(String scope, String key, Set<String> defaultValue) {
+    public Set<String> getStringSet(String scope, PreferenceKeys.Preference key, Set<String> defaultValue) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
-        return preferences.getStringSet(key, defaultValue);
+        return preferences.getStringSet(key.mValue, defaultValue);
     }
 
     /**
      * Retrieve a setting's value as a String, using the default value
      * stored in the DefaultsStore.
      */
-    public String getString(String scope, String key) {
+    public String getString(String scope, PreferenceKeys.Preference key) {
         return getString(scope, key, getStringDefault(key));
     }
 
@@ -344,7 +348,7 @@ public class SettingsManager {
      * Retrieve a setting's value as an Integer, manually specifiying
      * a default value.
      */
-    public Integer getInteger(String scope, String key, Integer defaultValue) {
+    public Integer getInteger(String scope, PreferenceKeys.Preference key, Integer defaultValue) {
         String defaultValueString = Integer.toString(defaultValue);
         String value = getString(scope, key, defaultValueString);
         return Integer.parseInt(value);
@@ -354,7 +358,7 @@ public class SettingsManager {
      * Retrieve a setting's value as an Integer, converting the default value
      * stored in the DefaultsStore.
      */
-    public Integer getInteger(String scope, String key) {
+    public Integer getInteger(String scope, PreferenceKeys.Preference key) {
         return getInteger(scope, key, getIntegerDefault(key));
     }
 
@@ -362,7 +366,7 @@ public class SettingsManager {
      * Retrieve a setting's value as a Float, manually specifiying
      * a default value.
      */
-    public Float getFloat(String scope, String key, Float defaultValue) {
+    public Float getFloat(String scope, PreferenceKeys.Preference key, Float defaultValue) {
         String defaultValueString = Float.toString(defaultValue);
         String value = getString(scope, key, defaultValueString);
         return Float.parseFloat(value);
@@ -372,7 +376,7 @@ public class SettingsManager {
      * Retrieve a setting's value as a Float, converting the default value
      * stored in the DefaultsStore.
      */
-    public Float getFloat(String scope, String key) {
+    public Float getFloat(String scope, PreferenceKeys.Preference key) {
         return getFloat(scope, key, getFloatDefault(key));
     }
 
@@ -380,6 +384,11 @@ public class SettingsManager {
      * Retrieve a setting's value as a boolean, manually specifiying
      * a default value.
      */
+    public boolean getBoolean(String scope, PreferenceKeys.Preference key, boolean defaultValue) {
+        String defaultValueString = defaultValue ? "1" : "0";
+        String value = getString(scope, key, defaultValueString);
+        return (Integer.parseInt(value) != 0);
+    }
     public boolean getBoolean(String scope, String key, boolean defaultValue) {
         String defaultValueString = defaultValue ? "1" : "0";
         String value = getString(scope, key, defaultValueString);
@@ -390,7 +399,7 @@ public class SettingsManager {
      * Retrieve a setting's value as a boolean, converting the default value
      * stored in the DefaultsStore.
      */
-    public boolean getBoolean(String scope, String key) {
+    public boolean getBoolean(String scope, PreferenceKeys.Preference key) {
         return getBoolean(scope, key, getBooleanDefault(key));
     }
 
@@ -398,7 +407,7 @@ public class SettingsManager {
      * Retrieve a setting's value as a {@link Size}. Returns <code>null</code>
      * if value could not be parsed as a size.
      */
-    public Size getSize(String scope, String key) {
+    public Size getSize(String scope, PreferenceKeys.Preference key) {
         String strValue = getString(scope, key);
         if (strValue == null) {
             return null;
@@ -427,8 +436,8 @@ public class SettingsManager {
      * If possible values are not stored for this key, throw
      * an IllegalArgumentException.
      */
-    public int getIndexOfCurrentValue(String scope, String key) {
-        String[] possibleValues = mDefaultsStore.getPossibleValues(key);
+    public int getIndexOfCurrentValue(String scope, PreferenceKeys.Preference key) {
+        String[] possibleValues = mDefaultsStore.getPossibleValues(key.mValue);
         if (possibleValues == null || possibleValues.length == 0) {
             throw new IllegalArgumentException(
                     "No possible values for scope=" + scope + " key=" + key);
@@ -447,6 +456,10 @@ public class SettingsManager {
      * Store a setting's value using a String value.  No conversion
      * occurs before this value is stored in SharedPreferences.
      */
+    public void set(String scope, PreferenceKeys.Preference key, String value) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        preferences.edit().putString(key.mValue, value).apply();
+    }
     public void set(String scope, String key, String value) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         preferences.edit().putString(key, value).apply();
@@ -456,7 +469,7 @@ public class SettingsManager {
      * Store a setting's value using an Integer value.  Type conversion
      * to String occurs before this value is stored in SharedPreferences.
      */
-    public void set(String scope, String key, int value) {
+    public void set(String scope, PreferenceKeys.Preference key, int value) {
         set(scope, key, convert(value));
     }
 
@@ -465,19 +478,21 @@ public class SettingsManager {
      * to an Integer and then to a String occurs before this value is
      * stored in SharedPreferences.
      */
+    public void set(String scope, PreferenceKeys.Preference key, boolean value) {
+        set(scope, key, convert(value));
+    }
     public void set(String scope, String key, boolean value) {
         set(scope, key, convert(value));
     }
-
-    public void set(String scope, String key, Set<String> value) {
+    public void set(String scope, PreferenceKeys.Preference key, Set<String> value) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
-        preferences.edit().putStringSet(key, value).apply();
+        preferences.edit().putStringSet(key.mValue, value).apply();
     }
 
     /**
      * Set a setting to the default value stored in the DefaultsStore.
      */
-    public void setToDefault(String scope, String key) {
+    public void setToDefault(String scope, PreferenceKeys.Preference key) {
         set(scope, key, getStringDefault(key));
     }
 
@@ -493,8 +508,8 @@ public class SettingsManager {
      * or there are no possible values for this key, then this
      * method throws an exception.
      */
-    public void setValueByIndex(String scope, String key, int index) {
-        String[] possibleValues = mDefaultsStore.getPossibleValues(key);
+    public void setValueByIndex(String scope, PreferenceKeys.Preference key, int index) {
+        String[] possibleValues = mDefaultsStore.getPossibleValues(key.mValue);
         if (possibleValues.length == 0) {
             throw new IllegalArgumentException(
                     "No possible values for scope=" + scope + " key=" + key);
@@ -510,16 +525,16 @@ public class SettingsManager {
     /**
      * Check that a setting has some value stored.
      */
-    public boolean isSet(String scope, String key) {
+    public boolean isSet(String scope, PreferenceKeys.Preference key) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
-        return preferences.contains(key);
+        return preferences.contains(key.mValue);
     }
 
     /**
      * Check whether a settings's value is currently set to the
      * default value.
      */
-    public boolean isDefault(String scope, String key) {
+    public boolean isDefault(String scope, PreferenceKeys.Preference key) {
         String defaultValue = getStringDefault(key);
         String value = getString(scope, key);
         return value != null && value.equals(defaultValue);
@@ -528,9 +543,9 @@ public class SettingsManager {
     /**
      * Remove a setting.
      */
-    public void remove(String scope, String key) {
+    public void remove(String scope, PreferenceKeys.Preference key) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
-        preferences.edit().remove(key).apply();
+        preferences.edit().remove(key.mValue).apply();
     }
 
     /**

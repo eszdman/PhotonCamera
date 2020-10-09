@@ -15,7 +15,6 @@ public class Sharpen extends Node {
     public Sharpen(int rid, String name) {
         super(rid, name);
     }
-
     @Override
     public void Run() {
         GLInterface glint = basePipeline.glint;

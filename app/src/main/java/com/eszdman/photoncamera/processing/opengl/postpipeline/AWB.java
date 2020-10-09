@@ -15,10 +15,12 @@ public class AWB extends Node {
     public AWB(int rid, String name) {
         super(rid, name);
     }
-
     @Override
-    public void Compile() {
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
     }
+    @Override
+    public void Compile() {}
 
     public GLTexture down8(GLTexture input) {
         glProg.useProgram(R.raw.gaussdown884);

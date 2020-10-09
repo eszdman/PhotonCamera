@@ -13,6 +13,11 @@ public class NoiseMap extends Node {
     }
 
     @Override
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
+    }
+
+    @Override
     public void Run() {
         basePipeline.glint.glProgram.setTexture("InputBuffer", previousNode.WorkingTexture);
         Point size = new Point(previousNode.WorkingTexture.mSize.x / 4, previousNode.WorkingTexture.mSize.y / 4);

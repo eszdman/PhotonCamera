@@ -35,10 +35,9 @@ public class Node {
     public void endT(String name) {
         Log.d(Name, name + " elapsed:" + (System.currentTimeMillis() - timeStart) + " ms");
     }
-
-    public void Run() {
-    }
-
+    public void BeforeRun(){}
+    public void Run() {}
+    public void AfterRun(){}
     public void Compile() {
         basePipeline.glint.glProgram.useProgram(Rid);
     }

@@ -13,7 +13,10 @@ public class BlurMap extends Node {
     public BlurMap(int rid, String name) {
         super(rid, name);
     }
-
+    @Override
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
+    }
     @Override
     public void Run() {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
