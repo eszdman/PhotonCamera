@@ -61,7 +61,7 @@ public class ImageProcessing {
 //            if (isYuv) {
 //                ApplyStabilization();
 //            }
-            processingEventsListener.onProcessingFinished((isRaw ? "HDRX" : isYuv ? "Stablisation" : "") + " Processing Finished Successfully");
+            processingEventsListener.onProcessingFinished((isRaw ? "HDRX" : isYuv ? "Stablization" : "") + " Processing Finished Successfully");
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
@@ -146,12 +146,6 @@ public class ImageProcessing {
         int height = mImageFramesToProcess.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
         Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        if (!debugAlignment) {
-            if (IsoExpoSelector.HDR)
-                Wrapper.init(width, height, mImageFramesToProcess.size() - 2);
-            else
-                Wrapper.init(width, height, mImageFramesToProcess.size());
-        }
         Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if (level != null)
@@ -193,7 +187,6 @@ public class ImageProcessing {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
         ScriptParams luckyparams = new ScriptParams();
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
@@ -216,6 +209,7 @@ public class ImageProcessing {
             }
             byteBuffer.position(0);
             luckyparams.input = byteBuffer;
+            LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
             luckyOperator.additionalParams = luckyparams;
             if(mImageFramesToProcess.size() >= 5)
             luckyOperator.Run();
@@ -233,7 +227,7 @@ public class ImageProcessing {
                 Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
                 images.remove(images.size()-1);
             }
-            Wrapper.init(width, height, images.size());
+            if (!debugAlignment) Wrapper.init(width, height, images.size());
         }
 
         for(int i =0; i<images.size();i++){

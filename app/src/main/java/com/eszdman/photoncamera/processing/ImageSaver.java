@@ -243,12 +243,11 @@ public class ImageSaver implements Runnable {
     }
 
     private void end(ImageReader mReader) {
-        mReader.acquireLatestImage();
         try {
             for (int i = 0; i < mReader.getMaxImages(); i++) {
                 Image cur = mReader.acquireNextImage();
                 if (cur == null) {
-                    break;
+                    continue;
                 }
                 cur.close();
             }

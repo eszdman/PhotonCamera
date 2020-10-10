@@ -40,6 +40,7 @@ public class LuckyOperator extends GLOneScript {
         glOne.glProgram.drawBlocks(WorkingTexture);
         glOne.glProcessing.drawBlocksToOutput();
         glOne.glProgram.close();
+        glOne.glProcessing.close();
         Output = glOne.glProcessing.mOutBuffer;
         for(int i =0; i<Output.remaining();i++){
             out+=((long)Output.get(i)) + 128;
