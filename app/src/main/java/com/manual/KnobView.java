@@ -126,11 +126,11 @@ public class KnobView extends View {
             }
             //canvas.restore();
         }
-        log("drawTime:" + (System.nanoTime() - startTime) + "ns");
+        //log("drawTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     private double evaluateRotation(float x, float y) {
-        log("evaluateRotation");
+        //log("evaluateRotation");
         return Math.atan2(x - this.m_RotationCenter.x, -(y - this.m_RotationCenter.y));
     }
 
@@ -205,7 +205,7 @@ public class KnobView extends View {
     }
 
     private void setTick(int tick) {
-        log("setTick " + tick);
+        //log("setTick " + tick);
         if (this.m_Tick != tick) {
             int oldTick = this.m_Tick;
             this.m_Tick = tick;
@@ -327,7 +327,7 @@ public class KnobView extends View {
             }
             this.m_DrawableCurrentDegree = validateRotation(this.m_DrawableCurrentDegree);
             setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
-            log("invalidate onRotationUpdateFromTouch");
+            //log("invalidate onRotationUpdateFromTouch");
             invalidate();
         }
     }
@@ -443,7 +443,7 @@ public class KnobView extends View {
     private void setKnobViewRotation(double rotation) {
         this.m_DrawableCurrentDegree = rotation;
         this.m_DrawableLastDegree = rotation;
-        log("invalidate setKnobViewRotation");
+        //log("invalidate setKnobViewRotation");
         invalidate();
     }
 
@@ -550,7 +550,7 @@ public class KnobView extends View {
     }
 
     private int validateTick(int tick) {
-        log("validateTick " + tick);
+        //log("validateTick " + tick);
         if (this.m_KnobInfo == null) {
             return tick;
         }

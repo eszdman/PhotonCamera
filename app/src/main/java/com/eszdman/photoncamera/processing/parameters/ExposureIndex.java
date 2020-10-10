@@ -22,7 +22,7 @@ public class ExposureIndex {
         if (in > 1.0) return String.format(Locale.US, "%.2f", in);
         else {
             in = 1.0 / in;
-            return "1/" + String.format(Locale.US, "%.2f", in);
+            return "1/" + String.format(Locale.US, "%.0f", in);
         }
     }
 
