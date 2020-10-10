@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.ImageFrame;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
@@ -319,7 +320,7 @@ public class AlignAndMergeNCam extends Node {
         glProg = basePipeline.glint.glProgram;
         RawPipeline rawPipeline = (RawPipeline) basePipeline;
         rawSize = rawPipeline.glint.parameters.rawSize;
-        ArrayList<ByteBuffer> images = rawPipeline.images;
+        ArrayList<ImageFrame> images = rawPipeline.images;
         //GLTexture BaseFrame22 = BoxDown22(BaseFrame);
         //GLTexture BaseFrame88 = GaussDown44(BaseFrame22);
         //GLTexture BaseFrame3232 = GaussDown44(BaseFrame88);
@@ -333,7 +334,7 @@ public class AlignAndMergeNCam extends Node {
         mTextures.clear();
         for (int i = 0; i < 5; i++) {
             //GLTexture inputraw = CorrectedRaw(images.get(i%images.size()));
-            GLTexture input = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get((i % images.size())));
+            GLTexture input = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get((i % images.size())).buffer);
             mTextures.add(input);
         }
         if (mTextures.size() == 5) {

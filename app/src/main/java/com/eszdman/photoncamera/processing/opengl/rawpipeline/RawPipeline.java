@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing.opengl.rawpipeline;
 import android.media.Image;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.ImageFrame;
 import com.eszdman.photoncamera.processing.opengl.GLBasePipeline;
 import com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
 
 public class RawPipeline extends GLBasePipeline {
     public float sensitivity = 1.f;
-    public ArrayList<ByteBuffer> images;
+    public ArrayList<ImageFrame> images;
     public ArrayList<Image> imageObj;
 
     public ByteBuffer Run() {

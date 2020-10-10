@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.ImageFrame;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
@@ -167,18 +168,18 @@ public class AlignAndMerge extends Node {
         glProg = basePipeline.glint.glProgram;
         RawPipeline rawPipeline = (RawPipeline) basePipeline;
         rawSize = rawPipeline.glint.parameters.rawSize;
-        ArrayList<ByteBuffer> images = rawPipeline.images;
+        ArrayList<ImageFrame> images = rawPipeline.images;
         long time = System.currentTimeMillis();
-        GLTexture BaseFrame = CorrectedRaw(images.get(0));
+        GLTexture BaseFrame = CorrectedRaw(images.get(0).buffer);
         Log.d("AlignAndMerge", "Corrected raw elapsed time:" + (System.currentTimeMillis() - time) + " ms");
         GLTexture BaseFrame22 = BoxDown22(BaseFrame);
         GLTexture BaseFrame88 = GaussDown44(BaseFrame22);
         GLTexture BaseFrame3232 = GaussDown44(BaseFrame88);
-        GLTexture Output = CorrectedRaw(images.get(0));
+        GLTexture Output = CorrectedRaw(images.get(0).buffer);
         Log.d("AlignAndMerge", "Resize elapsed time:" + (System.currentTimeMillis() - time) + " ms");
         time = System.currentTimeMillis();
         for (int i = 1; i < images.size(); i++) {
-            GLTexture inputraw = CorrectedRaw(images.get(i));
+            GLTexture inputraw = CorrectedRaw(images.get(i).buffer);
             //Less memory consumption
             rawPipeline.imageObj.get(i).close();
             long time2 = System.currentTimeMillis();

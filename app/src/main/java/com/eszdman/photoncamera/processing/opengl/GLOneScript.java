@@ -46,6 +46,7 @@ public class GLOneScript implements AutoCloseable {
         startT();
         StartScript();
         if (!hiddenScript) {
+            glOne.glProgram.drawBlocks(WorkingTexture);
             glOne.glProcessing.drawBlocksToOutput();
         } else {
             glOne.glProgram.drawBlocks(WorkingTexture);

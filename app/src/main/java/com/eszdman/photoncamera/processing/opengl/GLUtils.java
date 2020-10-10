@@ -108,7 +108,7 @@ public class GLUtils {
                 "    xy*=resize;\n" +
                 "    const int kSize = (MSIZE1-1)/2;\n" +
                 "    float kernel[MSIZE1];\n" +
-                "    vec4 mask = vec4(0.0);\n" +
+                "    tvar mask = tvar(0.0);\n" +
                 "    float pdfsize = 0.0;\n" +
                 "    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), 1.5);\n" +
                 "    for (int i=-kSize; i <= kSize; ++i){\n" +
@@ -116,7 +116,7 @@ public class GLUtils {
                 "            float pdf = kernel[kSize+j]*kernel[kSize+i];\n" +
                 "            vec4 inp = texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0);\n" +
                 "            if(length(inp) > 1.0/1000.0){\n" +
-                "                mask+=vec4(inp)*pdf;\n" +
+                "                mask+=tvar(inp)*pdf;\n" +
                 "                pdfsize+=pdf;\n" +
                 "            }\n" +
                 "        }\n" +

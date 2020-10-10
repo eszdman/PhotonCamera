@@ -21,6 +21,8 @@ import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
+import com.eszdman.photoncamera.processing.opengl.scripts.LuckyOperator;
+import com.eszdman.photoncamera.processing.opengl.scripts.ScriptParams;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
@@ -188,9 +190,11 @@ public class ImageProcessing {
         }
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
-        ArrayList<ByteBuffer> images = new ArrayList<>();
+        ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
+        LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
+        ScriptParams luckyparams = new ScriptParams();
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             if (i == 0) {
@@ -211,10 +215,30 @@ public class ImageProcessing {
                 continue;
             }
             byteBuffer.position(0);
+            luckyparams.input = byteBuffer;
+            luckyOperator.additionalParams = luckyparams;
+            if(mImageFramesToProcess.size() >= 5)
+            luckyOperator.Run();
+            byteBuffer.position(0);
+            ImageFrame frame = new ImageFrame(byteBuffer);
+            frame.luckyParameter = luckyOperator.out;
+            images.add(frame);
             //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
-            images.add(byteBuffer);
+        }
+        if(mImageFramesToProcess.size() >= 5)
+            images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
+        if(images.size() >= 5){
+            int size = (int)((double)images.size()*0.7);
+            for(int i =images.size(); i>size;i--){
+                Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
+                images.remove(images.size()-1);
+            }
+            Wrapper.init(width, height, images.size());
+        }
+
+        for(int i =0; i<images.size();i++){
             if (!debugAlignment)
-                Wrapper.loadFrame(byteBuffer);
+                Wrapper.loadFrame(images.get(i).buffer);
         }
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
