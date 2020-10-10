@@ -207,24 +207,23 @@ public class ImageProcessing {
             //luckyOperator.additionalParams = luckyparams;
             //if(mImageFramesToProcess.size() >= 5)
             //luckyOperator.Run();
-            byteBuffer.position(0);
+            //byteBuffer.position(0);
             ImageFrame frame = new ImageFrame(byteBuffer);
             //frame.luckyParameter = luckyOperator.out;
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
             images.add(frame);
             //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
         }
-        //if(mImageFramesToProcess.size() >= 5)
+        if(mImageFramesToProcess.size() >= 3)
         images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
-        if(images.size() >= 5){
+        if(images.size() >= 3){
             int size = (int)((double)images.size()*0.7);
             for(int i =images.size(); i>size;i--){
                 Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
                 images.remove(images.size()-1);
             }
-            if (!debugAlignment) Wrapper.init(width, height, images.size());
         }
-
+        if (!debugAlignment) Wrapper.init(width, height, images.size());
         for(int i =0; i<images.size();i++){
             if (!debugAlignment)
                 Wrapper.loadFrame(images.get(i).buffer);

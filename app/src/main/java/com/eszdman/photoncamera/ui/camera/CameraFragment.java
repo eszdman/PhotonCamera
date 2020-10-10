@@ -1429,6 +1429,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation());
 
             captures = new ArrayList<>();
+            BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
             mCameraUIView.setCaptureProgressMax(frameCount);
@@ -1454,7 +1455,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             mTextureView.setAlpha(0.5f);
 
             MediaPlayer burstPlayer = MediaPlayer.create(PhotonCamera.getCameraActivity(), R.raw.sound_burst);
-            BurstShakiness = new ArrayList<>();  
+
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
