@@ -242,6 +242,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     private Size target;
     private float mFocus;
     private CameraManager mCameraManager;
+    public ArrayList<Integer> BurstShakiness;
     /**
      * The {@link android.util.Size} of camera preview.
      */
@@ -1453,7 +1454,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             mTextureView.setAlpha(0.5f);
 
             MediaPlayer burstPlayer = MediaPlayer.create(PhotonCamera.getCameraActivity(), R.raw.sound_burst);
-
+            BurstShakiness = new ArrayList<>();  
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
@@ -1462,6 +1463,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     mCameraUIView.incrementCaptureProgressBar(1);
                     if (PreferenceKeys.isCameraSoundsOn())
                         burstPlayer.start();
+                    BurstShakiness.add(PhotonCamera.getSensors().getShakiness());
                     Log.v(TAG, "Completed!");
                     mCaptureResult = result;
                 }

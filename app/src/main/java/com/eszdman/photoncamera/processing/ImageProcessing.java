@@ -190,13 +190,7 @@ public class ImageProcessing {
         ScriptParams luckyparams = new ScriptParams();
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
-            if (i == 0) {
-                byteBuffer = mImageFramesToProcess.get(baseFrame).getPlanes()[0].getBuffer();
-            } else if (i == baseFrame) {
-                byteBuffer = mImageFramesToProcess.get(0).getPlanes()[0].getBuffer();
-            } else {
-                byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
-            }
+            byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
             if (i == 3 && IsoExpoSelector.HDR) {
                 //rawPipeline.sensivity = k*0.7f;
                 highexp = byteBuffer;
@@ -209,18 +203,19 @@ public class ImageProcessing {
             }
             byteBuffer.position(0);
             luckyparams.input = byteBuffer;
-            LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
-            luckyOperator.additionalParams = luckyparams;
-            if(mImageFramesToProcess.size() >= 5)
-            luckyOperator.Run();
+            //LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
+            //luckyOperator.additionalParams = luckyparams;
+            //if(mImageFramesToProcess.size() >= 5)
+            //luckyOperator.Run();
             byteBuffer.position(0);
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = luckyOperator.out;
+            //frame.luckyParameter = luckyOperator.out;
+            frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
             images.add(frame);
             //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
         }
-        if(mImageFramesToProcess.size() >= 5)
-            images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
+        //if(mImageFramesToProcess.size() >= 5)
+        images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
         if(images.size() >= 5){
             int size = (int)((double)images.size()*0.7);
             for(int i =images.size(); i>size;i--){
@@ -247,7 +242,7 @@ public class ImageProcessing {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output = null;
         if (!debugAlignment) {
-            output = Wrapper.processFrame(0.9f + deghostlevel);
+            output = Wrapper.processFrame(1.f);
         } else
             output = rawPipeline.Run();
        /*
