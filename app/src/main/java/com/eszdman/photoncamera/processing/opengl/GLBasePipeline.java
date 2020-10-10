@@ -37,7 +37,6 @@ public class GLBasePipeline implements AutoCloseable {
         in.glUtils = glint.glUtils;
         in.glProg = glint.glProgram;
         Nodes.add(in);
-        Log.d(TAG, "Added:" + in.Name + " Nodes size:" + Nodes.size());
     }
 
     private void lastI() {

@@ -164,8 +164,8 @@ public class Settings {
         initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
         //Interface.getTouchFocus().setFocus(size.x/2,size.y/2);
         PhotonCamera.getTouchFocus().onConfigured = true;
-        captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
-        float[] rgb = new float[64];
+        //captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
+        /*float[] rgb = new float[64];
         for (int i = 0; i < 64; i += 2) {
             float x = ((float) i) / 64.f;
             rgb[i] = x;
@@ -176,7 +176,7 @@ public class Settings {
             rgb[i + 1] = output;
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb, rgb, rgb);
-        captureBuilder.set(TONEMAP_CURVE, tonemapCurve);
+        captureBuilder.set(TONEMAP_CURVE, tonemapCurve);*/
     }
 
     // =================================================================================================================

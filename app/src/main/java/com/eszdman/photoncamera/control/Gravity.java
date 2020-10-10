@@ -47,7 +47,6 @@ public class Gravity {
         if (mGravity == null) {
             return 90;
         }
-        for (float f : mGravity) Log.d(TAG, "gravity:" + f);
         if (mGravity[2] > 9f) //pointing at the ground
             return 90;
 

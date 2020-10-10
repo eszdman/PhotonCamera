@@ -146,7 +146,6 @@ public class Parameters {
             CCT.copyElements(temp, 0);
             for (int i = 0; i < 9; i++) {
                 proPhotoToSRGB[i] = temp[i].floatValue();
-                Log.d(TAG, "\nTransform:" + proPhotoToSRGB[i]);
             }
         }
 
