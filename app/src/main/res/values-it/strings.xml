@@ -56,4 +56,9 @@
     <string name="theme_accent_blue">Blu</string>
     <string name="theme_accent_red">Rosso</string>
     <string name="theme_accent_orange">Arancione</string>
+    <string name="unprocessed_raw">RAW non processato</string>
+    <string name="frame_count_summary">Numero di frame che vengono fusi insieme</string>
+    <string name="photon_camera_summary">Una Fotocamera Open Source per Android con un\n Processamento Avanzato delle Immagini</string>
+    <string name="version_title">Versione</string>
+    <string name="contributors_title">Collaboratori ↗</string>
 </resources>
