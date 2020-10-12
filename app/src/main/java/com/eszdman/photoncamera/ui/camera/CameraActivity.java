@@ -49,7 +49,6 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        Animatoo.animateShrink(this);
     }
 
     @Override
