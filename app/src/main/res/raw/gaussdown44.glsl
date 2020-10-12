@@ -7,24 +7,26 @@ out float Output;
 #define size1 (1.9)
 #define MSIZE1 5
 #define resize (4)
-
-// Sigma 1.36
-float gauss[25] = float[](
-0.01193f, 0.025908f, 0.033547f, 0.025908f, 0.01193f,
-0.025908f, 0.056266f, 0.072856f, 0.056266f, 0.025908f,
-0.033547f, 0.072856f, 0.094337f, 0.072856f, 0.033547f,
-0.025908f, 0.056266f, 0.072856f, 0.056266f, 0.025908f,
-0.01193f, 0.025908f, 0.033547f, 0.025908f, 0.01193f
-);
-
+float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     xy*=resize;
-    float val = 0.f;
-    for (int i = 0; i < 25; i++) {
-        ivec2 xyp = xy + ivec2((i % 5) - 2, (i / 5) - 2);
-        val += gauss[i] * texelFetch(InputBuffer, xyp, 0).x;
+    const int kSize = (MSIZE1-1)/2;
+    float kernel[MSIZE1];
+    float mask = 0.0;
+    float pdfsize = 0.0;
+    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), 1.5);
+    for (int i=-kSize; i <= kSize; ++i){
+        for (int j=-kSize; j <= kSize; ++j){
+            float pdf = kernel[kSize+j]*kernel[kSize+i];
+            float inp = texelFetch(InputBuffer, (xy+ivec2(i,j)), 0).x;
+            if(abs(inp) > 1.0/1000.0){
+                mask+=inp*pdf;
+                pdfsize+=pdf;
+            }
+        }
     }
-    Output = val;
+    mask/=pdfsize;
+    Output = mask;
 }

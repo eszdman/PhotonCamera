@@ -18,8 +18,11 @@ void main() {
     for (int i=-kSize; i <= kSize; ++i){
         for (int j=-kSize; j <= kSize; ++j){
             float pdf = kernel[kSize+j]*kernel[kSize+i];
-            mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0))*pdf;
-            pdfsize+=pdf;
+            vec4 inp = texelFetch(InputBuffer, (xy+ivec2(i,j)), 0);
+            if((length(inp)) > 1.0/1000.0){
+                mask+=inp*pdf;
+                pdfsize+=pdf;
+            }
         }
     }
     mask/=pdfsize;

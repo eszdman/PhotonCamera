@@ -211,6 +211,7 @@ public class ImageProcessing {
             ImageFrame frame = new ImageFrame(byteBuffer);
             //frame.luckyParameter = luckyOperator.out;
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
+            frame.image = mImageFramesToProcess.get(i);
             images.add(frame);
             //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
         }
@@ -222,6 +223,7 @@ public class ImageProcessing {
                 Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
                 images.remove(images.size()-1);
             }
+            Log.d(TAG,"Size after removal:"+images.size());
         }
         if (!debugAlignment) Wrapper.init(width, height, images.size());
         for(int i =0; i<images.size();i++){
@@ -270,13 +272,13 @@ public class ImageProcessing {
         }
         */
         //Black shot fix
-        mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().position(0);
-        mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().put(output);
-        mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().position(0);
-        for (int i = 1; i < mImageFramesToProcess.size(); i++) {
+        images.get(0).image.getPlanes()[0].getBuffer().position(0);
+        images.get(0).image.getPlanes()[0].getBuffer().put(output);
+        images.get(0).image.getPlanes()[0].getBuffer().position(0);
+        for (int i = 1; i < images.size(); i++) {
             if ((i == 3 || i == 2) && IsoExpoSelector.HDR)
                 continue;
-            mImageFramesToProcess.get(i).close();
+            images.get(i).image.close();
         }
         if (debugAlignment)
             rawPipeline.close();
@@ -290,9 +292,9 @@ public class ImageProcessing {
         PostPipeline pipeline = new PostPipeline();
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;
-        pipeline.Run(mImageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
+        pipeline.Run(images.get(0).image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
         pipeline.close();
-        mImageFramesToProcess.get(0).close();
+        images.get(0).image.close();
     }
 
 

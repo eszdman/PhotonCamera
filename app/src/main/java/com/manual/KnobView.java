@@ -87,7 +87,6 @@ public class KnobView extends View {
 
     @Override
     public void draw(Canvas canvas) {
-        long startTime = System.nanoTime();
         super.draw(canvas);
         if (this.m_RotationCenter != null && this.m_KnobInfo != null) {
             canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, this.m_BackgroundPaint);
@@ -126,7 +125,6 @@ public class KnobView extends View {
             }
             //canvas.restore();
         }
-        //log("drawTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     private double evaluateRotation(float x, float y) {
@@ -450,12 +448,7 @@ public class KnobView extends View {
     private void setKnobViewRotationSmooth(double rotation) {
         ValueAnimator animation = ValueAnimator.ofFloat((float) this.m_DrawableCurrentDegree, (float) rotation);
         animation.setDuration(100);
-        animation.addUpdateListener(new AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                KnobView.this.setKnobViewRotation((double) (Float) animation.getAnimatedValue());
-            }
-        });
+        animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation((double) (Float) animation1.getAnimatedValue()));
         animation.start();
     }
 
@@ -506,10 +499,10 @@ public class KnobView extends View {
                 if (this.m_KnobInfo != null) {
                     double includedAngle = ((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin));
                     double radius = this.m_RotationCenter.y;
-                    double edgeY = item.drawable.getIntrinsicWidth() / 2;
+                    double edgeY = item.drawable.getIntrinsicWidth() / 2.0;
                     double edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicHeight() / 2));
                     if (this.m_KnobItemsSelfRotation % 180.0f != 0.0f) {
-                        edgeY = item.drawable.getIntrinsicHeight() / 2;
+                        edgeY = item.drawable.getIntrinsicHeight() / 2.0;
                         edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicWidth() / 2));
                     }
                     double drawableAngleHalf = Math.toDegrees(Math.atan(edgeY / edgeX));

@@ -82,6 +82,7 @@ public class ParseExif {
         try {
             PackageInfo pInfo = PhotonCamera.getCameraActivity().getPackageManager().getPackageInfo(PhotonCamera.getCameraActivity().getPackageName(), 0);
             version = pInfo.versionName;
+            version +=pInfo.versionCode;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }

@@ -281,6 +281,10 @@ public class GLProg implements AutoCloseable {
         }
     }
 
+    public void setVarU(String name, Point var) {
+        setVarU(name,var.x,var.y);
+    }
+
     public void setVarU(String name, int... vars) {
         int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
