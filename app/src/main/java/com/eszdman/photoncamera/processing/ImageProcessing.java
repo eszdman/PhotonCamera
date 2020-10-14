@@ -284,7 +284,7 @@ public class ImageProcessing {
             rawPipeline.close();
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
         if (PhotonCamera.getSettings().rawSaver) {
-            saveRaw(mImageFramesToProcess.get(0));
+            saveRaw(images.get(0).image);
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");

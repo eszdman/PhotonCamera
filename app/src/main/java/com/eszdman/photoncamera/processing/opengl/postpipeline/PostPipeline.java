@@ -110,7 +110,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
             add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
-            add(new Bilateral(R.raw.bilateral, "Bilateral"));
+            //add(new Bilateral(R.raw.bilateral, "Bilateral"));
         }
         add(new Sharpen(selectSharp(),"Sharpening"));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
