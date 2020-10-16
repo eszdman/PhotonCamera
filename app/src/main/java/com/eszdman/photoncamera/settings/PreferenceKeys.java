@@ -20,8 +20,8 @@ public class PreferenceKeys {
      * Keys visible in Settings
      */
     public enum Preference {
-        KEY_SHOW_AF_DATA("default_scope"),
-        KEY_ENABLE_SYSTEM_NR("pref_show_afdata_key"),
+        KEY_SHOW_AF_DATA("pref_show_afdata_key"),
+        KEY_ENABLE_SYSTEM_NR("pref_enable_system_nr_key"),
         KEY_SAVE_PER_LENS_SETTINGS("pref_save_per_lens_settings"),
         KEY_DISABLE_ALIGNINIG("pref_disable_aligning_key"),
         KEY_SHOW_WATERMARK("pref_show_watermark_key"),
