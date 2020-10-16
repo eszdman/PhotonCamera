@@ -621,7 +621,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
         if (aspectRatio > 16f / 9f) {
             camera_containerLP.height = WRAP_CONTENT;
-            showToast(String.valueOf(aspectRatio));
+//            showToast(String.valueOf(aspectRatio));
             ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
             layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
             if (aspectRatio > 2) {                  //for ratios even greater than 18:9
@@ -645,9 +645,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      */
     private void logDisplayProperties(DisplayMetrics dm) {
         String TAG = "DisplayProps";
-        Log.i(TAG, "ScreenResolution = " + dm.heightPixels + "x" + dm.widthPixels);
-        Log.i(TAG, "AspectRatio = " + (float) dm.heightPixels / dm.widthPixels);
-        Log.i(TAG, "SmallestWidth = " + (int) (dm.widthPixels / (dm.densityDpi / 160f)) + "dp");
+        Log.i(TAG, "ScreenResolution = " + Math.max(dm.heightPixels, dm.widthPixels) + "x" + Math.min(dm.heightPixels, dm.widthPixels));
+        Log.i(TAG, "AspectRatio = " + ((float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels)));
+        Log.i(TAG, "SmallestWidth = " + (int) (Math.min(dm.heightPixels, dm.widthPixels) / (dm.densityDpi / 160f)) + "dp");
     }
 
 
@@ -764,7 +764,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
-        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
+        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
         return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
     }
 
