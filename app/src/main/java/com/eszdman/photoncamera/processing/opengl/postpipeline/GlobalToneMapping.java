@@ -57,7 +57,7 @@ public class GlobalToneMapping extends Node {
         glProg.setTexture("LowRes",lowRes2);
         glProg.setVar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
         glProg.setVar("lowsize",lowRes2.mSize.x,lowRes2.mSize.y);
-        glProg.setVar("str",0.045f);
+        glProg.setVar("str",0.035f);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }

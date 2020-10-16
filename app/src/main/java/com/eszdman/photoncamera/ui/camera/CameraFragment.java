@@ -1469,7 +1469,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     mCameraUIView.incrementCaptureProgressBar(1);
                     if (PreferenceKeys.isCameraSoundsOn())
                         burstPlayer.start();
-                    BurstShakiness.add(PhotonCamera.getSensors().getShakiness());
+                    BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     Log.v(TAG, "Completed!");
                     mCaptureResult = result;
                 }
@@ -1479,6 +1479,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     burstPlayer.seekTo(0);
                     Log.v(TAG, "FrameCaptureStarted! FrameNumber:" + frameNumber);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
+                    PhotonCamera.getSensors().CaptureGyroBurst();
                 }
 
                 @Override

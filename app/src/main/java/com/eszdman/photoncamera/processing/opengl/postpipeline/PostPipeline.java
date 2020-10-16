@@ -2,6 +2,8 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.*;
 import android.util.Log;
+
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
@@ -111,6 +113,11 @@ public class PostPipeline extends GLBasePipeline {
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
             add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
             //add(new Bilateral(R.raw.bilateral, "Bilateral"));
+            //add(new Median(R.raw.medianfilter,"SmartMedian"));
+            if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
+                add(new Median(R.raw.medianfilter,"SmartMedian"));
+                add(new Median(R.raw.medianfilter,"SmartMedian"));
+            }
         }
         add(new Sharpen(selectSharp(),"Sharpening"));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));

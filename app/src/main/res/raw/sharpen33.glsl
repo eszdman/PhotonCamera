@@ -35,10 +35,10 @@ void main() {
     //mask=clamp(mask,-depthMax,depthMax);
     if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
     mask*=strength*4.0;
-    if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
-    else {
+    //if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
+    //else {
         cur+=(mask.r+mask.g+mask.b)/3.;
-    }
+    //}
     cur = clamp(cur,0.0,1.0);
     Output = vec4(cur.r,cur.g,cur.b,1.0);
 }

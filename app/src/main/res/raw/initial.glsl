@@ -170,7 +170,6 @@ vec3 linearizeAndGainMap(ivec2 coords){
     pRGB.g = ((gains.g+gains.b)/2.)*float(inbuff.g-(blackLevel.g+blackLevel.b)/2.);
     pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
     pRGB/=(1.0-blackLevel.g);
-    pRGB*=1.2;
     //pRGB = clamp(pRGB,0.0,1.0);
     return pRGB;
 }

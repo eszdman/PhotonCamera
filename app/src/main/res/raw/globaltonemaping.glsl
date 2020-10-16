@@ -18,8 +18,11 @@ void main() {
     //float weight = sin(length(lowrespix)*2.0*M_PI);
 
     float absbr = 0.7 - length(lowrespix);
-    if(absbr<0.0) Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*1.4),1.0);
-    else Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*0.7),1.0);
+    if(absbr<0.0) //Output = vec4(texelFetch(InputBuffer, xy, 0).rgb+((absbr)*str*1.4),1.0);
+    Output = vec4((texelFetch(InputBuffer, xy, 0).rgb+1.0)*(1.0+((absbr)*str*1.4)),1.0)-1.0;
+    else Output = vec4((texelFetch(InputBuffer, xy, 0).rgb+1.0)*(1.0+((absbr)*str*0.7)),1.0)-1.0;
+    Output*=1.03;
+    Output = clamp(Output,0.0,1.0);
     //Output = texelFetch(InputBuffer, xy, 0)+weight*str;
     //Output = lowrespix;
 }
