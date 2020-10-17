@@ -2,12 +2,8 @@
 precision mediump float;
 precision mediump usampler2D;
 precision mediump sampler2D;
-uniform sampler2D Fullbuffer;
-uniform sampler2D GainMap;
+uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
-uniform int RawSizeX;
-uniform int RawSizeY;
-uniform vec4 blackLevel;
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
@@ -32,9 +28,7 @@ float gammaEncode2(float x) {
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
-    vec3 xx = x*x;
-    vec3 xxx = xx*x;
-    return (x1*x+x2*xx+x3*xxx);
+    return (x1*x+x2*x*x+x3*x*x*x);
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -152,26 +146,12 @@ vec3 rgb2hsv(vec3 c) {
     vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
     vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
     float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + e)), d / (q.x + e), q.x);
+    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
 }
 vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1., 2. / 3., 1. / 3., 3.);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
-}
-
-vec3 linearizeAndGainMap(ivec2 coords){
-    vec3 pRGB;
-    vec4 inbuff = texelFetch(Fullbuffer,coords,0);
-    vec2 xyInterp = vec2(float(coords.x) / float(RawSizeX), float(coords.y) / float(RawSizeY));
-    vec4 gains = texture(GainMap, xyInterp);
-    pRGB.r = gains.r*float(inbuff.r-blackLevel.r);
-    pRGB.g = ((gains.g+gains.b)/2.)*float(inbuff.g-(blackLevel.g+blackLevel.b)/2.);
-    pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
-    pRGB/=(1.0-blackLevel.g);
-    //pRGB = clamp(pRGB,0.0,1.0);
-    return pRGB;
 }
 const float redcorr = 0.0;
 const float bluecorr = 0.0;
@@ -188,14 +168,13 @@ vec3 saturate(vec3 rgb) {
     //rgb.b-=b*bluecorr*saturation;
     //rgb = clamp(rgb, 0.0,1.0);
     //rgb*=(r+g+b)/(rgb.r+rgb.g+rgb.b);
-
     return rgb;
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec3 pRGB = linearizeAndGainMap(xy);
-    vec3 sRGB = applyColorSpace(pRGB);
+    vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    sRGB = applyColorSpace(sRGB);
     sRGB = saturate(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);

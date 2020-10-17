@@ -8,6 +8,10 @@ uniform int WhiteLevel;
 uniform int yOffset;
 uniform int CfaPattern;
 
+uniform sampler2D GainMap;
+uniform vec4 blackLevel;
+uniform ivec2 RawSize;
+
 #define greenmin (0.04)
 #define greenmax (0.9)
 out vec4 Output;
@@ -100,6 +104,12 @@ void main() {
         outp.b = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
         outp.r = interpolateColor(xy);
     }
-    //Output = clamp(outp,0.0,1.0);
     Output = outp;
+    vec4 gains = texture(GainMap, vec2(xy)/vec2(RawSize));
+    Output.r = gains.r*(Output.r-blackLevel.r);
+    Output.g = ((gains.g+gains.b)/2.)*(Output.g-(blackLevel.g+blackLevel.b)/2.);
+    Output.b = gains.a*(Output.b-blackLevel.a);
+    Output/=(1.0-blackLevel.g);
+    Output = clamp(Output,0.0,1.0);
+    Output.a = 1.0;
 }

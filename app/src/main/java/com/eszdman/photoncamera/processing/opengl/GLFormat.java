@@ -326,6 +326,15 @@ public class GLFormat {
         }
         return "rgba";
     }
+    public String getLimExt(){
+        switch (mChannels) {
+            case 1: return "r";
+            case 2: return "rg";
+            case 3:
+            case 4: return "rgb";
+        }
+        return "rgb";
+    }
     public String getScalar() {
         switch (mFormat) {
             case NONE:
