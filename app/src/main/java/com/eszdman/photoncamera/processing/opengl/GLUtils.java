@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_LINEAR;
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class GLUtils {
@@ -19,7 +21,7 @@ public class GLUtils {
         glProcessing = blockProcessing;
     }
 
-    public GLTexture blur(GLTexture in, int size){
+    public GLTexture blur(GLTexture in, double size){
         glProg.useProgram("#version 300 es\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
@@ -29,7 +31,7 @@ public class GLUtils {
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
                 "#define size1 "+((double)(size)*0.5)+"\n" +
-                "#define MSIZE1 "+size+"\n" +
+                "#define MSIZE1 "+(int)size+"\n" +
                 "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
@@ -66,7 +68,7 @@ public class GLUtils {
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
                 "#define size1 "+((double)(size)*0.5)+"\n" +
-                "#define MSIZE1 "+size+"\n" +
+                "#define MSIZE1 "+(int)size+"\n" +
                 "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
@@ -132,7 +134,7 @@ public class GLUtils {
                 "    Output = mask;\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        GLTexture out = new GLTexture(in.mSize.x/k,in.mSize.y/k,in.mFormat,null);
+        GLTexture out = new GLTexture((in.mSize.x/k) + k-1,(in.mSize.y/k) + k-1,in.mFormat,null);
         glProg.drawBlocks(out);
         glProg.close();
         return out;
@@ -143,19 +145,41 @@ public class GLUtils {
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
+                "uniform ivec2 size;" +
+                "uniform ivec2 sizein;" +
                 "out tvar Output;\n" +
                 "#define resize ("+k+")\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                //"float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n
+                /*
+                "tvar interpolate(vec2 coords){\n" +
+                "vec2 fltin = coords*vec2(sizein);\n" +
+                "ivec2 coordsin = ivec2(fltin);\n" +
+                "fltin-=vec2(coordsin)" +
+                //"if(length(fltin) == 0.0{\n" +
+                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+");\n" +
+                //    "}\n" +
+                "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+")" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.x" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.y;" +
+                "\n" +
+                "}\n" +
+                */
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                "    xy+=ivec2(0,yOffset);\n" +
+                "    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
                 "    xy/=resize;\n" +
                 "    Output = tvar(texelFetch(InputBuffer, (xy), 0)."+in.mFormat.getTemExt()+");\n" +
+                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
+        //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
+        //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
         GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
         glProg.drawBlocks(out);
         glProg.close();
+        //return blur(out,k-1);
         return out;
     }
     public GLTexture mpy(GLTexture in, float[] vecmat){
@@ -205,7 +229,7 @@ public class GLUtils {
             downscaled[i] = gaussdown(downscaled[i - 1],step);
         }
         for (int i = 0; i < upscale.length; i++) {
-            upscale[i] = upscale(downscaled[i + 1],step);
+            upscale[i] = (upscale(downscaled[i + 1],step));
         }
          GLTexture[] diff = new GLTexture[upscale.length];
         glProg.useProgram("" +
@@ -229,6 +253,49 @@ public class GLUtils {
             glProg.drawBlocks(diff[i]);
         }
         for (GLTexture glTexture : upscale) {
+            glTexture.close();
+        }
+        Pyramid pyramid = new Pyramid();
+        pyramid.gauss = downscaled;
+        pyramid.laplace = diff;
+        glProg.close();
+        return pyramid;
+    }
+    public Pyramid createPyramidES(int levels, GLTexture input){
+        return createPyramidES(levels,2,input);
+    }
+    public Pyramid createPyramidES(int levels, int step, GLTexture input){
+
+        GLTexture[] downscaled = new GLTexture[levels];
+        downscaled[0] = input;
+        GLTexture[] gaussscaled = new GLTexture[downscaled.length - 1];
+        for (int i = 1; i < downscaled.length; i++) {
+            downscaled[i] = gaussdown(downscaled[i - 1],step);
+        }
+        for (int i = 0; i < gaussscaled.length; i++) {
+            gaussscaled[i] = blur(downscaled[i],5);
+        }
+        GLTexture[] diff = new GLTexture[gaussscaled.length];
+        glProg.useProgram("" +
+                "#version 300 es\n" +
+                "precision mediump float;\n" +
+                "uniform sampler2D target;\n" +
+                "uniform sampler2D base;\n" +
+                "out vec3 result;\n" +
+                "uniform int yOffset;\n" +
+                "void main() {\n" +
+                "    ivec2 xyCenter = ivec2(gl_FragCoord.xy);\n" +
+                "    xyCenter+=ivec2(0,yOffset);\n" +
+                "    result = texelFetch(target, xyCenter, 0).xyz - texelFetch(base, xyCenter, 0).xyz;\n" +
+                "}\n"
+        );
+        for (int i = 0; i < diff.length; i++) {
+            glProg.setTexture("base", downscaled[i]);
+            glProg.setTexture("target", gaussscaled[i]);
+            diff[i] = new GLTexture(gaussscaled[i]);
+            glProg.drawBlocks(diff[i]);
+        }
+        for (GLTexture glTexture : gaussscaled) {
             glTexture.close();
         }
         Pyramid pyramid = new Pyramid();

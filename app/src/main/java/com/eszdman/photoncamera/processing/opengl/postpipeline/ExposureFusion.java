@@ -32,8 +32,8 @@ public class ExposureFusion extends Node {
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,Overexpose(in));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,in);
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(12,2,Overexpose(in));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(12,2,in);
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);
         GLTexture wip = new GLTexture(normalExpo.gauss[normalExpo.gauss.length - 1]);
@@ -44,7 +44,7 @@ public class ExposureFusion extends Node {
         glProg.drawBlocks(wip);
         glProg.close();
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-                GLTexture upsampleWip = glUtils.upscale(wip,2);
+                GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
                 glProg.useProgram(R.raw.fusion);
 
                 glProg.setTexture("upsampled", upsampleWip);

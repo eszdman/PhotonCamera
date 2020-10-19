@@ -16,6 +16,7 @@ void main() {
     vec3 xyY = XYZtoxyY(XYZ);
     xyY.z *= factor;
     //xyY.z = min(xyY.z, 1.f);
+
     xyY.z = sigmoid(xyY.z, 0.9f);
     result = xyYtoXYZ(xyY);
 }
