@@ -21,7 +21,7 @@ public class ExposureFusion extends Node {
     GLTexture Overexpose(GLTexture in){
         glProg.useProgram(R.raw.overexpose);
         glProg.setTexture("InputBuffer",in);
-        glProg.setVar("factor",5f);
+        glProg.setVar("factor",6f);
         GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
         glProg.drawBlocks(out);
         glProg.close();
@@ -45,11 +45,13 @@ public class ExposureFusion extends Node {
         glProg.close();
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
                 GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
+                //GLTexture upsampleWip = (glUtils.upscale(wip,2));
                 glProg.useProgram(R.raw.fusion);
 
                 glProg.setTexture("upsampled", upsampleWip);
                 glProg.setVar("useUpsampled", 1);
-
+                //if(i!=0)glProg.setVar("useUpsampled", 1);
+                //else glProg.setVar("useUpsampled", 0);
                 // We can discard the previous work in progress merge.
                 wip.close();
                 wip = new GLTexture(normalExpo.laplace[i]);

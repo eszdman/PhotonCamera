@@ -99,14 +99,15 @@ public class GLUtils {
         glProg.close();
         return out2;
     }
-    public GLTexture gaussdown(GLTexture in, int k){
+    public GLTexture gaussdown(GLTexture in, int k,double blur){
         glProg.useProgram("#version 300 es\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
-                "#define size1 ("+(double)k*0.3+")\n" +
+                //"#define size1 ("+(double)k*0.3+")\n" +
+                "#define size1 ("+blur+")\n" +
                 "#define transpose ("+(int)((4.5/k)+1)+")\n" +
                 "#define MSIZE1 5\n" +
                 "#define resize ("+k+")\n" +
@@ -119,12 +120,12 @@ public class GLUtils {
                 "    float kernel[MSIZE1];\n" +
                 "    tvar mask = tvar(0.0);\n" +
                 "    float pdfsize = 0.0;\n" +
-                "    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), 1.5);\n" +
+                "    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size1);\n" +
                 "    for (int i=-kSize; i <= kSize; ++i){\n" +
                 "        for (int j=-kSize; j <= kSize; ++j){\n" +
                 "            float pdf = kernel[kSize+j]*kernel[kSize+i];\n" +
-                "            vec4 inp = texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0);\n" +
-                "            if(length(inp) > 1.0/1000.0){\n" +
+                "            vec4 inp = texelFetch(InputBuffer, (xy+ivec2(i*transpose,j*transpose)), 0);\n" +
+                "            if(length(inp) > 1.0/10000.0){\n" +
                 "                mask+=tvar(inp)*pdf;\n" +
                 "                pdfsize+=pdf;\n" +
                 "            }\n" +
@@ -138,6 +139,9 @@ public class GLUtils {
         glProg.drawBlocks(out);
         glProg.close();
         return out;
+    }
+    public GLTexture gaussdown(GLTexture in, int k){
+       return gaussdown(in,k,(double)k*0.3);
     }
     public GLTexture upscale(GLTexture in, int k){
         glProg.useProgram("#version 300 es\n" +
@@ -177,6 +181,49 @@ public class GLUtils {
         //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
         //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
         GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
+        glProg.drawBlocks(out);
+        glProg.close();
+        //return blur(out,k-1);
+        return out;
+    }
+    public GLTexture downscale(GLTexture in, int k){
+        glProg.useProgram("#version 300 es\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "uniform ivec2 size;" +
+                "uniform ivec2 sizein;" +
+                "out tvar Output;\n" +
+                "#define resize ("+k+")\n" +
+                //"float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n
+                /*
+                "tvar interpolate(vec2 coords){\n" +
+                "vec2 fltin = coords*vec2(sizein);\n" +
+                "ivec2 coordsin = ivec2(fltin);\n" +
+                "fltin-=vec2(coordsin)" +
+                //"if(length(fltin) == 0.0{\n" +
+                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+");\n" +
+                //    "}\n" +
+                "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+")" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.x" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.y;" +
+                "\n" +
+                "}\n" +
+                */
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset+0);\n" +
+                "    xy*=resize;\n" +
+                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)."+in.mFormat.getTemExt()+");\n" +
+                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
+        //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
+        GLTexture out = new GLTexture((in.mSize.x/k) + k-1,(in.mSize.y/k) + k-1,in.mFormat,null);
         glProg.drawBlocks(out);
         glProg.close();
         //return blur(out,k-1);
@@ -226,9 +273,12 @@ public class GLUtils {
         downscaled[0] = input;
         GLTexture[] upscale = new GLTexture[downscaled.length - 1];
         for (int i = 1; i < downscaled.length; i++) {
-            downscaled[i] = gaussdown(downscaled[i - 1],step);
+            //downscaled[i] = downscale(blur(downscaled[i - 1],5),step);
+            //downscaled[i] = gaussdown(downscaled[i - 1],step,0.1);
+            downscaled[i] = gaussdown(downscaled[i - 1],step,0.6);
         }
         for (int i = 0; i < upscale.length; i++) {
+            //upscale[i] = blur(upscale(downscaled[i + 1],step),1);
             upscale[i] = (upscale(downscaled[i + 1],step));
         }
          GLTexture[] diff = new GLTexture[upscale.length];
@@ -246,8 +296,10 @@ public class GLUtils {
                 "}\n"
         );
        for (int i = 0; i < diff.length; i++) {
-            glProg.setTexture("base", upscale[i]);
             glProg.setTexture("target", downscaled[i]);
+            glProg.setTexture("base", upscale[i]);
+            //glProg.setTexture("base", downscaled[i]);
+            //glProg.setTexture("target", upscale[i]);
             //Reuse of amirzaidi code // Reuse the upsampled texture.
             diff[i] = new GLTexture(upscale[i]);
             glProg.drawBlocks(diff[i]);
