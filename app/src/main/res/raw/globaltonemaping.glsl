@@ -23,6 +23,7 @@ void main() {
     else Output = vec4((texelFetch(InputBuffer, xy, 0).rgb+1.0)*(1.0+((absbr)*str*0.7)),1.0)-1.0;
     Output*=1.03;
     Output = clamp(Output,0.0,1.0);
+    Output.a = 1.0;
     //Output = texelFetch(InputBuffer, xy, 0)+weight*str;
     //Output = lowrespix;
 }

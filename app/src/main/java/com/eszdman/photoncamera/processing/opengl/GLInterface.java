@@ -37,24 +37,37 @@ public class GLInterface {
                 val = val.replace("\n","").replace(" ","").toLowerCase();
                 @RawRes
                 int id;
+                String headers = "";
                 switch (val){
-                    case "#import xyytoxyz":
+                    case "#importxyytoxyz":
                         id = R.raw.import_xyy2xyz;
+                        headers+="vec3 xyYtoXYZ(vec3);";
                         break;
-                    case "#import xyztoxyy":
+                    case "#importxyztoxyy":
                         id = R.raw.import_xyz2xyy;
+                        headers+="vec3 XYZtoxyY(vec3);";
                         break;
-                    case "#import sigmoid":
+                    case "#importsigmoid":
                         id = R.raw.import_sigmoid;
+                        headers+="float sigmoid(float, float);";
+                        break;
+                    case "#importgaussian":
+                        id = R.raw.import_gaussian;
+                        headers+="float unscaledGaussian(float, float);";
+                        headers+="vec3 unscaledGaussian(vec3, float);";
+                        headers+="vec3 unscaledGaussian(vec3, vec3);";
                         break;
                     default:
                         throw new IllegalStateException("Unexpected value: " + val);
                 }
+                headers+="\n";
                 BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(id)));
                 for (Object line2 : reader2.lines().toArray()) {
                     imports.append(line2);
                     imports.append("\n");
                 }
+                source.append(headers);
+                continue;
             }
             source.append(line).append("\n");
         }

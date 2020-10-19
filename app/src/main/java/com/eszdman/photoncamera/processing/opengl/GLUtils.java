@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -196,36 +197,42 @@ public class GLUtils {
         return createPyramid(levels,2,input);
     }
     public Pyramid createPyramid(int levels, int step, GLTexture input){
-        GLTexture[] downsampled = new GLTexture[levels];
-        downsampled[0] = input;
-        GLTexture[] upsampled = new GLTexture[downsampled.length - 1];
-        for (int i = 1; i < downsampled.length; i++) {
-            downsampled[i] = gaussdown(downsampled[i - 1],step);
+
+        GLTexture[] downscaled = new GLTexture[levels];
+        downscaled[0] = input;
+        GLTexture[] upscale = new GLTexture[downscaled.length - 1];
+        for (int i = 1; i < downscaled.length; i++) {
+            downscaled[i] = gaussdown(downscaled[i - 1],step);
         }
-        for (int i = 1; i < upsampled.length; i++) {
-            upsampled[i] = upscale(downsampled[i + 1],step);
+        for (int i = 0; i < upscale.length; i++) {
+            upscale[i] = upscale(downscaled[i + 1],step);
         }
-        GLTexture[] diff = new GLTexture[upsampled.length];
+         GLTexture[] diff = new GLTexture[upscale.length];
         glProg.useProgram("" +
                 "#version 300 es\n" +
                 "precision mediump float;\n" +
                 "uniform sampler2D target;\n" +
                 "uniform sampler2D base;\n" +
                 "out vec3 result;\n" +
+                "uniform int yOffset;\n" +
                 "void main() {\n" +
                 "    ivec2 xyCenter = ivec2(gl_FragCoord.xy);\n" +
+                "    xyCenter+=ivec2(0,yOffset);\n" +
                 "    result = texelFetch(target, xyCenter, 0).xyz - texelFetch(base, xyCenter, 0).xyz;\n" +
                 "}\n"
         );
-        for (int i = 0; i < diff.length; i++) {
-            glProg.setTexture("base", upsampled[i]);
-            glProg.setTexture("target", downsampled[i]);
-            // Reuse the upsampled texture.
-            diff[i] = upsampled[i];
+       for (int i = 0; i < diff.length; i++) {
+            glProg.setTexture("base", upscale[i]);
+            glProg.setTexture("target", downscaled[i]);
+            //Reuse of amirzaidi code // Reuse the upsampled texture.
+            diff[i] = new GLTexture(upscale[i]);
             glProg.drawBlocks(diff[i]);
         }
+        for (GLTexture glTexture : upscale) {
+            glTexture.close();
+        }
         Pyramid pyramid = new Pyramid();
-        pyramid.gauss = downsampled;
+        pyramid.gauss = downscaled;
         pyramid.laplace = diff;
         glProg.close();
         return pyramid;
