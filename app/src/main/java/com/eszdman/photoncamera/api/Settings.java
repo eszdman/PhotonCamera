@@ -80,7 +80,7 @@ public class Settings {
 //        contrastConst = get(contrastConst, "ContrastConst");///////TODO
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
-//        compressor = PreferenceKeys.getCompressorValue();
+        compressor = PreferenceKeys.getCompressorValue();
         gain = PreferenceKeys.getGainValue();
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();

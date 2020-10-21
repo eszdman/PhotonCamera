@@ -44,7 +44,7 @@ public class GlobalToneMapping extends Node {
         glProg.setTexture("LowRes",lowRes);
         glProg.setVar("insize",Previous.WorkingTexture.mSize.x,Previous.WorkingTexture.mSize.y);
         glProg.setVar("lowsize",lowRes.mSize.x,lowRes.mSize.y);
-        glProg.setVar("str",0.015f);
+        glProg.setVar("str",0.025f);
         GLTexture out1 = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
         glProg.drawBlocks(out1);
@@ -57,7 +57,7 @@ public class GlobalToneMapping extends Node {
         glProg.setTexture("LowRes",lowRes2);
         glProg.setVar("insize",WorkingTexture.mSize.x,WorkingTexture.mSize.y);
         glProg.setVar("lowsize",lowRes2.mSize.x,lowRes2.mSize.y);
-        glProg.setVar("str",0.035f);
+        glProg.setVar("str",0.095f);
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }

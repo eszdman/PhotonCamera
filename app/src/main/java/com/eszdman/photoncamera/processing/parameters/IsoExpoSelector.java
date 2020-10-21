@@ -30,7 +30,7 @@ public class IsoExpoSelector {
     }
 
     public static ExpoPair GenerateExpoPair(int step) {
-        double mpy = 0.7;
+        double mpy = PhotonCamera.getSettings().compressor;
         ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
                 CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH());
         pair.normalizeiso100();

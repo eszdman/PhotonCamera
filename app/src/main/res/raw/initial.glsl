@@ -8,6 +8,7 @@ uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
 uniform int yOffset;
+uniform float exposing;
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
@@ -137,7 +138,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
     pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
     pRGB = sensorToIntermediate*pRGB;
-    pRGB = tonemap(pRGB);
+    pRGB = tonemap(pRGB)*exposing;
     return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
