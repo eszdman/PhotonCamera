@@ -124,7 +124,8 @@ public class PostPipeline extends GLBasePipeline {
                 add(new Median(R.raw.medianfilter,"SmartMedian"));
             }
         }
-        //add(new LensCorrection());
+        if(PhotonCamera.getParameters().focalLength <= 3.0)
+        add(new LensCorrection());
         add(new Sharpen(selectSharp(),"Sharpening"));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));

@@ -37,6 +37,7 @@ public class Parameters {
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
     public Point[] hotPixels;
+    public float focalLength;
 
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
@@ -53,6 +54,13 @@ public class Parameters {
         if (PhotonCamera.getSettings().cfaPattern != -1) {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
+        float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+        Log.d(TAG,"Focal Length:"+flen[0]);
+        if(flen == null || flen.length <= 0) {
+            flen = new float[1];
+            flen[0] = 4.75f;
+        }
+        focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (whiteLevel != null) this.whiteLevel = ((int) whiteLevel);
         hasGainMap = false;
