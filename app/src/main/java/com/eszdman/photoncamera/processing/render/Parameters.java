@@ -183,15 +183,18 @@ public class Parameters {
 
     }
 
+    @androidx.annotation.NonNull
     @Override
     public String toString() {
-        return "parameters:" +
-                ", hasGainMap=" + hasGainMap +
-                ", framecount=" + FrameNumberSelector.frameCount +
-                ", CameraID=" + PhotonCamera.getSettings().mCameraID +
-                ", Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                ", Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
-                ", Sharpness=" + FltFormat(PreferenceKeys.getSharpnessValue());
+        return "parameters:\n" +
+                ",\n hasGainMap=" + hasGainMap +
+                ",\n framecount=" + FrameNumberSelector.frameCount +
+                ",\n CameraID=" + PhotonCamera.getSettings().mCameraID +
+                ",\n Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
+                ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
+                ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
+                ",\n Sharpness=" + FltFormat(PreferenceKeys.getSharpnessValue())+
+                ",\n FocalL=" + FltFormat(focalLength);
     }
 
     @SuppressLint("DefaultLocale")

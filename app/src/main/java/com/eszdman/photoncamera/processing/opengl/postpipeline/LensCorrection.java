@@ -10,6 +10,8 @@ import com.eszdman.photoncamera.processing.render.Parameters;
 
 import java.nio.FloatBuffer;
 
+import javax.microedition.khronos.opengles.GL;
+
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
@@ -22,6 +24,7 @@ public class LensCorrection extends Node {
     public void AfterRun() {
         previousNode.WorkingTexture.close();
     }
+
     @Override
     public void Run() {
         Parameters params = glInt.parameters;
@@ -40,5 +43,8 @@ public class LensCorrection extends Node {
         Log.d(Name,"avrbr:"+br);
         glProg.setVar("avrbr",br);
         WorkingTexture = new GLTexture(previousNode.WorkingTexture);
+        //glProg.drawBlocks(WorkingTexture);
+        //WorkingTexture = glUtils.blur(WorkingTexture,1.5);
+        //glProg.close();
     }
 }

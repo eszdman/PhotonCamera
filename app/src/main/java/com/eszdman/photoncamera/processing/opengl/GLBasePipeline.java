@@ -84,8 +84,10 @@ public class GLBasePipeline implements AutoCloseable {
             Nodes.get(i).Run();
             if (i != Nodes.size() - 1) {
                 Log.d(TAG, "i:" + i + " size:" + Nodes.size());
-                glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
-                glint.glProgram.close();
+                if(!glint.glProgram.closed) {
+                    glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
+                    glint.glProgram.close();
+                }
             }
             Nodes.get(i).AfterRun();
             endT(Nodes.get(i).Name);

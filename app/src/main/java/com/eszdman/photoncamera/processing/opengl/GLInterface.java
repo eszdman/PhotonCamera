@@ -7,7 +7,9 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
 import java.io.BufferedReader;
+import java.io.CharArrayReader;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 
 public class GLInterface {
     public final GLProg glProgram;
@@ -26,10 +28,16 @@ public class GLInterface {
         glContext = context;
         glProgram = glContext.mProgram;
     }
-
-    static public String loadShader(int fragment) {
-        StringBuilder source = new StringBuilder();
+    public static String loadShader(String code){
+        BufferedReader reader = new BufferedReader(new StringReader(code));
+        return readprog(reader);
+    }
+    public static String loadShader(int fragment){
         BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
+        return readprog(reader);
+    }
+    static public String readprog(BufferedReader reader) {
+        StringBuilder source = new StringBuilder();
         StringBuilder imports = new StringBuilder();
         for (Object line : reader.lines().toArray()) {
             String val = String.valueOf(line);

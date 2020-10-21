@@ -44,8 +44,8 @@ public class ExposureFusion extends Node {
         glProg.drawBlocks(wip);
         glProg.close();
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-                GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
-                //GLTexture upsampleWip = (glUtils.upscale(wip,2));
+                //GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
+                GLTexture upsampleWip = (glUtils.upscale(wip,2));
                 glProg.useProgram(R.raw.fusion);
 
                 glProg.setTexture("upsampled", upsampleWip);

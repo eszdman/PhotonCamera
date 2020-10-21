@@ -17,10 +17,14 @@ vec4 textureLinear (sampler2D sampler, vec2 pixel) {
     float fracu = fract(pixel.x);
     float fracv = fract(pixel.y);
     vec2 floorPixel = floor(pixel) + vec2(0.5,0.5);
-    vec4 A = texture(sampler, floorPixel / (texSize));
-    vec4 B = texture(sampler, (floorPixel+vec2(1.0,0.0)) / (texSize));
-    vec4 C = texture(sampler, (floorPixel+vec2(0.0,1.0)) / (texSize));
-    vec4 D = texture(sampler, (floorPixel+vec2(1.0,1.0)) / (texSize));
+    /*vec4 A = texture(sampler, clamp(floorPixel / (texSize),0.0,1.0));
+    vec4 B = texture(sampler, clamp((floorPixel+vec2(1.0,0.0)) / (texSize),0.0,1.0));
+    vec4 C = texture(sampler, clamp((floorPixel+vec2(0.0,1.0)) / (texSize),0.0,1.0));
+    vec4 D = texture(sampler, clamp((floorPixel+vec2(1.0,1.0)) / (texSize),0.0,1.0));*/
+    vec4 A = texture(sampler, (floorPixel / (texSize)));
+    vec4 B = texture(sampler, ((floorPixel+vec2(1.0,0.0)) / (texSize)));
+    vec4 C = texture(sampler, ((floorPixel+vec2(0.0,1.0)) / (texSize)));
+    vec4 D = texture(sampler, ((floorPixel+vec2(1.0,1.0)) / (texSize)));
     return mix(mix(A,B,fracu), mix(C,D,fracu), fracv);
 }
 

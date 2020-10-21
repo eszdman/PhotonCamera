@@ -138,8 +138,9 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
     pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
     pRGB = sensorToIntermediate*pRGB;
-    pRGB = tonemap(pRGB)*exposing;
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
+    //Rip Shadowing applied
+    pRGB = (tonemap(pRGB))*exposing ;
+    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB -0.0015*exposing,0.0,1.0)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {

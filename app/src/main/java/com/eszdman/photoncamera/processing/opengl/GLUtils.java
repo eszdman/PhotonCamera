@@ -170,15 +170,16 @@ public class GLUtils {
                 "\n" +
                 "}\n" +
                 */
+                "#import interpolation\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
-                "    xy/=resize;\n" +
-                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)."+in.mFormat.getTemExt()+");\n" +
-                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
+                //"    xy/=resize;\n" +
+                //"    Output = tvar(texelFetch(InputBuffer, (xy), 0)." +in.mFormat.getTemExt()+");\n" +
+                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
+        glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
         //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
         GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
         glProg.drawBlocks(out);
@@ -233,7 +234,8 @@ public class GLUtils {
         String vecext = "vec3";
         if(vecmat.length == 9) vecext = "mat3";
         glProg.useProgram("#version 300 es\n" +
-                "precision mediump float;\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
