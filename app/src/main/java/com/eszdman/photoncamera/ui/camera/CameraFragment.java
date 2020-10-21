@@ -762,6 +762,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
         float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
