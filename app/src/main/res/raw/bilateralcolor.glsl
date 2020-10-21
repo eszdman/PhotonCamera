@@ -16,12 +16,18 @@ out vec4 Output;
 #define NRshift (1.2)
 #define maxNR (7.)
 #define minNR (0.5)
+#import xyztoxyy
+#import xyytoxyz
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
 }
 
 float normpdf3(in vec3 v, in float sigma)
+{
+    return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
+}
+float normpdf2(in vec2 v, in float sigma)
 {
     return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
 }
@@ -34,11 +40,11 @@ vec3 getCol(in ivec2 xy){
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    c+=0.001;
+    vec3 c = XYZtoxyY(vec3(texelFetch(InputBuffer, xy, 0).rgb));
+    //c+=0.001;
     //vec3 lc = normalize(c);
     //float clen = (c.r+c.g+c.b)/(lc.r+lc.g+lc.b);
-    float clen = (c.r+c.g+c.b);
+    //float clen = (c.r+c.g+c.b);
     float noisefactor = texture(NoiseMap, vec2(xy)/mapsize).r;
     {
         //declare stuff
@@ -52,10 +58,10 @@ void main() {
          vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
          vec3(texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb)+
          vec3(texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb)+
-         c*2.0;
-        float br = length(brp)/7.;
+         c.z*2.0;//c*2.0;
+        //float br = length(brp)/7.;
         //br = clamp(br,0.,1.0);
-        float sigX = noisefactor*45.0;
+        float sigX = noisefactor*90.0;
         //sigX = 5.0;
         int transposing = int(sigX/20.0)+1;
         //int transposing = 1;
@@ -64,7 +70,7 @@ void main() {
         //create the 1-D kernel
         float Z = 0.0;
         float sigY = sigX*2.0;
-        c/=clen;
+        //c/=clen;
         for (int j = 0; j <= kSize; ++j)
         {
             kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), sigX);
@@ -77,13 +83,15 @@ void main() {
         {
             for (int j=-kSize; j <= kSize; ++j)
             {
-                cc = getCol(xy+ivec2(i*transposing,j*transposing));
-                factor = normpdf3(cc-c, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
+                cc = XYZtoxyY(vec3(texelFetch(InputBuffer, xy+ivec2(i*transposing,j*transposing), 0).rgb));
+                //cc = getCol(xy+ivec2(i*transposing,j*transposing));
+                factor = normpdf2(cc.rg-c.rg, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
                 Z += factor;
                 final_colour += factor*cc;
 
             }
         }
-        Output = vec4(clamp(clen*final_colour/Z,0.0,1.0),1.0);
+        //Output = vec4(clamp(clen*final_colour/Z,0.0,1.0),1.0);
+        Output = vec4(xyYtoXYZ(vec3(clamp(final_colour.rg/Z,0.0,1.0),clen)),1.0);
     }
 }

@@ -32,5 +32,5 @@ void main() {
     }
     mask/=pdfsize;
     vec3 outp = (cur-mask);
-    Output = clamp(float(outp.r+outp.g*0.5+outp.b)*len*10.0,0.0,1.0);
+    Output = clamp(float(outp.r+outp.g*0.5+outp.b)*len*5.0,0.0,1.0);
 }
