@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 precision mediump usampler2D;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;

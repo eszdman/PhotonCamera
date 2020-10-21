@@ -108,7 +108,7 @@ public class PostPipeline extends GLBasePipeline {
          * * * All filters after demosaicing * * *
          */
         add(new Initial(R.raw.initial,"Initial"));
-        add(new ExposureFusion("ExposureFusion"));
+        //add(new ExposureFusion("ExposureFusion"));
         add(new AWB(0,"AWB"));
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
 
@@ -124,6 +124,7 @@ public class PostPipeline extends GLBasePipeline {
                 add(new Median(R.raw.medianfilter,"SmartMedian"));
             }
         }
+        //add(new LensCorrection());
         add(new Sharpen(selectSharp(),"Sharpening"));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));

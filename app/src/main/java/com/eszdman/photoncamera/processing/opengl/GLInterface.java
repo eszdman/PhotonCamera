@@ -36,7 +36,7 @@ public class GLInterface {
             if(val.contains("#import")){
                 val = val.replace("\n","").replace(" ","").toLowerCase();
                 @RawRes
-                int id;
+                int id = 0;
                 String headers = "";
                 switch (val){
                     case "#importxyytoxyz":
@@ -57,14 +57,25 @@ public class GLInterface {
                         headers+="vec3 unscaledGaussian(vec3, float);";
                         headers+="vec3 unscaledGaussian(vec3, vec3);";
                         break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + val);
+                    case "#importcubic":
+                        id = R.raw.import_cubic;
+                        headers+="vec4 cubic(float);";
+                        break;
+                    case "#importinterpolation":
+                        id = R.raw.import_interpolation;
+                        headers+="vec4 cubic(float);";
+                        headers+="vec4 textureLinear(sampler2D, vec2);";
+                        headers+="vec4 textureBicubic(sampler2D, vec2);";
+                        headers+="vec4 textureBicubicHardware(sampler2D, vec2);";
+                        break;
                 }
                 headers+="\n";
-                BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(id)));
-                for (Object line2 : reader2.lines().toArray()) {
-                    imports.append(line2);
-                    imports.append("\n");
+                if(id!= 0) {
+                    BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(id)));
+                    for (Object line2 : reader2.lines().toArray()) {
+                        imports.append(line2);
+                        imports.append("\n");
+                    }
                 }
                 source.append(headers);
                 continue;
