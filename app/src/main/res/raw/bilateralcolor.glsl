@@ -92,6 +92,6 @@ void main() {
             }
         }
         //Output = vec4(clamp(clen*final_colour/Z,0.0,1.0),1.0);
-        Output = vec4(xyYtoXYZ(vec3(clamp(final_colour.rg/Z,0.0,1.0),clen)),1.0);
+        Output = vec4(xyYtoXYZ(vec3(clamp(final_colour.rg/Z,0.0,1.0),c.z)),1.0);
     }
 }
