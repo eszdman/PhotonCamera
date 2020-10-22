@@ -83,10 +83,10 @@ public class Converter {
      */
     public static void calculateCameraToXYZD50Transform(float[] forwardTransform1,
                                                         float[] forwardTransform2, float[] calibrationTransform1, float[] calibrationTransform2,
-                                                        Rational[/*3*/] neutralColorPoint, double interpolationFactor,
+                                                        float[/*3*/] neutralColorPoint, double interpolationFactor,
             /*out*/float[] outputTransform) {
-        float[] cameraNeutral = new float[]{neutralColorPoint[0].floatValue(),
-                neutralColorPoint[1].floatValue(), neutralColorPoint[2].floatValue()};
+        float[] cameraNeutral = new float[]{neutralColorPoint[0],
+                neutralColorPoint[1], neutralColorPoint[2]};
         if (DEBUG) Log.d(TAG, "Camera neutral: " + Arrays.toString(cameraNeutral));
         float[] interpolatedCC = new float[9];
         lerp(calibrationTransform1, calibrationTransform2, interpolationFactor,
@@ -131,7 +131,7 @@ public class Converter {
      */
     public static double findDngInterpolationFactor(int referenceIlluminant1,
                                                     int referenceIlluminant2, float[] calibrationTransform1, float[] calibrationTransform2,
-                                                    float[] colorMatrix1, float[] colorMatrix2, Rational[/*3*/] neutralColorPoint) {
+                                                    float[] colorMatrix1, float[] colorMatrix2, float[/*3*/] neutralColorPoint) {
         int colorTemperature1 = sStandardIlluminates.get(referenceIlluminant1, NO_ILLUMINANT);
         if (colorTemperature1 == NO_ILLUMINANT) {
             throw new IllegalArgumentException("No such illuminant for reference illuminant 1: " +
@@ -152,8 +152,8 @@ public class Converter {
         float[] XYZToCamera2 = new float[9];
         multiply(calibrationTransform1, colorMatrix1, /*out*/XYZToCamera1);
         multiply(calibrationTransform2, colorMatrix2, /*out*/XYZToCamera2);
-        float[] cameraNeutral = new float[]{neutralColorPoint[0].floatValue(),
-                neutralColorPoint[1].floatValue(), neutralColorPoint[2].floatValue()};
+        float[] cameraNeutral = new float[]{neutralColorPoint[0],
+                neutralColorPoint[1], neutralColorPoint[2]};
         float[] neutralGuess = new float[3];
         float[] interpolationXYZToCamera = new float[9];
         float[] interpolationXYZToCameraInverse = new float[9];

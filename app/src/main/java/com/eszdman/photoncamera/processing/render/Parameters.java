@@ -26,7 +26,7 @@ public class Parameters {
     public byte cfaPattern;
     public Point rawSize;
     public final float[] blackLevel = new float[4];
-    public final float[] whitePoint = new float[3];
+    public float[] whitePoint = new float[3];
     public int whiteLevel = 1023;
     public int realWL = -1;
     public boolean hasGainMap;
@@ -91,7 +91,20 @@ public class Parameters {
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
         hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-        Rational[] neutral = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+        ReCalcColor(false);
+    }
+    public float[] customNeutral;
+    public void ReCalcColor(boolean customNeutr){
+        CameraCharacteristics characteristics = CameraFragment.mCameraCharacteristics;
+        CaptureResult result = CameraFragment.mCaptureResult;
+        Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+        if(!customNeutr)
+        for(int i =0; i<neutralR.length;i++){
+            whitePoint[i] = neutralR[i].floatValue();
+        }
+        else {
+            whitePoint = customNeutral;
+        }
         ColorSpaceTransform calibration1 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
         ColorSpaceTransform calibration2 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM2);
         ColorSpaceTransform colorMat1 = characteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM1);
@@ -128,24 +141,24 @@ public class Parameters {
         }
         double interpolationFactor = Converter.findDngInterpolationFactor(ref1,
                 ref2, calibrationTransform1, calibrationTransform2,
-                normalizedColorMatrix1, normalizedColorMatrix2, neutral);
+                normalizedColorMatrix1, normalizedColorMatrix2, whitePoint);
         Converter.calculateCameraToXYZD50Transform(normalizedForwardTransform1, normalizedForwardTransform2,
-                calibrationTransform1, calibrationTransform2, neutral,
+                calibrationTransform1, calibrationTransform2, whitePoint,
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
         if (!customCCM.exists()) {
-            sensorToProPhoto[0] = 1.0f / neutral[0].floatValue();
+            sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;
             sensorToProPhoto[2] = 0.0f;
 
             sensorToProPhoto[3] = 0.0f;
-            sensorToProPhoto[4] = 1.0f / neutral[1].floatValue();
+            sensorToProPhoto[4] = 1.0f / whitePoint[1];
             sensorToProPhoto[5] = 0.0f;
 
             sensorToProPhoto[6] = 0.0f;
             sensorToProPhoto[7] = 0.0f;
-            sensorToProPhoto[8] = 1.0f / neutral[2].floatValue();
+            sensorToProPhoto[8] = 1.0f / whitePoint[2];
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
         ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
@@ -172,15 +185,12 @@ public class Parameters {
                 //Log.d(TAG, "Read1:" + proPhotoToSRGB[i]);
             }
         }
-        Rational[] wpoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         customTonemap = new float[]{
                 -2f + 2f * tonemapStrength,
                 3f - 3f * tonemapStrength,
                 tonemapStrength,
                 0f
         };
-        if (wpoint != null) for (int i = 0; i < 3; i++) whitePoint[i] = wpoint[i].floatValue();
-
     }
 
     @androidx.annotation.NonNull
