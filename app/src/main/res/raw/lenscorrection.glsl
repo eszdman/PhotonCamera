@@ -21,5 +21,5 @@ void main() {
     //len=1.0+clamp((len-start),0.0,1.0)*intens;
 
     //Output = texture(InputBuffer,0.5 + inxy*len);
-    Output = textureBicubic(InputBuffer,0.5 + inxy/(1.0 + mapbr*0.07));
+    Output = textureBicubic(InputBuffer,0.5 + inxy/(0.9 + mapbr*0.09));
 }

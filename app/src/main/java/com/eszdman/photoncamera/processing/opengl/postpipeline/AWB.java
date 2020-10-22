@@ -127,11 +127,11 @@ public class AWB extends Node {
                 }
             }
             Log.v("AWB", "Color correction vector original2:" + redVector + " ," + greenVector + " ," + blueVector);
-            if(bb > blueVector){
+            /*if(bb > blueVector){
                 redVector = rb;
                 greenVector = gb;
                 blueVector = bb;
-            }
+            }*/
         }
 
         float mean = (float) (redVector + greenVector + blueVector) / 3;
