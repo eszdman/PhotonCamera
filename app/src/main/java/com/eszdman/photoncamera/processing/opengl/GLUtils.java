@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import javax.microedition.khronos.opengles.GL;
+
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
@@ -44,8 +46,8 @@ public class GLUtils {
                 //"    for (int i=-kSize; i <= kSize; ++i){\n" +
                 "        for (int j=-kSize; j <= kSize; ++j){\n" +
                 //"            float pdf = kernel[kSize+j];\n" +
-                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,j)), 0)."+in.mFormat.getTemExt()+");\n" +
-                "            if(length(inp."+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
+                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,j)), 0)"+in.mFormat.getTemExt()+");\n" +
+                "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
                 "            float pdf = normpdf(float(abs(j)), size1);\n" +
                 "            mask+=inp*pdf;\n" +
                 "            pdfsize+=pdf;\n" +
@@ -81,8 +83,8 @@ public class GLUtils {
                 "    for (int i=-kSize; i <= kSize; ++i){\n" +
                 //"        for (int j=-kSize; j <= kSize; ++j){\n" +
                 //"            float pdf = kernel[kSize+i];\n" +
-                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i,0)), 0)."+out.mFormat.getTemExt()+");\n" +
-                "            if(length(inp."+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
+                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i,0)), 0)"+out.mFormat.getTemExt()+");\n" +
+                "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
                 "            float pdf = normpdf(float(abs(i)), size1);\n" +
                 "            mask+=inp*pdf;\n" +
                 "            pdfsize+=pdf;\n" +
@@ -98,6 +100,87 @@ public class GLUtils {
         out.close();
         glProg.close();
         return out2;
+    }
+    public GLTexture fastdown(GLTexture in, int k){
+        return fastdown(in,k,(double)k*0.3);
+    }
+    public GLTexture fastdown(GLTexture in, int k,double blur){
+        glProg.useProgram("#version 300 es\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "precision mediump float;\n" +
+                "precision mediump "+in.mFormat.getTemSamp()+";\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "#define size1 ("+blur+")\n" +
+                "#define transpose ("+(int)((4.5/k)+1)+")\n" +
+                "#define resize ("+k+")\n" +
+                "#define MSIZE1 5\n" +
+                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    xy*=ivec2(1,resize);\n" +
+                "    const int kSize = (MSIZE1-1)/2;\n" +
+                "    tvar mask = tvar(0.0);\n" +
+                "    float pdfsize = 0.0;\n" +
+                "        for (int j=-kSize; j <= kSize; ++j){\n" +
+                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,j*transpose)), 0)"+in.mFormat.getTemExt()+");\n" +
+                "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
+                "            float pdf = normpdf(float(abs(j)), size1);\n" +
+                "            mask+=inp*pdf;\n" +
+                "            pdfsize+=pdf;\n" +
+                "            }\n" +
+                "        }\n" +
+                "    mask/=pdfsize;\n" +
+                "    Output = mask;\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        GLTexture out = new GLTexture(in.mSize.x,in.mSize.y/2,in.mFormat,null);
+        glProg.drawBlocks(out);
+        glProg.close();
+        glProg.useProgram("#version 300 es\n" +
+                "#define tvar "+out.mFormat.getTemVar()+"\n" +
+                "#define tscal "+out.mFormat.getScalar()+"\n" +
+                "precision mediump float;\n" +
+                "precision mediump "+out.mFormat.getTemSamp()+";\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "#define size1 ("+blur+")\n" +
+                "#define transpose ("+(int)((4.5/k)+1)+")\n" +
+                "#define MSIZE1 5\n" +
+                "#define resize ("+k+")\n" +
+                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    xy*=ivec2(resize,1);\n" +
+                "    const int kSize = (MSIZE1-1)/2;\n" +
+                "    tvar mask = tvar(0.0);\n" +
+                "    float pdfsize = 0.0;\n" +
+                "    for (int i=-kSize; i <= kSize; ++i){\n" +
+                "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i*transpose,0)), 0)"+out.mFormat.getTemExt()+");\n" +
+                "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
+                "            float pdf = normpdf(float(abs(i)), size1);\n" +
+                "            mask+=inp*pdf;\n" +
+                "            pdfsize+=pdf;\n" +
+                "            }\n" +
+                "        }\n" +
+                "    mask/=pdfsize;\n" +
+                "    Output = mask;\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",out);
+        GLTexture out2 = new GLTexture(in.mSize.x/2,in.mSize.y/2,in.mFormat,null);
+        glProg.drawBlocks(out2);
+        out.close();
+        glProg.close();
+        return out2;
+    }
+
+    public GLTexture gaussdown(GLTexture in, int k){
+        return gaussdown(in,k,(double)k*0.3);
     }
     public GLTexture gaussdown(GLTexture in, int k,double blur){
         glProg.useProgram("#version 300 es\n" +
@@ -140,9 +223,7 @@ public class GLUtils {
         glProg.close();
         return out;
     }
-    public GLTexture gaussdown(GLTexture in, int k){
-       return gaussdown(in,k,(double)k*0.3);
-    }
+
     public GLTexture upscale(GLTexture in, int k){
         glProg.useProgram("#version 300 es\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -160,13 +241,13 @@ public class GLUtils {
                 "ivec2 coordsin = ivec2(fltin);\n" +
                 "fltin-=vec2(coordsin)" +
                 //"if(length(fltin) == 0.0{\n" +
-                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+");\n" +
+                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+");\n" +
                 //    "}\n" +
-                "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+")" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.x" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.y;" +
+                "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+")" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.x" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.y;" +
                 "\n" +
                 "}\n" +
                 */
@@ -175,8 +256,8 @@ public class GLUtils {
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
                 //"    xy/=resize;\n" +
-                //"    Output = tvar(texelFetch(InputBuffer, (xy), 0)." +in.mFormat.getTemExt()+");\n" +
-                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
+                //"    Output = tvar(texelFetch(InputBuffer, (xy), 0)" +in.mFormat.getTemExt()+");\n" +
+                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
@@ -204,13 +285,13 @@ public class GLUtils {
                 "ivec2 coordsin = ivec2(fltin);\n" +
                 "fltin-=vec2(coordsin)" +
                 //"if(length(fltin) == 0.0{\n" +
-                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+");\n" +
+                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+");\n" +
                 //    "}\n" +
-                "return tvar(texelFetch(InputBuffer, (coordsin), 0)."+in.mFormat.getTemExt()+")" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.x" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)."+in.mFormat.getTemExt()+"))*fltin.y;" +
+                "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+")" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.x" +
+                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
+                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.y;" +
                 "\n" +
                 "}\n" +
                 */
@@ -218,8 +299,8 @@ public class GLUtils {
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset+0);\n" +
                 "    xy*=resize;\n" +
-                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)."+in.mFormat.getTemExt()+");\n" +
-                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))."+in.mFormat.getTemExt()+");\n" +
+                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)"+in.mFormat.getTemExt()+");\n" +
+                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
@@ -249,6 +330,30 @@ public class GLUtils {
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("colorvec",vecmat);
+        GLTexture out = new GLTexture(in);
+        glProg.drawBlocks(out);
+        glProg.close();
+        return out;
+    }
+    //Linear operation between 2 textures
+    public GLTexture ops(GLTexture in,GLTexture in2, String operation){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform "+in2.mFormat.getTemSamp()+" InputBuffer2;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    Output = ((texelFetch(InputBuffer, xy, 0),1.0)"
+                +operation+"(texelFetch(InputBuffer2, xy, 0),1.0));\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("InputBuffer2",in2);
         GLTexture out = new GLTexture(in);
         glProg.drawBlocks(out);
         glProg.close();

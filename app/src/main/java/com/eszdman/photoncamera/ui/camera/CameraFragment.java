@@ -1414,6 +1414,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             else
                 captureBuilder.addTarget(mImageReaderPreview.getSurface());
             PhotonCamera.getSettings().applyRes(captureBuilder);
+            PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
@@ -1439,7 +1440,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            rebuildPreviewBuilderOneShot();
+            rebuildPreviewBuilder();
 
             IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
             for (int i = 0; i < frameCount; i++) {

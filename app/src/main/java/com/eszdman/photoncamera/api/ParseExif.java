@@ -42,7 +42,7 @@ public class ParseExif {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int rotation = PhotonCamera.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);

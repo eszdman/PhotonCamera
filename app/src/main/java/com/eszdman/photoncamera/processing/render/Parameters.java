@@ -38,7 +38,7 @@ public class Parameters {
     public float[] customTonemap;
     public Point[] hotPixels;
     public float focalLength;
-
+    public int cameraRotation;
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;

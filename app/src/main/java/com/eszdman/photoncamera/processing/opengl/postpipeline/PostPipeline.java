@@ -69,7 +69,7 @@ public class PostPipeline extends GLBasePipeline {
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
     public int getRotation() {
-        int rotation = PhotonCamera.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
@@ -95,9 +95,8 @@ public class PostPipeline extends GLBasePipeline {
         glint.parameters = parameters;
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != -2) {
-                add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
+                add(new Demosaic("Demosaic"));
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
-                add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
             } else {
                 add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
             }
@@ -117,12 +116,17 @@ public class PostPipeline extends GLBasePipeline {
             add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
             add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
             add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
-            add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
+
             //add(new Bilateral(R.raw.bilateral, "Bilateral"));
             //add(new Median(R.raw.medianfilter,"SmartMedian"));
+            add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
-                add(new Median(R.raw.medianfilter,"SmartMedian"));
-                add(new Median(R.raw.medianfilter,"SmartMedian"));
+                for(int i =1; i<5;i++){
+                    add(new Median(new Point(i,i/2),"FastMedian"));
+                    add(new Median(new Point(i/2,i),"FastMedian"));
+                    //add(new Median(new Point(i,i),"FastMedian"));
+                }
+
             }
         }
         if(PhotonCamera.getParameters().focalLength <= 3.0)

@@ -1,6 +1,6 @@
 #version 300 es
-precision mediump float;
-precision mediump usampler2D;
+precision highp float;
+precision lowp usampler2D;
 uniform usampler2D RawBuffer;
 uniform float whitelevel;
 uniform usampler2D HotPixelMap;

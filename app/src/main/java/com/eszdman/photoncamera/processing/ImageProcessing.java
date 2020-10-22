@@ -22,6 +22,8 @@ import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.opengl.scripts.LuckyOperator;
+import com.eszdman.photoncamera.processing.opengl.scripts.RawParams;
+import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
 import com.eszdman.photoncamera.processing.opengl.scripts.ScriptParams;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
@@ -140,6 +142,8 @@ public class ImageProcessing {
             debugAlignment = true;
         }
         CaptureResult res = CameraFragment.mCaptureResult;
+        RawParams rawParams = new RawParams(res);
+
 //        processingstep();
         long startTime = System.currentTimeMillis();
         int width = mImageFramesToProcess.get(0).getPlanes()[0].getRowStride() / mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride(); //mImageFramesToProcess.get(0).getWidth()*mImageFramesToProcess.get(0).getHeight()/(mImageFramesToProcess.get(0).getPlanes()[0].getRowStride()/mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride());
@@ -150,8 +154,12 @@ public class ImageProcessing {
         int levell = 1023;
         if (level != null)
             levell = (int) level;
-        float fakelevel = levell;//(float)Math.pow(2,16)-1.f;//bits raw
+
+        float fakelevel = levell;//(float)Math.pow(2,15)-1.f;//bits raw
         float k = fakelevel / levell;
+        if(PhotonCamera.getParameters().realWL == -1) PhotonCamera.getParameters().realWL = levell; else levell = PhotonCamera.getParameters().realWL;
+        rawParams.oldWhiteLevel = levell;
+        rawParams.sensitivity = fakelevel/levell;
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, (int) fakelevel);
         BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelArr = new int[4];
@@ -188,6 +196,7 @@ public class ImageProcessing {
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
         ScriptParams luckyparams = new ScriptParams();
+        RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -201,13 +210,15 @@ public class ImageProcessing {
                 lowexp = byteBuffer;
                 continue;
             }
-            byteBuffer.position(0);
-            luckyparams.input = byteBuffer;
+            //byteBuffer.position(0);
+            //luckyparams.input = byteBuffer;
             //LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
             //luckyOperator.additionalParams = luckyparams;
             //if(mImageFramesToProcess.size() >= 5)
             //luckyOperator.Run();
             //byteBuffer.position(0);
+            //rawParams.input = byteBuffer;
+            Log.d(TAG,"Sensivity:"+k);
             ImageFrame frame = new ImageFrame(byteBuffer);
             //frame.luckyParameter = luckyOperator.out;
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
@@ -217,7 +228,7 @@ public class ImageProcessing {
         }
         if(mImageFramesToProcess.size() >= 3)
         images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
-        if(images.size() >= 3){
+        if(images.size() >= 4){
             int size = (int)((double)images.size()*0.7);
             for(int i =images.size(); i>size;i--){
                 Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
@@ -225,10 +236,19 @@ public class ImageProcessing {
             }
             Log.d(TAG,"Size after removal:"+images.size());
         }
+        for(int i =0; i<images.size();i++){
+            rawParams.input = images.get(i).buffer;
+            rawSensivity.additionalParams = rawParams;
+            //rawSensivity.Run();
+            //images.get(i).buffer = rawSensivity.Output;
+        }
+        rawSensivity.close();
         if (!debugAlignment) Wrapper.init(width, height, images.size());
         for(int i =0; i<images.size();i++){
-            if (!debugAlignment)
+            if (!debugAlignment){
                 Wrapper.loadFrame(images.get(i).buffer);
+            }
+
         }
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;

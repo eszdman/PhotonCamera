@@ -319,21 +319,21 @@ public class GLFormat {
     }
     public String getTemExt(){
         switch (mChannels) {
-            case 1: return "r";
-            case 2: return "rg";
-            case 3: return "rgb";
-            case 4: return "rgba";
+            case 1: return "";
+            case 2: return ".rg";
+            case 3: return ".rgb";
+            case 4: return ".rgba";
         }
-        return "rgba";
+        return ".rgba";
     }
     public String getLimExt(){
         switch (mChannels) {
-            case 1: return "r";
-            case 2: return "rg";
+            case 1: return "";
+            case 2: return ".rg";
             case 3:
-            case 4: return "rgb";
+            case 4: return ".rgb";
         }
-        return "rgb";
+        return ".rgb";
     }
     public String getScalar() {
         switch (mFormat) {

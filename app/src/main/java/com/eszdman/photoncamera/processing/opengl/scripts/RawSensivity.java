@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.processing.opengl.scripts;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.util.Log;
 
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLOneScript;
@@ -10,8 +11,8 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.R;
 
 public class RawSensivity extends GLOneScript {
-    public RawSensivity(Point size, Bitmap output) {
-        super(size, output, new GLFormat(GLFormat.DataType.UNSIGNED_16), R.raw.rawsensivity, "RawSensivity");
+    public RawSensivity(Point size) {
+        super(size, null, new GLFormat(GLFormat.DataType.UNSIGNED_16), R.raw.rawsensivity, "RawSensivity");
     }
     @Override
     public void StartScript() {
@@ -21,8 +22,8 @@ public class RawSensivity extends GLOneScript {
         glProg.setTexture("RawBuffer",glTexture);
         glProg.setVar("whitelevel",rawParams.oldWhiteLevel);
         glProg.setVar("PostRawSensivity",rawParams.sensitivity);
-        WorkingTexture = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16),null);
-        glProg.drawBlocks(WorkingTexture);
-        glProg.close();
+        WorkingTexture = new GLTexture(glTexture);
+        //glProg.drawBlocks(WorkingTexture);
+        //glProg.close();
     }
 }
