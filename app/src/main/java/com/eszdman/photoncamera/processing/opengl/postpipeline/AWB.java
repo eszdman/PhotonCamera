@@ -84,9 +84,9 @@ public class AWB extends Node {
         double maxmpy = 0;
         short minC = 0;
 
-        for (short i = 20; i < 120; i++) {
-            for (short j = 20; j < 120; j++) {
-                for (short k = 20; k < 120; k++) {
+        for (short i = 50; i < 170; i++) {
+            for (short j = 40; j < 150; j++) {
+                for (short k = 40; k < 150; k++) {
         //for (short i = 20; i < 200; i++) {
         //    for (short j = 20; j < 200; j++) {
         //        for (short k = 20; k < 200; k++) {
@@ -110,9 +110,9 @@ public class AWB extends Node {
             short rb = redVector;
             short gb = greenVector;
             short bb = blueVector;
-            for (short i = 160; i < 254; i++) {
-                for (short j = 160; j < 254; j++) {
-                    for (short k = 160; k < 254; k++) {
+            for (short i = 100; i < 254; i++) {
+                for (short j = 100; j < 254; j++) {
+                    for (short k = 100; k < 254; k++) {
                         int min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
                         //for(short c = (short) (-5); c<5; c++){
                         //min+=(short) Math.min(Math.min(input[0][Math.min(Math.max(i-c,0),SIZE-1)], input[1][Math.min(Math.max(j-c,0),SIZE-1)]), input[2][Math.min(Math.max(k-c,0),SIZE-1)]);
@@ -126,6 +126,7 @@ public class AWB extends Node {
                     }
                 }
             }
+            Log.v("AWB", "Color correction vector original2:" + redVector + " ," + greenVector + " ," + blueVector);
             if(bb > blueVector){
                 redVector = rb;
                 greenVector = gb;
@@ -230,9 +231,9 @@ public class AWB extends Node {
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
         if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
-        //WorkingTexture = glUtils.mpy( previousNode.WorkingTexture,CCV(Histogram(preview)));
-        PatchPoint(CCVBased(Histogram(preview)));
-        WorkingTexture = previousNode.WorkingTexture;
+        WorkingTexture = glUtils.mpy( previousNode.WorkingTexture,CCV(Histogram(preview)));
+        //PatchPoint(CCVBased(Histogram(preview)));
+        //WorkingTexture = previousNode.WorkingTexture;
         glProg.close();
     }
     private void PatchPoint(float[] ccv){
