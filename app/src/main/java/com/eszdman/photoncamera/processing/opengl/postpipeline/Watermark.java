@@ -37,12 +37,13 @@ public class Watermark extends Node {
             BitmapDrawable dr = (BitmapDrawable) PhotonCamera.getCameraActivity().getDrawable(R.drawable.photoncamera_watermark);
             ByteBuffer buff = ByteBuffer.allocate(dr.getBitmap().getByteCount());
             dr.getBitmap().copyPixelsToBuffer(buff);
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         Log.v("Watermark", "Buffer size:" + buff.capacity());
         buff.position(0);
         glProg.setTexture("Watermark", new GLTexture(dr.getBitmap().getWidth(), dr.getBitmap().getHeight(), new GLFormat(GLFormat.DataType.FLOAT_16, 1), buff));
+        } else {
+            glProg.useProgram(R.raw.rotate);
         }
-        glProg.useProgram(R.raw.rotate);
+        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         int rot = -1;
         Point size = previousNode.WorkingTexture.mSize;
         Log.d(Name,"Rotation:"+rotate);
