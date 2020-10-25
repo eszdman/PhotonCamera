@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 precision mediump sampler2D;
 precision mediump isampler2D;
 precision mediump usampler2D;
@@ -22,7 +22,8 @@ uniform int CfaPattern;
 out float Output;
 #define MIN_NOISE 0.1f
 #define MAX_NOISE 1.0f
-#define TILESIZE (256)
+#define TILESIZE (128)
+#import interpolation
 float firstdiag(in ivec2 xy, sampler2D Input){
     return float(texelFetch(Input, (xy), 0).x+texelFetch(Input, (xy+ivec2(1,1)), 0).x);
 }
@@ -65,7 +66,7 @@ void main() {
     //ivec2 align = ivec2(texelFetch(AlignVectors, (xy/TILESIZE), 0).xy);
     vec2 xyInterp = vec2(xy)/float(TILESIZE);
     xyInterp/=vec2(alignsize);
-    vec2 alignf = vec2(texture(AlignVectors, xyInterp).xy);
+    vec2 alignf = vec2(textureBicubicHardware(AlignVectors, xyInterp).xy);
     //vec2 alignf = vec2(texelFetch(AlignVectors, xy/TILESIZE,0).xy);
     ivec2 align = ivec2(alignf/2.0)*2;
     ivec2 aligned = (xy+align);
@@ -73,7 +74,7 @@ void main() {
     xyInterp = vec2(xy)/float(TILESIZE);
 
     xyInterp/=vec2(weightsize);
-    float weight = float(texture(SpatialWeights, xyInterp).x);
+    //float weight = float(texture(SpatialWeights, xyInterp).x);
     float inp = boxdown22(aligned/2,InputBuffer22)/4.0;
     float target = boxdown22(xy/2,MainBuffer22)/4.0;
     //float weight = abs(inp-target);
@@ -82,7 +83,8 @@ void main() {
     alignf/=float(TILESIZE);
     //float dist2 = alignf.x*alignf.x+alignf.y*alignf.y;
     //float dist2 = smoothstep(0.0,2.0,abs(alignf.x)+abs(alignf.y));
-    float windoww = 1.0 - (weight)*5.6 - 0.4;
+    //float windoww = 1.0 - (weight)*5.6 - 0.4;
+    float windoww = 1.0;
     //windoww-=windoww*dist*(dist2);
     windoww = clamp(windoww,0.00,1.0);
     windoww*=alignk;

@@ -3,6 +3,8 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.*;
 import android.util.Log;
 
+import com.bumptech.glide.load.resource.bitmap.BitmapDrawableEncoder;
+import com.bumptech.glide.load.resource.bitmap.BitmapEncoder;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
@@ -13,6 +15,8 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+
+import rapid.decoder.BitmapDecoder;
 
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
@@ -73,23 +77,25 @@ public class PostPipeline extends GLBasePipeline {
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
-        int orientation = 0;
-        switch (rotation) {
+        return rotation;
+    }
+    private Point getRotatedCoords(Point in){
+        switch (getRotation()){
+            case 0:
+                return in;
             case 90:
-                orientation = 90;
-                break;
+                return new Point(in.y,in.x);
             case 180:
-                orientation = 180;
-                break;
+                return in;
             case 270:
-                orientation = 270;
-                break;
+                return new Point(in.y,in.x);
         }
-        return orientation;
+        return in;
     }
     public void Run(ByteBuffer inBuffer, Parameters parameters){
-        Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
+        Point rotated = getRotatedCoords(parameters.rawSize);
+        Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
@@ -132,12 +138,13 @@ public class PostPipeline extends GLBasePipeline {
         if(PhotonCamera.getParameters().focalLength <= 3.0)
         add(new LensCorrection());
         add(new Sharpen(selectSharp(),"Sharpening"));
+        add(new Watermark(getRotation(),PreferenceKeys.isShowWatermarkOn()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));
 
         Bitmap img = runAll();
-        img = RotateBitmap(img,getRotation());
-        if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
+        //img = RotateBitmap(img,getRotation());
+        //if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);

@@ -55,19 +55,31 @@ public class AlignAndMerge extends Node {
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
-        GLTexture output = new GLTexture(new Point(rawSize.x / 2, rawSize.y / 2), new GLFormat(GLFormat.DataType.FLOAT_16), null);
+        GLTexture output = new GLTexture(new Point(rawSize.x / 2, rawSize.y / 2), new GLFormat(GLFormat.DataType.FLOAT_16,4), null);
         glProg.drawBlocks(output);
-        glProg.close();
+        //glUtils.SaveProgResult(output.mSize,"boxdown");
+        //glProg.close();
+        //GLTexture median = glUtils.blur(output,5.0);
+        //GLTexture laplaced = glUtils.ops(median,output,"in2.rgb,3.0*(in1.a-in2.a)");
+        //median.close();
+        //median = glUtils.median(laplaced,new Point(1,1));
+        //GLTexture median = glUtils.blur(output,1.5);
+        //GLTexture median = glUtils.median(output,1.5);
+        //glUtils.SaveProgResult(output.mSize,"aligninput");
+        //GLTexture laplaced = glUtils.ops(blur,output,"-");
+        //output.close();
+        //return laplaced;
         return output;
     }
-
     private GLTexture GaussDown44(GLTexture input) {
-        glProg.useProgram(R.raw.gaussdown44);
+        /*glProg.useProgram(R.raw.gaussdown44);
         glProg.setTexture("InputBuffer", input);
         GLTexture output = new GLTexture(new Point(input.mSize.x / 4, input.mSize.y / 4), input.mFormat, null);
         glProg.drawBlocks(output);
         glProg.close();
-        return output;
+        return output;*/
+        GLTexture out = glUtils.gaussdown(input,4,1.5);
+        return out;
     }
 
     private GLTexture LaplacDown44(GLTexture input) {
@@ -86,8 +98,8 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer", main3232);
         glProg.setVar("Mpy", 32);
         glProg.setVar("maxSize", brTex3232.mSize.x, brTex3232.mSize.y);
-        int tileSize = 256;
-        GLTexture alignVectors = new GLTexture(new Point(rawSize.x / tileSize, rawSize.y / tileSize), new GLFormat(GLFormat.DataType.FLOAT_16, 2), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        int tileSize = 128;
+        GLTexture alignVectors = new GLTexture(new Point(rawSize.x / tileSize, rawSize.y / tileSize), new GLFormat(GLFormat.DataType.FLOAT_16, 2), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
         glProg.setTexture("AlignVectors", alignVectors);
         glProg.drawBlocks(alignVectors);
         glProg.close();
@@ -133,7 +145,7 @@ public class AlignAndMerge extends Node {
         startT();
         glProg.useProgram(R.raw.spatialmerge);
         glProg.setTexture("AlignVectors", alignVectors);
-        glProg.setTexture("SpatialWeights", weights);
+        //glProg.setTexture("SpatialWeights", weights);
 
         glProg.setTexture("MainBuffer", mainFrame);
         glProg.setTexture("InputBuffer", inputRaw);
@@ -182,6 +194,7 @@ public class AlignAndMerge extends Node {
         GLTexture Output = CorrectedRaw(images.get(0).buffer);
         Log.d("AlignAndMerge", "Resize elapsed time:" + (System.currentTimeMillis() - time) + " ms");
         time = System.currentTimeMillis();
+        Log.d("AlignAndMerge","ImagesCount:"+images.size());
         for (int i = 1; i < images.size(); i++) {
             GLTexture inputraw = CorrectedRaw(images.get(i).buffer);
             //Less memory consumption
@@ -192,8 +205,8 @@ public class AlignAndMerge extends Node {
             GLTexture brTex3232 = GaussDown44(brTex88);
             Log.d("AlignAndMerge", "Resize:" + (System.currentTimeMillis() - time2) + " ms");
             GLTexture alignVectors = Align(brTex22, brTex88, brTex3232, BaseFrame22, BaseFrame88, BaseFrame3232);
-            GLTexture weights = Weights(brTex22, BaseFrame22, alignVectors);
-            Output = Merge(Output, inputraw, alignVectors, weights, BaseFrame, brTex22, BaseFrame22);
+            //GLTexture weights = Weights(brTex22, BaseFrame22, alignVectors);
+            Output = Merge(Output, inputraw, alignVectors, alignVectors, BaseFrame, brTex22, BaseFrame22);
             alignVectors.close();
             inputraw.close();
             brTex22.close();

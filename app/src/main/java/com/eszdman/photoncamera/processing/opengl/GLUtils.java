@@ -2,7 +2,13 @@ package com.eszdman.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.hardware.camera2.CaptureResult;
 import android.util.Log;
+
+import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.processing.opengl.nodes.Node;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -311,6 +317,14 @@ public class GLUtils {
         //return blur(out,k-1);
         return out;
     }
+    public GLTexture median(GLTexture in,Point transposing){
+        glProg.useProgram(R.raw.medianfilter);
+        glProg.setTexture("InputBuffer", in);
+        glProg.setVar("transpose",transposing);
+        GLTexture output = new GLTexture(in);
+        glProg.drawBlocks(output);
+        return output;
+    }
     public GLTexture mpy(GLTexture in, float[] vecmat){
         String vecext = "vec3";
         if(vecmat.length == 9) vecext = "mat3";
@@ -336,25 +350,29 @@ public class GLUtils {
         return out;
     }
     //Linear operation between 2 textures
-    public GLTexture ops(GLTexture in,GLTexture in2, String operation){
+    public GLTexture ops(GLTexture in1,GLTexture in2, String operation){
+        return ops(in1,in2,operation,"");
+    }
+    public GLTexture ops(GLTexture in1,GLTexture in2, String operation,String operation2){
         glProg.useProgram("#version 300 es\n" +
-                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
-                "#define tvar "+in.mFormat.getTemVar()+"\n" +
-                "#define tscal "+in.mFormat.getScalar()+"\n" +
-                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "#define tvar "+in1.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in1.mFormat.getScalar()+"\n" +
+                "uniform "+in1.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform "+in2.mFormat.getTemSamp()+" InputBuffer2;\n" +
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
-                "    Output = ((texelFetch(InputBuffer, xy, 0),1.0)"
-                +operation+"(texelFetch(InputBuffer2, xy, 0),1.0));\n" +
+                "    tvar in1 = (texelFetch(InputBuffer, xy, 0));\n" +
+                "    tvar in2 = (texelFetch(InputBuffer2, xy, 0));\n" +
+                "    Output = tvar("+operation+")"+operation2+";\n" +
                 "}\n");
-        glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("InputBuffer",in1);
         glProg.setTexture("InputBuffer2",in2);
-        GLTexture out = new GLTexture(in);
+        GLTexture out = new GLTexture(in1);
         glProg.drawBlocks(out);
         glProg.close();
         return out;
