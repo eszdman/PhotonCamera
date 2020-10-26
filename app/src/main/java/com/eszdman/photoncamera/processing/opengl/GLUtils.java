@@ -187,7 +187,7 @@ public class GLUtils {
     }
 
     public GLTexture gaussdown(GLTexture in, int k){
-        return gaussdown(in,k,(double)k*1.5);
+        return gaussdown(in,k,(double)k*1.3);
     }
     public GLTexture gaussdown(GLTexture in, int k,double blur){
         glProg.useProgram("#version 300 es\n" +

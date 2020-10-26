@@ -19,10 +19,20 @@ public class ExposureFusion extends Node {
     @Override
     public void Compile() {}
 
-    GLTexture Overexpose(GLTexture in,float str){
-        glProg.useProgram(R.raw.overexpose);
+    GLTexture expose(GLTexture in, float str){
+        glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
+        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
+        glProg.drawBlocks(out);
+        glProg.close();
+        return out;
+    }
+    GLTexture unexpose(GLTexture in){
+        glProg.useProgram(R.raw.unexpose);
+        glProg.setTexture("InputBuffer",in);
+        //glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
         GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
         glProg.drawBlocks(out);
@@ -34,8 +44,8 @@ public class ExposureFusion extends Node {
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,2,Overexpose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*2.0f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,2,Overexpose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*0.3f));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,2, expose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*2.0f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,2, expose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))/5.f));
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);
         GLTexture wip = new GLTexture(normalExpo.gauss[normalExpo.gauss.length - 1]);
@@ -70,7 +80,7 @@ public class ExposureFusion extends Node {
                 glProg.close();
 
         }
-        WorkingTexture = wip;
+        WorkingTexture = unexpose(wip);
         //WorkingTexture = glUtils.interpolate(glUtils.gaussdown(Overexpose(in),10),10);
         glProg.close();
         highExpo.releasePyramid();

@@ -138,7 +138,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB = sensorToIntermediate*pRGB;
     //Rip Shadowing applied
     //pRGB = (tonemap(clamp((pRGB)*0.7,0.0,1.0)));
-    pRGB = tonemap(pRGB*0.7);
+    pRGB = tonemap(pRGB);
     //pRGB = (tonemap(clamp(pRGB-0.0015,0.0,1.0)))*exposing;
     //return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB -0.0015*exposing,0.0,1.0)));
     return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));

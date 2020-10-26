@@ -27,14 +27,14 @@ public class AWB extends Node {
     @Override
     public void Compile() {}
 
-    public GLTexture down8(GLTexture input) {
+    /*public GLTexture down8(GLTexture input) {
         glProg.useProgram(R.raw.gaussdown884);
         glProg.setTexture("InputBuffer", input);
         GLTexture Output = new GLTexture(input.mSize.x / 8, input.mSize.y / 8, input.mFormat, null);
         glProg.drawBlocks(Output);
         glProg.close();
         return Output;
-    }
+    }*/
 
     private int SIZE = 256;
 
@@ -225,8 +225,8 @@ public class AWB extends Node {
 
     @Override
     public void Run() {
-        GLTexture r0 = down8(previousNode.WorkingTexture);
-        GLTexture r1 = down8(r0);
+        GLTexture r0 = glUtils.gaussdown(previousNode.WorkingTexture,8);
+        GLTexture r1 = glUtils.gaussdown(r0,8);
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
