@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 
@@ -186,24 +187,26 @@ public class GLUtils {
     }
 
     public GLTexture gaussdown(GLTexture in, int k){
-        return gaussdown(in,k,(double)k*0.3);
+        return gaussdown(in,k,(double)k*1.5);
     }
     public GLTexture gaussdown(GLTexture in, int k,double blur){
         glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
                 //"#define size1 ("+(double)k*0.3+")\n" +
-                "#define size1 ("+blur+")\n" +
-                "#define transpose ("+(int)((4.5/k)+1)+")\n" +
+                "#define transpose ("+(int)((k/2)+1)+")\n" +
+                "#define size1 ("+blur/((k/2)+1)+")\n" +
                 "#define MSIZE1 5\n" +
                 "#define resize ("+k+")\n" +
                 "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                "    xy+=ivec2(0,yOffset);\n" +
+                "    xy+=ivec2(0,yOffset-resize);\n" +
                 "    xy*=resize;\n" +
                 "    const int kSize = (MSIZE1-1)/2;\n" +
                 "    float kernel[MSIZE1];\n" +
@@ -257,13 +260,42 @@ public class GLUtils {
                 "\n" +
                 "}\n" +
                 */
+                //"#import interpolation\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                //"    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    xy/=resize;\n" +
+                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)" +in.mFormat.getTemExt()+");\n" +
+                //"    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
+        //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
+        GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
+        glProg.drawBlocks(out);
+        glProg.close();
+        //return blur(out,k-1);
+        return out;
+    }
+    public GLTexture interpolate(GLTexture in, int k){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "uniform ivec2 size;" +
+                "uniform ivec2 sizein;" +
+                "out tvar Output;\n" +
+                "#define resize ("+k+")\n" +
                 "#import interpolation\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                "    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
-                //"    xy/=resize;\n" +
-                //"    Output = tvar(texelFetch(InputBuffer, (xy), 0)" +in.mFormat.getTemExt()+");\n" +
-                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                //"    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    Output = tvar(textureLinear(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
@@ -276,6 +308,8 @@ public class GLUtils {
     }
     public GLTexture downscale(GLTexture in, int k){
         glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
@@ -377,6 +411,27 @@ public class GLUtils {
         glProg.close();
         return out;
     }
+    public GLTexture convertVec4(GLTexture in,String operation){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "out vec4 Output;\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    tvar in = tvar((texelFetch(InputBuffer, xy, 0))"+in.mFormat.getTemExt()+");\n" +
+                "    Output = vec4("+operation+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4));
+        glProg.drawBlocks(out);
+        return out;
+    }
+
     public static class Pyramid {
         public GLTexture[] gauss;
         public GLTexture[] laplace;
@@ -400,11 +455,13 @@ public class GLUtils {
         for (int i = 1; i < downscaled.length; i++) {
             //downscaled[i] = downscale(blur(downscaled[i - 1],5),step);
             //downscaled[i] = gaussdown(downscaled[i - 1],step,0.1);
-            downscaled[i] = gaussdown(downscaled[i - 1],step,0.6);
+            //downscaled[i] = gaussdown(downscaled[i - 1],step,0.6);
+            downscaled[i] = gaussdown(downscaled[i - 1],step);
         }
         for (int i = 0; i < upscale.length; i++) {
             //upscale[i] = blur(upscale(downscaled[i + 1],step),1);
-            upscale[i] = (upscale(downscaled[i + 1],step));
+            //upscale[i] = blur(interpolate(downscaled[i + 1],step),5.0);
+            upscale[i] = (interpolate(downscaled[i + 1],step));
         }
          GLTexture[] diff = new GLTexture[upscale.length];
         glProg.useProgram("" +
@@ -481,21 +538,27 @@ public class GLUtils {
         glProg.close();
         return pyramid;
     }
-    public void SaveProgResult(Point size, String namesuffix){
-        SaveProgResult(size, namesuffix, 4);
+    public Bitmap SaveProgResult(Point size){
+        return SaveProgResult(size, "");
     }
-    public void SaveProgResult(Point size, String namesuffix, int channels){
+    public Bitmap SaveProgResult(Point size, String namesuffix){
+        return SaveProgResult(size, namesuffix, 4);
+    }
+    public Bitmap SaveProgResult(Point size, String namesuffix, int channels){
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
-        File debug = new File(imageFileToSave.getAbsolutePath()+namesuffix+".jpg");
-        FileOutputStream fOut = null;
-        try {
-            debug.createNewFile();
-            fOut = new FileOutputStream(debug);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
-        preview.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
+        if(!namesuffix.equals("")) {
+            File debug = new File(imageFileToSave.getAbsolutePath() + namesuffix + ".jpg");
+            FileOutputStream fOut = null;
+            try {
+                debug.createNewFile();
+                fOut = new FileOutputStream(debug);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            preview.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
+        }
+        return preview;
     }
 }

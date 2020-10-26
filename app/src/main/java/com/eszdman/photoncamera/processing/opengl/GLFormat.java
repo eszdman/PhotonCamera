@@ -362,13 +362,16 @@ public class GLFormat {
             case FLOAT_32:
             case FLOAT_64:
             case FLOAT_16:
+                return "sampler2D";
             case SIGNED_8:
             case SIGNED_16:
             case SIGNED_32:
-                return "sampler2D";
+            case SIGNED_64:
+                return "isampler2D";
             case UNSIGNED_8:
             case UNSIGNED_16:
             case UNSIGNED_32:
+            case UNSIGNED_64:
                 return "usampler2D";
         }
         return "sampler2D";

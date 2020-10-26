@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
@@ -18,10 +19,11 @@ public class ExposureFusion extends Node {
     @Override
     public void Compile() {}
 
-    GLTexture Overexpose(GLTexture in){
+    GLTexture Overexpose(GLTexture in,float str){
         glProg.useProgram(R.raw.overexpose);
         glProg.setTexture("InputBuffer",in);
-        glProg.setVar("factor",6f);
+        glProg.setVar("factor", str);
+        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
         GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
         glProg.drawBlocks(out);
         glProg.close();
@@ -32,8 +34,8 @@ public class ExposureFusion extends Node {
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(12,2,Overexpose(in));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(12,2,in);
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,2,Overexpose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*2.0f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,2,Overexpose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*0.3f));
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);
         GLTexture wip = new GLTexture(normalExpo.gauss[normalExpo.gauss.length - 1]);
@@ -45,7 +47,7 @@ public class ExposureFusion extends Node {
         glProg.close();
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
                 //GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
-                GLTexture upsampleWip = (glUtils.upscale(wip,2));
+                GLTexture upsampleWip = (glUtils.interpolate(wip,2));
                 glProg.useProgram(R.raw.fusion);
 
                 glProg.setTexture("upsampled", upsampleWip);
@@ -69,6 +71,7 @@ public class ExposureFusion extends Node {
 
         }
         WorkingTexture = wip;
+        //WorkingTexture = glUtils.interpolate(glUtils.gaussdown(Overexpose(in),10),10);
         glProg.close();
         highExpo.releasePyramid();
         normalExpo.releasePyramid();

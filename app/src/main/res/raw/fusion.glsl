@@ -1,6 +1,6 @@
 #version 300 es
 
-precision mediump float;
+precision highp float;
 precision mediump sampler2D;
 
 uniform sampler2D upsampled;

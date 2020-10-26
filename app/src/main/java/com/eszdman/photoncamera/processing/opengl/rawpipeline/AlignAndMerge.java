@@ -93,38 +93,83 @@ public class AlignAndMerge extends Node {
 
     private GLTexture Align(GLTexture brTex22, GLTexture brTex88, GLTexture brTex3232, GLTexture main22, GLTexture main88, GLTexture main3232) {
         startT();
-        glProg.useProgram(R.raw.pyramidalign);
+        int tileSize = 128;
+
+
+        GLTexture large = new GLTexture(new Point(brTex22.mSize.x / (tileSize), brTex22.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
+        GLTexture medium = new GLTexture(new Point(brTex88.mSize.x / (tileSize), brTex88.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
+        GLTexture small = new GLTexture(new Point(brTex3232.mSize.x / (tileSize), brTex3232.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
+        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.setVar("prevLayerScale",0);
+        glProg.setTexture("InputBuffer",brTex3232);
+        glProg.setVar("size",brTex3232.mSize);
+        glProg.setTexture("MainBuffer",main3232);
+        glProg.drawBlocks(small);
+        glProg.close();
+
+        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.setVar("prevLayerScale",4);
+        glProg.setTexture("AlignVectors",small);
+        glProg.setVar("size",brTex88.mSize);
+        glProg.setTexture("InputBuffer",brTex88);
+        glProg.setTexture("MainBuffer",main88);
+        glProg.drawBlocks(medium);
+        //small.close();
+        glProg.close();
+
+        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.setVar("prevLayerScale",4);
+        glProg.setTexture("AlignVectors",medium);
+        glProg.setVar("size",brTex22.mSize);
+        glProg.setTexture("InputBuffer",brTex22);
+        glProg.setTexture("MainBuffer",main22);
+        glProg.drawBlocks(large);
+        Log.d("Alignment","Size:"+large.mSize);
+        //medium.close();
+        glProg.close();
+        //glUtils.convertVec4(brTex22,".rg/vec2("+(double)(0.1)+")+vec2("+(double)(0.5)+"),0.5,1.0");
+        //glUtils.convertVec4(large,"ivec4(in.rg,0,1)");
+        //glUtils.SaveProgResult(brTex22.mSize,"align");
+        glProg.close();
+        endT("Alignment");
+        return large;
+
+
+        /*glProg.useProgram(R.raw.pyramidalign);
         glProg.setTexture("InputBuffer", brTex3232);
         glProg.setTexture("MainBuffer", main3232);
         glProg.setVar("Mpy", 32);
-        glProg.setVar("maxSize", brTex3232.mSize.x, brTex3232.mSize.y);
-        int tileSize = 128;
-        GLTexture alignVectors = new GLTexture(new Point(rawSize.x / tileSize, rawSize.y / tileSize), new GLFormat(GLFormat.DataType.FLOAT_16, 2), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
-        glProg.setTexture("AlignVectors", alignVectors);
-        glProg.drawBlocks(alignVectors);
-        glProg.close();
 
+        GLTexture out1 = new GLTexture(new Point(rawSize.x / (tileSize), rawSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        glProg.setTexture("AlignVectors", out1);
+        GLTexture out = new GLTexture(out1);
+        glProg.drawBlocks(out);
+        glProg.close();
+        out1.close();
         glProg.useProgram(R.raw.pyramidalign);
         glProg.setTexture("InputBuffer", brTex88);
         glProg.setTexture("MainBuffer", main88);
         glProg.setVar("Mpy", 8);
-        glProg.setVar("minSize", (int) (brTex88.mSize.x * 0.08), (int) (brTex88.mSize.y * 0.08));
-        glProg.setVar("maxSize", (int) (brTex88.mSize.x * (1.0 - 0.08)), (int) (brTex88.mSize.y * (1.0 - 0.08)));
-        glProg.setTexture("AlignVectors", alignVectors);
-        glProg.drawBlocks(alignVectors);
+        out1 = new GLTexture(out);
+        glProg.setTexture("AlignVectors", out);
+        glProg.drawBlocks(out1);
         glProg.close();
-
+        out.close();
         glProg.useProgram(R.raw.pyramidalign);
         glProg.setTexture("InputBuffer", brTex22);
         glProg.setTexture("MainBuffer", main22);
         glProg.setVar("Mpy", 2);
-        glProg.setVar("minSize", (int) (brTex22.mSize.x * 0.15), (int) (brTex22.mSize.y * 0.15));
-        glProg.setVar("maxSize", (int) (brTex22.mSize.x * 0.83), (int) (brTex22.mSize.y * 0.83));
-        glProg.setTexture("AlignVectors", alignVectors);
-        glProg.drawBlocks(alignVectors);
+        out = new GLTexture(out1);
+        glProg.setTexture("AlignVectors", out1);
+        glProg.drawBlocks(out);
         glProg.close();
+        out1.close();
         endT("Alignment");
-        return alignVectors;
+        glUtils.convertVec4(out,"/vec2("+(double)(tileSize)+")+vec2("+(1.5)+"),0.5,1.0");
+        glUtils.SaveProgResult(out.mSize,"align");
+        return out;*/
+
+
     }
 
     private GLTexture Weights(GLTexture brTex22, GLTexture base22, GLTexture align) {
@@ -134,7 +179,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer22", base22);
         glProg.setTexture("AlignVectors", align);
         glProg.setVarU("rawsize", rawSize);
-        GLTexture output = new GLTexture(new Point(align.mSize.x, align.mSize.y), new GLFormat(GLFormat.DataType.FLOAT_16), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        GLTexture output = new GLTexture(new Point(align.mSize.x, align.mSize.y), new GLFormat(GLFormat.DataType.FLOAT_16), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(output);
         glProg.close();
         endT("Weights");
@@ -154,7 +199,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer22", base22);
 
         glProg.setTexture("OutputBuffer", Output);
-        glProg.setVar("alignk", 1.f / (float) ((RawPipeline) (basePipeline)).imageObj.size());
+        glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
         glProg.setVarU("rawsize", rawSize);
         glProg.setVarU("weightsize", weights.mSize);
         glProg.setVarU("alignsize", alignVectors.mSize);

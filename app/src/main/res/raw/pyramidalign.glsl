@@ -8,6 +8,7 @@ uniform sampler2D AlignVectors;
 uniform int yOffset;
 uniform ivec2 maxSize;
 uniform ivec2 minSize;
+uniform ivec2 size;
 uniform int Mpy;
 out vec2 Output;
 #define M_PI 3.1415926535897932384626433832795f
@@ -44,23 +45,23 @@ void main() {
     float dist = 0.0;
     int cnt = 0;
 
-    ivec2 texsize = ivec2(textureSize(InputBuffer, 0));
+    ivec2 texsize = ivec2(size);
     ivec2 start;
     ivec2 end;
     vec4 in1;
     vec4 in2;
     ivec2 shift;
     float lumDist = FLT_MAX;
-    if(xy.x < maxSize.x && xy.y < maxSize.y && xy.x > minSize.x && xy.y > minSize.y)
+    //if(xy.x < maxSize.x && xy.y < maxSize.y && xy.x > minSize.x && xy.y > minSize.y)
     for(int h =-MAXY;h<MAXY;h++){
         for(int w = -MAXX;w<MAXX;w++){
 
             shift = ivec2(w,h)+prevAlign/mpy;
             texsize = min(texsize,texsize+shift);
-            //start = clamp(xy*tSize-2,ivec2(0),texsize);
-            //end = clamp(xy*tSize+tSize,ivec2(0),texsize);
-            start = xy*tSize-2;
-            end = xy*tSize+nsize;
+            start = clamp(xy*tSize-2,ivec2(0),texsize-1);
+            end = clamp(xy*tSize+nsize,ivec2(0),texsize);
+            //start = xy*tSize-2;
+            //end = xy*tSize+nsize;
 
             for(int h2=start.y; h2<end.y; h2++){
                 for(int w2=start.x;w2<end.x;w2++){
@@ -71,7 +72,7 @@ void main() {
                     cnt++;
                 }
             }
-            if(dist >= 0.0) {
+            if(cnt != 0) {
                 dist/=float(cnt);
             } else dist = FLT_MAX;
 
