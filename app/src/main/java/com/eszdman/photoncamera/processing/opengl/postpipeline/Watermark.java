@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.util.Log;
@@ -21,6 +23,7 @@ import static android.opengl.GLES20.GL_NEAREST;
 public class Watermark extends Node {
     private int rotate;
     private boolean watermarkNeeded;
+    private Bitmap watermark;
     public Watermark(int rotation,boolean isWaterNeeded) {
         super(0, "AddWatermark");
         rotate = rotation;
@@ -31,15 +34,21 @@ public class Watermark extends Node {
     public void Compile() {}
 
     @Override
+    public void AfterRun() {
+        if(watermark != null) watermark.recycle();
+        //previousNode.WorkingTexture.close();
+    }
+
+    @Override
     public void Run() {
         if(watermarkNeeded) {
             glProg.useProgram(R.raw.addwatermark_rotate);
-            BitmapDrawable dr = (BitmapDrawable) PhotonCamera.getCameraActivity().getDrawable(R.drawable.photoncamera_watermark);
-            ByteBuffer buff = ByteBuffer.allocate(dr.getBitmap().getByteCount());
-            dr.getBitmap().copyPixelsToBuffer(buff);
+            watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
+            ByteBuffer buff = ByteBuffer.allocate(watermark.getByteCount());
+            watermark.copyPixelsToBuffer(buff);
         Log.v("Watermark", "Buffer size:" + buff.capacity());
         buff.position(0);
-        glProg.setTexture("Watermark", new GLTexture(dr.getBitmap().getWidth(), dr.getBitmap().getHeight(), new GLFormat(GLFormat.DataType.FLOAT_16, 1), buff));
+        glProg.setTexture("Watermark", new GLTexture(watermark.getWidth(), watermark.getHeight(), new GLFormat(GLFormat.DataType.FLOAT_16, 1), buff));
         } else {
             glProg.useProgram(R.raw.rotate);
         }

@@ -27,15 +27,6 @@ public class AWB extends Node {
     @Override
     public void Compile() {}
 
-    /*public GLTexture down8(GLTexture input) {
-        glProg.useProgram(R.raw.gaussdown884);
-        glProg.setTexture("InputBuffer", input);
-        GLTexture Output = new GLTexture(input.mSize.x / 8, input.mSize.y / 8, input.mFormat, null);
-        glProg.drawBlocks(Output);
-        glProg.close();
-        return Output;
-    }*/
-
     private int SIZE = 256;
 
     private short[][] Histogram(Bitmap in) {
@@ -227,10 +218,12 @@ public class AWB extends Node {
     public void Run() {
         GLTexture r0 = glUtils.gaussdown(previousNode.WorkingTexture,8);
         GLTexture r1 = glUtils.gaussdown(r0,8);
+        r0.close();
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
         if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
+        r1.close();
         WorkingTexture = glUtils.mpy( previousNode.WorkingTexture,CCV(Histogram(preview)));
         //PatchPoint(CCVBased(Histogram(preview)));
         //WorkingTexture = previousNode.WorkingTexture;

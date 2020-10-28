@@ -42,7 +42,7 @@ public class IsoModel extends ManualModel<Integer> {
         for(double isoCnt = Math.log10(1)/Math.log10(2); isoCnt<=Math.log10((double)maxiso/miniso)/Math.log10(2);isoCnt+=1.0/4.0){
             int val = (int)(Math.pow(2.0,isoCnt)*miniso);
             candidates.add(String.valueOf(val));
-            values.add(val);
+            values.add((int)(val/IsoExpoSelector.getMPY()));
         }
         /*for (String isoCandidate : ISO_CANDIDATES) {
             int isoValue = Integer.parseInt(isoCandidate);
@@ -94,7 +94,7 @@ public class IsoModel extends ManualModel<Integer> {
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value/ IsoExpoSelector.getMPY()));
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value / IsoExpoSelector.getMPY()));
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCameraFragment().mPreviewExposureTime);
         }
         PhotonCamera.getCameraFragment().rebuildPreviewBuilder();

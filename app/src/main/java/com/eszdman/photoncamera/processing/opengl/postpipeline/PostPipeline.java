@@ -24,7 +24,6 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
-    GLTexture noiseMap;
     /**
      * Embeds an image watermark over a source image to produce
      * a watermarked one.
@@ -119,15 +118,11 @@ public class PostPipeline extends GLBasePipeline {
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
 
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
-            add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
-            add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
-
+            add(new SmartNR("SmartNR"));
             //add(new Bilateral(R.raw.bilateral, "Bilateral"));
             //add(new Median(R.raw.medianfilter,"SmartMedian"));
-            add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
-                for(int i =1; i<5;i++){
+                    for(int i =1; i<5;i++){
                     add(new Median(new Point(i,i/2),"FastMedian"));
                     add(new Median(new Point(i/2,i),"FastMedian"));
                     //add(new Median(new Point(i,i),"FastMedian"));

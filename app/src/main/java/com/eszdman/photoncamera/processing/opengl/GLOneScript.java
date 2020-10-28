@@ -26,7 +26,6 @@ public class GLOneScript implements AutoCloseable {
         } else {
             glOne = new GLOneParams(size, output, glFormat);
         }
-
         Name = name;
         Rid = rid;
     }
@@ -46,14 +45,19 @@ public class GLOneScript implements AutoCloseable {
         startT();
         StartScript();
         if (!hiddenScript) {
-            glOne.glProgram.drawBlocks(WorkingTexture);
+            //glOne.glProgram.drawBlocks(WorkingTexture);
+            WorkingTexture.BufferLoad();
             glOne.glProcessing.drawBlocksToOutput();
         } else {
             glOne.glProgram.drawBlocks(WorkingTexture);
         }
+        AfterRun();
         glOne.glProgram.close();
         endT();
         Output = glOne.glProcessing.mOutBuffer;
+    }
+    public void AfterRun(){
+
     }
 
     public void startT() {

@@ -14,6 +14,12 @@ import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 public class Median extends Node {
     Point transposing;
+
+    @Override
+    public void AfterRun() {
+        previousNode.WorkingTexture.close();
+    }
+
     public Median(Point transpose, String name) {
         super(R.raw.medianfilter, name);
         transposing = transpose;

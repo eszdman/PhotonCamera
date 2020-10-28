@@ -93,6 +93,7 @@ public class ImageSaver implements Runnable {
     private void initProcess(ImageReader mReader) {
         Log.d(TAG, "initProcess() : called from \"" + Thread.currentThread().getName() + "\" Thread");
         Image mImage = mReader.acquireNextImage();
+        if(mImage == null) return;
         int format = mImage.getFormat();
         FileOutputStream output = null;
         switch (format) {

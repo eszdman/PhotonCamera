@@ -20,6 +20,7 @@ public class GLCoreBlockProcessing extends GLContext {
     public final ByteBuffer mBlockBuffer;
     public final ByteBuffer mOutBuffer;
     private final GLFormat mglFormat;
+    public boolean direct = false;
 
     public static void checkEglError(String op) {
         int error = GLES30.glGetError();
@@ -41,7 +42,10 @@ public class GLCoreBlockProcessing extends GLContext {
         mOutWidth = size.x;
         mOutHeight = size.y;
         mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLConst.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
-        mOutBuffer = ByteBuffer.allocateDirect(mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        if(direct)mOutBuffer = ByteBuffer.allocateDirect(mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        else {
+            mOutBuffer = ByteBuffer.allocate(mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        }
     }
 
     public void drawBlocksToOutput() {

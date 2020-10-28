@@ -44,6 +44,6 @@ public class Initial extends Node {
         float sat =(float) PhotonCamera.getSettings().saturation;
         if(PhotonCamera.getSettings().cfaPattern == -2) sat = 0.f;
         glProg.setVar("saturation",sat);
-        WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
+        WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
     }
 }

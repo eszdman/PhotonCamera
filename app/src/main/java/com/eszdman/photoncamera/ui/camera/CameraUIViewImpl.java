@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.ui.camera;
 
 import android.graphics.Bitmap;
+import android.hardware.camera2.CaptureResult;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -11,10 +12,12 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 
@@ -46,6 +49,8 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ImageButton mFlipCameraButton;
     private ImageButton mSettingsButton;
     private ToggleButton mHdrXButton;
+    private TextView mframeTimer;
+    private TextView mframeCount;
 
     public CameraUIViewImpl(View rootView) {
         Log.d(TAG, "CameraUIView() called with: rootView = [" + rootView + "]");
@@ -55,21 +60,23 @@ public final class CameraUIViewImpl implements CameraUIView {
         refresh();
     }
 
-    private void initViews(View rootView) {
-        mGridView = rootView.findViewById(R.id.grid_view);
-        mRoundEdgesView = rootView.findViewById(R.id.round_edges_view);
-        mCaptureProgressBar = rootView.findViewById(R.id.capture_progress_bar);
-        mProcessingProgressBar = rootView.findViewById(R.id.processing_progress_bar);
-        mShutterButton = rootView.findViewById(R.id.shutter_button);
-        mGalleryImageButton = rootView.findViewById(R.id.gallery_image_button);
-        mFpsButton = rootView.findViewById(R.id.fps_toggle_button);
-        mHdrXButton = rootView.findViewById(R.id.hdrx_toggle_button);
-        mModePicker = rootView.findViewById(R.id.mode_picker_view);
-        mQuadResolutionButton = rootView.findViewById(R.id.quad_res_toggle_button);
-        mEisPhotoButton = rootView.findViewById(R.id.eis_toggle_button);
-        mFlipCameraButton = rootView.findViewById(R.id.flip_camera_button);
-        mSettingsButton = rootView.findViewById(R.id.settings_button);
-        mAuxGroupContainer = rootView.findViewById(R.id.aux_buttons_container);
+    private void initViews(View rview) {
+        mGridView = rview.findViewById(R.id.grid_view);
+        mRoundEdgesView = rview.findViewById(R.id.round_edges_view);
+        mCaptureProgressBar = rview.findViewById(R.id.capture_progress_bar);
+        mProcessingProgressBar = rview.findViewById(R.id.processing_progress_bar);
+        mShutterButton = rview.findViewById(R.id.shutter_button);
+        mGalleryImageButton = rview.findViewById(R.id.gallery_image_button);
+        mFpsButton = rview.findViewById(R.id.fps_toggle_button);
+        mHdrXButton = rview.findViewById(R.id.hdrx_toggle_button);
+        mModePicker = rview.findViewById(R.id.mode_picker_view);
+        mQuadResolutionButton = rview.findViewById(R.id.quad_res_toggle_button);
+        mEisPhotoButton = rview.findViewById(R.id.eis_toggle_button);
+        mFlipCameraButton = rview.findViewById(R.id.flip_camera_button);
+        mSettingsButton = rview.findViewById(R.id.settings_button);
+        mAuxGroupContainer = rview.findViewById(R.id.aux_buttons_container);
+        mframeTimer = rview.findViewById(R.id.frameTimer);
+        mframeCount = rview.findViewById(R.id.frameCount);
     }
 
     private void initListeners() {
@@ -220,6 +227,28 @@ public final class CameraUIViewImpl implements CameraUIView {
         try {
             mCaptureProgressBar.setAlpha(alpha);
         } catch (Exception ignore){}
+    }
+
+    @Override
+    public void setFrameTimeCnt(int cnt,int maxcnt){
+        switch(PhotonCamera.getSettings().selectedMode){
+            case NIGHT:
+
+                return;
+            case PHOTO:
+                mframeCount.setText(String.valueOf(cnt));
+
+                return;
+            case UNLIMITED:
+
+
+        }
+    }
+
+    @Override
+    public void clearFrameTimeCnt() {
+        mframeCount.setText("");
+        mframeTimer.setText("");
     }
 
     @Override

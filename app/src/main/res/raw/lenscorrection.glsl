@@ -12,8 +12,8 @@ uniform int yOffset;
 out vec4 Output;
 #import interpolation
 void main() {
-    ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
+    vec2 xy = vec2(gl_FragCoord.xy);
+    xy+=vec2(0,yOffset);
     float mapbr = length(textureLinear(GainMap,vec2(xy)/vec2(size)))/avrbr;
     vec2 inxy = vec2(xy)/vec2(size);
     inxy-=0.5;

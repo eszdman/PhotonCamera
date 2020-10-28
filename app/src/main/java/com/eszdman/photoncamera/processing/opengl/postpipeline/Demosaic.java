@@ -33,15 +33,12 @@ public class Demosaic extends Node {
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
-        //glProg.servar("RawSizeX",params.rawSize.x);
-        //glProg.servar("RawSizeY",params.rawSize.y);
         GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
         glProg.drawBlocks(green);
         glProg.close();
         glProg.useProgram(R.raw.demosaicp2);
         GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("RawBuffer", glTexture);
-        Log.d(Name, "Texture format:" + green);
         glProg.setTexture("GreenBuffer", green);
         glProg.setTexture("GainMap",GainMapTex);
         glProg.setVar("WhiteLevel", params.whiteLevel);
@@ -51,7 +48,7 @@ public class Demosaic extends Node {
             params.blackLevel[i]/=params.whiteLevel;
         }
         glProg.setVar("blackLevel",params.blackLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
+        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 3), null);
         glProg.drawBlocks(WorkingTexture);
         green.close();
         GainMapTex.close();

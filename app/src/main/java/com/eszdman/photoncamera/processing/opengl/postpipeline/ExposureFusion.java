@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.util.Log;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
@@ -11,10 +13,6 @@ public class ExposureFusion extends Node {
 
     public ExposureFusion(String name) {
         super(0, name);
-    }
-    @Override
-    public void AfterRun() {
-        previousNode.WorkingTexture.close();
     }
     @Override
     public void Compile() {}
@@ -43,9 +41,12 @@ public class ExposureFusion extends Node {
     @Override
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
+        double compressor = (PhotonCamera.getSettings().compressor);
+        if(PhotonCamera.getManualMode().getCurrentExposureValue() != -1 && PhotonCamera.getManualMode().getCurrentISOValue() != -1) compressor = 1.f;
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,2, expose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))*2.0f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,2, expose(in,(float)(1.0/(PhotonCamera.getSettings().compressor))/5.f));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(4,3, expose(in,(float)(1.0/compressor)*2.0f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(4,3, expose(in,(float)(1.0/compressor)/5.f));
+        in.close();
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);
         GLTexture wip = new GLTexture(normalExpo.gauss[normalExpo.gauss.length - 1]);
@@ -56,16 +57,17 @@ public class ExposureFusion extends Node {
         glProg.drawBlocks(wip);
         glProg.close();
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-                //GLTexture upsampleWip = glUtils.blur(glUtils.upscale(wip,2),5.0);
-                GLTexture upsampleWip = (glUtils.interpolate(wip,2));
+                //GLTexture upsampleWip = (glUtils.interpolate(wip,normalExpo.sizes[i]));
+                //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
+                GLTexture upsampleWip = wip;
+                Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
                 glProg.useProgram(R.raw.fusion);
 
                 glProg.setTexture("upsampled", upsampleWip);
                 glProg.setVar("useUpsampled", 1);
-                //if(i!=0)glProg.setVar("useUpsampled", 1);
-                //else glProg.setVar("useUpsampled", 0);
+                glProg.setVar("upscaleIn",normalExpo.sizes[i]);
                 // We can discard the previous work in progress merge.
-                wip.close();
+                //wip.close();
                 wip = new GLTexture(normalExpo.laplace[i]);
 
                 // Weigh full image.
@@ -78,14 +80,19 @@ public class ExposureFusion extends Node {
 
                 glProg.drawBlocks(wip);
                 glProg.close();
+                upsampleWip.close();
+                normalExpo.gauss[i].close();
+                highExpo.gauss[i].close();
+                normalExpo.laplace[i].close();
+                highExpo.laplace[i].close();
 
         }
+        previousNode.WorkingTexture.close();
         WorkingTexture = unexpose(wip);
-        //WorkingTexture = glUtils.interpolate(glUtils.gaussdown(Overexpose(in),10),10);
+        Log.d(Name,"Output Size:"+wip.mSize);
+        wip.close();
         glProg.close();
         highExpo.releasePyramid();
         normalExpo.releasePyramid();
-        //WorkingTexture = normalExpo.gauss[1];
-        //WorkingTexture = glUtils.gaussdown(glUtils.upscale(in,2),2);
     }
 }

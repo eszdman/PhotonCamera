@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.ui.camera;
 
 import android.graphics.Bitmap;
+import android.hardware.camera2.CaptureResult;
 import android.view.View;
 
 import com.eszdman.photoncamera.api.CameraMode;
@@ -67,6 +68,10 @@ public interface CameraUIView {
     void setCaptureProgressBarOpacity(float alpha);
 
     void setCaptureProgressMax(int max);
+
+    void setFrameTimeCnt(int cnt, int maxcnt);
+
+    void clearFrameTimeCnt();
 
     /**
      * Setter for CameraUIEventsListener

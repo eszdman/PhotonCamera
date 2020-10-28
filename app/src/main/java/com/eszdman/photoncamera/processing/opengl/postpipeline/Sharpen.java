@@ -19,7 +19,6 @@ public class Sharpen extends Node {
     public void Run() {
         GLInterface glint = basePipeline.glint;
         Node Previous = super.previousNode;
-        GLProg glProg = glint.glProgram;
         float sharpnessLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 14.2f;
         sharpnessLevel = Math.max(0.5f, sharpnessLevel);
         sharpnessLevel = Math.min(1.5f, sharpnessLevel);

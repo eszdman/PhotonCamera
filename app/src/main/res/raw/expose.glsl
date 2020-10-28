@@ -7,7 +7,7 @@ uniform vec3 neutralPoint;
 out vec3 result;
 uniform int yOffset;
 float gammaEncode(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.4)) - 0.055;
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.2)) - 0.055;
 }
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);

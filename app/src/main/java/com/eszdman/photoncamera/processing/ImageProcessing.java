@@ -70,7 +70,9 @@ public class ImageProcessing {
             processingEventsListener.onErrorOccurred(ProcessingEventsListener.FAILED_MSG);
         }
     }
-    public static int unlimitedCounter = 0;
+    public static int unlimitedCounter = 1;
+    private boolean end = false;
+    AverageRaw averageRaw;
     public void unlimitedCycle(Image input) {
         int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
@@ -78,37 +80,42 @@ public class ImageProcessing {
         if (unlimitedBuffer == null) {
             unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
         }
-        AverageRaw averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, R.raw.average, "UnlimitedAvr");
+        averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         averageRaw.additionalParams = new AverageParams(unlimitedBuffer, input.getPlanes()[0].getBuffer());
         averageRaw.Run();
-        unlimitedBuffer = averageRaw.Output;
-        averageRaw.close();
+        //unlimitedBuffer = averageRaw.Output;
         input.close();
         unlimitedCounter++;
+        if(end){
+            end = false;
+            PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+//        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
+            unlimitedCounter = 0;
+            averageRaw.FinalScript();
+            unlimitedBuffer = averageRaw.Output;
+            averageRaw.close();
+            PostPipeline pipeline = new PostPipeline();
+            pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
+            pipeline.close();
+            try {
+                ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
+                if (!PhotonCamera.getSettings().rawSaver) {
+                    try {
+                        inter.saveAttributes();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if(unlimitedBuffer!= null) unlimitedBuffer.clear();
+            processingEventsListener.onImageSaved(ImageSaver.imageFileToSave);
+        }
     }
 
     public void unlimitedEnd() {
-        Log.d(TAG, "Wrapper.processFrame()");
-        PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
-//        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
-        unlimitedCounter = 0;
-        PostPipeline pipeline = new PostPipeline();
-        pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
-        pipeline.close();
-        try {
-            ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
-            if (!PhotonCamera.getSettings().rawSaver) {
-                try {
-                    inter.saveAttributes();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        unlimitedBuffer.clear();
-        processingEventsListener.onImageSaved(ImageSaver.imageFileToSave);
+        end = true;
 //        ImageSaver.triggerMediaScanner(ImageSaver.imageFileToSave);
     }
 

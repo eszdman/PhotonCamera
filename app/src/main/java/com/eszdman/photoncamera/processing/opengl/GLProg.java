@@ -194,6 +194,14 @@ public class GLProg implements AutoCloseable {
         drawBlocks(texture, bh, false);
     }
 
+    public void drawBlocks(GLTexture texture, boolean forceFlush) {
+        if(!forceFlush) {
+            drawBlocks(texture);
+            return;
+        }
+        texture.BufferLoad();
+        drawBlocks(texture.mSize.x, texture.mSize.y, GLConst.TileSize, -1, texture.mFormat.getGLType());
+    }
     public void drawBlocks(GLTexture texture, int bh, boolean forceFlush) {
         texture.BufferLoad();
         drawBlocks(texture.mSize.x, texture.mSize.y, bh, -1, forceFlush ? texture.mFormat.mFormat.mID : -1);
@@ -225,6 +233,11 @@ public class GLProg implements AutoCloseable {
 
     @SuppressWarnings("ConstantConditions")
     public void setTexture(String var, GLTexture tex) {
+        if(tex == null) try {
+            throw new Exception("Wrong Texture:"+var);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         int textureId;
         if (mTextureBinds.containsKey(var)) {
             textureId = mTextureBinds.get(var);

@@ -14,10 +14,12 @@ uniform sampler2D highExpo;
 uniform sampler2D normalExpoDiff;
 uniform sampler2D highExpoDiff;
 
+uniform ivec2 upscaleIn;
+
 out vec3 result;
 
 #import gaussian
-
+#import interpolation
 float laplace(sampler2D tex, float mid, ivec2 xyCenter) {
     float left = texelFetch(tex, xyCenter - ivec2(1, 0), 0).y,
     right = texelFetch(tex, xyCenter + ivec2(1, 0), 0).y,
@@ -39,7 +41,8 @@ void main() {
 
     // If this is the lowest layer, start with zero.
     vec3 base = useUpsampled
-    ? texelFetch(upsampled, xyCenter, 0).xyz
+    //? texelFetch(upsampled, xyCenter, 0).xyz
+    ? textureBicubic(upsampled, vec2(gl_FragCoord.xy)/vec2(upscaleIn)).xyz
     : vec3(0.f);
 
     // How are we going to blend these two?
