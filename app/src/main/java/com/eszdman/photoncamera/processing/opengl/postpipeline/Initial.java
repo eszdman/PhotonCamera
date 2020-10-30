@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.Point;
 import android.util.Log;
 
+import com.eszdman.photoncamera.processing.opengl.GLConst;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
@@ -20,10 +21,6 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class Initial extends Node {
     public Initial(int rid, String name) {
         super(rid, name);
-    }
-    @Override
-    public void AfterRun() {
-        previousNode.WorkingTexture.close();
     }
     @Override
     public void Run() {
@@ -44,6 +41,7 @@ public class Initial extends Node {
         float sat =(float) PhotonCamera.getSettings().saturation;
         if(PhotonCamera.getSettings().cfaPattern == -2) sat = 0.f;
         glProg.setVar("saturation",sat);
-        WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,3),null);
+        //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
+        WorkingTexture = basePipeline.main1;
     }
 }

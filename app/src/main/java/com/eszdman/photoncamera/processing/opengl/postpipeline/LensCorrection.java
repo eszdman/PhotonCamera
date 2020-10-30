@@ -20,10 +20,6 @@ public class LensCorrection extends Node {
     public LensCorrection() {
         super(R.raw.lenscorrection, "LensCorrection");
     }
-    @Override
-    public void AfterRun() {
-        previousNode.WorkingTexture.close();
-    }
 
     @Override
     public void Run() {
@@ -42,7 +38,7 @@ public class LensCorrection extends Node {
         }
         Log.d(Name,"avrbr:"+br);
         glProg.setVar("avrbr",br);
-        WorkingTexture = new GLTexture(previousNode.WorkingTexture);
+        WorkingTexture = basePipeline.getMain();
         //glProg.drawBlocks(WorkingTexture);
         //WorkingTexture = glUtils.blur(WorkingTexture,1.5);
         //glProg.close();

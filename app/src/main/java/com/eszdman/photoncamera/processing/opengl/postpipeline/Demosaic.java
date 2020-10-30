@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.processing.opengl.GLConst;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
@@ -33,9 +34,8 @@ public class Demosaic extends Node {
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
-        GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
+        GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
         glProg.drawBlocks(green);
-        glProg.close();
         glProg.useProgram(R.raw.demosaicp2);
         GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("RawBuffer", glTexture);
@@ -48,7 +48,7 @@ public class Demosaic extends Node {
             params.blackLevel[i]/=params.whiteLevel;
         }
         glProg.setVar("blackLevel",params.blackLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 3), null);
+        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
         glProg.drawBlocks(WorkingTexture);
         green.close();
         GainMapTex.close();

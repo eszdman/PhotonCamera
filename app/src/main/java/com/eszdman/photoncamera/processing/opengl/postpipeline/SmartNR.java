@@ -25,7 +25,7 @@ public class SmartNR extends Node {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         GLTexture detect = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
         glProg.drawBlocks(detect);
-        glProg.close();
+
         GLTexture detectresize = glUtils.gaussdown(detect,4);
         detect.close();
         GLTexture detectblur = glUtils.blur(detectresize,1.2);
@@ -41,7 +41,8 @@ public class SmartNR extends Node {
         glProg.setVar("mapsize", detectblur.mSize);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         glProg.setTexture("NoiseMap", detectblur);
-        WorkingTexture = new GLTexture(previousNode.WorkingTexture);
+        WorkingTexture = basePipeline.getMain();
+        glProg.closed = false;
         detectblur.close();
     }
 }

@@ -218,16 +218,17 @@ public class AWB extends Node {
     public void Run() {
         GLTexture r0 = glUtils.gaussdown(previousNode.WorkingTexture,8);
         GLTexture r1 = glUtils.gaussdown(r0,8);
-        r0.close();
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
         if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
+        r0.close();
         r1.close();
-        WorkingTexture = glUtils.mpy( previousNode.WorkingTexture,CCV(Histogram(preview)));
+        basePipeline.texnum = 1;
+        WorkingTexture = glUtils.mpy(previousNode.WorkingTexture,CCV(Histogram(preview)),basePipeline.getMain());
         //PatchPoint(CCVBased(Histogram(preview)));
         //WorkingTexture = previousNode.WorkingTexture;
-        glProg.close();
+        glProg.closed = true;
     }
     private void PatchPoint(float[] ccv){
         Parameters parameters = PhotonCamera.getParameters();

@@ -33,8 +33,8 @@ public class GLTexture implements AutoCloseable {
     public final int mGLFormat;
     public final int mTextureID;
     public final GLFormat mFormat;
-    private int filter;
-    private int wrap;
+    public int filter;
+    public int wrap;
 
     public GLTexture(GLTexture in) {
         this(in.mSize,in.mFormat,null,in.filter,in.wrap);

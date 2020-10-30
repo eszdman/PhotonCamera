@@ -62,6 +62,7 @@ public class GLProg implements AutoCloseable {
     private final Map<String, Integer> mTextureBinds = new HashMap<>();
     private int mNewTextureId;
     public boolean closed = true;
+    public int currentShader;
     final String vertexShaderSource = "#version 300 es\n" +
             "precision mediump float;\n" +
             "in vec4 vPosition;\n" +
@@ -77,6 +78,7 @@ public class GLProg implements AutoCloseable {
     public void useProgram(int fragmentRes) {
         closed = false;
         int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
+        currentShader = nShader;
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader, nShader);
         glLinkProgram(program);

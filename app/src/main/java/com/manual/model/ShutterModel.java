@@ -36,7 +36,7 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getNewAutoItem(-1.0d, null);
+        KnobItemInfo auto = getNewAutoItem(0.0d, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -113,7 +113,7 @@ public class ShutterModel extends ManualModel<Long> {
         currentInfo = knobItemInfo;
         CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
-            if (PhotonCamera.getManualMode().getCurrentISOValue() == -1)//check if ISO is Auto
+            if (PhotonCamera.getManualMode().getCurrentISOValue() == 0)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);

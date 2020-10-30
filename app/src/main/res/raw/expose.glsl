@@ -1,5 +1,5 @@
 #version 300 es
-
+precision mediump sampler2D;
 precision highp float;
 uniform sampler2D InputBuffer;
 uniform float factor;
@@ -20,7 +20,7 @@ void main() {
 
     xyY.z = sigmoid(xyY.z, 0.9f);
     result = xyYtoXYZ(xyY);*/
-    result = clamp(texelFetch(InputBuffer, xyCenter, 0).xyz*factor,vec3(0.0),neutralPoint);
+    result = clamp(texelFetch(InputBuffer, xyCenter, 0).xyz*factor,vec3(0.0),neutralPoint*0.991);
     result.r = gammaEncode(result.r);
     result.g = gammaEncode(result.g);
     result.b = gammaEncode(result.b);

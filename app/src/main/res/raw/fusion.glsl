@@ -20,11 +20,11 @@ out vec3 result;
 
 #import gaussian
 #import interpolation
-float laplace(sampler2D tex, float mid, ivec2 xyCenter) {
-    float left = texelFetch(tex, xyCenter - ivec2(1, 0), 0).y,
-    right = texelFetch(tex, xyCenter + ivec2(1, 0), 0).y,
-    top = texelFetch(tex, xyCenter - ivec2(0, 1), 0).y,
-    bottom = texelFetch(tex, xyCenter + ivec2(0, 1), 0).y;
+float laplace(sampler2D tex, vec3 mid, ivec2 xyCenter) {
+    vec3 left = texelFetch(tex, xyCenter - ivec2(1, 0), 0).rgb,
+    right = texelFetch(tex, xyCenter + ivec2(1, 0), 0).rgb,
+    top = texelFetch(tex, xyCenter - ivec2(0, 1), 0).rgb,
+    bottom = texelFetch(tex, xyCenter + ivec2(0, 1), 0).rgb;
 
     return distance(4.f * mid, left + right + top + bottom);
 }
@@ -64,8 +64,8 @@ void main() {
     highWeight *= midHighToAvg.x * midHighToAvg.y * midHighToAvg.z;
 
     // Factor 2: Contrast.
-    float laplaceNormal = laplace(normalExpo, midNormal.y, xyCenter);
-    float laplaceHigh = laplace(highExpo, midHigh.y, xyCenter);
+    float laplaceNormal = laplace(normalExpo, midNormal, xyCenter);
+    float laplaceHigh = laplace(highExpo, midHigh, xyCenter);
 
     normalWeight *= sqrt(laplaceNormal + 0.1f);
     highWeight *= sqrt(laplaceHigh + 0.1f);

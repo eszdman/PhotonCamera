@@ -27,7 +27,7 @@ public class IsoModel extends ManualModel<Integer> {
 
     @Override
     protected void fillKnobInfoList() {
-        KnobItemInfo auto = getNewAutoItem(-1.0d, null);
+        KnobItemInfo auto = getNewAutoItem(-0.0d, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -90,11 +90,11 @@ public class IsoModel extends ManualModel<Integer> {
         currentInfo = newval;
         CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
         if (newval.equals(autoModel)) {
-            if (PhotonCamera.getManualMode().getCurrentExposureValue() == -1) //check if Exposure is Auto
+            if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value / IsoExpoSelector.getMPY()));
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value));
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCameraFragment().mPreviewExposureTime);
         }
         PhotonCamera.getCameraFragment().rebuildPreviewBuilder();

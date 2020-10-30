@@ -63,8 +63,8 @@ public class IsoExpoSelector {
 
         double currentManExp = PhotonCamera.getManualMode().getCurrentExposureValue();
         double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
-        pair.exposure = currentManExp != -1 ? (long) currentManExp : pair.exposure;
-        pair.iso = currentManISO != -1 ? (int) currentManISO : pair.iso;
+        pair.exposure = currentManExp != 0 ? (long) currentManExp : pair.exposure;
+        pair.iso = currentManISO != 0 ? (int) currentManISO : pair.iso;
 
         if (step == 3 && HDR) {
             pair.ExpoCompensateLower(1.0 / 1.0);

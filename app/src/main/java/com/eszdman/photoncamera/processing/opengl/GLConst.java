@@ -18,6 +18,7 @@ import static android.opengl.EGL14.EGL_TRUE;
 
 public class GLConst {
     final static int TileSize = 128;
+    public final static int WorkDim = 3;
     final static int EGLDisplay = EGL_DEFAULT_DISPLAY;
     final static int[] attribList = {
             EGL_DEPTH_SIZE, 0,

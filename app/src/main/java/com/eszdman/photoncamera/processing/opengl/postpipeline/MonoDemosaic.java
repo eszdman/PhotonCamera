@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import com.eszdman.photoncamera.processing.opengl.GLConst;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
@@ -22,6 +23,8 @@ public class MonoDemosaic extends Node {
         glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("WhiteLevel", params.whiteLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 3), null);
+        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim), null);
+        glProg.drawBlocks(WorkingTexture);
+        glProg.closed = true;
     }
 }

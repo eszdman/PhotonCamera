@@ -3,8 +3,6 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.*;
 import android.util.Log;
 
-import com.bumptech.glide.load.resource.bitmap.BitmapDrawableEncoder;
-import com.bumptech.glide.load.resource.bitmap.BitmapEncoder;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
@@ -15,9 +13,6 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
-
-import rapid.decoder.BitmapDecoder;
-
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class PostPipeline extends GLBasePipeline {

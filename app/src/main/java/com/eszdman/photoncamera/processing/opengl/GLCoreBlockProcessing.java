@@ -42,9 +42,10 @@ public class GLCoreBlockProcessing extends GLContext {
         mOutWidth = size.x;
         mOutHeight = size.y;
         mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLConst.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
-        if(direct)mOutBuffer = ByteBuffer.allocateDirect(mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        if(direct) mOutBuffer = ByteBuffer.allocateDirect(capacity);
         else {
-            mOutBuffer = ByteBuffer.allocate(mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels);
+            mOutBuffer = ByteBuffer.allocate(capacity);
         }
     }
 

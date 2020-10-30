@@ -15,7 +15,7 @@ uniform ivec2 RawSize;
 #define greenmin (0.04)
 #define greenmax (0.9)
 #import interpolation
-out vec4 Output;
+out vec3 Output;
 float interpolateColor(in ivec2 coords){
     bool usegreen = true;
     float green[5];
@@ -78,7 +78,7 @@ void main() {
     int fact2 = xy.y%2;
     ivec2 shift = ivec2(CfaPattern%2,CfaPattern/2);
     xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
-    vec4 outp;
+    vec3 outp;
     if(fact1 ==0 && fact2 == 0) {//rggb
         outp.g = texelFetch(GreenBuffer, (xy-shift), 0).x;
         outp.r = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
@@ -111,5 +111,4 @@ void main() {
     Output.b = gains.a*(Output.b-blackLevel.a);
     Output/=(1.0-blackLevel.g);
     Output = clamp(Output,0.0,1.0);
-    Output.a = 1.0;
 }

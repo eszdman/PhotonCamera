@@ -26,6 +26,6 @@ public class Sharpen extends Node {
         glProg.setVar("size", sharpnessLevel);
         glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer", Previous.WorkingTexture);
-        WorkingTexture = new GLTexture(Previous.WorkingTexture.mSize, Previous.WorkingTexture.mFormat, null);
+        WorkingTexture = basePipeline.getMain();
     }
 }

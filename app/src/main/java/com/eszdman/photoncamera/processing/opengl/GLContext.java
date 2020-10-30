@@ -21,12 +21,15 @@ import static android.opengl.EGL14.eglMakeCurrent;
 import static android.opengl.EGL14.eglTerminate;
 
 public class GLContext implements AutoCloseable {
-    private final EGLDisplay mDisplay;
-    private final EGLContext mContext;
-    private final EGLSurface mSurface;
+    private EGLDisplay mDisplay;
+    private EGLContext mContext;
+    private EGLSurface mSurface;
     public GLProg mProgram;
 
     public GLContext(int surfaceWidth, int surfaceHeight) {
+        createContext(surfaceWidth,surfaceHeight);
+    }
+    public void createContext(int surfaceWidth, int surfaceHeight){
         int[] major = new int[2];
         int[] minor = new int[2];
         mDisplay = eglGetDisplay(GLConst.EGLDisplay);
