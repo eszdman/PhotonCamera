@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
@@ -66,9 +67,12 @@ public class ExposureFusion extends Node {
         GLTexture in = previousNode.WorkingTexture;
         double compressor = (PhotonCamera.getSettings().compressor);
         if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
-
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(7,2, expose(in,(float)(1.0/compressor)*2.0f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(7,2, expose2(in,(float)(1.0/compressor)/5.f));
+        int perlevel = 4;
+        int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
+        if(levelcount <= 0) levelcount = 2;
+        Log.d(Name,"levelCount:"+levelcount);
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,(float)(1.0/compressor)*2.0f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0/compressor)/5.f));
         //in.close();
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);
@@ -78,6 +82,7 @@ public class ExposureFusion extends Node {
         glProg.setTexture("highExpo",highExpo.gauss[ind]);
         glProg.setTexture("normalExpoDiff",normalExpo.gauss[ind]);
         glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
+        glProg.setVar("upscaleIn",wip.mSize);
         //normalExpo.gauss[ind].close();
         //highExpo.gauss[ind].close();
         glProg.drawBlocks(wip);
@@ -109,6 +114,7 @@ public class ExposureFusion extends Node {
                 glProg.setTexture("highExpoDiff", highExpo.laplace[i]);
 
                 glProg.drawBlocks(wip);
+                //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
                 upsampleWip.close();
                 if(!normalExpo.gauss[i].mSize.equals(basePipeline.main1.mSize)) {
                     normalExpo.gauss[i].close();

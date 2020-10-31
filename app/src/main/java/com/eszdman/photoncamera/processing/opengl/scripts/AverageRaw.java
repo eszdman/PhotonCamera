@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.scripts;
 
 import android.graphics.Point;
+import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -57,6 +58,8 @@ public class AverageRaw extends GLOneScript {
         }
         glProg.setTexture("InputBuffer2",in2);
         glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
+        Log.d(Name,"WhiteLevel:"+(float)(PhotonCamera.getParameters().whiteLevel));
+        glProg.setVar("whitelevel", (float)(PhotonCamera.getParameters().whiteLevel));
         glProg.setVar("unlimitedcount",Math.min(unlimitedCounter,1000));
 
         //WorkingTexture.BufferLoad();
@@ -73,7 +76,7 @@ public class AverageRaw extends GLOneScript {
         glProg = glOne.glProgram;
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",GetAlterIn());
-        glProg.setVar("whitelevel",1.f);
+        glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
         //in1 = WorkingTexture;
         in1 = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16));
         in1.BufferLoad();

@@ -6,6 +6,7 @@ uniform sampler2D InputBuffer;
 uniform usampler2D InputBuffer2;
 uniform int unlimitedcount;
 uniform vec4 blackLevel;
+uniform float whitelevel;
 uniform int first;
 uniform int yOffset;
 out float Output;
@@ -19,7 +20,7 @@ void main() {
     //Output = uint(((rawpart*float((unlimitedcount-1))) +(rawpart2))/float(unlimitedcount) + blackLevel.g+0.5);
     if(first == 1){
         Output = float(
-        float(texelFetch(InputBuffer2, (xy), 0).x)
+        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
         //+ (blackLevel.g-1.5)
         //)
         );
@@ -27,14 +28,14 @@ void main() {
         Output = float(
         //floor(
         mix(
-        float(texelFetch(InputBuffer, (xy), 0).x)-(blackLevel.g+0.5)
+        float(texelFetch(InputBuffer, (xy), 0).x)
         //-(blackLevel.g-1.5)
         ,
-        float(texelFetch(InputBuffer2, (xy), 0).x)-(blackLevel.g+0.5)
+        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
         //-(blackLevel.g-1.5)
         ,
         1.f/float(unlimitedcount)
-        )+(blackLevel.g+0.5)
+        )
         //+ (blackLevel.g-1.5)
         //)
         );

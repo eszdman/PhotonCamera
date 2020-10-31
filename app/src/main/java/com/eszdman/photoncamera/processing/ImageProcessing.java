@@ -85,16 +85,17 @@ public class ImageProcessing {
         if (unlimitedBuffer == null) {
             unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
         }
-        if(averageRaw == null) averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
-        averageRaw.additionalParams = new AverageParams(unlimitedBuffer, input.getPlanes()[0].getBuffer());
+        if(averageRaw == null) {
+            PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+            averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
+        }
+        averageRaw.additionalParams = new AverageParams(null, input.getPlanes()[0].getBuffer());
         averageRaw.Run();
-        unlimitedBuffer = averageRaw.Output;
         input.close();
         unlimitedCounter++;
         if(end){
             end = false;
             lock = true;
-            PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
             unlimitedCounter = 0;
             averageRaw.FinalScript();
