@@ -27,14 +27,14 @@ void main() {
         Output = float(
         //floor(
         mix(
-        float(texelFetch(InputBuffer, (xy), 0).x)
+        float(texelFetch(InputBuffer, (xy), 0).x)-(blackLevel.g+0.5)
         //-(blackLevel.g-1.5)
         ,
-        float(texelFetch(InputBuffer2, (xy), 0).x)
+        float(texelFetch(InputBuffer2, (xy), 0).x)-(blackLevel.g+0.5)
         //-(blackLevel.g-1.5)
         ,
         1.f/float(unlimitedcount)
-        )
+        )+(blackLevel.g+0.5)
         //+ (blackLevel.g-1.5)
         //)
         );
