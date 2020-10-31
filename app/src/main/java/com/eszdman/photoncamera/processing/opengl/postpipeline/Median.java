@@ -16,7 +16,7 @@ public class Median extends Node {
     Point transposing;
 
     public Median(Point transpose, String name) {
-        super(R.raw.medianfilter, name);
+        super(R.raw.hybridmedianfilter, name);
         transposing = transpose;
     }
 
@@ -30,7 +30,10 @@ public class Median extends Node {
         float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 9.2f;
         denoiseLevel -= 0.2;
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
-        denoiseLevel = Math.min(7.f, denoiseLevel);
+        denoiseLevel = Math.min(10.5f, denoiseLevel);
+        Log.d(Name,"denoiseLevel:"+denoiseLevel);
+        glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
+        //glProg.setVar("robust",2.5f);
         glProg.setVar("transpose",transposing);
         //glProg.setVar("mapsize", (float) Previous.WorkingTexture.mSize.x, (float) Previous.WorkingTexture.mSize.y);
         glProg.setTexture("InputBuffer", Previous.WorkingTexture);

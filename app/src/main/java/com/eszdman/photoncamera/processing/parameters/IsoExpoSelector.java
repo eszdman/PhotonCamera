@@ -35,7 +35,7 @@ public class IsoExpoSelector {
                 CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH());
         pair.normalizeiso100();
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
-            mpy = 2.0;
+            mpy = mpy*1.5;
         if (pair.exposure < ExposureIndex.sec / 40 && pair.iso > 90) {
             pair.ReduceIso();
         }

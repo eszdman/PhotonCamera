@@ -142,8 +142,10 @@ public class Settings {
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range<Integer> range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
-        if (selectedMode == CameraMode.NIGHT && range != null)
-            captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION, (int) range.getUpper());
+
+        //if (selectedMode == CameraMode.NIGHT && range != null)
+        //    captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION, (int) range.getUpper());
+
         /*Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/
