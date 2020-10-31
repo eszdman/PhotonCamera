@@ -1,7 +1,7 @@
 #version 300 es
 precision highp float;
 precision mediump usampler2D;
-//precision mediump sampler2D;
+precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform usampler2D InputBuffer2;
 uniform int unlimitedcount;
