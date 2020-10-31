@@ -69,7 +69,7 @@ public interface CameraUIView {
 
     void setCaptureProgressMax(int max);
 
-    void setFrameTimeCnt(int cnt, int maxcnt);
+    void setFrameTimeCnt(int cnt, int maxcnt,double frametime);
 
     void clearFrameTimeCnt();
 

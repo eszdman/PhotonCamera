@@ -37,6 +37,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 } else {
                     if (!mCameraFragment.onUnlimited) {
                         mCameraFragment.onUnlimited = true;
+                        mCameraFragment.unlimitedStart();
                         view.setActivated(false);
                         view.setClickable(true);
                         mCameraFragment.takePicture();

@@ -67,8 +67,8 @@ public class ExposureFusion extends Node {
         double compressor = (PhotonCamera.getSettings().compressor);
         if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(6,2, expose(in,(float)(1.0/compressor)*2.0f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(6,2, expose2(in,(float)(1.0/compressor)/5.f));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(7,2, expose(in,(float)(1.0/compressor)*2.0f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(7,2, expose2(in,(float)(1.0/compressor)/5.f));
         //in.close();
         glProg.useProgram(R.raw.fusion);
         glProg.setVar("useUpsampled",0);

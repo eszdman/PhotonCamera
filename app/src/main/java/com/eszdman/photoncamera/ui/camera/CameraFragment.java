@@ -1451,6 +1451,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 IsoExpoSelector.setExpo(captureBuilder, 0);
                 captures.add(captureBuilder.build());
             }
+            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(0).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
             final int[] burstcount = {0, 0, frameCount};
@@ -1486,6 +1487,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
+                    mCameraUIView.clearFrameTimeCnt();
                     try {
                         mCameraUIView.resetCaptureProgressBar();
                         mTextureView.setAlpha(1f);
@@ -1500,6 +1502,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
+                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                             try {
@@ -1619,6 +1622,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     public void unlimitedEnd() {
         mImageProcessing.unlimitedEnd();
+    }
+    public void unlimitedStart(){
+        mImageProcessing.unlimitedStart();
     }
 
     void launchGallery() {

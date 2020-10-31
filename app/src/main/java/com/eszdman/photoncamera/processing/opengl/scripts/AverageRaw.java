@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.scripts;
 
 import android.graphics.Point;
-import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -14,49 +13,62 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedCounter;
 
 public class AverageRaw extends GLOneScript {
-    GLTexture oldWT,in2;
+    GLTexture in1,in2,oldWT;
     private GLProg glProg;
     public AverageRaw(Point size, String name) {
         super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16)), R.raw.average, name);
     }
-    @Override
-    public void StartScript() {
-        hiddenScript = true;
-        glProg = glOne.glProgram;
-        AverageParams scriptParams = (AverageParams)additionalParams;
-        in2 = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16),scriptParams.inp2);
-            if(WorkingTexture != null) {
-                glProg.setTexture("InputBuffer",WorkingTexture);
-                glProg.setVar("first",0);
-            } else{
-                WorkingTexture = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16),scriptParams.inp1);
-                glProg.setVar("first",1);
-            }
 
+    @Override
+    public void Run() {
+        Compile();
+        startT();
+
+        AverageParams scriptParams = (AverageParams)additionalParams;
+        glProg = glOne.glProgram;
+        in1 = oldWT;
+        in2 = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16),scriptParams.inp2);
+        if(in1 == null){
+            glProg.setVar("first",1);
+        } else {
+            glProg.setVar("first",0);
+            glProg.setTexture("InputBuffer", in1);
+        }
         glProg.setTexture("InputBuffer2",in2);
         glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
-        Log.v(Name,"cnt:"+unlimitedCounter);
-        glProg.setVar("unlimitedcount",Math.min(unlimitedCounter,100));
+        glProg.setVar("unlimitedcount",Math.min(unlimitedCounter,1000));
+        WorkingTexture = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
+
+        //WorkingTexture.BufferLoad();
+        glProg.drawBlocks(WorkingTexture);
+        //glOne.glProcessing.drawBlocksToOutput();
         oldWT = WorkingTexture;
-        WorkingTexture = new GLTexture(oldWT.mSize,new GLFormat(GLFormat.DataType.FLOAT_16));
+        AfterRun();
+        //glOne.glProgram.close();
+        endT();
+        //Output = glOne.glProcessing.mOutBuffer;
+        //WorkingTexture.close();
     }
+
     public void FinalScript(){
         glProg = glOne.glProgram;
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",WorkingTexture);
-        glProg.setVar("whitelevel",1023.f);
-        oldWT = WorkingTexture;
-        WorkingTexture = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16));
-        WorkingTexture.BufferLoad();
+        glProg.setVar("whitelevel",1.f);
+        //in1 = WorkingTexture;
+        in1 = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16));
+
+        in1.BufferLoad();
         glOne.glProcessing.drawBlocksToOutput();
-        oldWT.close();
+        in1.close();
         glProg.close();
+        WorkingTexture.close();
         Output = glOne.glProcessing.mOutBuffer;
     }
 
     @Override
     public void AfterRun() {
-        oldWT.close();
         in2.close();
+
     }
 }

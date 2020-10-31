@@ -1,8 +1,11 @@
 package com.eszdman.photoncamera.ui.camera;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
-import android.hardware.camera2.CaptureResult;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -14,6 +17,8 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import androidx.annotation.NonNull;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
@@ -100,6 +105,9 @@ public final class CameraUIViewImpl implements CameraUIView {
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
         mModePicker.setSelectedItem(1);
         PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
+        mframeCount.setText("");
+        mframeTimer.setText("");
+
     }
 
     @Override
@@ -165,7 +173,6 @@ public final class CameraUIViewImpl implements CameraUIView {
             }
         }
     }
-
     @Override
     public void setAuxButtons(Set<String> idsList, String active) {
         mAuxGroupContainer.removeAllViews();
@@ -228,27 +235,60 @@ public final class CameraUIViewImpl implements CameraUIView {
             mCaptureProgressBar.setAlpha(alpha);
         } catch (Exception ignore){}
     }
-
+    static class FrameCntTime {
+        int frame;
+        int maxframe;
+        double time;
+    }
+    @SuppressLint("DefaultLocale")
+    private String FltFormat(Object in) {
+        return String.format("%.0f", in);
+    }
+    Handler changeFrameTimeCnt = new Handler(Looper.getMainLooper()){
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if(msg.obj == null){
+                mframeCount.setText("");
+                mframeTimer.setText("");
+                return;
+            }
+            FrameCntTime frameCntTime = (FrameCntTime)msg.obj;
+            mframeCount.setText(String.valueOf(Math.abs(frameCntTime.maxframe-frameCntTime.frame)));
+            if(frameCntTime.time*frameCntTime.maxframe > 4.0 || frameCntTime.maxframe == 0){
+                frameCntTime.time = Math.abs(frameCntTime.time*frameCntTime.maxframe-frameCntTime.time*frameCntTime.frame);
+                mframeTimer.setText(((int)(frameCntTime.time/60)+":"+((int)(frameCntTime.time)%60)));
+            }
+        }
+    };
     @Override
-    public void setFrameTimeCnt(int cnt,int maxcnt){
+    public void setFrameTimeCnt(int cnt,int maxcnt,double frametime){
+        FrameCntTime frameCntTime = new FrameCntTime();
+        Message msg = new Message();
         switch(PhotonCamera.getSettings().selectedMode){
             case NIGHT:
-
-                return;
             case PHOTO:
-                mframeCount.setText(String.valueOf(cnt));
-
+                frameCntTime.frame = cnt;
+                frameCntTime.maxframe = maxcnt;
+                frameCntTime.time = frametime;
+                msg.obj = frameCntTime;
+                changeFrameTimeCnt.sendMessage(msg);
                 return;
             case UNLIMITED:
-
+                frameCntTime.frame = cnt;
+                frameCntTime.maxframe = 0;
+                frameCntTime.time = frametime;
+                msg.obj = frameCntTime;
+                changeFrameTimeCnt.sendMessage(msg);
 
         }
     }
 
     @Override
     public void clearFrameTimeCnt() {
-        mframeCount.setText("");
-        mframeTimer.setText("");
+        //mframeCount.setText("");
+        //mframeTimer.setText("");
+        Message message = new Message();
+        changeFrameTimeCnt.sendMessage(message);
     }
 
     @Override

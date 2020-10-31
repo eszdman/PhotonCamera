@@ -72,28 +72,35 @@ public class ImageProcessing {
     }
     public static int unlimitedCounter = 1;
     private boolean end = false;
+    private boolean lock = false;
     AverageRaw averageRaw;
     public void unlimitedCycle(Image input) {
+        if(lock) {
+            input.close();
+            return;
+        }
         int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
         PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
         if (unlimitedBuffer == null) {
             unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
         }
-        averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
+        if(averageRaw == null) averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         averageRaw.additionalParams = new AverageParams(unlimitedBuffer, input.getPlanes()[0].getBuffer());
         averageRaw.Run();
-        //unlimitedBuffer = averageRaw.Output;
+        unlimitedBuffer = averageRaw.Output;
         input.close();
         unlimitedCounter++;
         if(end){
             end = false;
+            lock = true;
             PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
             unlimitedCounter = 0;
             averageRaw.FinalScript();
             unlimitedBuffer = averageRaw.Output;
             averageRaw.close();
+            //unlimitedBuffer = averageRaw.Output;
             PostPipeline pipeline = new PostPipeline();
             pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
             pipeline.close();
@@ -116,7 +123,10 @@ public class ImageProcessing {
 
     public void unlimitedEnd() {
         end = true;
-//        ImageSaver.triggerMediaScanner(ImageSaver.imageFileToSave);
+    }
+    public void unlimitedStart() {
+        end = false;
+        lock = false;
     }
 
     //================================================Setters/Getters================================================
