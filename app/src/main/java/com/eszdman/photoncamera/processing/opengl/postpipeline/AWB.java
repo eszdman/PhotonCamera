@@ -32,7 +32,6 @@ public class AWB extends Node {
     private short[][] Histogram(Bitmap in) {
         short[][] colorsMap;
         colorsMap = new short[3][SIZE];
-        int maxY = 0;
         for (int h = 0; h < in.getHeight(); h++) {
             for (int w = 0; w < in.getWidth(); w++) {
                 int rgba = in.getPixel(w, h);
@@ -45,18 +44,6 @@ public class AWB extends Node {
                 //colorsMap[0][r]++;
                 //colorsMap[1][g]++;
                 //colorsMap[2][b]++;
-            }
-        }
-        //Find max
-        for (int i = 0; i < SIZE; i++) {
-            if (maxY < colorsMap[0][i]) {
-                maxY = colorsMap[0][i];
-            }
-            if (maxY < colorsMap[1][i]) {
-                maxY = colorsMap[1][i];
-            }
-            if (maxY < colorsMap[2][i]) {
-                maxY = colorsMap[2][i];
             }
         }
         in.recycle();
@@ -73,7 +60,7 @@ public class AWB extends Node {
         short greenVector = 0;
         short blueVector = 0;
         double maxmpy = 0;
-        short minC = 0;
+        //short minC = 0;
 
         for (short i = 50; i < 120; i++) {
             for (short j = 40; j < 120; j++) {
@@ -88,7 +75,7 @@ public class AWB extends Node {
                         greenVector = j;
                         blueVector = k;
                         maxmpy = (double)Math.max(Math.max(redVector,greenVector),blueVector)/Math.min(Math.min(redVector,greenVector),blueVector);
-                        minC = (short)Math.max(Math.max(redVector,greenVector),blueVector);
+                        //minC = (short)Math.max(Math.max(redVector,greenVector),blueVector);
                     }
                 }
             }
