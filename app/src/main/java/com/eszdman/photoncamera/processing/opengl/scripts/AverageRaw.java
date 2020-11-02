@@ -43,17 +43,17 @@ public class AverageRaw extends GLOneScript {
             return first;
         }
     }
+    private int cnt2 = 1;
     @Override
     public void Run() {
 
         //Stage 1 average alternate texture
             Compile();
-            startT();
             AverageParams scriptParams = (AverageParams) additionalParams;
             glProg = glOne.glProgram;
             in1 = GetAlterIn();
             in2 = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16), scriptParams.inp2);
-            if (in1 == null || unlimitedCounter == 1) {
+            if (in1 == null) {
                 glProg.setVar("first", 1);
                 if(in1 == null) Init();
             } else {
@@ -63,38 +63,45 @@ public class AverageRaw extends GLOneScript {
             glProg.setTexture("InputBuffer2", in2);
             glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
             glProg.setVar("whitelevel", (float) (PhotonCamera.getParameters().whiteLevel));
-            glProg.setVar("unlimitedcount", Math.min(unlimitedCounter, 1000));
+            if(unlimitedCounter < 3) {
+                glProg.setVar("unlimitedcount", 1);
+            } else {
+                glProg.setVar("unlimitedcount", unlimitedCounter);
+            }
 
             //WorkingTexture.BufferLoad();
             glProg.drawBlocks(GetAlterOut());
             //glOne.glProcessing.drawBlocksToOutput();
             AfterRun();
             //glOne.glProgram.close();
-            endT();
         //Stage 2 average stack
-        if(unlimitedCounter > 100 || unlimitedEnd) {
-            glProg.useProgram(R.raw.averageff);
-            glProg.setTexture("InputBuffer",GetAlterIn());
-            glProg.setTexture("InputBuffer2", stack);
-            glProg.drawBlocks(GetAlterOut());
-            GLTexture t = stack;
-            if(used == 2){
-                stack = second;
-                second = t;
-            } else {
-                stack = first;
-                first = t;
-            }
-            unlimitedCounter = 1;
+        if(unlimitedCounter > 100) {
+            AverageStack();
         }
     }
-
+    private void AverageStack(){
+        glProg.useProgram(R.raw.averageff);
+        glProg.setTexture("InputBuffer",GetAlterIn());
+        glProg.setTexture("InputBuffer2", stack);
+        glProg.setVar("unlimitedcount",Math.min(cnt2,250));
+        glProg.drawBlocks(GetAlterOut());
+        Log.d(Name,"AverageShift:"+Math.min(cnt2,250));
+        GLTexture t = stack;
+        if(used == 2){
+            stack = second;
+            second = t;
+        } else {
+            stack = first;
+            first = t;
+        }
+        cnt2++;
+        unlimitedCounter = 1;
+    }
     public void FinalScript(){
-
-
+        AverageStack();
         glProg = glOne.glProgram;
         glProg.useProgram(R.raw.toraw);
-        glProg.setTexture("InputBuffer",GetAlterIn());
+        glProg.setTexture("InputBuffer",stack);
         glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
         //in1 = WorkingTexture;
         in1 = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16));
@@ -102,6 +109,7 @@ public class AverageRaw extends GLOneScript {
         glOne.glProcessing.drawBlocksToOutput();
         first.close();
         second.close();
+        stack.close();
         in1.close();
         glProg.close();
         Output = glOne.glProcessing.mOutBuffer;
