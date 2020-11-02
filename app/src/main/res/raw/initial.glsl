@@ -136,11 +136,7 @@ vec3 tonemap(vec3 rgb) {
 vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     pRGB = sensorToIntermediate*pRGB;
-    //Rip Shadowing applied
-    //pRGB = (tonemap(clamp((pRGB)*0.7,0.0,1.0)));
     //pRGB = tonemap(pRGB);
-    //pRGB = (tonemap(clamp(pRGB-0.0015,0.0,1.0)))*exposing;
-    //return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB -0.0015*exposing,0.0,1.0)));
     return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
@@ -158,13 +154,13 @@ vec3 hsv2rgb(vec3 c) {
 }
 const float redcorr = 0.0;
 const float bluecorr = 0.0;
-vec3 saturate(vec3 rgb) {
+vec3 saturate(vec3 rgb,float model) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
-    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
     rgb = hsv2rgb(hsv);
     //rgb.r+=r*redcorr*saturation;
     //rgb.g=clamp(rgb.g,0.0,1.0);
@@ -177,8 +173,11 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
-    sRGB = saturate(sRGB);
+    //Rip Shadowing applied
+    br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
+    sRGB = saturate(sRGB,br);
     sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
 }

@@ -17,5 +17,5 @@ void main() {
     result.r = gammaInverse(result.r);
     result.g = gammaInverse(result.g);
     result.b = gammaInverse(result.b);
-    result = clamp(result,vec3(0.0),neutralPoint);
+    result = clamp(result*neutralPoint,vec3(0.0),neutralPoint);
 }
