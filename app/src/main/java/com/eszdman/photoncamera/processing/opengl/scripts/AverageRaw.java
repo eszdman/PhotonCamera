@@ -75,7 +75,7 @@ public class AverageRaw extends GLOneScript {
             AfterRun();
             //glOne.glProgram.close();
         //Stage 2 average stack
-        if(unlimitedCounter > 100) {
+        if(unlimitedCounter > 80) {
             AverageStack();
         }
     }
