@@ -122,7 +122,6 @@ public class PostPipeline extends GLBasePipeline {
                     add(new Median(new Point(i/2,i),"FastMedian"));
                     //add(new Median(new Point(i,i),"FastMedian"));
                 }
-
             }
         }
         if(PhotonCamera.getParameters().focalLength <= 3.0)

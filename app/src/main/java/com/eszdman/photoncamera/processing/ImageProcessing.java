@@ -11,7 +11,6 @@ import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
-import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
@@ -21,7 +20,6 @@ import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
-import com.eszdman.photoncamera.processing.opengl.scripts.LuckyOperator;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
 import com.eszdman.photoncamera.processing.opengl.scripts.ScriptParams;
@@ -34,7 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
-import static com.eszdman.photoncamera.processing.parameters.IsoExpoSelector.baseFrame;
 
 public class ImageProcessing {
     private static final String TAG = "ImageProcessing";
@@ -71,7 +68,7 @@ public class ImageProcessing {
         }
     }
     public static int unlimitedCounter = 1;
-    private boolean end = false;
+    public static boolean unlimitedEnd = false;
     private boolean lock = false;
     AverageRaw averageRaw;
     public void unlimitedCycle(Image input) {
@@ -93,8 +90,8 @@ public class ImageProcessing {
         averageRaw.Run();
         input.close();
         unlimitedCounter++;
-        if(end){
-            end = false;
+        if(unlimitedEnd){
+            unlimitedEnd = false;
             lock = true;
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
             unlimitedCounter = 0;
@@ -123,10 +120,10 @@ public class ImageProcessing {
     }
 
     public void unlimitedEnd() {
-        end = true;
+        unlimitedEnd = true;
     }
     public void unlimitedStart() {
-        end = false;
+        unlimitedEnd = false;
         lock = false;
     }
 
