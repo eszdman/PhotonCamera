@@ -34,7 +34,7 @@ public class Median extends Node {
         Log.d(Name,"denoiseLevel:"+denoiseLevel);
         glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
         //glProg.setVar("robust",2.5f);
-        glProg.setVar("transpose",transposing);
+        glProg.setVar("tpose",transposing);
         //glProg.setVar("mapsize", (float) Previous.WorkingTexture.mSize.x, (float) Previous.WorkingTexture.mSize.y);
         glProg.setTexture("InputBuffer", Previous.WorkingTexture);
         //glProg.setTexture("NoiseMap", postPipeline.noiseMap);

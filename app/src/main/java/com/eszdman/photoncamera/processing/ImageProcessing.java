@@ -35,7 +35,6 @@ import static androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL;
 
 public class ImageProcessing {
     private static final String TAG = "ImageProcessing";
-    private static ByteBuffer unlimitedBuffer;
     private final ProcessingEventsListener processingEventsListener;
     private Boolean isRaw;
     private Boolean isYuv;
@@ -79,16 +78,12 @@ public class ImageProcessing {
         int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
         int height = input.getHeight();
         PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
-        if (unlimitedBuffer == null) {
-            unlimitedBuffer = input.getPlanes()[0].getBuffer().duplicate();
-        }
         if(averageRaw == null) {
             PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
             averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
         averageRaw.additionalParams = new AverageParams(null, input.getPlanes()[0].getBuffer());
         averageRaw.Run();
-        input.close();
         unlimitedCounter++;
         if(unlimitedEnd){
             unlimitedEnd = false;
@@ -96,27 +91,33 @@ public class ImageProcessing {
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
             unlimitedCounter = 0;
             averageRaw.FinalScript();
-            unlimitedBuffer = averageRaw.Output;
+            ByteBuffer unlimitedBuffer = averageRaw.Output;
             averageRaw.close();
-            //unlimitedBuffer = averageRaw.Output;
+            averageRaw = null;
+            if (PhotonCamera.getSettings().rawSaver) {
+                input.getPlanes()[0].getBuffer().position(0);
+                input.getPlanes()[0].getBuffer().put(unlimitedBuffer);
+                saveRaw(input);
+                input.close();
+                return;
+            }
             PostPipeline pipeline = new PostPipeline();
             pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
             pipeline.close();
             try {
                 ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
-                if (!PhotonCamera.getSettings().rawSaver) {
                     try {
                         inter.saveAttributes();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if(unlimitedBuffer!= null) unlimitedBuffer.clear();
+
             processingEventsListener.onImageSaved(ImageSaver.imageFileToSave);
         }
+        input.close();
     }
 
     public void unlimitedEnd() {

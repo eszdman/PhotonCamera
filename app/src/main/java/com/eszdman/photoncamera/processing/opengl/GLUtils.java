@@ -319,6 +319,9 @@ public class GLUtils {
         return out;
     }
     public GLTexture interpolate(GLTexture in, int k){
+        return interpolate(in,k);
+    }
+    public GLTexture interpolate(GLTexture in, double k){
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
@@ -338,12 +341,10 @@ public class GLUtils {
                 "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
-        //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
-        GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
+        glProg.setVar("size",(int)(in.mSize.x*k),(int)(in.mSize.y*k));
+        GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat,null);
         glProg.drawBlocks(out);
         glProg.closed = true;
-        //return blur(out,k-1);
         return out;
     }
     public GLTexture interpolate(GLTexture in, Point nsize){

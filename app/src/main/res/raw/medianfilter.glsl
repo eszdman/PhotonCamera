@@ -35,7 +35,7 @@ precision mediump float;
 precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
-uniform ivec2 transpose;
+uniform ivec2 tpose;
 
 #define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);
 #define mn3(a, b, c)			s2(a, b); s2(a, c);
@@ -69,7 +69,7 @@ void main() {
             // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
             // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
             // bottom right pixel of the window at pixel[N-1].
-            v[(dX + 1) * 3 + (dY + 1)] = vec3(texelFetch(InputBuffer, xy + offset*transpose, 0).rgb);
+            v[(dX + 1) * 3 + (dY + 1)] = vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb);
         }
     }
 

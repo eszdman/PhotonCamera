@@ -45,7 +45,7 @@ public class SmartNR extends Node {
         glProg.drawBlocks(WorkingTexture);
         glProg.useProgram(R.raw.hybridmedianfilter);
         glProg.setVar("robust",1.2f);
-        glProg.setVar("transpose",1,1);
+        glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",WorkingTexture);
         WorkingTexture = basePipeline.getMain();
         glProg.closed = false;
