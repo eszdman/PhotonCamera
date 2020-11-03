@@ -9,7 +9,7 @@ uniform float avrbr;
 uniform float intens;
 uniform ivec2 size;
 uniform int yOffset;
-out vec4 Output;
+out vec3 Output;
 #import interpolation
 void main() {
     vec2 xy = vec2(gl_FragCoord.xy);
@@ -21,5 +21,5 @@ void main() {
     //len=1.0+clamp((len-start),0.0,1.0)*intens;
 
     //Output = texture(InputBuffer,0.5 + inxy*len);
-    Output = textureBicubic(InputBuffer,0.5 + inxy/(0.9 + mapbr*0.09));
+    Output = textureBicubic(InputBuffer,0.5 + inxy/(0.9 + mapbr*0.09)).rgb;
 }

@@ -8,7 +8,7 @@ out vec3 result;
 uniform int yOffset;
 
 float gammaInverse(float x) {
-    return (x <= 0.0031308*12.92) ? x / 12.92 : pow((x + 0.055)/1.055,2.2);
+    return (x <= 0.0031308*12.92) ? x / 12.92 : pow((x + 0.055)/1.055,2.5);
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);

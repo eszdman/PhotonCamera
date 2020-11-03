@@ -1,3 +1,4 @@
+#version 300 es
 /*
 3x3 Median
 Morgan McGuire and Kyle Whitson
@@ -31,7 +32,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 //Modified by eszdman median filering using gaussian distribution
-#version 300 es
 precision mediump float;
 precision mediump sampler2D;
 // Input texture
@@ -47,9 +47,10 @@ uniform float robust;
 #define mnmx4(a, b, c, d)		s2(a, b); s2(c, d); s2(a, c); s2(b, d);                   // 4 exchanges
 #define mnmx5(a, b, c, d, e)	s2(a, b); s2(c, d); mn3(a, c, e); mx3(b, d, e);           // 6 exchanges
 #define mnmx6(a, b, c, d, e, f) s2(a, d); s2(b, e); s2(c, f); mn3(a, b, c); mx3(d, e, f); // 7 exchanges
-out vec4 Output;
+out vec3 Output;
 uniform int yOffset;
 #define MSIZE 3
+#define kSize ((MSIZE-1)/2)
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
@@ -57,9 +58,8 @@ float normpdf(in float x, in float sigma)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec4 v[9];
-    const int kSize = (MSIZE-1)/2;
-    vec4 c = vec4(texelFetch(InputBuffer, xy, 0));
+    vec3 v[9];
+    vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
     float kernel[MSIZE];
     float normalize = 0.0;
     for (int j = 0; j <= kSize; ++j) {
@@ -76,11 +76,11 @@ void main() {
             // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
             // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
             // bottom right pixel of the window at pixel[N-1].
-            v[(dX + 1) * 3 + (dY + 1)] = mix(vec4(texelFetch(InputBuffer, xy + offset*transpose, 0)),c,pdf);
+            v[(dX + 1) * 3 + (dY + 1)] = mix(vec3(texelFetch(InputBuffer, xy + offset*transpose, 0).rgb),c,pdf);
         }
     }
 
-vec4 temp;
+vec3 temp;
 
 // Starting with a subset of size 6, remove the min and max each time
     mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);

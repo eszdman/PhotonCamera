@@ -7,7 +7,7 @@ uniform int size;
 uniform vec2 mapsize;
 uniform vec2 sigma;
 uniform int yOffset;
-out vec4 Output;
+out vec3 Output;
 #define SIGMA 10.0
 #define BSIGMA 0.1
 #define MSIZE 7
@@ -89,7 +89,7 @@ void main() {
 
             }
         }
-        Output = vec4(clamp(c.a*final_colour/Z,0.0,1.0),1.0);
+        Output = (clamp(c.a*final_colour/Z,0.0,1.0));
         //Output = vec4(xyYtoXYZ(vec3(clamp(final_colour.rg/Z,0.0,1.0),c.z)),1.0);
     }
 }
