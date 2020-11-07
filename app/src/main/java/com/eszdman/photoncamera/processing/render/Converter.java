@@ -21,7 +21,7 @@ public class Converter {
      * Coefficients for a 3rd order polynomial, ordered from highest to lowest power.
      * Adapted to transform from [0,1] to [0,1]
      */
-    public static final float[] CUSTOM_ACR3_TONEMAP_CURVE_COEFFS = new float[] {
+    public static final float[] CUSTOM_ACR3_TONEMAP_CURVE_COEFFS = new float[]{
             -0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f
             //-1.087f, 1.643f, 0.443f, 0f
     };
@@ -42,7 +42,7 @@ public class Converter {
             0.000000f, 0.000000f, 1.211968f
     };
     private static final int NO_ILLUMINANT = -1;
-    private static final SparseIntArray sStandardIlluminants = new SparseIntArray();
+    private static final SparseIntArray sStandardIlluminates = new SparseIntArray();
     /**
      * The D50 whitepoint coordinates in CIE XYZ colorspace.
      */
@@ -51,17 +51,17 @@ public class Converter {
     private static final boolean DEBUG = false;
 
     static {
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT, 6504);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D65, 6504);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D50, 5003);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D55, 5503);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D75, 7504);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_A, 2856);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_B, 4874);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_C, 6774);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT_FLUORESCENT, 6430);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_COOL_WHITE_FLUORESCENT, 4230);
-        sStandardIlluminants.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_WHITE_FLUORESCENT, 3450);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT, 6504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D65, 6504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D50, 5003);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D55, 5503);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D75, 7504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_A, 2856);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_B, 4874);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_C, 6774);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT_FLUORESCENT, 6430);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_COOL_WHITE_FLUORESCENT, 4230);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_WHITE_FLUORESCENT, 3450);
     }
 
     /**
@@ -83,10 +83,10 @@ public class Converter {
      */
     public static void calculateCameraToXYZD50Transform(float[] forwardTransform1,
                                                         float[] forwardTransform2, float[] calibrationTransform1, float[] calibrationTransform2,
-                                                        Rational[/*3*/] neutralColorPoint, double interpolationFactor,
+                                                        float[/*3*/] neutralColorPoint, double interpolationFactor,
             /*out*/float[] outputTransform) {
-        float[] cameraNeutral = new float[]{neutralColorPoint[0].floatValue(),
-                neutralColorPoint[1].floatValue(), neutralColorPoint[2].floatValue()};
+        float[] cameraNeutral = new float[]{neutralColorPoint[0],
+                neutralColorPoint[1], neutralColorPoint[2]};
         if (DEBUG) Log.d(TAG, "Camera neutral: " + Arrays.toString(cameraNeutral));
         float[] interpolatedCC = new float[9];
         lerp(calibrationTransform1, calibrationTransform2, interpolationFactor,
@@ -131,32 +131,32 @@ public class Converter {
      */
     public static double findDngInterpolationFactor(int referenceIlluminant1,
                                                     int referenceIlluminant2, float[] calibrationTransform1, float[] calibrationTransform2,
-                                                    float[] colorMatrix1, float[] colorMatrix2, Rational[/*3*/] neutralColorPoint) {
-        int colorTemperature1 = sStandardIlluminants.get(referenceIlluminant1, NO_ILLUMINANT);
+                                                    float[] colorMatrix1, float[] colorMatrix2, float[/*3*/] neutralColorPoint) {
+        int colorTemperature1 = sStandardIlluminates.get(referenceIlluminant1, NO_ILLUMINANT);
         if (colorTemperature1 == NO_ILLUMINANT) {
             throw new IllegalArgumentException("No such illuminant for reference illuminant 1: " +
                     referenceIlluminant1);
         }
-        int colorTemperature2 = sStandardIlluminants.get(referenceIlluminant2, NO_ILLUMINANT);
+        int colorTemperature2 = sStandardIlluminates.get(referenceIlluminant2, NO_ILLUMINANT);
         if (colorTemperature2 == NO_ILLUMINANT) {
             throw new IllegalArgumentException("No such illuminant for reference illuminant 2: " +
                     referenceIlluminant2);
         }
         if (DEBUG) Log.d(TAG, "ColorTemperature1: " + colorTemperature1);
         if (DEBUG) Log.d(TAG, "ColorTemperature2: " + colorTemperature2);
-        double interpFactor = 0.5; // Initial guess for interpolation factor
-        double oldInterpFactor = interpFactor;
+        double interpolationFactor = 0.5; // Initial guess for interpolation factor
+        double oldInterpolationFactor = interpolationFactor;
         double lastDiff = Double.MAX_VALUE;
         double tolerance = 0.0001;
         float[] XYZToCamera1 = new float[9];
         float[] XYZToCamera2 = new float[9];
         multiply(calibrationTransform1, colorMatrix1, /*out*/XYZToCamera1);
         multiply(calibrationTransform2, colorMatrix2, /*out*/XYZToCamera2);
-        float[] cameraNeutral = new float[]{neutralColorPoint[0].floatValue(),
-                neutralColorPoint[1].floatValue(), neutralColorPoint[2].floatValue()};
+        float[] cameraNeutral = new float[]{neutralColorPoint[0],
+                neutralColorPoint[1], neutralColorPoint[2]};
         float[] neutralGuess = new float[3];
-        float[] interpXYZToCamera = new float[9];
-        float[] interpXYZToCameraInverse = new float[9];
+        float[] interpolationXYZToCamera = new float[9];
+        float[] interpolationXYZToCameraInverse = new float[9];
         double lower = Math.min(colorTemperature1, colorTemperature2);
         double upper = Math.max(colorTemperature1, colorTemperature2);
         if (DEBUG) {
@@ -169,44 +169,44 @@ public class Converter {
         int count = 0;
         while (lastDiff > tolerance && loopLimit > 0) {
             if (DEBUG) Log.d(TAG, "Loop count " + count);
-            lerp(XYZToCamera1, XYZToCamera2, interpFactor, interpXYZToCamera);
-            if (!invert(interpXYZToCamera, /*out*/interpXYZToCameraInverse)) {
+            lerp(XYZToCamera1, XYZToCamera2, interpolationFactor, interpolationXYZToCamera);
+            if (!invert(interpolationXYZToCamera, /*out*/interpolationXYZToCameraInverse)) {
                 throw new IllegalArgumentException(
                         "Cannot invert XYZ to Camera matrix, input matrices are invalid.");
             }
-            map(interpXYZToCameraInverse, cameraNeutral, /*out*/neutralGuess);
+            map(interpolationXYZToCameraInverse, cameraNeutral, /*out*/neutralGuess);
             double[] xy = calculateCIExyCoordinates(neutralGuess[0], neutralGuess[1],
                     neutralGuess[2]);
             double colorTemperature = calculateColorTemperature(xy[0], xy[1]);
             if (colorTemperature <= lower) {
-                interpFactor = 1;
+                interpolationFactor = 1;
             } else if (colorTemperature >= upper) {
-                interpFactor = 0;
+                interpolationFactor = 0;
             } else {
                 double invCT = 1.0 / colorTemperature;
-                interpFactor = (invCT - 1.0 / upper) / (1.0 / lower - 1.0 / upper);
+                interpolationFactor = (invCT - 1.0 / upper) / (1.0 / lower - 1.0 / upper);
             }
             if (lower == colorTemperature1) {
-                interpFactor = 1.0 - interpFactor;
+                interpolationFactor = 1.0 - interpolationFactor;
             }
-            interpFactor = (interpFactor + oldInterpFactor) / 2;
-            lastDiff = Math.abs(oldInterpFactor - interpFactor);
-            oldInterpFactor = interpFactor;
+            interpolationFactor = (interpolationFactor + oldInterpolationFactor) / 2;
+            lastDiff = Math.abs(oldInterpolationFactor - interpolationFactor);
+            oldInterpolationFactor = interpolationFactor;
             loopLimit--;
             count++;
             if (DEBUG) {
-                Log.d(TAG, "CameraToXYZ chosen: " + Arrays.toString(interpXYZToCameraInverse));
+                Log.d(TAG, "CameraToXYZ chosen: " + Arrays.toString(interpolationXYZToCameraInverse));
                 Log.d(TAG, "XYZ neutral color guess: " + Arrays.toString(neutralGuess));
                 Log.d(TAG, "xy coordinate: " + Arrays.toString(xy));
                 Log.d(TAG, "xy color temperature: " + colorTemperature);
-                Log.d(TAG, "New interpolation factor: " + interpFactor);
+                Log.d(TAG, "New interpolation factor: " + interpolationFactor);
             }
         }
         if (loopLimit == 0) {
-            Log.w(TAG, "Could not converge on interpolation factor, using factor " + interpFactor +
+            Log.w(TAG, "Could not converge on interpolation factor, using factor " + interpolationFactor +
                     " with remaining error factor of " + lastDiff);
         }
-        return interpFactor;
+        return interpolationFactor;
     }
 
     /**
@@ -342,13 +342,13 @@ public class Converter {
      * Convert a 9x9 {@link ColorSpaceTransform} to a matrix and write the matrix into the
      * output.
      *
-     * @param xform  a {@link ColorSpaceTransform} to transform.
+     * @param xForm  a {@link ColorSpaceTransform} to transform.
      * @param output the 3x3 matrix to overwrite.
      */
-    public static void convertColorspaceTransform(ColorSpaceTransform xform, /*out*/float[] output) {
+    public static void convertColorspaceTransform(ColorSpaceTransform xForm, /*out*/float[] output) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                output[i * 3 + j] = xform.getElement(j, i).floatValue();
+                output[i * 3 + j] = xForm.getElement(j, i).floatValue();
             }
         }
     }

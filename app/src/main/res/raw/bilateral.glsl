@@ -42,7 +42,7 @@ void main() {
         vec3 final_colour = vec3(0.0);
         //float sigX = sigma.x;
         //float sigY = sigma.y;
-        float sigX = noisefactor*3.0;
+        float sigX = noisefactor*2.0;
         vec3 brp =
          vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+
          vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+

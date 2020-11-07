@@ -35,7 +35,6 @@
     <string name="size">"Velikost:"</string>
     <string name="device">"Zařízení:"</string>
     <string name="date">"Datum:"</string>
-    <string name="iso">"ISO:"</string>
     <string name="exposure_time">"Rychlost uzávěrky:"</string>
     <string name="aperture">"Světelnost:"</string>
     <string name="flength">"Ohnisko:"</string>

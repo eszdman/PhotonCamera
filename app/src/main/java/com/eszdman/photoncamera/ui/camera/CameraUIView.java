@@ -1,7 +1,9 @@
 package com.eszdman.photoncamera.ui.camera;
 
 import android.graphics.Bitmap;
+import android.hardware.camera2.CaptureResult;
 import android.view.View;
+
 import com.eszdman.photoncamera.api.CameraMode;
 
 import java.util.Set;
@@ -67,13 +69,9 @@ public interface CameraUIView {
 
     void setCaptureProgressMax(int max);
 
-    /**
-     * Should change Rotation of all views
-     *
-     * @param degree   target degrees of rotation
-     * @param duration animation duration
-     */
-    void rotateViews(int degree, int duration);
+    void setFrameTimeCnt(int cnt, int maxcnt,double frametime);
+
+    void clearFrameTimeCnt();
 
     /**
      * Setter for CameraUIEventsListener

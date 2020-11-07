@@ -25,26 +25,61 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.*;
-import android.hardware.camera2.*;
+import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.*;
-import android.util.*;
-import android.view.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+import android.os.SystemClock;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.util.Range;
+import android.util.Rational;
+import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.LayoutInflater;
+import android.view.Surface;
+import android.view.TextureView;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
+import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.*;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraManager2;
+import com.eszdman.photoncamera.api.CameraMode;
+import com.eszdman.photoncamera.api.CameraReflectionApi;
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.gallery.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
@@ -54,18 +89,26 @@ import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.CustomLogger;
-import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import rapid.decoder.BitmapDecoder;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -84,7 +127,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     /**
      * Tag for the {@link Log}.
      */
-    private static final String TAG = "CameraFragment";
+    private static final String TAG = CameraFragment.class.getSimpleName();
     /**
      * Camera state: Showing camera preview.
      */
@@ -147,7 +190,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
     private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
-    public long mPreviewExposuretime;
+    public long mPreviewExposureTime;
     public int mPreviewIso;
     public Rational[] mPreviewTemp;
     public ColorSpaceTransform mColorSpaceTransform;
@@ -192,13 +235,14 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     Range FpsRangeDef;
     Range FpsRangeHigh;
     int[] mCameraAfModes;
-    int mPreviewwidth;
-    int mPreviewheight;
+    int mPreviewWidth;
+    int mPreviewHeight;
     ArrayList<CaptureRequest> captures;
     CameraCaptureSession.CaptureCallback CaptureCallback;
     private Size target;
     private float mFocus;
     private CameraManager mCameraManager;
+    public ArrayList<Integer> BurstShakiness;
     /**
      * The {@link android.util.Size} of camera preview.
      */
@@ -316,7 +360,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                             mPreviewResult = result;
                             captureStillPicture();
                         } else {
-                            runPrecaptureSequence();
+                            runPreCaptureSequence();
                         }
                     }
                     break;
@@ -363,11 +407,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             Object exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
             Object iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
             Object focus = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
-            Rational[] mtemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-            if (exposure != null) mPreviewExposuretime = (long) exposure;
+            Rational[] mTemp = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+            if (exposure != null) mPreviewExposureTime = (long) exposure;
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
-            mPreviewTemp = mtemp;
+            mPreviewTemp = mTemp;
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
             updateScreenLog(result);
@@ -432,7 +476,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         }
 
     };
-    private CustomOrientationEventListener mCustomOrientationEventListener;
 
     public CameraFragment() {
         super();
@@ -494,7 +537,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     void updateScreenLog(CaptureResult result) {
         CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (PhotonCamera.getSettings().afdata) {
+        if (PhotonCamera.getSettings().aFDebugData) {
             IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(0);
             LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
             dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
@@ -505,7 +548,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 //            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
             dataset.put("ISO", String.valueOf(expoPair.iso));
 //            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakeness()));
+            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
             dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
             MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
             if (rectobj != null && rectobj.length > 0) {
@@ -578,7 +621,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
         if (aspectRatio > 16f / 9f) {
             camera_containerLP.height = WRAP_CONTENT;
-            showToast(String.valueOf(aspectRatio));
+//            showToast(String.valueOf(aspectRatio));
             ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
             layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
             if (aspectRatio > 2) {                  //for ratios even greater than 18:9
@@ -602,64 +645,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      */
     private void logDisplayProperties(DisplayMetrics dm) {
         String TAG = "DisplayProps";
-        Log.i(TAG, "ScreenResolution = " + dm.heightPixels + "x" + dm.widthPixels);
-        Log.i(TAG, "AspectRatio = " + (float) dm.heightPixels / dm.widthPixels);
-        Log.i(TAG, "SmallestWidth = " + (int) (dm.widthPixels / (dm.densityDpi / 160f)) + "dp");
+        Log.i(TAG, "ScreenResolution = " + Math.max(dm.heightPixels, dm.widthPixels) + "x" + Math.min(dm.heightPixels, dm.widthPixels));
+        Log.i(TAG, "AspectRatio = " + ((float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels)));
+        Log.i(TAG, "SmallestWidth = " + (int) (Math.min(dm.heightPixels, dm.widthPixels) / (dm.densityDpi / 160f)) + "dp");
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        logDisplayProperties(dm);
-        float aspectRatio = (float) dm.heightPixels / dm.widthPixels;
-        ConstraintLayout activity_main = (ConstraintLayout) inflater.inflate(R.layout.activity_main, container, false);
-        return getAdjustedLayout(aspectRatio, activity_main);
-    }
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setRetainInstance(true);
-        initOrientationEventListener();
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
-        outState.putString(ACTIVE_FRONTCAM_ID, sActiveFrontCamId);
-    }
-
-    @Override
-    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
-        super.onViewStateRestored(savedInstanceState);
-        if (PhotonCamera.DEBUG)
-            Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
-        if (savedInstanceState != null) {
-            sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
-            sActiveFrontCamId = savedInstanceState.getString(ACTIVE_FRONTCAM_ID);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                ErrorDialog.newInstance(getString(R.string.request_permission))
-                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
 
     private void mul(Rect in, double k) {
         in.bottom *= k;
@@ -728,8 +718,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     private void setUpCameraOutputs(int width, int height) {
         try {
             mCameraCharacteristics = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            mPreviewwidth = width;
-            mPreviewheight = height;
+            mPreviewWidth = width;
+            mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
             mImageProcessing = new ImageProcessing(this);
             mImageSaver = new ImageSaver(mImageProcessing, this);
@@ -759,6 +749,74 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getTouchFocus().ReInit();
     }
 
+    private CameraFragmentViewModel cameraFragmentViewModel;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        //create the ui binding
+        com.eszdman.photoncamera.databinding.CameraFragmentBinding cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
+        //create the modelview wich updated the model
+        cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
+        cameraFragmentViewModel.create(getContext());
+        //bind the model to the ui, it applies changes when the model values get changed
+        cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(ACTIVE_BACKCAM_ID, sActiveBackCamId);
+        outState.putString(ACTIVE_FRONTCAM_ID, sActiveFrontCamId);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (PhotonCamera.DEBUG)
+            Log.d("FragmentMonitor", "[" + getClass().getSimpleName() + "] : onViewStateRestored(), savedInstanceState = [" + savedInstanceState + "]");
+        if (savedInstanceState != null) {
+            sActiveBackCamId = savedInstanceState.getString(ACTIVE_BACKCAM_ID);
+            sActiveFrontCamId = savedInstanceState.getString(ACTIVE_FRONTCAM_ID);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                ErrorDialog.newInstance(getString(R.string.request_permission))
+                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -766,9 +824,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
         PhotonCamera.getTouchFocus().ReInit();
+
         this.mCameraUIView.refresh();
         this.mCameraUIView.setGalleryButtonImage(getLastImage());
-        mCustomOrientationEventListener.enable();
+        cameraFragmentViewModel.onResume();
         startBackgroundThread();
 
         if (mTextureView == null) mTextureView = new AutoFitTextureView(CameraActivity.act);
@@ -799,35 +858,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             }
         }
         return bitmap;
-    }
-
-    void initOrientationEventListener() {
-        final int RotationDur = 350;
-        final int Rotation90 = 2;
-        final int Rotation180 = 3;
-        final int Rotation270 = 4;
-        mCustomOrientationEventListener = new CustomOrientationEventListener(getContext()) {
-            @Override
-            public void onSimpleOrientationChanged(int orientation) {
-                int rot = 0;
-                switch (orientation) {
-                    case Rotation90:
-                        rot = -90;
-                        //rotate as left on top
-                        break;
-                    case Rotation270:
-                        //rotate as right on top
-                        rot = 90;
-                        break;
-                    case Rotation180:
-                        //rotate as upside down
-                        rot = 180;
-                        break;
-                }
-                mCameraUIView.rotateViews(rot, RotationDur);
-                PhotonCamera.getManualMode().rotate(rot, RotationDur);
-            }
-        };
     }
 
     /**
@@ -895,7 +925,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getSettings().saveID();
         closeCamera();
 //        stopBackgroundThread();
-        mCustomOrientationEventListener.disable();
+        cameraFragmentViewModel.onPause();
         super.onPause();
     }
 
@@ -1068,7 +1098,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      * Run the precapture sequence for capturing a still image. This method should be called when
      * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
      */
-    private void runPrecaptureSequence() {
+    private void runPreCaptureSequence() {
         try {
             // This is how to tell the camera to trigger.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
@@ -1193,14 +1223,14 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
         PhotonCamera.getCameraActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
-        int rotatedPreviewWidth = mPreviewwidth;
-        int rotatedPreviewHeight = mPreviewheight;
+        int rotatedPreviewWidth = mPreviewWidth;
+        int rotatedPreviewHeight = mPreviewHeight;
         int maxPreviewWidth = displaySize.x;
         int maxPreviewHeight = displaySize.y;
 
         if (swappedDimensions) {
-            rotatedPreviewWidth = mPreviewheight;
-            rotatedPreviewHeight = mPreviewwidth;
+            rotatedPreviewWidth = mPreviewHeight;
+            rotatedPreviewHeight = mPreviewWidth;
             //noinspection SuspiciousNameCombination
             maxPreviewWidth = displaySize.y;
             //noinspection SuspiciousNameCombination
@@ -1384,6 +1414,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             else
                 captureBuilder.addTarget(mImageReaderPreview.getSurface());
             PhotonCamera.getSettings().applyRes(captureBuilder);
+            PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
@@ -1400,13 +1431,20 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation());
 
             captures = new ArrayList<>();
+            BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
             mCameraUIView.setCaptureProgressMax(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakeness() < 2;
+            //showToast("AF:"+mFocus);
+            
+            //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            //mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
+            rebuildPreviewBuilder();
+
+            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
@@ -1415,6 +1453,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 IsoExpoSelector.setExpo(captureBuilder, 0);
                 captures.add(captureBuilder.build());
             }
+            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(0).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
             final int[] burstcount = {0, 0, frameCount};
@@ -1434,6 +1473,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     mCameraUIView.incrementCaptureProgressBar(1);
                     if (PreferenceKeys.isCameraSoundsOn())
                         burstPlayer.start();
+                    BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     Log.v(TAG, "Completed!");
                     mCaptureResult = result;
                 }
@@ -1443,11 +1483,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     burstPlayer.seekTo(0);
                     Log.v(TAG, "FrameCaptureStarted! FrameNumber:" + frameNumber);
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
+                    PhotonCamera.getSensors().CaptureGyroBurst();
                 }
 
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
+                    mCameraUIView.clearFrameTimeCnt();
                     try {
                         mCameraUIView.resetCaptureProgressBar();
                         mTextureView.setAlpha(1f);
@@ -1462,6 +1504,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
+                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                             try {
@@ -1524,6 +1567,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             return sActiveBackCamId;
         }
     }
+
     private void triggerMediaScanner(File imageToSave) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         PhotonCamera.getSettings().setLastPicture(imageToSave.getAbsolutePath());
@@ -1533,6 +1577,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         if (getActivity() != null)
             getActivity().sendBroadcast(mediaScanIntent);
     }
+
     @Override
     public void onProcessingStarted(Object obj) {
         log("Started: " + obj);
@@ -1563,7 +1608,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     @Override
     public void onImageSaved(Object obj) {
         if (obj instanceof File) {
-            log("Saved: "+ ((File) obj).getAbsolutePath());
+            log("Saved: " + ((File) obj).getAbsolutePath());
             triggerMediaScanner((File) obj);
         }
         if (getActivity() != null)
@@ -1571,14 +1616,17 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     @Override
-    public void onErrorOccured(Object obj) {
+    public void onErrorOccurred(Object obj) {
         if (obj instanceof String)
-            showToast((String)obj);
+            showToast((String) obj);
         onProcessingFinished("Processing Finished Unexpectedly!!");
     }
 
     public void unlimitedEnd() {
         mImageProcessing.unlimitedEnd();
+    }
+    public void unlimitedStart(){
+        mImageProcessing.unlimitedStart();
     }
 
     void launchGallery() {

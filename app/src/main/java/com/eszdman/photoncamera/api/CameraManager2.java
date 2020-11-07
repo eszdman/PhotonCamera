@@ -3,21 +3,24 @@ package com.eszdman.photoncamera.api;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+
 import androidx.core.util.Pair;
+
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 
 import java.util.*;
+
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_CAMERA_IDS_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.BACK_IDS_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.CAMERA_COUNT_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.FRONT_IDS_KEY;
 
 /**
  * Responsible for Scanning all Camera IDs on a Device and Storing them in SharedPreferences as a {@link Set<String>}
  */
 public final class CameraManager2 {
     private static final String TAG = "CameraManager2";
-    private static final String PREFERENCE_FILE_NAME = "_cameras";
-    private static final String ALL_CAMERA_IDS_KEY = "all_camera_ids";
-    private static final String FRONT_IDS_KEY = "front_camera_ids";
-    private static final String BACK_IDS_KEY = "back_camera_ids";
-    private static final String CAMERA_COUNT_KEY = "all_camera_count";
 
     private final SettingsManager mSettingsManager;
     private final Map<String, Pair<Float, Float>> mFocalLengthAperturePairList = new LinkedHashMap<>();
@@ -37,13 +40,13 @@ public final class CameraManager2 {
     }
 
     private void init(CameraManager cameraManager) {
-        if (!mSettingsManager.isSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY)) {
+        if (!mSettingsManager.isSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY)) {
             scanAllCameras(cameraManager);
             save();
         } else {
-            mAllCameraIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, null);
-            mFrontIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, null);
-            mBackIDs = mSettingsManager.getStringSet(PREFERENCE_FILE_NAME, BACK_IDS_KEY, null);
+            mAllCameraIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, null);
+            mFrontIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, null);
+            mBackIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, null);
         }
     }
 
@@ -82,10 +85,10 @@ public final class CameraManager2 {
     }
 
     private void save() {
-        mSettingsManager.set(PREFERENCE_FILE_NAME, CAMERA_COUNT_KEY, mAllCameraIDs.size());
-        mSettingsManager.set(PREFERENCE_FILE_NAME, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
-        mSettingsManager.set(PREFERENCE_FILE_NAME, BACK_IDS_KEY, mBackIDs);
-        mSettingsManager.set(PREFERENCE_FILE_NAME, FRONT_IDS_KEY, mFrontIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, CAMERA_COUNT_KEY, mAllCameraIDs.size());
+        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, mBackIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, mFrontIDs);
     }
 
     //Getters===========================================================================================================

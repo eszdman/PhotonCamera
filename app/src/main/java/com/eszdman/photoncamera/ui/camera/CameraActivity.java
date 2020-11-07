@@ -4,8 +4,10 @@ import android.Manifest;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.WindowManager;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
+
 import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Permissions;
@@ -14,21 +16,15 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
 import com.manual.ManualMode;
-import org.opencv.android.OpenCVLoader;
 
 
 public class CameraActivity extends AppCompatActivity {
 
     public static CameraActivity act;
 
-    static {
-        if (!OpenCVLoader.initDebug()) {
-            // Handle initialization error
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        PreferenceKeys.setActivityTheme(CameraActivity.this);
         super.onCreate(savedInstanceState);
         act = this;
         PhotonCamera.setCameraActivity(this);
@@ -53,7 +49,6 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        Animatoo.animateShrink(this);
     }
 
     @Override

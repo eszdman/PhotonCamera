@@ -3,6 +3,9 @@ package com.manual.model;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
+
+import androidx.core.content.ContextCompat;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.manual.KnobInfo;
@@ -41,18 +44,18 @@ public class FocusModel extends ManualModel<Float> {
         }
         for (int tick = 0; tick < values.size(); tick++) {
             if (tick == 0) {
-                drawable = PhotonCamera.getCameraActivity().getDrawable(R.drawable.manual_icon_focus_near);
+                drawable = ContextCompat.getDrawable(PhotonCamera.getCameraActivity(), R.drawable.manual_icon_focus_near);
             } else if (tick == values.size() - 1) {
-                drawable = PhotonCamera.getCameraActivity().getDrawable(R.drawable.manual_icon_focus_far);
+                drawable = ContextCompat.getDrawable(PhotonCamera.getCameraActivity(), R.drawable.manual_icon_focus_far);
             } else {
                 drawable = new ShadowTextDrawable();
             }
             String text = String.format("%.2f", values.get(tick));
-            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
+//            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }
         int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -values.size(), values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
+        knobInfo = new KnobInfo(0, angle, 0, values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
     }
 
     @Override

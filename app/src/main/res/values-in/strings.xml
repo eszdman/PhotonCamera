@@ -35,7 +35,6 @@
     <string name="size">"Ukuran File"</string>
     <string name="device">"Perangkat"</string>
     <string name="date">"Tanggal"</string>
-    <string name="iso">"ISO"</string>
     <string name="exposure_time">"Lama Eksposur"</string>
     <string name="aperture">"Bukaan"</string>
     <string name="flength">"Jarak Fokus"</string>

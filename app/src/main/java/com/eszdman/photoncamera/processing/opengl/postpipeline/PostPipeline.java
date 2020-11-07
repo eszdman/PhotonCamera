@@ -2,6 +2,8 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.*;
 import android.util.Log;
+
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
@@ -11,14 +13,12 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
-
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
-    GLTexture noiseMap;
     /**
      * Embeds an image watermark over a source image to produce
      * a watermarked one.
@@ -67,58 +67,73 @@ public class PostPipeline extends GLBasePipeline {
         return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
     public int getRotation() {
-        int rotation = PhotonCamera.getGravity().getCameraRotation();
+        int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
-        int orientation = 0;
-        switch (rotation) {
+        return rotation;
+    }
+    private Point getRotatedCoords(Point in){
+        switch (getRotation()){
+            case 0:
+                return in;
             case 90:
-                orientation = 90;
-                break;
+                return new Point(in.y,in.x);
             case 180:
-                orientation = 180;
-                break;
+                return in;
             case 270:
-                orientation = 270;
-                break;
+                return new Point(in.y,in.x);
         }
-        return orientation;
+        return in;
     }
     public void Run(ByteBuffer inBuffer, Parameters parameters){
-        Bitmap output = Bitmap.createBitmap(parameters.rawSize.x,parameters.rawSize.y, Bitmap.Config.ARGB_8888);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
+        Point rotated = getRotatedCoords(parameters.rawSize);
+        Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != -2) {
-                add(new DemosaicPart1(R.raw.demosaicp1, "Demosaic Part 1"));
+                add(new Demosaic("Demosaic"));
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
-                add(new DemosaicPart2(R.raw.demosaicp2, "Demosaic Part 2"));
             } else {
                 add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
             }
         } else {
             add(new LFHDR(0, "LFHDR"));
         }
+        /*
+         * * * All filters after demosaicing * * *
+         */
+        add(new ExposureFusion("ExposureFusion"));
         add(new Initial(R.raw.initial,"Initial"));
-        //add(new AWB(0,"AWB"));
-        add(new GlobalTonemaping(0,"GlobalTonemap"));
-        //fix yellow AWB - Urnyx05
+        add(new AWB(0,"AWB"));
+
+        //add(new GlobalToneMapping(0,"GlobalTonemap"));
+
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new NoiseDetection(R.raw.noisedetection44,"NoiseDetection"));
-            add(new NoiseMap(R.raw.gaussdown44,"GaussDownMap"));
-            add(new BlurMap(R.raw.gaussblur33,"GaussBlurMap"));
-            add(new BilateralColor(R.raw.bilateralcolor, "BilateralColor"));
-            add(new Bilateral(R.raw.bilateral, "Bilateral"));
+            add(new SmartNR("SmartNR"));
+            //add(new Bilateral(R.raw.bilateral, "Bilateral"));
+            //add(new Median(R.raw.medianfilter,"SmartMedian"));
+            if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
+                    for(int i =1; i<5;i++){
+                    add(new Median(new Point(i,i/2),"FastMedian"));
+                    add(new Median(new Point(i/2,i),"FastMedian"));
+                    //add(new Median(new Point(i,i),"FastMedian"));
+                }
+            }
         }
+        //if(PhotonCamera.getParameters().focalLength <= 3.0)
+        //add(new LensCorrection());
         add(new Sharpen(selectSharp(),"Sharpening"));
+        add(new Watermark(getRotation(),PreferenceKeys.isShowWatermarkOn()));
+        //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));
 
         Bitmap img = runAll();
-        img = RotateBitmap(img,getRotation());
-        if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
+        //img = RotateBitmap(img,getRotation());
+        //if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         //Canvas canvas = new Canvas(img);
         //canvas.drawBitmap(img, 0, 0, null);
         //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);

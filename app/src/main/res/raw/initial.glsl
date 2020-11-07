@@ -1,13 +1,8 @@
 #version 300 es
-precision mediump float;
-precision mediump usampler2D;
+precision highp float;
 precision mediump sampler2D;
-uniform sampler2D Fullbuffer;
-uniform sampler2D GainMap;
+uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
-uniform int RawSizeX;
-uniform int RawSizeY;
-uniform vec4 blackLevel;
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
@@ -28,13 +23,23 @@ out vec4 Output;
 #define x2 -3.1643f
 #define x3 1.2899f
 float gammaEncode2(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/gain)) - 0.055;
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
+}
+float gammaEncode3(float x) {
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
-    vec3 xx = x*x;
-    vec3 xxx = xx*x;
-    return (x1*x+x2*xx+x3*xxx);
+    float br = (x.r+x.g+x.b)/3.0;
+    x/=br;
+    return x*(x1*br+x2*br*br+x3*br*br*br);
+}
+vec3 gammaCorrectPixel3(vec3 x) {
+    x+=0.0001;
+    float br = (x.r+x.g+x.b)/3.0;
+    x/=br;
+    br = clamp(gammaEncode3(br),0.0,1.0);
+    return x*br;
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -138,13 +143,16 @@ vec3 tonemap(vec3 rgb) {
     }
     return finalRGB;
 }
+vec3 brightnessContrast(vec3 value, float brightness, float contrast)
+{
+    return (value - 0.5) * contrast + 0.5 + brightness;
+}
 vec3 applyColorSpace(vec3 pRGB){
-    pRGB.x = clamp(pRGB.x, 0., neutralPoint.x);
-    pRGB.y = clamp(pRGB.y, 0., neutralPoint.y);
-    pRGB.z = clamp(pRGB.z, 0., neutralPoint.z);
+    pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     pRGB = sensorToIntermediate*pRGB;
-    pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
+    //pRGB*=exposing;
+    //pRGB = tonemap(pRGB);
+    return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {
@@ -152,52 +160,39 @@ vec3 rgb2hsv(vec3 c) {
     vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
     vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
     float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + e)), d / (q.x + e), q.x);
+    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
 }
 vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1., 2. / 3., 1. / 3., 3.);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
 }
-
-vec3 linearizeAndGainMap(ivec2 coords){
-    vec3 pRGB;
-    vec4 inbuff = texelFetch(Fullbuffer,coords,0);
-    vec2 xyInterp = vec2(float(coords.x) / float(RawSizeX), float(coords.y) / float(RawSizeY));
-    vec4 gains = texture(GainMap, xyInterp);
-    pRGB.r = gains.r*float(inbuff.r-blackLevel.r);
-    pRGB.g = ((gains.g+gains.b)/2.)*float(inbuff.g-(blackLevel.g+blackLevel.b)/2.);
-    pRGB.b = gains.a*float(inbuff.b-blackLevel.a);
-    pRGB/=(1.0-blackLevel.g);
-    pRGB*=1.2;
-    //pRGB = clamp(pRGB,0.0,1.0);
-    return pRGB;
-}
 const float redcorr = 0.0;
 const float bluecorr = 0.0;
-vec3 saturate(vec3 rgb) {
+vec3 saturate(vec3 rgb,float model) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
-    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
     rgb = hsv2rgb(hsv);
     //rgb.r+=r*redcorr*saturation;
     //rgb.g=clamp(rgb.g,0.0,1.0);
     //rgb.b-=b*bluecorr*saturation;
     //rgb = clamp(rgb, 0.0,1.0);
     //rgb*=(r+g+b)/(rgb.r+rgb.g+rgb.b);
-
     return rgb;
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec3 pRGB = linearizeAndGainMap(xy);
-    vec3 sRGB = applyColorSpace(pRGB);
-    sRGB = saturate(sRGB);
-    //sRGB = clamp(sRGB,0.0,1.0);
+    vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
+    sRGB = applyColorSpace(sRGB);
+    //Rip Shadowing applied
+    br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
+    sRGB = saturate(sRGB,br);
+    sRGB = clamp(sRGB,0.0,1.0);
     Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
 }

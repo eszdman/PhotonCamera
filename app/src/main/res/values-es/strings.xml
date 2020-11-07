@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Photon Camera</string>
     <string name="request_permission">"Esta aplicación necesita permisos de cámara "</string>
     <string name="camera_error">Este dispositivo no soporta Camera2 API</string>
     <string name="luma_nr_count">Contador de Luma NR</string>
@@ -36,7 +35,6 @@
     <string name="size">"Tamaño de archivo:"</string>
     <string name="device">"Dispositivo: "</string>
     <string name="date">"Fecha:"</string>
-    <string name="iso">"ISO:"</string>
     <string name="exposure_time">"Tiempo de exposición:"</string>
     <string name="aperture">"Apertura:"</string>
     <string name="flength">"Tamaño focal:"</string>

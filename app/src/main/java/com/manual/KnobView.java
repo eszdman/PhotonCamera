@@ -3,13 +3,18 @@ package com.manual;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.PointF;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Range;
 import android.view.MotionEvent;
 import android.view.View;
+
 import com.eszdman.photoncamera.R;
 
 import java.util.ArrayList;
@@ -82,7 +87,6 @@ public class KnobView extends View {
 
     @Override
     public void draw(Canvas canvas) {
-        long startTime = System.nanoTime();
         super.draw(canvas);
         if (this.m_RotationCenter != null && this.m_KnobInfo != null) {
             canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, this.m_BackgroundPaint);
@@ -121,11 +125,10 @@ public class KnobView extends View {
             }
             //canvas.restore();
         }
-        log("drawTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     private double evaluateRotation(float x, float y) {
-        log("evaluateRotation");
+        //log("evaluateRotation");
         return Math.atan2(x - this.m_RotationCenter.x, -(y - this.m_RotationCenter.y));
     }
 
@@ -200,7 +203,7 @@ public class KnobView extends View {
     }
 
     private void setTick(int tick) {
-        log("setTick " + tick);
+        //log("setTick " + tick);
         if (this.m_Tick != tick) {
             int oldTick = this.m_Tick;
             this.m_Tick = tick;
@@ -322,7 +325,7 @@ public class KnobView extends View {
             }
             this.m_DrawableCurrentDegree = validateRotation(this.m_DrawableCurrentDegree);
             setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
-            log("invalidate onRotationUpdateFromTouch");
+            //log("invalidate onRotationUpdateFromTouch");
             invalidate();
         }
     }
@@ -438,19 +441,14 @@ public class KnobView extends View {
     private void setKnobViewRotation(double rotation) {
         this.m_DrawableCurrentDegree = rotation;
         this.m_DrawableLastDegree = rotation;
-        log("invalidate setKnobViewRotation");
+        //log("invalidate setKnobViewRotation");
         invalidate();
     }
 
     private void setKnobViewRotationSmooth(double rotation) {
         ValueAnimator animation = ValueAnimator.ofFloat((float) this.m_DrawableCurrentDegree, (float) rotation);
         animation.setDuration(100);
-        animation.addUpdateListener(new AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                KnobView.this.setKnobViewRotation((double) (Float) animation.getAnimatedValue());
-            }
-        });
+        animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation((double) (Float) animation1.getAnimatedValue()));
         animation.start();
     }
 
@@ -501,10 +499,10 @@ public class KnobView extends View {
                 if (this.m_KnobInfo != null) {
                     double includedAngle = ((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin));
                     double radius = this.m_RotationCenter.y;
-                    double edgeY = item.drawable.getIntrinsicWidth() / 2;
+                    double edgeY = item.drawable.getIntrinsicWidth() / 2.0;
                     double edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicHeight() / 2));
                     if (this.m_KnobItemsSelfRotation % 180.0f != 0.0f) {
-                        edgeY = item.drawable.getIntrinsicHeight() / 2;
+                        edgeY = item.drawable.getIntrinsicHeight() / 2.0;
                         edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicWidth() / 2));
                     }
                     double drawableAngleHalf = Math.toDegrees(Math.atan(edgeY / edgeX));
@@ -545,7 +543,7 @@ public class KnobView extends View {
     }
 
     private int validateTick(int tick) {
-        log("validateTick " + tick);
+        //log("validateTick " + tick);
         if (this.m_KnobInfo == null) {
             return tick;
         }

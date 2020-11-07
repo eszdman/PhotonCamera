@@ -6,12 +6,12 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
+
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
-import static android.hardware.camera2.CameraMetadata.*;
 import static android.hardware.camera2.CaptureRequest.*;
 
 public class Settings {
@@ -25,8 +25,8 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean grid;
     public boolean watermark;
-    public boolean afdata;
-    public boolean roundedge;
+    public boolean aFDebugData;
+    public boolean roundEdge;
     public boolean align;
     public boolean hdrx;
     public boolean hdrxNR;
@@ -46,7 +46,8 @@ public class Settings {
     public int alignAlgorithm;
     public String mCameraID;
     public CameraMode selectedMode;
-    public float[] tonemap;
+    public float[] toneMap;
+    public float[] gamma;
     //Other
     public boolean ManualMode = false;
     public String lastPicture = null;
@@ -73,14 +74,14 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
-        afdata = PreferenceKeys.isAfDataOn();
-        roundedge = PreferenceKeys.isRoundEdgeOn();
+        aFDebugData = PreferenceKeys.isAfDataOn();
+        roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
         contrastMpy = PreferenceKeys.getContrastValue();//TODO recheck
 //        contrastConst = get(contrastConst, "ContrastConst");///////TODO
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
-//        compressor = PreferenceKeys.getCompressorValue();
+        compressor = PreferenceKeys.getCompressorValue();
         gain = PreferenceKeys.getGainValue();
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();
@@ -92,7 +93,8 @@ public class Settings {
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
         selectedMode = getCameraMode();
-        tonemap = parseToneMapArray();
+        toneMap = parseToneMapArray();
+        gamma = parseGammaArray();
         mCameraID = PreferenceKeys.getCameraID();
         theme = PreferenceKeys.getThemeValue();
     }
@@ -102,7 +104,18 @@ public class Settings {
     }
 
     float[] parseToneMapArray() {
-        String savedArrayAsString = PreferenceKeys.getTonemap();
+        String savedArrayAsString = PreferenceKeys.getToneMap();
+        if (savedArrayAsString == null)
+            return new float[0];
+        String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");
+        float[] finalArray = new float[array.length];
+        for (int i = 0; i < array.length; i++) {
+            finalArray[i] = Float.parseFloat(array[i].trim());
+        }
+        return finalArray;
+    }
+    float[] parseGammaArray() {
+        String savedArrayAsString = PreferenceKeys.getPref(PreferenceKeys.Preference.GAMMA);
         if (savedArrayAsString == null)
             return new float[0];
         String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");
@@ -142,8 +155,10 @@ public class Settings {
         captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range<Integer> range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
-        if (selectedMode == CameraMode.NIGHT && range != null)
-            captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION, (int) range.getUpper());
+
+        //if (selectedMode == CameraMode.NIGHT && range != null)
+        //    captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION, (int) range.getUpper());
+
         /*Point size = new Point(Interface.getCameraFragment().mImageReaderPreview.getWidth(),Interface.getCameraFragment().mImageReaderPreview.getHeight());
         double sizex = size.x;
         double sizey = size.y;*/
@@ -164,8 +179,8 @@ public class Settings {
         initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
         //Interface.getTouchFocus().setFocus(size.x/2,size.y/2);
         PhotonCamera.getTouchFocus().onConfigured = true;
-        captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
-        float[] rgb = new float[64];
+        //captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
+        /*float[] rgb = new float[64];
         for (int i = 0; i < 64; i += 2) {
             float x = ((float) i) / 64.f;
             rgb[i] = x;
@@ -176,7 +191,7 @@ public class Settings {
             rgb[i + 1] = output;
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb, rgb, rgb);
-        captureBuilder.set(TONEMAP_CURVE, tonemapCurve);
+        captureBuilder.set(TONEMAP_CURVE, tonemapCurve);*/
     }
 
     // =================================================================================================================

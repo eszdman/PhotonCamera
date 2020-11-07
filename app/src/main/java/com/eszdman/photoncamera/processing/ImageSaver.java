@@ -9,7 +9,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+
 import androidx.exifinterface.media.ExifInterface;
+
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -32,7 +34,7 @@ public class ImageSaver implements Runnable {
      * Image frame buffer
      */
     public static ArrayList<Image> imageBuffer = new ArrayList<>();
-    static int bcnt = 0;
+    static int bCnt = 0;
     private final String TAG = "ImageSaver";
     private final ProcessingEventsListener processingEventsListener;
     private final ImageProcessing mImageProcessing;
@@ -52,7 +54,7 @@ public class ImageSaver implements Runnable {
                 initProcess((ImageReader) msg.obj);
             } catch (Exception e) {
                 Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
-                processingEventsListener.onErrorOccured(ProcessingEventsListener.FAILED_MSG);
+                processingEventsListener.onErrorOccurred(ProcessingEventsListener.FAILED_MSG);
                 e.printStackTrace();
             }
             return true;
@@ -90,7 +92,13 @@ public class ImageSaver implements Runnable {
 
     private void initProcess(ImageReader mReader) {
         Log.d(TAG, "initProcess() : called from \"" + Thread.currentThread().getName() + "\" Thread");
-        Image mImage = mReader.acquireNextImage();
+        Image mImage = null;
+        try {
+        mImage = mReader.acquireNextImage();
+        } catch (Exception e){
+            mImage = mReader.acquireLatestImage();
+        }
+        if(mImage == null) return;
         int format = mImage.getFormat();
         FileOutputStream output = null;
         switch (format) {
@@ -98,7 +106,7 @@ public class ImageSaver implements Runnable {
                 ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
                 try {
                     imageBuffer.add(mImage);
-                    bcnt++;
+                    bCnt++;
                     byte[] bytes = new byte[buffer.remaining()];
                     imageFileToSave = new File(getCurrentDirectory(), generateNewFileName() + ".jpg");
                     if (imageBuffer.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
@@ -123,7 +131,7 @@ public class ImageSaver implements Runnable {
                         output = new FileOutputStream(imageFileToSave);
                         buffer.get(bytes);
                         output.write(bytes);
-                        bcnt = 0;
+                        bCnt = 0;
                         mImage.close();
                         processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
                         processingEventsListener.onImageSaved(imageFileToSave);
@@ -163,12 +171,12 @@ public class ImageSaver implements Runnable {
                     }
                     if (PhotonCamera.getSettings().frameCount == 1) {
                         imageBuffer = new ArrayList<>();
-                        bcnt = 0;
+                        bCnt = 0;
                         //PhotonCamera.getCameraUI().unlockShutterButton();
                         processingEventsListener.onProcessingFinished("YUV: Single Frame, Not Processed!");
 
                     }
-                    bcnt++;
+                    bCnt++;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -183,7 +191,7 @@ public class ImageSaver implements Runnable {
                 imageFileToSave = new File(getCurrentDirectory(), generateNewFileName() + ext);
                 String path = getCurrentDirectory() + generateNewFileName() + ext;
                 try {
-                    Log.d(TAG, "start buffersize:" + imageBuffer.size());
+                    Log.d(TAG, "start buffer size:" + imageBuffer.size());
                     if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
                         mImageProcessing.unlimitedCycle(mImage);
                         return;
@@ -237,22 +245,22 @@ public class ImageSaver implements Runnable {
         processing.Run();
         imageBuffer = new ArrayList<>();
         Log.d(TAG, "ImageSaver Done!");
-        bcnt = 0;
+        bCnt = 0;
     }
 
     private void end(ImageReader mReader) {
-        mReader.acquireLatestImage();
         try {
             for (int i = 0; i < mReader.getMaxImages(); i++) {
                 Image cur = mReader.acquireNextImage();
                 if (cur == null) {
-                    break;
+                    continue;
                 }
                 cur.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        PhotonCamera.getCameraFragment().BurstShakiness.clear();
         imageBuffer.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
         processingEventsListener.onProcessingFinished("Processing Cycle Ended!");

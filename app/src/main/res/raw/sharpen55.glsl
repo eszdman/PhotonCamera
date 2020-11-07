@@ -5,7 +5,7 @@ uniform sampler2D InputBuffer;
 uniform int yOffset;
 uniform float size;
 uniform float strength;
-out vec4 Output;
+out vec3 Output;
 //#define depthMin (0.012)
 #define depthMin (0.006)
 #define depthMax (0.890)
@@ -16,8 +16,8 @@ float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sig
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec4 mask = vec4(0.0);
-    vec4 cur = (texelFetch(InputBuffer, (xy), 0));
+    vec3 mask = vec3(0.0);
+    vec3 cur = (texelFetch(InputBuffer, (xy), 0).rgb);
     const int kSize = (MSIZE1-1)/2;
     float kernel[MSIZE1];
     float pdfsize = 0.0;
@@ -25,8 +25,8 @@ void main() {
     for (int i=-kSize; i <= kSize; ++i){
        for (int j=-kSize; j <= kSize; ++j){
            float pdf = kernel[kSize+j]*kernel[kSize+i];
-           mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0))*pdf*1.7;
-           mask+=vec4(texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0))*pdf*0.3;
+           mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0).rgb)*pdf*1.7;
+           mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0).rgb)*pdf*0.3;
            pdfsize+=pdf;
        }
     }
@@ -34,11 +34,8 @@ void main() {
     mask =(cur-mask);
     //mask=clamp(mask,-depthMax,depthMax);
     if(abs(mask.r+mask.b+mask.g) < depthMin) mask*=0.;
-    mask*=strength*4.0;
-    if(abs(cur.r+cur.g+cur.b) > colour*3.) cur+=mask;
-    else {
-        cur+=(mask.r+mask.g+mask.b)/3.;
-    }
+    cur-=mask;
+    cur+=(mask.r+mask.g+mask.b)*((strength*4.0/3.)+1.0);
     cur = clamp(cur,0.0,1.0);
-    Output = vec4(cur.r,cur.g,cur.b,1.0);
+    Output = cur;
 }

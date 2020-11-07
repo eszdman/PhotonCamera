@@ -1,16 +1,44 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 precision mediump usampler2D;
-uniform usampler2D InputBuffer;
+precision mediump sampler2D;
+uniform sampler2D InputBuffer;
 uniform usampler2D InputBuffer2;
+uniform int unlimitedcount;
+uniform vec4 blackLevel;
+uniform float whitelevel;
+uniform int first;
 uniform int yOffset;
-#define koeff (7)
-out uint Output;
+out float Output;
+
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     //xy.x*=2;
     xy+=ivec2(0,yOffset);
-    uint rawpart = uint(texelFetch(InputBuffer, (xy), 0).x);
-    uint rawpart2 = uint(texelFetch(InputBuffer2, (xy), 0).x);
-    Output = uint((rawpart*uint((koeff-1))) +(rawpart2))/uint(koeff);
+    //float rawpart = float(texelFetch(InputBuffer, (xy), 0).x)-(blackLevel.g+0.5);
+    //float rawpart2 = float(texelFetch(InputBuffer2, (xy), 0).x)-(blackLevel.g+0.5);
+    //Output = uint(((rawpart*float((unlimitedcount-1))) +(rawpart2))/float(unlimitedcount) + blackLevel.g+0.5);
+    if(first == 1){
+        Output = float(
+        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
+        //+ (blackLevel.g-1.5)
+        //)
+        );
+    } else {
+        Output = float(
+        //floor(
+        mix(
+        float(texelFetch(InputBuffer, (xy), 0).x)
+        //-(blackLevel.g-1.5)
+        ,
+        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
+        //-(blackLevel.g-1.5)
+        ,
+        1.f/float(unlimitedcount)
+        )
+        //+ (blackLevel.g-1.5)
+        //)
+        );
+    }
+
 }

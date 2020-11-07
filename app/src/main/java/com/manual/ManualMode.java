@@ -24,6 +24,5 @@ public interface ManualMode {
 
     void retractAllKnobs();
 
-    void rotate(int orientation, int duration);
 
 }

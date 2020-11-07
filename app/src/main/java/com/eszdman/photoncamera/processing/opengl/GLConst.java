@@ -17,7 +17,8 @@ import static android.opengl.EGL14.EGL_SURFACE_TYPE;
 import static android.opengl.EGL14.EGL_TRUE;
 
 public class GLConst {
-    final static int TileSize = 64;
+    final static int TileSize = 128;
+    public final static int WorkDim = 3;
     final static int EGLDisplay = EGL_DEFAULT_DISPLAY;
     final static int[] attribList = {
             EGL_DEPTH_SIZE, 0,
@@ -31,7 +32,7 @@ public class GLConst {
             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_NONE
     };
-    final static int[] contextattribList = new int[] {
+    final static int[] contextAttributeList = new int[]{
             EGL_CONTEXT_CLIENT_VERSION, 3,
             EGL_NONE
     };

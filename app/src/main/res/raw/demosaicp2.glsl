@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 precision mediump usampler2D;
 precision mediump sampler2D;
 uniform usampler2D RawBuffer;
@@ -8,10 +8,14 @@ uniform int WhiteLevel;
 uniform int yOffset;
 uniform int CfaPattern;
 
+uniform sampler2D GainMap;
+uniform vec4 blackLevel;
+uniform ivec2 RawSize;
+
 #define greenmin (0.04)
 #define greenmax (0.9)
-out vec4 Output;
-
+#import interpolation
+out vec3 Output;
 float interpolateColor(in ivec2 coords){
     bool usegreen = true;
     float green[5];
@@ -74,7 +78,7 @@ void main() {
     int fact2 = xy.y%2;
     ivec2 shift = ivec2(CfaPattern%2,CfaPattern/2);
     xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
-    vec4 outp;
+    vec3 outp;
     if(fact1 ==0 && fact2 == 0) {//rggb
         outp.g = texelFetch(GreenBuffer, (xy-shift), 0).x;
         outp.r = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
@@ -100,6 +104,11 @@ void main() {
         outp.b = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
         outp.r = interpolateColor(xy);
     }
-    //Output = clamp(outp,0.0,1.0);
     Output = outp;
+    vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
+    Output.r = gains.r*(Output.r-blackLevel.r);
+    Output.g = ((gains.g+gains.b)/2.)*(Output.g-(blackLevel.g+blackLevel.b)/2.);
+    Output.b = gains.a*(Output.b-blackLevel.a);
+    Output/=(1.0-blackLevel.g);
+    Output = clamp(Output,0.0,1.0);
 }

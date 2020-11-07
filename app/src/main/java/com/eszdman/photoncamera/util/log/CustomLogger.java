@@ -20,13 +20,13 @@ public class CustomLogger extends OnScreenLogger {
     }
 
     @Override
-    public String createTextFrom(Map<String, String> treemap) {
-        Set<String> keys = treemap.keySet();
+    public String createTextFrom(Map<String, String> treeMap) {
+        Set<String> keys = treeMap.keySet();
         StringBuilder sb = new StringBuilder();
         for (String k : keys) {
             sb.append(k);
             sb.append(" : ");
-            sb.append(treemap.get(k));
+            sb.append(treeMap.get(k));
             sb.append("\n");
         }
         return sb.toString();

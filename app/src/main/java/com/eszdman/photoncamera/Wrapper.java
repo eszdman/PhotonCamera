@@ -24,7 +24,7 @@ public class Wrapper {
      */
     public static native void loadFrame(ByteBuffer bufferptr);
 
-    public static native ByteBuffer processFrame(float ghosting);
+    public static native ByteBuffer processFrame();
 //public static native void Test();
 //public static native ByteBuffer ProcessOpenCL(ByteBuffer in);
 }

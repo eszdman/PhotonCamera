@@ -18,8 +18,7 @@ public abstract class OnScreenLogger {
     private TextView textView;
 
     /**
-     *
-     * @param activity the activity that contains the textView
+     * @param activity   the activity that contains the textView
      * @param textViewID resource id of the textView
      */
     OnScreenLogger(Activity activity, int textViewID) {

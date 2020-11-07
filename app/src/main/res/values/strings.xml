@@ -19,11 +19,11 @@
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
-    <string name="raw">Save RAW</string>
+    <string name="raw">Save Stacked RAW</string>
     <string name="turn_on_round_edges">Enable Round Edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>
-    <string name="telegram">Telegram Group</string>
+    <string name="telegram">Telegram Group ↗</string>
     <string name="hdrxNR">HDRX Noise Reduction</string>
     <string name="turn_on_watermark">Enable Watermark</string>
     <string name="sure_delete">Are you sure to delete this image?</string>
@@ -36,7 +36,7 @@
     <string name="size">"File Size: "</string>
     <string name="device">"Device: "</string>
     <string name="date">"Date: "</string>
-    <string name="iso">"ISO: "</string>
+    <string name="iso" translatable="false">"ISO: "</string>
     <string name="exposure_time">"Exposure Time: "</string>
     <string name="aperture">"Aperture: "</string>
     <string name="flength">"Focal Length: "</string>
@@ -46,9 +46,9 @@
     <string name="histogram">Histogram</string>
     <string name="export_settings">Export Settings</string>
     <string name="import_settings">Import Settings</string>
-    <string name="manual_mode_auto">Auto</string>
-    <string name="manual_mode_manual">Manual</string>
-    <string name="manual_mode_fixed">Fixed</string>
+    <string name="manual_mode_auto" translatable="false">Auto</string>
+    <string name="manual_mode_manual" translatable="false">Manual</string>
+    <string name="manual_mode_fixed" translatable="false">Fixed</string>
     <string name="pref_show_grid_title">Show Grid</string>
     <string name="cfa">CFA Pattern</string>
     <string name="align_method">Align Method</string>
@@ -61,4 +61,18 @@
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="theme_accent">Theme Color</string>
+    <string name="Default">Default</string>
+    <string name="theme_accent_blue_gradient">Blue with Gradient</string>
+    <string name="theme_accent_red_gradient">Red with Gradient</string>
+    <string name="theme_accent_orange_gradient">Orange with Gradient</string>
+    <string name="theme_accent_blue">Blue</string>
+    <string name="theme_accent_red">Red</string>
+    <string name="theme_accent_orange">Orange</string>
+    <string name="unprocessed_raw">Unprocessed RAW</string>
+    <string name="frame_count_summary">Number of image frames to be stacked</string>
+    <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>
+    <string name="version_title">Version</string>
+    <string name="version_summary">v%1$s\n%2$s</string>
+    <string name="contributors_title">Contributors ↗</string>
 </resources>

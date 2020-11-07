@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.eszdman.photoncamera.ui.camera.CameraActivity;
 
 public class SplashActivity extends AppCompatActivity {

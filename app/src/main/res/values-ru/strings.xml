@@ -37,4 +37,26 @@
     <string name="raw">Исходник</string>
     <string name="close">Закрыть</string>
     <string name="unknown">Неизвестно</string>
+    <string name="theme">Тема</string>
+    <string name="camera_sounds">Звуки камеры</string>
+    <string name="about">О нас</string>
+    <string name="align_method">Устройство выравнивания</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Темная</string>
+    <string name="theme_follow_system">Как в системе</string>
+    <string name="theme_accent">Цвет темы</string>
+    <string name="theme_accent_blue_gradient">Синий градиент</string>
+    <string name="theme_accent_red_gradient">Красный градиент</string>
+    <string name="theme_accent_orange_gradient">Оранжевый градиент</string>
+    <string name="theme_accent_blue">Синий</string>
+    <string name="theme_accent_red">Красный</string>
+    <string name="theme_accent_orange">Оранжевый</string>
+    <string name="Default">По умолчанию</string>
+    <string name="resolution">Разрешение</string>
+    <string name="size">Размер файла</string>
+    <string name="device">Устройство</string>
+    <string name="date">Дата</string>
+    <string name="flength">Растояние линз</string>
+    <string name="aperture">Диафрагма</string>
+    <string name="exposure_time">Выдержка</string>
 </resources>

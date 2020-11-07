@@ -32,7 +32,6 @@
     <string name="size">"Dimensioni file: "</string>
     <string name="device">"Dispositivo: "</string>
     <string name="date">"Data: "</string>
-    <string name="iso">"ISO: "</string>
     <string name="exposure_time">"Tempo di esposizione: "</string>
     <string name="aperture">"Apertura: "</string>
     <string name="flength">"Lunghezza focale: "</string>
@@ -41,4 +40,25 @@
     <string name="turn_on_afdata">Mostra dati AF</string>
     <string name="histogram">Istogramma</string>
     <string name="gain">Amplificazione:</string>
+    <string name="pref_save_per_lens_string">Salva impostazioni per ogni lente</string>
+    <string name="compressor">Compressore</string>
+    <string name="about">Informazioni</string>
+    <string name="camera_sounds">Suoni fotocamera</string>
+    <string name="theme">Tema</string>
+    <string name="theme_follow_system">Segui sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="theme_accent">Colore tema</string>
+    <string name="Default">Predefinito</string>
+    <string name="theme_accent_blue_gradient">Blu con Sfumatura</string>
+    <string name="theme_accent_red_gradient">Rosso con Sfumatura</string>
+    <string name="theme_accent_orange_gradient">Arancione con Sfumatura</string>
+    <string name="theme_accent_blue">Blu</string>
+    <string name="theme_accent_red">Rosso</string>
+    <string name="theme_accent_orange">Arancione</string>
+    <string name="unprocessed_raw">RAW non processato</string>
+    <string name="frame_count_summary">Numero di frame che vengono fusi insieme</string>
+    <string name="photon_camera_summary">Una Fotocamera Open Source per Android con un\n Processamento Avanzato delle Immagini</string>
+    <string name="version_title">Versione</string>
+    <string name="contributors_title">Collaboratori ↗</string>
 </resources>

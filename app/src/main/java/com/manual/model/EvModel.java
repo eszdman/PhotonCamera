@@ -5,9 +5,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
+
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
@@ -19,6 +20,7 @@ import java.util.Locale;
 public class EvModel extends ManualModel<Float> {
 
     private final String TAG = EvModel.class.getSimpleName();
+    private float evStep;
 
     public EvModel(Range range, ValueChangedEvent valueChangedEvent) {
         super(range, valueChangedEvent);
@@ -35,16 +37,17 @@ public class EvModel extends ManualModel<Float> {
         getKnobInfoList().add(auto);
         currentInfo = auto;
         int positiveValueCount = 0;
-        int negtiveValueCount = 0;
-        float evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
+        int negativeValueCount = 0;
+        evStep = (CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue());
+        float step = 0.25f;
         ArrayList<Float> values = new ArrayList<>();
-        for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= evStep) {
+        for (float fValue = evRange.getUpper(); fValue >= evRange.getLower(); fValue -= step) {
             float roundedValue = ((float) Math.round(10000.0f * fValue)) / 10000.0f;
             if (!isZero(fValue)) {
                 if (fValue > 0.0f) {
                     positiveValueCount++;
                 } else {
-                    negtiveValueCount++;
+                    negativeValueCount++;
                 }
             }
             values.add(roundedValue);
@@ -74,12 +77,12 @@ public class EvModel extends ManualModel<Float> {
                 if (value > 0.0f) {
                     getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, positiveValueCount - tick, value));
                 } else {
-                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, negtiveValueCount - tick, value));
+                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, negativeValueCount - tick, value));
                 }
             }
         }
         int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -negtiveValueCount, positiveValueCount, PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
+        knobInfo = new KnobInfo(-angle, angle, -negativeValueCount, positiveValueCount, PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
 
     @Override
@@ -91,7 +94,7 @@ public class EvModel extends ManualModel<Float> {
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
         CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) knobItemInfo.value);
+        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) (knobItemInfo.value / evStep));
         PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo.text);
     }

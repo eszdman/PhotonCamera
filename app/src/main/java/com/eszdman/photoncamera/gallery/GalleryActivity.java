@@ -29,10 +29,10 @@ import androidx.exifinterface.media.ExifInterface;
 import androidx.viewpager.widget.ViewPager;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
 
     public static final List<String> EXTENSION_WHITELIST = Collections.singletonList("JPG");
 
-    private final String path = Environment.getExternalStorageDirectory().toString()+"/DCIM/Camera";
+    private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
     private final File f = new File(path);
     private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
     public static GalleryActivity activity;
@@ -58,10 +58,11 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     private ImageAdapter adapter;
     private ConstraintLayout exifLayout;
     private Histogram histogram;
-    private LinearLayout histogramview;
+    private LinearLayout histogramView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        PreferenceKeys.setActivityTheme(GalleryActivity.this);
         super.onCreate(savedInstanceState);
         activity = this;
         setContentView(R.layout.activity_gallery);
@@ -79,8 +80,8 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         Button exif = findViewById(R.id.exif);
         exif.setOnClickListener(this);
 
-        Log.d("GalleryActivity","Offset:" + histogram.offset);
-        histogramview.addView(histogram);
+        Log.d("GalleryActivity", "Offset:" + histogram.offset);
+        histogramView.addView(histogram);
     }
 
     public static String getFileExt(File fileName) {
@@ -91,7 +92,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         viewPager = findViewById(R.id.view_pager);
         adapter = new ImageAdapter(this, file);
         exifLayout = findViewById(R.id.exif_layout);
-        histogramview = findViewById(R.id.exif_histogram);
+        histogramView = findViewById(R.id.exif_histogram);
         histogram = new Histogram(this);
     }
 
@@ -109,10 +110,10 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                             int position = viewPager.getCurrentItem();
                             File newFile = new File(String.valueOf(file[position]));
                             String fileName = newFile.getName();
-                            File thisfile = new File (path + "/" + fileName);
-                            thisfile.delete();
+                            File thisFile = new File(path + "/" + fileName);
+                            thisFile.delete();
 
-                            MediaScannerConnection.scanFile(activity, new String[]{String.valueOf(thisfile)}, null, null);
+                            MediaScannerConnection.scanFile(activity, new String[]{String.valueOf(thisFile)}, null, null);
 
                             //auto scroll to the next photo
                             viewPager.setCurrentItem(position + 1, true);
@@ -131,7 +132,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 int position = viewPager.getCurrentItem();
                 File newFile = new File(String.valueOf(file[position]));
                 String fileName = newFile.getName();
-                String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FilenameUtils.getExtension(fileName));
+                String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
                 Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".provider", new File(path + "/" + fileName));
                 Intent intent = new Intent(Intent.ACTION_SEND);
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
@@ -141,7 +142,10 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 break;
 
             case R.id.exif:
-                if(exifLayout.getVisibility() == View.VISIBLE) {exifLayout.setVisibility(View.INVISIBLE); return;}
+                if (exifLayout.getVisibility() == View.VISIBLE) {
+                    exifLayout.setVisibility(View.INVISIBLE);
+                    return;
+                }
                 position = viewPager.getCurrentItem();
 
                 File currentFile = file[position];
@@ -159,9 +163,9 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                     //String date = exif1.getAttribute(ExifInterface.TAG_DATETIME);
                     String exposure = exif1.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
                     String iso = exif1.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
-                    String fnum = exif1.getAttribute(ExifInterface.TAG_F_NUMBER);
+                    String fNum = exif1.getAttribute(ExifInterface.TAG_F_NUMBER);
                     String focal = exif1.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
-                    if(exposure == null) exposure = "0";
+                    if (exposure == null) exposure = "0";
 
 
                     TextView title = findViewById(R.id.value_filename);
@@ -170,25 +174,24 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                     TextView device = findViewById(R.id.value_device);
                     TextView datetime = findViewById(R.id.value_date);
                     TextView exp = findViewById(R.id.value_exposure);
-                    TextView isospeed = findViewById(R.id.value_iso);
-                    TextView fnumber = findViewById(R.id.value_fnumber);
+                    TextView isoSpeed = findViewById(R.id.value_iso);
+                    TextView fNumber = findViewById(R.id.value_fnumber);
                     TextView fileSize = findViewById(R.id.value_filesize);
-                    TextView focallength = findViewById(R.id.value_flength);
+                    TextView focalLength = findViewById(R.id.value_flength);
 
 
                     BitmapFactory.Options options = new BitmapFactory.Options();
                     options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                    histogramview.removeAllViews();
+                    histogramView.removeAllViews();
                     class HistHandler extends Handler {
                         @Override
-                        public void handleMessage(Message msg)
-                        {
-                            histogramview.removeAllViews();
-                            histogramview.addView((View)msg.obj);
+                        public void handleMessage(Message msg) {
+                            histogramView.removeAllViews();
+                            histogramView.addView((View) msg.obj);
                         }
                     }
-                    Handler addview = new HistHandler();
-                    Thread th = new Thread(){
+                    Handler addView = new HistHandler();
+                    Thread th = new Thread() {
                         @Override
                         public void run() {
                             Bitmap preview = BitmapDecoder.from(Uri.fromFile(currentFile)).scaleBy(0.1f).decode();
@@ -196,36 +199,36 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                             histogram.Analyze(preview);
                             Message msg = new Message();
                             msg.obj = histogram;
-                            addview.sendMessage(msg);
+                            addView.sendMessage(msg);
                         }
                     };
                     th.start();
                     title.setText(fileName.toUpperCase(Locale.ROOT));
                     res.setText((width + "x" + length));
-                    res_mp.setText((String.format(Locale.US,"%.1f",
-                            Double.parseDouble(Objects.requireNonNull(width))*
-                                    Double.parseDouble(Objects.requireNonNull(length))/1E6)+" MP"));
+                    res_mp.setText((String.format(Locale.US, "%.1f",
+                            Double.parseDouble(Objects.requireNonNull(width)) *
+                                    Double.parseDouble(Objects.requireNonNull(length)) / 1E6) + " MP"));
                     device.setText((make + " " + model));
 
                     @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat(
-                            DateFormat.DAY+" "+DateFormat.MONTH+" "+
-                                    DateFormat.YEAR+" "+DateFormat.WEEKDAY+" "+
+                            DateFormat.DAY + " " + DateFormat.MONTH + " " +
+                                    DateFormat.YEAR + " " + DateFormat.WEEKDAY + " " +
                                     "H:m:s");
                     Date photoDate = new Date(currentFile.lastModified());
                     datetime.setText(dateFormat.format(photoDate).toUpperCase());
 
                     String exposureTime = Utilities.formatExposureTime(Double.parseDouble(exposure));
                     exp.setText((exposureTime + "s"));
-                    isospeed.setText(("ISO" + iso));
-                    fnumber.setText(("\u0192/" + fnum));
-                    fileSize.setText(FileUtils.byteCountToDisplaySize(currentFile.length()));
-                    if(focal != null) {
+                    isoSpeed.setText(("ISO" + iso));
+                    fNumber.setText(("\u0192/" + fNum));
+                    fileSize.setText(FileUtils.byteCountToDisplaySize((int) currentFile.length()));
+                    if (focal != null) {
                         //Improved uwu code
                         int numerator = Integer.parseInt(focal.substring(0, focal.indexOf("/")));
                         int denumerator = Integer.parseInt(focal.substring(focal.indexOf("/") + 1));
-                        focallength.setText((((double) (numerator) / denumerator) + "mm"));
+                        focalLength.setText((((double) (numerator) / denumerator) + "mm"));
                     } else {
-                        focallength.setText("");
+                        focalLength.setText("");
                     }
                     exifLayout.setVisibility(View.VISIBLE);
                 } catch (IOException e) {

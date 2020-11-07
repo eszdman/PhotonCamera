@@ -22,7 +22,7 @@ void main() {
             float pdf = kernel[kSize+j]*kernel[kSize+i];
             float inp = texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0).x;
             if(abs(inp) > 1.0/1000.0){
-                mask+=float(texelFetch(InputBuffer, (xy+ivec2(i*2, j*2)), 0).x)*pdf;
+                mask+=inp*pdf;
                 pdfsize+=pdf;
             }
         }
