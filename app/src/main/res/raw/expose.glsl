@@ -8,7 +8,7 @@ out vec3 result;
 uniform int yOffset;
 float gammaEncode(float x) {
     if(x>1.0) return x;
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.5)) - 0.055;
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.4)) - 0.055;
 }
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
@@ -21,7 +21,7 @@ void main() {
 
     xyY.z = sigmoid(xyY.z, 0.9f);
     result = xyYtoXYZ(xyY);*/
-    vec3 inp = texelFetch(InputBuffer, xyCenter, 0).xyz;
+    vec3 inp = texelFetch(InputBuffer, xyCenter, 0).xyz*factor;
     /*if(factor < 1.0)
     win.a = win.a*factor*(clamp((1.0-win.a),0.0,0.05)*(1.0/0.05));
     else {
@@ -29,9 +29,10 @@ void main() {
     }*/
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
-    result = clamp(inp,vec3(0.0),neutralPoint);
+    result = clamp(inp,vec3(0.0),neutralPoint)+0.0001;
     result/=neutralPoint;
-    result.r = gammaEncode(result.r);
-    result.g = gammaEncode(result.g);
-    result.b = gammaEncode(result.b);
+    float br = (result.r+result.g+result.b)/3.0;
+    result/=br;
+    br = gammaEncode(br);
+    result*=br;
 }

@@ -49,13 +49,15 @@
         , 0.979846f, 0.981554f, 0.98322f, 0.984843f, 0.986424f, 0.987961f, 0.989455f, 0.990906f, 0.992312f, 0.993674f
         , 0.994991f, 0.996264f, 0.997492f, 0.998674f, 0.99981f]
     </string>
+    <string name="gamma_default">[0f, 0.99981f]
+    </string>
     <string name="pref_framecount_default">15</string>
     <string name="pref_chroma_seekbar_default">12</string>
     <string name="pref_luma_seekbar_default">12</string>
     <string name="pref_sharpness_seekbar_default">0.35</string>
     <string name="pref_saturation_seekbar_default">1.0</string>
-    <string name="pref_gain_seekbar_default">1.7</string>
-    <string name="pref_compressor_seekbar_default">0.5</string>
+    <string name="pref_gain_seekbar_default">1.0</string>
+    <string name="pref_compressor_seekbar_default">1.0</string>
     <string name="pref_align_method_default">0</string>
     <string name="pref_cfa_default_value">-1</string>
     <string name="pref_theme_default_value">-1</string>

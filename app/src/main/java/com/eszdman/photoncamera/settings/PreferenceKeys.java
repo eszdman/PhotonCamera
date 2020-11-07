@@ -55,6 +55,7 @@ public class PreferenceKeys {
         KEY_FPS_PREVIEW("pref_fps_preview_key"),
         CAMERA_ID("camera_id"),
         TONEMAP("tonemap"),
+        GAMMA("gamma"),
         CAMERA_MODE("pref_camera_mode"),
 
         /* CameraManager 2 keys */
@@ -87,6 +88,7 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Preference.KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
         settingsManager.setDefaults(Preference.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{""});
         settingsManager.setDefaults(Preference.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
+        settingsManager.setDefaults(Preference.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
         settingsManager.addListener((settingsManager1, key) -> {
             PhotonCamera.getSettings().loadCache();
             Log.d(TAG, key + " : changed!");
@@ -253,5 +255,8 @@ public class PreferenceKeys {
 
     public static String getToneMap() {
         return PhotonCamera.getSettingsManager().getString(current_scope, Preference.TONEMAP);
+    }
+    public static String getPref(Preference preference) {
+        return PhotonCamera.getSettingsManager().getString(current_scope, preference);
     }
 }

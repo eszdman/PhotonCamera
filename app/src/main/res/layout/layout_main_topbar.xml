@@ -44,20 +44,21 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <ToggleButton
-                android:id="@+id/hdrx_toggle_button"
-                android:layout_width="@dimen/topbar_icon_size"
-                android:layout_height="0dp"
-                app:layout_constraintDimensionRatio="1:1"
-                android:background="@drawable/raw_button"
-                android:checked="true"
-                android:textOff=""
-                android:textOn=""
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
-                tools:visibility="visible"
-            bindRotate="@{uimodel}"/>
+            android:id="@+id/hdrx_toggle_button"
+            bindRotate="@{uimodel}"
+            android:layout_width="@dimen/topbar_icon_size"
+            android:layout_height="0dp"
+            android:background="@drawable/raw_button"
+            android:checked="true"
+            android:textOff=""
+            android:textOn=""
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
 
         <ToggleButton
                 android:id="@+id/eis_toggle_button"

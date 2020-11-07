@@ -47,6 +47,7 @@ public class Settings {
     public String mCameraID;
     public CameraMode selectedMode;
     public float[] toneMap;
+    public float[] gamma;
     //Other
     public boolean ManualMode = false;
     public String lastPicture = null;
@@ -93,6 +94,7 @@ public class Settings {
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
         selectedMode = getCameraMode();
         toneMap = parseToneMapArray();
+        gamma = parseGammaArray();
         mCameraID = PreferenceKeys.getCameraID();
         theme = PreferenceKeys.getThemeValue();
     }
@@ -103,6 +105,17 @@ public class Settings {
 
     float[] parseToneMapArray() {
         String savedArrayAsString = PreferenceKeys.getToneMap();
+        if (savedArrayAsString == null)
+            return new float[0];
+        String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");
+        float[] finalArray = new float[array.length];
+        for (int i = 0; i < array.length; i++) {
+            finalArray[i] = Float.parseFloat(array[i].trim());
+        }
+        return finalArray;
+    }
+    float[] parseGammaArray() {
+        String savedArrayAsString = PreferenceKeys.getPref(PreferenceKeys.Preference.GAMMA);
         if (savedArrayAsString == null)
             return new float[0];
         String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");

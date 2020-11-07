@@ -49,6 +49,9 @@ public class Demosaic extends Node {
         }
         glProg.setVar("blackLevel",params.blackLevel);
         WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
+        basePipeline.main1 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
+        basePipeline.main2 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
+        //WorkingTexture = basePipeline.main2;
         glProg.drawBlocks(WorkingTexture);
         green.close();
         GainMapTex.close();

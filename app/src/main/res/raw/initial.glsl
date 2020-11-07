@@ -1,6 +1,5 @@
 #version 300 es
 precision highp float;
-precision mediump usampler2D;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
@@ -8,7 +7,6 @@ uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
 uniform int yOffset;
-uniform float exposing;
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
@@ -25,11 +23,23 @@ out vec4 Output;
 #define x2 -3.1643f
 #define x3 1.2899f
 float gammaEncode2(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/gain)) - 0.055;
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
+}
+float gammaEncode3(float x) {
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
-    return (x1*x+x2*x*x+x3*x*x*x);
+    float br = (x.r+x.g+x.b)/3.0;
+    x/=br;
+    return x*(x1*br+x2*br*br+x3*br*br*br);
+}
+vec3 gammaCorrectPixel3(vec3 x) {
+    x+=0.0001;
+    float br = (x.r+x.g+x.b)/3.0;
+    x/=br;
+    br = clamp(gammaEncode3(br),0.0,1.0);
+    return x*br;
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -133,11 +143,16 @@ vec3 tonemap(vec3 rgb) {
     }
     return finalRGB;
 }
+vec3 brightnessContrast(vec3 value, float brightness, float contrast)
+{
+    return (value - 0.5) * contrast + 0.5 + brightness;
+}
 vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     pRGB = sensorToIntermediate*pRGB;
+    //pRGB*=exposing;
     //pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(gammaCorrectPixel(clamp(intermediateToSRGB*pRGB,0.0,1.0)));
+    return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c) {

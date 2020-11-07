@@ -167,7 +167,7 @@
                 android:summary=""
                 android:defaultValue="@string/pref_compressor_seekbar_default"
                 app:maxValue="2"
-                app:minValue="0.5"
+                app:minValue="0.4"
                 app:isFloat="true"
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_compressor"

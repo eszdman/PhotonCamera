@@ -36,7 +36,6 @@ public class Initial extends Node {
         glProg.setVar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setVar("gain", (float) PhotonCamera.getSettings().gain);
         glProg.setVar("neutralPoint",params.whitePoint);
-        glProg.setVar("exposing",1.f/((float)PhotonCamera.getSettings().compressor));
         Log.d(Name,"compressor:"+1.f/((float)PhotonCamera.getSettings().compressor));
         float sat =(float) PhotonCamera.getSettings().saturation;
         if(PhotonCamera.getSettings().cfaPattern == -2) sat = 0.f;
