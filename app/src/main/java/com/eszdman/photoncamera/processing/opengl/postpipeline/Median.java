@@ -15,8 +15,8 @@ import com.eszdman.photoncamera.ui.camera.CameraFragment;
 public class Median extends Node {
     Point transposing;
 
-    public Median(Point transpose, String name) {
-        super(R.raw.hybridmedianfilter, name);
+    public Median(Point transpose, String name, int original) {
+        super(original, name);
         transposing = transpose;
     }
 

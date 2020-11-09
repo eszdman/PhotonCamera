@@ -4,6 +4,7 @@ import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
@@ -21,7 +22,7 @@ public class SmartNR extends Node {
 
     @Override
     public void Run() {
-        glProg.useProgram(R.raw.noisedetection44);
+        /*glProg.useProgram(R.raw.noisedetection44);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         GLTexture detect = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
         glProg.drawBlocks(detect);
@@ -29,12 +30,12 @@ public class SmartNR extends Node {
         GLTexture detectresize = glUtils.gaussdown(detect,4);
         detect.close();
         GLTexture detectblur = glUtils.blurfast(detectresize,1.2);
-        detectresize.close();
-
-        //Chroma NR
-        glProg.useProgram(R.raw.bilateralcolor);
+        detectresize.close();*/
         float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 6.2f;
         denoiseLevel += 0.25;
+        //Chroma NR
+        /*glProg.useProgram(R.raw.bilateralcolor);
+
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         denoiseLevel = Math.min(5.0f, denoiseLevel);
         glProg.setVar("sigma", denoiseLevel, denoiseLevel * 2.f);
@@ -42,13 +43,18 @@ public class SmartNR extends Node {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         glProg.setTexture("NoiseMap", detectblur);
         WorkingTexture = basePipeline.getMain();
-        glProg.drawBlocks(WorkingTexture);
-        glProg.useProgram(R.raw.hybridmedianfilter);
-        glProg.setVar("robust",1.2f);
+        glProg.drawBlocks(WorkingTexture);*/
+        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        if (denoiseLevel > 6.5) {
+            glProg.useProgram(R.raw.nlmeans);
+        } else{
+            glProg.useProgram(R.raw.hybridmedianfilter);
+            glProg.setVar("robust",1.2f);
+        }
         glProg.setVar("tpose",1,1);
-        glProg.setTexture("InputBuffer",WorkingTexture);
+        glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         WorkingTexture = basePipeline.getMain();
         glProg.closed = false;
-        detectblur.close();
+        //detectblur.close();
     }
 }

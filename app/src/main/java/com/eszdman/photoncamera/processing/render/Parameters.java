@@ -147,7 +147,16 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
-        if (!customCCM.exists()) {
+        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        assert calibration2 != null;
+        assert forwardt1 != null;
+        assert forwardt2 != null;
+        boolean wrongCalibration =
+                forwardt1.getElement(0,0).floatValue() == forwardt2.getElement(0,0).floatValue() &&
+                        forwardt1.getElement(1,1).floatValue() == forwardt2.getElement(1,1).floatValue() &&
+                        forwardt1.getElement(2,2).floatValue() == forwardt2.getElement(2,2).floatValue() &&
+                        forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();
+        if (wrongCalibration && CCT != null && !customCCM.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;
             sensorToProPhoto[2] = 0.0f;
@@ -161,8 +170,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / whitePoint[2];
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
-        if (CCT != null) {
+        if (CCT != null && wrongCalibration && !customCCM.exists()) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);
             for (int i = 0; i < 9; i++) {
@@ -192,7 +200,14 @@ public class Parameters {
                 0f
         };
     }
-
+    private static void PrintMat(float[] mat){
+        String outp = "";
+        for(int i =0; i<mat.length;i++){
+            outp+=(mat[i])+" ";
+            if(i%3 == 2) outp+="\n";
+        }
+        Log.d(TAG,"matrix:\n"+outp);
+    }
     @androidx.annotation.NonNull
     @Override
     public String toString() {

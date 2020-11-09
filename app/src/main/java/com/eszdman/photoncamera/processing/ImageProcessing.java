@@ -279,7 +279,7 @@ public class ImageProcessing {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output = null;
         if (!debugAlignment) {
-            output = Wrapper.processFrame();
+            output = Wrapper.processFrame(1.f);
         } else
             output = rawPipeline.Run();
        /*
