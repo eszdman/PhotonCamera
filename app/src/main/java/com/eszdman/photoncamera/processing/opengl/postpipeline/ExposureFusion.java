@@ -64,7 +64,7 @@ public class ExposureFusion extends Node {
     @Override
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
-        double compressor = (PhotonCamera.getSettings().compressor);
+        double compressor = 1.f;
         if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         int perlevel = 4;
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;

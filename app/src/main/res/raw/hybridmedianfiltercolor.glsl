@@ -61,7 +61,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 v[9];
-    vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
+    vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb)+0.001;
     float br = (c.r+c.g+c.b)/3.0;
     c/=br;
     float kernel[MSIZE];
@@ -81,7 +81,7 @@ void main() {
             // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
             // bottom right pixel of the window at pixel[N-1].
             //v[(dX + 1) * 3 + (dY + 1)] = mix(chromaticity(vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb)),c,pdf);
-            v[(dX + 1) * 3 + (dY + 1)] = chromaticity(vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb));
+            v[(dX + 1) * 3 + (dY + 1)] = chromaticity(vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb)+0.001);
         }
     }
 

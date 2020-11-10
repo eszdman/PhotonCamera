@@ -26,7 +26,6 @@ void main()
 {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-
     for(int dX = -2; dX <= 2; ++dX) {
         for (int dY = -2; dY <= 2; ++dY) {
             ivec2 offset = ivec2((dX), (dY));

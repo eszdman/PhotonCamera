@@ -37,6 +37,7 @@ precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
 uniform ivec2 tpose;
+uniform ivec2 size;
 uniform float robust;
 
 #define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);

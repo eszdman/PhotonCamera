@@ -1258,9 +1258,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 mTextureView.setAspectRatio(
                         mPreviewSize.getWidth(), mPreviewSize.getHeight());
+                mTextureView.cameraSize = new Point(mPreviewSize.getWidth(),mPreviewSize.getHeight());
             } else {
                 mTextureView.setAspectRatio(
                         mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                mTextureView.cameraSize = new Point(mPreviewSize.getHeight(),mPreviewSize.getWidth());
             }
         }
 

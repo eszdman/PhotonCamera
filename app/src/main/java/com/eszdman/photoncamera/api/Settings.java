@@ -34,6 +34,7 @@ public class Settings {
     public double sharpness;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;//TODO
+    public double noiseRstr;
     public double compressor;
     public double gain;
     public boolean rawSaver;
@@ -82,6 +83,7 @@ public class Settings {
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
         compressor = PreferenceKeys.getCompressorValue();
+        noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();

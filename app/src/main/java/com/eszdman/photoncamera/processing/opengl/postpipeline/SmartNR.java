@@ -74,6 +74,9 @@ public class SmartNR extends Node {
         kernelsize = Math.min(kernelsize,8);
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
         glProg.setVar("kernel",kernelsize);
+        if(denoiseLevel > 6.f)
+        glProg.setVar("isofactor",(float)PhotonCamera.getSettings().noiseRstr*denoiseLevel/6.f);
+        else glProg.setVar("isofactor",1.f);
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);

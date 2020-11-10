@@ -161,11 +161,11 @@
                 android:icon="@drawable/ic_saturation"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
-                android:key="pref_compressor_seekbar_key"
+                android:key="pref_noise_seekbar_key"
                 android:layout="@layout/preference_seekbar"
-                android:title="@string/compressor"
+                android:title="@string/noise_reduction_str"
                 android:summary=""
-                android:defaultValue="@string/pref_compressor_seekbar_default"
+                android:defaultValue="@string/pref_noise_seekbar_default"
                 app:maxValue="2"
                 app:minValue="0.4"
                 app:isFloat="true"

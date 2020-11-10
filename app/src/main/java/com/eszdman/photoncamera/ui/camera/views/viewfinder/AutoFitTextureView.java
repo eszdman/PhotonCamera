@@ -17,6 +17,7 @@
 package com.eszdman.photoncamera.ui.camera.views.viewfinder;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.util.AttributeSet;
 import android.view.TextureView;
 
@@ -26,7 +27,7 @@ import android.view.TextureView;
 public class AutoFitTextureView extends TextureView {
     private int mRatioWidth = 0;
     private int mRatioHeight = 0;
-
+    public Point cameraSize;
     public AutoFitTextureView(Context context) {
         this(context, null);
     }
@@ -58,6 +59,10 @@ public class AutoFitTextureView extends TextureView {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        if(cameraSize != null) {
+            widthMeasureSpec = cameraSize.x;
+            heightMeasureSpec = cameraSize.y;
+        }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);

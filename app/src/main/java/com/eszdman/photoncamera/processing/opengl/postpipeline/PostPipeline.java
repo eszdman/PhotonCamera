@@ -109,9 +109,7 @@ public class PostPipeline extends GLBasePipeline {
         add(new ExposureFusion("ExposureFusion"));
         add(new Initial(R.raw.initial,"Initial"));
         add(new AWB(0,"AWB"));
-
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
-
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR("SmartNR"));
             for(int i =1; i<4;i++){

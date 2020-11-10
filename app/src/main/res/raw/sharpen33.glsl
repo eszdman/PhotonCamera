@@ -44,8 +44,8 @@ void main() {
            float pdf = kernel[kSize+j]*kernel[kSize+i];
            //mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0).rgb)*pdf*1.7;
            //mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0).rgb)*pdf*0.3;
-           mask+=blur((xy+ivec2(i,j)))*pdf*1.65;
-           mask+=blur((xy+ivec2(i*2,j*2)))*pdf*.35;
+           mask+=blur((xy+ivec2(i,j)))*pdf*1.75;
+           mask+=blur((xy+ivec2(i*2,j*2)))*pdf*.25;
            pdfsize+=pdf;
        }
     }

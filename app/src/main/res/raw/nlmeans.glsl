@@ -4,6 +4,7 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D NoiseMap;
 uniform int kernel;
+uniform float isofactor;
 uniform ivec2 size;
 uniform ivec2 tpose;
 #define M_PI 3.1415926535897932384626433832795
@@ -12,7 +13,7 @@ uniform ivec2 tpose;
 //const int kernel = 6;
 const int window = 2;
 #import interpolation
-#define luminocity(x) ((x.r+x.g+x.b)/3.0)
+#define luminocity(x) ((((x.r+x.g+x.b)/3.0))+0.001)
 /*float luminocity(vec3 color) {
     return (color.r+color.g+color.b)/3.0;
 }*/
@@ -37,7 +38,9 @@ float comparePatches(ivec2 patch2, ivec2 original,float sigma) {
 float nlmeans(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
-    float noisefactor = clamp((textureBicubic(NoiseMap, vec2(coords)/vec2(size)).r-0.02)*0.8,0.0005,0.6);
+    float noisefactor = clamp((textureBicubic(NoiseMap, vec2(coords)/vec2(size)).r)*0.55*isofactor,0.0005,1.0);
+    noisefactor*=noisefactor;
+    noisefactor*=0.6;
     for(int i = -kernel; i < kernel; i++) {
         for(int j = -kernel; j < kernel; j++) {
             ivec2 patchCoord = coords + ivec2(i, j);
@@ -59,7 +62,7 @@ void main() {
     float br = (xyz.r+xyz.g+xyz.b)/3.0;
     xyz/=br;
     br = nlmeans(xy);
-    Output = (xyz*br);
+    Output = clamp(xyz*br,0.0,1.0);
     //float noisefactor = clamp(textureLinear(NoiseMap, vec2(xy)/vec2(size)).r,0.0005,0.6);
     //Output = vec3(noisefactor*1.9);
 }

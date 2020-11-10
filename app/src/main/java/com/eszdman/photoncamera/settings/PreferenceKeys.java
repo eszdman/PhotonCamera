@@ -34,6 +34,7 @@ public class PreferenceKeys {
         KEY_CHROMA_NR_SEEKBAR("pref_chroma_nr_seekbar_key"),
         KEY_LUMA_NR_SEEKBAR("pref_luma_nr_seekbar_key"),
         KEY_COMPRESSOR_SEEKBAR("pref_compressor_seekbar_key"),
+        KEY_NOISESTR_SEEKBAR("pref_noise_seekbar_key"),
         KEY_GAIN_SEEKBAR("pref_gain_seekbar_key"),
         KEY_FRAME_COUNT("pref_frame_count_key"),
         KEY_CONTRAST_SEEKBAR("pref_contrast_seekbar_key"),
@@ -258,5 +259,8 @@ public class PreferenceKeys {
     }
     public static String getPref(Preference preference) {
         return PhotonCamera.getSettingsManager().getString(current_scope, preference);
+    }
+    public static float getFloat(Preference preference) {
+        return PhotonCamera.getSettingsManager().getFloat(current_scope, preference);
     }
 }
