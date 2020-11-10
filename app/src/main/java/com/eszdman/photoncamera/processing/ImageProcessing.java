@@ -23,6 +23,7 @@ import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
 import com.eszdman.photoncamera.processing.opengl.scripts.ScriptParams;
+import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
@@ -274,12 +275,18 @@ public class ImageProcessing {
         if (sensitivity == null) {
             sensitivity = (int) 100;
         }
+        Object exposure = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        if (exposure == null) {
+            exposure = (long)100;
+        }
         float deghostlevel = (float) Math.sqrt(((int) sensitivity) * IsoExpoSelector.getMPY() - 50.) / 16.2f;
         deghostlevel = Math.min(0.25f, deghostlevel);
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output = null;
         if (!debugAlignment) {
-            output = Wrapper.processFrame(1.f);
+            float ghosting = 1.f;
+            if((int)sensitivity >= 3000 || ExposureIndex.time2sec((long)(exposure)) > 1.0/7.0) ghosting = 0.f;
+            output = Wrapper.processFrame(ghosting);
         } else
             output = rawPipeline.Run();
        /*

@@ -10,7 +10,7 @@ out vec3 Output;
 #define depthMin (0.006)
 #define depthMax (0.890)
 #define colour (0.2)
-#define size1 (1.2)
+#define size1 (1.1)
 #define MSIZE1 5
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 vec3 blur(ivec2 coords){
@@ -19,7 +19,7 @@ vec3 blur(ivec2 coords){
     const int kSize = (MSIZE1-1)/2;
     float kernel[MSIZE1];
     float pdfsize = 0.0;
-    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size);
+    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size1);
     for (int i=-kSize; i <= kSize; ++i){
         for (int j=-kSize; j <= kSize; ++j){
             float pdf = kernel[kSize+j]*kernel[kSize+i];
@@ -45,8 +45,8 @@ void main() {
            float pdf = kernel[kSize+j]*kernel[kSize+i];
            //mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0).rgb)*pdf*1.7;
            //mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i*2,j*2)), 0).rgb)*pdf*0.3;
-           mask+=blur((xy+ivec2(i,j)))*pdf*1.4;
-           mask+=blur((xy+ivec2(i*2,j*2)))*pdf*.6;
+           mask+=blur((xy+ivec2(i,j)))*pdf*1.65;
+           mask+=blur((xy+ivec2(i*2,j*2)))*pdf*.35;
            pdfsize+=pdf;
        }
     }
