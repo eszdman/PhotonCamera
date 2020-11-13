@@ -29,23 +29,21 @@ public class SmartNR extends Node {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         GLTexture detect = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16), null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(detect);
-
         GLTexture detectresize = glUtils.gaussdown(detect,4);
         detect.close();
-        //GLTexture detectblur = glUtils.blurfast(detectresize,4.8);
         GLTexture detectblur = new GLTexture(detectresize);
-        glProg.useProgram(R.raw.medianfilter);
+        glProg.useProgram(R.raw.fastmedian2);
         glProg.setTexture("InputBuffer",detectresize);
         glProg.setVar("tpose",1,1);
         glProg.drawBlocks(detectblur);
         detectresize.close();
 
-        GLTexture detectblur2 = new GLTexture(detectblur);
-        glProg.useProgram(R.raw.medianfilter);
+        /*GLTexture detectblur2 = new GLTexture(detectblur);
+        glProg.useProgram(R.raw.fastmedian2);
         glProg.setTexture("InputBuffer",detectblur);
         glProg.setVar("tpose",1,1);
         glProg.drawBlocks(detectblur2);
-        detectblur.close();
+        detectblur.close();*/
         //GLTexture detectblur3 = glUtils.blurfast(detectblur2,1.5);
         //detectblur2.close();
 
@@ -64,11 +62,11 @@ public class SmartNR extends Node {
         glProg.drawBlocks(WorkingTexture);*/
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
-        if (denoiseLevel > 0.4) {
+        if (denoiseLevel > 2.0) {
         glProg.useProgram(R.raw.nlmeans);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("NoiseMap",detectblur2);
+        glProg.setTexture("NoiseMap",detectblur);
         int kernelsize = (int)(denoiseLevel) + 1;
         kernelsize = Math.max(kernelsize,2);
         kernelsize = Math.min(kernelsize,8);
@@ -81,12 +79,56 @@ public class SmartNR extends Node {
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
         } else{
-        //glProg.useProgram(R.raw.hybridmedianfilter);
-        //glProg.setVar("robust",4.2f);
             WorkingTexture = previousNode.WorkingTexture;
-
         }
         detectblur.close();
+        if(denoiseLevel>=7.0) {
+            GLTexture outp = glUtils.interpolate(WorkingTexture, 1.0 / 3.0);
+            for (int i = 0; i < 2; i++) {
+
+                /*GLTexture in = outp;
+                glProg.useProgram(R.raw.nlmeans);
+                glProg.setVar("tpose",1,1);
+                glProg.setTexture("InputBuffer",in);
+                glProg.setTexture("NoiseMap",detectblur);
+                int kernelsize = (int)(denoiseLevel) + 1;
+                kernelsize = Math.max(kernelsize,2);
+                kernelsize = Math.min(kernelsize,8);
+                Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
+                glProg.setVar("kernel",kernelsize);
+                if(denoiseLevel > 6.f)
+                    glProg.setVar("isofactor",(float)PhotonCamera.getSettings().noiseRstr*denoiseLevel/6.f);
+                else glProg.setVar("isofactor",1.f);
+                glProg.setVar("size",previousNode.WorkingTexture.mSize);
+                outp = new GLTexture(outp);
+                glProg.drawBlocks(outp);
+                in.close();*/
+
+                glProg.useProgram(R.raw.hybridmedianfiltercolor);
+                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
+                glProg.setVar("tpose", 1, 1);
+                GLTexture in = outp;
+                glProg.setTexture("InputBuffer", in);
+                outp = new GLTexture(outp);
+                glProg.drawBlocks(outp);
+                in.close();
+            }
+            WorkingTexture = glUtils.ops(outp, WorkingTexture, basePipeline.getMain(), "(in1.rgb/((in1.r+in1.g+in1.b)/3.0))*((in2.r+in2.g+in2.b)/3.0)", "", 1);
+        } else {
+            for(int i =1;i<2;i++) {
+                glProg.useProgram(R.raw.hybridmedianfiltercolor);
+                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
+                glProg.setVar("tpose", 1, i);
+                glProg.setTexture("InputBuffer", WorkingTexture);
+                WorkingTexture = basePipeline.getMain();
+                glProg.drawBlocks(WorkingTexture);
+                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
+                glProg.setVar("tpose", i, 1);
+                glProg.setTexture("InputBuffer", WorkingTexture);
+                WorkingTexture = basePipeline.getMain();
+                glProg.drawBlocks(WorkingTexture);
+            }
+        }
         glProg.closed = true;
     }
 }

@@ -12,7 +12,7 @@ uniform sampler2D InputBuffer22;
 uniform sampler2D MainBuffer22;
 
 uniform sampler2D SpatialWeights;
-uniform isampler2D AlignVectors;
+uniform sampler2D AlignVectors;
 uniform int yOffset;
 uniform float alignk;
 uniform uvec2 rawsize;
@@ -66,8 +66,8 @@ void main() {
     //ivec2 align = ivec2(texelFetch(AlignVectors, (xy/TILESIZE), 0).xy);
     vec2 xyInterp = vec2(xy)/float(TILESIZE);
     xyInterp/=vec2(alignsize);
-    //vec2 alignf = vec2(texture(AlignVectors, vec2(xy)/vec2(textureSize(AlignVectors, 0))).xy);
-    vec2 alignf = vec2(texelFetch(AlignVectors, xy/TILESIZE,0).xy);
+    vec2 alignf = vec2(texture(AlignVectors, vec2(xy)/vec2(textureSize(AlignVectors, 0))).xy);
+    //vec2 alignf = vec2(texelFetch(AlignVectors, xy/TILESIZE,0).xy);
     ivec2 align = ivec2(alignf/2.0)*2;
     ivec2 aligned = (xy+align);
     aligned = clamp(aligned,ivec2(0,0),ivec2(rawsize));

@@ -54,9 +54,6 @@ float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
 }
-vec3 chromaticity(vec3 inp){
-    return inp/((inp.r+inp.g+inp.b)/3.0);
-}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -64,29 +61,22 @@ void main() {
     vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb)+0.001;
     float br = (c.r+c.g+c.b)/3.0;
     c/=br;
-    float kernel[MSIZE];
     float normalize = 0.0;
-    for (int j = 0; j <= kSize; ++j) {
-        kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), robust);
-        normalize+=kernel[kSize+j];
-    }
 
     // Add the pixels which make up our window to the pixel array.
     float pdfsize = 0.0;
     for(int dX = -1; dX <= 1; ++dX) {
         for (int dY = -1; dY <= 1; ++dY) {
-            float pdf = kernel[kSize+dX]*kernel[kSize+dY]/(normalize*normalize);
             ivec2 offset = ivec2((dX), (dY));
             // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
             // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
             // bottom right pixel of the window at pixel[N-1].
-            //v[(dX + 1) * 3 + (dY + 1)] = mix(chromaticity(vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb)),c,pdf);
-            v[(dX + 1) * 3 + (dY + 1)] = chromaticity(vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb)+0.001);
+            vec3 inp = vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb)+0.001;
+            inp/=((inp.r+inp.g+inp.b)/3.0);
+            v[(dX + 1) * 3 + (dY + 1)] = (inp);
         }
     }
-
 vec3 temp;
-
 // Starting with a subset of size 6, remove the min and max each time
     mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
     mnmx5(v[1], v[2], v[3], v[4], v[6]);

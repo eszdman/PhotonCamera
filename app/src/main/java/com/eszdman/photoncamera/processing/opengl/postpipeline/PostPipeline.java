@@ -112,20 +112,20 @@ public class PostPipeline extends GLBasePipeline {
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR("SmartNR"));
-            for(int i =1; i<4;i++){
+            /*for(int i =1; i<4;i++){
                 add(new Median(new Point(i,i/2),"FastMedian",R.raw.hybridmedianfiltercolor));
                 add(new Median(new Point(i/2,i),"FastMedian",R.raw.hybridmedianfiltercolor));
                 //add(new Median(new Point(i,i),"FastMedian",R.raw.hybridmedianfiltercolor));
-            }
+            }*/
             //add(new Bilateral(R.raw.bilateral, "Bilateral"));
             //add(new Median(R.raw.medianfilter,"SmartMedian"));
-            if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
+            /*if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
                     for(int i =1; i<2;i++){
                     add(new Median(new Point(i,i/2),"FastMedian",R.raw.hybridmedianfilter));
                     add(new Median(new Point(i/2,i),"FastMedian",R.raw.hybridmedianfilter));
                     //add(new Median(new Point(i,i),"FastMedian"));
                 }
-            }
+            }*/
         }
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());

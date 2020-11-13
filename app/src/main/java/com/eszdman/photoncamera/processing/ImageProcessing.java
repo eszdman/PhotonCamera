@@ -13,6 +13,7 @@ import androidx.exifinterface.media.ExifInterface;
 
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -285,7 +286,7 @@ public class ImageProcessing {
         ByteBuffer output = null;
         if (!debugAlignment) {
             float ghosting = 1.f;
-            if((int)sensitivity >= 3000 || ExposureIndex.time2sec((long)(exposure)) > 1.0/7.0) ghosting = 0.f;
+            if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
             output = Wrapper.processFrame(ghosting);
         } else
             output = rawPipeline.Run();

@@ -96,16 +96,15 @@ public class AlignAndMerge extends Node {
         int tileSize = 128;
 
 
-        GLTexture large = new GLTexture(new Point(brTex22.mSize.x / (tileSize), brTex22.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
-        GLTexture medium = new GLTexture(new Point(brTex88.mSize.x / (tileSize), brTex88.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
-        GLTexture small = new GLTexture(new Point(brTex3232.mSize.x / (tileSize), brTex3232.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.SIGNED_16, 2));
+        GLTexture large = new GLTexture(new Point(brTex22.mSize.x / (tileSize), brTex22.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
+        GLTexture medium = new GLTexture(new Point(brTex88.mSize.x / (tileSize), brTex88.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
+        GLTexture small = new GLTexture(new Point(brTex3232.mSize.x / (tileSize), brTex3232.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",0);
         glProg.setTexture("InputBuffer",brTex3232);
         glProg.setVar("size",brTex3232.mSize);
         glProg.setTexture("MainBuffer",main3232);
         glProg.drawBlocks(small);
-        glProg.close();
 
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
@@ -115,7 +114,6 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer",main88);
         glProg.drawBlocks(medium);
         //small.close();
-        glProg.close();
 
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
@@ -126,10 +124,10 @@ public class AlignAndMerge extends Node {
         glProg.drawBlocks(large);
         Log.d("Alignment","Size:"+large.mSize);
         //medium.close();
-        glProg.close();
+
         //glUtils.convertVec4(brTex22,".rg/vec2("+(double)(0.1)+")+vec2("+(double)(0.5)+"),0.5,1.0");
-        //glUtils.convertVec4(large,"ivec4(in.rg,0,1)");
-        //glUtils.SaveProgResult(brTex22.mSize,"align");
+        glUtils.convertVec4(large,"vec4(in.rg,0.0,1.0)");
+        glUtils.SaveProgResult(brTex22.mSize,"align");
         glProg.close();
         endT("Alignment");
         return large;

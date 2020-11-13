@@ -458,11 +458,28 @@ public class GLUtils {
         return out;
     }
     //Linear operation between 2 textures
-    public GLTexture ops(GLTexture in1,GLTexture in2, String operation){
-        return ops(in1,in2,operation,"");
+    public GLTexture ops(GLTexture in1,GLTexture in2,GLTexture out, String operation){
+        return ops(in1,in2,out,operation,"",0);
     }
-    public GLTexture ops(GLTexture in1,GLTexture in2, String operation,String operation2){
-        glProg.useProgram("#version 300 es\n" +
+    public GLTexture ops(GLTexture in1,GLTexture in2, String operation){
+        GLTexture out = new GLTexture(in1);
+        return ops(in1,in2,out,operation,"",0);
+    }
+    public GLTexture ops(GLTexture in1,GLTexture in2,GLTexture out, String operation,String operation2,int interpolate){
+        String imp = "";
+        String tex1 = "    tvar in1 = (texelFetch(InputBuffer, xy, 0)"+out.mFormat.getTemExt()+");\n";
+        String tex2 = "    tvar in2 = (texelFetch(InputBuffer2, xy, 0)"+out.mFormat.getTemExt()+");\n";
+        if(interpolate != 0){
+            imp = "uniform ivec2 size;\n" +
+                  "#import interpolation\n";
+        }
+        if(interpolate >= 1){
+            tex1 = "    tvar in1 = (textureBicubic(InputBuffer, vec2(gl_FragCoord.xy)/vec2(size))"+out.mFormat.getTemExt()+");\n";
+        }
+        if(interpolate >= 2){
+            tex2 = "    tvar in2 = (textureBicubic(InputBuffer2, vec2(gl_FragCoord.xy)/vec2(size))"+out.mFormat.getTemExt()+");\n";
+        }
+            glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in1.mFormat.getTemVar()+"\n" +
@@ -471,16 +488,41 @@ public class GLUtils {
                 "uniform "+in2.mFormat.getTemSamp()+" InputBuffer2;\n" +
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
+                imp+
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
-                "    tvar in1 = (texelFetch(InputBuffer, xy, 0));\n" +
-                "    tvar in2 = (texelFetch(InputBuffer2, xy, 0));\n" +
+                tex1 +
+                tex2 +
                 "    Output = tvar("+operation+")"+operation2+";\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in1);
         glProg.setTexture("InputBuffer2",in2);
-        GLTexture out = new GLTexture(in1);
+        if(interpolate != 0) glProg.setVar("size",out.mSize);
+        glProg.drawBlocks(out);
+        glProg.closed = true;
+        return out;
+    }
+    public GLTexture ops(GLTexture in, String operation){
+        return ops(in,operation,"");
+    }
+    public GLTexture ops(GLTexture in, String operation,String operation2){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    tvar in = (texelFetch(InputBuffer, xy, 0));\n" +
+                "    Output = tvar("+operation+")"+operation2+";\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        GLTexture out = new GLTexture(in);
         glProg.drawBlocks(out);
         glProg.closed = true;
         return out;
