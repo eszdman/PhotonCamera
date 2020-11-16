@@ -69,6 +69,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
@@ -104,6 +105,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -201,6 +203,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public String[] mAllCameraIds;
     public Set<String> mFrontCameraIDs;
     public Set<String> mBackCameraIDs;
+    public Map<String, Pair<Float, Float>> mFocalLengthAperturePairList;
     /**
      * An {@link AutoFitTextureView} for camera preview.
      */
@@ -1269,7 +1272,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available != null && available;
-        this.mCameraUIView.initAuxButtons(mBackCameraIDs, mFrontCameraIDs);
+        this.mCameraUIView.initAuxButtons(mBackCameraIDs,mFocalLengthAperturePairList, mFrontCameraIDs);
         Camera2ApiAutoFix.Init();
         PhotonCamera.getManualMode().init();
     }
@@ -1381,6 +1384,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         this.mAllCameraIds = manager2.getCameraIdList();
         this.mBackCameraIDs = manager2.getBackIDsSet();
         this.mFrontCameraIDs = manager2.getFrontIDsSet();
+        this.mFocalLengthAperturePairList = manager2.mFocalLengthAperturePairList;
     }
 
     /**
@@ -1561,11 +1565,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public String cycler(String savedCameraID) {
         if (mBackCameraIDs.contains(savedCameraID)) {
             sActiveBackCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mFrontCameraIDs, sActiveFrontCamId);
+            this.mCameraUIView.setAuxButtons(mFrontCameraIDs,mFocalLengthAperturePairList, sActiveFrontCamId);
             return sActiveFrontCamId;
         } else {
             sActiveFrontCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mBackCameraIDs, sActiveBackCamId);
+            this.mCameraUIView.setAuxButtons(mBackCameraIDs,mFocalLengthAperturePairList, sActiveBackCamId);
             return sActiveBackCamId;
         }
     }

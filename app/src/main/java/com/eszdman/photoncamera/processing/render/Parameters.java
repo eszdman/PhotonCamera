@@ -7,6 +7,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
@@ -41,6 +42,7 @@ public class Parameters {
     public int cameraRotation;
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
+        boolean isGnusmass = Build.BRAND.equals("Samsung");
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         int[] blarr = new int[4];

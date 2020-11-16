@@ -40,6 +40,10 @@ public class IsoExpoSelector {
             if(step%3 == 2) mpy = 1.1;
             //mpy = mpy*1.5;
         } else {
+            if(PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED){
+                if(step%3 == 2) mpy = 1.5;
+                if(step%3 == 1) mpy = 1.0/1.5;
+            }
             mpy1 = 3500.0;
         }
         if (pair.exposure < ExposureIndex.sec / 40 && pair.normalizedIso() > 90.0/mpy1) {

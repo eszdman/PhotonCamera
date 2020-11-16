@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import androidx.annotation.NonNull;
+import androidx.core.util.Pair;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
@@ -26,6 +27,8 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -161,26 +164,30 @@ public final class CameraUIViewImpl implements CameraUIView {
         activateShutterButton(true);
         resetProcessingProgressBar();
     }
-
+    private float baseF = 0.f;
     @Override
-    public void initAuxButtons(Set<String> backCameraIdsList, Set<String> frontCameraIdsList) {
+    public void initAuxButtons(Set<String> backCameraIdsList,Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
         String savedCameraID = PreferenceKeys.getCameraID();
+        for(String id : backCameraIdsList){
+            if(baseF == 0.f) baseF = Focals.get(id).first;
+        }
         if (mAuxGroupContainer.getChildCount() == 0) {
             if (backCameraIdsList.contains(savedCameraID)) {
-                setAuxButtons(backCameraIdsList, savedCameraID);
+                setAuxButtons(backCameraIdsList,Focals, savedCameraID);
             } else if (frontCameraIdsList.contains(savedCameraID)) {
-                setAuxButtons(frontCameraIdsList, savedCameraID);
+                setAuxButtons(frontCameraIdsList,Focals, savedCameraID);
             }
         }
     }
     @Override
-    public void setAuxButtons(Set<String> idsList, String active) {
+    public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
         mAuxGroupContainer.removeAllViews();
         if (idsList.size() > 1) {
             mAuxButtonsGroup = new RadioGroup(mRootView.getContext());
             mAuxButtonsGroup.setOrientation(LinearLayout.VERTICAL);
+            Locale.setDefault(Locale.US);
             for (String id : idsList) {
-                addToAuxGroupButtons(id);
+                addToAuxGroupButtons(id,String.format("%.1fx", (double)(Focals.get(id).first/baseF)));
             }
             mAuxButtonsGroup.check(Integer.parseInt(active));
             mAuxButtonsGroup.setOnCheckedChangeListener((radioGroup, i) ->
@@ -196,9 +203,9 @@ public final class CameraUIViewImpl implements CameraUIView {
         }
     }
 
-    private void addToAuxGroupButtons(String id) {
+    private void addToAuxGroupButtons(String id,String name) {
         RadioButton rb = new RadioButton(mRootView.getContext());
-        rb.setText(id);
+        rb.setText(name);
         rb.setButtonDrawable(R.drawable.custom_aux_switch_thumb);
         int padding = (int) rb.getContext().getResources().getDimension(R.dimen.aux_button_padding);
         rb.setPaddingRelative(padding, padding, padding, padding);

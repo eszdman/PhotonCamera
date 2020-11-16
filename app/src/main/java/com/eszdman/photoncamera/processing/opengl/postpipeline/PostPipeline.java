@@ -129,7 +129,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());
-        add(new Sharpen(selectSharp(),"Sharpening"));
+        add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
         add(new Watermark(getRotation(),PreferenceKeys.isShowWatermarkOn()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         //add(new Debug3(R.raw.debugraw,"Debug3"));

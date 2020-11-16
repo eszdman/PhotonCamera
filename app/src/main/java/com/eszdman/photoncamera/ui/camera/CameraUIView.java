@@ -4,8 +4,11 @@ import android.graphics.Bitmap;
 import android.hardware.camera2.CaptureResult;
 import android.view.View;
 
+import androidx.core.util.Pair;
+
 import com.eszdman.photoncamera.api.CameraMode;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -32,7 +35,7 @@ public interface CameraUIView {
      * @param backCameraIdsList  set of cameras on the back
      * @param frontCameraIdsList set of cameras on the front
      */
-    void initAuxButtons(Set<String> backCameraIdsList, Set<String> frontCameraIdsList);
+    void initAuxButtons(Set<String> backCameraIdsList,Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList);
 
     /**
      * Set Multi camera Buttons in an event of configuration change
@@ -40,7 +43,7 @@ public interface CameraUIView {
      * @param idsList set of camera ids
      * @param active  currently active id
      */
-    void setAuxButtons(Set<String> idsList, String active);
+    void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active);
 
     /**
      * Set an image to gallery icon

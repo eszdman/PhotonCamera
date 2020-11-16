@@ -99,8 +99,12 @@ public class ImageProcessing {
             if (PhotonCamera.getSettings().rawSaver) {
                 input.getPlanes()[0].getBuffer().position(0);
                 input.getPlanes()[0].getBuffer().put(unlimitedBuffer);
+                Camera2ApiAutoFix.WhiteLevel(CameraFragment.mCaptureResult,16384);
+                Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult,PhotonCamera.getParameters().blackLevel,16384.f/PhotonCamera.getParameters().whiteLevel);
                 saveRaw(input);
                 input.close();
+                Camera2ApiAutoFix.WhiteLevel(CameraFragment.mCaptureResult,PhotonCamera.getParameters().whiteLevel);
+                Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult,PhotonCamera.getParameters().blackLevel,1.f);
                 return;
             }
             PostPipeline pipeline = new PostPipeline();

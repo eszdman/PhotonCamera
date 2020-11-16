@@ -102,7 +102,11 @@ public class AverageRaw extends GLOneScript {
         glProg = glOne.glProgram;
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer",stack);
-        glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
+        if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
+        else {
+            glProg.setVar("whitelevel",(16384.f));
+        }
+
         //in1 = WorkingTexture;
         in1 = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16));
         in1.BufferLoad();

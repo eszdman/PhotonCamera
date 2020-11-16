@@ -64,6 +64,7 @@ public class PreferenceKeys {
         ALL_CAMERA_IDS_KEY("all_camera_ids"),
         FRONT_IDS_KEY("front_camera_ids"),
         BACK_IDS_KEY("back_camera_ids"),
+        FOCAL_IDS_KEY("all_camera_focals"),
         CAMERA_COUNT_KEY("all_camera_count"),
         ;
         public final String mValue;

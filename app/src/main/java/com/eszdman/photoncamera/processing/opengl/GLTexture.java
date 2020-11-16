@@ -1,32 +1,15 @@
 package com.eszdman.photoncamera.processing.opengl;
 
 import android.graphics.Point;
+import android.util.Log;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-
-import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
-import static android.opengl.GLES20.GL_FRAMEBUFFER;
-import static android.opengl.GLES20.GL_NEAREST;
-import static android.opengl.GLES20.GL_TEXTURE16;
-import static android.opengl.GLES20.GL_TEXTURE_WRAP_S;
-import static android.opengl.GLES20.GL_TEXTURE_WRAP_T;
-import static android.opengl.GLES20.glActiveTexture;
-import static android.opengl.GLES20.glBindFramebuffer;
-import static android.opengl.GLES20.glBindTexture;
-import static android.opengl.GLES20.glDeleteTextures;
-import static android.opengl.GLES20.glFramebufferTexture2D;
-import static android.opengl.GLES20.glGenFramebuffers;
-import static android.opengl.GLES20.glGenTextures;
-import static android.opengl.GLES20.glReadPixels;
-import static android.opengl.GLES20.glTexImage2D;
-import static android.opengl.GLES20.glTexParameteri;
-import static android.opengl.GLES20.glViewport;
+import static android.opengl.GLES30.*;
 import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_2D;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_2D;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_MAG_FILTER;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_MIN_FILTER;
 
 public class GLTexture implements AutoCloseable {
     public Point mSize;
@@ -35,7 +18,7 @@ public class GLTexture implements AutoCloseable {
     public final GLFormat mFormat;
     public int filter;
     public int wrap;
-
+    private int Cur;
     public GLTexture(GLTexture in) {
         this(in.mSize,in.mFormat,null,in.filter,in.wrap);
     }
@@ -67,9 +50,15 @@ public class GLTexture implements AutoCloseable {
         int[] TexID = new int[1];
         glGenTextures(TexID.length, TexID, 0);
         mTextureID = TexID[0];
-        glActiveTexture(GL_TEXTURE16);
+        glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
+        Log.d("GLTexture","Texture ID:"+mTextureID);
+        if(pixels != null)
         glTexImage2D(GL_TEXTURE_2D, 0, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        else {
+            //glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(), size.x, size.y);
+            glTexImage2D(GL_TEXTURE_2D, 0, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
