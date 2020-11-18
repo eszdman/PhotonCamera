@@ -33,6 +33,8 @@
     <dimen name="preference_seekbar_padding">10dp</dimen>
     <dimen name="preference_seekbar_value_padding">5dp</dimen>
     <dimen name="preference_seekbar_value_text_width">50dp</dimen>
-    <dimen name="aux_button_padding">6dp</dimen>
+    <dimen name="aux_container_margin">6dp</dimen>
     <dimen name="camera_preference_about_padding">10dp</dimen>
+    <dimen name="aux_button_size">35dp</dimen>
+    <dimen name="aux_button_internal_margin">3dp</dimen>
 </resources>

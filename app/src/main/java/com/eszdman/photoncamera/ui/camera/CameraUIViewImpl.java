@@ -8,30 +8,20 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
-import android.widget.TextView;
-import android.widget.ToggleButton;
-
+import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.core.util.Pair;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
+import de.hdodenhof.circleimageview.CircleImageView;
 
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import de.hdodenhof.circleimageview.CircleImageView;
 
 /**
  * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface
@@ -48,7 +38,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ProgressBar mProcessingProgressBar;
     private CircleImageView mGalleryImageButton;
     private RadioGroup mAuxButtonsGroup;
-    private FrameLayout mAuxGroupContainer;
+    private LinearLayout mAuxGroupContainer;
     private CameraUIEventsListener mCameraUIEventsListener;
     private HorizontalPicker mModePicker;
     private ToggleButton mFpsButton;
@@ -59,6 +49,24 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ToggleButton mHdrXButton;
     private TextView mframeTimer;
     private TextView mframeCount;
+    Handler changeFrameTimeCnt = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if (msg.obj == null) {
+                mframeCount.setText("");
+                mframeTimer.setText("");
+                return;
+            }
+            FrameCntTime frameCntTime = (FrameCntTime) msg.obj;
+            mframeCount.setText(String.valueOf(Math.abs(frameCntTime.maxframe - frameCntTime.frame)));
+            if (frameCntTime.time * frameCntTime.maxframe > 4.0 || frameCntTime.maxframe == 0) {
+                frameCntTime.time = Math.abs(frameCntTime.time * frameCntTime.maxframe - frameCntTime.time * frameCntTime.frame);
+                mframeTimer.setText(((int) (frameCntTime.time / 60) + ":" + ((int) (frameCntTime.time) % 60)));
+            }
+        }
+    };
+    private HashMap<Integer, String> auxButtonsMap;
+    private float baseF = 0.f;
 
     public CameraUIViewImpl(View rootView) {
         Log.d(TAG, "CameraUIView() called with: rootView = [" + rootView + "]");
@@ -164,37 +172,53 @@ public final class CameraUIViewImpl implements CameraUIView {
         activateShutterButton(true);
         resetProcessingProgressBar();
     }
-    private float baseF = 0.f;
+
     @Override
-    public void initAuxButtons(Set<String> backCameraIdsList,Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
+    public void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
         String savedCameraID = PreferenceKeys.getCameraID();
-        for(String id : backCameraIdsList){
-            if(baseF == 0.f) baseF = Focals.get(id).first;
+        for (String id : backCameraIdsList) {
+            if (baseF == 0.f) {
+                baseF = Focals.get(id).first;
+            }
         }
         if (mAuxGroupContainer.getChildCount() == 0) {
             if (backCameraIdsList.contains(savedCameraID)) {
-                setAuxButtons(backCameraIdsList,Focals, savedCameraID);
+                setAuxButtons(backCameraIdsList, Focals, savedCameraID);
             } else if (frontCameraIdsList.contains(savedCameraID)) {
-                setAuxButtons(frontCameraIdsList,Focals, savedCameraID);
+                setAuxButtons(frontCameraIdsList, Focals, savedCameraID);
             }
         }
     }
+
     @Override
     public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
         mAuxGroupContainer.removeAllViews();
         if (idsList.size() > 1) {
-            mAuxButtonsGroup = new RadioGroup(mRootView.getContext());
-            mAuxButtonsGroup.setOrientation(LinearLayout.VERTICAL);
             Locale.setDefault(Locale.US);
+            auxButtonsMap = new HashMap<>();
             for (String id : idsList) {
-                addToAuxGroupButtons(id,String.format("%.1fx", (double)(Focals.get(id).first/baseF)));
+                addToAuxGroupButtons(id, String.format("%.1fx", (double) (Focals.get(id).first / baseF)).replace(".0", ""));
             }
-            mAuxButtonsGroup.check(Integer.parseInt(active));
-            mAuxButtonsGroup.setOnCheckedChangeListener((radioGroup, i) ->
-                    mCameraUIEventsListener.onAuxButtonClicked(String.valueOf(i)));
-            mAuxButtonsGroup.setVisibility(View.VISIBLE);
-            mAuxGroupContainer.addView(mAuxButtonsGroup);
+            View.OnClickListener auxButtonListener = this::onAuxButtonClick;
+            for (int i = 0; i < mAuxGroupContainer.getChildCount(); i++) {
+                Button b = (Button) mAuxGroupContainer.getChildAt(i);
+                b.setOnClickListener(auxButtonListener);
+                if (active.equals(auxButtonsMap.get(b.getId()))) {
+                    b.setSelected(true);
+                }
+            }
+            mAuxGroupContainer.setVisibility(View.VISIBLE);
+        } else {
+            mAuxGroupContainer.setVisibility(View.GONE);
         }
+    }
+
+    private void onAuxButtonClick(View view) {
+        for (int i = 0; i < mAuxGroupContainer.getChildCount(); i++) {
+            mAuxGroupContainer.getChildAt(i).setSelected(false);
+        }
+        view.setSelected(true);
+        mCameraUIEventsListener.onAuxButtonClicked(auxButtonsMap.get(view.getId()));
     }
 
     public void setGalleryButtonImage(Bitmap bitmap) {
@@ -203,15 +227,22 @@ public final class CameraUIViewImpl implements CameraUIView {
         }
     }
 
-    private void addToAuxGroupButtons(String id,String name) {
-        RadioButton rb = new RadioButton(mRootView.getContext());
-        rb.setText(name);
-        rb.setButtonDrawable(R.drawable.custom_aux_switch_thumb);
-        int padding = (int) rb.getContext().getResources().getDimension(R.dimen.aux_button_padding);
-        rb.setPaddingRelative(padding, padding, padding, padding);
-        rb.setTextAppearance(R.style.ManualModeKnobText);
-        rb.setId(Integer.parseInt(id)); //here actual camera id assigned as RadioButton's resource ID
-        mAuxButtonsGroup.addView(rb);
+    private void addToAuxGroupButtons(String cameraId, String name) {
+        Button b = new Button(mRootView.getContext());
+        int m = (int) mRootView.getResources().getDimension(R.dimen.aux_button_internal_margin);
+        int s = (int) mRootView.getResources().getDimension(R.dimen.aux_button_size);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
+        lp.setMargins(m, m, m, m);
+        b.setLayoutParams(lp);
+        b.setText(name);
+        b.setTextAppearance(R.style.AuxButtonText);
+        b.setBackgroundResource(R.drawable.aux_button_background);
+        b.setStateListAnimator(null);
+        b.setTransformationMethod(null);
+        int buttonId = View.generateViewId();
+        b.setId(buttonId);
+        auxButtonsMap.put(buttonId, cameraId);
+        mAuxGroupContainer.addView(b);
     }
 
     @Override
@@ -240,38 +271,20 @@ public final class CameraUIViewImpl implements CameraUIView {
     public void setCaptureProgressBarOpacity(float alpha) {
         try {
             mCaptureProgressBar.setAlpha(alpha);
-        } catch (Exception ignore){}
+        } catch (Exception ignore) {
+        }
     }
-    static class FrameCntTime {
-        int frame;
-        int maxframe;
-        double time;
-    }
+
     @SuppressLint("DefaultLocale")
     private String FltFormat(Object in) {
         return String.format("%.0f", in);
     }
-    Handler changeFrameTimeCnt = new Handler(Looper.getMainLooper()){
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            if(msg.obj == null){
-                mframeCount.setText("");
-                mframeTimer.setText("");
-                return;
-            }
-            FrameCntTime frameCntTime = (FrameCntTime)msg.obj;
-            mframeCount.setText(String.valueOf(Math.abs(frameCntTime.maxframe-frameCntTime.frame)));
-            if(frameCntTime.time*frameCntTime.maxframe > 4.0 || frameCntTime.maxframe == 0){
-                frameCntTime.time = Math.abs(frameCntTime.time*frameCntTime.maxframe-frameCntTime.time*frameCntTime.frame);
-                mframeTimer.setText(((int)(frameCntTime.time/60)+":"+((int)(frameCntTime.time)%60)));
-            }
-        }
-    };
+
     @Override
-    public void setFrameTimeCnt(int cnt,int maxcnt,double frametime){
+    public void setFrameTimeCnt(int cnt, int maxcnt, double frametime) {
         FrameCntTime frameCntTime = new FrameCntTime();
         Message msg = new Message();
-        switch(PhotonCamera.getSettings().selectedMode){
+        switch (PhotonCamera.getSettings().selectedMode) {
             case NIGHT:
             case PHOTO:
                 frameCntTime.frame = cnt;
@@ -306,6 +319,12 @@ public final class CameraUIViewImpl implements CameraUIView {
     @Override
     public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
         this.mCameraUIEventsListener = cameraUIEventsListener;
+    }
+
+    static class FrameCntTime {
+        int frame;
+        int maxframe;
+        double time;
     }
 }
 

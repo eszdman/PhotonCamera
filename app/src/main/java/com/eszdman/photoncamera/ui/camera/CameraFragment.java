@@ -763,6 +763,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         cameraFragmentViewModel.create(getContext());
         //bind the model to the ui, it applies changes when the model values get changed
+        cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());

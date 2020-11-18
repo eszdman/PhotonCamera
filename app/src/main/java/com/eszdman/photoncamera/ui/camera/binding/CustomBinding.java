@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.ui.camera.binding;
 
 import android.view.View;
 
+import android.view.ViewGroup;
 import androidx.databinding.BindingAdapter;
 
 import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
@@ -30,6 +31,21 @@ public class CustomBinding {
         if (model != null) {
             int orientation = model.getOrientation();
             view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
+        }
+    }
+
+    /**
+     * Handle the rotation that should get applied to any ViewGroup when the CameraFragmentModels rotation change
+     * Only the children views within the ViewGroup will rotate.
+     * the ui item must add bindViewGroupChildsRotate="@{uimodel}"
+     */
+    @BindingAdapter("bindViewGroupChildsRotate")
+    public static void rotateAuxButtons(ViewGroup viewGroup, CameraFragmentModel model) {
+        if (model != null) {
+            int orientation = model.getOrientation();
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(model.getDuration()).start();
+            }
         }
     }
 }

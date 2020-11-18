@@ -54,6 +54,12 @@
         <item name="android:textColor">@color/Blue</item>
     </style>
 
+    <style name="AuxButtonText">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
     <style name="PreferenceActionBarStyle">
         <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
     </style>
