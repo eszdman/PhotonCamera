@@ -5,14 +5,12 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
-import androidx.preference.PreferenceManager;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -44,6 +42,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Preference.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Preference.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Preference.KEY_CAMERA_SOUNDS.mValue);
+        COMMON_KEYS.add(Preference.KEY_SHOW_GRADIENT.mValue);
     }
 
     public static void setDefaults(Context context) {
@@ -105,15 +104,27 @@ public class PreferenceKeys {
     }
 
     public static void setActivityTheme(Activity activity) {
-        String theme = PreferenceManager.getDefaultSharedPreferences(activity.getApplication()).getString(Preference.KEY_THEME_ACCENT.mValue, activity.getString(R.string.pref_theme_accent_default_value));
-        try {
-            assert theme != null;
-            Field resourceField = R.style.class.getDeclaredField(theme);
-            int resourceId = resourceField.getInt(resourceField);
-            activity.setTheme(resourceId);
-        } catch (Exception e) {
-            e.printStackTrace();
+        Map<String, Integer> map = new HashMap<>();
+        map.put("default", 0);
+        map.put("red", R.style.RedTheme);
+        map.put("blue", R.style.BlueTheme);
+        map.put("orange", R.style.OrangeTheme);
+        map.put("green", R.style.GreenTheme);
+        map.put("eszdman", R.style.EszdmanTheme);
+
+        SettingsManager sm = PhotonCamera.getSettingsManager();
+
+        String theme = sm.getString(SCOPE_GLOBAL, Preference.KEY_THEME_ACCENT);
+        boolean showGradient = sm.getBoolean(SCOPE_GLOBAL, Preference.KEY_SHOW_GRADIENT);
+
+        if (showGradient) {
+            activity.getTheme().applyStyle(R.style.GradientBackgroundTheme, true);
         }
+        if (theme != null) {
+            Integer themeRes = map.get(theme.toLowerCase());
+            activity.getTheme().applyStyle(themeRes == null ? 0 : themeRes, true);
+        }
+
     }
 
     /**
@@ -305,6 +316,7 @@ public class PreferenceKeys {
         KEY_CONTRIBUTORS("pref_contributors"),
         KEY_THEME("pref_theme_key"),
         KEY_THEME_ACCENT("pref_theme_accent_key"),
+        KEY_SHOW_GRADIENT("pref_show_gradient_key"),
         /**
          * Other Keys
          */

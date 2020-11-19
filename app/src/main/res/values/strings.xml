@@ -64,12 +64,11 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_accent">Theme Color</string>
     <string name="Default">Default</string>
-    <string name="theme_accent_blue_gradient">Blue with Gradient</string>
-    <string name="theme_accent_red_gradient">Red with Gradient</string>
-    <string name="theme_accent_orange_gradient">Orange with Gradient</string>
     <string name="theme_accent_blue">Blue</string>
     <string name="theme_accent_red">Red</string>
     <string name="theme_accent_orange">Orange</string>
+    <string name="theme_accent_green">Green</string>
+    <string name="show_gradient">Show Gradient Background</string>
     <string name="unprocessed_raw">Unprocessed RAW</string>
     <string name="frame_count_summary">Number of image frames to be stacked</string>
     <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>

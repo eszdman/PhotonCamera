@@ -231,6 +231,13 @@
             android:entryValues="@array/theme_accent_entryValues"
             android:defaultValue="@string/pref_theme_accent_default_value"
             />
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_show_gradient_key"
+                android:title="@string/show_gradient"
+                android:summary=""
+                android:icon="@drawable/ic_gradient_black_24dp"
+                android:defaultValue="@bool/pref_show_gradient_def_value"/>
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

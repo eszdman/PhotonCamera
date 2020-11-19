@@ -25,6 +25,8 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.TimeZone;
 
+import static com.eszdman.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
+
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
     private static final String KEY_MAIN_PARENT_SCREEN = "prefscreen";
     private Activity activity;
@@ -58,6 +60,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
         toolbar.setTitle(getPreferenceScreen().getTitle());
         setHdrxTitle();
+        checkEszdTheme();
         Preference myPref = findPreference(PreferenceKeys.Preference.KEY_TELEGRAM.mValue);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
@@ -95,12 +98,22 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             restartActivity();
         }
         if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME_ACCENT.mValue)) {
+            checkEszdTheme();
             restartActivity();
+            SettingsActivity.toRestartApp = true;
+        }
+        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue)) {
             SettingsActivity.toRestartApp = true;
         }
         if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue)) {
             setFramesSummary();
         }
+    }
+
+    private void checkEszdTheme() {
+        Preference p = findPreference(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue);
+        if (p != null && getContext() != null)
+            p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Preference.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
     }
 
     private void setHdrxTitle() {
