@@ -4,11 +4,8 @@ import android.Manifest;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.WindowManager;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
-
-import com.blogspot.atifsoftwares.animatoolib.Animatoo;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.Permissions;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -30,7 +27,7 @@ public class CameraActivity extends AppCompatActivity {
         PhotonCamera.setCameraActivity(this);
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-        PreferenceKeys.setDefaults();
+        PreferenceKeys.setDefaults(this);
         PhotonCamera.getSettings().loadCache();
         //Wrapper.Test();
         Permissions.RequestPermissions(this, 2, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
