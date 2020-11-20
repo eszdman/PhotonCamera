@@ -3,6 +3,8 @@ package com.eszdman.photoncamera.ui.camera;
 import android.Manifest;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
@@ -54,6 +56,23 @@ public class CameraActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
-
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    View view = findViewById(R.id.shutter_button);
+                    if (view.isClickable()) {
+                        view.performClick();
+                    }
+                }
+                return true;
+            default:
+                return super.dispatchKeyEvent(event);
+        }
+    }
 }
 
