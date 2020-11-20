@@ -269,10 +269,7 @@ public final class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void setCaptureProgressBarOpacity(float alpha) {
-        try {
-            mCaptureProgressBar.setAlpha(alpha);
-        } catch (Exception ignore) {
-        }
+        new Handler(Looper.getMainLooper()).post(() -> mCaptureProgressBar.setAlpha(alpha));
     }
 
     @SuppressLint("DefaultLocale")
