@@ -50,9 +50,6 @@
     <string name="theme_dark">Scuro</string>
     <string name="theme_accent">Colore tema</string>
     <string name="Default">Predefinito</string>
-    <string name="theme_accent_blue_gradient">Blu con Sfumatura</string>
-    <string name="theme_accent_red_gradient">Rosso con Sfumatura</string>
-    <string name="theme_accent_orange_gradient">Arancione con Sfumatura</string>
     <string name="theme_accent_blue">Blu</string>
     <string name="theme_accent_red">Rosso</string>
     <string name="theme_accent_orange">Arancione</string>

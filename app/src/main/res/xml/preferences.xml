@@ -62,9 +62,9 @@
                 android:title="@string/pref_save_per_lens_string"
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_save_per_lens_settings"
-                android:icon="@drawable/ic_settings_grid"
+                android:icon="@drawable/ic_multi_lens"
                 app:defaultValue="false"
-                android:enabled="false"
+
                 />
     </PreferenceCategory>
     <PreferenceCategory
@@ -231,6 +231,13 @@
             android:entryValues="@array/theme_accent_entryValues"
             android:defaultValue="@string/pref_theme_accent_default_value"
             />
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_show_gradient_key"
+                android:title="@string/show_gradient"
+                android:summary=""
+                android:icon="@drawable/ic_gradient_black_24dp"
+                android:defaultValue="@bool/pref_show_gradient_def_value"/>
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

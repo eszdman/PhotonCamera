@@ -530,6 +530,11 @@ public class SettingsManager {
         return preferences.contains(key.mValue);
     }
 
+    public boolean isSet(String scope, String key) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        return preferences.contains(key);
+    }
+
     /**
      * Check whether a settings's value is currently set to the
      * default value.

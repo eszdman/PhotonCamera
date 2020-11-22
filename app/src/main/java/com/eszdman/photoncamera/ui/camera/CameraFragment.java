@@ -1032,6 +1032,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             }
             stopBackgroundThread();
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
+            mCameraUIView.refresh();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
