@@ -415,6 +415,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
             mPreviewTemp = mTemp;
+            if(mTemp != null) mPreviewTemp = mTemp;
+            if(mPreviewTemp == null){
+                mPreviewTemp = new Rational[3];
+                for(int i =0; i<mPreviewTemp.length;i++) mPreviewTemp[i] = new Rational(101,100);
+            }
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
             updateScreenLog(result);

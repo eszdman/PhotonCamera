@@ -37,7 +37,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ImageButton mShutterButton;
     private ProgressBar mProcessingProgressBar;
     private CircleImageView mGalleryImageButton;
-    private RadioGroup mAuxButtonsGroup;
+    //private RadioGroup mAuxButtonsGroup;
     private LinearLayout mAuxGroupContainer;
     private CameraUIEventsListener mCameraUIEventsListener;
     private HorizontalPicker mModePicker;
@@ -190,6 +190,7 @@ public final class CameraUIViewImpl implements CameraUIView {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     @Override
     public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
         mAuxGroupContainer.removeAllViews();
@@ -197,7 +198,7 @@ public final class CameraUIViewImpl implements CameraUIView {
             Locale.setDefault(Locale.US);
             auxButtonsMap = new HashMap<>();
             for (String id : idsList) {
-                addToAuxGroupButtons(id, String.format("%.1fx", (double) (Focals.get(id).first / baseF)).replace(".0", ""));
+                addToAuxGroupButtons(id, String.format("%.1fx", ((Focals.get(id).first / baseF)-0.049)).replace(".0", ""));
             }
             View.OnClickListener auxButtonListener = this::onAuxButtonClick;
             for (int i = 0; i < mAuxGroupContainer.getChildCount(); i++) {
@@ -275,10 +276,10 @@ public final class CameraUIViewImpl implements CameraUIView {
         }
     }
 
-    @SuppressLint("DefaultLocale")
+    /*@SuppressLint("DefaultLocale")
     private String FltFormat(Object in) {
         return String.format("%.0f", in);
-    }
+    }*/
 
     @Override
     public void setFrameTimeCnt(int cnt, int maxcnt, double frametime) {

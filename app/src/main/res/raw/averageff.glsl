@@ -10,12 +10,12 @@ out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    Output = float(
+    Output =
     mix(
     float(texelFetch(InputBuffer2, (xy), 0).x)
     ,
     float(texelFetch(InputBuffer, (xy), 0).x)
     , 1.f/float(unlimitedcount)
     )
-    );
+    ;
 }

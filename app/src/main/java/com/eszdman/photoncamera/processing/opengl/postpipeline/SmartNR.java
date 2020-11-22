@@ -25,18 +25,25 @@ public class SmartNR extends Node {
 
     @Override
     public void Run() {
+        GLTexture inpdetect = glUtils.interpolate(previousNode.WorkingTexture,1.0/2.0);
         glProg.useProgram(R.raw.noisedetection44);
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
-        GLTexture detect = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16), null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        glProg.setTexture("InputBuffer", inpdetect);
+        GLTexture detect = new GLTexture(inpdetect.mSize, new GLFormat(GLFormat.DataType.FLOAT_16,3), null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(detect);
-        GLTexture detectresize = glUtils.gaussdown(detect,4);
+        GLTexture detectresize = glUtils.gaussdown(detect,3);
         detect.close();
         GLTexture detectblur = new GLTexture(detectresize);
-        glProg.useProgram(R.raw.fastmedian2);
+        glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer",detectresize);
         glProg.setVar("tpose",1,1);
         glProg.drawBlocks(detectblur);
         detectresize.close();
+        glProg.useProgram(R.raw.medianfilter);
+        glProg.setTexture("InputBuffer",detectblur);
+        glProg.setVar("tpose",1,1);
+        GLTexture detectblur2 = new GLTexture(detectblur);
+        glProg.drawBlocks(detectblur2);
+        detectblur.close();
 
         /*GLTexture detectblur2 = new GLTexture(detectblur);
         glProg.useProgram(R.raw.fastmedian2);
@@ -66,7 +73,7 @@ public class SmartNR extends Node {
         glProg.useProgram(R.raw.nlmeans);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("NoiseMap",detectblur);
+        glProg.setTexture("NoiseMap",detectblur2);
         int kernelsize = (int)(denoiseLevel) + 1;
         kernelsize = Math.max(kernelsize,2);
         kernelsize = Math.min(kernelsize,8);

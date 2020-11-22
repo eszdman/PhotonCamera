@@ -9,6 +9,6 @@ out uint Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    uint rawpart = uint(floor(((texelFetch(InputBuffer, (xy), 0).x))*whitelevel));
+    uint rawpart = uint((((texelFetch(InputBuffer, (xy), 0).x))*whitelevel));
     Output = (rawpart);
 }

@@ -145,7 +145,7 @@
                 app:maxValue="2.5"
                 app:minValue="0"
                 app:isFloat="true"
-                app:stepPerUnit="100"
+                app:stepPerUnit="10"
                 android:icon="@drawable/ic_grain_black_24dp"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
@@ -166,7 +166,7 @@
                 android:title="@string/noise_reduction_str"
                 android:summary=""
                 android:defaultValue="@string/pref_noise_seekbar_default"
-                app:maxValue="2"
+                app:maxValue="3"
                 app:minValue="0.4"
                 app:isFloat="true"
                 app:stepPerUnit="10"

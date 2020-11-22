@@ -19,13 +19,13 @@ void main() {
     //float rawpart2 = float(texelFetch(InputBuffer2, (xy), 0).x)-(blackLevel.g+0.5);
     //Output = uint(((rawpart*float((unlimitedcount-1))) +(rawpart2))/float(unlimitedcount) + blackLevel.g+0.5);
     if(first == 1){
-        Output = float(
+        Output =
         float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
         //+ (blackLevel.g-1.5)
         //)
-        );
+        ;
     } else {
-        Output = float(
+        Output =
         //floor(
         mix(
         float(texelFetch(InputBuffer, (xy), 0).x)
@@ -38,7 +38,7 @@ void main() {
         )
         //+ (blackLevel.g-1.5)
         //)
-        );
+        ;
     }
 
 }

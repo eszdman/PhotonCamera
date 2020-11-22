@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api;
 
 import android.content.SharedPreferences;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
@@ -194,6 +195,10 @@ public class Settings {
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb, rgb, rgb);
         captureBuilder.set(TONEMAP_CURVE, tonemapCurve);*/
+        float[] apertures = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+        if(apertures != null && apertures.length > 1){
+            captureBuilder.set(LENS_APERTURE,apertures[1]);
+        }
     }
 
     // =================================================================================================================
