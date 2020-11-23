@@ -115,7 +115,7 @@ public final class CameraUIViewImpl implements CameraUIView {
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
         mModePicker.setSelectedItem(1);
-        PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
+        //PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
         mframeCount.setText("");
         mframeTimer.setText("");
 

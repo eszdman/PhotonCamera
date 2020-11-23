@@ -110,15 +110,15 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
             case PHOTO:
             default:
                 PhotonCamera.getSettings().selectedMode = CameraMode.PHOTO;
-                PreferenceKeys.setCameraMode(0);
+                //PreferenceKeys.setCameraMode(0);
                 break;
             case NIGHT:
                 PhotonCamera.getSettings().selectedMode = CameraMode.NIGHT;
-                PreferenceKeys.setCameraMode(1);
+                //PreferenceKeys.setCameraMode(1);
                 break;
             case UNLIMITED:
                 PhotonCamera.getSettings().selectedMode = CameraMode.UNLIMITED;
-                PreferenceKeys.setCameraMode(2);
+                //PreferenceKeys.setCameraMode(2);
                 break;
         }
         restartCamera();

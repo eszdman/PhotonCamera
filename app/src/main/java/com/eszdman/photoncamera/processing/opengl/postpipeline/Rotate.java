@@ -20,14 +20,14 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 import static android.opengl.GLES20.GL_NEAREST;
 
-public class Watermark extends Node {
+public class Rotate extends Node {
     private int rotate;
     private boolean watermarkNeeded;
     private Bitmap watermark;
-    public Watermark(int rotation,boolean isWaterNeeded) {
-        super(0, "AddWatermark");
+    public Rotate(int rotation) {
+        super(0, "Rotate");
         rotate = rotation;
-        watermarkNeeded = isWaterNeeded;
+        watermarkNeeded = false;
     }
 
     @Override

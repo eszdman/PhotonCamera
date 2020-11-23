@@ -15,10 +15,11 @@ float normpdf3(in vec3 v, in float sigma)
 {
     return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
 }
-
+//uniform int yOffset;
 out vec3 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
+    //xy+=ivec2(0,yOffset);
     vec2 insize = vec2(textureSize(InputBuffer, 0))+0.5;
     //Output = textureBicubic(InputBuffer, vec2(gl_FragCoord.xy)/vec2(insize)).rgb;
     Output = texelFetch(InputBuffer, (xy), 0).rgb;

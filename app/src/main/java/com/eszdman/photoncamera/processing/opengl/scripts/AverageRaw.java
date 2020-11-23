@@ -100,7 +100,9 @@ public class AverageRaw extends GLOneScript {
     public void FinalScript(){
         AverageStack();
         glProg = glOne.glProgram;
-        glProg.useProgram(R.raw.toraw);
+        glProg.useProgram(R.raw.medianfilterhotpixeltoraw);
+        glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
+        Log.d(Name,"CFAPattern:"+PhotonCamera.getParameters().cfaPattern);
         glProg.setTexture("InputBuffer",stack);
         if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
         else {

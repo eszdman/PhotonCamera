@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.*;
 import android.util.Log;
 
-import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
@@ -32,14 +31,12 @@ public class PostPipeline extends GLBasePipeline {
         Matrix matrix;
         RectF r;
         Bitmap watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
-        int width, height;
+        int height;
         float scale;
-        width = source.getWidth();
         height = source.getHeight();
         paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
         // Copy the original bitmap into the new one
         canvas = new Canvas(source);
-        canvas.drawBitmap(source, 0, 0, paint);
         // Scale the watermark to be approximately to the ratio given of the source image height
         scale = ((float) height * ratio) / (float) watermark.getHeight();
         // Create the matrix
@@ -130,18 +127,13 @@ public class PostPipeline extends GLBasePipeline {
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());
         add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
-        add(new Watermark(getRotation(),PreferenceKeys.isShowWatermarkOn()));
+        add(new Rotate(getRotation()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
-        //add(new Debug3(R.raw.debugraw,"Debug3"));
 
         Bitmap img = runAll();
         //img = RotateBitmap(img,getRotation());
-        //if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
-        //Canvas canvas = new Canvas(img);
-        //canvas.drawBitmap(img, 0, 0, null);
-        //canvas.drawBitmap(waterMark, 0, img.getHeight()-400, null);
+        if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         try {
-            //noinspection ResultOfMethodCallIgnored
             imageFileToSave.createNewFile();
             FileOutputStream fOut = new FileOutputStream(imageFileToSave);
             img.compress(Bitmap.CompressFormat.JPEG, 97, fOut);

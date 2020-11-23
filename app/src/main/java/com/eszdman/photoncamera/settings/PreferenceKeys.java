@@ -265,13 +265,13 @@ public class PreferenceKeys {
         PhotonCamera.getSettingsManager().set(current_scope, Preference.CAMERA_ID, value);
     }
 
-    public static int getCameraMode() {
+    /*public static int getCameraMode() {
         return PhotonCamera.getSettingsManager().getInteger(current_scope, Preference.CAMERA_MODE);
-    }
+    }*/
 
-    public static void setCameraMode(int value) {
+    /*public static void setCameraMode(int value) {
         PhotonCamera.getSettingsManager().set(current_scope, Preference.CAMERA_MODE, value);
-    }
+    }*/
 
     public static String getToneMap() {
         return PhotonCamera.getSettingsManager().getString(current_scope, Preference.TONEMAP);

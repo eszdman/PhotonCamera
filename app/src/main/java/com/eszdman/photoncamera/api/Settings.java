@@ -95,7 +95,7 @@ public class Settings {
         fpsPreview = PreferenceKeys.isFpsPreviewOn();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
-        selectedMode = getCameraMode();
+        selectedMode = CameraMode.PHOTO;
         toneMap = parseToneMapArray();
         gamma = parseGammaArray();
         mCameraID = PreferenceKeys.getCameraID();
@@ -129,7 +129,7 @@ public class Settings {
         return finalArray;
     }
 
-    CameraMode getCameraMode() {
+    /*CameraMode getCameraMode() {
         switch (PreferenceKeys.getCameraMode()) {
             case (0):
                 return CameraMode.PHOTO;
@@ -139,7 +139,7 @@ public class Settings {
                 return CameraMode.UNLIMITED;
         }
         return CameraMode.PHOTO;
-    }
+    }*/
 
     public void applyRes(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
