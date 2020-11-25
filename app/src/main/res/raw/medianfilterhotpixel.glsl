@@ -35,7 +35,7 @@ precision mediump float;
 precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
-uniform ivec2 tpose;
+uniform int CfaPattern;
 
 #define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);
 #define mn3(a, b, c)			s2(a, b); s2(a, c);
@@ -45,39 +45,23 @@ uniform ivec2 tpose;
 #define mnmx4(a, b, c, d)		s2(a, b); s2(c, d); s2(a, c); s2(b, d);                   // 4 exchanges
 #define mnmx5(a, b, c, d, e)	s2(a, b); s2(c, d); mn3(a, c, e); mx3(b, d, e);           // 6 exchanges
 #define mnmx6(a, b, c, d, e, f) s2(a, d); s2(b, e); s2(c, f); mn3(a, b, c); mx3(d, e, f); // 7 exchanges
-out vec3 Output;
+#import loadbayer
+out float Output;
 uniform int yOffset;
-float normpdf(in float x, in float sigma)
-{
-    return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
-}
-
-float normpdf3(in vec3 v, in float sigma)
-{
-    return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
-}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec3 v[9];
-    //vec4 c = vec4(texelFetch(InputBuffer, xy, 0));
-    // Add the pixels which make up our window to the pixel array.
-    for(int dX = -1; dX <= 1; ++dX) {
-        for (int dY = -1; dY <= 1; ++dY) {
-            ivec2 offset = ivec2((dX), (dY));
-            // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
-            // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
-            // bottom right pixel of the window at pixel[N-1].
-            v[(dX + 1) * 3 + (dY + 1)] = vec3(texelFetch(InputBuffer, xy + offset*tpose, 0).rgb);
-        }
-    }
-    vec3 avr = (v[0]+v[1]+v[2]+v[3]+v[4]+v[5]+v[6]+v[7]+v[8])/8.0;
+    float v[9];
+    v = loadbayer9(InputBuffer,xy,CfaPattern);
     vec3 temp;
-
-// Starting with a subset of size 6, remove the min and max each time
-    mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
-    mnmx5(v[1], v[2], v[3], v[4], v[6]);
-    mnmx4(v[2], v[3], v[4], v[7]);
-    mnmx3(v[3], v[4], v[8]);
+    float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
+    if(v[4]*0.7 > avr){
+        float temp;
+        // Starting with a subset of size 6, remove the min and max each time
+        mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
+        mnmx5(v[1], v[2], v[3], v[4], v[6]);
+        mnmx4(v[2], v[3], v[4], v[7]);
+        mnmx3(v[3], v[4], v[8]);
+    }
     Output = v[4];
 }

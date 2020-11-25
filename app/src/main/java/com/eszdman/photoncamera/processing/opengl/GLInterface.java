@@ -76,6 +76,11 @@ public class GLInterface {
                         headers+="vec4 textureBicubic(sampler2D, vec2);";
                         headers+="vec4 textureBicubicHardware(sampler2D, vec2);";
                         break;
+                    case "#importloadbayer":
+                        id = R.raw.import_loadbayer;
+                        headers+="float[9] loadbayer9(sampler2D tex, ivec2 coords, int bayer);";
+                        break;
+
                 }
                 headers+="\n";
                 if(id!= 0) {

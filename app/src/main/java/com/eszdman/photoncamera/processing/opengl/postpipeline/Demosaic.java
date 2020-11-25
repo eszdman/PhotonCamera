@@ -29,17 +29,25 @@ public class Demosaic extends Node {
         PostPipeline postPipeline = (PostPipeline) (basePipeline);
         GLTexture glTexture;
         Parameters params = glInt.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
+        glTexture = previousNode.WorkingTexture;
         glProg.useProgram(R.raw.demosaicp1);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
-        GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
-        glProg.drawBlocks(green);
+        //GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
+        glProg.drawBlocks(basePipeline.main1);
+
+        //Green Channel guided denoising
+        glProg.useProgram(R.raw.denoisebygreen);
+        glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
+        glProg.setTexture("GreenBuffer",basePipeline.main1);
+        glProg.drawBlocks(basePipeline.main2);
+
         glProg.useProgram(R.raw.demosaicp2);
         GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        glProg.setTexture("RawBuffer", glTexture);
-        glProg.setTexture("GreenBuffer", green);
+        glProg.setTexture("RawBuffer", basePipeline.main2);
+        glProg.setTexture("GreenBuffer", basePipeline.main1);
+        glProg.setVar("whitePoint",params.whitePoint);
         glProg.setTexture("GainMap",GainMapTex);
         glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
@@ -48,14 +56,9 @@ public class Demosaic extends Node {
             params.blackLevel[i]/=params.whiteLevel;
         }
         glProg.setVar("blackLevel",params.blackLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main1 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main2 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        //WorkingTexture = basePipeline.main2;
+        WorkingTexture = basePipeline.main3;
         glProg.drawBlocks(WorkingTexture);
-        green.close();
         GainMapTex.close();
-        glTexture.close();
         glProg.close();
     }
 }

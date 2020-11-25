@@ -56,6 +56,7 @@ public class SmartNR extends Node {
 
         float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
+        denoiseLevel*=(float)PhotonCamera.getSettings().noiseRstr;
         //Chroma NR
         /*glProg.useProgram(R.raw.bilateralcolor);
 
@@ -80,7 +81,7 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
         glProg.setVar("kernel",kernelsize);
         if(denoiseLevel > 6.f)
-        glProg.setVar("isofactor",(float)PhotonCamera.getSettings().noiseRstr*denoiseLevel/6.f);
+        glProg.setVar("isofactor",denoiseLevel/6.f);
         else glProg.setVar("isofactor",1.f);
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();

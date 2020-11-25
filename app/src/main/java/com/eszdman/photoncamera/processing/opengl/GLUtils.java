@@ -109,6 +109,10 @@ public class GLUtils {
         return out2;
     }
     public GLTexture blursmall(GLTexture in, int kersize,double size){
+        GLTexture out = new GLTexture(in);
+        return blursmall(in,out,kersize,size);
+    }
+    public GLTexture blursmall(GLTexture in,GLTexture out, int kersize,double size){
         glProg.useProgram("#version 300 es\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
@@ -142,7 +146,6 @@ public class GLUtils {
                 "    Output = mask;\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        GLTexture out = new GLTexture(in);
         glProg.drawBlocks(out);
         glProg.closed = true;
         return out;

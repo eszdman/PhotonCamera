@@ -90,6 +90,7 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
+        add(new Bayer2Float(0,"Bayer2Float"));
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != -2) {
                 add(new Demosaic("Demosaic"));

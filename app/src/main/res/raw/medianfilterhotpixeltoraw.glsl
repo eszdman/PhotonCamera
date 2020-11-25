@@ -76,7 +76,7 @@ void main() {
         }
     }
     float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
-    if(v[4] > avr){
+    if(v[4]*0.7 > avr){
         float temp;
         // Starting with a subset of size 6, remove the min and max each time
         mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);

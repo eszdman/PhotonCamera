@@ -25,7 +25,7 @@ public class GLBasePipeline implements AutoCloseable {
     private long timeStart;
     private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
-    public GLTexture main1,main2;
+    public GLTexture main1,main2,main3;
     private String currentProg;
     public int texnum = 0;
 
@@ -119,6 +119,7 @@ public class GLBasePipeline implements AutoCloseable {
         }else {
             if (main2 != null) main2.close();
         }
+        if (main3 != null) main3.close();
         glint.glProgram.close();
         Nodes.clear();
         return glint.glProcessing.mOut;

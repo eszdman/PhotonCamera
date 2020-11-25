@@ -1,9 +1,8 @@
 #version 300 es
 precision highp float;
 precision mediump usampler2D;
-uniform usampler2D RawBuffer;
+uniform sampler2D RawBuffer;
 uniform int yOffset;
-uniform int CfaPattern;
 uniform int WhiteLevel;
 out float Output;
 float dxf(ivec2 coords){
@@ -25,7 +24,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
-    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
+    xy+=ivec2(0,yOffset);
     float outp = 0.0;
     if(fact1+fact2 != 1){
         //Alexey Lukin, Denis Kubasov demosaicing with an eszdman's upgrade
@@ -88,10 +87,10 @@ void main() {
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
         else outp = (P[1] + P[3] + P[5] + P[7])/4.;
         //Output = clamp(outp/float(WhiteLevel),0.,1.);
-        Output = outp/float(WhiteLevel);
+        Output = outp;
     }
     else {
     //Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
-        Output = float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel);
+        Output = float(texelFetch(RawBuffer, (xy), 0).x);
     }
 }
