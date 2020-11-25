@@ -102,7 +102,7 @@ void main() {
     }
     Output = outp;
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
-    Output*=whitePoint;
+    //Output*=whitePoint;
     Output.r = gains.r*(Output.r-blackLevel.r);
     Output.g = ((gains.g+gains.b)/2.)*(Output.g-(blackLevel.g+blackLevel.b)/2.);
     Output.b = gains.a*(Output.b-blackLevel.a);

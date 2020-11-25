@@ -1,9 +1,8 @@
 #version 300 es
 precision mediump float;
-precision mediump usampler2D;
-uniform usampler2D RawBuffer;
+precision mediump sampler2D;
+uniform sampler2D RawBuffer;
 uniform int yOffset;
-uniform int WhiteLevel;
 out vec3 Output;
 
 void main() {

@@ -14,8 +14,8 @@ void main() {
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
     if(fact1+fact2 == 1){
-        Output = (float(texelFetch(InputBuffer, (xy), 0).x)/whitelevel)/whitePoint.g;
+        Output = (float(texelFetch(InputBuffer, (xy), 0).x)/whitelevel);///whitePoint.g;
     } else {
-        Output = (float(texelFetch(InputBuffer, (xy), 0).x)/whitelevel)/whitePoint[fact2*2];
+        Output = (float(texelFetch(InputBuffer, (xy), 0).x)/whitelevel);///whitePoint[fact2*2];
     }
 }

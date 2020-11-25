@@ -2,6 +2,7 @@ package com.eszdman.photoncamera.processing.render;
 
 import android.annotation.SuppressLint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
@@ -32,6 +33,7 @@ public class Parameters {
     public int realWL = -1;
     public boolean hasGainMap;
     public Point mapSize;
+    public Rect sensorPix;
     public float[] gainMap;
     public float[] proPhotoToSRGB = new float[9];
     public final float[] sensorToProPhoto = new float[9];
@@ -69,6 +71,10 @@ public class Parameters {
         mapSize = new Point(1, 1);
         gainMap = new float[1];
         gainMap[0] = 1.f;
+        sensorPix = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if(sensorPix==null){
+            sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
+        }
         LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
         if (lensMap != null) {
             gainMap = new float[lensMap.getGainFactorCount()];

@@ -80,7 +80,10 @@ public class GLInterface {
                         id = R.raw.import_loadbayer;
                         headers+="float[9] loadbayer9(sampler2D tex, ivec2 coords, int bayer);";
                         break;
-
+                    case "#importcoords":
+                        id = R.raw.import_coords;
+                        headers+="ivec2 mirrorCoords(ivec2 xy, ivec4 bounds);";
+                        break;
                 }
                 headers+="\n";
                 if(id!= 0) {

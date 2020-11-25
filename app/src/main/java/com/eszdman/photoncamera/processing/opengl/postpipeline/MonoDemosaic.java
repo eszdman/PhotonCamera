@@ -23,7 +23,6 @@ public class MonoDemosaic extends Node {
         //glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
         glTexture = previousNode.WorkingTexture;
         glProg.setTexture("RawBuffer", glTexture);
-        glProg.setVar("WhiteLevel", params.whiteLevel);
         WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;

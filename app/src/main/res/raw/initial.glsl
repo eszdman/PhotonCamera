@@ -11,6 +11,8 @@ uniform int yOffset;
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
+
+uniform ivec4 activeSize;
 #define PI (3.1415926535)
 out vec4 Output;
 //#define x1 2.8114
@@ -22,6 +24,8 @@ out vec4 Output;
 #define x1 2.8586f
 #define x2 -3.1643f
 #define x3 1.2899f
+
+#import coords
 float gammaEncode2(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
 }
@@ -187,6 +191,7 @@ vec3 saturate(vec3 rgb,float model) {
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
+    xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
