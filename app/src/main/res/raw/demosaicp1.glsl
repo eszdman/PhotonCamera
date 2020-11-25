@@ -1,6 +1,6 @@
 #version 300 es
 precision highp float;
-precision mediump usampler2D;
+precision mediump sampler2D;
 uniform sampler2D RawBuffer;
 uniform int yOffset;
 uniform int WhiteLevel;
