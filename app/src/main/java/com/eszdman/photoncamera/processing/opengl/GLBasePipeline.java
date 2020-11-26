@@ -34,7 +34,7 @@ public class GLBasePipeline implements AutoCloseable {
             texnum = 2;
             return main2;
         }
-        if(texnum == 2) {
+        if(texnum != 1) {
             texnum = 1;
             return main1;
         }

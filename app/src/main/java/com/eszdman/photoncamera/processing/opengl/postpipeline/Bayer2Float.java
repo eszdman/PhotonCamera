@@ -35,9 +35,9 @@ public class Bayer2Float extends Node {
         glProg.drawBlocks(basePipeline.main3);
         /*glProg.useProgram(R.raw.medianfilterhotpixel);
         glProg.setVar("CfaPattern",parameters.cfaPattern);
-        glProg.setTexture("InputBuffer",basePipeline.main3);
+        glProg.setTexture("InputBuffer",basePipeline.main2);
         glProg.drawBlocks(basePipeline.main3);*/
-        //glUtils.blursmall(basePipeline.main2,basePipeline.main3,3,0.15);
+        //glUtils.blursmall(basePipeline.main2,basePipeline.main3,3,0.25);
         WorkingTexture = basePipeline.main3;
         glProg.closed = true;
     }

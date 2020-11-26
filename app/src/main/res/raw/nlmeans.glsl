@@ -64,7 +64,6 @@ float nlmeans(ivec2 coords) {
                 }
             }*/
                 for (int i = -wind; i < wind; i++) {
-
                     vec3 temp = texelFetch(InputBuffer, patchCoord + ivec2(i, 0), 0).rgb;
                     in1 = luminocity(temp);
                     temp = texelFetch(InputBuffer, coords + ivec2(i, 0), 0).rgb;

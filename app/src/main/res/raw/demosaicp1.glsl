@@ -82,10 +82,11 @@ void main() {
         //E[7]+=E[4]+E[6];
         //float all = (E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
         float all = (E[1]+E[3]+E[5]+E[7]);
-        if(all > 0.0001)
+        //if(all > 0.0001)
         //outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/all;
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
-        else outp = (P[1] + P[3] + P[5] + P[7])/4.;
+
+        //else outp = (P[1] + P[3] + P[5] + P[7])/4.;
         //Output = clamp(outp/float(WhiteLevel),0.,1.);
         Output = outp;
     }

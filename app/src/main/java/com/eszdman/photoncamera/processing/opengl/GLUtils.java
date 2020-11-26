@@ -229,9 +229,14 @@ public class GLUtils {
     }
 
     public GLTexture gaussdown(GLTexture in, int k){
-        return gaussdown(in,k,(double)k*1.3);
+        GLTexture out = new GLTexture((in.mSize.x/k) + (k)-1,(in.mSize.y/k) + (k)-1,in.mFormat);
+        return gaussdown(in,out,k,(double)k*1.3);
     }
     public GLTexture gaussdown(GLTexture in, int k,double blur){
+        GLTexture out = new GLTexture((in.mSize.x/k) + (k)-1,(in.mSize.y/k) + (k)-1,in.mFormat);
+        return gaussdown(in,out,k,blur);
+    }
+    public GLTexture gaussdown(GLTexture in,GLTexture out, int k,double blur){
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
@@ -269,7 +274,6 @@ public class GLUtils {
                 "    Output = mask;\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        GLTexture out = new GLTexture((in.mSize.x/k) + (k)-1,(in.mSize.y/k) + (k)-1,in.mFormat);
         //GLTexture out = new GLTexture((int)((in.mSize.x/(double)k)+0.5),(int)((in.mSize.y/(double)k)+0.5),in.mFormat);
         glProg.drawBlocks(out);
         glProg.closed = true;
@@ -426,12 +430,15 @@ public class GLUtils {
         return out;
     }
     public GLTexture median(GLTexture in,Point transposing){
+        GLTexture output = new GLTexture(in);
+        return median(in,output,transposing);
+    }
+    public GLTexture median(GLTexture in,GLTexture out,Point transposing){
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer", in);
         glProg.setVar("transpose",transposing);
-        GLTexture output = new GLTexture(in);
-        glProg.drawBlocks(output);
-        return output;
+        glProg.drawBlocks(out);
+        return out;
     }
     public GLTexture mpy(GLTexture in, float[] vecmat){
         return mpy(in,vecmat, new GLTexture(in));
@@ -530,23 +537,23 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
-    public GLTexture convertVec4(GLTexture in,String operation){
+    public GLTexture convertVec4(GLTexture in1,String operation){
         glProg.useProgram("#version 300 es\n" +
-                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
-                "#define tvar "+in.mFormat.getTemVar()+"\n" +
-                "#define tscal "+in.mFormat.getScalar()+"\n" +
-                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "#define tvar "+in1.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in1.mFormat.getScalar()+"\n" +
+                "uniform "+in1.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
                 "out vec4 Output;\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
-                "    tvar in = tvar((texelFetch(InputBuffer, xy, 0))"+in.mFormat.getTemExt()+");\n" +
+                "    tvar in1 = tvar(texelFetch(InputBuffer, xy, 0)"+in1.mFormat.getTemExt()+");\n" +
                 "    Output = vec4("+operation+");\n" +
                 "}\n");
-        glProg.setTexture("InputBuffer",in);
-        GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4));
+        glProg.setTexture("InputBuffer",in1);
+        GLTexture out = new GLTexture(in1.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,4));
         glProg.drawBlocks(out);
         return out;
     }

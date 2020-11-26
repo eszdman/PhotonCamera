@@ -24,7 +24,6 @@ public class Initial extends Node {
     }
     @Override
     public void Run() {
-        Node Previous = super.previousNode;
         GLInterface glint = basePipeline.glint;
         Parameters params = glint.parameters;
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().toneMap));
@@ -35,7 +34,7 @@ public class Initial extends Node {
         glProg.setVar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setVar("gain", (float) PhotonCamera.getSettings().gain);
         Log.d(Name,"SensorPix:"+params.sensorPix);
-        glProg.setVar("activeSize",params.sensorPix.left+4,params.sensorPix.top+4,params.sensorPix.right-4,params.sensorPix.bottom-4);
+        glProg.setVar("activeSize",4,4,params.sensorPix.right-params.sensorPix.left-4,params.sensorPix.bottom-params.sensorPix.top-4);
         glProg.setVar("neutralPoint",params.whitePoint);
         Log.d(Name,"compressor:"+1.f/((float)PhotonCamera.getSettings().compressor));
         float sat =(float) PhotonCamera.getSettings().saturation;

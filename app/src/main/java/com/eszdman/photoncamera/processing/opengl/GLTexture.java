@@ -63,10 +63,12 @@ public class GLTexture implements AutoCloseable {
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         Log.d("GLTexture","Texture ID:"+mTextureID);
         if(pixels != null)
-        glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
+                glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
         else {
             //glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(), size.x, size.y);
-            glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+            glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
+                    glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
         }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
