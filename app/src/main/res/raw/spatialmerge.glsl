@@ -23,7 +23,7 @@ uniform int number;
 out float Output;
 #define MIN_NOISE 0.1f
 #define MAX_NOISE 1.0f
-#define TILESIZE (32)
+#define TILESIZE (48)
 #import interpolation
 #import coords
 void main() {
@@ -87,4 +87,5 @@ void main() {
     //Output = float(texelFetch(OutputBuffer, (xy), 0).x);
     //Output = texelFetch(InputBuffer22, aligned/2, 0).x;
     //Output = weight*1.0;
+    //Output = (((texelFetch(InputBuffer22, xy, 0).r))+((texelFetch(InputBuffer22, xy, 0).b)))/2.0;
 }

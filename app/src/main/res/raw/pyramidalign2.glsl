@@ -9,8 +9,8 @@ uniform sampler2D AlignVectors;
 uniform int prevLayerScale;
 uniform int yOffset;
 out vec2 Output;
-#define TILESIZE (32)
-#define SCANSIZE (32)
+#define TILESIZE (48)
+#define SCANSIZE (48)
 #define TILESCALE (TILESIZE/2)
 #define oversizek (1)
 #define MAXX (4*1)

@@ -90,10 +90,21 @@ public class GLProg implements AutoCloseable {
         mTextureBinds.clear();
         mNewTextureId = 0;
     }
-
+    boolean changedDef = false;
+    ArrayList<String[]> Defines = new ArrayList<>();
+    public void setDefine(String DefineName, String DefineVal){
+        Defines.add(new String[]{DefineName,DefineVal});
+        changedDef = true;
+    }
     public void useProgram(String prog) {
         closed = false;
-        int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(prog));
+        String shader = "";
+        if(changedDef) shader = GLInterface.loadShader(prog,Defines);
+        else {
+            shader = GLInterface.loadShader(prog);
+        }
+        int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+        Defines.clear();
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader, nShader);
         glLinkProgram(program);

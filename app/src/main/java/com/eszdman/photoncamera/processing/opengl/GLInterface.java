@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.CharArrayReader;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.util.ArrayList;
 
 public class GLInterface {
     public final GLProg glProgram;
@@ -29,14 +30,20 @@ public class GLInterface {
         glProgram = glContext.mProgram;
     }
     public static String loadShader(String code){
-        BufferedReader reader = new BufferedReader(new StringReader(code));
-        return readprog(reader);
+        return loadShader(code,null);
     }
     public static String loadShader(int fragment){
-        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
-        return readprog(reader);
+        return loadShader(fragment,null);
     }
-    static public String readprog(BufferedReader reader) {
+    public static String loadShader(int fragment,ArrayList<String[]> defines){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
+        return readprog(reader,null);
+    }
+    public static String loadShader(String code,ArrayList<String[]> defines){
+        BufferedReader reader = new BufferedReader(new StringReader(code));
+        return readprog(reader,defines);
+    }
+    static public String readprog(BufferedReader reader, ArrayList<String[]> defines) {
         StringBuilder source = new StringBuilder();
         StringBuilder imports = new StringBuilder();
         for (Object line : reader.lines().toArray()) {
@@ -95,6 +102,14 @@ public class GLInterface {
                 }
                 source.append(headers);
                 continue;
+            }
+            if(val.contains("#define") && defines != null){
+                for(String[] define : defines){
+                    if(val.contains(define[0])){
+                        line = (String)("#define "+define[0]+" "+define[1]);
+                        break;
+                    }
+                }
             }
             source.append(line).append("\n");
         }

@@ -104,23 +104,24 @@ public class AlignAndMerge extends Node {
     private void Align() {
         //startT();
 
-
+        glProg.setDefine("SCANSIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",0);
         glProg.setTexture("InputBuffer",brTex128);
         glProg.setVar("size",BaseFrame128.mSize);
         glProg.setTexture("MainBuffer",BaseFrame128);
-        glProg.drawBlocks(vsmall,2);
+        glProg.drawBlocks(vsmall,1);
 
-
+        glProg.setDefine("SCANSIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("InputBuffer",brTex3232);
         glProg.setTexture("AlignVectors",vsmall);
         glProg.setVar("size",brTex3232.mSize);
         glProg.setTexture("MainBuffer",BaseFrame3232);
-        glProg.drawBlocks(small,2);
+        glProg.drawBlocks(small,1);
 
+        glProg.setDefine("SCANSIZE","("+16+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",small);
@@ -130,6 +131,7 @@ public class AlignAndMerge extends Node {
         glProg.drawBlocks(medium,2);
         //small.close();
 
+        glProg.setDefine("SCANSIZE","("+16+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",medium);
@@ -243,7 +245,7 @@ public class AlignAndMerge extends Node {
     GLTexture brTex22,brTex88,brTex3232,brTex128;
     GLTexture alignVectors;
     GLTexture Weights;
-    final int tileSize = 32;
+    final int tileSize = 48;
     @Override
     public void Run() {
         glProg = basePipeline.glint.glProgram;
