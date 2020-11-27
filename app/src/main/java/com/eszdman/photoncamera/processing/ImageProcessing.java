@@ -212,6 +212,7 @@ public class ImageProcessing {
             //frame.luckyParameter = luckyOperator.out;
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
             frame.image = mImageFramesToProcess.get(i);
+            frame.pair = IsoExpoSelector.pairs.get(i%IsoExpoSelector.patternSize);
             images.add(frame);
             //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
         }
@@ -246,7 +247,7 @@ public class ImageProcessing {
         float deghostlevel = (float) Math.sqrt(((int) sensitivity) * IsoExpoSelector.getMPY() - 50.) / 16.2f;
         deghostlevel = Math.min(0.25f, deghostlevel);
         Log.d(TAG, "Deghosting level:" + deghostlevel);
-        ByteBuffer output = null;
+        ByteBuffer output;
         if (!debugAlignment) {
             float ghosting = 1.f;
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
@@ -297,7 +298,6 @@ public class ImageProcessing {
             saveRaw(images.get(0).image, 0);
             return;
         }
-
         if(debugAlignment){
             for(int i =0; i<4;i++){
                 PhotonCamera.getParameters().blackLevel[i]*=16384.0/PhotonCamera.getParameters().whiteLevel;

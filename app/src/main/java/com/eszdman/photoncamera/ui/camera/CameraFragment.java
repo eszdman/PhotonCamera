@@ -1463,10 +1463,12 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 captures.add(captureBuilder.build());
             }
             if (frameCount == -1) {
-                IsoExpoSelector.setExpo(captureBuilder, 0);
-                captures.add(captureBuilder.build());
+                for(int i =0; i<IsoExpoSelector.patternSize;i++) {
+                    IsoExpoSelector.setExpo(captureBuilder, i);
+                    captures.add(captureBuilder.build());
+                }
             }
-            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(0).exposure);
+            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(1).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
             final int[] burstcount = {0, 0, frameCount};

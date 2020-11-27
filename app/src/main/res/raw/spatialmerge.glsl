@@ -29,10 +29,6 @@ out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    vec2 tilexy = vec2(xy - TILESIZE*(xy/TILESIZE));
-    tilexy/=float(TILESIZE);
-    tilexy-=0.5;
-    float dist = tilexy.x*tilexy.x+tilexy.y*tilexy.y;
     //ivec2 align = ivec2(texelFetch(AlignVectors, (xy/TILESIZE), 0).xy);
     //vec2 xyInterp = vec2(xy)/float(TILESIZE);
     //xyInterp/=vec2(alignsize);
@@ -57,14 +53,16 @@ void main() {
 
     //windoww = float(int(windoww*100.0))/100.0;
     //float outp = (((texelFetch(InputBuffer, aligned, 0).x))*float((windoww))+((texelFetch(OutputBuffer, (xy), 0).x))*float((1.0-windoww)));
+    ivec2 outsize = ivec2(textureSize(OutputBuffer, 0));
     ivec2 state = ivec2(xy.x%2,xy.y%2);
-    ivec2 align = ivec2(texture(AlignVectors, vec2(gl_FragCoord.xy+vec2(0,0))/vec2(textureSize(OutputBuffer, 0))).rg*float(TILESIZE)*16.0/2.0);
-    align = mirrorCoords((xy/2)+align,ivec4(0,0,(ivec2(textureSize(OutputBuffer, 0))-1)/2))*2 + state;
+    vec2 inp = texture(AlignVectors, vec2(gl_FragCoord.xy)/vec2(textureSize(OutputBuffer, 0))).rg*float(TILESIZE)*256.0;
+    ivec2 align = ivec2(inp.rg/2.0);
+    align = mirrorCoords((xy/2)+align,ivec4(0,0,(outsize-1)/2))*2 + state;
+    //float weight = float(texture(SpatialWeights, vec2(gl_FragCoord.xy)/vec2(outsize)).x);
     if(number != 0){
         windoww/=float(number);
         //windoww/=4.0;
         //windoww*=alignk;
-
         Output = mix(((texelFetch(OutputBuffer, xy, 0).x)), ((texelFetch(InputBuffer, (align), 0).x)), windoww);
 
         /*align = ivec2(texture(AlignVectors, vec2(gl_FragCoord.xy+vec2(0,1))/vec2(textureSize(OutputBuffer, 0))).rg*float(TILESIZE)*16.0/2.0);
@@ -88,6 +86,5 @@ void main() {
     }
     //Output = float(texelFetch(OutputBuffer, (xy), 0).x);
     //Output = texelFetch(InputBuffer22, aligned/2, 0).x;
-    //Output = weight*10.0;
-    //Output = abs(float(align.x+align.y));
+    //Output = weight*1.0;
 }

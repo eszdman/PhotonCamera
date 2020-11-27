@@ -9,12 +9,15 @@ import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
+import java.util.ArrayList;
+
 public class IsoExpoSelector {
     public static final int baseFrame = 1;
     private static final String TAG = "IsoExpoSelector";
     public static boolean HDR = false;
     public static boolean useTripod = false;
-
+    public static final int patternSize = 3;
+    public static ArrayList<ExpoPair> pairs = new ArrayList<>();
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         Log.v(TAG, "InputParams: " +
@@ -44,6 +47,20 @@ public class IsoExpoSelector {
                 if(step%3 == 2) mpy = 1.5;
                 if(step%3 == 1) mpy = 1.0/1.5;
             }
+             /*else if(PhotonCamera.getSettings().alignAlgorithm == 1){
+                if(step%3 == 1) {
+                    pair.curlayer = ExpoPair.exposureLayer.High;
+                    mpy = 1.0/1.5;
+                }
+                if(step%3 == 2) {
+                    pair.curlayer = ExpoPair.exposureLayer.Normal;
+                    mpy = 1.0;
+                }
+                if(step%3 == 0) {
+                    pair.curlayer = ExpoPair.exposureLayer.Low;
+                    mpy = 1.5;
+                }
+            }*/
             mpy1 = 3500.0;
         }
         if (pair.exposure < ExposureIndex.sec / 40 && pair.normalizedIso() > 90.0/mpy1) {
@@ -62,10 +79,7 @@ public class IsoExpoSelector {
             pair.ReduceIso();
         }
         if (CameraFragment.mTargetFormat == CameraFragment.rawFormat) {
-            if (pair.iso >= (100.0/mpy1) / 0.65) pair.iso *= mpy;
-            else {
-                pair.exposure *= mpy;
-            }
+            pair.ExpoCompensateLower(mpy);
         }
         if (useTripod) {
             pair.MinIso();
@@ -75,7 +89,6 @@ public class IsoExpoSelector {
         double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
         pair.exposure = currentManExp != 0 ? (long) currentManExp : pair.exposure;
         pair.iso = currentManISO != 0 ? (int) currentManISO : pair.iso;
-
         if (step == 3 && HDR) {
             pair.ExpoCompensateLower(1.0 / 1.0);
         }
@@ -97,6 +110,11 @@ public class IsoExpoSelector {
                 if (pair.normalizeCheck())
                     PhotonCamera.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
             }
+        }
+        if(step == 0) pairs.clear();
+        if(pairs.size() < patternSize) {
+            Log.d(TAG,"Added pair:"+pairs.size());
+            pairs.add(pair);
         }
         pair.denormalizeSystem();
         return pair;
@@ -161,6 +179,12 @@ public class IsoExpoSelector {
     //==================================Class : ExpoPair==================================//
 
     public static class ExpoPair {
+        public enum exposureLayer{
+            Low,
+            Normal,
+            High
+        }
+        public exposureLayer curlayer;
         public long exposure;
         public int iso;
         long exposurehigh, exposurelow;
@@ -179,7 +203,9 @@ public class IsoExpoSelector {
             isohigh = ishigh;
             isoanalog = analog;
         }
-
+        public double Exposure(){
+            return ExposureIndex.time2sec(exposure)*iso;
+        }
         public void copyfrom(ExpoPair pair) {
             exposure = pair.exposure;
             exposurelow = pair.exposurelow;

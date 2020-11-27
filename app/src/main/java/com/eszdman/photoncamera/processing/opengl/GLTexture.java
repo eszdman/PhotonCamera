@@ -49,7 +49,9 @@ public class GLTexture implements AutoCloseable {
     public GLTexture(Point size, GLFormat glFormat) {
         this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
     }
-
+    public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
+        this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
+    }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         filter = textureFilter;
         wrap = textureWrapper;
@@ -61,7 +63,7 @@ public class GLTexture implements AutoCloseable {
         mTextureID = TexID[0];
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        Log.d("GLTexture","Texture ID:"+mTextureID);
+        //Log.d("GLTexture","Texture ID:"+mTextureID);
         if(pixels != null)
         glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
                 glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
@@ -76,6 +78,8 @@ public class GLTexture implements AutoCloseable {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
         checkEglError("Tex glTexParameteri");
     }
+
+
 
     public void BufferLoad() {
         int[] frameBuffer = new int[1];
