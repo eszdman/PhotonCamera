@@ -100,7 +100,20 @@
                     app:layout_constraintHorizontal_weight="1"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
-
+            <TextView
+                    android:id="@+id/frameCount"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    tools:text="25"
+                    android:textColor="@android:color/white"
+                    android:textSize="36sp"
+                    android:textAlignment="center"
+                    android:typeface="normal"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout

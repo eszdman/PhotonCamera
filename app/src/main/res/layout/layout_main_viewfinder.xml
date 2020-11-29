@@ -101,29 +101,17 @@
 
     <TextView
         android:id="@+id/frameTimer"
-        android:layout_width="wrap_content"
+        android:layout_width="120dp"
         android:layout_height="wrap_content"
-        android:text="14:88"
-        android:textColor="#FFFFFF"
+        android:textAlignment="center"
+        tools:text="14:88"
+        android:textColor="@android:color/white"
         android:textSize="36sp"
         android:typeface="normal"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@+id/texture_container"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/texture_container"
         app:layout_constraintStart_toStartOf="@+id/texture_container"
         app:layout_constraintTop_toTopOf="@+id/texture_container"
-        app:layout_constraintVertical_bias="0.48000002" />
-
-    <TextView
-        android:id="@+id/frameCount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="25"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
-        android:typeface="normal"
-        android:visibility="visible"
-        app:layout_constraintEnd_toEndOf="@+id/frameTimer"
-        app:layout_constraintStart_toStartOf="@+id/frameTimer"
-        app:layout_constraintTop_toBottomOf="@+id/frameTimer" />
+         />
 </androidx.constraintlayout.widget.ConstraintLayout>
