@@ -28,5 +28,5 @@ void main() {
     sqrt(abs(textureBicubicHardware(InputBuffer32,aligned).a-textureBicubicHardware(MainBuffer32,vec2(gl_FragCoord.xy)*2.0).a))*
     sqrt(abs(textureBicubicHardware(InputBuffer88,aligned).a-textureBicubicHardware(MainBuffer88,vec2(gl_FragCoord.xy)*2.0).a))*
     sqrt(abs(textureBicubicHardware(InputBuffer22,aligned).a-textureBicubicHardware(MainBuffer22,vec2(gl_FragCoord.xy)*2.0).a));
-    Output = textureBicubicHardware(MainBuffer22,aligned).a*0.1;
+    Output = texture(MainBuffer22,aligned).a*0.1;
 }

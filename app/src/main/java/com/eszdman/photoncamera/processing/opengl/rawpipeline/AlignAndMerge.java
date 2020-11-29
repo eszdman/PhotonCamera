@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.processing.opengl.rawpipeline;
 
-import android.accounts.OnAccountsUpdateListener;
 import android.graphics.Point;
 import android.util.Log;
 
@@ -17,7 +16,6 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     Point rawSize;
@@ -105,40 +103,40 @@ public class AlignAndMerge extends Node {
         //startT();
 
         glProg.setDefine("SCANSIZE","("+tileSize+")");
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",0);
         glProg.setTexture("InputBuffer",brTex128);
-        glProg.setVar("size",BaseFrame128.mSize);
         glProg.setTexture("MainBuffer",BaseFrame128);
         glProg.drawBlocks(vsmall,1);
 
         glProg.setDefine("SCANSIZE","("+tileSize+")");
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
-        glProg.setTexture("InputBuffer",brTex3232);
+        glProg.setTexture("InputBuffer", brTex32);
         glProg.setTexture("AlignVectors",vsmall);
-        glProg.setVar("size",brTex3232.mSize);
-        glProg.setTexture("MainBuffer",BaseFrame3232);
+        glProg.setTexture("MainBuffer", BaseFrame32);
         glProg.drawBlocks(small,1);
 
-        glProg.setDefine("SCANSIZE","("+16+")");
+        glProg.setDefine("SCANSIZE","("+tileSize+")");
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",small);
-        glProg.setVar("size",brTex88.mSize);
-        glProg.setTexture("InputBuffer",brTex88);
-        glProg.setTexture("MainBuffer",BaseFrame88);
-        glProg.drawBlocks(medium,2);
+        glProg.setTexture("InputBuffer", brTex8);
+        glProg.setTexture("MainBuffer", BaseFrame8);
+        glProg.drawBlocks(medium,1);
         //small.close();
 
         glProg.setDefine("SCANSIZE","("+16+")");
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",medium);
-        glProg.setVar("size",brTex22.mSize);
-        glProg.setTexture("InputBuffer",brTex22);
-        glProg.setTexture("MainBuffer",BaseFrame22);
-        glProg.drawBlocks(alignVectors,2);
+        glProg.setTexture("InputBuffer", brTex2);
+        glProg.setTexture("MainBuffer", BaseFrame2);
+        glProg.drawBlocks(alignVectors,1);
         //Log.d("Alignment","Size:"+alignVectors.mSize);
         //medium.close();
 
@@ -187,23 +185,24 @@ public class AlignAndMerge extends Node {
 
     private void Weights() {
         //startT();
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.spatialweights);
-        glProg.setTexture("InputBuffer22", brTex22);
-        glProg.setTexture("MainBuffer22", BaseFrame22);
-        glProg.setTexture("InputBuffer88", brTex88);
-        glProg.setTexture("MainBuffer88", BaseFrame88);
-        glProg.setTexture("InputBuffer32", brTex3232);
-        glProg.setTexture("MainBuffer32", BaseFrame3232);
+        glProg.setTexture("InputBuffer22", brTex2);
+        glProg.setTexture("MainBuffer22", BaseFrame2);
+        glProg.setTexture("InputBuffer88", brTex8);
+        glProg.setTexture("MainBuffer88", BaseFrame8);
+        glProg.setTexture("InputBuffer32", brTex32);
+        glProg.setTexture("MainBuffer32", BaseFrame32);
         glProg.setTexture("InputBuffer128", brTex128);
         glProg.setTexture("MainBuffer128", BaseFrame128);
         glProg.setTexture("AlignVectors", alignVectors);
-        glProg.setVarU("rawsize", rawSize);
         glProg.drawBlocks(Weights);
         //endT("Weights");
     }
 
-    private GLTexture Merge(GLTexture Output, GLTexture inputRaw, GLTexture alignVectors, GLTexture weights, GLTexture mainFrame, GLTexture brTex22, GLTexture base22, int num) {
+    private GLTexture Merge(GLTexture Output, GLTexture inputRaw, GLTexture alignVectors, GLTexture weights, GLTexture mainFrame,int num) {
         //startT();
+        glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.spatialmerge);
         glProg.setTexture("AlignVectors", alignVectors);
         glProg.setTexture("SpatialWeights", Weights);
@@ -211,8 +210,8 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer", mainFrame);
         glProg.setTexture("InputBuffer", inputRaw);
 
-        glProg.setTexture("InputBuffer22", brTex22);
-        glProg.setTexture("MainBuffer22", base22);
+        glProg.setTexture("InputBuffer22", brTex2);
+        glProg.setTexture("MainBuffer22", BaseFrame2);
 
         glProg.setTexture("OutputBuffer", Output);
         glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
@@ -241,11 +240,11 @@ public class AlignAndMerge extends Node {
         return output;
     }
     ArrayList<ImageFrame> images;
-    GLTexture BaseFrame,BaseFrame22,BaseFrame88,BaseFrame3232,BaseFrame128;
-    GLTexture brTex22,brTex88,brTex3232,brTex128;
+    GLTexture BaseFrame, BaseFrame2, BaseFrame8, BaseFrame32,BaseFrame128;
+    GLTexture brTex2, brTex8, brTex32,brTex128;
     GLTexture alignVectors;
     GLTexture Weights;
-    final int tileSize = 48;
+    final int tileSize = 32;
     @Override
     public void Run() {
         glProg = basePipeline.glint.glProgram;
@@ -258,49 +257,51 @@ public class AlignAndMerge extends Node {
         basePipeline.main2 = new GLTexture(BaseFrame);
         basePipeline.main1 = new GLTexture(BaseFrame);
         Log.d("AlignAndMerge", "Corrected raw elapsed time:" + (System.currentTimeMillis() - time) + " ms");
-        BaseFrame22 = new GLTexture(BaseFrame.mSize.x/2,BaseFrame.mSize.y/2,BaseFrame.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
-        basePipeline.main3 = new GLTexture(BaseFrame22);
-        BoxDown22(BaseFrame,BaseFrame22);
-        BaseFrame88 = new GLTexture(BaseFrame22.mSize.x/4,BaseFrame22.mSize.y/4,BaseFrame22.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
-        GaussDown44(BaseFrame22,BaseFrame88,true);
-        BaseFrame3232 = new GLTexture(BaseFrame88.mSize.x/4,BaseFrame88.mSize.y/4,BaseFrame22.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
-        BaseFrame128 = new GLTexture(BaseFrame3232.mSize.x/4,BaseFrame3232.mSize.y/4,BaseFrame22.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
-        GaussDown44(BaseFrame88,BaseFrame3232,true);
-        GaussDown44(BaseFrame3232,BaseFrame128,true);
+        BaseFrame2 = new GLTexture(BaseFrame.mSize.x/2,BaseFrame.mSize.y/2,new GLFormat(GLFormat.DataType.FLOAT_16,4),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        basePipeline.main3 = new GLTexture(BaseFrame2);
+        BoxDown22(BaseFrame, BaseFrame2);
+        BaseFrame8 = new GLTexture(BaseFrame2.mSize.x/4, BaseFrame2.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
+
+        BaseFrame32 = new GLTexture(BaseFrame8.mSize.x/4, BaseFrame8.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        BaseFrame128 = new GLTexture(BaseFrame32.mSize.x/4, BaseFrame32.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GaussDown44(BaseFrame2, BaseFrame8,true);
+        GaussDown44(BaseFrame8, BaseFrame32,true);
+        GaussDown44(BaseFrame32,BaseFrame128,true);
         GLTexture Output = basePipeline.getMain();
         CorrectedRaw(Output,0);
         Log.d("AlignAndMerge", "Resize elapsed time:" + (System.currentTimeMillis() - time) + " ms");
         time = System.currentTimeMillis();
         Log.d("AlignAndMerge","ImagesCount:"+images.size());
-        brTex22 = new GLTexture(BaseFrame22);
-        brTex88 = new GLTexture(BaseFrame88);
-        brTex3232 = new GLTexture(BaseFrame3232);
+        brTex2 = new GLTexture(BaseFrame2);
+        brTex8 = new GLTexture(BaseFrame8);
+        brTex32 = new GLTexture(BaseFrame32);
         brTex128 = new GLTexture(BaseFrame128);
-        alignVectors = new GLTexture(new Point(brTex22.mSize.x / (tileSize), brTex22.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_NEAREST,GL_CLAMP_TO_EDGE);
-        medium = new GLTexture(new Point(brTex88.mSize.x / (tileSize), brTex88.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
-        small = new GLTexture(new Point(brTex3232.mSize.x / (tileSize), brTex3232.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
-        vsmall = new GLTexture(new Point(brTex128.mSize.x / (tileSize), brTex128.mSize.y / (tileSize)), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
-        Weights = new GLTexture(new Point(brTex22.mSize.x/2,brTex22.mSize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        int added = 1;
+        alignVectors = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        medium = new GLTexture(new Point((brTex8.mSize.x / (tileSize))+added, (brTex8.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
+        small = new GLTexture(new Point((brTex32.mSize.x / (tileSize))+added, (brTex32.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
+        vsmall = new GLTexture(new Point((brTex128.mSize.x / (tileSize))+added, (brTex128.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
+        Weights = new GLTexture(new Point(brTex2.mSize.x/2, brTex2.mSize.y/2),new GLFormat(GLFormat.DataType.FLOAT_16),GL_LINEAR,GL_CLAMP_TO_EDGE);
         GLTexture inputraw = new GLTexture(BaseFrame);
         for (int i = 0; i < images.size(); i++) {
             CorrectedRaw(inputraw,i);
             //Less memory consumption
             if(i!=0) images.get(i).image.close();
             //long time2 = System.currentTimeMillis();
-            BoxDown22(inputraw,brTex22);
-            GaussDown44(brTex22,brTex88,true);
-            GaussDown44(brTex88,brTex3232,true);
-            GaussDown44(brTex3232,brTex128,true);
+            BoxDown22(inputraw, brTex2);
+            GaussDown44(brTex2, brTex8,true);
+            GaussDown44(brTex8, brTex32,true);
+            GaussDown44(brTex32,brTex128,true);
             //Log.d("AlignAndMerge", "Resize:" + (System.currentTimeMillis() - time2) + " ms");
             Align();
             //Weights();
-            Output = Merge(Output, inputraw, alignVectors, alignVectors, BaseFrame, brTex22, BaseFrame22,i);
+            Output = Merge(Output, inputraw, alignVectors, alignVectors, BaseFrame,i);
         }
         alignVectors.close();
         inputraw.close();
-        brTex22.close();
-        brTex88.close();
-        brTex3232.close();
+        brTex2.close();
+        brTex8.close();
+        brTex32.close();
         Log.d("AlignAndMerge", "AlignmentAndMerge elapsed time:" + (System.currentTimeMillis() - time) + " ms");
         WorkingTexture = RawOutput(Output);
     }

@@ -74,10 +74,24 @@ public class GLProg implements AutoCloseable {
         this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         mFlushBuffer.mark();
     }
-
+    boolean changedDef = false;
+    ArrayList<String[]> Defines = new ArrayList<>();
+    public void setDefine(String DefineName, String DefineVal){
+        Defines.add(new String[]{DefineName,DefineVal});
+        changedDef = true;
+    }
     public void useProgram(int fragmentRes) {
         closed = false;
-        int nShader = compileShader(GL_FRAGMENT_SHADER, GLInterface.loadShader(fragmentRes));
+        String shader = "";
+        if(changedDef) {
+            shader = GLInterface.loadShader(fragmentRes,Defines);
+        }
+        else {
+            shader = GLInterface.loadShader(fragmentRes);
+        }
+        int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+        Defines.clear();
+        changedDef = false;
         currentShader = nShader;
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader, nShader);
@@ -90,12 +104,7 @@ public class GLProg implements AutoCloseable {
         mTextureBinds.clear();
         mNewTextureId = 0;
     }
-    boolean changedDef = false;
-    ArrayList<String[]> Defines = new ArrayList<>();
-    public void setDefine(String DefineName, String DefineVal){
-        Defines.add(new String[]{DefineName,DefineVal});
-        changedDef = true;
-    }
+
     public void useProgram(String prog) {
         closed = false;
         String shader = "";
@@ -105,6 +114,7 @@ public class GLProg implements AutoCloseable {
         }
         int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
         Defines.clear();
+        changedDef = false;
         //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
         int program = createProgram(vertexShader, nShader);
         glLinkProgram(program);

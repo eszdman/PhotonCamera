@@ -3,7 +3,6 @@ precision highp float;
 precision mediump sampler2D;
 uniform sampler2D RawBuffer;
 uniform sampler2D GreenBuffer;
-uniform int WhiteLevel;
 uniform int yOffset;
 uniform int CfaPattern;
 uniform vec3 whitePoint;
@@ -12,8 +11,10 @@ uniform sampler2D GainMap;
 uniform vec4 blackLevel;
 uniform ivec2 RawSize;
 
-#define greenmin (0.04)
-#define greenmax (0.9)
+//#define greenmin (0.04)
+#define greenmin (0.01)
+//#define greenmax (0.9)
+#define greenmax (0.99)
 #import interpolation
 out vec3 Output;
 float interpolateColor(in ivec2 coords){

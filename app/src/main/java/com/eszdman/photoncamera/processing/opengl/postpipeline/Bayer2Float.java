@@ -32,11 +32,17 @@ public class Bayer2Float extends Node {
         basePipeline.main1 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
         basePipeline.main2 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
         basePipeline.main3 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        glProg.drawBlocks(basePipeline.main3);
+        //glProg.drawBlocks(basePipeline.main2);
         /*glProg.useProgram(R.raw.medianfilterhotpixel);
         glProg.setVar("CfaPattern",parameters.cfaPattern);
         glProg.setTexture("InputBuffer",basePipeline.main2);
         glProg.drawBlocks(basePipeline.main3);*/
+
+        //glProg.useProgram(R.raw.moireremoval);
+        //glProg.setVar("whitePoint",parameters.whitePoint);
+        //glProg.setTexture("InputBuffer",basePipeline.main2);
+
+        glProg.drawBlocks(basePipeline.main3);
         //glUtils.blursmall(basePipeline.main2,basePipeline.main3,3,0.25);
         WorkingTexture = basePipeline.main3;
         glProg.closed = true;

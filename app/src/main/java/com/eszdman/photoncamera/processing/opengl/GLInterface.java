@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl;
 
+import android.util.Log;
+
 import androidx.annotation.RawRes;
 
 import com.eszdman.photoncamera.R;
@@ -37,7 +39,7 @@ public class GLInterface {
     }
     public static String loadShader(int fragment,ArrayList<String[]> defines){
         BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
-        return readprog(reader,null);
+        return readprog(reader,defines);
     }
     public static String loadShader(String code,ArrayList<String[]> defines){
         BufferedReader reader = new BufferedReader(new StringReader(code));
@@ -105,8 +107,9 @@ public class GLInterface {
             }
             if(val.contains("#define") && defines != null){
                 for(String[] define : defines){
-                    if(val.contains(define[0])){
+                    if(val.contains(" "+define[0]+" ")){
                         line = (String)("#define "+define[0]+" "+define[1]);
+                        Log.d("GLInterface","Overwrite:"+line);
                         break;
                     }
                 }

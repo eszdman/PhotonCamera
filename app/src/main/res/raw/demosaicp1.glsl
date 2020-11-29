@@ -3,7 +3,6 @@ precision highp float;
 precision mediump sampler2D;
 uniform sampler2D RawBuffer;
 uniform int yOffset;
-uniform int WhiteLevel;
 out float Output;
 float dxf(ivec2 coords){
     return (float(texelFetch(RawBuffer, (coords+ivec2(-1,0)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(1,0)), 0).x))/2.;
@@ -19,7 +18,7 @@ float dydf(ivec2 coords){
     //return max(abs(float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords), 0).x)),abs(float(texelFetch(RawBuffer, (coords), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)))/1.41421;
     return (float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)-float(texelFetch(RawBuffer, (coords+ivec2(-1,1)),0).x))/2.82842;
 }
-#define demosw (1.0)
+#define demosw (1.0/10000.0)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     int fact1 = xy.x%2;
@@ -82,8 +81,6 @@ void main() {
         //E[7]+=E[4]+E[6];
         //float all = (E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
         float all = (E[1]+E[3]+E[5]+E[7]);
-        //if(all > 0.0001)
-        //outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7] + ((P[1]+P[3]+P[5]+P[7])/4.)*(E[0]+E[2]+E[4]+E[6])/4.)/all;
         outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
 
         //else outp = (P[1] + P[3] + P[5] + P[7])/4.;

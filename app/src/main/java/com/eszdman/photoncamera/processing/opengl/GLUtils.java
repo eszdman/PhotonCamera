@@ -617,6 +617,40 @@ public class GLUtils {
     public Pyramid createPyramid(int levels, GLTexture input){
         return createPyramid(levels,2,input);
     }
+    public Pyramid createPyramidTex(int levels, int step, GLTexture input){
+        Pyramid pyramid = new Pyramid();
+        pyramid.glProg = glProg;
+        pyramid.glUtils = this;
+        GLTexture[] downscaled = new GLTexture[levels];
+        downscaled[0] = input;
+
+        GLTexture[] upscale = new GLTexture[downscaled.length - 1];
+        pyramid.sizes = new Point[downscaled.length];
+        pyramid.sizes[0] = new Point(input.mSize);
+        boolean autostep = step == 0;
+        for (int i = 1; i < downscaled.length; i++) {
+            if(autostep && i < 2) step = 2; else step = 4;
+            Point insize = downscaled[i-1].mSize;
+            if(insize.x <= step+2 || insize.y <= step+2) step = 2;
+            downscaled[i] = new GLTexture(new Point(insize.x/step,insize.y/step),input.mFormat);
+            pyramid.sizes[i] = new Point(pyramid.sizes[i-1].x/step,pyramid.sizes[i-1].y/step);
+            //Log.d("Pyramid","downscale:"+pyramid.sizes[i]);
+        }
+        for (int i = 0; i < upscale.length; i++) {
+            upscale[i] = downscaled[i+1];
+            //Log.d("Pyramid","upscale:"+pyramid.sizes[i]);
+        }
+        GLTexture[] diff = new GLTexture[upscale.length];
+        for (int i = 0; i < diff.length; i++) {
+            diff[i] = new GLTexture(pyramid.sizes[i],upscale[i].mFormat);
+        }
+        pyramid.gauss = downscaled;
+        pyramid.laplace = diff;
+        return pyramid;
+    }
+    void fillPyramid(int levels, int step, GLTexture input){
+
+    }
     public Pyramid createPyramid(int levels, int step, GLTexture input){
         Pyramid pyramid = new Pyramid();
         pyramid.glProg = glProg;

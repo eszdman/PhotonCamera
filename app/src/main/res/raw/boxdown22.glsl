@@ -23,5 +23,6 @@ void main() {
     }
     outp.a = outp.r+outp.g+outp.b;
     outp.rgb/=outp.a;
+    outp.a-=outp.r+outp.g+outp.b;
     Output = outp;
 }
