@@ -5,15 +5,12 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.*;
-import androidx.annotation.NonNull;
 import androidx.core.util.Pair;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -37,7 +34,6 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ImageButton mShutterButton;
     private ProgressBar mProcessingProgressBar;
     private CircleImageView mGalleryImageButton;
-    //private RadioGroup mAuxButtonsGroup;
     private LinearLayout mAuxGroupContainer;
     private CameraUIEventsListener mCameraUIEventsListener;
     private HorizontalPicker mModePicker;
@@ -47,24 +43,6 @@ public final class CameraUIViewImpl implements CameraUIView {
     private ImageButton mFlipCameraButton;
     private ImageButton mSettingsButton;
     private ToggleButton mHdrXButton;
-    private TextView mframeTimer;
-    private TextView mframeCount;
-    Handler changeFrameTimeCnt = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            if (msg.obj == null) {
-                mframeCount.setText("");
-                mframeTimer.setText("");
-                return;
-            }
-            FrameCntTime frameCntTime = (FrameCntTime) msg.obj;
-            mframeCount.setText(String.valueOf(Math.abs(frameCntTime.maxframe - frameCntTime.frame)));
-            if (frameCntTime.time * frameCntTime.maxframe > 4.0 || frameCntTime.maxframe == 0) {
-                frameCntTime.time = Math.abs(frameCntTime.time * frameCntTime.maxframe - frameCntTime.time * frameCntTime.frame);
-                mframeTimer.setText(((int) (frameCntTime.time / 60) + ":" + ((int) (frameCntTime.time) % 60)));
-            }
-        }
-    };
     private HashMap<Integer, String> auxButtonsMap;
     private float baseF = 0.f;
 
@@ -91,8 +69,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         mFlipCameraButton = rview.findViewById(R.id.flip_camera_button);
         mSettingsButton = rview.findViewById(R.id.settings_button);
         mAuxGroupContainer = rview.findViewById(R.id.aux_buttons_container);
-        mframeTimer = rview.findViewById(R.id.frameTimer);
-        mframeCount = rview.findViewById(R.id.frameCount);
     }
 
     private void initListeners() {
@@ -116,9 +92,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
         mModePicker.setSelectedItem(1);
         //PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
-        mframeCount.setText("");
-        mframeTimer.setText("");
-
     }
 
     @Override
@@ -133,7 +106,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void reConfigureModeViews(CameraMode input) {
-        Log.d(TAG,"Current Mode:"+input.name());
+        Log.d(TAG, "Current Mode:" + input.name());
         switch (input) {
             case UNLIMITED:
                 mEisPhotoButton.setVisibility(View.GONE);
@@ -199,7 +172,7 @@ public final class CameraUIViewImpl implements CameraUIView {
             Locale.setDefault(Locale.US);
             auxButtonsMap = new HashMap<>();
             for (String id : idsList) {
-                addToAuxGroupButtons(id, String.format("%.1fx", ((Focals.get(id).first / baseF)-0.049)).replace(".0", ""));
+                addToAuxGroupButtons(id, String.format("%.1fx", ((Focals.get(id).first / baseF) - 0.049)).replace(".0", ""));
             }
             View.OnClickListener auxButtonListener = this::onAuxButtonClick;
             for (int i = 0; i < mAuxGroupContainer.getChildCount(); i++) {
@@ -280,37 +253,6 @@ public final class CameraUIViewImpl implements CameraUIView {
     }*/
 
     @Override
-    public void setFrameTimeCnt(int cnt, int maxcnt, double frametime) {
-        FrameCntTime frameCntTime = new FrameCntTime();
-        Message msg = new Message();
-        switch (PhotonCamera.getSettings().selectedMode) {
-            case NIGHT:
-            case PHOTO:
-                frameCntTime.frame = cnt;
-                frameCntTime.maxframe = maxcnt;
-                frameCntTime.time = frametime;
-                msg.obj = frameCntTime;
-                changeFrameTimeCnt.sendMessage(msg);
-                return;
-            case UNLIMITED:
-                frameCntTime.frame = cnt;
-                frameCntTime.maxframe = 0;
-                frameCntTime.time = frametime;
-                msg.obj = frameCntTime;
-                changeFrameTimeCnt.sendMessage(msg);
-
-        }
-    }
-
-    @Override
-    public void clearFrameTimeCnt() {
-        //mframeCount.setText("");
-        //mframeTimer.setText("");
-        Message message = new Message();
-        changeFrameTimeCnt.sendMessage(message);
-    }
-
-    @Override
     public void setCaptureProgressMax(int max) {
         mCaptureProgressBar.setMax(max);
     }
@@ -318,12 +260,6 @@ public final class CameraUIViewImpl implements CameraUIView {
     @Override
     public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
         this.mCameraUIEventsListener = cameraUIEventsListener;
-    }
-
-    static class FrameCntTime {
-        int frame;
-        int maxframe;
-        double time;
     }
 }
 

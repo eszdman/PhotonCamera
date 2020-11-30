@@ -92,6 +92,7 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
+import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
@@ -759,6 +760,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     private CameraFragmentViewModel cameraFragmentViewModel;
+    private TimerFrameCountViewModel timerFrameCountViewModel;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -767,12 +769,16 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         com.eszdman.photoncamera.databinding.CameraFragmentBinding cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
         //create the modelview wich updated the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
+        timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         cameraFragmentViewModel.create(getContext());
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        // associating timer model with layouts
+        cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
+        cameraFragmentBinding.layoutViewfinder.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
         float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
@@ -1453,7 +1459,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
             //showToast("AF:"+mFocus);
-            
+
             //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             //mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
             rebuildPreviewBuilder();
@@ -1505,7 +1511,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
-                    mCameraUIView.clearFrameTimeCnt();
+                    timerFrameCountViewModel.clearFrameTimeCnt();
+//                    mCameraUIView.clearFrameTimeCnt();
                     try {
                         mCameraUIView.resetCaptureProgressBar();
                         mTextureView.setAlpha(1f);
@@ -1520,7 +1527,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
+                    timerFrameCountViewModel.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
+//                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                             try {
