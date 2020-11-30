@@ -16,6 +16,7 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     Point rawSize;
@@ -129,7 +130,7 @@ public class AlignAndMerge extends Node {
         glProg.drawBlocks(medium,1);
         //small.close();
 
-        glProg.setDefine("SCANSIZE","("+16+")");
+        glProg.setDefine("SCANSIZE","("+tileSize/2+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
@@ -277,7 +278,7 @@ public class AlignAndMerge extends Node {
         brTex32 = new GLTexture(BaseFrame32);
         brTex128 = new GLTexture(BaseFrame128);
         int added = 1;
-        alignVectors = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        alignVectors = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_NEAREST,GL_CLAMP_TO_EDGE);
         medium = new GLTexture(new Point((brTex8.mSize.x / (tileSize))+added, (brTex8.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         small = new GLTexture(new Point((brTex32.mSize.x / (tileSize))+added, (brTex32.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         vsmall = new GLTexture(new Point((brTex128.mSize.x / (tileSize))+added, (brTex128.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));

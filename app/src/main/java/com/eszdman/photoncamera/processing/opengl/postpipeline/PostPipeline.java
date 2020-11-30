@@ -104,7 +104,7 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
-        add(new ExposureFusion("ExposureFusion"));
+        add(new ExposureFusionFast2("ExposureFusion"));
         add(new Initial(R.raw.initial,"Initial"));
         add(new AWB(0,"AWB"));
         //add(new GlobalToneMapping(0,"GlobalTonemap"));

@@ -319,7 +319,7 @@ public class GLUtils {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
         //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
-        GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat,null);
+        GLTexture out = new GLTexture(in.mSize.x*k,in.mSize.y*k,in.mFormat);
         glProg.drawBlocks(out);
         glProg.closed = true;
         //return blur(out,k-1);
@@ -329,12 +329,34 @@ public class GLUtils {
         return interpolate(in,out,k);
     }
     public GLTexture interpolate(GLTexture in, int k){
-        GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat,null);
+        GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);
     }
     public GLTexture interpolate(GLTexture in, double k){
-        GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat,null);
+        GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);
+    }
+    public GLTexture interpolate(GLTexture in,GLTexture out){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "uniform ivec2 size;" +
+                "out tvar Output;\n" +
+                "#import interpolation\n" +
+                "void main() {\n" +
+                "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
+                "    xy+=vec2(0,yOffset);\n" +
+                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setVar("size",(int)(out.mSize.x),(int)(out.mSize.y));
+        glProg.drawBlocks(out);
+        glProg.closed = true;
+        return out;
     }
     public GLTexture interpolate(GLTexture in,GLTexture out, double k){
         glProg.useProgram("#version 300 es\n" +
@@ -345,13 +367,10 @@ public class GLUtils {
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
                 "uniform ivec2 size;" +
-                "uniform ivec2 sizein;" +
                 "out tvar Output;\n" +
-                "#define resize ("+k+")\n" +
                 "#import interpolation\n" +
                 "void main() {\n" +
                 "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
-                //"    xy+=ivec2(resize/2,yOffset+resize/2);\n" +
                 "    xy+=vec2(0,yOffset);\n" +
                 "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
@@ -379,7 +398,7 @@ public class GLUtils {
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",nsize);
-        GLTexture out = new GLTexture(nsize,in.mFormat,null);
+        GLTexture out = new GLTexture(nsize,in.mFormat);
         glProg.drawBlocks(out);
         glProg.closed = true;
         return out;
@@ -557,6 +576,51 @@ public class GLUtils {
         glProg.drawBlocks(out);
         return out;
     }
+    public GLTexture splitby(GLTexture in,GLTexture out, int split,int step){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "#define splitby ("+split+")\n" +
+                "#define step ("+step+")\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    Output = tvar(texelFetch(InputBuffer, xy*splitby + ivec2(step%splitby,step/splitby), 0)"+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.drawBlocks(out);
+        return out;
+    }
+    public GLTexture conglby(GLTexture in,GLTexture out,GLTexture prevout, int split,int step){
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform "+prevout.mFormat.getTemSamp()+" PrevOut;\n" +
+                "uniform int yOffset;\n" +
+                "out tvar Output;\n" +
+                "#define splitby ("+split+")\n" +
+                "#define step ("+step+")\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                "    xy+=ivec2(0,yOffset);\n" +
+                "    if((xy.x%splitby)+(xy.y%splitby)*splitby == step){\n" +
+                "    Output = tvar(texelFetch(InputBuffer, xy/splitby, 0)"+in.mFormat.getTemExt()+");\n" +
+                "    } else \n" +
+                "    Output = tvar(texelFetch(PrevOut, xy, 0)"+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("PrevOut",prevout);
+        glProg.drawBlocks(out);
+        return out;
+    }
 
     public static class Pyramid {
         public GLTexture[] gauss;
@@ -564,6 +628,8 @@ public class GLUtils {
         public Point[] sizes;
         private GLProg glProg;
         private GLUtils glUtils;
+        public int levels;
+        public int step;
         private final String diffProg = "" +
                 "#version 300 es\n" +
                 "precision highp float;\n" +
@@ -587,6 +653,26 @@ public class GLUtils {
             }
             for (GLTexture tex : laplace) {
                 tex.close();
+            }
+        }
+        public void fillPyramid(GLTexture input){
+            gauss[0] = input;
+            GLTexture[] upscale = new GLTexture[gauss.length - 1];
+            boolean autostep = step == 0;
+            for (int i = 1; i < gauss.length; i++) {
+                if(autostep && i < 2) step = 2; else step = 4;
+                Point insize = gauss[i-1].mSize;
+                if(insize.x <= step+2 || insize.y <= step+2) step = 2;
+                glUtils.interpolate(gauss[i - 1],gauss[i]);
+            }
+            System.arraycopy(gauss, 1, upscale, 0, upscale.length);
+            glProg.useProgram(diffProg);
+            for (int i = 0; i < laplace.length; i++) {
+                glProg.setTexture("target", gauss[i]);
+                glProg.setTexture("base", upscale[i]);
+                glProg.setVar("size",sizes[i]);
+                glProg.drawBlocks(laplace[i]);
+                Log.d("Pyramid","diff:"+laplace[i].mSize+" downscaled:"+gauss[i].mSize+" upscale:"+upscale[i].mSize);
             }
         }
         public GLTexture getGauss(int number){
@@ -619,6 +705,8 @@ public class GLUtils {
     }
     public Pyramid createPyramidTex(int levels, int step, GLTexture input){
         Pyramid pyramid = new Pyramid();
+        pyramid.levels = levels;
+        pyramid.step = step;
         pyramid.glProg = glProg;
         pyramid.glUtils = this;
         GLTexture[] downscaled = new GLTexture[levels];
@@ -648,13 +736,12 @@ public class GLUtils {
         pyramid.laplace = diff;
         return pyramid;
     }
-    void fillPyramid(int levels, int step, GLTexture input){
-
-    }
     public Pyramid createPyramid(int levels, int step, GLTexture input){
         Pyramid pyramid = new Pyramid();
         pyramid.glProg = glProg;
         pyramid.glUtils = this;
+        pyramid.levels = levels;
+        pyramid.step = step;
         GLTexture[] downscaled = new GLTexture[levels];
         downscaled[0] = input;
 

@@ -22,112 +22,108 @@ public class ExposureFusionFast2 extends Node {
     public void AfterRun() {
         previousNode.WorkingTexture.close();
     }
-    GLTexture exposing1;
-    GLTexture exposing2;
+    GLTexture exposing1 = null;
+    GLTexture exposing2 = null;
     GLTexture expose(GLTexture in, float str){
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
-        if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
-        glProg.drawBlocks(basePipeline.main1);
-        //glProg.drawBlocks(out);
+        if(exposing1 == null) exposing1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        glProg.drawBlocks(exposing1);
         glProg.close();
-        return basePipeline.main1;
-        //return out;
+        return exposing1;
     }
     GLTexture expose2(GLTexture in, float str){
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
-        glProg.drawBlocks(basePipeline.main2);
+        if(exposing2 == null) exposing2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        glProg.drawBlocks(exposing2);
         glProg.close();
-        return basePipeline.main2;
+        return exposing2;
     }
     GLTexture unexpose(GLTexture in,float str){
         glProg.useProgram(R.raw.unexpose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        //if(basePipeline.main2 != null) basePipeline.main2.close();
-        basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim),null);
-        //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
-        glProg.drawBlocks(basePipeline.main2);
+        glProg.drawBlocks(exposing1);
         glProg.close();
-        return basePipeline.main2;
+        return exposing1;
     }
     @Override
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
         double compressor = 1.f;
         if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
-        int perlevel = 4;
-        int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
-        if(levelcount <= 0) levelcount = 2;
-        Log.d(Name,"levelCount:"+levelcount);
-        float fact2 = (float)(1.0f/compressor)*3.5f;
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
-        //in.close();
-        glProg.useProgram(R.raw.fusion);
-        glProg.setVar("useUpsampled",0);
-        int ind = normalExpo.gauss.length - 1;
-        GLTexture wip = new GLTexture(normalExpo.gauss[ind]);
-        glProg.setTexture("normalExpo",normalExpo.gauss[ind]);
-        glProg.setTexture("highExpo",highExpo.gauss[ind]);
-        glProg.setTexture("normalExpoDiff",normalExpo.gauss[ind]);
-        glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
-        glProg.setVar("upscaleIn",wip.mSize);
-        //normalExpo.gauss[ind].close();
-        //highExpo.gauss[ind].close();
-        glProg.drawBlocks(wip);
-        for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-                //GLTexture upsampleWip = (glUtils.interpolate(wip,normalExpo.sizes[i]));
-                //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
-                GLTexture upsampleWip = wip;
-                Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
-                glProg.useProgram(R.raw.fusion);
+        int split = 2;
+        GLTexture input = new GLTexture(
+                previousNode.WorkingTexture.mSize.x/split,
+                previousNode.WorkingTexture.mSize.y/split,
+                new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        GLTexture prevOut = basePipeline.getMain();
+        GLUtils.Pyramid highExpo = null;
+        GLUtils.Pyramid normalExpo = null;
+        GLTexture[] wipa = null;
+        for(int j = 0; j<split*split;j++) {
+            int perlevel = 4;
+            int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel)) + 1;
+            if (levelcount <= 0) levelcount = 2;
+            Log.d(Name, "levelCount:" + levelcount);
+            float fact2 = (float) (1.0f / compressor) * 3.5f;
 
+            glUtils.splitby(previousNode.WorkingTexture, input, split, j);
+
+            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 0, expose(input, fact2)); else
+                highExpo.fillPyramid(expose(input, fact2));
+            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 0, expose2(input, (float) (1.0f))); else
+                normalExpo.fillPyramid(expose2(input, (float) (1.0f)));
+            if(wipa == null) wipa  = new GLTexture[normalExpo.laplace.length + 1];
+
+
+            glProg.useProgram(R.raw.fusion);
+            glProg.setVar("useUpsampled", 0);
+            int ind = normalExpo.gauss.length - 1;
+            if (wipa[normalExpo.laplace.length] == null)
+                wipa[normalExpo.laplace.length] = new GLTexture(normalExpo.gauss[ind]);
+            glProg.setTexture("normalExpo", normalExpo.gauss[ind]);
+            glProg.setTexture("highExpo", highExpo.gauss[ind]);
+            glProg.setTexture("normalExpoDiff", normalExpo.gauss[ind]);
+            glProg.setTexture("highExpoDiff", highExpo.gauss[ind]);
+            glProg.setVar("upscaleIn", wipa[normalExpo.laplace.length].mSize);
+            glProg.drawBlocks(wipa[normalExpo.laplace.length]);
+
+            for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
+                GLTexture upsampleWip = wipa[i + 1];
+                Log.d(Name, "upsampleWip:" + upsampleWip.mSize);
+                glProg.useProgram(R.raw.fusion);
                 glProg.setTexture("upsampled", upsampleWip);
                 glProg.setVar("useUpsampled", 1);
-                glProg.setVar("upscaleIn",normalExpo.sizes[i]);
-                // We can discard the previous work in progress merge.
-                //wip.close();
-                if(normalExpo.laplace[i].mSize.equals(basePipeline.main1.mSize)){
-                wip = basePipeline.main1;
-                } else {
-                    wip = new GLTexture(normalExpo.laplace[i]);
-                }
-                //wip = new GLTexture(normalExpo.laplace[i]);
-
+                glProg.setVar("upscaleIn", normalExpo.sizes[i]);
+                if (wipa[i] == null) wipa[i] = new GLTexture(normalExpo.laplace[i]);
                 // Weigh full image.
                 glProg.setTexture("normalExpo", normalExpo.gauss[i]);
                 glProg.setTexture("highExpo", highExpo.gauss[i]);
-
                 // Blend feature level.
                 glProg.setTexture("normalExpoDiff", normalExpo.laplace[i]);
                 glProg.setTexture("highExpoDiff", highExpo.laplace[i]);
-
-                glProg.drawBlocks(wip);
+                glProg.drawBlocks(wipa[i]);
                 //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
-                upsampleWip.close();
-                if(!normalExpo.gauss[i].mSize.equals(basePipeline.main1.mSize)) {
-                    normalExpo.gauss[i].close();
-                    highExpo.gauss[i].close();
-                }
-                normalExpo.laplace[i].close();
-                highExpo.laplace[i].close();
-
+            }
+            GLTexture unexposed = unexpose(wipa[0], (float) PhotonCamera.getSettings().gain);
+            GLTexture out = basePipeline.getMain();
+            glUtils.conglby(unexposed,out,prevOut,split,j);
+            prevOut = out;
         }
-        //previousNode.WorkingTexture.close();
-        WorkingTexture = unexpose(wip, (float) PhotonCamera.getSettings().gain);
-        Log.d(Name,"Output Size:"+wip.mSize);
-        //wip.close();
+        normalExpo.releasePyramid();
+        highExpo.releasePyramid();
+        for(GLTexture wip : wipa) wip.close();
+        exposing1.close();
+        exposing2.close();
+        Log.d(Name,"Output Size:"+prevOut.mSize);
+        WorkingTexture = prevOut;
         glProg.closed = true;
-        //highExpo.releasePyramid();
-        //normalExpo.releasePyramid();
     }
 }
