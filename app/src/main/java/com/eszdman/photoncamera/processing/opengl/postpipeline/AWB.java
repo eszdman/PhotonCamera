@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 import android.util.Rational;
@@ -203,8 +204,8 @@ public class AWB extends Node {
 
     @Override
     public void Run() {
-        GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,1.0/8.0);
-        GLTexture r1 = glUtils.interpolate(r0,1.0/8.0);
+        GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(500,500));
+        GLTexture r1 = glUtils.interpolate(r0,new Point(500,500));
         //GLTexture r2 = glUtils.blursmall(r1,3,1.8);
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());

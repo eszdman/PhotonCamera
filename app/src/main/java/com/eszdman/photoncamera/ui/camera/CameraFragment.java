@@ -89,6 +89,7 @@ import com.eszdman.photoncamera.processing.ProcessingEventsListener;
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
@@ -694,7 +695,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         Arrays.sort(in, new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000 || PhotonCamera.getSettings().QuadBayer) {
+        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= ResolutionSolution.highRes || PhotonCamera.getSettings().QuadBayer) {
             target = sizes.get(s);
             if (PhotonCamera.getSettings().QuadBayer) {
                 Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);

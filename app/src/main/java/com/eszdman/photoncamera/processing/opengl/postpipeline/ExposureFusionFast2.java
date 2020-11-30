@@ -9,6 +9,7 @@ import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
+import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 
 public class ExposureFusionFast2 extends Node {
 
@@ -31,7 +32,6 @@ public class ExposureFusionFast2 extends Node {
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
         if(exposing1 == null) exposing1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
         glProg.drawBlocks(exposing1);
-        glProg.close();
         return exposing1;
     }
     GLTexture expose2(GLTexture in, float str){
@@ -41,7 +41,6 @@ public class ExposureFusionFast2 extends Node {
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
         if(exposing2 == null) exposing2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
         glProg.drawBlocks(exposing2);
-        glProg.close();
         return exposing2;
     }
     GLTexture unexpose(GLTexture in,float str){
@@ -50,15 +49,14 @@ public class ExposureFusionFast2 extends Node {
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
         glProg.drawBlocks(exposing1);
-        glProg.close();
         return exposing1;
     }
     @Override
     public void Run() {
-        GLTexture in = previousNode.WorkingTexture;
         double compressor = 1.f;
-        if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
+        //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         int split = 2;
+        if(PhotonCamera.getParameters().rawSize.x*PhotonCamera.getParameters().rawSize.y >= ResolutionSolution.highRes) split = 3;
         GLTexture input = new GLTexture(
                 previousNode.WorkingTexture.mSize.x/split,
                 previousNode.WorkingTexture.mSize.y/split,
@@ -117,6 +115,7 @@ public class ExposureFusionFast2 extends Node {
             glUtils.conglby(unexposed,out,prevOut,split,j);
             prevOut = out;
         }
+        assert normalExpo != null;
         normalExpo.releasePyramid();
         highExpo.releasePyramid();
         for(GLTexture wip : wipa) wip.close();

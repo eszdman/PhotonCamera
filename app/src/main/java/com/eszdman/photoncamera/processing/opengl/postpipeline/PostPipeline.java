@@ -50,19 +50,6 @@ public class PostPipeline extends GLBasePipeline {
         // Draw the watermark
         canvas.drawBitmap(watermark, matrix, paint);
     }
-    public int selectSharp(){
-        long resolution = glint.parameters.rawSize.x*glint.parameters.rawSize.y;
-        int output = R.raw.sharpen33;
-        if(resolution >= 16000000) output = R.raw.sharpen55;
-        return output;
-    }
-    public static Bitmap RotateBitmap(Bitmap source, float angle)
-    {
-        Log.d("PostPipeline","Rotation:"+angle);
-        Matrix matrix = new Matrix();
-        matrix.postRotate(angle);
-        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
-    }
     public int getRotation() {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
@@ -132,7 +119,6 @@ public class PostPipeline extends GLBasePipeline {
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
 
         Bitmap img = runAll();
-        //img = RotateBitmap(img,getRotation());
         if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         try {
             imageFileToSave.createNewFile();
