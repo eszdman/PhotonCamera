@@ -267,11 +267,6 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
             int bmWidth = drawable.getIntrinsicWidth();
             int bmHeight = drawable.getIntrinsicHeight();
             Log.d(TAG, "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
-
-            if (GalleryActivity.activity.findViewById(R.id.exif_layout).getVisibility() == VISIBLE) {
-                GalleryActivity.activity.updateExif();
-            }
-
             float scaleX = (float) viewWidth / (float) bmWidth;
             float scaleY = (float) viewHeight / (float) bmHeight;
             scale = Math.min(scaleX, scaleY);

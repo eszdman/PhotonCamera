@@ -37,7 +37,6 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
     private final File f = new File(path);
     private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
-    public static GalleryActivity activity;
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
     private ImageAdapter adapter;
@@ -52,7 +51,6 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     protected void onCreate(Bundle savedInstanceState) {
         PreferenceKeys.setActivityTheme(GalleryActivity.this);
         super.onCreate(savedInstanceState);
-        activity = this;
         ActivityGalleryBinding activityGalleryBinding = DataBindingUtil.setContentView(this, R.layout.activity_gallery);
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         activityGalleryBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
@@ -60,6 +58,13 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         initialiseDataMembers();
         viewPager.setAdapter(adapter);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
+        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                if (exifLayout.getVisibility() == View.VISIBLE)
+                    updateExif();
+            }
+        });
 
         Button delete = findViewById(R.id.delete);
         delete.setOnClickListener(this);
@@ -84,7 +89,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.delete:
-                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
                 builder.setMessage(R.string.sure_delete)
                         .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
@@ -97,12 +102,12 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                             File thisFile = new File(path + "/" + fileName);
                             thisFile.delete();
 
-                            MediaScannerConnection.scanFile(activity, new String[]{String.valueOf(thisFile)}, null, null);
+                            MediaScannerConnection.scanFile(this, new String[]{String.valueOf(thisFile)}, null, null);
 
                             //auto scroll to the next photo
                             viewPager.setCurrentItem(position + 1, true);
 
-                            Toast.makeText(activity, R.string.image_deleted, Toast.LENGTH_SHORT)
+                            Toast.makeText(this, R.string.image_deleted, Toast.LENGTH_SHORT)
                                     .show();
 
                             final Handler handler = new Handler();
@@ -117,7 +122,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
                 File newFile = new File(String.valueOf(file[position]));
                 String fileName = newFile.getName();
                 String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-                Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".provider", new File(path + "/" + fileName));
+                Uri uri = FileProvider.getUriForFile(this, this.getPackageName() + ".provider", new File(path + "/" + fileName));
                 Intent intent = new Intent(Intent.ACTION_SEND);
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -136,8 +141,7 @@ public class GalleryActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
-
-    public void updateExif() {
+    private void updateExif() {
         int position = viewPager.getCurrentItem();
         File currentFile = file[position];
         //update values for exif dialog
