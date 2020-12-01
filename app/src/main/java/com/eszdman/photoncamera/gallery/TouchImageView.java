@@ -9,11 +9,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
-import android.widget.Button;
-
 import androidx.appcompat.widget.AppCompatImageView;
-import androidx.constraintlayout.widget.ConstraintLayout;
-
 import com.eszdman.photoncamera.R;
 
 public class TouchImageView extends AppCompatImageView implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
@@ -271,16 +267,11 @@ public class TouchImageView extends AppCompatImageView implements GestureDetecto
             int bmWidth = drawable.getIntrinsicWidth();
             int bmHeight = drawable.getIntrinsicHeight();
             Log.d(TAG, "bmWidth: " + bmWidth + " bmHeight : " + bmHeight);
-            Button exif = GalleryActivity.activity.findViewById(R.id.exif);
-            ConstraintLayout exiflayout = GalleryActivity.activity.findViewById(R.id.exif_layout);
-            if (exiflayout.getVisibility() == VISIBLE) {
-                exif.callOnClick();
-                GalleryActivity.activity.startUpdate = true;
+
+            if (GalleryActivity.activity.findViewById(R.id.exif_layout).getVisibility() == VISIBLE) {
+                GalleryActivity.activity.updateExif();
             }
-            if (exiflayout.getVisibility() == INVISIBLE && GalleryActivity.activity.startUpdate) {
-                exif.callOnClick();
-                GalleryActivity.activity.startUpdate = false;
-            }
+
             float scaleX = (float) viewWidth / (float) bmWidth;
             float scaleY = (float) viewHeight / (float) bmHeight;
             scale = Math.min(scaleX, scaleY);

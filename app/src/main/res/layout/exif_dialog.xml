@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+                name="exifmodel"
+                type="com.eszdman.photoncamera.gallery.model.ExifDialogModel"/>
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/exif_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -16,6 +24,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            android:textAlignment="center"
+            android:text="@{exifmodel.title}"
             tools:text="FILE_NAME.JPG"
             android:textColor="#fff"
             tools:textSize="18sp"
@@ -40,6 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="Google Pixel 3"
+                android:text="@{exifmodel.device}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 android:padding="5dp"
@@ -54,6 +65,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 tools:text="3.80mm"
+                android:text="@{exifmodel.focal}"
                 android:padding="5dp"
                 android:textColor="#fff"
                 tools:textSize="16sp"
@@ -69,6 +81,7 @@
                 android:layout_height="0dp"
                 android:padding="5dp"
                 tools:text="\u0192/1.8"
+                android:text="@{exifmodel.fnum}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 tools:textStyle="normal"
@@ -82,6 +95,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="0dp"
                 tools:text="1/30000s"
+                android:text="@{exifmodel.exposure}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 android:padding="5dp"
@@ -98,6 +112,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="ISO12800"
+                android:text="@{exifmodel.iso}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 android:padding="5dp"
@@ -129,7 +144,9 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
+                app:layout_constraintTop_toTopOf="parent"
+                bindHistogram="@{exifmodel}">
+        </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -148,6 +165,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="4000x3000"
+                android:text="@{exifmodel.res}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 android:padding="5dp"
@@ -162,6 +180,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="12.0MP"
+                android:text="@{exifmodel.res_mp}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 android:padding="5dp"
@@ -176,6 +195,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="5.6MB"
+                android:text="@{exifmodel.file_size}"
                 android:textColor="#fff"
                 tools:textSize="16sp"
                 tools:textStyle="normal"
@@ -190,6 +210,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="22:08:2020 15:05:03"
+                android:text="@{exifmodel.date}"
                 android:padding="5dp"
                 android:textColor="#fff"
                 tools:textSize="16sp"
@@ -203,3 +224,4 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
