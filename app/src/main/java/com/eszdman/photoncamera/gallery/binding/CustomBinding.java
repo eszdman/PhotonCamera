@@ -1,7 +1,9 @@
 package com.eszdman.photoncamera.gallery.binding;
 
+import android.graphics.Bitmap;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import androidx.databinding.BindingAdapter;
 import com.eszdman.photoncamera.gallery.model.ExifDialogModel;
 
@@ -24,5 +26,10 @@ public class CustomBinding {
                 viewGroup.addView(view);
             }
         }
+    }
+
+    @BindingAdapter("imageFromBitmap")
+    public static void setImageBitmap(ImageView view, Bitmap bitmap) {
+        view.setImageBitmap(bitmap);
     }
 }

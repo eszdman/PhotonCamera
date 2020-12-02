@@ -13,4 +13,5 @@
     <integer name="manual_ev_knob_view_angle_half">40</integer>
     <integer name="manual_ev_knob_view_auto_angle">5</integer>
     <integer name="config_settingsFadeAnimationDuration">250</integer>
+    <integer name="grid_columns">4</integer>
 </resources>

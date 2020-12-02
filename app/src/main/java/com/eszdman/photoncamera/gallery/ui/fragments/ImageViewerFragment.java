@@ -24,7 +24,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager.widget.ViewPager;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.databinding.GalleryFragmentImageViewerBinding;
+import com.eszdman.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.eszdman.photoncamera.gallery.DepthPageTransformer;
 import com.eszdman.photoncamera.gallery.Histogram;
 import com.eszdman.photoncamera.gallery.ImageAdapter;
@@ -32,16 +32,11 @@ import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
 
 public class ImageViewerFragment extends Fragment {
-    public static final List<String> EXTENSION_WHITELIST = Collections.singletonList("JPG");
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
     private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
-    private final File f = new File(path);
-    private final File[] file = f.listFiles(file -> EXTENSION_WHITELIST.contains(getFileExt(file).toUpperCase(Locale.ROOT)));
+    private final File[] allFiles = new File(path).listFiles((dir, name) -> name.toUpperCase().endsWith("JPG"));
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
     private ImageAdapter adapter;
@@ -49,18 +44,14 @@ public class ImageViewerFragment extends Fragment {
     private Histogram histogram;
     private NavController navController;
 
-    private static String getFileExt(File fileName) {
-        return fileName.getAbsolutePath().substring(fileName.getAbsolutePath().lastIndexOf(".") + 1);
-    }
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        GalleryFragmentImageViewerBinding galleryFragmentImageViewBinding = DataBindingUtil.inflate(inflater, R.layout.gallery_fragment_image_viewer, container, false);
+        FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
-        galleryFragmentImageViewBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
+        fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
         navController = NavHostFragment.findNavController(this);
-        return galleryFragmentImageViewBinding.getRoot();
+        return fragmentGalleryImageViewerBinding.getRoot();
     }
 
     @Override
@@ -78,6 +69,9 @@ public class ImageViewerFragment extends Fragment {
                 }
             }
         });
+        Bundle bundle = getArguments();
+        if (bundle != null)
+            viewPager.setCurrentItem(bundle.getInt("imagePosition", 0));
     }
 
     private void setClickListeners() {
@@ -90,14 +84,18 @@ public class ImageViewerFragment extends Fragment {
         }
     }
 
+
     private void onGalleryButtonClick(View view) {
-        navController.navigate(R.id.imageLibraryFragment);
+        if (navController.getPreviousBackStackEntry() == null)
+            navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
+        else
+            navController.navigateUp();
     }
 
     private void initialiseDataMembers() {
         if (getActivity() != null) {
             viewPager = getActivity().findViewById(R.id.view_pager);
-            adapter = new ImageAdapter(getContext(), file);
+            adapter = new ImageAdapter(getContext(), allFiles);
             exifLayout = getActivity().findViewById(R.id.exif_layout);
             histogram = new Histogram(getContext());
         }
@@ -111,7 +109,7 @@ public class ImageViewerFragment extends Fragment {
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
 
                     int position = viewPager.getCurrentItem();
-                    File newFile = new File(String.valueOf(file[position]));
+                    File newFile = new File(String.valueOf(allFiles[position]));
                     String fileName = newFile.getName();
                     File thisFile = new File(path + "/" + fileName);
                     thisFile.delete();
@@ -133,7 +131,7 @@ public class ImageViewerFragment extends Fragment {
 
     private void onShareButtonClick(View view) {
         int position = viewPager.getCurrentItem();
-        File newFile = new File(String.valueOf(file[position]));
+        File newFile = new File(String.valueOf(allFiles[position]));
         String fileName = newFile.getName();
         String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
         Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", new File(path + "/" + fileName));
@@ -155,7 +153,7 @@ public class ImageViewerFragment extends Fragment {
 
     private void updateExif() {
         int position = viewPager.getCurrentItem();
-        File currentFile = file[position];
+        File currentFile = allFiles[position];
         //update values for exif dialog
         exifDialogViewModel.updateModel(currentFile, histogram);
     }

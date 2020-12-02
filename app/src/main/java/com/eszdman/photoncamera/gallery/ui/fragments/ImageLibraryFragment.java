@@ -1,6 +1,9 @@
 package com.eszdman.photoncamera.gallery.ui.fragments;
 
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,29 +13,43 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.recyclerview.widget.RecyclerView;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.databinding.GalleryFragmentImageLibraryBinding;
+import com.eszdman.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
+import com.eszdman.photoncamera.gallery.adapters.ImageGridAdapter;
+
+import java.io.File;
+import java.util.Arrays;
 
 public class ImageLibraryFragment extends Fragment {
+    private static final String TAG = ImageViewerFragment.class.getSimpleName();
+    private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
+    private final File[] allFiles = new File(path).listFiles((dir, name) -> name.toUpperCase().endsWith("JPG"));
+    private FragmentGalleryImageLibraryBinding fragmentGalleryImageLibraryBinding;
     private NavController navController;
+
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        GalleryFragmentImageLibraryBinding galleryFragmentImageLibraryBinding = DataBindingUtil.inflate(inflater, R.layout.gallery_fragment_image_library, container, false);
+        fragmentGalleryImageLibraryBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_library, container, false);
         navController = NavHostFragment.findNavController(this);
-        return galleryFragmentImageLibraryBinding.getRoot();
+        return fragmentGalleryImageLibraryBinding.getRoot();
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        if (getActivity() != null) {
-            getActivity().findViewById(R.id.temp_gallery_go_back_button).setOnClickListener(this::onGoBackButtonClicked);
-        }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Arrays.sort(allFiles, (f1, f2) -> -Long.compare(f1.lastModified(), f2.lastModified()));
+            RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
+            recyclerView.setAdapter(new ImageGridAdapter(Arrays.asList(allFiles)));
+            recyclerView.setHasFixedSize(true);
+            recyclerView.setItemViewCacheSize(1000); //trial
+            ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
+            recyclerView.setAdapter(imageGridAdapter);
+        }, 400);
+
     }
 
-    private void onGoBackButtonClicked(View view) {
-        navController.popBackStack();
-    }
 }

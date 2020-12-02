@@ -16,4 +16,10 @@ public class GalleryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         ActivityGalleryBinding activityGalleryBinding = DataBindingUtil.setContentView(this, R.layout.activity_gallery);
     }
+
+    /*public void onBackArrowClicked(View view) {
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.gallery_navigation_host);
+        NavController navController = navHostFragment.getNavController();
+        navController.navigateUp();
+    }*/
 }
