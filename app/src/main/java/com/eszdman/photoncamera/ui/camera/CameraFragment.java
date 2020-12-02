@@ -82,7 +82,7 @@ import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.gallery.GalleryActivity;
+import com.eszdman.photoncamera.gallery.ui.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
 import com.eszdman.photoncamera.processing.ProcessingEventsListener;

@@ -51,7 +51,7 @@
         <activity
             android:name=".ui.camera.CameraActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
-        <activity android:name=".gallery.GalleryActivity" />
+        <activity android:name=".gallery.ui.GalleryActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

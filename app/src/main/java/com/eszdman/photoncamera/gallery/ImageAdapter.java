@@ -18,7 +18,7 @@ public class ImageAdapter extends PagerAdapter {
     private final Context context;
     private final File[] file;
 
-    ImageAdapter(Context context, File[] file) {
+    public ImageAdapter(Context context, File[] file) {
         this.context = context;
         this.file = file;
     }

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/gallery_nav"
+            app:startDestination="@id/imageViewerFragment">
+
+    <fragment
+            android:id="@+id/imageViewerFragment"
+            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageViewerFragment"
+            android:label="ImageViewerFragment"
+            tools:layout="@layout/gallery_fragment_image_viewer">
+        <action
+                android:id="@+id/action_imageViewFragment_to_imageLibraryFragment"
+                app:destination="@id/imageLibraryFragment"
+                />
+    </fragment>
+    <fragment
+            android:id="@+id/imageLibraryFragment"
+            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageLibraryFragment"
+            android:label="ImageLibraryFragment"
+            tools:layout="@layout/gallery_fragment_image_library">
+        <action
+                android:id="@+id/action_imageLibraryFragment_to_imageViewFragment"
+                app:destination="@id/imageViewerFragment"
+                />
+    </fragment>
+</navigation>

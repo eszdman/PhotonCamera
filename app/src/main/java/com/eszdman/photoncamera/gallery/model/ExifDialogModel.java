@@ -5,7 +5,7 @@ import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
 /**
- * A simple data class which stores the exif data to be displayed in the exif dialog in the {@link com.eszdman.photoncamera.gallery.GalleryActivity}
+ * A simple data class which stores the exif data to be displayed in the exif dialog in the {@link com.eszdman.photoncamera.gallery.ui.GalleryActivity}
  * Currently this data model class is directly bound to {@link com.eszdman.photoncamera.R.layout#exif_dialog} through DataBinding library
  */
 public class ExifDialogModel extends BaseObservable {
