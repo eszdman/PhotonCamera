@@ -1,7 +1,6 @@
 package com.eszdman.photoncamera.gallery.adapters;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -15,7 +14,6 @@ import com.bumptech.glide.Glide;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
-import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.util.List;
@@ -65,21 +63,12 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                         .with(holder.itemView.getContext())
                         .asBitmap()
                         .load(file)
-                        .error(R.drawable.ic_photo)
                         .submit(200, 0)
                         .get();
                 msg.obj = new GridThumbnailModel(preview);
                 handler.sendMessage(msg);
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
-                Bitmap preview = BitmapDecoder
-                        .from(Uri.fromFile(file))
-                        .scale(200, 0)
-                        .decode();
-                if (preview != null) {
-                    msg.obj = new GridThumbnailModel(preview);
-                    handler.sendMessage(msg);
-                }
             }
         });
         th.start();
@@ -97,4 +86,13 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         return imageList != null ? imageList.size() : 0;
     }
 
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position;
+    }
 }
