@@ -24,10 +24,10 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager.widget.ViewPager;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.FragmentGalleryImageViewerBinding;
-import com.eszdman.photoncamera.gallery.DepthPageTransformer;
-import com.eszdman.photoncamera.gallery.Histogram;
-import com.eszdman.photoncamera.gallery.ImageAdapter;
+import com.eszdman.photoncamera.gallery.adapters.DepthPageTransformer;
+import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
+import com.eszdman.photoncamera.gallery.views.Histogram;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -94,7 +94,7 @@ public class ImageViewerFragment extends Fragment {
     private void initialiseDataMembers() {
         if (getActivity() != null) {
             viewPager = getActivity().findViewById(R.id.view_pager);
-            adapter = new ImageAdapter(getContext(), allFiles);
+            adapter = new ImageAdapter(allFiles);
             exifLayout = getActivity().findViewById(R.id.exif_layout);
             histogram = new Histogram(getContext());
         }

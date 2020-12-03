@@ -1,12 +1,9 @@
 package com.eszdman.photoncamera.gallery.ui;
 
 import android.os.Bundle;
-import android.view.WindowManager;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ActivityGalleryBinding;
 

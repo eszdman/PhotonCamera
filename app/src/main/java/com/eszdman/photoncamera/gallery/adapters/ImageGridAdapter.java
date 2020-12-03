@@ -24,20 +24,6 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     private final List<File> imageList;
 
 
-    public static class GridItemViewHolder extends RecyclerView.ViewHolder {
-        private final ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding;
-
-        public GridItemViewHolder(ThumbnailSquareImageViewBinding squareImageViewBinding) {
-            super(squareImageViewBinding.getRoot());
-            this.thumbnailSquareImageViewBinding = squareImageViewBinding;
-        }
-
-        public void bind(GridThumbnailModel gridThumbnailModel) {
-            thumbnailSquareImageViewBinding.setThumbnailmodel(gridThumbnailModel);
-            thumbnailSquareImageViewBinding.executePendingBindings();
-        }
-    }
-
     public ImageGridAdapter(List<File> imageList) {
         this.imageList = imageList;
     }
@@ -94,5 +80,19 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     @Override
     public int getItemViewType(int position) {
         return position;
+    }
+
+    public static class GridItemViewHolder extends RecyclerView.ViewHolder {
+        private final ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding;
+
+        public GridItemViewHolder(ThumbnailSquareImageViewBinding squareImageViewBinding) {
+            super(squareImageViewBinding.getRoot());
+            this.thumbnailSquareImageViewBinding = squareImageViewBinding;
+        }
+
+        public void bind(GridThumbnailModel gridThumbnailModel) {
+            thumbnailSquareImageViewBinding.setThumbnailmodel(gridThumbnailModel);
+            thumbnailSquareImageViewBinding.executePendingBindings();
+        }
     }
 }

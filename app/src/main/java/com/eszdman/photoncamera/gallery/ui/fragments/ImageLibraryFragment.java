@@ -2,8 +2,6 @@ package com.eszdman.photoncamera.gallery.ui.fragments;
 
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,19 +36,15 @@ public class ImageLibraryFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Arrays.sort(allFiles, (f1, f2) -> -Long.compare(f1.lastModified(), f2.lastModified()));
-            RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
-            recyclerView.setAdapter(new ImageGridAdapter(Arrays.asList(allFiles)));
-            recyclerView.setHasFixedSize(true);
-            recyclerView.setItemViewCacheSize(20); //trial
-            ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
-            imageGridAdapter.setHasStableIds(true);
-            recyclerView.setAdapter(imageGridAdapter);
-        }, 400);
-
+        Arrays.sort(allFiles, (f1, f2) -> -Long.compare(f1.lastModified(), f2.lastModified()));
+        RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemViewCacheSize(20); //trial
+        ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
+        imageGridAdapter.setHasStableIds(true);
+        recyclerView.setAdapter(imageGridAdapter);
     }
 
 }

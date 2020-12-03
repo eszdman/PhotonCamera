@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         >
 
     <data>
@@ -16,13 +16,22 @@
             android:padding="2dp"
             >
 
-        <com.eszdman.photoncamera.gallery.views.SquareImageView
-                android:id="@+id/square_image_view"
-                android:background="@drawable/ic_photo"
-                android:scaleType="centerCrop"
-                imageFromBitmap="@{thumbnailmodel.bitmap}"
+        <androidx.cardview.widget.CardView
+                android:id="@+id/square_image_card_view"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                app:cardElevation="2dp"
+                >
+
+            <com.eszdman.photoncamera.gallery.views.SquareImageView
+                    android:id="@+id/square_image_view"
+                    android:background="@drawable/ic_photo"
+                    android:scaleType="centerCrop"
+                    imageFromBitmap="@{thumbnailmodel.bitmap}"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+        </androidx.cardview.widget.CardView>
+
 
     </RelativeLayout>
 </layout>
