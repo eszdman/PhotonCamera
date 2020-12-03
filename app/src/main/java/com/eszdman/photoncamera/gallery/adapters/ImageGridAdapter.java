@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
@@ -18,6 +19,7 @@ import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
@@ -51,17 +53,33 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     @Override
     public void onBindViewHolder(GridItemViewHolder holder, int position) {
-        final File model = imageList.get(position);
+        final File file = imageList.get(position);
         Handler handler = new Handler(Looper.getMainLooper(), msg -> {
             holder.bind((GridThumbnailModel) msg.obj);
             return true;
         });
         Thread th = new Thread(() -> {
-            Bitmap preview = BitmapDecoder.from(Uri.fromFile(model)).scale(200, 0).decode();
-            if (preview != null) {
-                Message msg = new Message();
+            Message msg = new Message();
+            try {
+                Bitmap preview = Glide
+                        .with(holder.itemView.getContext())
+                        .asBitmap()
+                        .load(file)
+                        .error(R.drawable.ic_photo)
+                        .submit(200, 0)
+                        .get();
                 msg.obj = new GridThumbnailModel(preview);
                 handler.sendMessage(msg);
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+                Bitmap preview = BitmapDecoder
+                        .from(Uri.fromFile(file))
+                        .scale(200, 0)
+                        .decode();
+                if (preview != null) {
+                    msg.obj = new GridThumbnailModel(preview);
+                    handler.sendMessage(msg);
+                }
             }
         });
         th.start();

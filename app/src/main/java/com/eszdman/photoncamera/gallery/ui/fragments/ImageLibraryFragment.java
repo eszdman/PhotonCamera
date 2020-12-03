@@ -45,7 +45,7 @@ public class ImageLibraryFragment extends Fragment {
             RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
             recyclerView.setAdapter(new ImageGridAdapter(Arrays.asList(allFiles)));
             recyclerView.setHasFixedSize(true);
-            recyclerView.setItemViewCacheSize(1000); //trial
+            recyclerView.setItemViewCacheSize(50); //trial
             ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
             recyclerView.setAdapter(imageGridAdapter);
         }, 400);
