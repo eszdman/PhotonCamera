@@ -9,8 +9,6 @@
             android:layout_height="match_parent">
 
         <androidx.recyclerview.widget.RecyclerView
-                android:layout_margin="16dp"
-                android:padding="5dp"
                 android:scrollbars="vertical"
                 android:clipToPadding="false"
                 android:id="@+id/image_grid_rv"
