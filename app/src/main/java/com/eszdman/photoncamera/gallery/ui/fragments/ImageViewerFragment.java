@@ -6,7 +6,6 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -115,15 +114,12 @@ public class ImageViewerFragment extends Fragment {
                     thisFile.delete();
 
                     MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(thisFile)}, null, null);
-
+                    adapter.notifyDataSetChanged();
+                    viewPager.setAdapter(adapter);
                     //auto scroll to the next photo
-                    viewPager.setCurrentItem(position + 1, true);
-
+                    viewPager.setCurrentItem(position);
                     Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT)
                             .show();
-
-                    final Handler handler = new Handler();
-                    handler.postDelayed(() -> viewPager.setAdapter(adapter), 100);
                 });
         builder.create()
                 .show();
