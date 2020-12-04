@@ -5,6 +5,7 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +14,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
@@ -26,7 +26,6 @@ import com.eszdman.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.eszdman.photoncamera.gallery.adapters.DepthPageTransformer;
 import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
-import com.eszdman.photoncamera.gallery.views.Histogram;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -63,6 +62,7 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.setOnExif(this::onExifButtonClick);
         fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
         fragmentGalleryImageViewerBinding.setOnGallery(this::onGalleryButtonClick);
+        fragmentGalleryImageViewerBinding.setOnEdit(this::onEditButtonClick);
     }
 
     @Override
@@ -89,6 +89,20 @@ public class ImageViewerFragment extends Fragment {
             navController.navigateUp();
     }
 
+    private void onEditButtonClick(View view) {
+        int position = viewPager.getCurrentItem();
+        if (allFiles != null && getContext() != null) {
+            File file = allFiles[position];
+            String fileName = file.getName();
+            String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", new File(path + "/" + fileName));
+            Intent editIntent = new Intent(Intent.ACTION_EDIT);
+            editIntent.setDataAndType(uri, mediaType);
+            editIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+            editIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(editIntent, null));
+        }
+    }
 
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
