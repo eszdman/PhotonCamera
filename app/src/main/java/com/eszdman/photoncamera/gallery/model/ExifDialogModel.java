@@ -1,8 +1,8 @@
 package com.eszdman.photoncamera.gallery.model;
 
-import android.view.View;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+import com.eszdman.photoncamera.gallery.views.Histogram;
 
 /**
  * A simple data class which stores the exif data to be displayed in the exif dialog in the {@link com.eszdman.photoncamera.gallery.ui.GalleryActivity}
@@ -19,7 +19,7 @@ public class ExifDialogModel extends BaseObservable {
     private String fnum;
     private String focal;
     private String file_size;
-    private View histogram;
+    private Histogram.HistogramModel histogramModel;
 
 
     @Bindable
@@ -113,12 +113,12 @@ public class ExifDialogModel extends BaseObservable {
     }
 
     @Bindable
-    public View getHistogram() {
-        return histogram;
+    public Histogram.HistogramModel getHistogramModel() {
+        return histogramModel;
     }
 
-    public void setHistogram(View histogram) {
-        this.histogram = histogram;
+    public void setHistogramModel(Histogram.HistogramModel histogramModel) {
+        this.histogramModel = histogramModel;
         notifyChange();
     }
 }

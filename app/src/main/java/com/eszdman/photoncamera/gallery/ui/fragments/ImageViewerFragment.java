@@ -38,7 +38,6 @@ public class ImageViewerFragment extends Fragment {
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
     private ImageAdapter adapter;
-    private Histogram histogram;
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     @Nullable
@@ -47,16 +46,15 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
         initialiseDataMembers();
         setClickListeners();
-        exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
-        fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
-        navController = NavHostFragment.findNavController(this);
         return fragmentGalleryImageViewerBinding.getRoot();
     }
 
     private void initialiseDataMembers() {
         viewPager = fragmentGalleryImageViewerBinding.viewPager;
-        histogram = new Histogram(getContext());
+        exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
+        fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
         adapter = new ImageAdapter(allFiles);
+        navController = NavHostFragment.findNavController(this);
     }
 
     private void setClickListeners() {
@@ -140,7 +138,7 @@ public class ImageViewerFragment extends Fragment {
             int position = viewPager.getCurrentItem();
             File currentFile = allFiles[position];
             //update values for exif dialog
-            exifDialogViewModel.updateModel(currentFile, histogram);
+            exifDialogViewModel.updateModel(currentFile);
         }
     }
 }

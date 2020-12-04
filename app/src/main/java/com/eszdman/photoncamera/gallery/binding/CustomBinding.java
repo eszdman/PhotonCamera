@@ -1,32 +1,23 @@
 package com.eszdman.photoncamera.gallery.binding;
 
 import android.graphics.Bitmap;
-import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import androidx.databinding.BindingAdapter;
-import com.eszdman.photoncamera.gallery.model.ExifDialogModel;
+import com.eszdman.photoncamera.gallery.views.Histogram;
 
 public class CustomBinding {
     /**
-     * Updates histogram view associated with the specified ViewGroup(here, LinearLayout with id "exif_histogram")
+     * Updates {@link Histogram.HistogramModel} associated with the {@link Histogram}(here, Histogram with id "histogram_view")
      *
-     * @param viewGroup the ViewGroup object which has used the attribute bindHistogram="@{exifmodel}"
-     * @param model     the ExifDialogModel object associated with the parent layout of this viewGroup
+     * @param histogram the {@link Histogram} object which has used the attribute bindHistogram="@{exifmodel.histogramModel}"
+     * @param model     the {@link Histogram.HistogramModel} object associated with the parent layout of this viewGroup
      */
     @BindingAdapter("bindHistogram")
-    public static void updateHistogram(ViewGroup viewGroup, ExifDialogModel model) {
+    public static void updateHistogram(Histogram histogram, Histogram.HistogramModel model) {
         if (model != null) {
-            View view = model.getHistogram();
-            if (view != null) {
-                if (view.getParent() != null) {
-                    ((ViewGroup) view.getParent()).removeAllViews();
-                }
-                viewGroup.removeAllViews();
-                viewGroup.addView(view);
-            }
+            histogram.setHistogramModel(model);
         }
     }
 

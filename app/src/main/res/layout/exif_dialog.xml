@@ -145,7 +145,12 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                bindHistogram="@{exifmodel}">
+                >
+            <com.eszdman.photoncamera.gallery.views.Histogram
+                    android:id="@+id/histogram_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    bindHistogram="@{exifmodel.histogramModel}"/>
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

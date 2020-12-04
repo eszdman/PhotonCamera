@@ -8,8 +8,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.util.Rational;
-import android.view.View;
-import android.view.ViewGroup;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.lifecycle.ViewModel;
 import com.eszdman.photoncamera.api.ParseExif;
@@ -44,9 +42,8 @@ public class ExifDialogViewModel extends ViewModel {
      * Updates the ExifDialogModel using exif attributes stored in the Image File
      *
      * @param imageFile the image imageFile whose exif data is to be read
-     * @param histogram object of {@link Histogram}
      */
-    public void updateModel(File imageFile, Histogram histogram) {
+    public void updateModel(File imageFile) {
         ExifInterface exifInterface;
         try {
             exifInterface = new ExifInterface(imageFile);
@@ -81,25 +78,24 @@ public class ExifDialogViewModel extends ViewModel {
         exifDialogModel.setFocal(Rational.parseRational(attr_focal == null ? "NaN" : attr_focal).doubleValue() + "mm");
         exifDialogModel.setFile_size((FileUtils.byteCountToDisplaySize((int) imageFile.length())));
         exifDialogModel.setRes_mp(resolution_mp);
-        updateHistogramView(imageFile, histogram);
+        updateHistogramView(imageFile);
         exifDialogModel.notifyChange(); //important
     }
 
     /**
-     * Updates the histogram view object which is associated with ExifDialogModel
-     * check for more detail {@link com.eszdman.photoncamera.gallery.binding.CustomBinding#updateHistogram(ViewGroup, ExifDialogModel)}
+     * Updates the {@link Histogram.HistogramModel} view which is associated with ExifDialogModel
+     * check for more detail {@link com.eszdman.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
-    private void updateHistogramView(File imageFile, Histogram histogram) {
+    private void updateHistogramView(File imageFile) {
         Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            exifDialogModel.setHistogram((View) msg.obj); //setting histogram view to model
+            exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
             return true;
         });
         Thread th = new Thread(() -> {
             Bitmap preview = BitmapDecoder.from(Uri.fromFile(imageFile)).scaleBy(0.1f).decode();
             if (preview != null) {
-                histogram.Analyze(preview);
                 Message msg = new Message();
-                msg.obj = histogram;
+                msg.obj = Histogram.analyze(preview);
                 handler.sendMessage(msg);
             } else {
                 Log.e(TAG, "updateHistogramView: bitmap is null");
