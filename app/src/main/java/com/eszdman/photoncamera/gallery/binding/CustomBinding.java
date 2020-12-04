@@ -32,7 +32,8 @@ public class CustomBinding {
 
     @BindingAdapter("imageFromBitmap")
     public static void setImageBitmap(ImageView view, Bitmap bitmap) {
-        setBitmapWithAnimation(view, bitmap);
+//        setBitmapWithAnimation(view, bitmap);
+        view.setImageBitmap(bitmap);
     }
 
     private static void setBitmapWithAnimation(ImageView view, Bitmap bitmap) {

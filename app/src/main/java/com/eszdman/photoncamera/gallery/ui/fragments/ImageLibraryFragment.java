@@ -41,7 +41,7 @@ public class ImageLibraryFragment extends Fragment {
         Arrays.sort(allFiles, (f1, f2) -> -Long.compare(f1.lastModified(), f2.lastModified()));
         RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
         recyclerView.setHasFixedSize(true);
-        recyclerView.setItemViewCacheSize(20); //trial
+        recyclerView.setItemViewCacheSize(10); //trial
         ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
         imageGridAdapter.setHasStableIds(true);
         recyclerView.setAdapter(imageGridAdapter);
