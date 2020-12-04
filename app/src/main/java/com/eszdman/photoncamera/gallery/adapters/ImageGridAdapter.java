@@ -18,10 +18,13 @@ import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
     private final List<File> imageList;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
 
     public ImageGridAdapter(List<File> imageList) {
@@ -42,7 +45,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             holder.bind((GridThumbnailModel) msg.obj);
             return true;
         });
-        Thread th = new Thread(() -> {
+        executorService.execute(() -> {
             Message msg = new Message();
             try {
                 Bitmap preview = Glide
@@ -57,7 +60,6 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                 e.printStackTrace();
             }
         });
-        th.start();
         holder.thumbnailSquareImageViewBinding.setClicklistener(view -> {
             Bundle b = new Bundle();
             b.putInt("imagePosition", position);

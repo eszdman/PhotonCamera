@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The View Model class which updates the {@link ExifDialogModel}
@@ -37,6 +39,7 @@ public class ExifDialogViewModel extends ViewModel {
     public ExifDialogModel getExifDataModel() {
         return exifDialogModel;
     }
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     /**
      * Updates the ExifDialogModel using exif attributes stored in the Image File
@@ -91,7 +94,7 @@ public class ExifDialogViewModel extends ViewModel {
             exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
             return true;
         });
-        Thread th = new Thread(() -> {
+        executorService.execute(() -> {
             Bitmap preview = BitmapDecoder.from(Uri.fromFile(imageFile)).scaleBy(0.1f).decode();
             if (preview != null) {
                 Message msg = new Message();
@@ -101,7 +104,6 @@ public class ExifDialogViewModel extends ViewModel {
                 Log.e(TAG, "updateHistogramView: bitmap is null");
             }
         });
-        th.start();
     }
 
     private String getDateText(String savedDate) {
