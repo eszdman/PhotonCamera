@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.gallery.ui.fragments;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -39,48 +38,49 @@ public class ImageViewerFragment extends Fragment {
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
     private ImageAdapter adapter;
-    private ConstraintLayout exifLayout;
     private Histogram histogram;
     private NavController navController;
-
+    private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
+        fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
+        initialiseDataMembers();
+        setClickListeners();
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
         navController = NavHostFragment.findNavController(this);
         return fragmentGalleryImageViewerBinding.getRoot();
     }
 
+    private void initialiseDataMembers() {
+        viewPager = fragmentGalleryImageViewerBinding.viewPager;
+        histogram = new Histogram(getContext());
+        adapter = new ImageAdapter(allFiles);
+    }
+
+    private void setClickListeners() {
+        fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
+        fragmentGalleryImageViewerBinding.setOnDelete(this::onDeleteButtonClick);
+        fragmentGalleryImageViewerBinding.setOnExif(this::onExifButtonClick);
+        fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
+        fragmentGalleryImageViewerBinding.setOnGallery(this::onGalleryButtonClick);
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        initialiseDataMembers();
-        setClickListeners();
         viewPager.setAdapter(adapter);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
         viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
-                if (exifLayout.getVisibility() == View.VISIBLE) {
-                    updateExif();
-                }
+                updateExif();
             }
         });
         Bundle bundle = getArguments();
         if (bundle != null)
             viewPager.setCurrentItem(bundle.getInt("imagePosition", 0));
-    }
-
-    private void setClickListeners() {
-        Activity activity = getActivity();
-        if (activity != null) {
-            activity.findViewById(R.id.share).setOnClickListener(this::onShareButtonClick);
-            activity.findViewById(R.id.delete).setOnClickListener(this::onDeleteButtonClick);
-            activity.findViewById(R.id.exif).setOnClickListener(this::onExifButtonClick);
-            activity.findViewById(R.id.gallery_grid_button).setOnClickListener(this::onGalleryButtonClick);
-        }
     }
 
 
@@ -91,14 +91,6 @@ public class ImageViewerFragment extends Fragment {
             navController.navigateUp();
     }
 
-    private void initialiseDataMembers() {
-        if (getActivity() != null) {
-            viewPager = getActivity().findViewById(R.id.view_pager);
-            adapter = new ImageAdapter(allFiles);
-            exifLayout = getActivity().findViewById(R.id.exif_layout);
-            histogram = new Histogram(getContext());
-        }
-    }
 
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
@@ -139,18 +131,16 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void onExifButtonClick(View view) {
-        if (exifLayout.getVisibility() == View.VISIBLE) {
-            exifLayout.setVisibility(View.INVISIBLE);
-            return;
-        }
+        fragmentGalleryImageViewerBinding.setExifDialogVisible(!fragmentGalleryImageViewerBinding.getExifDialogVisible());
         updateExif();
-        exifLayout.setVisibility(View.VISIBLE);
     }
 
     private void updateExif() {
-        int position = viewPager.getCurrentItem();
-        File currentFile = allFiles[position];
-        //update values for exif dialog
-        exifDialogViewModel.updateModel(currentFile, histogram);
+        if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+            int position = viewPager.getCurrentItem();
+            File currentFile = allFiles[position];
+            //update values for exif dialog
+            exifDialogViewModel.updateModel(currentFile, histogram);
+        }
     }
 }

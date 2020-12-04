@@ -27,8 +27,9 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintHorizontal_bias="0.95"
-                app:layout_constraintVertical_bias="0.03"
+                app:layout_constraintVertical_bias="0.05"
                 app:layout_constraintBottom_toBottomOf="parent"
+                android:onClick="@{on_gallery}"
                 />
         <Button
                 android:id="@+id/delete"
@@ -39,7 +40,10 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/exif"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="30dp"/>
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".9"
+                android:onClick="@{on_delete}"
+                />
 
         <Button
                 android:id="@+id/exif"
@@ -50,7 +54,10 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="30dp"/>
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".9"
+                android:onClick="@{on_exif}"
+                />
 
         <Button
                 android:id="@+id/share"
@@ -61,14 +68,17 @@
                 app:layout_constraintEnd_toStartOf="@+id/exif"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginBottom="30dp"/>
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".9"
+                android:onClick="@{on_share}"
+                />
 
         <include
                 layout="@layout/exif_dialog"
                 android:id="@+id/exif_layout"
                 android:layout_width="@dimen/exif_dialog_width"
                 android:layout_height="wrap_content"
-                android:visibility="invisible"
+                android:visibility="@{exif_dialog_visible ? View.VISIBLE : View.INVISIBLE}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"

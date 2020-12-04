@@ -8,6 +8,9 @@
         <variable
                 name="thumbnailmodel"
                 type="com.eszdman.photoncamera.gallery.model.GridThumbnailModel"/>
+        <variable
+                name="clicklistener"
+                type="android.view.View.OnClickListener"/>
     </data>
 
     <RelativeLayout
@@ -21,6 +24,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardElevation="2dp"
+                android:onClick="@{clicklistener}"
                 >
 
             <com.eszdman.photoncamera.gallery.views.SquareImageView

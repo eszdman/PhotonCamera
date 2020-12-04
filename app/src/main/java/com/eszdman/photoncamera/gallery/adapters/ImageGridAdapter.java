@@ -58,7 +58,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             }
         });
         th.start();
-        holder.thumbnailSquareImageViewBinding.squareImageView.setOnClickListener(view -> {
+        holder.thumbnailSquareImageViewBinding.setClicklistener(view -> {
             Bundle b = new Bundle();
             b.putInt("imagePosition", position);
             NavController navController = Navigation.findNavController(view);
