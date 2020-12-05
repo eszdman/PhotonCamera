@@ -15,13 +15,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.eszdman.photoncamera.gallery.adapters.ImageGridAdapter;
+import com.eszdman.photoncamera.util.FileManager;
 
 import java.io.File;
 import java.util.Arrays;
 
 public class ImageLibraryFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
-    private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
     private FragmentGalleryImageLibraryBinding fragmentGalleryImageLibraryBinding;
     private NavController navController;
 
@@ -37,12 +37,10 @@ public class ImageLibraryFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        File[] allFiles = new File(path).listFiles((dir, name) -> name.toUpperCase().endsWith("JPG"));
-        Arrays.sort(allFiles, (f1, f2) -> -Long.compare(f1.lastModified(), f2.lastModified()));
         RecyclerView recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemViewCacheSize(10); //trial
-        ImageGridAdapter imageGridAdapter = new ImageGridAdapter(Arrays.asList(allFiles));
+        ImageGridAdapter imageGridAdapter = new ImageGridAdapter(FileManager.getAllImageFiles());
         imageGridAdapter.setHasStableIds(true);
         recyclerView.setAdapter(imageGridAdapter);
     }

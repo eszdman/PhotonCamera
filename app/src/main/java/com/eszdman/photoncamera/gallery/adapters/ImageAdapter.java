@@ -5,25 +5,24 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.viewpager.widget.PagerAdapter;
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
 import com.eszdman.photoncamera.gallery.views.TouchImageView;
 
 import java.io.File;
-import java.util.Arrays;
+import java.util.List;
 
 
 public class ImageAdapter extends PagerAdapter {
-    private final File[] imageFiles;
+    private final List<File> imageFiles;
 
-    public ImageAdapter(File[] imageFiles) {
+    public ImageAdapter(List<File> imageFiles) {
         this.imageFiles = imageFiles;
     }
 
     @Override
     public int getCount() {
-        return imageFiles.length;
+        return imageFiles.size();
     }
 
     @Override
@@ -35,9 +34,8 @@ public class ImageAdapter extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        Arrays.sort(imageFiles, (file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
         TouchImageView imageView = new TouchImageView(container.getContext());
-        File file = imageFiles[position];
+        File file = imageFiles.get(position);
         Glide
                 .with(container.getContext())
                 .load(file)

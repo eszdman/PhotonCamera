@@ -25,46 +25,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Point;
-import android.graphics.Rect;
-import android.graphics.RectF;
-import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
-import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.TotalCaptureResult;
+import android.graphics.*;
+import android.hardware.camera2.*;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import android.os.SystemClock;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.util.Range;
-import android.util.Rational;
-import android.util.Size;
-import android.util.SparseIntArray;
-import android.view.LayoutInflater;
-import android.view.Surface;
-import android.view.TextureView;
-import android.view.View;
-import android.view.ViewGroup;
+import android.os.*;
+import android.util.*;
+import android.view.*;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -74,13 +46,8 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
-import com.eszdman.photoncamera.api.CameraManager2;
-import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.api.CameraReflectionApi;
-import com.eszdman.photoncamera.api.Settings;
+import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.gallery.ui.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
@@ -98,21 +65,13 @@ import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfi
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.CustomLogger;
+import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import rapid.decoder.BitmapDecoder;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -855,25 +814,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     private Bitmap getLastImage() {
-        Bitmap bitmap = null;
-        File[] files = FileManager.DCIM_CAMERA.listFiles((dir, name) -> name.toUpperCase().endsWith(".JPG"));
-        if (files != null) {
-            long lastModifiedTime = -1;
-            File lastImage = null;
-            for (File f : files) {      //finds the last modified file from the list
-                if (f.lastModified() > lastModifiedTime) {
-                    lastImage = f;
-                    lastModifiedTime = f.lastModified();
-                }
-            }
-            //Used fastest decoder on the wide west
-            if (lastImage != null) {
-                bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
-                        .scaleBy(0.1f)
-                        .decode();
-            }
-        }
-        return bitmap;
+        return BitmapDecoder.from(Uri.fromFile(FileManager.getAllImageFiles().get(0)))
+                .scaleBy(0.1f)
+                .decode();
     }
 
     /**

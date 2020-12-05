@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -29,17 +28,18 @@ import com.eszdman.photoncamera.gallery.adapters.DepthPageTransformer;
 import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.helper.Constants;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
+import com.eszdman.photoncamera.util.FileManager;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
-    private final String path = Environment.getExternalStorageDirectory().toString() + "/DCIM/Camera";
-    private final File[] allFiles = new File(path).listFiles((dir, name) -> name.toUpperCase().endsWith("JPG"));
+    private List<File> allFiles;
     private File newEditedFile;
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
@@ -60,6 +60,7 @@ public class ImageViewerFragment extends Fragment {
         viewPager = fragmentGalleryImageViewerBinding.viewPager;
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
+        allFiles = FileManager.getAllImageFiles();
         adapter = new ImageAdapter(allFiles);
         navController = NavHostFragment.findNavController(this);
     }
@@ -100,10 +101,10 @@ public class ImageViewerFragment extends Fragment {
     private void onEditButtonClick(View view) {
         int position = viewPager.getCurrentItem();
         if (allFiles != null && getContext() != null) {
-            File file = allFiles[position];
+            File file = allFiles.get(position);
             String fileName = file.getName();
             String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", new File(path + "/" + fileName));
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
             Intent editIntent = new Intent(Intent.ACTION_EDIT);
             editIntent.setDataAndType(uri, mediaType);
             String outputFilePath = file.getAbsolutePath().replace(file.getName(), generateNewFileName() + '.' + FileUtils.getExtension(fileName));
@@ -147,16 +148,14 @@ public class ImageViewerFragment extends Fragment {
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
 
                     int position = viewPager.getCurrentItem();
-                    File newFile = new File(String.valueOf(allFiles[position]));
-                    String fileName = newFile.getName();
-                    File thisFile = new File(path + "/" + fileName);
+                    File thisFile = new File(String.valueOf(allFiles.get(position)));
                     thisFile.delete();
-
                     MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(thisFile)}, null, null);
-                    adapter.notifyDataSetChanged();
+                    allFiles = FileManager.getAllImageFiles();
+                    adapter = new ImageAdapter(allFiles);
                     viewPager.setAdapter(adapter);
                     //auto scroll to the next photo
-                    viewPager.setCurrentItem(position);
+                    viewPager.setCurrentItem(position,true);
                     Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT)
                             .show();
                 });
@@ -166,10 +165,10 @@ public class ImageViewerFragment extends Fragment {
 
     private void onShareButtonClick(View view) {
         int position = viewPager.getCurrentItem();
-        File newFile = new File(String.valueOf(allFiles[position]));
-        String fileName = newFile.getName();
+        File file = allFiles.get(position);
+        String fileName = file.getName();
         String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-        Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", new File(path + "/" + fileName));
+        Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -186,7 +185,7 @@ public class ImageViewerFragment extends Fragment {
     private void updateExif() {
         if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
             int position = viewPager.getCurrentItem();
-            File currentFile = allFiles[position];
+            File currentFile = allFiles.get(position);
             //update values for exif dialog
             exifDialogViewModel.updateModel(currentFile);
         }
