@@ -11,6 +11,9 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.signature.ObjectKey;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
@@ -52,7 +55,13 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                         .with(holder.itemView.getContext())
                         .asBitmap()
                         .load(file)
-                        .submit(200, 0)
+                        .apply(new RequestOptions()
+                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                                .signature(new ObjectKey(file.getName() + file.lastModified()))
+                                .override(200, 200)
+                                .centerCrop()
+                        )
+                        .submit()
                         .get();
                 msg.obj = new GridThumbnailModel(preview);
                 handler.sendMessage(msg);
