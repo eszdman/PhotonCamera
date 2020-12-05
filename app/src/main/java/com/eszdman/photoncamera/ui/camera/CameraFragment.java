@@ -376,10 +376,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
             mPreviewTemp = mTemp;
-            if(mTemp != null) mPreviewTemp = mTemp;
-            if(mPreviewTemp == null){
+            if (mTemp != null) mPreviewTemp = mTemp;
+            if (mPreviewTemp == null) {
                 mPreviewTemp = new Rational[3];
-                for(int i =0; i<mPreviewTemp.length;i++) mPreviewTemp[i] = new Rational(101,100);
+                for (int i = 0; i < mPreviewTemp.length; i++) mPreviewTemp[i] = new Rational(101, 100);
             }
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
@@ -814,9 +814,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     }
 
     private Bitmap getLastImage() {
-        return BitmapDecoder.from(Uri.fromFile(FileManager.getAllImageFiles().get(0)))
-                .scaleBy(0.1f)
-                .decode();
+        File lastImage = FileManager.getAllImageFiles().get(0);
+        if (lastImage != null)
+            return BitmapDecoder.from(Uri.fromFile(lastImage))
+                    .scaleBy(0.1f)
+                    .decode();
+        else
+            return null;
     }
 
     /**
@@ -1218,18 +1222,18 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 mTextureView.setAspectRatio(
                         mPreviewSize.getWidth(), mPreviewSize.getHeight());
-                mTextureView.cameraSize = new Point(mPreviewSize.getWidth(),mPreviewSize.getHeight());
+                mTextureView.cameraSize = new Point(mPreviewSize.getWidth(), mPreviewSize.getHeight());
             } else {
                 mTextureView.setAspectRatio(
                         mPreviewSize.getHeight(), mPreviewSize.getWidth());
-                mTextureView.cameraSize = new Point(mPreviewSize.getHeight(),mPreviewSize.getWidth());
+                mTextureView.cameraSize = new Point(mPreviewSize.getHeight(), mPreviewSize.getWidth());
             }
         }
 
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
         mFlashSupported = available != null && available;
-        this.mCameraUIView.initAuxButtons(mBackCameraIDs,mFocalLengthAperturePairList, mFrontCameraIDs);
+        this.mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
         Camera2ApiAutoFix.Init();
         PhotonCamera.getManualMode().init();
     }
@@ -1413,7 +1417,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 captures.add(captureBuilder.build());
             }
             if (frameCount == -1) {
-                for(int i =0; i<IsoExpoSelector.patternSize;i++) {
+                for (int i = 0; i < IsoExpoSelector.patternSize; i++) {
                     IsoExpoSelector.setExpo(captureBuilder, i);
                     captures.add(captureBuilder.build());
                 }
@@ -1470,7 +1474,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    timerFrameCountViewModel.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
+                    timerFrameCountViewModel.setFrameTimeCnt(burstcount[1], burstcount[2], frametime);
 //                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
@@ -1526,11 +1530,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public String cycler(String savedCameraID) {
         if (mBackCameraIDs.contains(savedCameraID)) {
             sActiveBackCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mFrontCameraIDs,mFocalLengthAperturePairList, sActiveFrontCamId);
+            this.mCameraUIView.setAuxButtons(mFrontCameraIDs, mFocalLengthAperturePairList, sActiveFrontCamId);
             return sActiveFrontCamId;
         } else {
             sActiveFrontCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mBackCameraIDs,mFocalLengthAperturePairList, sActiveBackCamId);
+            this.mCameraUIView.setAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, sActiveBackCamId);
             return sActiveBackCamId;
         }
     }
@@ -1592,7 +1596,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void unlimitedEnd() {
         mImageProcessing.unlimitedEnd();
     }
-    public void unlimitedStart(){
+
+    public void unlimitedStart() {
         mImageProcessing.unlimitedStart();
     }
 

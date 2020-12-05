@@ -6,9 +6,19 @@ import androidx.databinding.Bindable;
 
 public class GridThumbnailModel extends BaseObservable {
     private Bitmap bitmap;
+    private String fileext;
 
     public GridThumbnailModel(Bitmap bitmap) {
         this.bitmap = bitmap;
+    }
+
+    @Bindable
+    public String getFileext() {
+        return fileext;
+    }
+
+    public void setFileext(String fileext) {
+        this.fileext = fileext;
     }
 
     @Bindable

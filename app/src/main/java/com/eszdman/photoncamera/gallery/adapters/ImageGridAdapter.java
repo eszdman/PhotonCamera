@@ -17,6 +17,7 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
@@ -63,7 +64,11 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                         )
                         .submit()
                         .get();
-                msg.obj = new GridThumbnailModel(preview);
+                GridThumbnailModel thumbnailModel = new GridThumbnailModel(preview);
+                if (FileUtils.getExtension(file.getName()).equalsIgnoreCase("dng")) {
+                    thumbnailModel.setFileext("RAW");
+                }
+                msg.obj = thumbnailModel;
                 handler.sendMessage(msg);
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
