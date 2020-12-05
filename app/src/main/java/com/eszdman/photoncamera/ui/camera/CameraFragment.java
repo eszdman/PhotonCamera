@@ -63,9 +63,7 @@ import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
-import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.CustomLogger;
-import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -801,7 +799,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         PhotonCamera.getTouchFocus().ReInit();
 
         this.mCameraUIView.refresh();
-        this.mCameraUIView.setGalleryButtonImage(getLastImage());
+        cameraFragmentViewModel.updateGalleryThumb();
         cameraFragmentViewModel.onResume();
         startBackgroundThread();
 
@@ -811,16 +809,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
-    }
-
-    private Bitmap getLastImage() {
-        File lastImage = FileManager.getAllImageFiles().get(0);
-        if (lastImage != null)
-            return BitmapDecoder.from(Uri.fromFile(lastImage))
-                    .scaleBy(0.1f)
-                    .decode();
-        else
-            return null;
     }
 
     /**
@@ -1583,7 +1571,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             triggerMediaScanner((File) obj);
         }
         if (getActivity() != null)
-            getActivity().runOnUiThread(() -> mCameraUIView.setGalleryButtonImage(getLastImage()));
+            getActivity().runOnUiThread(() -> cameraFragmentViewModel.updateGalleryThumb());
     }
 
     @Override

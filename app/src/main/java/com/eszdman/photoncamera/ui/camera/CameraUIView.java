@@ -46,13 +46,6 @@ public interface CameraUIView {
     void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active);
 
     /**
-     * Set an image to gallery icon
-     *
-     * @param bitmap bitmap image
-     */
-    void setGalleryButtonImage(Bitmap bitmap);
-
-    /**
      * Processing ProgressBar methods
      * Control the Progress bar that displays image processing sequence
      */

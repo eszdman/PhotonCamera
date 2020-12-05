@@ -83,8 +83,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         mSettingsButton.setOnClickListener(commonOnClickListener);
         mHdrXButton.setOnClickListener(commonOnClickListener);
 
-        setGalleryButtonImage(null);
-
         String[] modes = CameraMode.names();
 
         mModePicker.setValues(modes);
@@ -194,12 +192,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         }
         view.setSelected(true);
         mCameraUIEventsListener.onAuxButtonClicked(auxButtonsMap.get(view.getId()));
-    }
-
-    public void setGalleryButtonImage(Bitmap bitmap) {
-        if (bitmap != null) {
-            mGalleryImageButton.setImageBitmap(bitmap);
-        }
     }
 
     private void addToAuxGroupButtons(String cameraId, String name) {
