@@ -156,6 +156,7 @@ public class ImageViewerFragment extends Fragment {
                     viewPager.setAdapter(adapter);
                     //auto scroll to the next photo
                     viewPager.setCurrentItem(position,true);
+                    updateExif();
                     Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT)
                             .show();
                 });
