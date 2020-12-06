@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.util;
 
 import android.os.Environment;
+import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -31,13 +32,14 @@ public class FileManager {
         }
     }
 
+    @NonNull
     public static List<File> getAllImageFiles() {
         File[] dcimFiles = FileManager.DCIM_CAMERA.listFiles(FILENAME_FILTER);
         File[] photonFiles = FileManager.PHOTON_DIR.listFiles(FILENAME_FILTER);
         File[] photonRawFiles = FileManager.PHOTON_RAW_DIR.listFiles(FILENAME_FILTER);
         List<File> filesList = new ArrayList<>();
         if (dcimFiles != null && photonFiles != null && photonRawFiles != null) {
-            filesList = new ArrayList<>(Arrays.asList(dcimFiles));
+            filesList.addAll(Arrays.asList(dcimFiles));
             filesList.addAll(Arrays.asList(photonFiles));
             filesList.addAll(Arrays.asList(photonRawFiles));
             filesList.sort((file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));

@@ -14,6 +14,7 @@ import com.eszdman.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -84,7 +85,10 @@ public class CameraFragmentViewModel extends ViewModel {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public void updateGalleryThumb() {
-        File lastImage = FileManager.getAllImageFiles().get(0);
+        List<File> allFiles = FileManager.getAllImageFiles();
+        if (allFiles.isEmpty())
+            return;
+        File lastImage = allFiles.get(0);
         Handler handler = new Handler(Looper.getMainLooper(), msg -> {
             cameraFragmentModel.setBitmap((Bitmap) msg.obj);
             return true;
