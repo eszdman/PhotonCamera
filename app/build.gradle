@@ -106,5 +106,6 @@ dependencies {
     // Navigation Component
     implementation "androidx.navigation:navigation-fragment:2.3.1"
     implementation "androidx.navigation:navigation-ui:2.3.1"
-
+    //Subsampling image view
+    implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
 }
