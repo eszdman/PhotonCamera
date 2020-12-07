@@ -37,6 +37,7 @@ public class ImageProcessing {
     private Boolean isYuv;
     private String filePath;
     private ArrayList<Image> mImageFramesToProcess;
+    public static float fakeWL = 65535.f;
 
     public ImageProcessing(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;
@@ -94,7 +95,7 @@ public class ImageProcessing {
             if (PhotonCamera.getSettings().rawSaver) {
                 input.getPlanes()[0].getBuffer().position(0);
                 input.getPlanes()[0].getBuffer().put(unlimitedBuffer);
-                saveRaw(input,16384);
+                saveRaw(input,(int)fakeWL);
                 input.close();
                 return;
             }
@@ -217,7 +218,7 @@ public class ImageProcessing {
             for (int i = 0; i < images.size(); i++) {
                 RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
                 rawSensivity.oldWhiteLevel = levell;
-                rawSensivity.sensitivity = 16384.f/levell;
+                rawSensivity.sensitivity = fakeWL/levell;
                 rawSensivity.input = images.get(i).buffer;
                 rawSensivity.Output = images.get(i).buffer;
                 rawSensivity.Run();
@@ -243,7 +244,7 @@ public class ImageProcessing {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
         if (!debugAlignment) {
-            float ghosting = 16384.f/levell;
+            float ghosting = fakeWL/levell;
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
             output = Wrapper.processFrame(ghosting);
             debugAlignment = true;
@@ -289,15 +290,15 @@ public class ImageProcessing {
             rawPipeline.close();
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
         if (PhotonCamera.getSettings().rawSaver) {
-            if(debugAlignment) saveRaw(images.get(0).image, 16384); else
+            if(debugAlignment) saveRaw(images.get(0).image, (int)fakeWL); else
             saveRaw(images.get(0).image, 0);
             return;
         }
         if(debugAlignment){
             for(int i =0; i<4;i++){
-                PhotonCamera.getParameters().blackLevel[i]*=16384.0/PhotonCamera.getParameters().whiteLevel;
+                PhotonCamera.getParameters().blackLevel[i]*=fakeWL/PhotonCamera.getParameters().whiteLevel;
             }
-            PhotonCamera.getParameters().whiteLevel = 16384;
+            PhotonCamera.getParameters().whiteLevel = (int)(fakeWL);
         }
         Log.d(TAG, "Wrapper.processFrame()");
 //        PhotonCamera.getParameters().path = path;

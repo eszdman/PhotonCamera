@@ -28,7 +28,8 @@ public class Bayer2Float extends Node {
         glProg.setVar("CfaPattern",parameters.cfaPattern);
         glProg.setVar("patSize",2);
         glProg.setVar("whitePoint",parameters.whitePoint);
-        glProg.setVar("whitelevel",(float)(parameters.whiteLevel));
+        Log.d(Name,"whitelevel:"+parameters.whiteLevel);
+        glProg.setVarU("whitelevel",(parameters.whiteLevel));
         Log.d(Name,"CfaPattern:"+parameters.cfaPattern);
         basePipeline.main1 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         basePipeline.main2 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));

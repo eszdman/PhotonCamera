@@ -6,6 +6,7 @@ import android.util.Log;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.ImageFrame;
+import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
@@ -233,7 +234,7 @@ public class AlignAndMerge extends Node {
         //startT();
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer", input);
-        glProg.setVar("whitelevel", (float) 16384.0);
+        glProg.setVar("whitelevel", ImageProcessing.fakeWL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);
         glProg.drawBlocks(output);
         glProg.closed = true;

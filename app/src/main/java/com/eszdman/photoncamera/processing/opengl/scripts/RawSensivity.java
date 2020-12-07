@@ -26,6 +26,8 @@ public class RawSensivity extends GLOneScript {
         inp = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16),input);
         glProg.setTexture("RawBuffer",inp);
         glProg.setVar("whitelevel",oldWhiteLevel);
+        Log.d(Name,"whitelevel old:"+oldWhiteLevel);
+        Log.d(Name,"whitelevel sensivity:"+sensitivity);
         glProg.setVar("sensivity",sensitivity);
         WorkingTexture = new GLTexture(inp);
     }
