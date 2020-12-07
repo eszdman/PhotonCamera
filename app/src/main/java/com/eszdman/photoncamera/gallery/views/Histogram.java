@@ -6,8 +6,11 @@ import android.graphics.*;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.aparapi.Kernel;
+import com.aparapi.Range;
+import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
+
 public class Histogram extends View {
-    private final float offset = 1;
     private final Paint wallPaint;
     private HistogramModel histogramModel;
 
@@ -20,20 +23,34 @@ public class Histogram extends View {
         int size = 256;
         int[][] colorsMap = new int[3][size];
         int maxY = 0;
-        for (int h = 0; h < bitmap.getHeight(); h++) {
-            for (int w = 0; w < bitmap.getWidth(); w++) {
-                int rgba = bitmap.getPixel(w, h);
+        int[] imgarr = new int[bitmap.getWidth()*bitmap.getHeight()];
+        bitmap.getPixels(imgarr,0,bitmap.getWidth(),0,0,bitmap.getWidth(),bitmap.getHeight());
+        new Kernel() {
+            @Override
+            public void run() {
+                int w = getGlobalId(0);
+                int h = getGlobalId(1);
+                int rgba = imgarr[w + h*bitmap.getWidth()];
                 colorsMap[0][((rgba) & 0xff)]++;
                 colorsMap[1][((rgba >> 8) & 0xff)]++;
                 colorsMap[2][((rgba >> 16) & 0xff)]++;
             }
-        }
+        }.execute(Range.create2D(bitmap.getWidth(),bitmap.getHeight()));
         //Find max
         for (int i = 0; i < size; i++) {
             maxY = Math.max(maxY, colorsMap[0][i]);
             maxY = Math.max(maxY, colorsMap[1][i]);
             maxY = Math.max(maxY, colorsMap[2][i]);
         }
+        new Kernel() {
+            @Override
+            public void run() {
+                int w = getGlobalId(0);
+                int h = getGlobalId(1);
+                if(w-1 >= 0 && w+1 < size)
+                colorsMap[h][w] = (colorsMap[h][w]+colorsMap[h][w-1]+colorsMap[h][w+1])/3;
+            }
+        }.execute(Range.create2D(size,3));
         bitmap.recycle();
         return new HistogramModel(size, colorsMap, maxY);
     }
@@ -78,7 +95,8 @@ public class Histogram extends View {
                 float value = (((float) histogramModel.getColorsMap()[i][j]) * ((float) (height) / histogramModel.getMaxY()));
                 wallPath.lineTo(j * xInterval, height - value);
             }
-            wallPath.lineTo(histogramModel.getSize() * offset, height);
+            wallPath.lineTo(histogramModel.getSize() * xInterval, height);
+            //wallPath.lineTo(histogramModel.getSize() * offset, height);
             canvas.drawPath(wallPath, wallPaint);
         }
 

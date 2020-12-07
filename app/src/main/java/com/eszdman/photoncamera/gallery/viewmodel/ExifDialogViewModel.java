@@ -95,7 +95,8 @@ public class ExifDialogViewModel extends ViewModel {
             return true;
         });
         executorService.execute(() -> {
-            Bitmap preview = BitmapDecoder.from(Uri.fromFile(imageFile)).scaleBy(0.1f).decode();
+            BitmapDecoder.from(Uri.fromFile(imageFile)).width();
+            Bitmap preview = BitmapDecoder.from(Uri.fromFile(imageFile)).scaleBy(0.07f).decode();
             if (preview != null) {
                 Message msg = new Message();
                 msg.obj = Histogram.analyze(preview);
