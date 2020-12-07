@@ -36,6 +36,7 @@ precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
 uniform int CfaPattern;
+uniform vec3 WhitePoint;
 uniform float whitelevel;
 uniform int yOffset;
 #define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);
@@ -50,8 +51,8 @@ out uint Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    int fact1 = (xy.x+CfaPattern%2)%2;
-    int fact2 = (xy.y+CfaPattern/2)%2;
+    int fact1 = (xy.x-CfaPattern%2)%2;
+    int fact2 = (xy.y-CfaPattern/2)%2;
     float v[9];
     // Add the pixels which make up our window to the pixel array.
     if(fact1+fact2 == 1){
@@ -76,6 +77,17 @@ void main() {
         }
     }
     float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
+    float balance;
+    ivec2 fact = (xy-ivec2(CfaPattern%2,CfaPattern/2))%2;
+    if(fact.x+fact.y == 1){
+        balance = WhitePoint.g;
+    } else {
+        if(fact.x == 0){
+            balance = WhitePoint.r;
+        } else {
+            balance = WhitePoint.b;
+        }
+    }
     if(v[4]*0.7 > avr){
         float temp;
         // Starting with a subset of size 6, remove the min and max each time

@@ -79,7 +79,7 @@ public class PostPipeline extends GLBasePipeline {
         glint.parameters = parameters;
         add(new Bayer2Float(0,"Bayer2Float"));
         if(!IsoExpoSelector.HDR) {
-            if (PhotonCamera.getSettings().cfaPattern != -2) {
+            if (PhotonCamera.getSettings().cfaPattern != 4) {
                 add(new Demosaic("Demosaic"));
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
             } else {
@@ -115,11 +115,11 @@ public class PostPipeline extends GLBasePipeline {
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());
         add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
-        add(new Rotate(getRotation()));
+        add(new RotateWatermark(getRotation()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
 
         Bitmap img = runAll();
-        if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
+        //if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         try {
             imageFileToSave.createNewFile();
             FileOutputStream fOut = new FileOutputStream(imageFileToSave);

@@ -22,10 +22,22 @@ public class AverageRaw extends GLOneScript {
     public AverageRaw(Point size, String name) {
         super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16)), R.raw.average, name);
     }
+    float[] wpoints;
     public void Init(){
         first = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
         second = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
         stack = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
+        float []oldp = PhotonCamera.getParameters().whitePoint;
+        wpoints = new float[oldp.length];
+        float min = 1000.f;
+        for(float p : oldp){
+            if(p<min){
+                min = p;
+            }
+        }
+        for(int i =0;i<oldp.length;i++){
+            wpoints[i] = oldp[i];
+        }
     }
     GLTexture GetAlterIn(){
         if(used == 1) {
@@ -62,6 +74,7 @@ public class AverageRaw extends GLOneScript {
             }
             glProg.setTexture("InputBuffer2", in2);
             glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
+            glProg.setVar("WhitePoint", wpoints);
             glProg.setVar("whitelevel", (float) (PhotonCamera.getParameters().whiteLevel));
             if(unlimitedCounter < 3) {
                 glProg.setVar("unlimitedcount", 1);
@@ -103,6 +116,7 @@ public class AverageRaw extends GLOneScript {
         glProg.useProgram(R.raw.medianfilterhotpixeltoraw);
         glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
         Log.d(Name,"CFAPattern:"+PhotonCamera.getParameters().cfaPattern);
+        glProg.setVar("WhitePoint", wpoints);
         glProg.setTexture("InputBuffer",stack);
         if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
         else {

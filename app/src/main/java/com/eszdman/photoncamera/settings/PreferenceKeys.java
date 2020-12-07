@@ -280,6 +280,9 @@ public class PreferenceKeys {
     public static String getPref(Preference preference) {
         return PhotonCamera.getSettingsManager().getString(current_scope, preference);
     }
+    public static boolean getBool(Preference preference) {
+        return PhotonCamera.getSettingsManager().getBoolean(current_scope, preference);
+    }
 
     public static float getFloat(Preference preference) {
         return PhotonCamera.getSettingsManager().getFloat(current_scope, preference);
@@ -294,6 +297,7 @@ public class PreferenceKeys {
         KEY_SAVE_PER_LENS_SETTINGS("pref_save_per_lens_settings"),
         KEY_DISABLE_ALIGNINIG("pref_disable_aligning_key"),
         KEY_SHOW_WATERMARK("pref_show_watermark_key"),
+        KEY_ENERGY_SAVING("pref_energy_safe_key"),
         KEY_ENHANCED_PROCESSING("pref_enhanced_processing_key"),
         KEY_HDRX_NR("pref_hdrx_nr_key"),
         KEY_SAVE_RAW("pref_save_raw_key"),

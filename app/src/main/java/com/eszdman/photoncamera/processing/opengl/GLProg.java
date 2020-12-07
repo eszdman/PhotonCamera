@@ -205,7 +205,7 @@ public class GLProg implements AutoCloseable {
     }
 
     public void drawBlocks(int w, int h) {
-        GLBlockDivider divider = new GLBlockDivider(h, GLConst.TileSize);
+        GLBlockDivider divider = new GLBlockDivider(h, GLDrawParams.TileSize);
         int[] row = new int[2];
         while (divider.nextBlock(row)) {
             glViewport(0, row[0], w, row[1]);
@@ -223,7 +223,7 @@ public class GLProg implements AutoCloseable {
             return;
         }
         texture.BufferLoad();
-        drawBlocks(texture.mSize.x, texture.mSize.y, GLConst.TileSize, -1, texture.mFormat.getGLType());
+        drawBlocks(texture.mSize.x, texture.mSize.y, GLDrawParams.TileSize, -1, texture.mFormat.getGLType());
     }
     public void drawBlocks(GLTexture texture, int bh, boolean forceFlush) {
         texture.BufferLoad();

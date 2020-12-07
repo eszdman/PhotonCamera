@@ -5,7 +5,6 @@ import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
-import android.hardware.camera2.params.BlackLevelPattern;
 import android.media.Image;
 import android.util.Log;
 
@@ -14,17 +13,13 @@ import androidx.exifinterface.media.ExifInterface;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.api.CameraReflectionApi;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
-import com.eszdman.photoncamera.processing.opengl.scripts.RawParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
-import com.eszdman.photoncamera.processing.opengl.scripts.ScriptParams;
-import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
@@ -199,22 +194,12 @@ public class ImageProcessing {
                 lowexp = byteBuffer;
                 continue;
             }
-            //byteBuffer.position(0);
-            //luckyparams.input = byteBuffer;
-            //LuckyOperator luckyOperator = new LuckyOperator(new Point(width,height));
-            //luckyOperator.additionalParams = luckyparams;
-            //if(mImageFramesToProcess.size() >= 5)
-            //luckyOperator.Run();
-            //byteBuffer.position(0);
-            //rawParams.input = byteBuffer;
             Log.d(TAG,"Sensivity:"+k);
             ImageFrame frame = new ImageFrame(byteBuffer);
-            //frame.luckyParameter = luckyOperator.out;
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
             frame.image = mImageFramesToProcess.get(i);
             frame.pair = IsoExpoSelector.pairs.get(i%IsoExpoSelector.patternSize);
             images.add(frame);
-            //ImageBufferUtils.RemoveHotpixelsRaw(byteBuffer,new Point(width,height),res);
         }
         if(mImageFramesToProcess.size() >= 3)
         images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
@@ -226,12 +211,21 @@ public class ImageProcessing {
             }
             Log.d(TAG,"Size after removal:"+images.size());
         }
-        if (!debugAlignment) Wrapper.init(width, height, images.size());
-        for(int i =0; i<images.size();i++){
-            if (!debugAlignment){
+
+        if (!debugAlignment) {
+            Wrapper.init(width, height, images.size());
+            for (int i = 0; i < images.size(); i++) {
+                RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
+                rawSensivity.oldWhiteLevel = levell;
+                rawSensivity.sensitivity = 16384.f/levell;
+                rawSensivity.input = images.get(i).buffer;
+                rawSensivity.Output = images.get(i).buffer;
+                rawSensivity.Run();
                 Wrapper.loadFrame(images.get(i).buffer);
+                rawSensivity.close();
             }
         }
+
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whiteLevel);
@@ -252,6 +246,7 @@ public class ImageProcessing {
             float ghosting = 1.f;
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
             output = Wrapper.processFrame(ghosting);
+            debugAlignment = true;
         } else {
             output = rawPipeline.Run();
         }

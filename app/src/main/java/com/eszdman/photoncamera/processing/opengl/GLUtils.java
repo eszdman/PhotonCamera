@@ -29,7 +29,6 @@ public class GLUtils {
         glProg = blockProcessing.mProgram;
         glProcessing = blockProcessing;
     }
-
     public GLTexture blurfast(GLTexture in, double size){
         glProg.useProgram("#version 300 es\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -787,14 +786,14 @@ public class GLUtils {
         return SaveProgResult(size, "");
     }
     public Bitmap SaveProgResult(Point size, String namesuffix){
-        return SaveProgResult(size, namesuffix, 4);
+        return SaveProgResult(size, namesuffix, 4,".jpg");
     }
-    public Bitmap SaveProgResult(Point size, String namesuffix, int channels){
+    public Bitmap SaveProgResult(Point size, String namesuffix, int channels,String ext){
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
         if(!namesuffix.equals("")) {
-            File debug = new File(imageFileToSave.getAbsolutePath() + namesuffix + ".jpg");
+            File debug = new File(imageFileToSave.getAbsolutePath() + namesuffix + ext);
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();
@@ -802,7 +801,7 @@ public class GLUtils {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            preview.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
+            preview.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
         }
         return preview;
     }

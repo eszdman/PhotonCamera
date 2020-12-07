@@ -4,6 +4,7 @@ precision highp usampler2D;
 uniform usampler2D InputBuffer;
 uniform vec3 whitePoint;
 uniform int CfaPattern;
+uniform int patSize;
 uniform float whitelevel;
 uniform int yOffset;
 

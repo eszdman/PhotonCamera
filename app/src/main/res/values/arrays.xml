@@ -7,6 +7,7 @@
         <item>GRBG</item>
         <item>GBRG</item>
         <item>MONO</item>
+        <item>QUAD</item>
     </string-array>
     <string-array name="cfapat_entryValues">
         <item>-1</item>
@@ -14,6 +15,7 @@
         <item>3</item>
         <item>1</item>
         <item>2</item>
+        <item>4</item>
         <item>-2</item>
     </string-array>
     <string-array name="alignset_entries">

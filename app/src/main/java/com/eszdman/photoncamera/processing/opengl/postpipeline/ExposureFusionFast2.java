@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.opengl.GLConst;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
@@ -30,7 +30,7 @@ public class ExposureFusionFast2 extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(exposing1 == null) exposing1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(exposing1 == null) exposing1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(exposing1);
         return exposing1;
     }
@@ -39,7 +39,7 @@ public class ExposureFusionFast2 extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(exposing2 == null) exposing2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(exposing2 == null) exposing2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(exposing2);
         return exposing2;
     }
@@ -60,17 +60,19 @@ public class ExposureFusionFast2 extends Node {
         GLTexture input = new GLTexture(
                 previousNode.WorkingTexture.mSize.x/split,
                 previousNode.WorkingTexture.mSize.y/split,
-                new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+                new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         GLTexture prevOut = basePipeline.getMain();
         GLUtils.Pyramid highExpo = null;
         GLUtils.Pyramid normalExpo = null;
         GLTexture[] wipa = null;
+
+        float fact2 = (float) (1.0f / compressor) * 3.5f;
         for(int j = 0; j<split*split;j++) {
             int perlevel = 4;
             int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel)) + 1;
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
-            float fact2 = (float) (1.0f / compressor) * 3.5f;
+
 
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
 

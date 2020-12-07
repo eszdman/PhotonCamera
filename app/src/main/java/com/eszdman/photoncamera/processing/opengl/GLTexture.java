@@ -1,6 +1,8 @@
 package com.eszdman.photoncamera.processing.opengl;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.opengl.GLUtils;
 import android.util.Log;
 
 import java.nio.Buffer;
@@ -51,6 +53,25 @@ public class GLTexture implements AutoCloseable {
     }
     public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
         this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
+    }
+    public GLTexture(Bitmap bmp, int textureFilter, int textureWrapper,int level) {
+        mFormat = null;
+        filter = textureFilter;
+        wrap = textureWrapper;
+        this.mSize = new Point(bmp.getWidth(),bmp.getHeight());
+        this.mGLFormat = 0;
+        int[] TexID = new int[1];
+        glGenTextures(TexID.length, TexID, 0);
+        mTextureID = TexID[0];
+        glActiveTexture(GL_TEXTURE1+mTextureID);
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        GLUtils.texImage2D(GL_TEXTURE_2D,level,bmp,0);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
+        checkEglError("Tex glTexParameteri");
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         filter = textureFilter;

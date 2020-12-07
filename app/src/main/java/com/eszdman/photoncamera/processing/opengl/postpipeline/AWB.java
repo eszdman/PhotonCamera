@@ -204,8 +204,8 @@ public class AWB extends Node {
 
     @Override
     public void Run() {
-        GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(500,500));
-        GLTexture r1 = glUtils.interpolate(r0,new Point(500,500));
+        GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(previousNode.WorkingTexture.mSize.x/8,previousNode.WorkingTexture.mSize.x/8));
+        GLTexture r1 = glUtils.interpolate(r0,new Point(40,40));
         //GLTexture r2 = glUtils.blursmall(r1,3,1.8);
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
@@ -213,7 +213,6 @@ public class AWB extends Node {
         if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
         r0.close();
         r1.close();
-        //r2.close();
         basePipeline.texnum = 1;
         WorkingTexture = glUtils.mpy(previousNode.WorkingTexture,CCV(Histogram(preview)),basePipeline.getMain());
         //PatchPoint(CCVBased(Histogram(preview)));

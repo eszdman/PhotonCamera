@@ -13,6 +13,7 @@ import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.nio.ByteBuffer;
 
@@ -20,14 +21,14 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 import static android.opengl.GLES20.GL_NEAREST;
 
-public class Rotate extends Node {
+public class RotateWatermark extends Node {
     private int rotate;
     private boolean watermarkNeeded;
     private Bitmap watermark;
-    public Rotate(int rotation) {
+    public RotateWatermark(int rotation) {
         super(0, "Rotate");
         rotate = rotation;
-        watermarkNeeded = false;
+        watermarkNeeded = PreferenceKeys.isShowWatermarkOn();
     }
 
     @Override
@@ -36,25 +37,19 @@ public class Rotate extends Node {
     @Override
     public void AfterRun() {
         if(watermark != null) watermark.recycle();
-        //previousNode.WorkingTexture.close();
     }
 
     @Override
     public void Run() {
         if(watermarkNeeded) {
-            glProg.useProgram(R.raw.addwatermark_rotate);
-            watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
-            ByteBuffer buff = ByteBuffer.allocate(watermark.getByteCount());
-            watermark.copyPixelsToBuffer(buff);
-        Log.v("Watermark", "Buffer size:" + buff.capacity());
-        buff.position(0);
-        glProg.setTexture("Watermark", new GLTexture(watermark.getWidth(), watermark.getHeight(), new GLFormat(GLFormat.DataType.FLOAT_16, 1), buff));
+        glProg.useProgram(R.raw.addwatermark_rotate);
+        watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
+        glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
         } else {
             glProg.useProgram(R.raw.rotate);
         }
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         int rot = -1;
-        Point size = previousNode.WorkingTexture.mSize;
         Log.d(Name,"Rotation:"+rotate);
         switch (rotate){
             case 0:

@@ -6,6 +6,8 @@ uniform sampler2D InputBuffer;
 uniform usampler2D InputBuffer2;
 uniform int unlimitedcount;
 uniform vec4 blackLevel;
+uniform int CfaPattern;
+uniform vec3 WhitePoint;
 uniform float whitelevel;
 uniform int first;
 uniform int yOffset;
@@ -13,32 +15,30 @@ out float Output;
 
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    //xy.x*=2;
     xy+=ivec2(0,yOffset);
-    //float rawpart = float(texelFetch(InputBuffer, (xy), 0).x)-(blackLevel.g+0.5);
-    //float rawpart2 = float(texelFetch(InputBuffer2, (xy), 0).x)-(blackLevel.g+0.5);
-    //Output = uint(((rawpart*float((unlimitedcount-1))) +(rawpart2))/float(unlimitedcount) + blackLevel.g+0.5);
+    ivec2 fact = (xy-ivec2(CfaPattern%2,CfaPattern/2))%2;
+    float balance;
+    if(fact.x+fact.y == 1){
+        balance = WhitePoint.g;
+    } else {
+        if(fact.x == 0){
+            balance = WhitePoint.r;
+        } else {
+            balance = WhitePoint.b;
+        }
+    }
     if(first == 1){
         Output =
-        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
-        //+ (blackLevel.g-1.5)
-        //)
-        ;
+        clamp(float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel),0.0,balance);
     } else {
         Output =
-        //floor(
         mix(
         float(texelFetch(InputBuffer, (xy), 0).x)
-        //-(blackLevel.g-1.5)
         ,
-        float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel)
-        //-(blackLevel.g-1.5)
+        clamp(float(texelFetch(InputBuffer2, (xy), 0).x)/float(whitelevel),0.0,balance)
         ,
         1.f/float(unlimitedcount)
-        )
-        //+ (blackLevel.g-1.5)
-        //)
-        ;
+        );
     }
-
+    //Output = clamp(Output,0.0,balance);
 }

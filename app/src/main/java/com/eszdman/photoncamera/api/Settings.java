@@ -9,6 +9,7 @@ import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
@@ -26,6 +27,7 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean grid;
     public boolean watermark;
+    public boolean energySaving;
     public boolean aFDebugData;
     public boolean roundEdge;
     public boolean align;
@@ -76,6 +78,7 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
+        energySaving = PreferenceKeys.getBool(PreferenceKeys.Preference.KEY_ENERGY_SAVING);
         aFDebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
@@ -144,6 +147,11 @@ public class Settings {
     public void applyRes(CaptureRequest.Builder captureBuilder) {
         captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+        if(PhotonCamera.getSettings().energySaving){
+            GLDrawParams.TileSize = 8;
+        } else {
+            GLDrawParams.TileSize = 256;
+        }
         //captureBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
         //captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);

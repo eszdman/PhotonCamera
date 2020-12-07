@@ -7,13 +7,17 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
 
 public class GLOneParams {
     public final GLProg glProgram;
     public final GLCoreBlockProcessing glProcessing;
-
+    public GLOneParams(Point size, Bitmap out, GLFormat glFormat, ByteBuffer outbuffer) {
+        glProcessing = new GLCoreBlockProcessing(size, out, glFormat,outbuffer);
+        glProgram = glProcessing.mProgram;
+    }
     public GLOneParams(Point size, Bitmap out, GLFormat glFormat) {
-        glProcessing = new GLCoreBlockProcessing(size, out, glFormat);
+        glProcessing = new GLCoreBlockProcessing(size, out, glFormat,true);
         glProgram = glProcessing.mProgram;
     }
 

@@ -164,8 +164,10 @@ public class GLBasePipeline implements AutoCloseable {
 
     @Override
     public void close() {
-        if (glint.glProcessing != null) glint.glProcessing.close();
-        if (glint.glContext != null) glint.glContext.close();
-        if (glint.glProgram != null) glint.glProgram.close();
+        if(glint != null) {
+            if (glint.glProcessing != null) glint.glProcessing.close();
+            if (glint.glContext != null) glint.glContext.close();
+            if (glint.glProgram != null) glint.glProgram.close();
+        }
     }
 }

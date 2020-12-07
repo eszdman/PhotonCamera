@@ -93,6 +93,10 @@ public class GLInterface {
                         id = R.raw.import_coords;
                         headers+="ivec2 mirrorCoords(ivec2 xy, ivec4 bounds);";
                         break;
+                    case "#importcmyk":
+                        id = R.raw.import_cmyk;
+                        headers+="vec3 cmyk2rgb (vec4 cmyk);";
+                        headers+="vec4 rgb2cmyk (vec3 rgb);";
                 }
                 headers+="\n";
                 if(id!= 0) {

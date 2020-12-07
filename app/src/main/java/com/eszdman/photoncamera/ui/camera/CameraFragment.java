@@ -1362,7 +1362,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             }
             // This is the CaptureRequest.Builder that we use to take a picture.
             final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-
             this.mCaptureSession.stopRepeating();
             if (mTargetFormat != mPreviewTargetFormat)
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());

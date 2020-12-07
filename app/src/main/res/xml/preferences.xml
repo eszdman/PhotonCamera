@@ -19,6 +19,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+            android:key="pref_energy_safe_key"
+            android:defaultValue="@bool/pref_energy_safe_default"
+            android:layout="@layout/preference_with_margin"
+            android:title="@string/energy_saving"
+            android:summary=""
+            android:icon="@drawable/ic_watermark"
+            />
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="pref_camera_sounds_key"
                 android:defaultValue="@bool/pref_camera_sounds_default"
                 android:layout="@layout/preference_with_margin"

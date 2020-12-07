@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.opengl.GLConst;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
@@ -28,7 +28,7 @@ public class ExposureFusionFast extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main1);
         glProg.close();
         return basePipeline.main1;
@@ -38,7 +38,7 @@ public class ExposureFusionFast extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main2);
         glProg.close();
         return basePipeline.main2;
@@ -48,7 +48,7 @@ public class ExposureFusionFast extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim),null);
+        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),null);
         glProg.drawBlocks(basePipeline.main2);
         glProg.close();
         return basePipeline.main2;

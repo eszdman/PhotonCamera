@@ -22,6 +22,7 @@ import com.eszdman.photoncamera.settings.SettingsManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -156,7 +157,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 long versionCode = packageInfo.versionCode;
 
                 Date date = new Date(packageInfo.lastUpdateTime);
-                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z");
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
                 about.setSummary(getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));

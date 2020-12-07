@@ -53,15 +53,15 @@ void main() {
     xy+=ivec2(0,yOffset);
     float v[9];
     v = loadbayer9(InputBuffer,xy,CfaPattern);
-    vec3 temp;
-    float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
-    if(v[4]*0.7 > avr){
-        float temp;
+    float oldW = v[4];
+    float temp;
         // Starting with a subset of size 6, remove the min and max each time
         mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
         mnmx5(v[1], v[2], v[3], v[4], v[6]);
         mnmx4(v[2], v[3], v[4], v[7]);
         mnmx3(v[3], v[4], v[8]);
-    }
-    Output = v[4];
+    if(v[4]*3.0 > oldW){
+        Output = v[4];
+    } else
+    Output = oldW;
 }
