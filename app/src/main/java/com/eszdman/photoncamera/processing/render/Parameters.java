@@ -55,7 +55,7 @@ public class Parameters {
         }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
-        if (PhotonCamera.getSettings().cfaPattern != -1) {
+        if (PhotonCamera.getSettings().cfaPattern >= 0) {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);

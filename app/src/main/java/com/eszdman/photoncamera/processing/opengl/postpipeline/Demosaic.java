@@ -30,6 +30,7 @@ public class Demosaic extends Node {
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("CfaPattern", params.cfaPattern);
         if(PhotonCamera.getSettings().cfaPattern == -2) glProg.setDefine("QUAD","1");
+
         //GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
         glProg.drawBlocks(basePipeline.main1);
         //Green Channel guided denoising

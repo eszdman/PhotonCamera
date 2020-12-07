@@ -18,38 +18,6 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
-    /**
-     * Embeds an image watermark over a source image to produce
-     * a watermarked one.
-     * @param source The source image where watermark should be placed
-     * @param ratio A float value < 1 to give the ratio of watermark's height to image's height,
-     *             try changing this from 0.20 to 0.60 to obtain right results
-     */
-    public static void addWatermark(Bitmap source, float ratio) {
-        Canvas canvas;
-        Paint paint;
-        Matrix matrix;
-        RectF r;
-        Bitmap watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
-        int height;
-        float scale;
-        height = source.getHeight();
-        paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG | Paint.FILTER_BITMAP_FLAG);
-        // Copy the original bitmap into the new one
-        canvas = new Canvas(source);
-        // Scale the watermark to be approximately to the ratio given of the source image height
-        scale = ((float) height * ratio) / (float) watermark.getHeight();
-        // Create the matrix
-        matrix = new Matrix();
-        matrix.postScale(scale, scale);
-        // Determine the post-scaled size of the watermark
-        r = new RectF(0, 0, watermark.getWidth(), watermark.getHeight());
-        matrix.mapRect(r);
-        // Move the watermark to the bottom right corner
-        matrix.postTranslate(15, height - r.height());
-        // Draw the watermark
-        canvas.drawBitmap(watermark, matrix, paint);
-    }
     public int getRotation() {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
@@ -97,29 +65,13 @@ public class PostPipeline extends GLBasePipeline {
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR("SmartNR"));
-            /*for(int i =1; i<4;i++){
-                add(new Median(new Point(i,i/2),"FastMedian",R.raw.hybridmedianfiltercolor));
-                add(new Median(new Point(i/2,i),"FastMedian",R.raw.hybridmedianfiltercolor));
-                //add(new Median(new Point(i,i),"FastMedian",R.raw.hybridmedianfiltercolor));
-            }*/
-            //add(new Bilateral(R.raw.bilateral, "Bilateral"));
-            //add(new Median(R.raw.medianfilter,"SmartMedian"));
-            /*if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
-                    for(int i =1; i<2;i++){
-                    add(new Median(new Point(i,i/2),"FastMedian",R.raw.hybridmedianfilter));
-                    add(new Median(new Point(i/2,i),"FastMedian",R.raw.hybridmedianfilter));
-                    //add(new Median(new Point(i,i),"FastMedian"));
-                }
-            }*/
         }
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());
         add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
         add(new RotateWatermark(getRotation()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
-
         Bitmap img = runAll();
-        //if (PreferenceKeys.isShowWatermarkOn()) addWatermark(img,0.06f);
         try {
             imageFileToSave.createNewFile();
             FileOutputStream fOut = new FileOutputStream(imageFileToSave);

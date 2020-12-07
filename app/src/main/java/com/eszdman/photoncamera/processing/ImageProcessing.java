@@ -243,7 +243,7 @@ public class ImageProcessing {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
         if (!debugAlignment) {
-            float ghosting = 1.f;
+            float ghosting = 16384.f/levell;
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
             output = Wrapper.processFrame(ghosting);
             debugAlignment = true;
