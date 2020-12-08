@@ -51,7 +51,7 @@ public class Histogram extends View {
                 colorsMap[h][w] = (colorsMap[h][w]+colorsMap[h][w-1]+colorsMap[h][w+1])/3;
             }
         }.execute(Range.create2D(size,3));
-        bitmap.recycle();
+//        bitmap.recycle();
         return new HistogramModel(size, colorsMap, maxY);
     }
 

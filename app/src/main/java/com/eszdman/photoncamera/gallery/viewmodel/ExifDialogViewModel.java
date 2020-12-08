@@ -1,38 +1,42 @@
 package com.eszdman.photoncamera.gallery.viewmodel;
 
 
+import android.app.Application;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.util.Rational;
 import androidx.exifinterface.media.ExifInterface;
-import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.AndroidViewModel;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.signature.ObjectKey;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.gallery.model.ExifDialogModel;
 import com.eszdman.photoncamera.gallery.views.Histogram;
 import com.eszdman.photoncamera.util.Utilities;
 import org.apache.commons.io.FileUtils;
-import rapid.decoder.BitmapDecoder;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * The View Model class which updates the {@link ExifDialogModel}
  */
-public class ExifDialogViewModel extends ViewModel {
+public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
 
-    public ExifDialogViewModel() {
+    public ExifDialogViewModel(Application application) {
+        super(application);
         this.exifDialogModel = new ExifDialogModel();
     }
 
@@ -95,14 +99,23 @@ public class ExifDialogViewModel extends ViewModel {
             return true;
         });
         executorService.execute(() -> {
-            BitmapDecoder.from(Uri.fromFile(imageFile)).width();
-            Bitmap preview = BitmapDecoder.from(Uri.fromFile(imageFile)).scaleBy(0.07f).decode();
-            if (preview != null) {
+            try {
+                Bitmap preview = Glide.with(getApplication())
+                        .asBitmap()
+                        .load(imageFile)
+                        .apply(new RequestOptions()
+                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                                .signature(new ObjectKey("hist" + imageFile.getName() + imageFile.lastModified()))
+                                .override(800) //800*800
+                                .fitCenter()
+                        )
+                        .submit()
+                        .get();
                 Message msg = new Message();
                 msg.obj = Histogram.analyze(preview);
                 handler.sendMessage(msg);
-            } else {
-                Log.e(TAG, "updateHistogramView: bitmap is null");
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
             }
         });
     }
