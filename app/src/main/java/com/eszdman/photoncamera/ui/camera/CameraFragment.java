@@ -803,7 +803,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         cameraFragmentViewModel.onResume();
         startBackgroundThread();
 
-        if (mTextureView == null) mTextureView = new AutoFitTextureView(CameraActivity.act);
+        if (mTextureView == null) mTextureView = new AutoFitTextureView(getContext());
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
         } else {

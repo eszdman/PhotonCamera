@@ -23,8 +23,7 @@ import java.util.Arrays;
 public class CameraActivity extends AppCompatActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
-    private static final String[] PERMISSIONS = new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
-    public static CameraActivity act;
+    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
     private static int requestCount;
 
     @Override
@@ -33,8 +32,6 @@ public class CameraActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        act = this;
 
         PhotonCamera.setCameraActivity(this);
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
