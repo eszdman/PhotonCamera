@@ -29,10 +29,12 @@ void main() {
     }*/
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
-    result = clamp(inp,vec3(0.0),neutralPoint)+0.0001;
+    result = clamp(inp,vec3(0.0001),neutralPoint);
     result/=neutralPoint;
     float br = (result.r+result.g+result.b)/3.0;
     result/=br;
+    br = clamp(br,0.0,1.0);
     br = gammaEncode(br);
+    //br = clamp(br,0.0,1.0);
     result*=br;
 }

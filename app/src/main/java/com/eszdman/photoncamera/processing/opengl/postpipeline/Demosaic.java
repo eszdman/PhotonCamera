@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.util.Log;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
@@ -59,8 +61,6 @@ public class Demosaic extends Node {
         glProg.setTexture("RawBuffer",prev);
         glProg.setTexture("GreenBuffer",basePipeline.main1);
         glProg.drawBlocks(outp);*/
-
-
         glProg.useProgram(R.raw.demosaicp2);
         GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("RawBuffer", outp);
@@ -70,7 +70,7 @@ public class Demosaic extends Node {
         glProg.setVar("CfaPattern", params.cfaPattern);
         glProg.setVar("RawSize",params.rawSize);
         for(int i =0; i<4;i++){
-            params.blackLevel[i]/=params.whiteLevel;
+            params.blackLevel[i]/=params.whiteLevel*postPipeline.regenerationSense;
         }
         glProg.setVar("blackLevel",params.blackLevel);
         WorkingTexture = basePipeline.main3;

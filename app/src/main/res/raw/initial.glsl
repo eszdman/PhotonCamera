@@ -5,6 +5,7 @@ uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
 uniform sampler2D LookupTable;
 uniform vec3 neutralPoint;
+uniform float Regeneration;
 uniform float gain;
 uniform float saturation;
 uniform int yOffset;
@@ -15,7 +16,7 @@ uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 
 uniform ivec4 activeSize;
 #define PI (3.1415926535)
-out vec4 Output;
+out vec3 Output;
 //#define x1 2.8114
 //#define x2 -3.5701
 //#define x3 1.6807
@@ -231,6 +232,7 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    sRGB*=Regeneration;
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);
@@ -238,6 +240,6 @@ void main() {
     br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
     sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
-    sRGB = clamp(sRGB,0.0,1.0);
-    Output = vec4(sRGB.r,sRGB.g,sRGB.b,1.0);
+    sRGB = clamp(sRGB,0.04,1.0);
+    Output = sRGB;
 }

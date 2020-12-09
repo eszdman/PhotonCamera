@@ -66,16 +66,13 @@ public class ExposureFusionFast2 extends Node {
         GLUtils.Pyramid normalExpo = null;
         GLTexture[] wipa = null;
 
-        float fact2 = (float) (1.0f / compressor) * 3.5f;
+        float fact2 = (float) (1.0f / compressor) * 6.5f;
         for(int j = 0; j<split*split;j++) {
             int perlevel = 4;
             int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel)) + 1;
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
-
-
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
-
             if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 0, expose(input, fact2)); else
                 highExpo.fillPyramid(expose(input, fact2));
             if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 0, expose2(input, (float) (1.0f))); else

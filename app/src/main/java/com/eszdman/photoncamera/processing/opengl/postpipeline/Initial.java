@@ -44,10 +44,12 @@ public class Initial extends Node {
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);
+
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",params.sensorToProPhoto);
         glProg.setVar("intermediateToSRGB",params.proPhotoToSRGB);
         glProg.setVar("gain", (float) PhotonCamera.getSettings().gain);
+        glProg.setVar("Regeneration", ((PostPipeline)basePipeline).regenerationSense);
         Log.d(Name,"SensorPix:"+params.sensorPix);
         glProg.setVar("activeSize",4,4,params.sensorPix.right-params.sensorPix.left-4,params.sensorPix.bottom-params.sensorPix.top-4);
         glProg.setVar("neutralPoint",params.whitePoint);

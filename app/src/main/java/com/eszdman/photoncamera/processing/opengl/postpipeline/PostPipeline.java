@@ -18,6 +18,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
+    float regenerationSense = 1.f;
     public int getRotation() {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
@@ -60,9 +61,10 @@ public class PostPipeline extends GLBasePipeline {
          * * * All filters after demosaicing * * *
          */
         add(new ExposureFusionFast2("ExposureFusion"));
+
+        //add(new GlobalToneMapping(0,"GlobalTonemap"));
         add(new Initial(R.raw.initial,"Initial"));
         add(new AWB(0,"AWB"));
-        //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR("SmartNR"));
         }
