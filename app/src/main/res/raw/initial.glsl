@@ -54,9 +54,7 @@ vec3 gammaCorrectPixel2(vec3 rgb) {
     return rgb;
 }
 vec3 lookup(in vec3 textureColor) {
-    //#ifndef LUT_NO_CLAMP
     textureColor = clamp(textureColor, 0.0, 1.0);
-    //#endif
 
     highp float blueColor = textureColor.b * 63.0;
 
@@ -72,17 +70,9 @@ vec3 lookup(in vec3 textureColor) {
     texPos1.x = (quad1.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
     texPos1.y = (quad1.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
 
-    //#ifdef LUT_FLIP_Y
-    //texPos1.y = 1.0-texPos1.y;
-    //#endif
-
     highp vec2 texPos2;
     texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
     texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
-
-    //#ifdef LUT_FLIP_Y
-    //texPos2.y = 1.0-texPos2.y;
-    //#endif
 
     highp vec3 newColor1 = texture(LookupTable, texPos1).rgb;
     highp vec3 newColor2 = texture(LookupTable, texPos2).rgb;
@@ -194,7 +184,9 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB = sensorToIntermediate*pRGB;
     //pRGB*=exposing;
     //pRGB = tonemap(pRGB);
-    return gammaCorrectPixel2(clamp(intermediateToSRGB*pRGB,0.0,1.0));
+    pRGB = gammaCorrectPixel2(clamp(intermediateToSRGB*pRGB,0.0,1.0));
+    //return brightnessContrast(pRGB,0.0,1.018);
+    return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
 }
 // Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl

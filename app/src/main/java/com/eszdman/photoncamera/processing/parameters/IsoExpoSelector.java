@@ -111,10 +111,12 @@ public class IsoExpoSelector {
                     PhotonCamera.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
             }
         }
-        if(step == 0) pairs.clear();
-        if(pairs.size() < patternSize) {
-            Log.d(TAG,"Added pair:"+pairs.size());
-            pairs.add(pair);
+        if(step != -1) {
+            if (step == 0) pairs.clear();
+            if (pairs.size() < patternSize) {
+                Log.d(TAG, "Added pair:" + pairs.size());
+                pairs.add(pair);
+            }
         }
         pair.denormalizeSystem();
         return pair;

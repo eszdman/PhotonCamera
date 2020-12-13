@@ -43,6 +43,7 @@ public class Bayer2Float extends Node {
                 minimal = i;
             }
         }
+        if(params.cfaPattern == 4) postPipeline.regenerationSense = 1.f;
         postPipeline.regenerationSense = 1.f/postPipeline.regenerationSense;
         Log.d(Name,"Regeneration:"+postPipeline.regenerationSense);
         glProg.setVar("Regeneration",postPipeline.regenerationSense);

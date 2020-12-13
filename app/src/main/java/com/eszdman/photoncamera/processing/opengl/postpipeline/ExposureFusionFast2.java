@@ -73,9 +73,9 @@ public class ExposureFusionFast2 extends Node {
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
-            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 0, expose(input, fact2)); else
+            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 2, expose(input, fact2)); else
                 highExpo.fillPyramid(expose(input, fact2));
-            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 0, expose2(input, (float) (1.0f))); else
+            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 2, expose2(input, (float) (1.0f))); else
                 normalExpo.fillPyramid(expose2(input, (float) (1.0f)));
             if(wipa == null) wipa  = new GLTexture[normalExpo.laplace.length + 1];
 
@@ -109,7 +109,7 @@ public class ExposureFusionFast2 extends Node {
                 glProg.drawBlocks(wipa[i]);
                 //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
             }
-            GLTexture unexposed = unexpose(wipa[0], (float) PhotonCamera.getSettings().gain);
+            GLTexture unexposed = unexpose(wipa[0], (float) PhotonCamera.getSettings().gain*((PostPipeline)basePipeline).AecCorr/2.f);
             GLTexture out = basePipeline.getMain();
             glUtils.conglby(unexposed,out,prevOut,split,j);
             prevOut = out;

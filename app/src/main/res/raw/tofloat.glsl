@@ -18,21 +18,25 @@ void main() {
     float balance;
     if(fact.x+fact.y == 1){
         balance = whitePoint.g;
-        Output = (float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel));
+        Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
+        float col = float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/float(whitelevel);
         //Green channel regeneration
-        if(Output >= 0.97){
+        if(Output > 0.93 && col > whitePoint[MinimalInd]){
             float oldGreen = Output;
-            Output = (float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/(float(whitelevel)*whitePoint[MinimalInd]));
+            Output = col/whitePoint[MinimalInd];
             Output*= whitePoint[1];
-            Output = mix(Output,oldGreen,clamp((1.0-oldGreen)/0.03,0.00000001,0.9999999));
+            //Output = mix(Output,oldGreen,clamp((1.0-oldGreen)/0.07,0.00000001,0.9999999));
+            //Output = mix(oldGreen,Output,1.0-clamp((1.0-oldGreen)/0.03,0.0,1.0));
+            //float k = clamp((1.0-oldGreen)/0.03,0.0,1.0);
+            //Output = Output*k + oldGreen*(1.0-k);
         }
     } else {
         if(fact.x == 0){
             balance = whitePoint.r;
-            Output = (float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel));
+            Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
         } else {
             balance = whitePoint.b;
-            Output = (float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel));
+            Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
         }
     }
     Output = clamp(Output,0.0,balance*Regeneration)/Regeneration;

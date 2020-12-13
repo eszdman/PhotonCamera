@@ -8,7 +8,6 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -18,7 +17,9 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
+    GLTexture LowPass40;
     float regenerationSense = 1.f;
+    float AecCorr = 1.f;
     public int getRotation() {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
@@ -60,6 +61,7 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
+        //add(new AEC("AEC"));
         add(new ExposureFusionFast2("ExposureFusion"));
 
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
