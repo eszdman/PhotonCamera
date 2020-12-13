@@ -216,14 +216,14 @@ public class ImageProcessing {
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
-                RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
+                /*RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
                 rawSensivity.oldWhiteLevel = levell;
                 rawSensivity.sensitivity = fakeWL/levell;
                 rawSensivity.input = images.get(i).buffer;
                 rawSensivity.Output = images.get(i).buffer;
-                rawSensivity.Run();
+                rawSensivity.Run();*/
                 Wrapper.loadFrame(images.get(i).buffer);
-                rawSensivity.close();
+                //rawSensivity.close();
             }
         }
 
@@ -246,7 +246,7 @@ public class ImageProcessing {
         if (!debugAlignment) {
             float ghosting = fakeWL/levell;
             if(PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
-            output = Wrapper.processFrame(ghosting);
+            output = Wrapper.processFrame(ghosting,((float)(fakeWL))/levell);
             debugAlignment = true;
         } else {
             output = rawPipeline.Run();

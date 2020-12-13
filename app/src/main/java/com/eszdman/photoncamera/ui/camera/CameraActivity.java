@@ -23,7 +23,7 @@ import java.util.Arrays;
 public class CameraActivity extends AppCompatActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
-    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
+    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO};
     private static int requestCount;
 
     @Override

@@ -29,14 +29,17 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.shutter_button:
-                if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
+                if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED &&
+                        PhotonCamera.getSettings().selectedMode != CameraMode.VIDEO) {
                     view.setActivated(false);
                     view.setClickable(false);
                     mCameraFragment.takePicture();
                 } else {
+                    boolean isVid = PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO;
                     if (!mCameraFragment.onUnlimited) {
                         mCameraFragment.onUnlimited = true;
-                        mCameraFragment.unlimitedStart();
+                        if(!isVid)mCameraFragment.unlimitedStart();
+                        else mCameraFragment.VideoStart();
                         view.setActivated(false);
                         view.setClickable(true);
                         mCameraFragment.takePicture();
@@ -45,12 +48,16 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                         view.setClickable(true);
                         mCameraFragment.onUnlimited = false;
                         try {
-                            mCameraFragment.mCaptureSession.abortCaptures();
-                            mCameraFragment.unlimitedEnd();
+                            if(!isVid) {
+                                mCameraFragment.mCaptureSession.abortCaptures();
+                                mCameraFragment.unlimitedEnd();
+                                mCameraFragment.createCameraPreviewSession();
+                            } else {
+                                mCameraFragment.VideoEnd();
+                            }
                         } catch (CameraAccessException e) {
                             e.printStackTrace();
                         }
-                        mCameraFragment.createCameraPreviewSession();
                     }
                 }
                 break;
@@ -113,16 +120,16 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
             case PHOTO:
             default:
                 PhotonCamera.getSettings().selectedMode = CameraMode.PHOTO;
-                //PreferenceKeys.setCameraMode(0);
                 break;
             case NIGHT:
                 PhotonCamera.getSettings().selectedMode = CameraMode.NIGHT;
-                //PreferenceKeys.setCameraMode(1);
                 break;
             case UNLIMITED:
                 PhotonCamera.getSettings().selectedMode = CameraMode.UNLIMITED;
-                //PreferenceKeys.setCameraMode(2);
                 break;
+            /*case VIDEO:
+                PhotonCamera.getSettings().selectedMode = CameraMode.VIDEO;
+                break;*/
         }
         restartCamera();
     }

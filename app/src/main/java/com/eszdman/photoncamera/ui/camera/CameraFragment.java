@@ -32,6 +32,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.*;
 import android.util.*;
@@ -66,14 +67,17 @@ import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.log.CustomLogger;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
-public class CameraFragment extends Fragment implements ProcessingEventsListener {
+public class CameraFragment extends Fragment implements ProcessingEventsListener, MediaRecorder.OnInfoListener {
 
     public static final int rawFormat = ImageFormat.RAW_SENSOR;
     public static final int yuvFormat = ImageFormat.YUV_420_888;
@@ -122,13 +126,23 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     /**
      * Timeout for the pre-capture sequence.
      */
-    private static final long PRECAPTURE_TIMEOUT_MS = 1000;
+    private static final long PRECAPTURE_TIMEOUT_MS = 200;
     private static final String ACTIVE_FRONTCAM_ID = "ACTIVE_FRONTCAM_ID"; //key for savedInstanceState
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static int mTargetFormat = rawFormat;
     public static CaptureResult mPreviewResult;
     public static CameraFragment context;
+    private CameraMode mSelectedMode;
+    /**
+     * MediaRecorder
+     */
+    private MediaRecorder mMediaRecorder;
+
+    /**
+     * Whether the app is recording video now
+     */
+    private boolean mIsRecordingVideo;
     /**
      * sActiveBackCamId is either
      * = 0 or camera_id stored in SharedPreferences in case of fresh application Start; or
@@ -328,7 +342,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                     break;
                 }
                 //TODO Check why this wrong
-                /*case STATE_WAITING_PRECAPTURE: {
+                case STATE_WAITING_PRECAPTURE: {
                     Log.v(TAG, "WAITING_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
@@ -337,9 +351,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                             aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
+                    if(PhotonCamera.getManualMode().isManualMode()) mState = STATE_WAITING_NON_PRECAPTURE;
                     break;
-                }*/
-                case STATE_WAITING_PRECAPTURE:
+                }
+                //case STATE_WAITING_PRECAPTURE:
                 case STATE_WAITING_NON_PRECAPTURE: {
                     //Log.v(TAG, "WAITING_NON_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
@@ -684,7 +699,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      */
     private void setUpCameraOutputs(int width, int height) {
         try {
-            mCameraCharacteristics = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
+            mCameraCharacteristics = mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
             mPreviewWidth = width;
             mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
@@ -831,6 +846,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 mImageReaderRaw.close();
                 mImageReaderRaw = null;
             }
+            if (null != mMediaRecorder) {
+                mMediaRecorder.release();
+                mMediaRecorder = null;
+            }
             mState = STATE_CLOSED;
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
@@ -952,6 +971,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     @SuppressLint("MissingPermission")
     public void restartCamera() {
+        mSelectedMode = PhotonCamera.getSettings().selectedMode;
         try {
             mCameraOpenCloseLock.acquire();
 
@@ -968,6 +988,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 mImageReaderPreview = null;
                 mImageReaderRaw.close();
                 mImageReaderRaw = null;
+            }
+            if (null != mMediaRecorder) {
+                mMediaRecorder.release();
+                mMediaRecorder = null;
             }
             if (null != mPreviewRequestBuilder) {
                 mPreviewRequestBuilder = null;
@@ -1069,6 +1093,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
      */
     private void openCamera(int width, int height) {
         context = this;
+        mSelectedMode = PhotonCamera.getSettings().selectedMode;
+        mMediaRecorder = new MediaRecorder();
         if (ContextCompat.checkSelfPermission(PhotonCamera.getCameraActivity(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
@@ -1091,6 +1117,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
             }
         }
+
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
@@ -1224,16 +1251,23 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         this.mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
         Camera2ApiAutoFix.Init();
         PhotonCamera.getManualMode().init();
+        if(mMediaRecorder == null) {
+            mMediaRecorder = new MediaRecorder();
+            try {
+                setUpMediaRecorder();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
-
     @SuppressLint("LongLogTag")
     public void createCameraPreviewSession() {
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
             // We configure the size of default buffer to be the size of camera preview we want.
-            Log.d("createCameraPreviewSession() mTextureView", "" + mTextureView);
-            Log.d("createCameraPreviewSession() Texture", "" + texture);
+            Log.d(TAG,"createCameraPreviewSession() mTextureView:"+mTextureView);
+            Log.d(TAG,"createCameraPreviewSession() Texture:"+texture);
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
             // This is the output Surface we need to start preview.
@@ -1251,6 +1285,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             if (mTargetFormat == mPreviewTargetFormat) {
                 surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             }
+            if(mSelectedMode == CameraMode.VIDEO){
+                surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
+            }
             mCameraDevice.createCaptureSession(surfaces,
                     new CameraCaptureSession.StateCallback() {
                         @Override
@@ -1267,8 +1304,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                                 // Flash is automatically enabled when necessary.
                                 setAutoFlash();
                                 PhotonCamera.getSettings().applyPrev(mPreviewRequestBuilder);
-
-                                //mCaptureProgressBar.setVisibility(View.INVISIBLE);
                                 // Finally, we start displaying the camera preview.
                                 if (PhotonCamera.getCameraFragment().is30Fps) {
                                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
@@ -1278,19 +1313,22 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                                             FpsRangeHigh);
                                 }
                                 mPreviewRequest = mPreviewRequestBuilder.build();
-
-                                //CameraReflectionApi.set(mPreviewRequest,CaptureRequest.CONTROL_AE_MODE,CaptureRequest.CONTROL_AE_MODE_OFF);
-                                if (!burst) {
+                                if(burst) {
+                                    switch (mSelectedMode) {
+                                        case NIGHT:
+                                        case PHOTO:
+                                            mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                            break;
+                                        case UNLIMITED:
+                                            mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
+                                            break;
+                                    }
+                                    burst = false;
+                                } else {
+                                    //if(mSelectedMode != CameraMode.VIDEO)
                                     mCaptureSession.setRepeatingRequest(mPreviewRequest,
                                             mCaptureCallback, mBackgroundHandler);
                                     unlockFocus();
-                                } else {
-                                    Log.d(TAG, "Preview, captureBurst");
-                                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
-                                        mCaptureSession.captureBurst(captures, CaptureCallback, null);
-                                    else
-                                        mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
-                                    burst = false;
                                 }
                                 if (getActivity() != null) {
                                     getActivity().runOnUiThread(() -> PhotonCamera.getTouchFocus().resetFocusCircle());
@@ -1590,6 +1628,70 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void unlimitedStart() {
         mImageProcessing.unlimitedStart();
     }
+    File vid = null;
+    public void VideoEnd() {
+        mIsRecordingVideo = false;
+        stopRecordingVideo();
+    }
+
+    public void VideoStart() {
+        mIsRecordingVideo = true;
+        mMediaRecorder.start();
+    }
+    private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
+    private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
+    private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
+    private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
+    static {
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        DEFAULT_ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+    static {
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_0, 270);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_90, 180);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
+        INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
+    }
+    private void setUpMediaRecorder() throws IOException {
+        final Activity activity = getActivity();
+        if (null == activity) {
+            return;
+        }
+        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        Date currentDate = new Date();
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+        String dateText = dateFormat.format(currentDate);
+        File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
+        vid = new File(dir.getAbsolutePath(),"VID_" + dateText+".mp4");
+        mMediaRecorder.setOutputFile(vid);
+        mMediaRecorder.setVideoEncodingBitRate(2000000);
+        mMediaRecorder.setVideoFrameRate(30);
+        mMediaRecorder.setMaxDuration(10000);
+        mMediaRecorder.setVideoSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mMediaRecorder.setOnInfoListener(this);
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        switch (mSensorOrientation) {
+            case SENSOR_ORIENTATION_DEFAULT_DEGREES:
+                mMediaRecorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
+                break;
+            case SENSOR_ORIENTATION_INVERSE_DEGREES:
+                mMediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
+                break;
+        }
+        mMediaRecorder.prepare();
+    }
+    private void stopRecordingVideo() {
+        // UI
+        mIsRecordingVideo = false;
+        triggerMediaScanner(vid);
+        mMediaRecorder.reset();
+    }
 
     void launchGallery() {
         Intent galleryIntent = new Intent(getActivity(), GalleryActivity.class);
@@ -1599,6 +1701,14 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     void launchSettings() {
         Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
         startActivity(settingsIntent);
+    }
+
+    @Override
+    public void onInfo(MediaRecorder mr, int what, int extra) {
+        if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+            Log.v(TAG, "Maximum Duration Reached, Call stopRecordingVideo()");
+            stopRecordingVideo();
+        }
     }
 
     /**

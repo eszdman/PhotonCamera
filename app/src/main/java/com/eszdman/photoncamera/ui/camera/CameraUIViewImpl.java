@@ -106,17 +106,16 @@ public final class CameraUIViewImpl implements CameraUIView {
     private void reConfigureModeViews(CameraMode input) {
         Log.d(TAG, "Current Mode:" + input.name());
         switch (input) {
+            case VIDEO:
+                mEisPhotoButton.setVisibility(View.VISIBLE);
             case UNLIMITED:
-                mEisPhotoButton.setVisibility(View.GONE);
                 mFpsButton.setVisibility(View.VISIBLE);
-                //mHdrXButton.setVisibility(View.GONE);
                 mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                 break;
             case PHOTO:
             default:
                 mEisPhotoButton.setVisibility(View.VISIBLE);
                 mFpsButton.setVisibility(View.VISIBLE);
-                //mHdrXButton.setVisibility(View.VISIBLE);
                 mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                 break;
             case NIGHT:
