@@ -12,6 +12,7 @@ public class FrameNumberSelector {
         output *= PhotonCamera.getSettings().frameCount;
         frameCount = Math.min(Math.max((int) output, 4), PhotonCamera.getSettings().frameCount);
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) frameCount = -1;
+        if(PhotonCamera.getSettings().aFDebugData) frameCount = PhotonCamera.getSettings().frameCount;
         return frameCount;
     }
 }

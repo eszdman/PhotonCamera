@@ -146,7 +146,6 @@ public class Settings {
     }*/
 
     public void applyRes(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
         if(PhotonCamera.getSettings().energySaving){
             GLDrawParams.TileSize = 8;
@@ -161,7 +160,6 @@ public class Settings {
 
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
-        captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         int[] stabilizationModes = CameraFragment.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
@@ -207,10 +205,11 @@ public class Settings {
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb, rgb, rgb);
         captureBuilder.set(TONEMAP_CURVE, tonemapCurve);*/
-        float[] apertures = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+
+        /*float[] apertures = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
         if(apertures != null && apertures.length > 1){
             captureBuilder.set(LENS_APERTURE,apertures[1]);
-        }
+        }*/
     }
 
     // =================================================================================================================

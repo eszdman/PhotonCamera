@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.gallery.viewmodel;
 
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.os.Handler;
@@ -121,7 +122,8 @@ public class ExifDialogViewModel extends AndroidViewModel {
     }
 
     private String getDateText(String savedDate) {
-        SimpleDateFormat displayedDateFormat = new SimpleDateFormat("EEEE, dd MMM, yyyy \u2022 HH:mm:ss", Locale.US);
+        @SuppressLint("SimpleDateFormat")
+        SimpleDateFormat displayedDateFormat = new SimpleDateFormat("EEEE, dd MMM, yyyy \u2022 HH:mm:ss");
         Date photoDate;
         try {
             photoDate = ParseExif.sFormatter.parse(savedDate); //parsing with the same formatter with which it was saved

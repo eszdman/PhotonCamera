@@ -74,7 +74,7 @@
     <string name="frame_count_summary">Number of image frames to be stacked</string>
     <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>
     <string name="version_title">Version</string>
-    <string name="version_summary">v%1$s\n%2$s</string>
+    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
     <string name="contributors_title">Contributors ↗</string>
     <string name="eis_toggle_text">Image Stabilization</string>
     <string name="fps_60_toggle_text">60 FPS Preview</string>
