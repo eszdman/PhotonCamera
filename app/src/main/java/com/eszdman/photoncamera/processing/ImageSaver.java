@@ -96,7 +96,8 @@ public class ImageSaver implements Runnable {
         try {
         mImage = mReader.acquireNextImage();
         } catch (Exception e){
-            mImage = mReader.acquireLatestImage();
+            mReader.close();
+            //mImage = mReader.acquireLatestImage();
         }
         if(mImage == null) return;
         int format = mImage.getFormat();

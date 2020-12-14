@@ -165,7 +165,7 @@ public class Settings {
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         int[] stabilizationModes = CameraFragment.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-        if (stabilizationModes.length > 1) {
+        if (stabilizationModes != null && stabilizationModes.length > 1) {
             captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         }
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);

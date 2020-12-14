@@ -40,7 +40,7 @@ public class IsoExpoSelector {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
         {
             mpy1 = 7000.0;
-            if(step%3 == 2) mpy = 1.1;
+            //if(step%3 == 2) mpy = 1.1;
             //mpy = mpy*1.5;
         } else {
             if(PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED){

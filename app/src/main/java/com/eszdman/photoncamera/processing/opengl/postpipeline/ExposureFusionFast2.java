@@ -25,7 +25,11 @@ public class ExposureFusionFast2 extends Node {
     }
     GLTexture exposing1 = null;
     GLTexture exposing2 = null;
+    private double dynamR = 1.9;
+    private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
+        glProg.setDefine("DR","("+dynamR+")");
+        glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -35,6 +39,8 @@ public class ExposureFusionFast2 extends Node {
         return exposing1;
     }
     GLTexture expose2(GLTexture in, float str){
+        glProg.setDefine("DR","("+dynamR+")");
+        glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -44,6 +50,8 @@ public class ExposureFusionFast2 extends Node {
         return exposing2;
     }
     GLTexture unexpose(GLTexture in,float str){
+        glProg.setDefine("DR","("+dynamR+")");
+        glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.unexpose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -66,16 +74,16 @@ public class ExposureFusionFast2 extends Node {
         GLUtils.Pyramid normalExpo = null;
         GLTexture[] wipa = null;
 
-        float fact2 = (float) (1.0f / compressor) * 6.5f;
+        float fact2 = (float) (1.0f / compressor) * 4.5f;
         for(int j = 0; j<split*split;j++) {
             int perlevel = 4;
-            int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel)) + 1;
+            int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel));
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
-            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 2, expose(input, fact2)); else
+            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 1.5, expose(input, fact2)); else
                 highExpo.fillPyramid(expose(input, fact2));
-            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 2, expose2(input, (float) (1.0f))); else
+            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 1.5, expose2(input, (float) (1.0f))); else
                 normalExpo.fillPyramid(expose2(input, (float) (1.0f)));
             if(wipa == null) wipa  = new GLTexture[normalExpo.laplace.length + 1];
 

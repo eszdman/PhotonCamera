@@ -1400,7 +1400,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             }
             // This is the CaptureRequest.Builder that we use to take a picture.
             final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            this.mCaptureSession.stopRepeating();
+            float focus = mFocus;
+            //this.mCaptureSession.stopRepeating();
             if (mTargetFormat != mPreviewTargetFormat)
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else
@@ -1432,12 +1433,12 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             mCameraUIView.setCaptureProgressMax(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
+            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             //showToast("AF:"+mFocus);
 
             //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             //mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            rebuildPreviewBuilder();
+            //rebuildPreviewBuilder();
 
             IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
             for (int i = 0; i < frameCount; i++) {

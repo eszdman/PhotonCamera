@@ -628,7 +628,7 @@ public class GLUtils {
         private GLProg glProg;
         private GLUtils glUtils;
         public int levels;
-        public int step;
+        public double step;
         private final String diffProg = "" +
                 "#version 300 es\n" +
                 "precision highp float;\n" +
@@ -735,7 +735,7 @@ public class GLUtils {
         pyramid.laplace = diff;
         return pyramid;
     }
-    public Pyramid createPyramid(int levels, int step, GLTexture input){
+    public Pyramid createPyramid(int levels, double step, GLTexture input){
         Pyramid pyramid = new Pyramid();
         pyramid.glProg = glProg;
         pyramid.glUtils = this;
@@ -752,9 +752,9 @@ public class GLUtils {
             if(autostep && i < 2) step = 2; else step = 4;
             //downscaled[i] = gaussdown(downscaled[i - 1],step);
             Point insize = downscaled[i-1].mSize;
-            if(insize.x <= step+2 || insize.y <= step+2) step = 2;
-            downscaled[i] = interpolate(downscaled[i - 1],new Point(insize.x/step,insize.y/step));
-            pyramid.sizes[i] = new Point(pyramid.sizes[i-1].x/step,pyramid.sizes[i-1].y/step);
+            if(autostep && (insize.x <= step+2 || insize.y <= step+2)) step = 2;
+            downscaled[i] = interpolate(downscaled[i - 1],new Point((int)(insize.x/step),(int)(insize.y/step)));
+            pyramid.sizes[i] = new Point((int)(pyramid.sizes[i-1].x/step),(int)(pyramid.sizes[i-1].y/step));
             Log.d("Pyramid","downscale:"+pyramid.sizes[i]);
         }
         for (int i = 0; i < upscale.length; i++) {

@@ -1,7 +1,7 @@
 #version 300 es
 
 precision highp float;
-precision mediump sampler2D;
+precision highp sampler2D;
 
 uniform sampler2D upsampled;
 uniform bool useUpsampled;
