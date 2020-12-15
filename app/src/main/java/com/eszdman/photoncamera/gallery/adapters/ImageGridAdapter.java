@@ -1,10 +1,6 @@
 package com.eszdman.photoncamera.gallery.adapters;
 
-import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import androidx.navigation.NavController;
@@ -16,20 +12,14 @@ import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.ThumbnailSquareImageViewBinding;
-import com.eszdman.photoncamera.gallery.model.GridThumbnailModel;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
     private final List<File> imageList;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
-
 
     public ImageGridAdapter(List<File> imageList) {
         this.imageList = imageList;
@@ -45,35 +35,21 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     @Override
     public void onBindViewHolder(GridItemViewHolder holder, int position) {
         final File file = imageList.get(position);
-        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            holder.bind((GridThumbnailModel) msg.obj);
-            return true;
-        });
-        executorService.execute(() -> {
-            Message msg = new Message();
-            try {
-                Bitmap preview = Glide
-                        .with(holder.itemView.getContext())
-                        .asBitmap()
-                        .load(file)
-                        .apply(new RequestOptions()
-                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                                .signature(new ObjectKey(file.getName() + file.lastModified()))
-                                .override(200, 200)
-                                .centerCrop()
-                        )
-                        .submit()
-                        .get();
-                GridThumbnailModel thumbnailModel = new GridThumbnailModel(preview);
-                if (FileUtils.getExtension(file.getName()).equalsIgnoreCase("dng")) {
-                    thumbnailModel.setFileext("RAW");
-                }
-                msg.obj = thumbnailModel;
-                handler.sendMessage(msg);
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        if (FileUtils.getExtension(file.getName()).equalsIgnoreCase("dng")) {
+            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("RAW");
+        }
+        Glide
+                .with(holder.itemView.getContext())
+                .asBitmap()
+                .load(file)
+                .apply(new RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                        .signature(new ObjectKey(file.getName() + file.lastModified()))
+                        .override(200, 200)
+                        .centerCrop()
+                )
+                .into(holder.thumbnailSquareImageViewBinding.squareImageView);
+
         holder.thumbnailSquareImageViewBinding.setClicklistener(view -> {
             Bundle b = new Bundle();
             b.putInt("imagePosition", position);
@@ -104,11 +80,6 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         public GridItemViewHolder(ThumbnailSquareImageViewBinding squareImageViewBinding) {
             super(squareImageViewBinding.getRoot());
             this.thumbnailSquareImageViewBinding = squareImageViewBinding;
-        }
-
-        public void bind(GridThumbnailModel gridThumbnailModel) {
-            thumbnailSquareImageViewBinding.setThumbnailmodel(gridThumbnailModel);
-            thumbnailSquareImageViewBinding.executePendingBindings();
         }
     }
 }

@@ -7,9 +7,6 @@
     <data>
 
         <variable
-                name="thumbnailmodel"
-                type="com.eszdman.photoncamera.gallery.model.GridThumbnailModel"/>
-        <variable
                 name="clicklistener"
                 type="android.view.View.OnClickListener"/>
     </data>
@@ -29,7 +26,6 @@
                 android:id="@+id/square_image_view"
                 android:background="@drawable/ic_photo"
                 android:scaleType="centerCrop"
-                imageFromBitmap="@{thumbnailmodel.bitmap}"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:layout_constraintStart_toStartOf="parent"
@@ -44,7 +40,6 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:textAlignment="textEnd"
-                android:text="@{thumbnailmodel.fileext}"
                 tools:text="JPG"
                 android:padding="5dp"
                 android:textSize="12sp"

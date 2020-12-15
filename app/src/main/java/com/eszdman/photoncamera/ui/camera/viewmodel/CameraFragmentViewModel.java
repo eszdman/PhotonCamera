@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.ui.camera.viewmodel;
 
+import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -7,6 +8,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.ViewModel;
 import com.eszdman.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
@@ -22,17 +25,16 @@ import java.util.concurrent.Executors;
  * Class get used to update the Models binded to the ui
  * it should not contain any ref to ui
  */
-public class CameraFragmentViewModel extends ViewModel {
+public class CameraFragmentViewModel extends AndroidViewModel {
 
     private static final String TAG = CameraFragmentViewModel.class.getSimpleName();
-    private Context context;
     //Model binded to the ui
-    private CameraFragmentModel cameraFragmentModel;
+    private final CameraFragmentModel cameraFragmentModel;
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
 
-    public void create(Context context) {
-        this.context = context;
+    public CameraFragmentViewModel(@NonNull Application application) {
+        super(application);
         cameraFragmentModel = new CameraFragmentModel();
         initOrientationEventListener();
     }
@@ -54,7 +56,7 @@ public class CameraFragmentViewModel extends ViewModel {
         final int Rotation90 = 2;
         final int Rotation180 = 3;
         final int Rotation270 = 4;
-        mCustomOrientationEventListener = new CustomOrientationEventListener(context) {
+        mCustomOrientationEventListener = new CustomOrientationEventListener(getApplication()) {
             @Override
             public void onSimpleOrientationChanged(int orientation) {
                 int rot = 0;

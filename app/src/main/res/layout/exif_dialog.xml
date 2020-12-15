@@ -134,24 +134,38 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/exif_container"
             app:layout_constraintBottom_toTopOf="@id/file_info_container">
-        <LinearLayout
-                android:id="@+id/exif_histogram"
-                android:layout_width="0dp"
-                android:layout_height="100dp"
-                android:layout_marginStart="24dp"
-                android:layout_marginEnd="24dp"
-                android:orientation="horizontal"
+        <androidx.core.widget.ContentLoadingProgressBar
+                android:id="@+id/histo_loading"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:progressDrawable="@drawable/circular_progress_bar2"
+                android:indeterminateDrawable="@drawable/circular_progress_bar2"
+                android:interpolator="@android:anim/cycle_interpolator"
+                android:indeterminate="true"
+                android:visibility="invisible"
+                tools:visibility="visible"
+                android:layout_marginTop="3dp"
+                android:layout_marginEnd="27dp"
+                app:layout_constraintVertical_bias="0"
+                app:layout_constraintHorizontal_bias="1"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                >
+                app:layout_constraintTop_toTopOf="parent"/>
+
             <com.eszdman.photoncamera.gallery.views.Histogram
                     android:id="@+id/histogram_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_width="0dp"
+                    android:layout_height="100dp"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginEnd="24dp"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
                     bindHistogram="@{exifmodel.histogramModel}"/>
-        </LinearLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
