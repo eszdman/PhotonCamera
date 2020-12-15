@@ -2,8 +2,8 @@ package com.eszdman.photoncamera.app;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.SensorManager;
-
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
@@ -11,6 +11,7 @@ import com.eszdman.photoncamera.control.Swipe;
 import com.eszdman.photoncamera.control.TouchFocus;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
+import com.eszdman.photoncamera.ui.SplashActivity;
 import com.eszdman.photoncamera.ui.camera.CameraActivity;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
@@ -105,7 +106,15 @@ public class PhotonCamera extends Application {
         mParameters = new Parameters();
     }
 
-
+    public static void restartApp() {
+        Context context = sPhotonCamera;
+        Intent intent = new Intent(context, SplashActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        context.startActivity(intent);
+        System.exit(0);
+    }
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {
         ActivityManager activityManager = (ActivityManager) mCameraActivity.SystemService(ACTIVITY_SERVICE);
