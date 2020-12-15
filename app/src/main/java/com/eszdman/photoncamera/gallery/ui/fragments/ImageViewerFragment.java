@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -72,6 +74,7 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
         fragmentGalleryImageViewerBinding.setOnGallery(this::onGalleryButtonClick);
         fragmentGalleryImageViewerBinding.setOnEdit(this::onEditButtonClick);
+        fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
     }
 
     @Override
@@ -155,7 +158,7 @@ public class ImageViewerFragment extends Fragment {
                     adapter = new ImageAdapter(allFiles);
                     viewPager.setAdapter(adapter);
                     //auto scroll to the next photo
-                    viewPager.setCurrentItem(position,true);
+                    viewPager.setCurrentItem(position, true);
                     updateExif();
                     Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT)
                             .show();
@@ -190,5 +193,16 @@ public class ImageViewerFragment extends Fragment {
             //update values for exif dialog
             exifDialogViewModel.updateModel(currentFile);
         }
+    }
+
+    private void isHistogramLoading(boolean loading) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (loading) {
+                fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.VISIBLE);
+            } else {
+                fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.INVISIBLE);
+            }
+        });
+
     }
 }
