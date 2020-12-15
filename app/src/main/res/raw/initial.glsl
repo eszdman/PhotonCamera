@@ -1,11 +1,10 @@
 #version 300 es
 precision highp float;
-precision mediump sampler2D;
+precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
 uniform sampler2D LookupTable;
 uniform vec3 neutralPoint;
-uniform float Regeneration;
 uniform float gain;
 uniform float saturation;
 uniform int yOffset;
@@ -27,6 +26,7 @@ out vec3 Output;
 #define x2 -3.1643f
 #define x3 1.2899f
 #import coords
+#import interpolation
 float gammaEncode2(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
 }
@@ -74,8 +74,8 @@ vec3 lookup(in vec3 textureColor) {
     texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
     texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
 
-    highp vec3 newColor1 = texture(LookupTable, texPos1).rgb;
-    highp vec3 newColor2 = texture(LookupTable, texPos2).rgb;
+    highp vec3 newColor1 = textureBicubicHardware(LookupTable, texPos1).rgb;
+    highp vec3 newColor2 = textureBicubicHardware(LookupTable, texPos2).rgb;
 
     highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
     return newColor;
@@ -181,10 +181,10 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 }
 vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
-    pRGB = sensorToIntermediate*pRGB;
+    pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
     //pRGB = tonemap(pRGB);
-    pRGB = gammaCorrectPixel2(clamp(intermediateToSRGB*pRGB,0.0,1.0));
+    //pRGB = gammaCorrectPixel2(pRGB);
     //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
@@ -224,7 +224,6 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    sRGB*=Regeneration;
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);
@@ -232,6 +231,6 @@ void main() {
     br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
     sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
-    sRGB = clamp(sRGB,0.04,1.0);
+    sRGB = clamp(sRGB,0.00,1.0);
     Output = sRGB;
 }

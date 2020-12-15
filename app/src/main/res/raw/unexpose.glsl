@@ -24,4 +24,5 @@ void main() {
     br+=DH;
     //result = clamp(result*neutralPoint,vec3(0.0),neutralPoint);
     result*=neutralPoint*factor*br;
+    result = clamp(result,0.0,1.0);
 }

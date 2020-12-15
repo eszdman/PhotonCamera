@@ -1,12 +1,12 @@
 vec4 cubic(float x)
 {
-    float x2 = x * x;
-    float x3 = x2 * x;
+    float x22 = x * x;
+    float x33 = x22 * x;
     vec4 w;
-    w.x =   -x3 + 3.0*x2 - 3.0*x + 1.0;
-    w.y =  3.0*x3 - 6.0*x2       + 4.0;
-    w.z = -3.0*x3 + 3.0*x2 + 3.0*x + 1.0;
-    w.w =  x3;
+    w.x =   -x33 + 3.0*x22 - 3.0*x + 1.0;
+    w.y =  3.0*x33 - 6.0*x22       + 4.0;
+    w.z = -3.0*x33 + 3.0*x22 + 3.0*x + 1.0;
+    w.w =  x33;
     return w / 6.0;
 }
 vec4 textureLinear (sampler2D sampler, vec2 pixel) {

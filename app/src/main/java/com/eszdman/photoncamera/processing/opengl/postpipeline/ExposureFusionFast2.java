@@ -25,7 +25,7 @@ public class ExposureFusionFast2 extends Node {
     }
     GLTexture exposing1 = null;
     GLTexture exposing2 = null;
-    private double dynamR = 1.9;
+    private double dynamR = 2.3;
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DR","("+dynamR+")");
@@ -73,16 +73,14 @@ public class ExposureFusionFast2 extends Node {
         GLUtils.Pyramid highExpo = null;
         GLUtils.Pyramid normalExpo = null;
         GLTexture[] wipa = null;
-
-        float fact2 = (float) (1.0f / compressor) * 4.5f;
         for(int j = 0; j<split*split;j++) {
             int perlevel = 4;
             int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel));
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
-            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 1.5, expose(input, fact2)); else
-                highExpo.fillPyramid(expose(input, fact2));
+            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 1.5, expose(input, 4.5f)); else
+                highExpo.fillPyramid(expose(input, 4.5f));
             if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 1.5, expose2(input, (float) (1.0f))); else
                 normalExpo.fillPyramid(expose2(input, (float) (1.0f)));
             if(wipa == null) wipa  = new GLTexture[normalExpo.laplace.length + 1];
@@ -117,7 +115,7 @@ public class ExposureFusionFast2 extends Node {
                 glProg.drawBlocks(wipa[i]);
                 //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
             }
-            GLTexture unexposed = unexpose(wipa[0], (float) PhotonCamera.getSettings().gain*((PostPipeline)basePipeline).AecCorr/2.f);
+            GLTexture unexposed = unexpose(wipa[0], 1.4f*(float)PhotonCamera.getSettings().gain*((PostPipeline)basePipeline).regenerationSense*((PostPipeline)basePipeline).AecCorr/2.f);
             GLTexture out = basePipeline.getMain();
             glUtils.conglby(unexposed,out,prevOut,split,j);
             prevOut = out;

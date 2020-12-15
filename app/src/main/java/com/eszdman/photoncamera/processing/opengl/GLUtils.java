@@ -324,9 +324,6 @@ public class GLUtils {
         //return blur(out,k-1);
         return out;
     }
-    public GLTexture interpolate(GLTexture in,GLTexture out, int k){
-        return interpolate(in,out,k);
-    }
     public GLTexture interpolate(GLTexture in, int k){
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);

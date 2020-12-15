@@ -28,7 +28,7 @@ void main() {
     float mask = 0.0;
     float Z = 0.0;
     float sigX = 0.9;
-    float sigY = 0.25;
+    float sigY = 0.2;
     vec3 final_colour = vec3(0.0);
     for (int j = 0; j <= kSize; ++j)
     {
@@ -42,11 +42,10 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            cc = vec3(textureBicubic(InputBuffer, (gl_FragCoord.xy+vec2(i,j)*1.1)/vec2(insize)).rgb);
+            cc = vec3(textureBicubic(InputBuffer, (gl_FragCoord.xy+vec2(i,j)*0.9)/vec2(insize)).rgb);
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;
-
         }
     }
     if (Z < 0.0001f) {

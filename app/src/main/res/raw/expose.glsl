@@ -39,10 +39,9 @@ void main() {
     result/=neutralPoint;
     float br = (result.r+result.g+result.b)/3.0;
     result/=br;
-    br = clamp(br,0.0,1.0);
-    if(br > 0.93 && factor <= 1.1){
+    /*if(br > 0.93 && factor <= 1.1){
         result = mix(vec3((result.r+result.g+result.b)/3.0),result,(1.0-br)/0.03);
-    }
+    }*/
     br = gammaEncode(clamp(br-DH,0.0,1.0));
 
     //br = clamp(br,0.0,1.0);

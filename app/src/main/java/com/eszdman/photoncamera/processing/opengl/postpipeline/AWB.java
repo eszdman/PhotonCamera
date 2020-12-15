@@ -149,7 +149,7 @@ public class AWB extends Node {
             short k = (short) (getGlobalId(2)+40);
             short min = (short) Math.min(Math.min(input[0][i], input[1][j]), input[2][k]);
             float mpy = (i+j+k)*1.5f/(3.f*240.f);
-            if (min*mpy > maxHistH[0]) {
+            if (min*(mpy+0.5f) > maxHistH[0]) {
                 maxHistH[0] = min;
                 redVector[0] = i;
                 greenVector[0] = j;
@@ -161,6 +161,7 @@ public class AWB extends Node {
         Log.v("AWB", "Color correction vector original:" + redVector[0] + " ," + greenVector[0] + " ," + blueVector[0]);
 
         float mean = (float) (redVector[0] + greenVector[0] + blueVector[0]) / 3;
+        if(mean <= greenVector[0])
         mean = (float)(greenVector[0]);
         float[] output = new float[3];
         output[0] = blueVector[0] / mean;
@@ -292,7 +293,7 @@ public class AWB extends Node {
         r0.close();
         r1.close();
         basePipeline.texnum = 1;
-        float[] CCV = CCVAccel(ChromaHistogram(preview));
+        float[] CCV = CCV(ChromaHistogram(preview));
         //CCV = CCVAEC(Histogram(preview),CCV);
         preview.recycle();
         WorkingTexture = glUtils.mpy(previousNode.WorkingTexture,CCV,basePipeline.getMain());

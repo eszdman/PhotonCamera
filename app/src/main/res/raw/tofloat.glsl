@@ -21,10 +21,10 @@ void main() {
         Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
         float col = float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/float(whitelevel);
         //Green channel regeneration
-        if(Output > 0.93 && col > whitePoint[MinimalInd]){
+        if(Output > 0.999 && col > whitePoint[MinimalInd]){
             float oldGreen = Output;
             Output = col/whitePoint[MinimalInd];
-            Output*= whitePoint[1];
+            //Output*= whitePoint[1];
             //Output = mix(Output,oldGreen,clamp((1.0-oldGreen)/0.07,0.00000001,0.9999999));
             //Output = mix(oldGreen,Output,1.0-clamp((1.0-oldGreen)/0.03,0.0,1.0));
             //float k = clamp((1.0-oldGreen)/0.03,0.0,1.0);
