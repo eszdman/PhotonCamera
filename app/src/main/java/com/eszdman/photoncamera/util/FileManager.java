@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.util;
 import android.os.Environment;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import com.eszdman.photoncamera.util.log.Logger;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -16,7 +15,7 @@ public class FileManager {
     private static final List<String> ACCEPTED_FILES_EXTENSIONS = Arrays.asList("JPG", "JPEG", "DNG");
     private static final FilenameFilter FILENAME_FILTER = (dir, name) -> {
         int index = name.lastIndexOf(46);
-        return ACCEPTED_FILES_EXTENSIONS.contains(-1 == index ? "" : name.substring(index + 1).toUpperCase());
+        return ACCEPTED_FILES_EXTENSIONS.contains(-1 == index ? "" : name.substring(index + 1).toUpperCase()) && new File(dir, name).length() > 0;
     };
     public static File sEXTERNAL_DIR = Environment.getExternalStorageDirectory();
     public static File sPHOTON_RAW_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera///Raw//");
