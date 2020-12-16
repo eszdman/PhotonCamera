@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.DialogFragment;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -19,6 +20,8 @@ import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
+import com.eszdman.photoncamera.ui.settings.custompreferences.BackupPreferences;
+import com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -174,5 +177,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         return true;
     }
 
+    @Override
+    public void onDisplayPreferenceDialog(Preference preference) {
+        if (preference instanceof ResetPreferences) {
+            DialogFragment dialogFragment = ResetPreferences.Dialog.newInstance(preference);
+            dialogFragment.setTargetFragment(this, 0);
+            dialogFragment.show(getParentFragmentManager(), null);
+        } else {
+            super.onDisplayPreferenceDialog(preference);
+        }
+    }
 
 }

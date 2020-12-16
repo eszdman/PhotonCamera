@@ -43,14 +43,14 @@ public final class CameraManager2 {
     }
 
     private void init(CameraManager cameraManager) {
-        if (!mSettingsManager.isSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY)) {
+        if (!mSettingsManager.isSet(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY)) {
             scanAllCameras(cameraManager);
             save();
         } else {
-            mAllCameraIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, null);
-            mFrontIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, null);
-            mBackIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, null);
-            mFocals = mSettingsManager.getStringSet(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue,FOCAL_IDS_KEY,null);
+            mAllCameraIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, null);
+            mFrontIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, null);
+            mBackIDs = mSettingsManager.getStringSet(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, null);
+            mFocals = mSettingsManager.getStringSet(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue,FOCAL_IDS_KEY,null);
             String[] mFocalL = mFocals.toArray(new String[0]);
             for(int i =0; i<mFocalL.length;i++){
                 String id,focal;
@@ -103,11 +103,11 @@ public final class CameraManager2 {
     }
 
     private void save() {
-        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, CAMERA_COUNT_KEY, mAllCameraIDs.size());
-        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
-        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, mBackIDs);
-        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, mFrontIDs);
-        mSettingsManager.set(PreferenceKeys.Preference.PREFERENCE_FILE_NAME.mValue, FOCAL_IDS_KEY, mFocals);
+        mSettingsManager.set(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, CAMERA_COUNT_KEY, mAllCameraIDs.size());
+        mSettingsManager.set(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, mBackIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, mFrontIDs);
+        mSettingsManager.set(PreferenceKeys.Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, FOCAL_IDS_KEY, mFocals);
     }
 
     //Getters===========================================================================================================
