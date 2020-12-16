@@ -70,7 +70,7 @@ public class Equalization extends Node {
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
         EqualizeF(Histogram(preview));
-        Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.lut);
+        Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.lut2);
         GLTexture lutT = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
 
         float eq = EqualizeF(Histogram(preview));

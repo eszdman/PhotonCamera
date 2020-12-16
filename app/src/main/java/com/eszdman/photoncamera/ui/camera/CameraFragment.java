@@ -1636,6 +1636,12 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
     public void VideoStart() {
         mIsRecordingVideo = true;
+        Date currentDate = new Date();
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+        String dateText = dateFormat.format(currentDate);
+        File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
+        vid = new File(dir.getAbsolutePath(),"VID_" + dateText+".mp4");
+        mMediaRecorder.setOutputFile(vid);
         mMediaRecorder.start();
     }
     private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
@@ -1662,12 +1668,6 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        Date currentDate = new Date();
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
-        String dateText = dateFormat.format(currentDate);
-        File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
-        vid = new File(dir.getAbsolutePath(),"VID_" + dateText+".mp4");
-        mMediaRecorder.setOutputFile(vid);
         mMediaRecorder.setVideoEncodingBitRate(2000000);
         mMediaRecorder.setVideoFrameRate(30);
         mMediaRecorder.setMaxDuration(10000);

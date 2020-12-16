@@ -37,6 +37,6 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     vec3 dLook = lookup(sRGB);
-    Output = mix(sRGB-dLook,sRGB,Equalize);
+    Output = mix(dLook,sRGB,Equalize);
     Output = clamp(Output,0.0,1.0);
 }
