@@ -93,8 +93,9 @@
     <ProgressBar
             android:id="@+id/capture_progress_bar"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-            android:layout_width="0dp"
-            android:layout_height="150dp"
+            android:layout_width="@dimen/capture_progress_circle_size"
+            android:layout_height="@dimen/capture_progress_circle_size"
+            tools:progress="75"
             app:layout_constraintDimensionRatio="1:1"
             android:indeterminate="false"
             android:max="100"
