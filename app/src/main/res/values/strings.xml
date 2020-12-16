@@ -86,4 +86,5 @@
     <string name="app_will_restart">App Will Restart</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
     <string name="restore">Restore</string>
+    <string name="empty_file_name_error">File name cannot be an empty string</string>
 </resources>

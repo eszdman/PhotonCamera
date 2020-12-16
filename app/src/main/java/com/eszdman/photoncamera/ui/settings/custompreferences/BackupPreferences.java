@@ -42,11 +42,14 @@ public class BackupPreferences extends EditTextPreference {
             ).toFile();
             File toSave = new File(FileManager.sPHOTON_DIR, newValue.toString().concat(".xml"));
             try {
+                if (newValue.equals("")) {
+                    throw new IOException(getContext().getString(R.string.empty_file_name_error));
+                }
                 FileUtils.copyFile(shared_prefs_file, toSave);
                 Toast.makeText(context, "Saved:" + toSave, Toast.LENGTH_LONG).show();
             } catch (IOException e) {
                 e.printStackTrace();
-                Toast.makeText(context, "Failed!", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             }
             return true;
         });
