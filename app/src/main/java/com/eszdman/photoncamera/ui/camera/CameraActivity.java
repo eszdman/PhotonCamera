@@ -8,10 +8,10 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.app.base.BaseActivity;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
@@ -20,7 +20,7 @@ import com.manual.ManualMode;
 import java.util.Arrays;
 
 
-public class CameraActivity extends AppCompatActivity {
+public class CameraActivity extends BaseActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
     private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO};
@@ -28,7 +28,6 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        PreferenceKeys.setActivityTheme(CameraActivity.this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

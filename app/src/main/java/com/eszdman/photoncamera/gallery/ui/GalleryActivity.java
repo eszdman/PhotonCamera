@@ -2,12 +2,12 @@ package com.eszdman.photoncamera.gallery.ui;
 
 import android.os.Bundle;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.databinding.DataBindingUtil;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.app.base.BaseActivity;
 import com.eszdman.photoncamera.databinding.ActivityGalleryBinding;
 
-public class GalleryActivity extends AppCompatActivity {
+public class GalleryActivity extends BaseActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
