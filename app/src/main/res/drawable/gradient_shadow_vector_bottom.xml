@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:width="50dp"
+        android:height="50dp"
+        android:viewportWidth="120.0"
+        android:viewportHeight="120.0">
+
+    <path
+            android:name="square_shape"
+            android:pathData="m 0,0 c 40,0 80,0 120,0 0,40 0,80 0,120 -40,0 -80,0 -120,0 C 0,80 0,40 0,0 Z"
+            android:fillColor="@color/gradient_bottom_shadow_color"
+            />
+
+</vector>

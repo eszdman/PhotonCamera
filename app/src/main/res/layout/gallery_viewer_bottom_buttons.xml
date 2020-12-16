@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+        <variable
+                name="on_share"
+                type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="on_exif"
+                type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="on_delete"
+                type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="on_edit"
+                type="android.view.View.OnClickListener"/>
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottom_controls_container"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:background="@drawable/gradient_shadow_vector_bottom"
+            >
+
+        <Button
+                android:id="@+id/delete"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:text=""
+                android:background="@drawable/ic_delete"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/exif"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".6"
+                android:onClick="@{on_delete}"
+                />
+
+        <Button
+                android:id="@+id/exif"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:text=""
+                android:background="@drawable/ic_info"
+                app:layout_constraintStart_toEndOf="@id/edit"
+                app:layout_constraintEnd_toStartOf="@id/delete"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".6"
+                android:onClick="@{on_exif}"
+                />
+
+        <Button
+                android:id="@+id/edit"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:text=""
+                android:background="@drawable/ic_edit"
+                app:layout_constraintStart_toEndOf="@+id/share"
+                app:layout_constraintEnd_toStartOf="@id/exif"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".6"
+                android:onClick="@{on_edit}"
+                />
+
+        <Button
+                android:id="@+id/share"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:text=""
+                android:background="@drawable/ic_share"
+                app:layout_constraintEnd_toStartOf="@+id/edit"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias=".6"
+                android:onClick="@{on_share}"
+                />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
