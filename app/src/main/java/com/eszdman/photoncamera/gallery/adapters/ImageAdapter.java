@@ -88,6 +88,7 @@ public class ImageAdapter extends PagerAdapter {
             setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
             setQuickScaleEnabled(true);
             setEagerLoadingEnabled(false);
+            setDoubleTapZoomDuration(200);
         }
     }
 }

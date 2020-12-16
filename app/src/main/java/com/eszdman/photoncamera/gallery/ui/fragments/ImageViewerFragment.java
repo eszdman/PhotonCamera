@@ -68,12 +68,12 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void setClickListeners() {
-        fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
-        fragmentGalleryImageViewerBinding.setOnDelete(this::onDeleteButtonClick);
-        fragmentGalleryImageViewerBinding.setOnExif(this::onExifButtonClick);
-        fragmentGalleryImageViewerBinding.setOnShare(this::onShareButtonClick);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnShare(this::onShareButtonClick);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnDelete(this::onDeleteButtonClick);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnExif(this::onExifButtonClick);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnShare(this::onShareButtonClick);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnEdit(this::onEditButtonClick);
         fragmentGalleryImageViewerBinding.setOnGallery(this::onGalleryButtonClick);
-        fragmentGalleryImageViewerBinding.setOnEdit(this::onEditButtonClick);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
     }
 

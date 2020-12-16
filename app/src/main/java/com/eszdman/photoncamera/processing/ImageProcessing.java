@@ -88,6 +88,7 @@ public class ImageProcessing {
             lock = true;
 //        PhotonCamera.getParameters().path = ImageSaver.imageFileToSave.getAbsolutePath();
             unlimitedCounter = 0;
+            processingEventsListener.onProcessingStarted("Unlimited Processing Started");
             averageRaw.FinalScript();
             ByteBuffer unlimitedBuffer = averageRaw.Output;
             averageRaw.close();
@@ -112,7 +113,7 @@ public class ImageProcessing {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
+            processingEventsListener.onProcessingFinished("Unlimited Processing Finished");
             processingEventsListener.onImageSaved(ImageSaver.imageFileToSave);
         }
         input.close();

@@ -258,11 +258,11 @@ public class PreferenceKeys {
     }
 
     public static String getCameraID() {
-        return PhotonCamera.getSettingsManager().getString(current_scope, Preference.CAMERA_ID);
+        return PhotonCamera.getSettingsManager().getString(Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, Preference.CAMERA_ID);
     }
 
     public static void setCameraID(String value) {
-        PhotonCamera.getSettingsManager().set(current_scope, Preference.CAMERA_ID, value);
+        PhotonCamera.getSettingsManager().set(Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, Preference.CAMERA_ID, value);
     }
 
     /*public static int getCameraMode() {
@@ -334,7 +334,7 @@ public class PreferenceKeys {
         CAMERA_MODE("pref_camera_mode"),
 
         /* CameraManager 2 keys */
-        PREFERENCE_FILE_NAME("_cameras"),
+        CAMERAS_PREFERENCE_FILE_NAME("_cameras"),
         ALL_CAMERA_IDS_KEY("all_camera_ids"),
         FRONT_IDS_KEY("front_camera_ids"),
         BACK_IDS_KEY("back_camera_ids"),

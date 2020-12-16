@@ -249,6 +249,26 @@
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
+            android:key="pref_category_backup_restore"
+            android:title="@string/backup_restore">
+        <com.eszdman.photoncamera.ui.settings.custompreferences.BackupPreferences
+                android:icon="@drawable/ic_save"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/backup"
+                android:key="pref_backup_preferences_key"/>
+        <com.eszdman.photoncamera.ui.settings.custompreferences.RestorePreference
+                android:icon="@drawable/ic_restore"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/restore"
+                android:key="pref_restore_preferences_key"/>
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences
+                android:icon="@drawable/ic_refresh"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/reset"
+                android:key="pref_reset_preferences_key"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+            android:layout="@layout/preference_category_layout"
             android:key="pref_category_about"
             android:title="@string/about">
         <PreferenceScreen

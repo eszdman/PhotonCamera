@@ -1581,7 +1581,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onProcessingStarted(Object obj) {
         log("Started: " + obj);
         if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> mCameraUIView.setProcessingProgressBarIndeterminate(true));
+            getActivity().runOnUiThread(() -> {
+                mCameraUIView.setProcessingProgressBarIndeterminate(true);
+                mCameraUIView.activateShutterButton(false);
+            });
         }
     }
 

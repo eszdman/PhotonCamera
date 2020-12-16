@@ -79,4 +79,12 @@
     <string name="eis_toggle_text">Image Stabilization</string>
     <string name="fps_60_toggle_text">60 FPS Preview</string>
     <string name="quad_bayer_toggle_text">Quad Bayer Res(48/64MP)</string>
+    <string name="backup_restore"><![CDATA[Backup & Restore Settings]]></string>
+    <string name="reset">Reset All</string>
+    <string name="reset_preferences_warning">This will reset all settings to their default values. Continue?</string>
+    <string name="backup">Backup</string>
+    <string name="app_will_restart">App Will Restart</string>
+    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
+    <string name="restore">Restore</string>
+    <string name="empty_file_name_error">File name cannot be an empty string</string>
 </resources>

@@ -10,23 +10,7 @@
         <import type="android.view.View"/>
 
         <variable
-                name="on_share"
-                type="android.view.View.OnClickListener"/>
-
-        <variable
-                name="on_exif"
-                type="android.view.View.OnClickListener"/>
-
-        <variable
-                name="on_delete"
-                type="android.view.View.OnClickListener"/>
-
-        <variable
                 name="on_gallery"
-                type="android.view.View.OnClickListener"/>
-
-        <variable
-                name="on_edit"
                 type="android.view.View.OnClickListener"/>
 
         <variable
@@ -61,59 +45,6 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 android:onClick="@{on_gallery}"
                 />
-        <Button
-                android:id="@+id/delete"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:text=""
-                android:background="@drawable/ic_delete"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/exif"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".95"
-                android:onClick="@{on_delete}"
-                />
-
-        <Button
-                android:id="@+id/exif"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:text=""
-                android:background="@drawable/ic_info"
-                app:layout_constraintStart_toEndOf="@id/edit"
-                app:layout_constraintEnd_toStartOf="@id/delete"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".95"
-                android:onClick="@{on_exif}"
-                />
-        <Button
-                android:id="@+id/edit"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:text=""
-                android:background="@drawable/ic_edit"
-                app:layout_constraintStart_toEndOf="@+id/share"
-                app:layout_constraintEnd_toStartOf="@id/exif"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".95"
-                android:onClick="@{on_edit}"
-                />
-        <Button
-                android:id="@+id/share"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:text=""
-                android:background="@drawable/ic_share"
-                app:layout_constraintEnd_toStartOf="@+id/edit"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".95"
-                android:onClick="@{on_share}"
-                />
 
         <include
                 layout="@layout/exif_dialog"
@@ -127,6 +58,18 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_bias="0.20"
                 tools:visibility="visible"/>
+
+        <include
+                layout="@layout/gallery_viewer_bottom_buttons"
+                android:id="@+id/bottom_controls_container"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="1"
+                />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

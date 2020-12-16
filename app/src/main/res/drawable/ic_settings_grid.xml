@@ -1,6 +1,6 @@
 <!-- drawable/grid.xml -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-        android:tint="?iconTint"
+        android:tint="?colorControlNormal"
         android:height="24dp"
         android:width="24dp"
         android:viewportWidth="24"
