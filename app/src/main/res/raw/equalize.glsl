@@ -6,6 +6,9 @@ uniform sampler2D InputBuffer;
 uniform sampler2D LookupTable;
 out vec3 Output;
 #import interpolation
+float Encode(float x) {
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
+}
 vec3 lookup(in vec3 textureColor) {
     textureColor = clamp(textureColor, 0.0, 1.0);
 
@@ -37,6 +40,10 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     vec3 dLook = lookup(sRGB);
+    //float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
+    //br = clamp(br,0.0,1.0);
+    //vec3 exp = sRGB/br;
     Output = mix(dLook,sRGB,Equalize);
+    //Output = mix(sRGB,exp*Encode(br),0.5 + Equalize*0.5);
     Output = clamp(Output,0.0,1.0);
 }

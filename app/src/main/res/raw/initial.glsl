@@ -27,8 +27,16 @@ out vec3 Output;
 #define x3 1.2899f
 #import coords
 #import interpolation
+//float gammaEncode2(float x) {
+//    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
+//}
+/*float gammaEncode2(float x) {
+    return x <= 0.0031308f
+    ? x * 12.92f
+    : 1.055f * pow(x, 0.4166667f) - 0.055f;
+}*/
 float gammaEncode2(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
+    return 1.055 * pow(x, 1.0/1.8) - 0.055;
 }
 float gammaEncode3(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
@@ -184,7 +192,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
     //pRGB = tonemap(pRGB);
-    //pRGB = gammaCorrectPixel2(pRGB);
+    pRGB = gammaCorrectPixel2(pRGB);
     //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
@@ -229,7 +237,7 @@ void main() {
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
     br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
-    sRGB = lookup(sRGB);
+    //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
     sRGB = clamp(sRGB,0.00,1.0);
     Output = sRGB;
