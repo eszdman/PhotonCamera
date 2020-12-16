@@ -76,9 +76,9 @@ public class Equalization extends Node {
         float eq = EqualizeF(Histogram(preview));
         eq = (2.f+eq)/(3.f);
         eq-=0.85;
-        eq*=2.0;
+        eq*=2.3;
         eq = Math.max(0.4f,eq);
-        eq = Math.min(2.1f,eq);
+        eq = Math.min(2.5f,eq);
         Log.d(Name,"Equalizek:"+eq);
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
