@@ -63,14 +63,14 @@ public class PostPipeline extends GLBasePipeline {
          */
         //add(new AEC("AEC"));
         add(new ExposureFusionFast2("ExposureFusion"));
-
+        if(PhotonCamera.getSettings().hdrxNR) {
+            add(new SmartNR("SmartNR"));
+        }
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         add(new Initial(R.raw.initial,"Initial"));
         add(new AWB(0,"AWB"));
         add(new Equalization(0,"Equalization"));
-        if(PhotonCamera.getSettings().hdrxNR) {
-            add(new SmartNR("SmartNR"));
-        }
+
         //if(PhotonCamera.getParameters().focalLength <= 3.0)
         //add(new LensCorrection());
         add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));

@@ -11,6 +11,9 @@ import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
+import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
@@ -79,13 +82,16 @@ public class Equalization extends Node {
         eq*=2.3;
         eq = Math.max(0.4f,eq);
         eq = Math.min(2.5f,eq);
+        GLTexture postCurve = new GLTexture(new Point(6,1),new GLFormat(GLFormat.DataType.FLOAT_16), FloatBuffer.wrap(new float[]{0f,0.12f,0.4f,0.60f,0.78f,1.f}),GL_LINEAR,GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizek:"+eq);
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
         glProg.setTexture("LookupTable",lutT);
+        glProg.setTexture("PostCurve",postCurve);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture);
         preview.recycle();
+        postCurve.close();
         lutT.close();
         lutbm.recycle();
         glProg.closed = true;

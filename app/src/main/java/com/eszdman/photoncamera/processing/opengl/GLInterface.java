@@ -82,8 +82,11 @@ public class GLInterface {
                         id = R.raw.import_interpolation;
                         headers+="vec4 cubic(float);";
                         headers+="vec4 textureLinear(sampler2D, vec2);";
+                        headers+="vec4 textureLinear1D(sampler2D, vec2);";
                         headers+="vec4 textureBicubic(sampler2D, vec2);";
                         headers+="vec4 textureBicubicHardware(sampler2D, vec2);";
+                        headers+="vec4 textureCubic(sampler2D, vec2);";
+                        headers+="vec4 textureCubicHardware(sampler2D, vec2);";
                         break;
                     case "#importloadbayer":
                         id = R.raw.import_loadbayer;

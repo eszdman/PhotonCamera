@@ -4,6 +4,7 @@ precision highp float;
 uniform float Equalize;
 uniform sampler2D InputBuffer;
 uniform sampler2D LookupTable;
+uniform sampler2D PostCurve;
 out vec3 Output;
 #import interpolation
 float Encode(float x) {
@@ -44,6 +45,8 @@ void main() {
     //br = clamp(br,0.0,1.0);
     //vec3 exp = sRGB/br;
     Output = mix(dLook,sRGB,Equalize);
-    //Output = mix(sRGB,exp*Encode(br),0.5 + Equalize*0.5);
-    Output = clamp(Output,0.0,1.0);
+    Output = clamp(Output,0.0001,1.0);
+    //float pcurve = textureCubic(PostCurve,vec2((Output.r+Output.g+Output.b)/3.0,0.5)).r;
+    //Output.rgb/=(Output.r+Output.g+Output.b)/3.0;
+    //Output = clamp(Output*pcurve,0.0,1.0);
 }

@@ -54,5 +54,7 @@ void main() {
         mask = luminocity(clamp(final_colour/Z,0.0,1.0));
     }
     mask = luminocity(Output)-mask;
-    Output+=mask*((strength)*4.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
+    float dstrength = strength;
+    //dstrength*=clamp(1.0 - abs(luminocity(Output)-0.5)*7.7+3.1 ,0.0,1.0);
+    Output+=mask*((dstrength)*4.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
 }
