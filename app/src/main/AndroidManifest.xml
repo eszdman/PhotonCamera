@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -51,7 +52,7 @@
         <activity
             android:name=".ui.camera.CameraActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
-        <activity android:name=".gallery.GalleryActivity" />
+        <activity android:name=".gallery.ui.GalleryActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

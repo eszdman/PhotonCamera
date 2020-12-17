@@ -1,58 +1,90 @@
 #version 300 es
 precision mediump float;
 precision mediump sampler2D;
-precision mediump usampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D MainBuffer;
 uniform sampler2D AlignVectors;
 uniform int prevLayerScale;
 uniform int yOffset;
-out ivec2 Output;
-#define TILESIZE (16)
-#define oversizek (1)
-#define MAXX (4*4)
-#define MAXY (3*4)
+out vec2 Output;
+#define TILESIZE (48)
+#define SCANSIZE (48)
+#define TILESCALE (TILESIZE/2)
+#define OFFSET (0)
+#define MAXX (4*2)
+#define MAXY (3*2)
 #define FLT_MAX 3.402823466e+38
-
+#define M_PI 3.1415926535897932384626433832795
+#define distribute(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
+//#define distribute(x,dev,sigma) (abs(x-dev))
+//#define getVal(somevec) (somevec.r+somevec.g+somevec.b-somevec.a)
+#import coords
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     ivec2 prevAlign = ivec2(0,0);
     if (prevLayerScale != 0) {
-        prevAlign = ivec2(texelFetch(AlignVectors, xy / prevLayerScale, 0).xy)*(prevLayerScale);
+        prevAlign = ivec2(vec2(0.5)-texelFetch(AlignVectors, xy / prevLayerScale, 0).rg*float(TILESIZE*16))*prevLayerScale;
     }
-    ivec2 xyFrame = xy*TILESIZE;
+    ivec2 xyFrame = ivec2(gl_FragCoord.xy*float(TILESCALE));
     float dist = 0.0;
     float mindist = FLT_MAX;
     ivec2 outalign = ivec2(0,0);
     ivec2 shift = ivec2(0,0);
+    ivec4 inbounds = ivec4(0,0,ivec2(textureSize(InputBuffer, 0)));
     vec4 in1;
     vec4 in2;
-    int cnt = 0;
+    float cachex[SCANSIZE+1];
+    float cachey[SCANSIZE+1];
+    for (int i=-SCANSIZE/2;i<SCANSIZE/2;i++){
+        cachex[i+SCANSIZE/2] = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(i, 0)),inbounds), 0).a;
+        cachey[i+SCANSIZE/2] = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(0, i)),inbounds), 0).a;
+    }
     for(int h = -MAXY;h<MAXY;h++){
         for(int w = -MAXX;w<MAXX;w++){
-            shift = ivec2(w,h)+prevAlign;
-            for(int h0=-2;h0<TILESIZE;h0++){
-                for(int w0=-2;w0<TILESIZE;w++){
-                    in1 = texelFetch(MainBuffer, (xyFrame+ivec2(w0, h0)), 0);
-                    //if(length(in1) < 1.0/1000.0) continue;
-                    in2 = texelFetch(InputBuffer, (xyFrame+shift+ivec2(w0, h0)), 0);
-                    in1 = abs((in1)-(in2));
-                    dist+=(in1.r+in1.g+in1.b)+(in1.a);
-                    cnt++;
+            shift = ivec2(w, h)+prevAlign-OFFSET;
+            /*for(int h0= -SCANSIZE/2;h0<SCANSIZE/2;h0++){
+                for(int w0= -SCANSIZE/2;w0<SCANSIZE/2;w0++){
+                    dist=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(h0, w0)),inbounds), 0).a,
+                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(h0, w0)),inbounds), 0).a, 0.1);
                 }
-            }
-            if(cnt == 0) {
-                dist = FLT_MAX;
-            } else dist/=float(cnt);
-            if(dist < mindist){
-                mindist = dist;
-                outalign = shift;
-            }
-            dist = 0.0;
-            cnt = 0;
+            }*/
+
+                    dist=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(-1, -1)),inbounds), 0).a,
+                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(-1, -1)),inbounds), 0).a, 0.1);
+                    dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(1, -1)),inbounds), 0).a,
+                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(1, -1)),inbounds), 0).a, 0.1);
+                    dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(-1, 1)),inbounds), 0).a,
+                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(-1, 1)),inbounds), 0).a, 0.1);
+                    dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(1, 1)),inbounds), 0).a,
+                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(1, 1)),inbounds), 0).a, 0.1);
+                    for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
+                        dist+=distribute(cachey[t+SCANSIZE/2],
+                        texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(0, t)),inbounds), 0).a, 0.1);
+                        dist+=distribute(cachex[t+SCANSIZE/2],
+                        texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(t, 0)),inbounds), 0).a, 0.1);
+                    }
+
+                    /*if (dist < 0.15){
+                        outalign = shift;
+                        Output = vec3(outalign.x,outalign.y,0)/float(TILESIZE*16);
+                        Output.b = dist;
+                        return;*/
+                    //} else {
+                    if(dist < mindist){
+                            mindist = dist;
+                            outalign = shift+OFFSET;
+                    }
+                    //}
         }
     }
-    Output = (outalign);
-    Output = ivec2(1000,1000);
+
+    Output = vec2(outalign.x,outalign.y);
+
+    //Output.r = texelFetch(InputBuffer, xy, 0).r;
+
+    //Output.b = (abs(cachex[SCANSIZE/2]-texelFetch(InputBuffer, mirrorCoords((xyFrame+outalign),inbounds), 0).a));
+    Output/=float(TILESIZE*16);
+    Output=vec2(0.5)-Output;
+    //Output = vec2(TILESIZE,TILESIZE);
 }

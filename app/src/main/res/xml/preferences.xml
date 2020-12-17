@@ -19,6 +19,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+            android:key="pref_energy_safe_key"
+            android:defaultValue="@bool/pref_energy_safe_default"
+            android:layout="@layout/preference_with_margin"
+            android:title="@string/energy_saving"
+            android:summary=""
+            android:icon="@drawable/ic_watermark"
+            />
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="pref_camera_sounds_key"
                 android:defaultValue="@bool/pref_camera_sounds_default"
                 android:layout="@layout/preference_with_margin"
@@ -62,9 +70,9 @@
                 android:title="@string/pref_save_per_lens_string"
                 android:layout="@layout/preference_with_margin"
                 android:key="pref_save_per_lens_settings"
-                android:icon="@drawable/ic_settings_grid"
+                android:icon="@drawable/ic_multi_lens"
                 app:defaultValue="false"
-                android:enabled="false"
+
                 />
     </PreferenceCategory>
     <PreferenceCategory
@@ -145,7 +153,7 @@
                 app:maxValue="2.5"
                 app:minValue="0"
                 app:isFloat="true"
-                app:stepPerUnit="100"
+                app:stepPerUnit="10"
                 android:icon="@drawable/ic_grain_black_24dp"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
@@ -161,12 +169,12 @@
                 android:icon="@drawable/ic_saturation"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
-                android:key="pref_compressor_seekbar_key"
+                android:key="pref_noise_seekbar_key"
                 android:layout="@layout/preference_seekbar"
-                android:title="@string/compressor"
+                android:title="@string/noise_reduction_str"
                 android:summary=""
-                android:defaultValue="@string/pref_compressor_seekbar_default"
-                app:maxValue="2"
+                android:defaultValue="@string/pref_noise_seekbar_default"
+                app:maxValue="3"
                 app:minValue="0.4"
                 app:isFloat="true"
                 app:stepPerUnit="10"
@@ -231,6 +239,33 @@
             android:entryValues="@array/theme_accent_entryValues"
             android:defaultValue="@string/pref_theme_accent_default_value"
             />
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_show_gradient_key"
+                android:title="@string/show_gradient"
+                android:summary=""
+                android:icon="@drawable/ic_gradient_black_24dp"
+                android:defaultValue="@bool/pref_show_gradient_def_value"/>
+    </PreferenceCategory>
+    <PreferenceCategory
+            android:layout="@layout/preference_category_layout"
+            android:key="pref_category_backup_restore"
+            android:title="@string/backup_restore">
+        <com.eszdman.photoncamera.ui.settings.custompreferences.BackupPreferences
+                android:icon="@drawable/ic_save"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/backup"
+                android:key="pref_backup_preferences_key"/>
+        <com.eszdman.photoncamera.ui.settings.custompreferences.RestorePreference
+                android:icon="@drawable/ic_restore"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/restore"
+                android:key="pref_restore_preferences_key"/>
+        <com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences
+                android:icon="@drawable/ic_refresh"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/reset"
+                android:key="pref_reset_preferences_key"/>
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

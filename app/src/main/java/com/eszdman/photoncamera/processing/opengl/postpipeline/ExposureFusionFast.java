@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.opengl.GLConst;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
@@ -28,32 +28,27 @@ public class ExposureFusionFast extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
-        if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main1);
-        //glProg.drawBlocks(out);
         glProg.close();
         return basePipeline.main1;
-        //return out;
     }
     GLTexture expose2(GLTexture in, float str){
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
+        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main2);
         glProg.close();
         return basePipeline.main2;
     }
-    GLTexture unexpose(GLTexture in){
+    GLTexture unexpose(GLTexture in,float str){
         glProg.useProgram(R.raw.unexpose);
         glProg.setTexture("InputBuffer",in);
-        //glProg.setVar("factor", str);
+        glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
-        //if(basePipeline.main2 != null) basePipeline.main2.close();
-        //basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim),null);
-        //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
+        if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),null);
         glProg.drawBlocks(basePipeline.main2);
         glProg.close();
         return basePipeline.main2;
@@ -68,12 +63,9 @@ public class ExposureFusionFast extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        float factorMid = (float)(1.0/compressor)/5.f;
-        float factorHigh = (float)(1.0/compressor)*2.0f;
-        //GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,(float)(1.0/compressor)*2.0f));
-        //GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0/compressor)/5.f));
+        float factorMid = 1.f;
+        float factorHigh = (float)(1.f)*3.5f;
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, in);
-        //in.close();
         glProg.useProgram(R.raw.fusionfast);
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
@@ -81,22 +73,14 @@ public class ExposureFusionFast extends Node {
         glProg.setTexture("normalExpo",normalExpo.gauss[ind]);
         glProg.setTexture("normalExpoDiff",normalExpo.gauss[ind]);
 
-        //glProg.setTexture("highExpo",highExpo.gauss[ind]);
-        glProg.setTexture("highExpo",normalExpo.gauss[ind]);
-        //glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
-        glProg.setTexture("highExpoDiff",normalExpo.gauss[ind]);
-
         glProg.setVar("factorMid", factorMid);
         glProg.setVar("factorHigh", factorHigh);
         glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
 
         glProg.setVar("upscaleIn",wip.mSize);
-        //normalExpo.gauss[ind].close();
-        //highExpo.gauss[ind].close();
+
         glProg.drawBlocks(wip);
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-                //GLTexture upsampleWip = (glUtils.interpolate(wip,normalExpo.sizes[i]));
-                //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
                 GLTexture upsampleWip = wip;
                 Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
                 glProg.useProgram(R.raw.fusionfast);
@@ -108,7 +92,6 @@ public class ExposureFusionFast extends Node {
                 glProg.setVar("factorHigh", factorHigh);
                 glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
                 // We can discard the previous work in progress merge.
-                //wip.close();
                 if(normalExpo.laplace[i].mSize.equals(basePipeline.main1.mSize)){
                 wip = basePipeline.main1;
                 } else {
@@ -119,11 +102,6 @@ public class ExposureFusionFast extends Node {
 
                 glProg.setTexture("normalExpo", normalExpo.gauss[i]);
                 glProg.setTexture("normalExpoDiff", normalExpo.laplace[i]);
-
-                //glProg.setTexture("highExpo", highExpo.gauss[i]);
-                //glProg.setTexture("highExpoDiff", highExpo.laplace[i]);
-                glProg.setTexture("highExpo", normalExpo.gauss[i]);
-                glProg.setTexture("highExpoDiff", normalExpo.laplace[i]);
 
                 glProg.drawBlocks(wip);
                 //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
@@ -137,7 +115,7 @@ public class ExposureFusionFast extends Node {
 
         }
         //previousNode.WorkingTexture.close();
-        WorkingTexture = unexpose(wip);
+        WorkingTexture = unexpose(wip,(float) PhotonCamera.getSettings().gain);
         Log.d(Name,"Output Size:"+wip.mSize);
         //wip.close();
         glProg.closed = true;

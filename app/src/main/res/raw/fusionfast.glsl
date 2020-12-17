@@ -8,11 +8,9 @@ uniform bool useUpsampled;
 
 // Weighting is done using these.
 uniform sampler2D normalExpo;
-uniform sampler2D highExpo;
 
 // Blending is done using these.
 uniform sampler2D normalExpoDiff;
-uniform sampler2D highExpoDiff;
 
 uniform ivec2 upscaleIn;
 
@@ -45,21 +43,22 @@ float gammaEncode(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.5)) - 0.055;
 }
 vec3 fullEncode(sampler2D tex,ivec2 xyCenter, float factor){
-    vec3 outp = texelFetch(tex,xyCenter,0).rgb*factor;
-    outp = clamp(outp,vec3(0.0),neutralPoint);
+    vec3 outp = texelFetch(tex,xyCenter,0).rgb;
+    outp = clamp(outp*factor,vec3(0.0),neutralPoint)+0.0001;
     outp/=neutralPoint;
-    outp.r = gammaEncode(outp.r);
-    outp.g = gammaEncode(outp.g);
-    outp.b = gammaEncode(outp.b);
+    float br = (outp.r+outp.g+outp.b)/3.0;
+    outp/=br;
+    br = gammaEncode(br);
+    outp*=br;
     return outp;
 }
 vec3 fullEncode(vec3 inp, float factor){
-    vec3 outp = inp*factor;
-    outp = clamp(outp,vec3(0.0),neutralPoint);
+    vec3 outp = clamp(inp*factor,vec3(0.0),neutralPoint)+0.0001;
     outp/=neutralPoint;
-    outp.r = gammaEncode(outp.r);
-    outp.g = gammaEncode(outp.g);
-    outp.b = gammaEncode(outp.b);
+    float br = (outp.r+outp.g+outp.b)/3.0;
+    outp/=br;
+    br = gammaEncode(br);
+    outp*=br;
     return outp;
 }
 void main() {
@@ -78,14 +77,14 @@ void main() {
     vec3 normal;
     if(useUpsampled){
         normal = fullEncode(texelFetch(normalExpoDiff, xyCenter, 0).xyz,factorMid);
-        if(length(highExp) >= 0.97){
+        if((highExp.r+highExp.g+highExp.b)/3.0 >= 10.97){
             high = vec3(0.0);
         } else {
-            high = normal;
+            high = normal*factorHigh;
         }
     } else {
         normal = normalExp;
-        high = highExp;
+        high = highExp*factorHigh;
     }
 
     float normalWeight = 1000.f;
@@ -102,8 +101,8 @@ void main() {
     float laplaceNormal = laplace(normalExpo, normalExp, xyCenter,factorMid);
     float laplaceHigh = laplace(normalExpo, highExp, xyCenter,factorHigh);
 
-    normalWeight *= sqrt(laplaceNormal + 0.1f);
-    highWeight *= sqrt(laplaceHigh + 0.1f);
+    //normalWeight *= sqrt(laplaceNormal + 0.1f);
+    //highWeight *= sqrt(laplaceHigh + 0.1f);
 
     // Factor 3: Saturation.
     float normalStddev = stddev(normalExp);

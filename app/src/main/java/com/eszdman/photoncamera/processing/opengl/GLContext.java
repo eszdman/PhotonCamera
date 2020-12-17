@@ -32,24 +32,24 @@ public class GLContext implements AutoCloseable {
     public void createContext(int surfaceWidth, int surfaceHeight){
         int[] major = new int[2];
         int[] minor = new int[2];
-        mDisplay = eglGetDisplay(GLConst.EGLDisplay);
+        mDisplay = eglGetDisplay(GLDrawParams.EGLDisplay);
         eglInitialize(mDisplay, major, 0, minor, 0);
         int[] numConfig = new int[1];
-        if (!eglChooseConfig(mDisplay, GLConst.attribList, 0,
+        if (!eglChooseConfig(mDisplay, GLDrawParams.attribList, 0,
                 null, 0, 0, numConfig, 0)
                 || numConfig[0] == 0) {
             throw new RuntimeException("OpenGL config count zero");
         }
         int configSize = numConfig[0];
         EGLConfig[] configs = new EGLConfig[configSize];
-        if (!eglChooseConfig(mDisplay, GLConst.attribList, 0,
+        if (!eglChooseConfig(mDisplay, GLDrawParams.attribList, 0,
                 configs, 0, configSize, numConfig, 0)) {
             throw new RuntimeException("OpenGL config loading failed");
         }
         if (configs[0] == null) {
             throw new RuntimeException("OpenGL config is null");
         }
-        mContext = eglCreateContext(mDisplay, configs[0], EGL_NO_CONTEXT, GLConst.contextAttributeList, 0);
+        mContext = eglCreateContext(mDisplay, configs[0], EGL_NO_CONTEXT, GLDrawParams.contextAttributeList, 0);
         mSurface = eglCreatePbufferSurface(mDisplay, configs[0], new int[]{
                 EGL_WIDTH, surfaceWidth,
                 EGL_HEIGHT, surfaceHeight,

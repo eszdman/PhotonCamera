@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:context=".gallery.ui.fragments.ImageViewerFragment"
+        >
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_height="match_parent"
+            android:layout_width="match_parent">
+
+        <androidx.viewpager.widget.ViewPager
+                android:id="@+id/view_pager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#000"
+                tools:visibility="gone">
+
+        </androidx.viewpager.widget.ViewPager>
+        <Button
+                android:id="@+id/gallery_grid_button"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:text=""
+                android:background="@drawable/ic_photo_library"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintHorizontal_bias="0.95"
+                app:layout_constraintVertical_bias="0.05"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:onClick="@{on_gallery}"
+                />
+        <include
+                layout="@layout/exif_dialog"
+                android:id="@+id/exif_layout"
+                android:layout_width="@dimen/exif_dialog_width"
+                android:layout_height="wrap_content"
+                android:visibility="@{exif_dialog_visible ? View.VISIBLE : View.INVISIBLE}"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.15"
+                app:layout_constraintHorizontal_bias="0.05"
+                tools:visibility="visible"/>
+
+        <include
+                layout="@layout/gallery_viewer_bottom_buttons"
+                android:id="@+id/bottom_controls_container"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="1"
+                />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

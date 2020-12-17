@@ -3,10 +3,8 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.processing.opengl.GLConst;
+import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
-import com.eszdman.photoncamera.processing.opengl.GLInterface;
-import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.render.Parameters;
@@ -29,33 +27,55 @@ public class Demosaic extends Node {
         PostPipeline postPipeline = (PostPipeline) (basePipeline);
         GLTexture glTexture;
         Parameters params = glInt.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
+        glTexture = previousNode.WorkingTexture;
         glProg.useProgram(R.raw.demosaicp1);
         glProg.setTexture("RawBuffer", glTexture);
-        glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
-        GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
-        glProg.drawBlocks(green);
+        if(PhotonCamera.getSettings().cfaPattern == -2) glProg.setDefine("QUAD","1");
+
+        //GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
+        glProg.drawBlocks(basePipeline.main1);
+        //Green Channel guided denoising
+        GLTexture outp = previousNode.WorkingTexture;
+
+        glProg.useProgram(R.raw.denoisebygreen);
+        glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
+        glProg.setTexture("GreenBuffer",basePipeline.main1);
+        //glProg.setVar("CfaPattern", params.cfaPattern);
+        GLTexture prev = previousNode.WorkingTexture;
+        outp = basePipeline.main2;
+        glProg.drawBlocks(outp);
+
+        /*glProg.useProgram(R.raw.medianfilterhotpixel);
+        GLTexture t = prev;
+        prev = outp;
+        outp = t;
+        glProg.setTexture("RawBuffer",prev);
+        glProg.setVar("CfaPattern", params.cfaPattern);
+        glProg.drawBlocks(outp);*/
+
+        /*glProg.useProgram(R.raw.denoisebygreen);
+        t = prev;
+        prev = outp;
+        outp = t;
+        glProg.setTexture("RawBuffer",prev);
+        glProg.setTexture("GreenBuffer",basePipeline.main1);
+        glProg.drawBlocks(outp);*/
         glProg.useProgram(R.raw.demosaicp2);
         GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        glProg.setTexture("RawBuffer", glTexture);
-        glProg.setTexture("GreenBuffer", green);
+        glProg.setTexture("RawBuffer", outp);
+        glProg.setTexture("GreenBuffer", basePipeline.main1);
+        glProg.setVar("whitePoint",params.whitePoint);
         glProg.setTexture("GainMap",GainMapTex);
-        glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
         glProg.setVar("RawSize",params.rawSize);
         for(int i =0; i<4;i++){
-            params.blackLevel[i]/=params.whiteLevel;
+            params.blackLevel[i]/=params.whiteLevel*postPipeline.regenerationSense;
         }
         glProg.setVar("blackLevel",params.blackLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main1 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main2 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        //WorkingTexture = basePipeline.main2;
+        WorkingTexture = basePipeline.main3;
         glProg.drawBlocks(WorkingTexture);
-        green.close();
         GainMapTex.close();
-        glTexture.close();
         glProg.close();
     }
 }

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        >
+
+    <data>
+
+        <variable
+                name="clicklistener"
+                type="android.view.View.OnClickListener"/>
+    </data>
+
+    <androidx.cardview.widget.CardView
+            android:id="@+id/square_image_card_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:contentPadding="1dp"
+            android:layout_margin="1dp"
+            app:cardElevation="2dp"
+            android:onClick="@{clicklistener}"
+            >
+
+
+        <com.eszdman.photoncamera.gallery.views.SquareImageView
+                android:id="@+id/square_image_view"
+                android:background="@drawable/ic_photo"
+                android:scaleType="centerCrop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <TextView
+                android:id="@+id/thumb_tag_text"
+                android:background="@drawable/gradient_shadow_vector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:textAlignment="textEnd"
+                tools:text="JPG"
+                android:padding="5dp"
+                android:textSize="12sp"
+                android:textAppearance="@style/BoldTextWithShadow"
+                />
+    </androidx.cardview.widget.CardView>
+</layout>

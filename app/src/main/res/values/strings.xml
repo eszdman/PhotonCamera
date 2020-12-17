@@ -19,6 +19,7 @@
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
+    <string name="noise_reduction_str">Noise Reduction Strength</string>
     <string name="raw">Save Stacked RAW</string>
     <string name="turn_on_round_edges">Enable Round Edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
@@ -57,22 +58,33 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
+    <string name="energy_saving">Battery saving</string>
     <string name="theme">Theme</string>
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_accent">Theme Color</string>
     <string name="Default">Default</string>
-    <string name="theme_accent_blue_gradient">Blue with Gradient</string>
-    <string name="theme_accent_red_gradient">Red with Gradient</string>
-    <string name="theme_accent_orange_gradient">Orange with Gradient</string>
     <string name="theme_accent_blue">Blue</string>
     <string name="theme_accent_red">Red</string>
     <string name="theme_accent_orange">Orange</string>
+    <string name="theme_accent_green">Green</string>
+    <string name="show_gradient">Show Gradient Background</string>
     <string name="unprocessed_raw">Unprocessed RAW</string>
     <string name="frame_count_summary">Number of image frames to be stacked</string>
     <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>
     <string name="version_title">Version</string>
-    <string name="version_summary">v%1$s\n%2$s</string>
+    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
     <string name="contributors_title">Contributors ↗</string>
+    <string name="eis_toggle_text">Image Stabilization</string>
+    <string name="fps_60_toggle_text">60 FPS Preview</string>
+    <string name="quad_bayer_toggle_text">Quad Bayer Res(48/64MP)</string>
+    <string name="backup_restore"><![CDATA[Backup & Restore Settings]]></string>
+    <string name="reset">Reset All</string>
+    <string name="reset_preferences_warning">This will reset all settings to their default values. Continue?</string>
+    <string name="backup">Backup</string>
+    <string name="app_will_restart">App Will Restart</string>
+    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
+    <string name="restore">Restore</string>
+    <string name="empty_file_name_error">File name cannot be an empty string</string>
 </resources>

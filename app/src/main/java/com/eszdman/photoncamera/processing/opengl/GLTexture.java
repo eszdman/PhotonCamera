@@ -1,32 +1,17 @@
 package com.eszdman.photoncamera.processing.opengl;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.opengl.GLUtils;
+import android.util.Log;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-
-import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
-import static android.opengl.GLES20.GL_FRAMEBUFFER;
-import static android.opengl.GLES20.GL_NEAREST;
-import static android.opengl.GLES20.GL_TEXTURE16;
-import static android.opengl.GLES20.GL_TEXTURE_WRAP_S;
-import static android.opengl.GLES20.GL_TEXTURE_WRAP_T;
-import static android.opengl.GLES20.glActiveTexture;
-import static android.opengl.GLES20.glBindFramebuffer;
-import static android.opengl.GLES20.glBindTexture;
-import static android.opengl.GLES20.glDeleteTextures;
-import static android.opengl.GLES20.glFramebufferTexture2D;
-import static android.opengl.GLES20.glGenFramebuffers;
-import static android.opengl.GLES20.glGenTextures;
-import static android.opengl.GLES20.glReadPixels;
-import static android.opengl.GLES20.glTexImage2D;
-import static android.opengl.GLES20.glTexParameteri;
-import static android.opengl.GLES20.glViewport;
+import static android.opengl.GLES30.*;
 import static com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_2D;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MAG_FILTER;
-import static javax.microedition.khronos.opengles.GL10.GL_TEXTURE_MIN_FILTER;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_2D;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_MAG_FILTER;
+import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_MIN_FILTER;
 
 public class GLTexture implements AutoCloseable {
     public Point mSize;
@@ -35,30 +20,60 @@ public class GLTexture implements AutoCloseable {
     public final GLFormat mFormat;
     public int filter;
     public int wrap;
-
+    private int Cur;
     public GLTexture(GLTexture in) {
-        this(in.mSize,in.mFormat,null,in.filter,in.wrap);
+        this(in.mSize,in.mFormat,null,in.filter,in.wrap,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels,int textureFilter, int textureWrapper) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, textureFilter, textureWrapper);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, textureFilter, textureWrapper,0);
+    }
+    public GLTexture(Point size, GLFormat glFormat, Buffer pixels,int textureFilter, int textureWrapper) {
+        this(new Point(size), new GLFormat(glFormat), pixels, textureFilter, textureWrapper,0);
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels) {
-        this(new Point(size), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(size), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
+    }
+    public GLTexture(int sizeX, int sizeY, GLFormat glFormat,int level) {
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,level);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat,int textureFilter, int textureWrapper) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, textureFilter, textureWrapper);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, textureFilter, textureWrapper,0);
+    }
+    public GLTexture(Point size, GLFormat glFormat,int level) {
+        this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,level);
     }
     public GLTexture(Point size, GLFormat glFormat) {
-        this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
     }
+    public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
+        this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
+    }
+    public GLTexture(Bitmap bmp, int textureFilter, int textureWrapper,int level) {
+        mFormat = null;
+        filter = textureFilter;
+        wrap = textureWrapper;
+        this.mSize = new Point(bmp.getWidth(),bmp.getHeight());
+        this.mGLFormat = 0;
+        int[] TexID = new int[1];
+        glGenTextures(TexID.length, TexID, 0);
+        mTextureID = TexID[0];
+        glActiveTexture(GL_TEXTURE1+mTextureID);
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        GLUtils.texImage2D(GL_TEXTURE_2D,level,bmp,0);
 
-    public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
+        checkEglError("Tex glTexParameteri");
+    }
+    public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         filter = textureFilter;
         wrap = textureWrapper;
         mFormat = glFormat;
@@ -67,15 +82,25 @@ public class GLTexture implements AutoCloseable {
         int[] TexID = new int[1];
         glGenTextures(TexID.length, TexID, 0);
         mTextureID = TexID[0];
-        glActiveTexture(GL_TEXTURE16);
+        glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, glFormat.getGLFormatInternal(), size.x, size.y, 0, glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        //Log.d("GLTexture","Texture ID:"+mTextureID);
+        if(pixels != null)
+        glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
+                glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        else {
+            //glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(), size.x, size.y);
+            glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
+                    glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
+        }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
         checkEglError("Tex glTexParameteri");
     }
+
+
 
     public void BufferLoad() {
         int[] frameBuffer = new int[1];

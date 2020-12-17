@@ -7,6 +7,7 @@
         <item>GRBG</item>
         <item>GBRG</item>
         <item>MONO</item>
+        <item>QUAD</item>
     </string-array>
     <string-array name="cfapat_entryValues">
         <item>-1</item>
@@ -14,6 +15,7 @@
         <item>3</item>
         <item>1</item>
         <item>2</item>
+        <item>4</item>
         <item>-2</item>
     </string-array>
     <string-array name="alignset_entries">
@@ -39,21 +41,17 @@
     <string-array name="theme_accent_entries">
         <item>@string/Default</item>
         <item>Eszdman</item>
-        <item>@string/theme_accent_blue_gradient</item>
-        <item>@string/theme_accent_red_gradient</item>
-        <item>@string/theme_accent_orange_gradient</item>
         <item>@string/theme_accent_blue</item>
         <item>@string/theme_accent_red</item>
         <item>@string/theme_accent_orange</item>
+        <item>@string/theme_accent_green</item>
     </string-array>
     <string-array name="theme_accent_entryValues">
-        <item>Theme_Photon_BaseApp</item>
-        <item>Theme_Photon_BaseApp_Eszdman</item>
-        <item>Theme_Photon_BaseApp_BlueGrad</item>
-        <item>Theme_Photon_BaseApp_RedGrad</item>
-        <item>Theme_Photon_BaseApp_OrangeGrad</item>
-        <item>Theme_Photon_BaseApp_Blue</item>
-        <item>Theme_Photon_BaseApp_Red</item>
-        <item>Theme_Photon_BaseApp_Orange</item>
+        <item>default</item>
+        <item>eszdman</item>
+        <item>blue</item>
+        <item>red</item>
+        <item>orange</item>
+        <item>green</item>
     </string-array>
 </resources>

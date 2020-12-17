@@ -82,6 +82,50 @@ public class Camera2ApiAutoFix {
         }
     }
 
+    public static void WhiteLevel(CaptureResult res, int whitelevel){
+        CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, whitelevel);
+        CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, whitelevel);
+    }
+    public static void BlackLevel(CaptureResult res, int[] blacklevel){
+        BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        int[] levelArr = new int[4];
+        if (blackLevel != null) {
+            blackLevel.copyTo(levelArr, 0);
+            for (int i = 0; i < 4; i++) {
+                levelArr[i] = (int) (blacklevel[i]);
+            }
+            CameraReflectionApi.PatchBL(blackLevel, levelArr);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
+        }
+
+        float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+        if (dynBL != null) {
+            for (int i = 0; i < dynBL.length; i++) {
+                dynBL[i] = blacklevel[i];
+            }
+            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
+        }
+    }
+    public static void BlackLevel(CaptureResult res, float[] blacklevel,float mpy){
+        BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        int[] levelArr = new int[4];
+        if (blackLevel != null) {
+            blackLevel.copyTo(levelArr, 0);
+            for (int i = 0; i < 4; i++) {
+                levelArr[i] = (int) (blacklevel[i]*mpy);
+            }
+            CameraReflectionApi.PatchBL(blackLevel, levelArr);
+            CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
+        }
+
+        float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+        if (dynBL != null) {
+            for (int i = 0; i < dynBL.length; i++) {
+                dynBL[i] = blacklevel[i]*mpy;
+            }
+            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
+        }
+    }
     private void MaxRegionsAF() {
         //CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
     }

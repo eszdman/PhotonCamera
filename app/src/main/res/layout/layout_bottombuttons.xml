@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         >
 
     <data>
@@ -8,10 +9,14 @@
         <variable
                 name="uimodel"
                 type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+
+        <variable
+                name="timermodel"
+                type="com.eszdman.photoncamera.ui.camera.model.TimerFrameCountModel"/>
+
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-            xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="5dp"
@@ -101,6 +106,21 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"/>
 
+            <TextView
+                    android:id="@+id/frameCount"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    tools:text="25"
+                    android:text="@{timermodel.frameCount}"
+                    android:textColor="@android:color/white"
+                    android:textSize="36sp"
+                    android:textAlignment="center"
+                    android:typeface="normal"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -123,10 +143,11 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    android:src="@drawable/round"
+                    android:background="@drawable/round"
                     app:civ_border_color="@color/Light"
                     app:civ_border_overlay="true"
                     app:civ_border_width="3dp"
+                    imageFromBitmap="@{uimodel.bitmap}"
                     bindRotate="@{uimodel}"
                     />
         </androidx.constraintlayout.widget.ConstraintLayout>

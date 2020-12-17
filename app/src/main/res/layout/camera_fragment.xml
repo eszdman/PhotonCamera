@@ -65,17 +65,21 @@
                 app:layout_constraintVertical_bias="0.0"></include>
             <!--    Block 1.3-->
             <!--   includes the Layout resource of Aux Buttons palette-->
-            <FrameLayout
-                android:id="@+id/aux_buttons_container"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/aux_button_padding"
-                app:layout_constraintBottom_toTopOf="@+id/manual_mode"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="1"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.9"></FrameLayout>
+            <LinearLayout
+                    android:id="@+id/aux_buttons_container"
+                    android:orientation="vertical"
+                    android:background="@drawable/aux_container_background"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/aux_container_margin"
+                    app:layout_constraintBottom_toTopOf="@+id/manual_mode"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.9"
+                    bindViewGroupChildsRotate="@{uimodel}">
+            </LinearLayout>
             <!--    Block 1.4-->
             <!--   includes the Layout resource of Manual Mode palette-->
             <include

@@ -1,6 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
-import com.eszdman.photoncamera.processing.opengl.GLConst;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
@@ -20,12 +20,14 @@ public class MonoDemosaic extends Node {
         GLProg glProg = glint.glProgram;
         GLTexture glTexture;
         Parameters params = glint.parameters;
-        glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
+        //glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
+        glTexture = previousNode.WorkingTexture;
         glProg.setTexture("RawBuffer", glTexture);
-        glProg.setVar("WhiteLevel", params.whiteLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main1 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
-        basePipeline.main2 = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim));
+        for(int i =0; i<4;i++){
+            params.blackLevel[i]/=params.whiteLevel;
+        }
+        glProg.setVar("blackLevel",params.blackLevel);
+        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;
     }

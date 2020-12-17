@@ -1,35 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Photon.BaseApp.Eszdman" parent="@style/Theme.Photon.BaseApp">
+    <style name="EszdmanTheme">
         <item name="colorAccent">#9F39B9</item>
         <item name="cameraFragmentBackground">@drawable/updatetheme</item>
     </style>
 
-    <style name="Theme.Photon.BaseApp.BlueGrad" parent="@style/Theme.Photon.BaseApp">
-        <item name="colorAccent">@color/BlueDis</item>
-        <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
-    </style>
-
-    <style name="Theme.Photon.BaseApp.RedGrad" parent="@style/Theme.Photon.BaseApp">
-        <item name="colorAccent">@android:color/holo_red_light</item>
-        <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
-    </style>
-
-    <style name="Theme.Photon.BaseApp.OrangeGrad" parent="@style/Theme.Photon.BaseApp">
-        <item name="colorAccent">@android:color/holo_orange_dark</item>
-        <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
-    </style>
-
-    <style name="Theme.Photon.BaseApp.Blue" parent="@style/Theme.Photon.BaseApp">
+    <style name="BlueTheme">
         <item name="colorAccent">@color/BlueDis</item>
     </style>
 
-    <style name="Theme.Photon.BaseApp.Red" parent="@style/Theme.Photon.BaseApp">
+    <style name="RedTheme">
         <item name="colorAccent">@android:color/holo_red_light</item>
     </style>
 
-    <style name="Theme.Photon.BaseApp.Orange" parent="@style/Theme.Photon.BaseApp">
+    <style name="OrangeTheme">
         <item name="colorAccent">@android:color/holo_orange_dark</item>
     </style>
+
+    <style name="GreenTheme">
+        <item name="colorAccent">@android:color/holo_green_light</item>
+    </style>
+
+    <style name="GradientBackgroundTheme">
+        <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
+    </style>
+
 </resources>

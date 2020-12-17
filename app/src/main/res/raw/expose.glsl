@@ -6,9 +6,15 @@ uniform float factor;
 uniform vec3 neutralPoint;
 out vec3 result;
 uniform int yOffset;
+#define DR (1.4)
+#define DH (0.0)
+/*float gammaEncode(float x) {
+    if(x>1.0) return x;
+    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/DR));
+}*/
 float gammaEncode(float x) {
     if(x>1.0) return x;
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/2.4)) - 0.055;
+    return 1.055 * pow(float(x), (1.f/DR));
 }
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
@@ -29,10 +35,16 @@ void main() {
     }*/
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
-    result = clamp(inp,vec3(0.0),neutralPoint)+0.0001;
+    result = clamp(inp,vec3(0.0001),neutralPoint);
     result/=neutralPoint;
     float br = (result.r+result.g+result.b)/3.0;
     result/=br;
-    br = gammaEncode(br);
+    /*if(br > 0.93 && factor <= 1.1){
+        result = mix(vec3((result.r+result.g+result.b)/3.0),result,(1.0-br)/0.03);
+    }*/
+    br = gammaEncode(clamp(br-DH,0.0,1.0));
+
+    //br = clamp(br,0.0,1.0);
     result*=br;
+
 }

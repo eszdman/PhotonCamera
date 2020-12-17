@@ -1,7 +1,6 @@
-package com.eszdman.photoncamera.gallery;
+package com.eszdman.photoncamera.gallery.adapters;
 
 import android.view.View;
-
 import androidx.viewpager.widget.ViewPager;
 
 public class DepthPageTransformer implements ViewPager.PageTransformer {

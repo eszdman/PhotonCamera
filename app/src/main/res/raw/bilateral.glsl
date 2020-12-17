@@ -3,9 +3,10 @@ precision mediump float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D NoiseMap;
-uniform int size;
+uniform ivec2 size;
 uniform vec2 mapsize;
 uniform vec2 sigma;
+uniform float isofactor;
 uniform int yOffset;
 out vec4 Output;
 
@@ -34,7 +35,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 c = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    float noisefactor = texture(NoiseMap, vec2(xy)/mapsize).r;
+    float noisefactor = texture(NoiseMap, vec2(xy)/vec2(size)).r*isofactor*4.0;
     {
         //declare stuff
         const int kSize = (MSIZE-1)/2;
@@ -52,9 +53,9 @@ void main() {
         float br = (length(brp))/6.;
         br = clamp(br,NRcancell,1.0);
         br = 1.0-br;
-        sigX*=br/(1.0-NRcancell);
+        //sigX*=br/(1.0-NRcancell);
         //sigX*=((NRcancell-br)*(NRcancell-br))/(NRcancell*NRcancell);
-        sigX =clamp(sigX+NRshift,minNR,maxNR);
+        //sigX =clamp(sigX+NRshift,minNR,maxNR);
         float sigY = sigX*1.4;
         //create the 1-D kernel
         float Z = 0.0;

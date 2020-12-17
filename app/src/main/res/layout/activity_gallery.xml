@@ -1,64 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_height="match_parent"
-    android:layout_width="match_parent">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/view_pager"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#000"
-        tools:context=".gallery.GalleryActivity"
-        tools:visibility="gone">
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context=".gallery.ui.GalleryActivity">
 
-    </androidx.viewpager.widget.ViewPager>
+        <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/gallery_navigation_host"
+                android:name="androidx.navigation.fragment.NavHostFragment"
+                app:defaultNavHost="true"
+                app:navGraph="@navigation/gallery_nav_graph"
+                android:layout_height="match_parent"
+                android:layout_width="match_parent"
+                >
+        </androidx.fragment.app.FragmentContainerView>
 
-    <Button
-        android:id="@+id/delete"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:text=""
-        android:background="@drawable/ic_delete"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/exif"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="30dp"/>
-
-    <Button
-        android:id="@+id/exif"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:text=""
-        android:background="@drawable/ic_info"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="30dp"/>
-
-    <Button
-        android:id="@+id/share"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:text=""
-        android:background="@drawable/ic_share"
-        app:layout_constraintEnd_toStartOf="@+id/exif"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="30dp"/>
-
-    <include
-            layout="@layout/exif_dialog"
-            android:layout_width="@dimen/exif_dialog_width"
-            android:layout_height="wrap_content"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.20"
-            tools:visibility="visible"/>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

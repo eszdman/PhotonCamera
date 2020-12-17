@@ -14,9 +14,8 @@ import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 public class Median extends Node {
     Point transposing;
-
-    public Median(Point transpose, String name) {
-        super(R.raw.hybridmedianfilter, name);
+    public Median(Point transpose, String name, int original) {
+        super(original, name);
         transposing = transpose;
     }
 
@@ -35,9 +34,7 @@ public class Median extends Node {
         glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
         //glProg.setVar("robust",2.5f);
         glProg.setVar("tpose",transposing);
-        //glProg.setVar("mapsize", (float) Previous.WorkingTexture.mSize.x, (float) Previous.WorkingTexture.mSize.y);
         glProg.setTexture("InputBuffer", Previous.WorkingTexture);
-        //glProg.setTexture("NoiseMap", postPipeline.noiseMap);
         WorkingTexture = basePipeline.getMain();
         glProg.closed = false;
     }

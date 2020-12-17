@@ -1,28 +1,40 @@
 package com.eszdman.photoncamera.ui.camera.viewmodel;
 
+import android.app.Application;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.ViewModel;
-
 import com.eszdman.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel;
+import com.eszdman.photoncamera.util.FileManager;
+import rapid.decoder.BitmapDecoder;
+
+import java.io.File;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Class get used to update the Models binded to the ui
  * it should not contain any ref to ui
  */
-public class CameraFragmentViewModel extends ViewModel {
+public class CameraFragmentViewModel extends AndroidViewModel {
 
     private static final String TAG = CameraFragmentViewModel.class.getSimpleName();
-    private Context context;
     //Model binded to the ui
-    private CameraFragmentModel cameraFragmentModel;
+    private final CameraFragmentModel cameraFragmentModel;
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
 
-    public void create(Context context) {
-        this.context = context;
+    public CameraFragmentViewModel(@NonNull Application application) {
+        super(application);
         cameraFragmentModel = new CameraFragmentModel();
         initOrientationEventListener();
     }
@@ -44,7 +56,7 @@ public class CameraFragmentViewModel extends ViewModel {
         final int Rotation90 = 2;
         final int Rotation180 = 3;
         final int Rotation270 = 4;
-        mCustomOrientationEventListener = new CustomOrientationEventListener(context) {
+        mCustomOrientationEventListener = new CustomOrientationEventListener(getApplication()) {
             @Override
             public void onSimpleOrientationChanged(int orientation) {
                 int rot = 0;
@@ -70,5 +82,28 @@ public class CameraFragmentViewModel extends ViewModel {
                 //PhotonCamera.getManualMode().rotate(rot, RotationDur);
             }
         };
+    }
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    public void updateGalleryThumb() {
+        List<File> allFiles = FileManager.getAllImageFiles();
+        if (allFiles.isEmpty())
+            return;
+        File lastImage = allFiles.get(0);
+        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
+            cameraFragmentModel.setBitmap((Bitmap) msg.obj);
+            return true;
+        });
+        if (lastImage != null) {
+            executorService.execute(() -> {
+                Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
+                        .scaleBy(0.1f)
+                        .decode();
+                Message m = new Message();
+                m.obj = bitmap;
+                handler.sendMessage(m);
+            });
+        }
     }
 }

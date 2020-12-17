@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.api;
 
 import android.content.SharedPreferences;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.TonemapCurve;
@@ -8,10 +9,12 @@ import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
+import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
 import static android.hardware.camera2.CaptureRequest.*;
 
 public class Settings {
@@ -25,6 +28,7 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean grid;
     public boolean watermark;
+    public boolean energySaving;
     public boolean aFDebugData;
     public boolean roundEdge;
     public boolean align;
@@ -34,6 +38,7 @@ public class Settings {
     public double sharpness;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;//TODO
+    public double noiseRstr;
     public double compressor;
     public double gain;
     public boolean rawSaver;
@@ -74,6 +79,7 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
+        energySaving = PreferenceKeys.getBool(PreferenceKeys.Preference.KEY_ENERGY_SAVING);
         aFDebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
@@ -82,6 +88,7 @@ public class Settings {
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
         compressor = PreferenceKeys.getCompressorValue();
+        noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();
@@ -92,7 +99,7 @@ public class Settings {
         fpsPreview = PreferenceKeys.isFpsPreviewOn();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
-        selectedMode = getCameraMode();
+        selectedMode = CameraMode.PHOTO;
         toneMap = parseToneMapArray();
         gamma = parseGammaArray();
         mCameraID = PreferenceKeys.getCameraID();
@@ -126,7 +133,7 @@ public class Settings {
         return finalArray;
     }
 
-    CameraMode getCameraMode() {
+    /*CameraMode getCameraMode() {
         switch (PreferenceKeys.getCameraMode()) {
             case (0):
                 return CameraMode.PHOTO;
@@ -136,11 +143,15 @@ public class Settings {
                 return CameraMode.UNLIMITED;
         }
         return CameraMode.PHOTO;
-    }
+    }*/
 
     public void applyRes(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(HOT_PIXEL_MODE, HOT_PIXEL_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+        if(PhotonCamera.getSettings().energySaving){
+            GLDrawParams.TileSize = 8;
+        } else {
+            GLDrawParams.TileSize = 256;
+        }
         //captureBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
         //captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
         //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
@@ -149,10 +160,12 @@ public class Settings {
 
     public void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
-        captureBuilder.set(NOISE_REDUCTION_MODE, NOISE_REDUCTION_MODE_HIGH_QUALITY);
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
+        int[] stabilizationModes = CameraFragment.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        if (stabilizationModes != null && stabilizationModes.length > 1) {
+            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
+        }
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range<Integer> range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
 
@@ -192,6 +205,11 @@ public class Settings {
         }
         TonemapCurve tonemapCurve = new TonemapCurve(rgb, rgb, rgb);
         captureBuilder.set(TONEMAP_CURVE, tonemapCurve);*/
+
+        /*float[] apertures = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
+        if(apertures != null && apertures.length > 1){
+            captureBuilder.set(LENS_APERTURE,apertures[1]);
+        }*/
     }
 
     // =================================================================================================================

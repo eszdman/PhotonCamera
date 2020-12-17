@@ -10,23 +10,26 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.DialogFragment;
 import androidx.preference.Preference;
-import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
+import com.eszdman.photoncamera.ui.settings.custompreferences.BackupPreferences;
+import com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
+
+import static com.eszdman.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
     private static final String KEY_MAIN_PARENT_SCREEN = "prefscreen";
@@ -51,12 +54,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             removePreferenceFromScreen("pref_category_jpg");
         else
             removePreferenceFromScreen("pref_category_hdrx");
-
-        Preference hide = findPreference(PreferenceKeys.Preference.KEY_SAVE_PER_LENS_SETTINGS.mValue);
-        PreferenceCategory category = findPreference("pref_category_general");
-        if (category != null && hide != null) {
-            category.removePreference(hide);
-        }
         setFramesSummary();
         setVersionDetails();
     }
@@ -66,6 +63,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         super.onResume();
         Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
         toolbar.setTitle(getPreferenceScreen().getTitle());
+        setHdrxTitle();
+        checkEszdTheme();
         Preference myPref = findPreference(PreferenceKeys.Preference.KEY_TELEGRAM.mValue);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
@@ -92,15 +91,43 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(PreferenceKeys.Preference.KEY_SAVE_PER_LENS_SETTINGS.mValue)) {
+            setHdrxTitle();
+            if (PreferenceKeys.isPerLensSettingsOn()) {
+                PreferenceKeys.loadSettingsForCamera(PreferenceKeys.getCameraID());
+                restartActivity();
+            }
+        }
         if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME.mValue)) {
             restartActivity();
         }
         if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME_ACCENT.mValue)) {
+            checkEszdTheme();
             restartActivity();
+            SettingsActivity.toRestartApp = true;
+        }
+        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue)) {
             SettingsActivity.toRestartApp = true;
         }
         if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue)) {
             setFramesSummary();
+        }
+    }
+
+    private void checkEszdTheme() {
+        Preference p = findPreference(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue);
+        if (p != null && getContext() != null)
+            p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Preference.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
+    }
+
+    private void setHdrxTitle() {
+        Preference p = findPreference("pref_category_hdrx");
+        if (p != null && getContext() != null) {
+            if (PreferenceKeys.isPerLensSettingsOn()) {
+                p.setTitle(getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
+            } else {
+                p.setTitle(getString(R.string.hdrx));
+            }
         }
     }
 
@@ -133,7 +160,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 long versionCode = packageInfo.versionCode;
 
                 Date date = new Date(packageInfo.lastUpdateTime);
-                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z");
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
                 about.setSummary(getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
@@ -150,5 +177,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         return true;
     }
 
+    @Override
+    public void onDisplayPreferenceDialog(Preference preference) {
+        if (preference instanceof ResetPreferences) {
+            DialogFragment dialogFragment = ResetPreferences.Dialog.newInstance(preference);
+            dialogFragment.setTargetFragment(this, 0);
+            dialogFragment.show(getParentFragmentManager(), null);
+        } else {
+            super.onDisplayPreferenceDialog(preference);
+        }
+    }
 
 }

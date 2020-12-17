@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.ui.camera.model;
 
+import android.graphics.Bitmap;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
@@ -9,6 +10,17 @@ import androidx.databinding.Bindable;
 public class CameraFragmentModel extends BaseObservable {
     private int orientation;
     private int duration;
+    private Bitmap bitmap;
+
+    @Bindable
+    public Bitmap getBitmap() {
+        return bitmap;
+    }
+
+    public void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
+        notifyChange();
+    }
 
     @Bindable
     public int getOrientation() {

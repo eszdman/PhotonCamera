@@ -2,11 +2,13 @@ package com.eszdman.photoncamera.processing.render;
 
 import android.annotation.SuppressLint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
@@ -31,6 +33,7 @@ public class Parameters {
     public int realWL = -1;
     public boolean hasGainMap;
     public Point mapSize;
+    public Rect sensorPix;
     public float[] gainMap;
     public float[] proPhotoToSRGB = new float[9];
     public final float[] sensorToProPhoto = new float[9];
@@ -41,6 +44,7 @@ public class Parameters {
     public int cameraRotation;
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
+        boolean isGnusmass = Build.BRAND.equals("Samsung");
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         int[] blarr = new int[4];
@@ -51,7 +55,7 @@ public class Parameters {
         }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
-        if (PhotonCamera.getSettings().cfaPattern != -1) {
+        if (PhotonCamera.getSettings().cfaPattern >= 0) {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
@@ -67,6 +71,10 @@ public class Parameters {
         mapSize = new Point(1, 1);
         gainMap = new float[1];
         gainMap[0] = 1.f;
+        sensorPix = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if(sensorPix==null){
+            sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
+        }
         LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
         if (lensMap != null) {
             gainMap = new float[lensMap.getGainFactorCount()];
@@ -147,7 +155,16 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
-        if (!customCCM.exists()) {
+        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        assert calibration2 != null;
+        assert forwardt1 != null;
+        assert forwardt2 != null;
+        boolean wrongCalibration =
+                forwardt1.getElement(0,0).floatValue() == forwardt2.getElement(0,0).floatValue() &&
+                        forwardt1.getElement(1,1).floatValue() == forwardt2.getElement(1,1).floatValue() &&
+                        forwardt1.getElement(2,2).floatValue() == forwardt2.getElement(2,2).floatValue() &&
+                        forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();
+        if (wrongCalibration && CCT != null && !customCCM.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;
             sensorToProPhoto[2] = 0.0f;
@@ -161,8 +178,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / whitePoint[2];
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
-        if (CCT != null) {
+        if (CCT != null && wrongCalibration && !customCCM.exists()) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);
             for (int i = 0; i < 9; i++) {
@@ -192,7 +208,14 @@ public class Parameters {
                 0f
         };
     }
-
+    private static void PrintMat(float[] mat){
+        String outp = "";
+        for(int i =0; i<mat.length;i++){
+            outp+=(mat[i])+" ";
+            if(i%3 == 2) outp+="\n";
+        }
+        Log.d(TAG,"matrix:\n"+outp);
+    }
     @androidx.annotation.NonNull
     @Override
     public String toString() {

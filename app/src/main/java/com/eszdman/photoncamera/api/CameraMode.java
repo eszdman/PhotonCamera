@@ -4,8 +4,8 @@ public enum CameraMode {
     UNLIMITED(2),
     PHOTO(0),
     NIGHT(1),
+    VIDEO(3)
     ;
-    //VIDEO(3);
     public final int mNum;
 
     CameraMode(int number) {

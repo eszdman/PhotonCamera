@@ -2,14 +2,14 @@ package com.eszdman.photoncamera.api;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
 import android.util.Log;
-
 import androidx.exifinterface.media.ExifInterface;
-
-import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -70,7 +70,14 @@ public class ParseExif {
         inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
         inter.setAttribute(TAG_F_NUMBER, resultget(result, LENS_APERTURE));
         inter.setAttribute(TAG_FOCAL_LENGTH, ((int) (100 * Double.parseDouble(resultget(result, LENS_FOCAL_LENGTH)))) + "/100");
-        //inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM,result.get(LENS_FOCAL_LENGTH).toString());
+
+/*      //saving for later use
+        float sensorWidth = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth();
+        String mm35 = String.valueOf((short) (36 * (result.get(LENS_FOCAL_LENGTH) / sensorWidth)));
+        inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM, mm35);
+        Log.d(TAG, "Saving 35mm FocalLength = " + mm35);
+*/
+
         inter.setAttribute(TAG_COPYRIGHT, "PhotonCamera");
         inter.setAttribute(TAG_APERTURE_VALUE, String.valueOf(result.get(LENS_APERTURE)));
         inter.setAttribute(TAG_EXPOSURE_TIME, getTime(Long.parseLong(resultget(result, SENSOR_EXPOSURE_TIME))));
@@ -82,7 +89,7 @@ public class ParseExif {
         try {
             PackageInfo pInfo = PhotonCamera.getCameraActivity().getPackageManager().getPackageInfo(PhotonCamera.getCameraActivity().getPackageName(), 0);
             version = pInfo.versionName;
-            version +=pInfo.versionCode;
+            version += pInfo.versionCode;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
@@ -91,7 +98,7 @@ public class ParseExif {
         return inter;
     }
 
-    private static final SimpleDateFormat sFormatter;
+    public static final SimpleDateFormat sFormatter;
 
     static {
         sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);

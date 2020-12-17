@@ -16,8 +16,8 @@ import static android.opengl.EGL14.EGL_STENCIL_SIZE;
 import static android.opengl.EGL14.EGL_SURFACE_TYPE;
 import static android.opengl.EGL14.EGL_TRUE;
 
-public class GLConst {
-    final static int TileSize = 128;
+public class GLDrawParams {
+    public static int TileSize = 256;
     public final static int WorkDim = 3;
     final static int EGLDisplay = EGL_DEFAULT_DISPLAY;
     final static int[] attribList = {
