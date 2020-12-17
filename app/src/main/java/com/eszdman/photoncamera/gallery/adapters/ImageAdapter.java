@@ -89,6 +89,7 @@ public class ImageAdapter extends PagerAdapter {
             setQuickScaleEnabled(true);
             setEagerLoadingEnabled(false);
             setDoubleTapZoomDuration(200);
+            setPreferredBitmapConfig(Bitmap.Config.ARGB_8888);
         }
     }
 }
