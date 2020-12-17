@@ -52,7 +52,7 @@
     </string>
     <string name="gamma_default" translatable="false">[0f, 0.99981f]
     </string>
-    <string name="pref_framecount_default" translatable="false">15</string>
+    <string name="pref_framecount_default" translatable="false">30</string>
     <string name="pref_chroma_seekbar_default" translatable="false">12</string>
     <string name="pref_luma_seekbar_default" translatable="false">12</string>
     <string name="pref_sharpness_seekbar_default" translatable="false">0.60</string>
