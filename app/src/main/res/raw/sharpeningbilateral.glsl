@@ -42,7 +42,7 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            cc = vec3(textureBicubic(InputBuffer, (gl_FragCoord.xy+vec2(i,j)*0.9)/vec2(insize)).rgb);
+            cc = vec3(textureBicubic(InputBuffer, (gl_FragCoord.xy+vec2(i,j)*1.1)/vec2(insize)).rgb);
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;

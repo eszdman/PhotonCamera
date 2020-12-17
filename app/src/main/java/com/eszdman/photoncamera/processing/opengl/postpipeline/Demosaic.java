@@ -38,13 +38,13 @@ public class Demosaic extends Node {
         //Green Channel guided denoising
         GLTexture outp = previousNode.WorkingTexture;
 
-        /*glProg.useProgram(R.raw.denoisebygreen);
+        glProg.useProgram(R.raw.denoisebygreen);
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GreenBuffer",basePipeline.main1);
         //glProg.setVar("CfaPattern", params.cfaPattern);
         GLTexture prev = previousNode.WorkingTexture;
         outp = basePipeline.main2;
-        glProg.drawBlocks(outp);*/
+        glProg.drawBlocks(outp);
 
         /*glProg.useProgram(R.raw.medianfilterhotpixel);
         GLTexture t = prev;

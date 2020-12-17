@@ -32,7 +32,7 @@ void main() {
                 break;
             }
         }
-        if((g[0]+g[1]+g[2]+g[3]+g[4])*0.9 > g[5]+g[6]+g[7]+g[8]){
+        if((g[0]+g[1]+g[2]+g[3]+g[4])*0.9 > g[5]+g[6]+g[7]+g[8] && right){
             g[0]*=mainv;
             g[5]*=sharpen;
             g[6]*=sharpen;

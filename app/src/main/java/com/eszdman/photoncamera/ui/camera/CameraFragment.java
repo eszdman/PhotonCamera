@@ -126,7 +126,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     /**
      * Timeout for the pre-capture sequence.
      */
-    private static final long PRECAPTURE_TIMEOUT_MS = 200;
+    private static final long PRECAPTURE_TIMEOUT_MS = 1500;
     private static final String ACTIVE_FRONTCAM_ID = "ACTIVE_FRONTCAM_ID"; //key for savedInstanceState
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
@@ -1409,9 +1409,9 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
-            //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
-            Log.d(TAG, "Focus:" + mFocus);
-            //captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,mFocus);
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_OFF);
+            Log.d(TAG, "Focus:" + focus);
+            captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE,focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             int[] stabilizationModes = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
             if (stabilizationModes.length > 1) {
@@ -1437,7 +1437,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
             //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             //mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
-            //rebuildPreviewBuilder();
+            rebuildPreviewBuilder();
 
             IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
             for (int i = 0; i < frameCount; i++) {

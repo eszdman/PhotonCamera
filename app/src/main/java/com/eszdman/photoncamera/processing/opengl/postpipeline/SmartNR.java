@@ -56,7 +56,9 @@ public class SmartNR extends Node {
 
         float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
-        denoiseLevel*=(float)PhotonCamera.getSettings().noiseRstr;
+        float str = (float)PhotonCamera.getSettings().noiseRstr;
+        if(str > 1.0)
+        denoiseLevel*=str;
         //Chroma NR
         /*glProg.useProgram(R.raw.bilateralcolor);
 
@@ -71,17 +73,18 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
         if (denoiseLevel > 2.0) {
-        glProg.useProgram(R.raw.nlmeans);
+        glProg.useProgram(R.raw.bilateralguide);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("NoiseMap",detectblur2);
+        //glProg.setTexture("NoiseMap",detectblur2);
         int kernelsize = (int)(denoiseLevel) + 1;
         kernelsize = Math.max(kernelsize,2);
         kernelsize = Math.min(kernelsize,8);
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
         glProg.setVar("kernel",kernelsize);
+        if(str > 1.f) str = 1.f;
         if(denoiseLevel > 6.f)
-        glProg.setVar("isofactor",denoiseLevel/6.f);
+        glProg.setVar("isofactor",denoiseLevel*str/9.f);
         else glProg.setVar("isofactor",1.f);
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();
