@@ -36,7 +36,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             "in vec2 vTexCoord;\n" +
             "uniform mat4 uTexRotateMatrix;\n" +
             "void main() {\n" +
-            "  gl_Position = vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n" +
+            "  gl_Position = uTexRotateMatrix * vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n" +
             "}";
 
     private final String fss_default =
