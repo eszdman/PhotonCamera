@@ -1226,9 +1226,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
         // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
         // garbage capture data.
-        mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
-                rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                maxPreviewHeight, target);
+
+        /*mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
+                maxPreviewHeight*2, target);*/
+        mPreviewSize = new Size(rotatedPreviewWidth,rotatedPreviewHeight);
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         if (isAdded()) {
@@ -1267,6 +1269,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             // We configure the size of default buffer to be the size of camera preview we want.
             Log.d(TAG,"createCameraPreviewSession() mTextureView:"+mTextureView);
             Log.d(TAG,"createCameraPreviewSession() Texture:"+texture);
+            Log.d(TAG,"previewSize:"+mTextureView.cameraSize);
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
             // This is the output Surface we need to start preview.
