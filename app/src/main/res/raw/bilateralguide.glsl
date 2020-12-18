@@ -13,7 +13,8 @@ uniform ivec2 tpose;
 //const int kernel = 6;
 const int window = 2;
 #import interpolation
-#define luminocity(x) ((((x.r+x.g+x.b)/3.0))+0.001)
+//#define luminocity(x) ((((x.r+x.g+x.b)/3.0))+0.001)
+#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 /*float luminocity(vec3 color) {
     return (color.r+color.g+color.b)/3.0;
 }*/
@@ -47,10 +48,10 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 xyz = (texelFetch(InputBuffer, xy,0).rgb)+0.001;
-    float br = (xyz.r+xyz.g+xyz.b)/3.0;
+    float br = luminocity(xyz);
     xyz/=br;
     br = nlmeans(xy);
-    Output = clamp(xyz*br,0.0,1.0);
+    Output = clamp(xyz*br - 0.002,0.0,1.0);
     //float noisefactor = clamp(textureLinear(NoiseMap, vec2(xy)/vec2(size)).r,0.0005,0.6);
     //Output = vec3(noisefactor*1.9);
 }
