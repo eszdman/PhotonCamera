@@ -15,8 +15,8 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
 public class Demosaic extends Node {
-    public Demosaic(String name) {
-        super(0, name);
+    public Demosaic() {
+        super(0, "Demosaic");
     }
 
     @Override

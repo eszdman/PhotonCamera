@@ -4,6 +4,7 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
@@ -48,10 +49,8 @@ public class Bayer2Float extends Node {
         Log.d(Name,"Regeneration:"+postPipeline.regenerationSense);
         glProg.setVar("Regeneration",postPipeline.regenerationSense);
         glProg.setVar("MinimalInd",minimal);
-
-        basePipeline.main1 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
-        basePipeline.main2 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
-        basePipeline.main3 = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+        Point wsize = new Point(parameters.rawSize);
+        basePipeline.main2 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         WorkingTexture = basePipeline.main2;
         /*glProg.drawBlocks(basePipeline.main3);
         glProg.useProgram(R.raw.demosaicantiremosaic);
@@ -62,7 +61,13 @@ public class Bayer2Float extends Node {
         //glUtils.SaveProgResult(in.mSize,"bayer",4,".jpg");
 
         glProg.drawBlocks(WorkingTexture);
-
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT){
+            wsize.x/=2;
+            wsize.y/=2;
+            basePipeline.main2 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+        }
+        basePipeline.main1 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+        basePipeline.main3 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.closed = true;
     }
 }

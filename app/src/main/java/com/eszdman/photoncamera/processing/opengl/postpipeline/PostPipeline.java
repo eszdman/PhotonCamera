@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.*;
 import android.util.Log;
 
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
@@ -42,7 +43,12 @@ public class PostPipeline extends GLBasePipeline {
     }
     public void Run(ByteBuffer inBuffer, Parameters parameters){
         Point rotated = getRotatedCoords(parameters.rawSize);
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
+            rotated.x/=2;
+            rotated.y/=2;
+        }
         Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
+
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
@@ -50,7 +56,11 @@ public class PostPipeline extends GLBasePipeline {
         add(new Bayer2Float(0,"Bayer2Float"));
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
-                add(new Demosaic("Demosaic"));
+                if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
+                    add(new Demosaic());
+                } else {
+                    add(new BinnedDemosaic());
+                }
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
             } else {
                 add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));

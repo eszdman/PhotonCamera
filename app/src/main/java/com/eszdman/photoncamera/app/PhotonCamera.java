@@ -9,6 +9,7 @@ import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
 import com.eszdman.photoncamera.control.Swipe;
 import com.eszdman.photoncamera.control.TouchFocus;
+import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
@@ -28,6 +29,7 @@ public class PhotonCamera extends Application {
     private Parameters mParameters;
     private TouchFocus mTouchFocus;
     private CameraFragment mCameraFragment;
+    private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
 
@@ -66,6 +68,9 @@ public class PhotonCamera extends Application {
     public static CameraFragment getCameraFragment() {
         return sPhotonCamera.mCameraFragment;
     }
+    public static SupportedDevice getSupportedDevice() {
+        return sPhotonCamera.mSupportedDevice;
+    }
 
     public static void setCameraFragment(CameraFragment cameraFragment) {
         sPhotonCamera.mCameraFragment = cameraFragment;
@@ -89,11 +94,13 @@ public class PhotonCamera extends Application {
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
         initModules();
+        mSupportedDevice.isSupported();
     }
 
     private void initModules() {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mSupportedDevice = new SupportedDevice(this);
         mGravity = new Gravity(sensorManager);
         mSensors = new Sensors(sensorManager);
 

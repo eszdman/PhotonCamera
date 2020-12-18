@@ -25,7 +25,7 @@ public class ExposureFusionFast2 extends Node {
     }
     GLTexture exposing1 = null;
     GLTexture exposing2 = null;
-    private double dynamR = 2.3;
+    private double dynamR = 1.6;
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DR","("+dynamR+")");

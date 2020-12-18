@@ -42,7 +42,7 @@ public class Camera2ApiAutoFix {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         fix.MaxRegionsAF();
     }
-
+    private static double oldWL = -1.0;
     public static void ApplyRes() {
         CaptureResult characteristics = CameraFragment.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
@@ -50,6 +50,17 @@ public class Camera2ApiAutoFix {
         fix.BL();
         fix.whitePoint();
         fix.CCM();
+        Camera2ApiAutoFix.WhiteLevel(CameraFragment.mCaptureResult, (int)oldWL);
+        Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
+        oldWL = -1.0;
+    }
+    public static void ApplyBurst() {
+        if(oldWL == -1.0) {
+            PhotonCamera.getParameters().FillParameters(null,CameraFragment.mCameraCharacteristics,null);
+            Camera2ApiAutoFix.WhiteLevel(null, 65535);
+            Camera2ApiAutoFix.BlackLevel(null, PhotonCamera.getParameters().blackLevel, (float) (65535) / PhotonCamera.getParameters().whiteLevel);
+            oldWL = PhotonCamera.getParameters().whiteLevel;
+        }
     }
 
     private void whitePoint() {
@@ -83,6 +94,7 @@ public class Camera2ApiAutoFix {
     }
 
     public static void WhiteLevel(CaptureResult res, int whitelevel){
+        if(res != null)
         CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, whitelevel);
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, whitelevel);
     }
@@ -117,13 +129,14 @@ public class Camera2ApiAutoFix {
             CameraReflectionApi.PatchBL(blackLevel, levelArr);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
         }
-
-        float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
-        if (dynBL != null) {
-            for (int i = 0; i < dynBL.length; i++) {
-                dynBL[i] = blacklevel[i]*mpy;
+        if(res != null) {
+            float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+            if (dynBL != null) {
+                for (int i = 0; i < dynBL.length; i++) {
+                    dynBL[i] = blacklevel[i] * mpy;
+                }
+                CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
             }
-            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
         }
     }
     private void MaxRegionsAF() {

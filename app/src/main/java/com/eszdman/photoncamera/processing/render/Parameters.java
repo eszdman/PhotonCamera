@@ -75,32 +75,35 @@ public class Parameters {
         if(sensorPix==null){
             sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
         }
-        LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
-        if (lensMap != null) {
-            gainMap = new float[lensMap.getGainFactorCount()];
-            mapSize = new Point(lensMap.getColumnCount(), lensMap.getRowCount());
-            lensMap.copyGainFactors(gainMap, 0);
-            hasGainMap = true;
-            if ((gainMap[(gainMap.length / 8) - (gainMap.length / 8) % 4]) == 1.0 &&
-                    (gainMap[(gainMap.length / 2) - (gainMap.length / 2) % 4]) == 1.0 &&
-                    (gainMap[(gainMap.length / 2 + gainMap.length / 8) - (gainMap.length / 2 + gainMap.length / 8) % 4]) == 1.0) {
-                Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
-                gainMap = new float[Const.gainMap.length];
-                for (int i = 0; i < Const.gainMap.length; i += 4) {
-                    float in = (float) Const.gainMap[i] + (float) Const.gainMap[i + 1] + (float) Const.gainMap[i + 2] + (float) Const.gainMap[i + 3];
-                    in /= 4.f;
-                    gainMap[i] = in;
-                    gainMap[i + 1] = in;
-                    gainMap[i + 2] = in;
-                    gainMap[i + 3] = in;
+        if(result != null) {
+            LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
+            if (lensMap != null) {
+                gainMap = new float[lensMap.getGainFactorCount()];
+                mapSize = new Point(lensMap.getColumnCount(), lensMap.getRowCount());
+                lensMap.copyGainFactors(gainMap, 0);
+                hasGainMap = true;
+                if ((gainMap[(gainMap.length / 8) - (gainMap.length / 8) % 4]) == 1.0 &&
+                        (gainMap[(gainMap.length / 2) - (gainMap.length / 2) % 4]) == 1.0 &&
+                        (gainMap[(gainMap.length / 2 + gainMap.length / 8) - (gainMap.length / 2 + gainMap.length / 8) % 4]) == 1.0) {
+                    Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
+                    gainMap = new float[Const.gainMap.length];
+                    for (int i = 0; i < Const.gainMap.length; i += 4) {
+                        float in = (float) Const.gainMap[i] + (float) Const.gainMap[i + 1] + (float) Const.gainMap[i + 2] + (float) Const.gainMap[i + 3];
+                        in /= 4.f;
+                        gainMap[i] = in;
+                        gainMap[i + 1] = in;
+                        gainMap[i + 2] = in;
+                        gainMap[i + 3] = in;
+                    }
+                    mapSize = Const.mapSize;
                 }
-                mapSize = Const.mapSize;
             }
+            hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
+            ReCalcColor(false);
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
-        hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-        ReCalcColor(false);
     }
+
     public float[] customNeutral;
     public void ReCalcColor(boolean customNeutr){
         CameraCharacteristics characteristics = CameraFragment.mCameraCharacteristics;

@@ -1524,6 +1524,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
 
             //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
             burst = true;
+            Camera2ApiAutoFix.ApplyBurst();
             createCameraPreviewSession();
             //mCaptureSession.captureBurst(captures, CaptureCallback, null);
         } catch (CameraAccessException e) {
