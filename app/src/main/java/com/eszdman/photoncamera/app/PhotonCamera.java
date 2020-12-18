@@ -94,13 +94,11 @@ public class PhotonCamera extends Application {
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
         initModules();
-        mSupportedDevice.isSupported();
     }
 
     private void initModules() {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mSupportedDevice = new SupportedDevice(this);
         mGravity = new Gravity(sensorManager);
         mSensors = new Sensors(sensorManager);
 
@@ -111,6 +109,7 @@ public class PhotonCamera extends Application {
         mSettings = new Settings();
 
         mParameters = new Parameters();
+        mSupportedDevice = new SupportedDevice(this,mSettingsManager);
     }
 
     public static void restartApp() {

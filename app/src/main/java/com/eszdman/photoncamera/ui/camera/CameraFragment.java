@@ -1109,6 +1109,11 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                 if (!mCameraOpenCloseLock.tryAcquire(3000, TimeUnit.MILLISECONDS)) {
 //                throw new RuntimeException("Time out waiting to lock camera opening.");
                 }
+                boolean isSupported = PhotonCamera.getSupportedDevice().isSupported();
+                if(isSupported) showToast("PhotonCamera Pro");
+                else {
+                    showToast("Unsupported device PhotonCamera - limited");
+                }
                 this.mCameraManager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
             } catch (CameraAccessException e) {
                 e.printStackTrace();

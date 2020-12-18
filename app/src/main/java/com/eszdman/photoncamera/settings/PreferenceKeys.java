@@ -340,6 +340,10 @@ public class PreferenceKeys {
         BACK_IDS_KEY("back_camera_ids"),
         FOCAL_IDS_KEY("all_camera_focals"),
         CAMERA_COUNT_KEY("all_camera_count"),
+
+        /* SupportedDevice keys */
+        DEVICES_PREFERENCE_FILE_NAME("_devices"),
+        ALL_DEVICES_NAMES_KEY("all_devices_names"),
         /**
          * Per Lens File
          */
