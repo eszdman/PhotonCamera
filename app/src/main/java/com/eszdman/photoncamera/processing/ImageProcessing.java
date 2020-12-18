@@ -221,7 +221,7 @@ public class ImageProcessing {
             int size = (int)(images.size()-FrameNumberSelector.throwCount);
             Log.d(TAG, "ThrowCount:" + size);
             Log.d(TAG, "ImageCount:" + images.size());
-            if(size == images.size()) size = (int) (images.size()*0.25);
+            if(size == images.size()) size = (int) (images.size()*0.75);
             for(int i =images.size(); i>size;i--){
                 long curunlucky = images.get(images.size() - 1).luckyParameter;
                 if(curunlucky > unluckyavr*unluckypickiness) {
