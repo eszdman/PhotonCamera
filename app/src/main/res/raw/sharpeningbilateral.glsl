@@ -7,6 +7,7 @@ uniform float strength;
 #import interpolation
 #define MSIZE 3
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+#define MinDepth (0.0004)
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
@@ -48,13 +49,15 @@ void main() {
             final_colour += factor*cc;
         }
     }
+    float lum =  luminocity(Output);
     if (Z < 0.0001f) {
-        mask = luminocity(Output);
+        mask = lum;
     } else {
         mask = luminocity(clamp(final_colour/Z,0.0,1.0));
     }
-    mask = luminocity(Output)-mask;
+    mask = lum-mask;
     float dstrength = strength;
-    //dstrength*=clamp(1.0 - abs(luminocity(Output)-0.5)*7.7+3.1 ,0.0,1.0);
+    dstrength*=clamp(1.0 - (0.5-lum)*7.7+3.1 ,0.0,1.0);
+    if(abs(mask) < MinDepth) mask =0.0;
     Output+=mask*((dstrength)*4.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
 }

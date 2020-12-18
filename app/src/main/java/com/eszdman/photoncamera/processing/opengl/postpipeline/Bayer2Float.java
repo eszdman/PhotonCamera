@@ -24,32 +24,30 @@ public class Bayer2Float extends Node {
     @Override
     public void Run() {
         PostPipeline postPipeline = (PostPipeline)basePipeline;
-        Parameters params = PhotonCamera.getParameters();
-        Parameters parameters = PhotonCamera.getParameters();
-        GLTexture in = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
+        GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
         glProg.useProgram(R.raw.tofloat);
         glProg.setTexture("InputBuffer",in);
-        glProg.setVar("CfaPattern",parameters.cfaPattern);
+        glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);
         glProg.setVar("patSize",2);
-        glProg.setVar("whitePoint",parameters.whitePoint);
-        Log.d(Name,"whitelevel:"+parameters.whiteLevel);
-        glProg.setVarU("whitelevel",(parameters.whiteLevel));
-        Log.d(Name,"CfaPattern:"+parameters.cfaPattern);
+        glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
+        Log.d(Name,"whitelevel:"+basePipeline.mParameters.whiteLevel);
+        glProg.setVarU("whitelevel",(basePipeline.mParameters.whiteLevel));
+        Log.d(Name,"CfaPattern:"+basePipeline.mParameters.cfaPattern);
         postPipeline.regenerationSense = 10.f;
         int minimal = -1;
-        for(int i =0; i<params.whitePoint.length;i++){
+        for(int i =0; i<basePipeline.mParameters.whitePoint.length;i++){
             if(i == 1) continue;
-            if(params.whitePoint[i] < postPipeline.regenerationSense){
-                postPipeline.regenerationSense = params.whitePoint[i];
+            if(basePipeline.mParameters.whitePoint[i] < postPipeline.regenerationSense){
+                postPipeline.regenerationSense = basePipeline.mParameters.whitePoint[i];
                 minimal = i;
             }
         }
-        if(params.cfaPattern == 4) postPipeline.regenerationSense = 1.f;
+        if(basePipeline.mParameters.cfaPattern == 4) postPipeline.regenerationSense = 1.f;
         postPipeline.regenerationSense = 1.f/postPipeline.regenerationSense;
         Log.d(Name,"Regeneration:"+postPipeline.regenerationSense);
         glProg.setVar("Regeneration",postPipeline.regenerationSense);
         glProg.setVar("MinimalInd",minimal);
-        Point wsize = new Point(parameters.rawSize);
+        Point wsize = new Point(basePipeline.mParameters.rawSize);
         basePipeline.main2 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         WorkingTexture = basePipeline.main2;
         /*glProg.drawBlocks(basePipeline.main3);

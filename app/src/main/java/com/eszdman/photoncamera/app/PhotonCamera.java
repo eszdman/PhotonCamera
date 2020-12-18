@@ -109,7 +109,7 @@ public class PhotonCamera extends Application {
         mSettings = new Settings();
 
         mParameters = new Parameters();
-        mSupportedDevice = new SupportedDevice(this,mSettingsManager);
+        mSupportedDevice = new SupportedDevice(mSettingsManager);
     }
 
     public static void restartApp() {

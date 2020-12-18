@@ -44,7 +44,7 @@ public class Parameters {
     public int cameraRotation;
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
-        boolean isGnusmass = Build.BRAND.equals("Samsung");
+        boolean isHuawei = Build.BRAND.equals("Huawei");
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         int[] blarr = new int[4];
@@ -59,11 +59,11 @@ public class Parameters {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-        Log.d(TAG,"Focal Length:"+flen[0]);
         if(flen == null || flen.length <= 0) {
             flen = new float[1];
             flen[0] = 4.75f;
         }
+        Log.d(TAG,"Focal Length:"+flen[0]);
         focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (whiteLevel != null) this.whiteLevel = ((int) whiteLevel);
@@ -84,7 +84,7 @@ public class Parameters {
                 hasGainMap = true;
                 if ((gainMap[(gainMap.length / 8) - (gainMap.length / 8) % 4]) == 1.0 &&
                         (gainMap[(gainMap.length / 2) - (gainMap.length / 2) % 4]) == 1.0 &&
-                        (gainMap[(gainMap.length / 2 + gainMap.length / 8) - (gainMap.length / 2 + gainMap.length / 8) % 4]) == 1.0) {
+                        (gainMap[(gainMap.length / 2 + gainMap.length / 8) - (gainMap.length / 2 + gainMap.length / 8) % 4]) == 1.0 && isHuawei) {
                     Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
                     gainMap = new float[Const.gainMap.length];
                     for (int i = 0; i < Const.gainMap.length; i += 4) {
@@ -229,7 +229,8 @@ public class Parameters {
                 ",\n Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
                 ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
                 ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
-                ",\n Sharpness=" + FltFormat(PreferenceKeys.getSharpnessValue())+
+                ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
+                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR))+
                 ",\n FocalL=" + FltFormat(focalLength);
     }
 

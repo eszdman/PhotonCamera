@@ -42,6 +42,8 @@ public class PostPipeline extends GLBasePipeline {
         return in;
     }
     public void Run(ByteBuffer inBuffer, Parameters parameters){
+        mParameters = parameters;
+        mSettings = PhotonCamera.getSettings();
         Point rotated = getRotatedCoords(parameters.rawSize);
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;

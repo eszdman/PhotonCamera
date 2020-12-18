@@ -4,7 +4,9 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 
+import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
+import com.eszdman.photoncamera.processing.render.Parameters;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -26,6 +28,8 @@ public class GLBasePipeline implements AutoCloseable {
     private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
     public GLTexture main1,main2,main3;
+    public Settings mSettings;
+    public Parameters mParameters;
     private String currentProg;
     public int texnum = 0;
 
@@ -33,35 +37,11 @@ public class GLBasePipeline implements AutoCloseable {
         if(texnum == 1) {
             texnum = 2;
             return main2;
-        }
-        if(texnum != 1) {
+        } else {
             texnum = 1;
             return main1;
         }
-        return main1;
     }
-
-    /*public GLTexture newTexture(GLTexture in) {
-        return new GLTexture(in.mSize,in.mFormat,null,in.filter,in.wrap);
-    }
-    public GLTexture newTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels) {
-        return new GLTexture(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
-    }
-    public GLTexture newTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels,int textureFilter, int textureWrapper) {
-        return new GLTexture(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, textureFilter, textureWrapper);
-    }
-    public GLTexture newTexture(Point size, GLFormat glFormat, Buffer pixels) {
-        return new GLTexture(new Point(size), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE);
-    }
-    public GLTexture newTexture(int sizeX, int sizeY, GLFormat glFormat) {
-        return new GLTexture(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-    }
-    public GLTexture newTexture(int sizeX, int sizeY, GLFormat glFormat,int textureFilter, int textureWrapper) {
-        return new GLTexture(new Point(sizeX, sizeY), new GLFormat(glFormat), null, textureFilter, textureWrapper);
-    }
-    public GLTexture newTexture(Point size, GLFormat glFormat) {
-        return new GLTexture(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-    }*/
     public void startT() {
         timeStart = System.currentTimeMillis();
     }

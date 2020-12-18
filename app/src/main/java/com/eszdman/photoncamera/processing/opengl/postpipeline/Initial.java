@@ -37,7 +37,6 @@ public class Initial extends Node {
     @Override
     public void Run() {
         GLInterface glint = basePipeline.glint;
-        Parameters params = glint.parameters;
         lutbm = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.lut);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().toneMap));
         /*GLTexture oldT = TonemapCoeffs;
@@ -52,12 +51,13 @@ public class Initial extends Node {
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
-        glProg.setVar("sensorToIntermediate",params.sensorToProPhoto);
-        glProg.setVar("intermediateToSRGB",params.proPhotoToSRGB);
+        glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
+        glProg.setVar("intermediateToSRGB",basePipeline.mParameters.proPhotoToSRGB);
         glProg.setVar("gain",1.f);
-        Log.d(Name,"SensorPix:"+params.sensorPix);
-        glProg.setVar("activeSize",4,4,params.sensorPix.right-params.sensorPix.left-4,params.sensorPix.bottom-params.sensorPix.top-4);
-        glProg.setVar("neutralPoint",params.whitePoint);
+        Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
+        glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,
+                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-4);
+        glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
         Log.d(Name,"compressor:"+1.f/((float)PhotonCamera.getSettings().compressor));
         float sat =(float) PhotonCamera.getSettings().saturation;
         if(PhotonCamera.getSettings().cfaPattern == 4) sat = 0.f;

@@ -16,18 +16,15 @@ public class MonoDemosaic extends Node {
     @Override
     public void Run() {
         PostPipeline postPipeline = (PostPipeline) (basePipeline);
-        GLInterface glint = basePipeline.glint;
-        GLProg glProg = glint.glProgram;
         GLTexture glTexture;
-        Parameters params = glint.parameters;
         //glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), postPipeline.stackFrame);
         glTexture = previousNode.WorkingTexture;
         glProg.setTexture("RawBuffer", glTexture);
         for(int i =0; i<4;i++){
-            params.blackLevel[i]/=params.whiteLevel;
+            basePipeline.mParameters.blackLevel[i]/=basePipeline.mParameters.whiteLevel;
         }
-        glProg.setVar("blackLevel",params.blackLevel);
-        WorkingTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+        glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
+        WorkingTexture = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;
     }

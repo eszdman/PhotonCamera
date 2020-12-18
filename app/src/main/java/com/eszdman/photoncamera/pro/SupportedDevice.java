@@ -27,12 +27,10 @@ import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_DE
 import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.CAMERA_COUNT_KEY;
 
 public class SupportedDevice {
-    private Context context;
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevices = new LinkedHashSet<>();
-    public SupportedDevice(Context context1, SettingsManager manager){
+    public SupportedDevice(SettingsManager manager){
         mSettingsManager = manager;
-        context = context1;
         new Thread(() -> {
             try {
                 if (!mSettingsManager.isSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY)) {

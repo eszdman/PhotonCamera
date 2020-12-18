@@ -26,11 +26,10 @@ public class Demosaic extends Node {
     public void Run() {
         PostPipeline postPipeline = (PostPipeline) (basePipeline);
         GLTexture glTexture;
-        Parameters params = glInt.parameters;
         glTexture = previousNode.WorkingTexture;
         glProg.useProgram(R.raw.demosaicp1);
         glProg.setTexture("RawBuffer", glTexture);
-        glProg.setVar("CfaPattern", params.cfaPattern);
+        glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         if(PhotonCamera.getSettings().cfaPattern == -2) glProg.setDefine("QUAD","1");
 
         //GLTexture green = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16));
@@ -62,17 +61,18 @@ public class Demosaic extends Node {
         glProg.setTexture("GreenBuffer",basePipeline.main1);
         glProg.drawBlocks(outp);*/
         glProg.useProgram(R.raw.demosaicp2);
-        GLTexture GainMapTex = new GLTexture(params.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(params.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
+                FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("RawBuffer", outp);
         glProg.setTexture("GreenBuffer", basePipeline.main1);
-        glProg.setVar("whitePoint",params.whitePoint);
+        glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
         glProg.setTexture("GainMap",GainMapTex);
-        glProg.setVar("CfaPattern", params.cfaPattern);
-        glProg.setVar("RawSize",params.rawSize);
+        glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
+        glProg.setVar("RawSize",basePipeline.mParameters.rawSize);
         for(int i =0; i<4;i++){
-            params.blackLevel[i]/=params.whiteLevel*postPipeline.regenerationSense;
+            basePipeline.mParameters.blackLevel[i]/=basePipeline.mParameters.whiteLevel*postPipeline.regenerationSense;
         }
-        glProg.setVar("blackLevel",params.blackLevel);
+        glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
         WorkingTexture = basePipeline.main3;
         glProg.drawBlocks(WorkingTexture);
         GainMapTex.close();

@@ -33,7 +33,7 @@ public class ExposureFusionFast2 extends Node {
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
         if(exposing1 == null) exposing1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(exposing1);
         return exposing1;
@@ -44,7 +44,7 @@ public class ExposureFusionFast2 extends Node {
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         if(exposing2 == null) exposing2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(exposing2);
         return exposing2;
@@ -55,7 +55,7 @@ public class ExposureFusionFast2 extends Node {
         glProg.useProgram(R.raw.unexpose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         glProg.drawBlocks(exposing1);
         return exposing1;
     }
@@ -64,7 +64,7 @@ public class ExposureFusionFast2 extends Node {
         double compressor = 1.f;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         int split = 2;
-        if(PhotonCamera.getParameters().rawSize.x*PhotonCamera.getParameters().rawSize.y >= ResolutionSolution.highRes) split = 3;
+        if(basePipeline.mParameters.rawSize.x*basePipeline.mParameters.rawSize.y >= ResolutionSolution.highRes) split = 3;
         GLTexture input = new GLTexture(
                 previousNode.WorkingTexture.mSize.x/split,
                 previousNode.WorkingTexture.mSize.y/split,
@@ -115,7 +115,7 @@ public class ExposureFusionFast2 extends Node {
                 glProg.drawBlocks(wipa[i]);
                 //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
             }
-            GLTexture unexposed = unexpose(wipa[0], 1.4f*(float)PhotonCamera.getSettings().gain*((PostPipeline)basePipeline).regenerationSense*((PostPipeline)basePipeline).AecCorr/2.f);
+            GLTexture unexposed = unexpose(wipa[0], 1.4f*(float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).regenerationSense*((PostPipeline)basePipeline).AecCorr/2.f);
             GLTexture out = basePipeline.getMain();
             glUtils.conglby(unexposed,out,prevOut,split,j);
             prevOut = out;

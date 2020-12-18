@@ -56,7 +56,7 @@ public class SmartNR extends Node {
 
         float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
-        float str = (float)PhotonCamera.getSettings().noiseRstr;
+        float str = (float)basePipeline.mSettings.noiseRstr;
         if(str > 1.0)
         denoiseLevel*=str;
         //Chroma NR

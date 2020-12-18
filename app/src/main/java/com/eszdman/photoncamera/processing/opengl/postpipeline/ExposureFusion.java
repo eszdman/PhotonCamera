@@ -27,7 +27,7 @@ public class ExposureFusion extends Node {
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16,GLConst.WorkDim));
         if(basePipeline.main1 == null) basePipeline.main1 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main1);
@@ -40,7 +40,7 @@ public class ExposureFusion extends Node {
         glProg.useProgram(R.raw.expose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         glProg.drawBlocks(basePipeline.main2);
         glProg.close();
@@ -50,7 +50,7 @@ public class ExposureFusion extends Node {
         glProg.useProgram(R.raw.unexpose);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", PhotonCamera.getParameters().whitePoint);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         //if(basePipeline.main2 != null) basePipeline.main2.close();
         if(basePipeline.main2 == null) basePipeline.main2 = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         //GLTexture out = new GLTexture(in.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
@@ -62,7 +62,7 @@ public class ExposureFusion extends Node {
     public void Run() {
         GLTexture in = previousNode.WorkingTexture;
         double compressor = 1.f;
-        if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
+        //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         int perlevel = 4;
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
@@ -122,7 +122,7 @@ public class ExposureFusion extends Node {
 
         }
         //previousNode.WorkingTexture.close();
-        WorkingTexture = unexpose(wip, (float) PhotonCamera.getSettings().gain);
+        WorkingTexture = unexpose(wip, (float) basePipeline.mSettings.gain);
         Log.d(Name,"Output Size:"+wip.mSize);
         //wip.close();
         glProg.closed = true;
