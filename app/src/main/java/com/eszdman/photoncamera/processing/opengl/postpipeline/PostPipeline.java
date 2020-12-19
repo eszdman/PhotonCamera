@@ -45,10 +45,10 @@ public class PostPipeline extends GLBasePipeline {
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
         Point rotated = getRotatedCoords(parameters.rawSize);
-        if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
+        /*if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;
             rotated.y/=2;
-        }
+        }*/
         Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
 
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
@@ -58,11 +58,11 @@ public class PostPipeline extends GLBasePipeline {
         add(new Bayer2Float(0,"Bayer2Float"));
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
-                if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
+                //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
                     add(new Demosaic());
-                } else {
-                    add(new BinnedDemosaic());
-                }
+                //} else {
+                //    add(new BinnedDemosaic());
+                //}
                 //add(new Debug3(R.raw.debugraw,"Debug3"));
             } else {
                 add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));

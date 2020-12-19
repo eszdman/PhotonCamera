@@ -20,6 +20,7 @@ import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.opengl.scripts.RawSensivity;
+import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
@@ -183,6 +184,7 @@ public class ImageProcessing {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
+        long avr = PhotonCamera.getCameraFragment().BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -199,17 +201,33 @@ public class ImageProcessing {
             Log.d(TAG,"Sensivity:"+k);
             ImageFrame frame = new ImageFrame(byteBuffer);
             frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
+            frame.luckyParameter = (frame.luckyParameter+avr)/2;
+            avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
             frame.pair = IsoExpoSelector.pairs.get(i%IsoExpoSelector.patternSize);
+            frame.number = i;
             images.add(frame);
         }
         if(mImageFramesToProcess.size() >= 3)
         images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
+        double unluckypickiness = 1.05;
+        long unluckyavr = 0;
+        for(int i =0; i<images.size();i++){
+            unluckyavr+=images.get(i).luckyParameter;
+            Log.d(TAG,"unluckymap:"+images.get(i).luckyParameter+"n:"+images.get(i).number);
+        }
+        unluckyavr/=images.size();
         if(images.size() >= 4){
-            int size = (int)((double)images.size()*0.7);
+            int size = (int)(images.size()-FrameNumberSelector.throwCount);
+            Log.d(TAG, "ThrowCount:" + size);
+            Log.d(TAG, "ImageCount:" + images.size());
+            if(size == images.size()) size = (int) (images.size()*0.25);
             for(int i =images.size(); i>size;i--){
-                Log.d(TAG,"Removing unlucky:"+ images.get(images.size()-1).luckyParameter);
-                images.remove(images.size()-1);
+                long curunlucky = images.get(images.size() - 1).luckyParameter;
+                if(curunlucky > unluckyavr*unluckypickiness) {
+                    Log.d(TAG, "Removing unlucky:" + curunlucky + " number:" + images.get(images.size() - 1).number);
+                    images.remove(images.size() - 1);
+                }
             }
             Log.d(TAG,"Size after removal:"+images.size());
         }

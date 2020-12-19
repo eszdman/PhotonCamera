@@ -10,6 +10,7 @@ public class ImageFrame {
     public ByteBuffer buffer;
     public Image image;
     long luckyParameter;
+    int number;
     IsoExpoSelector.ExpoPair pair;
     public ImageFrame(ByteBuffer in){
         buffer = in;
