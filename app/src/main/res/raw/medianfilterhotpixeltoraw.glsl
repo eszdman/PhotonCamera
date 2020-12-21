@@ -51,11 +51,10 @@ out uint Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    int fact1 = (xy.x-CfaPattern%2)%2;
-    int fact2 = (xy.y-CfaPattern/2)%2;
+    ivec2 fact = (xy-ivec2(CfaPattern%2,CfaPattern/2))%2;
     float v[9];
     // Add the pixels which make up our window to the pixel array.
-    if(fact1+fact2 == 1){
+    if(fact.x+fact.y == 1){
         v[4] = float(texelFetch(InputBuffer, xy + ivec2(0,0), 0).r);
         v[1] = float(texelFetch(InputBuffer, xy + ivec2(1,1), 0).r);
         v[2] = float(texelFetch(InputBuffer, xy + ivec2(-1,-1), 0).r);
@@ -78,7 +77,7 @@ void main() {
     }
     float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
     float balance;
-    ivec2 fact = (xy-ivec2(CfaPattern%2,CfaPattern/2))%2;
+
     if(fact.x+fact.y == 1){
         balance = WhitePoint.g;
     } else {

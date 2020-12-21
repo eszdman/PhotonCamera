@@ -73,6 +73,7 @@ public class AverageRaw extends GLOneScript {
                 glProg.setTexture("InputBuffer", in1);
             }
             glProg.setTexture("InputBuffer2", in2);
+            glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
             glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
             glProg.setVar("WhitePoint", wpoints);
             glProg.setVar("whitelevel", (float) (PhotonCamera.getParameters().whiteLevel));

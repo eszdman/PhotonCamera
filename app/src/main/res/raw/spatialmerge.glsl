@@ -55,7 +55,7 @@ void main() {
     //float outp = (((texelFetch(InputBuffer, aligned, 0).x))*float((windoww))+((texelFetch(OutputBuffer, (xy), 0).x))*float((1.0-windoww)));
     ivec2 outsize = ivec2(textureSize(OutputBuffer, 0));
     ivec2 state = xy%2;
-    vec2 inp = (vec2(0.5)-texture(AlignVectors, (vec2(gl_FragCoord.xy))/vec2(textureSize(OutputBuffer, 0))).rg)*float(TILESIZE)*16.0;
+    vec2 inp = (vec2(0.5)-textureBicubicHardware(AlignVectors, (vec2(gl_FragCoord.xy))/vec2(textureSize(OutputBuffer, 0))).rg)*float(TILESIZE*8);
     //vec2 inp = vec2(texelFetch(AlignVectors, (xy/(TILESIZE*2)), 0).rg)*float(TILESIZE)*256.0;
     ivec2 align = ivec2(inp.rg/2.0);//-ivec2(TILESIZE*4-TILESIZE/2,TILESIZE*2);
     align = mirrorCoords((xy/2)+align,ivec4(0,0,(outsize-1)/2))*2 + state;
