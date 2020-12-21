@@ -21,8 +21,9 @@ void main() {
     } else {
         outp =vec4(firstdiag(xy).rg,(seconddiag(xy).r+seconddiag(xy).g)/2.0,1.0);
     }
-    outp.a = outp.r+outp.g+outp.b;
-    outp.rgb/=outp.a;
+    outp.r = outp.r+outp.g+outp.b;
+    //outp.rgb/=outp.a;
+
     //outp.a-=outp.r+outp.g+outp.b;
     Output = outp;
 }

@@ -54,7 +54,7 @@ public class SupportedDevice {
     private void LoadSupported() throws IOException {
         URL supportedList = new URL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
         HttpURLConnection conn=(HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(200); // timing out in a minute
+        conn.setConnectTimeout(200); // timing out in a 200 ms
         BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         String str;
         while ((str = in.readLine()) != null) {

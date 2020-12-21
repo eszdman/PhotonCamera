@@ -106,6 +106,7 @@ public class AlignAndMerge extends Node {
 
         glProg.setDefine("SCANSIZE","("+tileSize+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MAXMP","("+2+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",0);
         glProg.setTexture("InputBuffer",brTex128);
@@ -114,6 +115,7 @@ public class AlignAndMerge extends Node {
 
         glProg.setDefine("SCANSIZE","("+tileSize+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MAXMP","("+1+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("InputBuffer", brTex32);
@@ -121,8 +123,9 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("MainBuffer", BaseFrame32);
         glProg.drawBlocks(small,1);
 
-        glProg.setDefine("SCANSIZE","("+tileSize+")");
+        glProg.setDefine("SCANSIZE","("+tileSize/2+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MAXMP","("+1+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",small);
@@ -133,6 +136,7 @@ public class AlignAndMerge extends Node {
 
         glProg.setDefine("SCANSIZE","("+tileSize/2+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MAXMP","("+1+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("AlignVectors",medium);
@@ -246,7 +250,7 @@ public class AlignAndMerge extends Node {
     GLTexture brTex2, brTex8, brTex32,brTex128;
     GLTexture alignVectors;
     GLTexture Weights;
-    final int tileSize = 32;
+    final int tileSize = 64;
     @Override
     public void Run() {
         glProg = basePipeline.glint.glProgram;
@@ -279,7 +283,7 @@ public class AlignAndMerge extends Node {
         brTex32 = new GLTexture(BaseFrame32);
         brTex128 = new GLTexture(BaseFrame128);
         int added = 1;
-        alignVectors = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_NEAREST,GL_CLAMP_TO_EDGE);
+        alignVectors = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2),GL_LINEAR,GL_CLAMP_TO_EDGE);
         medium = new GLTexture(new Point((brTex8.mSize.x / (tileSize))+added, (brTex8.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         small = new GLTexture(new Point((brTex32.mSize.x / (tileSize))+added, (brTex32.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         vsmall = new GLTexture(new Point((brTex128.mSize.x / (tileSize))+added, (brTex128.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.FLOAT_16, 2));
