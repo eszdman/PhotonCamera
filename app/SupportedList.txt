@@ -1,4 +1,4 @@
 xiaomi:cepheus
 xiaomi:raphael
 xiaomi:davinci
-oneplus:oneplus7t
+
