@@ -1,1 +1,2 @@
 xiaomi:cepheus
+oneplus:oneplus7t
