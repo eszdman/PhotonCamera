@@ -57,8 +57,8 @@ void main() {
     float highWeight = 1000.;
 
     // Factor 1: Well-exposedness.
-    vec3 midNormalToAvg = sqrt(unscaledGaussian(midNormal - 0.4, 0.65));
-    vec3 midHighToAvg = sqrt(unscaledGaussian(midHigh - 0.4, 0.65));
+    vec3 midNormalToAvg = sqrt(unscaledGaussian(midNormal - 0.35, 0.50));
+    vec3 midHighToAvg = sqrt(unscaledGaussian(midHigh - 0.35, 0.50));
 
     normalWeight *= midNormalToAvg.x * midNormalToAvg.y * midNormalToAvg.z;
     highWeight *= midHighToAvg.x * midHighToAvg.y * midHighToAvg.z;
@@ -67,15 +67,15 @@ void main() {
     float laplaceNormal = laplace(normalExpo, midNormal, xyCenter);
     float laplaceHigh = laplace(highExpo, midHigh, xyCenter);
 
-    normalWeight *= sqrt(laplaceNormal + 0.1);
-    highWeight *= sqrt(laplaceHigh + 0.1);
+    normalWeight *= sqrt(laplaceNormal + 0.01);
+    highWeight *= sqrt(laplaceHigh + 0.01);
 
     // Factor 3: Saturation.
     float normalStddev = stddev(midNormal);
     float highStddev = stddev(midHigh);
 
-    normalWeight *= sqrt(normalStddev + 0.1);
-    highWeight *= sqrt(highStddev + 0.1);
+    normalWeight *= sqrt(normalStddev + 0.01);
+    highWeight *= sqrt(highStddev + 0.01);
 
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
     result = base + mix(normal, high, blend);

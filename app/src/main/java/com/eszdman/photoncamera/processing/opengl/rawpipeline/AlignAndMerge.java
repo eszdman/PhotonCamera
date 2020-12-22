@@ -53,7 +53,7 @@ public class AlignAndMerge extends Node {
         glProg.useProgram(R.raw.boxdown22);
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
-        glProg.drawBlocks(out);
+        glProg.drawBlocks(basePipeline.main3);
         //glUtils.SaveProgResult(output.mSize,"boxdown");
         //glProg.close();
         //GLTexture median = glUtils.blur(output,5.0);
@@ -63,7 +63,7 @@ public class AlignAndMerge extends Node {
         //glUtils.median(basePipeline.main3,out,new Point(1,1));
 
         //GLTexture median = glUtils.blur(output,1.5);
-        //GLTexture median = glUtils.median(output,1.5);
+        glUtils.median(basePipeline.main3, out,new Point(1,1));
         //glUtils.SaveProgResult(output.mSize,"aligninput");
         //GLTexture laplaced = glUtils.ops(blur,output,"-");
         //output.close();
@@ -79,8 +79,8 @@ public class AlignAndMerge extends Node {
         //glUtils.gaussdown(input,out,4,1.5);
         if(median) {
             if(input.mSize.x+input.mSize.y > 9) {
-                glUtils.median(input, basePipeline.main3, new Point(1, 1));
-                glUtils.interpolate(basePipeline.main3, out, 1.0 / 4.0);
+                glUtils.interpolate(input, basePipeline.main3, 1.0 / 4.0);
+                glUtils.median(basePipeline.main3, out, new Point(1, 1));
             } else {
                 glUtils.median(input, out, new Point(1, 1));
             }
@@ -115,7 +115,7 @@ public class AlignAndMerge extends Node {
 
         glProg.setDefine("SCANSIZE","("+tileSize+")");
         glProg.setDefine("TILESIZE","("+tileSize+")");
-        glProg.setDefine("MAXMP","("+2+")");
+        glProg.setDefine("MAXMP","("+3+")");
         glProg.useProgram(R.raw.pyramidalign2);
         glProg.setVar("prevLayerScale",4);
         glProg.setTexture("InputBuffer", brTex32);
@@ -272,7 +272,7 @@ public class AlignAndMerge extends Node {
         BaseFrame128 = new GLTexture(BaseFrame32.mSize.x/4, BaseFrame32.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
         GaussDown44(BaseFrame2, BaseFrame8,true);
         GaussDown44(BaseFrame8, BaseFrame32,true);
-        GaussDown44(BaseFrame32,BaseFrame128,false);
+        GaussDown44(BaseFrame32,BaseFrame128,true);
         GLTexture Output = basePipeline.getMain();
         CorrectedRaw(Output,0);
         Log.d("AlignAndMerge", "Resize elapsed time:" + (System.currentTimeMillis() - time) + " ms");
@@ -297,7 +297,7 @@ public class AlignAndMerge extends Node {
             BoxDown22(inputraw, brTex2);
             GaussDown44(brTex2, brTex8,true);
             GaussDown44(brTex8, brTex32,true);
-            GaussDown44(brTex32,brTex128,false);
+            GaussDown44(brTex32,brTex128,true);
             //Log.d("AlignAndMerge", "Resize:" + (System.currentTimeMillis() - time2) + " ms");
             Align();
             //Weights();

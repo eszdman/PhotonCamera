@@ -4,6 +4,9 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.SensorManager;
+import android.os.Build;
+import android.widget.Toast;
+
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
@@ -93,6 +96,7 @@ public class PhotonCamera extends Application {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
+        Toast.makeText(this, Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase(),Toast.LENGTH_SHORT).show();
         initModules();
     }
 
