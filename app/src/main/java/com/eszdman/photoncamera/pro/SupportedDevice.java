@@ -38,13 +38,14 @@ public class SupportedDevice {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if(!loaded)
+            if(!loaded && mSettingsManager.isSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
             mSupportedDevices = mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
     }
     public boolean isSupported(){
         boolean supported = false;
         String deviceC = Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase();
+        if(mSupportedDevices == null) return false;
         for(String device : mSupportedDevices){
             if(deviceC.equals(device)) supported = true;
         }

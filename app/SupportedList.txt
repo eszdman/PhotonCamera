@@ -1,5 +1,4 @@
 xiaomi:cepheus
 xiaomi:raphael
 xiaomi:davinci
-xiaomi:pyxis
 oneplus:oneplus7t
