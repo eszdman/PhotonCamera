@@ -29,18 +29,17 @@ import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.CAMERA
 public class SupportedDevice {
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevices = new LinkedHashSet<>();
+    private boolean loaded = false;
     public SupportedDevice(SettingsManager manager){
         mSettingsManager = manager;
         new Thread(() -> {
             try {
-                if (!mSettingsManager.isSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY)) {
-                    LoadSupported();
-                } else {
-                    mSupportedDevices = mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
-                }
-            } catch (Exception e){
+                LoadSupported();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
+            if(!loaded)
+            mSupportedDevices = mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
     }
     public boolean isSupported(){
@@ -61,6 +60,7 @@ public class SupportedDevice {
             mSupportedDevices.add(str);
             Log.d("SupportedDevice","Loaded:"+str);
         }
+        loaded = true;
         in.close();
         mSettingsManager.set(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, mSupportedDevices);
     }
