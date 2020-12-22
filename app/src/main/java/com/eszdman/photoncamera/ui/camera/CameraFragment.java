@@ -1232,10 +1232,10 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
         // garbage capture data.
 
-        mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+        /*mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
-                maxPreviewHeight*2, target);
-        //mPreviewSize = new Size(rotatedPreviewWidth,rotatedPreviewHeight);
+                maxPreviewHeight*2, target);*/
+        mPreviewSize = new Size(rotatedPreviewWidth,rotatedPreviewHeight);
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         if (isAdded()) {
