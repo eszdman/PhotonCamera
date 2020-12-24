@@ -4,7 +4,7 @@ precision highp float;
 uniform sampler2D InputBuffer;
 uniform float factor;
 uniform vec3 neutralPoint;
-out vec3 result;
+out vec4 result;
 uniform int yOffset;
 #define DR (1.4)
 #define DH (0.0)
@@ -19,6 +19,7 @@ float gammaEncode(float x) {
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
     xyCenter+=ivec2(0,yOffset);
+    xyCenter*=2;
     /*
     vec3 XYZ = texelFetch(InputBuffer, xyCenter, 0).xyz;
     vec3 xyY = XYZtoxyY(XYZ);
@@ -27,10 +28,14 @@ void main() {
 
     xyY.z = sigmoid(xyY.z, 0.9f);
     result = xyYtoXYZ(xyY);*/
-    vec3 inp = texelFetch(InputBuffer, xyCenter, 0).xyz;
+    vec4 inp;
+    inp.r = texelFetch(InputBuffer, xyCenter, 0).r;
+    inp.g = texelFetch(InputBuffer, xyCenter+ivec2(1,0), 0).r;
+    inp.b = texelFetch(InputBuffer, xyCenter+ivec2(0,1), 0).r;
+    inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
     if(factor > 1.0){
-        float br2 = inp.r+inp.g+inp.b;
-        br2/=3.0;
+        float br2 = inp.r+inp.g+inp.b+inp.a;
+        br2/=4.0;
         inp*=factor*clamp((0.7-br2)*1.3,0.5,1.0);
     }
     /*if(factor < 1.0)
@@ -40,9 +45,9 @@ void main() {
     }*/
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
-    result = clamp(inp,vec3(0.0001),neutralPoint);
-    result/=neutralPoint;
-    float br = (result.r+result.g+result.b)/3.0;
+    result = clamp(inp,vec4(0.0001),neutralPoint.rggb);
+    result/=neutralPoint.rggb;
+    float br = (result.r+result.g+result.b+result.a)/4.0;
     result/=br;
     /*if(br > 0.93 && factor <= 1.1){
         result = mix(vec3((result.r+result.g+result.b)/3.0),result,(1.0-br)/0.03);
@@ -51,5 +56,4 @@ void main() {
 
     //br = clamp(br,0.0,1.0);
     result*=br;
-
 }

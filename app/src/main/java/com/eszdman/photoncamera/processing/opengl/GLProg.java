@@ -212,6 +212,10 @@ public class GLProg implements AutoCloseable {
         glFlush();
     }
 
+    public void drawBlocks(GLTexture glTexture,Point drawsize) {
+        glTexture.BufferLoad();
+        drawBlocks(drawsize.x, drawsize.y);
+    }
     public void drawBlocks(GLTexture glTexture) {
         glTexture.BufferLoad();
         drawBlocks(glTexture.mSize.x, glTexture.mSize.y);

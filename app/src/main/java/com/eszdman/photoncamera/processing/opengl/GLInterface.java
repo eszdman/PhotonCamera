@@ -73,6 +73,7 @@ public class GLInterface {
                         headers+="float unscaledGaussian(float, float);";
                         headers+="vec3 unscaledGaussian(vec3, float);";
                         headers+="vec3 unscaledGaussian(vec3, vec3);";
+                        headers+="vec4 unscaledGaussian(vec4, float);";
                         break;
                     case "#importcubic":
                         id = R.raw.import_cubic;

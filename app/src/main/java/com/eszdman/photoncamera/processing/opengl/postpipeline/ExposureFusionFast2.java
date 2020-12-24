@@ -75,7 +75,7 @@ public class ExposureFusionFast2 extends Node {
         GLTexture[] wipa = null;
         for(int j = 0; j<split*split;j++) {
             int perlevel = 3;
-            int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel));
+            int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel))-1;
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
