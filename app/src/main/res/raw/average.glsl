@@ -8,7 +8,7 @@ uniform int unlimitedcount;
 uniform vec4 blackLevel;
 uniform int CfaPattern;
 uniform vec3 WhitePoint;
-uniform float whitelevel;
+uniform int whitelevel;
 uniform int first;
 uniform int yOffset;
 out float Output;

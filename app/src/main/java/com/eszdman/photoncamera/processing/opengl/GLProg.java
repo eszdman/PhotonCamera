@@ -56,6 +56,7 @@ public class GLProg implements AutoCloseable {
     private static final String TAG = "GLProgram";
     private final ByteBuffer mFlushBuffer = ByteBuffer.allocateDirect(4 * 4 * 4096);
     private final List<Integer> mPrograms = new ArrayList<>();
+    private final Map<String, Integer> mProgramCache = new HashMap<>();
     private final int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
     private int mCurrentProgramActive;
@@ -89,20 +90,32 @@ public class GLProg implements AutoCloseable {
         else {
             shader = GLInterface.loadShader(fragmentRes);
         }
-        int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
-        Defines.clear();
-        changedDef = false;
-        currentShader = nShader;
-        //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-        int program = createProgram(vertexShader, nShader);
-        glLinkProgram(program);
-        GLES30.glGetError();
-        //checkEglError("glLinkProgram");
-        glUseProgram(program);
-        checkEglError("glUseProgram");
-        mCurrentProgramActive = program;
-        mTextureBinds.clear();
-        mNewTextureId = 0;
+        if(mProgramCache.containsKey(shader)) {
+            Defines.clear();
+            changedDef = false;
+            Integer prog = mProgramCache.get(shader);
+            if(prog == null) return;
+            glUseProgram(prog);
+            checkEglError("glUseProgram");
+            mCurrentProgramActive = prog;
+            mTextureBinds.clear();
+            mNewTextureId = 0;
+        } else {
+            int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+            Defines.clear();
+            changedDef = false;
+            currentShader = nShader;
+            int program = createProgram(vertexShader, nShader);
+            glLinkProgram(program);
+            GLES30.glGetError();
+            //checkEglError("glLinkProgram");
+            glUseProgram(program);
+            checkEglError("glUseProgram");
+            mCurrentProgramActive = program;
+            mTextureBinds.clear();
+            mNewTextureId = 0;
+            mProgramCache.put(shader,program);
+        }
     }
 
     public void useProgram(String prog) {

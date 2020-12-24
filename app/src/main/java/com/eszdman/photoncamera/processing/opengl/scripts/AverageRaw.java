@@ -16,7 +16,7 @@ import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedCount
 import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedEnd;
 
 public class AverageRaw extends GLOneScript {
-    GLTexture in1,in2, first,second,stack;
+    GLTexture in1,in2, first,second,stack,finalTex;
     private GLProg glProg;
     int used = 1;
     public AverageRaw(Point size, String name) {
@@ -27,6 +27,7 @@ public class AverageRaw extends GLOneScript {
         first = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
         second = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
         stack = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16));
+        finalTex = new GLTexture(size,new GLFormat(GLFormat.DataType.UNSIGNED_16));
         float []oldp = PhotonCamera.getParameters().whitePoint;
         wpoints = new float[oldp.length];
         float min = 1000.f;
@@ -76,7 +77,7 @@ public class AverageRaw extends GLOneScript {
             glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
             glProg.setVar("blacklevel", PhotonCamera.getParameters().blackLevel);
             glProg.setVar("WhitePoint", wpoints);
-            glProg.setVar("whitelevel", (float) (PhotonCamera.getParameters().whiteLevel));
+            glProg.setVar("whitelevel", (int) (PhotonCamera.getParameters().whiteLevel));
             if(unlimitedCounter < 3) {
                 glProg.setVar("unlimitedcount", 1);
             } else {
@@ -117,21 +118,18 @@ public class AverageRaw extends GLOneScript {
         glProg.useProgram(R.raw.medianfilterhotpixeltoraw);
         glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
         Log.d(Name,"CFAPattern:"+PhotonCamera.getParameters().cfaPattern);
-        glProg.setVar("WhitePoint", wpoints);
         glProg.setTexture("InputBuffer",stack);
-        if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(float)(PhotonCamera.getParameters().whiteLevel));
+        if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(int)(PhotonCamera.getParameters().whiteLevel));
         else {
-            glProg.setVar("whitelevel",ImageProcessing.fakeWL);
+            glProg.setVar("whitelevel",(int) ImageProcessing.fakeWL);
         }
-
-        //in1 = WorkingTexture;
-        in1 = new GLTexture(size, new GLFormat(GLFormat.DataType.UNSIGNED_16));
-        in1.BufferLoad();
-        glOne.glProcessing.drawBlocksToOutput();
         first.close();
         second.close();
+        //in1 = WorkingTexture;
+        finalTex.BufferLoad();
+        glOne.glProcessing.drawBlocksToOutput();
         stack.close();
-        in1.close();
+        finalTex.close();
         glProg.close();
         Output = glOne.glProcessing.mOutBuffer;
     }

@@ -74,14 +74,14 @@ public class ExposureFusionFast2 extends Node {
         GLUtils.Pyramid normalExpo = null;
         GLTexture[] wipa = null;
         for(int j = 0; j<split*split;j++) {
-            int perlevel = 4;
+            int perlevel = 3;
             int levelcount = (int) (Math.log10(input.mSize.x) / Math.log10(perlevel));
             if (levelcount <= 0) levelcount = 2;
             Log.d(Name, "levelCount:" + levelcount);
             glUtils.splitby(previousNode.WorkingTexture, input, split, j);
-            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 1.5, expose(input, 4.5f)); else
+            if(highExpo == null) highExpo = glUtils.createPyramid(levelcount, 0, expose(input, 4.5f)); else
                 highExpo.fillPyramid(expose(input, 4.5f));
-            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 1.5, expose2(input, (float) (1.0f))); else
+            if(normalExpo == null) normalExpo = glUtils.createPyramid(levelcount, 0, expose2(input, (float) (1.0f))); else
                 normalExpo.fillPyramid(expose2(input, (float) (1.0f)));
             if(wipa == null) wipa  = new GLTexture[normalExpo.laplace.length + 1];
 
@@ -104,7 +104,9 @@ public class ExposureFusionFast2 extends Node {
                 glProg.useProgram(R.raw.fusion);
                 glProg.setTexture("upsampled", upsampleWip);
                 glProg.setVar("useUpsampled", 1);
-                glProg.setVar("upscaleIn", normalExpo.sizes[i]);
+                int shift = 0;
+                //if(normalExpo.sizes[i].x > 900) shift = 1;
+                glProg.setVar("upscaleIn", normalExpo.sizes[i].x-shift,normalExpo.sizes[i].y-shift);
                 if (wipa[i] == null) wipa[i] = new GLTexture(normalExpo.laplace[i]);
                 // Weigh full image.
                 glProg.setTexture("normalExpo", normalExpo.gauss[i]);

@@ -31,13 +31,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-precision mediump float;
+precision highp float;
 precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
 uniform int CfaPattern;
-uniform vec3 WhitePoint;
-uniform float whitelevel;
+uniform int whitelevel;
 uniform int yOffset;
 #define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);
 #define mn3(a, b, c)			s2(a, b); s2(a, c);
@@ -77,16 +76,6 @@ void main() {
     }
     float avr = (v[0]+v[1]+v[2]+v[3]+v[5]+v[6]+v[7]+v[8])/8.0;
     float balance;
-
-    if(fact.x+fact.y == 1){
-        balance = WhitePoint.g;
-    } else {
-        if(fact.x == 0){
-            balance = WhitePoint.r;
-        } else {
-            balance = WhitePoint.b;
-        }
-    }
     if(v[4]*0.7 > avr){
         float temp;
         // Starting with a subset of size 6, remove the min and max each time
@@ -95,5 +84,5 @@ void main() {
         mnmx4(v[2], v[3], v[4], v[7]);
         mnmx3(v[3], v[4], v[8]);
     }
-    Output = uint(v[4]*whitelevel);
+    Output = uint(v[4]*float(whitelevel));
 }

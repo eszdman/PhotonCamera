@@ -1,5 +1,13 @@
 <resources>
+    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
+    <string name="manual_mode_auto" translatable="false">Auto</string>
+    <string name="manual_mode_manual" translatable="false">Manual</string>
+    <string name="manual_mode_fixed" translatable="false">Fixed</string>
+    <string name="iso" translatable="false">"ISO: "</string>
+    <string name="icon_string" translatable="false">Icon</string>
+    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
     <string name="app_name" translatable="false">Photon Camera</string>
+    <string name="device_support" translatable="false">PhotonCamera Pro</string>
     <string name="request_permission">This app needs camera permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
     <string name="luma_nr_count">Luma NR Count</string>
@@ -37,7 +45,6 @@
     <string name="size">"File Size: "</string>
     <string name="device">"Device: "</string>
     <string name="date">"Date: "</string>
-    <string name="iso" translatable="false">"ISO: "</string>
     <string name="exposure_time">"Exposure Time: "</string>
     <string name="aperture">"Aperture: "</string>
     <string name="flength">"Focal Length: "</string>
@@ -47,13 +54,9 @@
     <string name="histogram">Histogram</string>
     <string name="export_settings">Export Settings</string>
     <string name="import_settings">Import Settings</string>
-    <string name="manual_mode_auto" translatable="false">Auto</string>
-    <string name="manual_mode_manual" translatable="false">Manual</string>
-    <string name="manual_mode_fixed" translatable="false">Fixed</string>
     <string name="pref_show_grid_title">Show Grid</string>
     <string name="cfa">CFA Pattern</string>
     <string name="align_method">Align Method</string>
-    <string name="icon_string">Icon</string>
     <string name="pref_save_per_lens_string">Save Per Lens Settings</string>
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
@@ -74,17 +77,17 @@
     <string name="frame_count_summary">Number of image frames to be stacked</string>
     <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>
     <string name="version_title">Version</string>
-    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
     <string name="contributors_title">Contributors ↗</string>
     <string name="eis_toggle_text">Image Stabilization</string>
     <string name="fps_60_toggle_text">60 FPS Preview</string>
     <string name="quad_bayer_toggle_text">Quad Bayer Res(48/64MP)</string>
-    <string name="backup_restore"><![CDATA[Backup & Restore Settings]]></string>
+    <string name="backup_restore">Backup/Restore Settings</string>
     <string name="reset">Reset All</string>
     <string name="reset_preferences_warning">This will reset all settings to their default values. Continue?</string>
     <string name="backup">Backup</string>
     <string name="app_will_restart">App Will Restart</string>
-    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
     <string name="restore">Restore</string>
     <string name="empty_file_name_error">File name cannot be an empty string</string>
+    <string name="device_unsupport">Warning: Unsupported device</string>
+
 </resources>
