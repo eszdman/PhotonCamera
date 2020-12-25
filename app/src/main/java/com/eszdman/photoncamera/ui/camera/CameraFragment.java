@@ -1445,8 +1445,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             //showToast("AF:"+mFocus);
 
-            //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            //mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, mFocus);
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();
 
             IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
