@@ -22,10 +22,10 @@
             android:layout_margin="5dp"
             >
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <FrameLayout
                 android:id="@+id/camera_switch_container"
-                android:layout_width="61dp"
-                android:layout_height="59dp"
+                android:layout_width="@dimen/camera_switch_button_size"
+                android:layout_height="0dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintDimensionRatio="1.0"
                 app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
@@ -33,6 +33,7 @@
                 app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
+                    android:layout_gravity="center"
                     android:id="@+id/flip_camera_button"
                     android:background="#00000000"
                     android:clickable="true"
@@ -41,18 +42,11 @@
                     android:src="@drawable/ic_flip_camera"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.0"
-
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0"
                     tools:ignore="HardcodedText"
-                    android:layout_height="0dp"
-                    android:layout_width="0dp"/>
+                    android:layout_height="match_parent"
+                    android:layout_width="match_parent"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="wrap_content"
@@ -123,7 +117,7 @@
                     app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <FrameLayout
                 android:layout_width="@dimen/gallery_button_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1.0"
@@ -137,12 +131,9 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/gallery_image_button"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@drawable/round"
                     app:civ_border_color="@color/Light"
                     app:civ_border_overlay="true"
@@ -150,6 +141,6 @@
                     imageFromBitmap="@{uimodel.bitmap}"
                     bindRotate="@{uimodel}"
                     />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
