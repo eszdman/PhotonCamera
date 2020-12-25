@@ -83,7 +83,6 @@
                     android:paddingTop="5dp"
                     android:textColor="@color/manual_text_color"
                     tools:textColor="@color/White"
-                    android:textIsSelectable="true"
                     android:textSize="15sp"
                     android:textAlignment="center"
                     tools:text="NULL"/>
