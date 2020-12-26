@@ -65,4 +65,5 @@
     <string name="pref_theme_default_value" translatable="false">-1</string>
     <string name="pref_theme_accent_default_value" translatable="false">default</string>
     <bool name="pref_show_gradient_def_value">false</bool>
+    <string name="pref_af_mode_default_value">4</string>
 </resources>

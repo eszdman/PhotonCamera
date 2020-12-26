@@ -58,6 +58,16 @@
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
                 />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_af_mode_key"
+                android:title="@string/af_mode"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_focus"
+                android:entries="@array/af_mode_entries"
+                android:entryValues="@array/af_mode_entryvalues"
+                android:defaultValue="@string/pref_af_mode_default_value"/>
+
         <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="pref_show_afdata_key"
                 android:defaultValue="@bool/pref_show_afdata_default"

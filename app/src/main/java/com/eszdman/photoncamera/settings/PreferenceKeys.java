@@ -43,6 +43,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Preference.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Preference.KEY_CAMERA_SOUNDS.mValue);
         COMMON_KEYS.add(Preference.KEY_SHOW_GRADIENT.mValue);
+        COMMON_KEYS.add(Preference.KEY_AF_MODE.mValue);
     }
 
     public static void setDefaults(Context context) {
@@ -265,6 +266,10 @@ public class PreferenceKeys {
         PhotonCamera.getSettingsManager().set(Preference.CAMERAS_PREFERENCE_FILE_NAME.mValue, Preference.CAMERA_ID, value);
     }
 
+    public static int getAfMode() {
+        return PhotonCamera.getSettingsManager().getInteger(current_scope, Preference.KEY_AF_MODE);
+    }
+
     /*public static int getCameraMode() {
         return PhotonCamera.getSettingsManager().getInteger(current_scope, Preference.CAMERA_MODE);
     }*/
@@ -321,6 +326,7 @@ public class PreferenceKeys {
         KEY_THEME("pref_theme_key"),
         KEY_THEME_ACCENT("pref_theme_accent_key"),
         KEY_SHOW_GRADIENT("pref_show_gradient_key"),
+        KEY_AF_MODE("pref_af_mode_key"),
         /**
          * Other Keys
          */

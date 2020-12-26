@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Log;
@@ -11,11 +12,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.ImageView;
-
-import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 
 public class TouchFocus {
     protected final String TAG = "TouchFocus";
@@ -108,11 +109,19 @@ public class TouchFocus {
                 "scale x/y:" + x_scale + "/" + y_scale + "\n" +
                 "final rect :" + rect_to_set.toString());
         rectaf[0] = rect_to_set;
+        triggerAutoFocus(rectaf);
+    }
+
+    private void triggerAutoFocus(MeteringRectangle[] rectaf) {
         CaptureRequest.Builder build = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
+        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        build.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+        PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
+
         build.set(CaptureRequest.CONTROL_AF_REGIONS, rectaf);
         build.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
         build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        build.set(CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
+        build.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
         build.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         //set focus area repeating,else cam forget after one frame where it should focus
         //Interface.getCameraFragment().rebuildPreviewBuilder();
@@ -137,4 +146,7 @@ public class TouchFocus {
         focusEl.setX((float) getMax().x / 2.f);
         focusEl.setY((float) getMax().y / 2.f);
     }
+
+
+
 }

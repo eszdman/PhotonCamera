@@ -50,6 +50,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
 import com.eszdman.photoncamera.gallery.ui.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
@@ -720,28 +721,36 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         }
     }
 
-    @Override
-    public void onViewCreated(final View view, Bundle savedInstanceState) {
-        mTextureView = view.findViewById(R.id.texture);
-        surfaceView = view.findViewById(R.id.surfaceView);
-        if (getView() != null) {
-            this.mCameraUIView = new CameraUIViewImpl(getView());
-            this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
-        }
-        PhotonCamera.getTouchFocus().ReInit();
-    }
-
     private CameraFragmentViewModel cameraFragmentViewModel;
     private TimerFrameCountViewModel timerFrameCountViewModel;
+    private CameraFragmentBinding cameraFragmentBinding;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //create the ui binding
-        com.eszdman.photoncamera.databinding.CameraFragmentBinding cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
-        //create the modelview wich updated the model
+        cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
+
+        initMembers();
+        setModelsToLayout();
+
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+
+        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+    }
+
+    private void initMembers() {
+        //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
+
+        mTextureView = cameraFragmentBinding.layoutViewfinder.texture;
+        surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
+    }
+
+    private void setModelsToLayout() {
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
@@ -750,10 +759,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         // associating timer model with layouts
         cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
         cameraFragmentBinding.layoutViewfinder.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        logDisplayProperties(dm);
-        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
-        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
+        this.mCameraUIView = new CameraUIViewImpl(view);
+        this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
+        PhotonCamera.getTouchFocus().ReInit();
     }
 
     @Override
