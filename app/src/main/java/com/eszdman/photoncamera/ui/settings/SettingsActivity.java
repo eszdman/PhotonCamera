@@ -4,12 +4,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.app.base.BaseActivity;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.SplashActivity;
 import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
 
@@ -19,8 +21,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        AppCompatDelegate.setDefaultNightMode(PhotonCamera.getSettings().theme);
-        getDelegate().setLocalNightMode(PhotonCamera.getSettings().theme);
+        AppCompatDelegate.setDefaultNightMode(PreferenceKeys.getThemeValue());
         setContentView(R.layout.activity_settings);
         getSupportFragmentManager()
                 .beginTransaction()
