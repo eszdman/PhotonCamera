@@ -21,6 +21,7 @@
                 android:layout_height="30dp"
                 android:text=""
                 android:background="@drawable/ic_photo_library"
+                app:backgroundTint="@android:color/white"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
