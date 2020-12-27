@@ -73,8 +73,9 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnExif(this::onExifButtonClick);
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnShare(this::onShareButtonClick);
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnEdit(this::onEditButtonClick);
-        fragmentGalleryImageViewerBinding.setOnGallery(this::onGalleryButtonClick);
+        fragmentGalleryImageViewerBinding.topControlsContainer.setOnGallery(this::onGalleryButtonClick);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
+        adapter.setImageViewClickListener(this::onImageViewClicked);
     }
 
     @Override
@@ -184,6 +185,10 @@ public class ImageViewerFragment extends Fragment {
     private void onExifButtonClick(View view) {
         fragmentGalleryImageViewerBinding.setExifDialogVisible(!fragmentGalleryImageViewerBinding.getExifDialogVisible());
         updateExif();
+    }
+
+    private void onImageViewClicked(View view) {
+        fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
     }
 
     private void updateExif() {

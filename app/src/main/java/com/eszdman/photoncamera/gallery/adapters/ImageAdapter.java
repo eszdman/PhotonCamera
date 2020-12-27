@@ -24,6 +24,7 @@ import java.util.List;
 
 public class ImageAdapter extends PagerAdapter {
     private final List<File> imageFiles;
+    private ImageViewClickListener imageViewClickListener;
 
     public ImageAdapter(List<File> imageFiles) {
         this.imageFiles = imageFiles;
@@ -47,6 +48,9 @@ public class ImageAdapter extends PagerAdapter {
         String fileExt = FileUtils.getExtension(file.getName());
 
         SubsamplingScaleImageView scaleImageView = new CustomSSIV(container.getContext());
+        if (imageViewClickListener != null) {
+            scaleImageView.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
+        }
 
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
             scaleImageView.setImage(ImageSource.uri(Uri.fromFile(file)));
@@ -81,6 +85,10 @@ public class ImageAdapter extends PagerAdapter {
         container.removeView((View) object);
     }
 
+    public void setImageViewClickListener(ImageViewClickListener imageViewClickListener) {
+        this.imageViewClickListener = imageViewClickListener;
+    }
+
     static class CustomSSIV extends SubsamplingScaleImageView {
         public CustomSSIV(Context context) {
             super(context);
@@ -91,6 +99,10 @@ public class ImageAdapter extends PagerAdapter {
             setDoubleTapZoomDuration(200);
             setPreferredBitmapConfig(Bitmap.Config.ARGB_8888);
         }
+    }
+
+    public interface ImageViewClickListener {
+        void onImageViewClicked(View v);
     }
 }
 
