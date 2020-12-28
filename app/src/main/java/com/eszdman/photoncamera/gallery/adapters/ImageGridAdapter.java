@@ -106,6 +106,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         selectionStarted = true;
         holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(true);
         ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
+        imageView.setScaleX(0.85f);
         imageView.setScaleY(0.85f);
         if (imageSelectionListener != null) {
             imageSelectionListener.onImageSelectionChanged(selectedFiles.size());
