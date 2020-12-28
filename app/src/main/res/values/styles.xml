@@ -76,9 +76,11 @@
         <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
     </style>
 
-    <style name="NegativeButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@android:color/white</item>
-        <item name="backgroundTint">?colorControlActivated</item>
+    <style name="NegativeButtonStyle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textColor">?colorControlActivated</item>
+        <item name="strokeColor">?colorControlActivated</item>
+        <item name="strokeWidth">2dp</item>
+
     </style>
 
     <style name="PositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
