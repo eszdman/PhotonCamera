@@ -12,6 +12,11 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
+import java.nio.FloatBuffer;
+
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_LINEAR;
+
 public class Bayer2Float extends Node {
 
     public Bayer2Float(int rid, String name) {
@@ -25,13 +30,21 @@ public class Bayer2Float extends Node {
     public void Run() {
         PostPipeline postPipeline = (PostPipeline)basePipeline;
         GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
+        GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
+                FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.useProgram(R.raw.tofloat);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);
         glProg.setVar("patSize",2);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
+        glProg.setVar("RawSize",basePipeline.mParameters.rawSize);
         Log.d(Name,"whitelevel:"+basePipeline.mParameters.whiteLevel);
         glProg.setVarU("whitelevel",(basePipeline.mParameters.whiteLevel));
+        glProg.setTexture("GainMap",GainMapTex);
+        for(int i =0; i<4;i++){
+            basePipeline.mParameters.blackLevel[i]/=basePipeline.mParameters.whiteLevel*postPipeline.regenerationSense;
+        }
+        glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
         Log.d(Name,"CfaPattern:"+basePipeline.mParameters.cfaPattern);
         postPipeline.regenerationSense = 10.f;
         int minimal = -1;
@@ -66,6 +79,7 @@ public class Bayer2Float extends Node {
         }*/
         basePipeline.main1 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         basePipeline.main3 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+        GainMapTex.close();
         glProg.closed = true;
     }
 }

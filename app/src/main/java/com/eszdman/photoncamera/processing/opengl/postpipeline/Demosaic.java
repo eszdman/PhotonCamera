@@ -61,21 +61,12 @@ public class Demosaic extends Node {
         glProg.setTexture("GreenBuffer",basePipeline.main1);
         glProg.drawBlocks(outp);*/
         glProg.useProgram(R.raw.demosaicp2);
-        GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
-                FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("RawBuffer", outp);
         glProg.setTexture("GreenBuffer", basePipeline.main1);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
-        glProg.setTexture("GainMap",GainMapTex);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
-        glProg.setVar("RawSize",basePipeline.mParameters.rawSize);
-        for(int i =0; i<4;i++){
-            basePipeline.mParameters.blackLevel[i]/=basePipeline.mParameters.whiteLevel*postPipeline.regenerationSense;
-        }
-        glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
         WorkingTexture = basePipeline.main3;
         glProg.drawBlocks(WorkingTexture);
-        GainMapTex.close();
         glProg.close();
     }
 }

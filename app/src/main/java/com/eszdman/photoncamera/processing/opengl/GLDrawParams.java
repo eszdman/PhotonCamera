@@ -18,7 +18,7 @@ import static android.opengl.EGL14.EGL_TRUE;
 
 public class GLDrawParams {
     public static int TileSize = 256;
-    public final static int WorkDim = 3;
+    public final static int WorkDim = 4;
     final static int EGLDisplay = EGL_DEFAULT_DISPLAY;
     final static int[] attribList = {
             EGL_DEPTH_SIZE, 0,

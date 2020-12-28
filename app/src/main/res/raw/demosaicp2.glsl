@@ -7,9 +7,6 @@ uniform int yOffset;
 uniform int CfaPattern;
 uniform vec3 whitePoint;
 
-uniform sampler2D GainMap;
-uniform vec4 blackLevel;
-uniform ivec2 RawSize;
 
 //#define greenmin (0.04)
 #define greenmin (0.01)
@@ -102,12 +99,6 @@ void main() {
         outp.r = interpolateColor(xy);
     }
     Output = outp;
-    vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
-    //Output*=whitePoint;
-    Output.r = gains.r*(Output.r-blackLevel.r);
-    Output.g = ((gains.g+gains.b)/2.)*(Output.g-(blackLevel.g+blackLevel.b)/2.);
-    Output.b = gains.a*(Output.b-blackLevel.a);
-    Output/=(1.0-blackLevel.g);
 
     Output = clamp(Output,0.0,1.0);
 }

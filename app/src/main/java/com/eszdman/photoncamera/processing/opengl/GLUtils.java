@@ -350,7 +350,7 @@ public class GLUtils {
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",(int)(out.mSize.x),(int)(out.mSize.y));
-        glProg.drawBlocks(out);
+        glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
         return out;
     }
@@ -372,7 +372,7 @@ public class GLUtils {
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",(int)(in.mSize.x*k),(int)(in.mSize.y*k));
-        glProg.drawBlocks(out);
+        glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
         return out;
     }
@@ -633,14 +633,14 @@ public class GLUtils {
                 "uniform sampler2D target;\n" +
                 "uniform sampler2D base;\n" +
                 "uniform ivec2 size;\n" +
-                "out vec3 result;\n" +
+                "out vec4 result;\n" +
                 //"uniform int yOffset;\n" +
                 "#import interpolation\n"+
                 "void main() {\n" +
                 "    ivec2 xyCenter = ivec2(gl_FragCoord.xy);\n" +
                 //"    xyCenter+=ivec2(0,yOffset);\n" +
                 //"    result = texelFetch(target, xyCenter, 0).xyz - texelFetch(base, xyCenter, 0).xyz;\n" +
-                "    result = texelFetch(target, xyCenter, 0).xyz - textureBicubic(base, vec2(gl_FragCoord.xy)/vec2(size)).xyz;\n" +
+                "    result = texelFetch(target, xyCenter, 0) - textureBicubic(base, vec2(gl_FragCoord.xy)/vec2(size));\n" +
                 //"    result = textureBicubic(target, vec2(gl_FragCoord.xy)/vec2(size)).xyz - textureBicubic(base, vec2(gl_FragCoord.xy)/vec2(size)).xyz;\n" +
                 "}\n";
         public void releasePyramid(){
