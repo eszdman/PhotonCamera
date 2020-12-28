@@ -62,9 +62,15 @@ public class ImageViewerFragment extends Fragment {
         viewPager = fragmentGalleryImageViewerBinding.viewPager;
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
+        navController = NavHostFragment.findNavController(this);
+        initImageAdapter();
+    }
+
+    private void initImageAdapter() {
         allFiles = FileManager.getAllImageFiles();
         adapter = new ImageAdapter(allFiles);
-        navController = NavHostFragment.findNavController(this);
+        adapter.setImageViewClickListener(this::onImageViewClicked);
+        viewPager.setAdapter(adapter);
     }
 
     private void setClickListeners() {
@@ -75,13 +81,11 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnEdit(this::onEditButtonClick);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnGallery(this::onGalleryButtonClick);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
-        adapter.setImageViewClickListener(this::onImageViewClicked);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewPager.setAdapter(adapter);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
         viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
@@ -147,6 +151,8 @@ public class ImageViewerFragment extends Fragment {
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setMessage(R.string.sure_delete)
+                .setTitle(android.R.string.dialog_alert_title)
+                .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
 
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
@@ -155,9 +161,7 @@ public class ImageViewerFragment extends Fragment {
                     File thisFile = new File(String.valueOf(allFiles.get(position)));
                     thisFile.delete();
                     MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(thisFile)}, null, null);
-                    allFiles = FileManager.getAllImageFiles();
-                    adapter = new ImageAdapter(allFiles);
-                    viewPager.setAdapter(adapter);
+                    initImageAdapter();
                     //auto scroll to the next photo
                     viewPager.setCurrentItem(position, true);
                     updateExif();
