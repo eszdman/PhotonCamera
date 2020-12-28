@@ -8,11 +8,7 @@ import android.widget.Toast;
 import androidx.preference.EditTextPreference;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.util.FileManager;
-import org.apache.commons.io.FileUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -31,28 +27,6 @@ public class BackupPreferences extends EditTextPreference {
 
         });
 
-        setOnPreferenceChangeListener((preference, newValue) -> {
-            File data_dir = getContext().getDataDir();
-            File shared_prefs_file = Paths.get(
-                    data_dir.toPath()
-                            + File.separator
-                            + "shared_prefs"
-                            + File.separator
-                            + context.getPackageName() + "_preferences.xml"
-            ).toFile();
-            File toSave = new File(FileManager.sPHOTON_DIR, newValue.toString().concat(".xml"));
-            try {
-                if (newValue.equals("")) {
-                    throw new IOException(getContext().getString(R.string.empty_file_name_error));
-                }
-                FileUtils.copyFile(shared_prefs_file, toSave);
-                Toast.makeText(context, "Saved:" + toSave, Toast.LENGTH_LONG).show();
-            } catch (IOException e) {
-                e.printStackTrace();
-                Toast.makeText(context, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
-            }
-            return true;
-        });
     }
 
     private final InputFilter textInputFilter = (source, start, end, dest, dstart, dend) -> {
