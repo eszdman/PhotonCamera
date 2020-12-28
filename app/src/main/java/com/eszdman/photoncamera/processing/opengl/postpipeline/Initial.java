@@ -28,6 +28,15 @@ public class Initial extends Node {
     }
 
     @Override
+    public void Configure() {
+        glProg.setDefine("X1",getTuning("X1",2.8586));
+        glProg.setDefine("X2",getTuning("X2",-3.1643));
+        glProg.setDefine("X3",getTuning("X3",1.2899));
+        glProg.setDefine("GAMMAC",getTuning("GAMMAC",0.055));
+        glProg.setDefine("REMOVESATURATION",getTuning("REMOVESATURATION",0.0004));
+    }
+
+    @Override
     public void AfterRun() {
         lutbm.recycle();
         lut.close();

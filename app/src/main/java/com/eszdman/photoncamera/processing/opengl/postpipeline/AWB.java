@@ -71,9 +71,9 @@ public class AWB extends Node {
         double maxmpy = 0;
         //short minC = 0;
 
-        for (short i = 50; i < 120; i++) {
-            for (short j = 40; j < 120; j++) {
-                for (short k = 40; k < 120; k++) {
+        for (short i = Rstart; i < Rend; i++) {
+            for (short j = Gstart; j < Gend; j++) {
+                for (short k = Bstart; k < Bend; k++) {
         //for (short i = 20; i < 200; i++) {
         //    for (short j = 20; j < 200; j++) {
         //        for (short k = 20; k < 200; k++) {
@@ -91,7 +91,7 @@ public class AWB extends Node {
         }
         Log.v("AWB", "Color correction vector original:" + redVector + " ," + greenVector + " ," + blueVector);
         //Use WhiteWorld
-        if(maxmpy > 1.3 || blueVector-10 > redVector) {
+        if(maxmpy > WhiteWorldFactor || blueVector-10 > redVector) {
             Log.d("AWB", "Use WhiteWorld factor:" + maxmpy);
             maxHistH = -1;
             short rb = redVector;
@@ -279,9 +279,23 @@ public class AWB extends Node {
         CCV[2]*=(float)(corr);
         return CCV;
     }
-
+    private short Rstart = 50;
+    private short Gstart = 40;
+    private short Bstart = 40;
+    private short Rend = 120;
+    private short Gend = 120;
+    private short Bend = 120;
+    private double WhiteWorldFactor = 1.3;
     @Override
     public void Run() {
+        Rstart = getTuning("Rstart",Rstart);
+        Gstart = getTuning("Gstart",Gstart);
+        Bstart = getTuning("Bstart",Bstart);
+        Rend = getTuning("Rend",Rend);
+        Gend = getTuning("Gend",Gend);
+        Bend = getTuning("Bend",Bend);
+        WhiteWorldFactor = getTuning("WhiteWorldFactor",WhiteWorldFactor);
+
         GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(previousNode.WorkingTexture.mSize.x/8,previousNode.WorkingTexture.mSize.x/8));
         GLTexture r1 = glUtils.interpolate(r0,new Point(40,40));
         //GLTexture r2 = glUtils.blursmall(r1,3,1.8);

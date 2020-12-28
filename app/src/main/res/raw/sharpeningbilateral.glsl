@@ -7,7 +7,12 @@ uniform float strength;
 #import interpolation
 #define MSIZE 3
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define MinDepth (0.0004)
+#define MINDEPTH (0.0004)
+#define BIGSHARP (1.0)
+#define DYNAMICSTRKOEFF (7.7)
+#define DYNAMICSTRCONST (3.1)
+#define SHARPEDGE (0.2)
+#define SHARPKERNEL (0.9)
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
@@ -28,8 +33,8 @@ void main() {
     float kernel[MSIZE];
     float mask = 0.0;
     float Z = 0.0;
-    float sigX = 0.9;
-    float sigY = 0.2;
+    float sigX = SHARPKERNEL;
+    float sigY = SHARPEDGE;
     vec3 final_colour = vec3(0.0);
     for (int j = 0; j <= kSize; ++j)
     {
@@ -44,8 +49,8 @@ void main() {
         for (int j=-kSize; j <= kSize; ++j)
         {
             cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*1),0).rgb);
-            cc += vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*2),0).rgb);
-            cc/=2.0;
+            cc += vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*2),0).rgb)*BIGSHARP;
+            cc/=(1.0+BIGSHARP);
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;
@@ -59,7 +64,7 @@ void main() {
     }
     mask = lum-mask;
     float dstrength = strength;
-    dstrength*=clamp(1.0 - (0.5-lum)*7.7+3.1 ,0.0,1.0);
-    if(abs(mask) < MinDepth) mask =0.0;
+    dstrength*=clamp(1.0 - (0.5-lum)*DYNAMICSTRKOEFF+DYNAMICSTRCONST ,0.0,1.0);
+    if(abs(mask) < MINDEPTH) mask =0.0;
     Output+=mask*((dstrength)*4.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
 }

@@ -8,6 +8,10 @@ out vec4 result;
 uniform int yOffset;
 #define DR (1.4)
 #define DH (0.0)
+#define EXPOSESHIFT (0.7)
+#define EXPOSEMPY (1.3)
+#define EXPOSEMIN (0.5)
+#define EXPOSEMAX (1.0)
 /*float gammaEncode(float x) {
     if(x>1.0) return x;
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/DR));
@@ -36,7 +40,7 @@ void main() {
     if(factor > 1.0){
         float br2 = inp.r+inp.g+inp.b+inp.a;
         br2/=4.0;
-        inp*=factor*clamp((0.7-br2)*1.3,0.5,1.0);
+        inp*=factor*clamp((EXPOSESHIFT-br2)*EXPOSEMPY,EXPOSEMIN,EXPOSEMAX);
     }
     /*if(factor < 1.0)
     win.a = win.a*factor*(clamp((1.0-win.a),0.0,0.05)*(1.0/0.05));
