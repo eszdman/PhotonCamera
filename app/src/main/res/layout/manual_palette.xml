@@ -58,6 +58,7 @@
                     android:id="@+id/focus_option"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:tint="@android:color/white"
                     android:background="#00000000"
                     app:srcCompat="@drawable/manual_control_icon_focus"
                 />
@@ -92,6 +93,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:background="#00000000"
+                    android:tint="@android:color/white"
                     app:srcCompat="@drawable/manual_control_icon_exposure"
                 />
         </LinearLayout>
@@ -118,6 +120,7 @@
                          android:layout_height="wrap_content"
                          android:id="@+id/iso_option"
                          app:srcCompat="@drawable/manual_control_icon_iso"
+                         android:tint="@android:color/white"
                          android:layout_gravity="center"
                          android:background="#00000000"
                     />
@@ -147,6 +150,7 @@
                          android:layout_height="wrap_content"
                          android:id="@+id/ev_option"
                          app:srcCompat="@drawable/ic_exposure"
+                         android:tint="@android:color/white"
                          android:layout_gravity="center"
                          android:background="#00000000"
                 />

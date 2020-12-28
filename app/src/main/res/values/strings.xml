@@ -89,5 +89,6 @@
     <string name="restore">Restore</string>
     <string name="empty_file_name_error">File name cannot be an empty string</string>
     <string name="device_unsupport">Warning: Unsupported device</string>
+    <string name="af_mode">Auto Focus Mode</string>
 
 </resources>
