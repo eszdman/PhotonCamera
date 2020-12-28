@@ -124,7 +124,7 @@ public class SmartNR extends Node {
                 glProg.drawBlocks(outp);
                 in.close();
             }
-            WorkingTexture = glUtils.ops(outp, WorkingTexture, basePipeline.getMain(), "(in1.rgb/((in1.r+in1.g+in1.b)/3.0))*((in2.r+in2.g+in2.b)/3.0)", "", 1);
+            WorkingTexture = glUtils.ops(outp, WorkingTexture, basePipeline.getMain(), "(in1.rgba/((in1.r+in1.g+in1.b)/3.0))*((in2.r+in2.g+in2.b)/3.0)", "", 1);
         } else {
             for(int i =1;i<2;i++) {
                 glProg.useProgram(R.raw.hybridmedianfiltercolor);
