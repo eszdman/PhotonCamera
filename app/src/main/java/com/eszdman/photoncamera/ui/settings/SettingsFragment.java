@@ -10,6 +10,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.DialogFragment;
@@ -18,10 +20,11 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.settings.BackupRestoreUtil;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
-import com.eszdman.photoncamera.ui.settings.custompreferences.BackupPreferences;
 import com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,6 +39,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     private Activity activity;
     private SettingsManager mSettingsManager;
     private Context mContext;
+    private View mRootView;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -50,12 +54,22 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         mContext = getContext();
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
+        showHideHdrxSettings();
+        setFramesSummary();
+        setVersionDetails();
+    }
+
+    private void showHideHdrxSettings() {
         if (PreferenceKeys.isHdrXOn())
             removePreferenceFromScreen("pref_category_jpg");
         else
             removePreferenceFromScreen("pref_category_hdrx");
-        setFramesSummary();
-        setVersionDetails();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        mRootView = view;
     }
 
     @Override
@@ -65,6 +79,13 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         toolbar.setTitle(getPreferenceScreen().getTitle());
         setHdrxTitle();
         checkEszdTheme();
+        setTelegramPref();
+        setGithubPref();
+        setBackupPref();
+        setRestorePref();
+    }
+
+    private void setTelegramPref() {
         Preference myPref = findPreference(PreferenceKeys.Preference.KEY_TELEGRAM.mValue);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
@@ -72,6 +93,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 startActivity(browserIntent);
                 return true;
             });
+    }
+
+    private void setGithubPref() {
         Preference github = findPreference(PreferenceKeys.Preference.KEY_CONTRIBUTORS.mValue);
         if (github != null)
             github.setOnPreferenceClickListener(preference -> {
@@ -79,6 +103,28 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 startActivity(browserIntent);
                 return true;
             });
+    }
+
+    private void setRestorePref() {
+        Preference restorePref = findPreference("pref_restore_preferences_key");
+        if (restorePref != null && getContext() != null) {
+            restorePref.setOnPreferenceChangeListener((preference, newValue) -> {
+                String restoreResult = BackupRestoreUtil.restorePreferences(getContext(), newValue.toString());
+                Snackbar.make(mRootView, restoreResult, Snackbar.LENGTH_LONG).show();
+                return true;
+            });
+        }
+    }
+
+    private void setBackupPref() {
+        Preference backupPref = findPreference("pref_backup_preferences_key");
+        if (backupPref != null && getContext() != null) {
+            backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                String backupResult = BackupRestoreUtil.backupSettings(getContext(), newValue.toString());
+                Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
+                return true;
+            });
+        }
     }
 
     private void removePreferenceFromScreen(String preferenceKey) {

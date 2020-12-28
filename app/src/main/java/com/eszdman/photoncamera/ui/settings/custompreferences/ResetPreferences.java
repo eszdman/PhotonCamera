@@ -5,17 +5,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
-import android.widget.Toast;
 import androidx.preference.DialogPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceDialogFragmentCompat;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import org.apache.commons.io.FileUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
+import com.eszdman.photoncamera.settings.BackupRestoreUtil;
+import com.google.android.material.snackbar.Snackbar;
 
 public class ResetPreferences extends DialogPreference {
     public ResetPreferences(Context context, AttributeSet attributeSet) {
@@ -38,16 +34,12 @@ public class ResetPreferences extends DialogPreference {
         @Override
         public void onDialogClosed(boolean positiveResult) {
             if (positiveResult) {
-                try {
-                    if (getContext() != null) {
-                        File data_dir = getContext().getDataDir();
-                        File shared_prefs_dir = Paths.get(data_dir.toPath() + File.separator + "shared_prefs").toFile();
-                        FileUtils.deleteDirectory(shared_prefs_dir);
-                        Toast.makeText(getContext(), R.string.app_will_restart, Toast.LENGTH_SHORT).show();
-                        new Handler(Looper.getMainLooper()).postDelayed(PhotonCamera::restartApp, 1000);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (getContext() != null && getActivity() != null) {
+                    String status = getString(R.string.app_will_restart);
+                    if (!BackupRestoreUtil.resetPreferences(getContext()))
+                        status = "Failed";
+                    Snackbar.make(getActivity().findViewById(android.R.id.content), status, Snackbar.LENGTH_SHORT).show();
+                    new Handler(Looper.getMainLooper()).postDelayed(PhotonCamera::restartApp, 1000);
                 }
             }
         }

@@ -20,6 +20,8 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.eszdman.photoncamera.gallery.adapters.ImageGridAdapter;
 import com.eszdman.photoncamera.util.FileManager;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -88,7 +90,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                     allFiles = FileManager.getAllImageFiles();
                     imageGridAdapter.setImageList(allFiles);
                     recyclerView.requestLayout();
-                    Toast.makeText(getContext(), numOfFiles + " File Deleted!", Toast.LENGTH_LONG).show();
+                    Snackbar.make(view,numOfFiles + " File/s Deleted!", Snackbar.LENGTH_SHORT).show();
                 })
                 .create()
                 .show();
