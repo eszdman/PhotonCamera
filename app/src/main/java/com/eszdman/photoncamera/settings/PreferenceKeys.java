@@ -115,8 +115,8 @@ public class PreferenceKeys {
 
         SettingsManager sm = PhotonCamera.getSettingsManager();
 
-        String theme = sm.getString(SCOPE_GLOBAL, Preference.KEY_THEME_ACCENT);
-        boolean showGradient = sm.getBoolean(SCOPE_GLOBAL, Preference.KEY_SHOW_GRADIENT);
+        String theme = sm.getString(SCOPE_GLOBAL, Preference.KEY_THEME_ACCENT, activity.getResources().getString(R.string.pref_theme_accent_default_value));
+        boolean showGradient = sm.getBoolean(SCOPE_GLOBAL, Preference.KEY_SHOW_GRADIENT, activity.getResources().getBoolean(R.bool.pref_show_gradient_def_value));
 
         if (showGradient) {
             activity.getTheme().applyStyle(R.style.GradientBackgroundTheme, true);

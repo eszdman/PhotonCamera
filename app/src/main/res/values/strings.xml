@@ -36,6 +36,7 @@
     <string name="hdrxNR">HDRX Noise Reduction</string>
     <string name="turn_on_watermark">Enable Watermark</string>
     <string name="sure_delete">Are you sure to delete this image?</string>
+    <string name="sure_delete_multiple">Are you sure to delete %1$s images?</string>
     <string name="cancel">Cancel</string>
     <string name="yes">Yes</string>
     <string name="image_deleted">Image Deleted</string>
@@ -90,5 +91,6 @@
     <string name="empty_file_name_error">File name cannot be an empty string</string>
     <string name="device_unsupport">Warning: Unsupported device</string>
     <string name="af_mode">Auto Focus Mode</string>
+    <string name="long_press_to_deselect">Long press button to deselect all</string>
 
 </resources>
