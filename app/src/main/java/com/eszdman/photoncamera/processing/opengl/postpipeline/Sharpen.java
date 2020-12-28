@@ -15,6 +15,18 @@ public class Sharpen extends Node {
     public Sharpen(int rid, String name) {
         super(rid, name);
     }
+
+    @Override
+    public void Configure() {
+        glProg.setDefine("MSIZE",getTuning("MSIZE",3));
+        glProg.setDefine("MINDEPTH",getTuning("MINDEPTH",0.0004));
+        glProg.setDefine("BIGSHARP",getTuning("BIGSHARP",1.0));
+        glProg.setDefine("DYNAMICSTRKOEFF",getTuning("DYNAMICSTRKOEFF",7.7));
+        glProg.setDefine("DYNAMICSTRCONST",getTuning("DYNAMICSTRCONST",3.1));
+        glProg.setDefine("SHARPEDGE",getTuning("SHARPEDGE",0.2));
+        glProg.setDefine("SHARPKERNEL",getTuning("SHARPKERNEL",0.9));
+    }
+
     @Override
     public void Run() {
         float sharpnessLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 14.2f;

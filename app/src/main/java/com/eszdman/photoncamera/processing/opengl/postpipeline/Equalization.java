@@ -62,9 +62,16 @@ public class Equalization extends Node {
 
     @Override
     public void Compile() {}
-
+    private double k = 2.3;
+    private double shift = -0.85;
+    private float Min = 0.4f;
+    private float Max = 2.5f;
     @Override
     public void Run() {
+        k = getTuning("k",k);
+        shift = getTuning("shift",shift);
+        Min = getTuning("Min",Min);
+        Max = getTuning("Max",Max);
         WorkingTexture = basePipeline.getMain();
         GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(previousNode.WorkingTexture.mSize.x/8,previousNode.WorkingTexture.mSize.x/8));
         GLTexture r1 = glUtils.interpolate(r0,new Point(40,40));
@@ -78,10 +85,10 @@ public class Equalization extends Node {
 
         float eq = EqualizeF(Histogram(preview));
         eq = (2.f+eq)/(3.f);
-        eq-=0.85;
-        eq*=2.3;
-        eq = Math.max(0.4f,eq);
-        eq = Math.min(2.5f,eq);
+        eq+=shift;
+        eq*=k;
+        eq = Math.max(Min,eq);
+        eq = Math.min(Max,eq);
         GLTexture postCurve = new GLTexture(new Point(6,1),new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(new float[]{0f,0.12f,0.4f,0.60f,0.78f,1.f}),GL_LINEAR,GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizek:"+eq);

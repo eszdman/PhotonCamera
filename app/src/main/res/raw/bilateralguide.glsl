@@ -8,7 +8,12 @@ uniform float isofactor;
 uniform ivec2 size;
 uniform ivec2 tpose;
 #define M_PI 3.1415926535897932384626433832795
-
+#define NRMPY (0.55)
+#define EFFECTMIN (0.0005)
+#define EFFECTMAX (1.0)
+#define SIGMAK (0.01*0.5)
+#define NOISEFACTOR (0.6)
+#define FACTORK (0.35)
 //#define sigma (0.05)
 //const int kernel = 6;
 const int window = 2;
@@ -23,14 +28,14 @@ const int window = 2;
 float nlmeans(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
-    float noisefactor = clamp((textureBicubic(NoiseMap, vec2(coords)/vec2(size)).r)*0.55*isofactor,0.0005,1.0);
+    float noisefactor = clamp((textureBicubic(NoiseMap, vec2(coords)/vec2(size)).r)*NRMPY*isofactor,EFFECTMIN,EFFECTMAX);
     noisefactor*=noisefactor;
-    noisefactor*=0.6;
+    noisefactor*=NOISEFACTOR;
     for(int i = -kernel; i < kernel; i++) {
         for(int j = -kernel; j < kernel; j++) {
             ivec2 patchCoord = coords + ivec2(i, j);
             //float w = comparePatches(patchCoord, coords,0.01*0.5 + noisefactor*0.35);
-            float sigma = (0.01*0.5 + noisefactor*0.35);
+            float sigma = (SIGMAK + noisefactor*FACTORK);
             float w = distribute(luminocity(texelFetch(InputBuffer, coords,0).rgb),
             luminocity(texelFetch(InputBuffer,patchCoord,0).rgb),sigma);
             w/=((2.0 * float(window) + 1.0) * (2.0 * float(window) + 1.0));

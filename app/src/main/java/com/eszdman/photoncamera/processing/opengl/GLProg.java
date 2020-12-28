@@ -77,6 +77,15 @@ public class GLProg implements AutoCloseable {
     }
     boolean changedDef = false;
     ArrayList<String[]> Defines = new ArrayList<>();
+    public void setDefine(String DefineName, float DefineVal){
+        setDefine(DefineName,String.valueOf(DefineVal));
+    }
+    public void setDefine(String DefineName, double DefineVal){
+        setDefine(DefineName,String.valueOf(DefineVal));
+    }
+    public void setDefine(String DefineName, int DefineVal){
+        setDefine(DefineName,String.valueOf(DefineVal));
+    }
     public void setDefine(String DefineName, String DefineVal){
         Defines.add(new String[]{DefineName,DefineVal});
         changedDef = true;

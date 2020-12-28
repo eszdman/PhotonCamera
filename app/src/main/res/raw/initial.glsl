@@ -22,9 +22,11 @@ out vec3 Output;
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
-#define x1 2.8586f
-#define x2 -3.1643f
-#define x3 1.2899f
+#define X1 2.8586
+#define X2 -3.1643
+#define X3 1.2899
+#define GAMMAC (0.055)
+#define REMOVESATURATION (0.0004)
 #import coords
 #import interpolation
 //float gammaEncode2(float x) {
@@ -36,7 +38,7 @@ out vec3 Output;
     : 1.055f * pow(x, 0.4166667f) - 0.055f;
 }*/
 float gammaEncode2(float x) {
-    return 1.055 * pow(x, 1.0/1.8) - 0.055;
+    return (1.0+GAMMAC) * pow(x, 1.0/1.8) - GAMMAC;
 }
 float gammaEncode3(float x) {
     return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
@@ -45,7 +47,7 @@ float gammaEncode3(float x) {
 vec3 gammaCorrectPixel(vec3 x) {
     float br = (x.r+x.g+x.b)/3.0;
     x/=br;
-    return x*(x1*br+x2*br*br+x3*br*br*br);
+    return x*(X1*br+X2*br*br+X3*br*br*br);
 }
 vec3 gammaCorrectPixel3(vec3 x) {
     x+=0.0001;
@@ -236,7 +238,7 @@ void main() {
     sRGB = applyColorSpace(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
-    br = (clamp(br-0.0004,0.0,0.002)*(1.0/0.002));
+    br = (clamp(br-REMOVESATURATION,0.0,0.002)*(1.0/0.002));
     //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
     sRGB = clamp(sRGB,0.00,1.0);

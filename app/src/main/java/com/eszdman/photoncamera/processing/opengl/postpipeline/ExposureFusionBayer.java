@@ -4,12 +4,9 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
-import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
-import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 
 public class ExposureFusionBayer extends Node {
 
@@ -19,11 +16,20 @@ public class ExposureFusionBayer extends Node {
     @Override
     public void Compile() {}
 
-    private double dynamR = 1.5;
-    private double dehaze = 0.0;
+    private double Gamma = 1.5;
+    private double Dehaze = 0.0;
+    private float Strength = 4.5f;
+    private double ExposeMin = 0.5;
+    private double ExposeMax = 1.0;
+    private double ExposeMpy = 1.3;
+    private double ExposeShift = 0.7;
     GLTexture expose(GLTexture in, float str){
-        glProg.setDefine("DR","("+dynamR+")");
-        glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("DR","("+ Gamma +")");
+        glProg.setDefine("DH","("+ Dehaze +")");
+        glProg.setDefine("EXPOSESHIFT","("+ ExposeShift +")");
+        glProg.setDefine("EXPOSEMPY","("+ ExposeMpy +")");
+        glProg.setDefine("EXPOSEMIN","("+ ExposeMin +")");
+        glProg.setDefine("EXPOSEMAX","("+ ExposeMax +")");
         glProg.useProgram(R.raw.exposebayer);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -33,8 +39,12 @@ public class ExposureFusionBayer extends Node {
         return outp;
     }
     GLTexture expose2(GLTexture in, float str){
-        glProg.setDefine("DR","("+dynamR+")");
-        glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("DR","("+ Gamma +")");
+        glProg.setDefine("DH","("+ Dehaze +")");
+        glProg.setDefine("EXPOSESHIFT","("+ ExposeShift +")");
+        glProg.setDefine("EXPOSEMPY","("+ ExposeMpy +")");
+        glProg.setDefine("EXPOSEMIN","("+ ExposeMin +")");
+        glProg.setDefine("EXPOSEMAX","("+ ExposeMax +")");
         glProg.useProgram(R.raw.exposebayer);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -44,8 +54,8 @@ public class ExposureFusionBayer extends Node {
         return outp;
     }
     GLTexture unexpose(GLTexture in,float str){
-        glProg.setDefine("DR","("+dynamR+")");
-        glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("DR","("+ Gamma +")");
+        glProg.setDefine("DH","("+ Dehaze +")");
         glProg.useProgram(R.raw.unexposebayer);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
@@ -57,6 +67,14 @@ public class ExposureFusionBayer extends Node {
     Point WorkSize;
     @Override
     public void Run() {
+        Gamma = getTuning("Gamma",Gamma);
+        Dehaze = getTuning("Dehaze",Dehaze);
+        Strength = getTuning("Strength",Strength);
+        ExposeMin = getTuning("ExposeMin",ExposeMin);
+        ExposeMax = getTuning("ExposeMax",ExposeMax);
+        ExposeShift = getTuning("ExposeShift",ExposeShift);
+        ExposeMpy = getTuning("ExposeMpy",ExposeMpy);
+
         GLTexture in = previousNode.WorkingTexture;
         initialSize = new Point(previousNode.WorkingTexture.mSize);
         WorkSize = new Point(initialSize.x/2,initialSize.y/2);
@@ -72,8 +90,7 @@ public class ExposureFusionBayer extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        float fact2 = 4.5f;
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in, Strength));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
         //in.close();
         glProg.useProgram(R.raw.fusionbayer);

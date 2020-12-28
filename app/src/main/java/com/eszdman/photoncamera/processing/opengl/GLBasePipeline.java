@@ -11,6 +11,7 @@ import com.eszdman.photoncamera.processing.render.Parameters;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
@@ -30,7 +31,9 @@ public class GLBasePipeline implements AutoCloseable {
     public GLTexture main1,main2,main3;
     public Settings mSettings;
     public Parameters mParameters;
+    public Properties mProp;
     private String currentProg;
+
     public int texnum = 0;
 
     public GLTexture getMain(){
@@ -72,6 +75,8 @@ public class GLBasePipeline implements AutoCloseable {
     public Bitmap runAll() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
+            Nodes.get(i).mProp = mProp;
+            Nodes.get(i).Configure();
             Nodes.get(i).Compile();
             Nodes.get(i).BeforeRun();
             if (i == Nodes.size() - 1) {

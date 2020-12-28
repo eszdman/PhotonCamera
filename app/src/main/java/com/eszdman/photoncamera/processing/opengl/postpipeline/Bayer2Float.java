@@ -32,6 +32,9 @@ public class Bayer2Float extends Node {
         GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+
+
+
         glProg.useProgram(R.raw.tofloat);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);

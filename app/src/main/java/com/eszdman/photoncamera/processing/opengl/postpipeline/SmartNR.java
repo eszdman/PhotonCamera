@@ -26,6 +26,10 @@ public class SmartNR extends Node {
     @Override
     public void Run() {
         GLTexture inpdetect = glUtils.interpolate(previousNode.WorkingTexture,1.0/2.0);
+        glProg.setDefine("ModelKernel",(getTuning("ModelKernel",1.5)));
+        glProg.setDefine("ModelK",(getTuning("ModelK",10.0)));
+        glProg.setDefine("ModelSatRemove",(getTuning("ModelSatRemove",3.0)));
+        glProg.setDefine("MSIZE1",(getTuning("MSIZE1",(int)7)));
         glProg.useProgram(R.raw.noisedetection44);
         glProg.setTexture("InputBuffer", inpdetect);
         GLTexture detect = new GLTexture(inpdetect.mSize, new GLFormat(GLFormat.DataType.FLOAT_16,3), null,GL_LINEAR,GL_CLAMP_TO_EDGE);
@@ -73,6 +77,12 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
         if (denoiseLevel > 2.0) {
+        glProg.setDefine("NRMPY",(getTuning("NRMPY",0.55)));
+        glProg.setDefine("EFFECTMIN",(getTuning("EFFECTMIN",0.0005)));
+        glProg.setDefine("EFFECTMAX",(getTuning("EFFECTMAX",1.0)));
+        glProg.setDefine("SIGMAK",(getTuning("SIGMAK",0.005)));
+        glProg.setDefine("NOISEFACTOR",(getTuning("NOISEFACTOR",0.6)));
+        glProg.setDefine("FACTORK",(getTuning("FACTORK",0.35)));
         glProg.useProgram(R.raw.bilateralguide);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);

@@ -1,6 +1,8 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.content.res.AssetManager;
 import android.graphics.*;
+import android.os.FileUtils;
 import android.util.Log;
 
 import com.eszdman.photoncamera.api.CameraMode;
@@ -9,9 +11,18 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.util.FileManager;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.util.Properties;
+
 import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class PostPipeline extends GLBasePipeline {
@@ -45,6 +56,25 @@ public class PostPipeline extends GLBasePipeline {
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
         Point rotated = getRotatedCoords(parameters.rawSize);
+        Properties properties = new Properties();
+        try {
+            new File(FileManager.sPHOTON_DIR+"/tuning/").mkdir();
+            File init = new File(FileManager.sPHOTON_DIR+"/tuning/PhotonCameraTuning.ini");
+            if(!init.exists()) {
+                init.createNewFile();
+                InputStream inputStream = PhotonCamera.getCameraActivity().getResources().getAssets().open("tuning/PhotonCameraTuning.ini", AssetManager.ACCESS_BUFFER);
+                byte[] buffer = new byte[inputStream.available()];
+                inputStream.read(buffer);
+                OutputStream outputStream = new FileOutputStream(init);
+                outputStream.write(buffer);
+                outputStream.close();
+            }
+            properties.load(new FileInputStream(init));
+        } catch (IOException e) {
+            Log.e("PostPipeline","Error at loading properties");
+            e.printStackTrace();
+        }
+        mProp = properties;
         /*if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;
             rotated.y/=2;

@@ -79,7 +79,7 @@ android {
     }
     applicationVariants.all {
         variant -> variant.outputs.all {
-            outputFileName = "PhotonCamera-${versionName}${versionBuild}-${variant.name}.apk"
+            outputFileName = "PhotonCamera-${versionName}${versionBuild}-tuning.apk"
         }
     }
 }

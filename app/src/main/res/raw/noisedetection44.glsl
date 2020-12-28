@@ -4,7 +4,9 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform int yOffset;
 out vec3 Output;
-#define size1 (1.5)
+#define ModelKernel (1.5)
+#define ModelK (10.0)
+#define ModelSatRemove (3.0)
 #define MSIZE1 7
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 vec3 getCol(in ivec2 xy){
@@ -33,7 +35,7 @@ void main() {
     //float len = (lenp.r+lenp.g+lenp.b)/(cur.r+cur.g+cur.b);
     float len = cur.r+cur.g+cur.b;
     len/=3.0;
-    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size1);
+    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), ModelKernel);
     for (int i=-kSize; i <= kSize; ++i){
         for (int j=-kSize; j <= kSize; ++j){
             float pdf = kernel[kSize+j]*kernel[kSize+i];
@@ -48,7 +50,7 @@ void main() {
     //Output.r = clamp(float(outp.r+outp.g*0.5+outp.b)*len*10.0*(1.0-stddev(outp*len)*6.0),0.0,1.0);
     Output.g = luminocity(abs(cur-mask));
     Output.b = len;
-    Output.r = luminocity(outp)*len*10.0*clamp(1.0-stddev(mask)*3.0,0.0,1.0);
+    Output.r = luminocity(outp)*len*ModelK*clamp(1.0-stddev(mask)*ModelSatRemove,0.0,1.0);
     Output.r = abs(Output.r);
     //Output.r = clamp(float(outp.r+outp.g*0.5+outp.b)*len*10.0*(1.0-stddev(outp*len)*6.0),0.0,1.0);
 }
