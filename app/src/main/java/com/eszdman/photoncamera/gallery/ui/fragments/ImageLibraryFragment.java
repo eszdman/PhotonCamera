@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -20,7 +19,6 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.eszdman.photoncamera.gallery.adapters.ImageGridAdapter;
 import com.eszdman.photoncamera.util.FileManager;
-import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
@@ -90,7 +88,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                     allFiles = FileManager.getAllImageFiles();
                     imageGridAdapter.setImageList(allFiles);
                     recyclerView.requestLayout();
-                    Snackbar.make(view,numOfFiles + " File/s Deleted!", Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(view, getString(R.string.multiple_deleted_success, String.valueOf(numOfFiles)), Snackbar.LENGTH_SHORT).show();
                 })
                 .create()
                 .show();
