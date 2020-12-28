@@ -14,7 +14,7 @@ uniform int yOffset;
 }*/
 float gammaEncode(float x) {
     if(x>1.0) return x;
-    return 1.055 * pow(float(x), (1.f/DR));
+    return pow(float(x), (1.f/DR));
 }
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);

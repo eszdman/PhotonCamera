@@ -12,7 +12,7 @@ uniform int yOffset;
     return (x <= 0.0031308*12.92) ? x / 12.92 : pow((x)/1.055,DR);
 }*/
 float gammaInverse(float x) {
-    return pow((x)/1.055,DR);
+    return pow((x),DR);
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
