@@ -19,7 +19,7 @@ public class ExposureFusionBayer extends Node {
     @Override
     public void Compile() {}
 
-    private double dynamR = 1.8;
+    private double dynamR = 1.5;
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DR","("+dynamR+")");
@@ -139,7 +139,7 @@ public class ExposureFusionBayer extends Node {
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
 
-        WorkingTexture = unexpose(wip, (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).regenerationSense*((PostPipeline)basePipeline).AecCorr/2.f);
+        WorkingTexture = unexpose(wip, (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
         Log.d(Name,"Output Size:"+wip.mSize);
         glProg.closed = true;
     }

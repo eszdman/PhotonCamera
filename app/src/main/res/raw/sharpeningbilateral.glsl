@@ -43,7 +43,9 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            cc = vec3(textureBicubic(InputBuffer, (gl_FragCoord.xy+vec2(i,j)*1.1)/vec2(insize)).rgb);
+            cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*1),0).rgb);
+            cc += vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*2),0).rgb);
+            cc/=2.0;
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;

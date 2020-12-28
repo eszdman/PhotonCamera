@@ -28,7 +28,8 @@ void main() {
         balance = whitePoint.g;
         Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
         Output = gains.g*(Output-level.g)/(1.0-level.g);
-        float col = float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/float(whitelevel);
+
+        /*float col = float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/float(whitelevel);
         col = gains[MinimalInd]*(col-level[MinimalInd])/(1.0-level[MinimalInd]);
         //Green channel regeneration
         if(Output > 0.999 && col > whitePoint[MinimalInd]){
@@ -39,7 +40,7 @@ void main() {
             //Output = mix(oldGreen,Output,1.0-clamp((1.0-oldGreen)/0.03,0.0,1.0));
             //float k = clamp((1.0-oldGreen)/0.03,0.0,1.0);
             //Output = Output*k + oldGreen*(1.0-k);
-        }
+        }*/
     } else {
         if(fact.x == 0){
             balance = whitePoint.r;
