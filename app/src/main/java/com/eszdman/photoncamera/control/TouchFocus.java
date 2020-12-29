@@ -1,10 +1,8 @@
 package com.eszdman.photoncamera.control;
 
-import android.annotation.SuppressLint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Log;
@@ -19,19 +17,12 @@ import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 
 public class TouchFocus {
+    public static boolean onConfigured = false;
     protected final String TAG = "TouchFocus";
+    private final CameraFragment mCameraFragment;
     boolean activated = false;
-    public boolean onConfigured = false;
-    ImageView focusEl;
-    AutoFitTextureView preview;
-
-    @SuppressLint("ClickableViewAccessibility")
-    public void ReInit() {
-        focusEl = PhotonCamera.getCameraActivity().findViewById(R.id.touchFocus);
-        focusEl.setOnTouchListener(focusListener);
-        preview = PhotonCamera.getCameraActivity().findViewById(R.id.texture);
-    }
-
+    private ImageView focusEl;
+    private AutoFitTextureView preview;
     final OnTouchListener focusListener = new OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
@@ -52,26 +43,37 @@ public class TouchFocus {
         }
     };
 
+    public TouchFocus(CameraFragment fragment) {
+        this.mCameraFragment = fragment;
+        reInit();
+    }
+
+    public void reInit() {
+        focusEl = mCameraFragment.findViewById(R.id.touchFocus);
+        focusEl.setOnTouchListener(focusListener);
+        preview = mCameraFragment.findViewById(R.id.texture);
+    }
+
     public void processTouchToFocus(float fx, float fy) {
         activated = true;
         focusEl.setX(fx - focusEl.getMeasuredWidth() / 2.0f);
         focusEl.setY(fy - focusEl.getMeasuredHeight() / 2.0f);
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int) fy, (int) fx);
-        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
+        mCameraFragment.rebuildPreviewBuilder();
     }
 
     public void setInitialAFAE() {
-        CaptureRequest.Builder build = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder build = mCameraFragment.mPreviewRequestBuilder;
         build.set(CaptureRequest.CONTROL_AF_REGIONS, PhotonCamera.getSettings().initialAF);
         build.set(CaptureRequest.CONTROL_AE_REGIONS, PhotonCamera.getSettings().initialAE);
         build.set(CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
         build.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
+        mCameraFragment.rebuildPreviewBuilder();
     }
 
     public void setFocus(int x, int y) {
-        Point size = new Point(PhotonCamera.getCameraFragment().mImageReaderPreview.getWidth(), PhotonCamera.getCameraFragment().mImageReaderPreview.getHeight());
+        Point size = new Point(mCameraFragment.mImageReaderPreview.getWidth(), mCameraFragment.mImageReaderPreview.getHeight());
         Point CurUi = getMax();
         Rect sizee = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if (sizee == null) {
@@ -113,10 +115,10 @@ public class TouchFocus {
     }
 
     private void triggerAutoFocus(MeteringRectangle[] rectaf) {
-        CaptureRequest.Builder build = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder build = mCameraFragment.mPreviewRequestBuilder;
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
         build.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-        PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
+        mCameraFragment.rebuildPreviewBuilderOneShot();
 
         build.set(CaptureRequest.CONTROL_AF_REGIONS, rectaf);
         build.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
@@ -129,11 +131,11 @@ public class TouchFocus {
         if (onConfigured) {
             build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-            PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
+            mCameraFragment.rebuildPreviewBuilderOneShot();
             //set focus trigger back to idle to signal cam after focusing is done to do nothing
             build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
             build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
-            PhotonCamera.getCameraFragment().rebuildPreviewBuilderOneShot();
+            mCameraFragment.rebuildPreviewBuilderOneShot();
         }
     }
 
@@ -146,7 +148,6 @@ public class TouchFocus {
         focusEl.setX((float) getMax().x / 2.f);
         focusEl.setY((float) getMax().y / 2.f);
     }
-
 
 
 }

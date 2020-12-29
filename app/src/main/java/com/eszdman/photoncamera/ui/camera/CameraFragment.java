@@ -38,6 +38,7 @@ import android.os.*;
 import android.util.*;
 import android.view.*;
 import android.widget.Toast;
+import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -50,6 +51,8 @@ import androidx.lifecycle.ViewModelProvider;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.control.Swipe;
+import com.eszdman.photoncamera.control.TouchFocus;
 import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
 import com.eszdman.photoncamera.gallery.ui.GalleryActivity;
 import com.eszdman.photoncamera.processing.ImageProcessing;
@@ -724,6 +727,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     private CameraFragmentViewModel cameraFragmentViewModel;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraFragmentBinding cameraFragmentBinding;
+    private TouchFocus mTouchFocus;
+    private Swipe mSwipe;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -765,7 +770,8 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
         this.mCameraUIView = new CameraUIViewImpl(view);
         this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
-        PhotonCamera.getTouchFocus().ReInit();
+        mTouchFocus = new TouchFocus(this);
+        mSwipe = new Swipe(this);
     }
 
     @Override
@@ -815,14 +821,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
     @Override
     public void onResume() {
         super.onResume();
-        PhotonCamera.getSwipe().init();
+        mSwipe.init();
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
-        PhotonCamera.getTouchFocus().ReInit();
+        mTouchFocus.reInit();
 
         this.mCameraUIView.refresh();
         cameraFragmentViewModel.updateGalleryThumb();
@@ -1352,7 +1357,7 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
                                     unlockFocus();
                                 }
                                 if (getActivity() != null) {
-                                    getActivity().runOnUiThread(() -> PhotonCamera.getTouchFocus().resetFocusCircle());
+                                    getActivity().runOnUiThread(() -> mTouchFocus.resetFocusCircle());
                                 }
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -1737,6 +1742,13 @@ public class CameraFragment extends Fragment implements ProcessingEventsListener
         }
     }
 
+    public <T extends View> T findViewById(@IdRes int id) {
+        return getActivity().findViewById(id);
+    }
+    
+    public TouchFocus getTouchFocus(){
+        return mTouchFocus;
+    }
     /**
      * Compares two {@code Size}s based on their areas.
      */

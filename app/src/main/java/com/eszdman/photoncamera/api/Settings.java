@@ -9,6 +9,7 @@ import android.util.Log;
 import android.util.Range;
 
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.control.TouchFocus;
 import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
@@ -187,11 +188,11 @@ public class Settings {
         Object focus = captureBuilder.get(CONTROL_AF_MODE);
         Log.d(TAG, "InDeviceFocus:" + (int) (focus));
         if (focus != null) afMode = (int) focus;
-        PhotonCamera.getTouchFocus().onConfigured = false;
+        TouchFocus.onConfigured = false;
         initialAF = captureBuilder.get(CONTROL_AF_REGIONS);
         initialAE = captureBuilder.get(CONTROL_AE_REGIONS);
         //Interface.getTouchFocus().setFocus(size.x/2,size.y/2);
-        PhotonCamera.getTouchFocus().onConfigured = true;
+        TouchFocus.onConfigured = true;
         //captureBuilder.set(TONEMAP_MODE, TONEMAP_MODE_GAMMA_VALUE);
         /*float[] rgb = new float[64];
         for (int i = 0; i < 64; i += 2) {

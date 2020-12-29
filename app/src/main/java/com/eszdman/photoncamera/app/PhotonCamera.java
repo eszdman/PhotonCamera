@@ -6,12 +6,9 @@ import android.content.Intent;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.widget.Toast;
-
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
-import com.eszdman.photoncamera.control.Swipe;
-import com.eszdman.photoncamera.control.TouchFocus;
 import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
@@ -26,11 +23,9 @@ public class PhotonCamera extends Application {
     private static PhotonCamera sPhotonCamera;
     private CameraActivity mCameraActivity;
     private Settings mSettings;
-    private Swipe mSwipe;
     private Gravity mGravity;
     private Sensors mSensors;
     private Parameters mParameters;
-    private TouchFocus mTouchFocus;
     private CameraFragment mCameraFragment;
     private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
@@ -48,10 +43,6 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.mSettings;
     }
 
-    public static Swipe getSwipe() {
-        return sPhotonCamera.mSwipe;
-    }
-
     public static Gravity getGravity() {
         return sPhotonCamera.mGravity;
     }
@@ -64,19 +55,16 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.mParameters;
     }
 
-    public static TouchFocus getTouchFocus() {
-        return sPhotonCamera.mTouchFocus;
-    }
-
     public static CameraFragment getCameraFragment() {
         return sPhotonCamera.mCameraFragment;
-    }
-    public static SupportedDevice getSupportedDevice() {
-        return sPhotonCamera.mSupportedDevice;
     }
 
     public static void setCameraFragment(CameraFragment cameraFragment) {
         sPhotonCamera.mCameraFragment = cameraFragment;
+    }
+
+    public static SupportedDevice getSupportedDevice() {
+        return sPhotonCamera.mSupportedDevice;
     }
 
     public static ManualMode getManualMode() {
@@ -91,12 +79,22 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.mSettingsManager;
     }
 
+    public static void restartApp() {
+        Context context = sPhotonCamera;
+        Intent intent = new Intent(context, SplashActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        context.startActivity(intent);
+        System.exit(0);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
-        Toast.makeText(this, Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase(),Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase(), Toast.LENGTH_SHORT).show();
         initModules();
     }
 
@@ -106,24 +104,11 @@ public class PhotonCamera extends Application {
         mGravity = new Gravity(sensorManager);
         mSensors = new Sensors(sensorManager);
 
-        mSwipe = new Swipe();
-        mTouchFocus = new TouchFocus();
-
         mSettingsManager = new SettingsManager(this);
         mSettings = new Settings();
 
         mParameters = new Parameters();
         mSupportedDevice = new SupportedDevice(mSettingsManager);
-    }
-
-    public static void restartApp() {
-        Context context = sPhotonCamera;
-        Intent intent = new Intent(context, SplashActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-        context.startActivity(intent);
-        System.exit(0);
     }
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {
