@@ -2,14 +2,12 @@ package com.eszdman.photoncamera.api;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -46,7 +44,7 @@ public class ParseExif {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
-        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
+        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().getCaptureController().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
         switch (rotation) {
             case 90:

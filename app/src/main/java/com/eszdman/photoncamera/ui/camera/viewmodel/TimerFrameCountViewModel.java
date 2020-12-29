@@ -35,26 +35,17 @@ public class TimerFrameCountViewModel extends ViewModel {
         return timerFrameCountModel;
     }
 
-    public void setFrameTimeCnt(int cnt, int maxcnt, double frametime) {
-        FrameCntTime frameCntTime = new FrameCntTime();
+    public void setFrameTimeCnt(FrameCntTime frameCntTime) {
         Message msg = new Message();
         switch (PhotonCamera.getSettings().selectedMode) {
             case NIGHT:
             case PHOTO:
-                frameCntTime.frame = cnt;
-                frameCntTime.maxframe = maxcnt;
-                frameCntTime.time = frametime;
-                msg.obj = frameCntTime;
-                changeFrameTimeCnt.sendMessage(msg);
-                return;
+                break;
             case UNLIMITED:
-                frameCntTime.frame = cnt;
                 frameCntTime.maxframe = 0;
-                frameCntTime.time = frametime;
-                msg.obj = frameCntTime;
-                changeFrameTimeCnt.sendMessage(msg);
-
         }
+        msg.obj = frameCntTime;
+        changeFrameTimeCnt.sendMessage(msg);
     }
 
     public void clearFrameTimeCnt() {
@@ -64,9 +55,15 @@ public class TimerFrameCountViewModel extends ViewModel {
         changeFrameTimeCnt.sendMessage(message);
     }
 
-    static class FrameCntTime {
+    public static class FrameCntTime {
         int frame;
         int maxframe;
         double time;
+
+        public FrameCntTime(int frame, int maxframe, double time) {
+            this.frame = frame;
+            this.maxframe = maxframe;
+            this.time = time;
+        }
     }
 }

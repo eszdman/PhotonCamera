@@ -6,6 +6,7 @@ import android.view.View;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
 /**
@@ -22,7 +23,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     }
 
     private void restartCamera() {
-        this.mCameraFragment.restartCamera();
+        this.mCameraFragment.getCaptureController().restartCamera();
     }
 
     @Override
@@ -33,30 +34,26 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                         PhotonCamera.getSettings().selectedMode != CameraMode.VIDEO) {
                     view.setActivated(false);
                     view.setClickable(false);
-                    mCameraFragment.takePicture();
+                    mCameraFragment.getCaptureController().takePicture();
                 } else {
                     boolean isVid = PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO;
-                    if (!mCameraFragment.onUnlimited) {
-                        mCameraFragment.onUnlimited = true;
-                        if(!isVid)mCameraFragment.unlimitedStart();
-                        else mCameraFragment.VideoStart();
+                    if (!mCameraFragment.getCaptureController().onUnlimited) {
+                        mCameraFragment.getCaptureController().onUnlimited = true;
+                        if (!isVid) mCameraFragment.getCaptureController().unlimitedStart();
+                        else mCameraFragment.getCaptureController().VideoStart();
                         view.setActivated(false);
                         view.setClickable(true);
-                        mCameraFragment.takePicture();
+                        mCameraFragment.getCaptureController().takePicture();
                     } else {
                         view.setActivated(true);
                         view.setClickable(true);
-                        mCameraFragment.onUnlimited = false;
-                        try {
-                            if(!isVid) {
-                                mCameraFragment.mCaptureSession.abortCaptures();
-                                mCameraFragment.unlimitedEnd();
-                                mCameraFragment.createCameraPreviewSession();
-                            } else {
-                                mCameraFragment.VideoEnd();
-                            }
-                        } catch (CameraAccessException e) {
-                            e.printStackTrace();
+                        mCameraFragment.getCaptureController().onUnlimited = false;
+                        if (!isVid) {
+                            mCameraFragment.getCaptureController().abortCaptures();
+                            mCameraFragment.getCaptureController().unlimitedEnd();
+                            mCameraFragment.getCaptureController().createCameraPreviewSession();
+                        } else {
+                            mCameraFragment.getCaptureController().VideoEnd();
                         }
                     }
                 }
@@ -69,9 +66,9 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
             case R.id.hdrx_toggle_button:
                 PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
                 if (PreferenceKeys.isHdrXOn())
-                    CameraFragment.mTargetFormat = CameraFragment.rawFormat;
+                    CaptureController.mTargetFormat = CaptureController.rawFormat;
                 else
-                    CameraFragment.mTargetFormat = CameraFragment.yuvFormat;
+                    CaptureController.mTargetFormat = CaptureController.yuvFormat;
                 mCameraFragment.showToast(mCameraFragment.getString(R.string.hdrx) + ':' + onOff(PreferenceKeys.isHdrXOn()));
                 restartCamera();
                 break;
@@ -98,7 +95,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
             case R.id.flip_camera_button:
                 view.animate().rotationBy(180).setDuration(450).start();
-                mCameraFragment.mTextureView.animate().rotationBy(360).setDuration(450).start();
+                mCameraFragment.findViewById(R.id.texture).animate().rotationBy(360).setDuration(450).start();
                 PreferenceKeys.setCameraID(mCameraFragment.cycler(PreferenceKeys.getCameraID()));
                 restartCamera();
                 break;

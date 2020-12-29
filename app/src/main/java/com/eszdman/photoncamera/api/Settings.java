@@ -1,10 +1,8 @@
 package com.eszdman.photoncamera.api;
 
 import android.content.SharedPreferences;
-import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
-import android.hardware.camera2.params.TonemapCurve;
 import android.util.Log;
 import android.util.Range;
 
@@ -12,7 +10,7 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.control.TouchFocus;
 import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
@@ -163,12 +161,12 @@ public class Settings {
         Camera2ApiAutoFix.Apply();
         captureBuilder.set(CONTROL_AE_MODE, aeModeOn);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        int[] stabilizationModes = CameraFragment.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
         if (stabilizationModes != null && stabilizationModes.length > 1) {
             captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         }
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
-        Range<Integer> range = CameraFragment.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
+        Range<Integer> range = CaptureController.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
 
         //if (selectedMode == CameraMode.NIGHT && range != null)
         //    captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION, (int) range.getUpper());

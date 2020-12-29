@@ -26,6 +26,7 @@ public class CameraActivity extends BaseActivity {
     private static final int CODE_REQUEST_PERMISSIONS = 1;
     private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
     private static int requestCount;
+    private CameraFragment cameraFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +36,8 @@ public class CameraActivity extends BaseActivity {
 
         PhotonCamera.setCameraActivity(this);
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
-        PhotonCamera.setCameraFragment(CameraFragment.newInstance());
+        cameraFragment = CameraFragment.newInstance();
+        PhotonCamera.setCameraFragment(cameraFragment);
 
         //Preferences Init
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
@@ -59,7 +61,7 @@ public class CameraActivity extends BaseActivity {
     private void tryLoad() {
         FileManager.CreateFolders();
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, CameraFragment.context)
+                .replace(R.id.container, cameraFragment)
                 .commit();
     }
 

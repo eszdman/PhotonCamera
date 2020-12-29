@@ -7,7 +7,7 @@ import android.util.Range;
 
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import java.util.ArrayList;
 
@@ -21,8 +21,8 @@ public class IsoExpoSelector {
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         Log.v(TAG, "InputParams: " +
-                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().mPreviewExposureTime)) +
-                " iso:" + PhotonCamera.getCameraFragment().mPreviewIso+ " analog:"+getISOAnalog());
+                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime)) +
+                " iso:" + PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso+ " analog:"+getISOAnalog());
         ExpoPair pair = GenerateExpoPair(step);
         Log.v(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR);
@@ -34,8 +34,8 @@ public class IsoExpoSelector {
     private static double mpy1 = 1.0;
     public static ExpoPair GenerateExpoPair(int step) {
         double mpy = 1.0;
-        ExpoPair pair = new ExpoPair(CameraFragment.context.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
-                CameraFragment.context.mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
+        ExpoPair pair = new ExpoPair(PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
+                PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
         pair.normalizeiso100();
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
         {
@@ -78,7 +78,7 @@ public class IsoExpoSelector {
         if (pair.normalizedIso() >= 12700.0/mpy1) {
             pair.ReduceIso();
         }
-        if (CameraFragment.mTargetFormat == CameraFragment.rawFormat) {
+        if (CaptureController.mTargetFormat == CaptureController.rawFormat) {
             pair.ExpoCompensateLower(mpy);
         }
         if (useTripod) {
@@ -131,7 +131,7 @@ public class IsoExpoSelector {
     }
 
     private static int getISOHIGH() {
-        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 3200;
         else {
             return (int) ((Range) (key)).getUpper();
@@ -143,14 +143,14 @@ public class IsoExpoSelector {
     }
 
     private static int getISOLOW() {
-        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
+        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
         if (key == null) return 100;
         else {
             return (int) ((Range) (key)).getLower();
         }
     }
     public static int getISOAnalog() {
-        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
+        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
         if (key == null) return 100;
         else {
             return (int)(key);
@@ -162,7 +162,7 @@ public class IsoExpoSelector {
     }
 
     public static long getEXPHIGH() {
-        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
+        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
         if (key == null) return ExposureIndex.sec;
         else {
             return (long) ((Range) (key)).getUpper();
@@ -170,7 +170,7 @@ public class IsoExpoSelector {
     }
 
     public static long getEXPLOW() {
-        Object key = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
+        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
         if (key == null) return ExposureIndex.sec / 1000;
         else {
             return (long) ((Range) (key)).getLower();

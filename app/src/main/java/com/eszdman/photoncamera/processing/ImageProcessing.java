@@ -20,7 +20,7 @@ import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -76,7 +76,7 @@ public class ImageProcessing {
         int height = input.getHeight();
         PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
         if(averageRaw == null) {
-            PhotonCamera.getParameters().FillParameters(CameraFragment.mCaptureResult, CameraFragment.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+            PhotonCamera.getParameters().FillParameters(CaptureController.mCaptureResult, CaptureController.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
             averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
         averageRaw.additionalParams = new AverageParams(null, input.getPlanes()[0].getBuffer());
@@ -103,7 +103,7 @@ public class ImageProcessing {
             pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
             pipeline.close();
             try {
-                ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
+                ExifInterface inter = ParseExif.Parse(CaptureController.mCaptureResult, ImageSaver.imageFileToSave.getAbsolutePath());
                     try {
                         inter.saveAttributes();
                     } catch (IOException e) {
@@ -155,15 +155,15 @@ public class ImageProcessing {
         if (PhotonCamera.getSettings().alignAlgorithm == 1) {
             debugAlignment = true;
         }
-        CaptureResult res = CameraFragment.mCaptureResult;
+        CaptureResult res = CaptureController.mCaptureResult;
 
 //        processingstep();
         long startTime = System.currentTimeMillis();
         int width = mImageFramesToProcess.get(0).getPlanes()[0].getRowStride() / mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride(); //mImageFramesToProcess.get(0).getWidth()*mImageFramesToProcess.get(0).getHeight()/(mImageFramesToProcess.get(0).getPlanes()[0].getRowStride()/mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride());
         int height = mImageFramesToProcess.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Object level = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
+        Log.d(TAG, "Api WhiteLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Object level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         int levell = 1023;
         if (level != null)
             levell = (int) level;
@@ -171,9 +171,9 @@ public class ImageProcessing {
         //if(debugAlignment) fakelevel = 16384;
         float k = fakelevel / levell;
         if(PhotonCamera.getParameters().realWL == -1) PhotonCamera.getParameters().realWL = levell; else levell = PhotonCamera.getParameters().realWL;
-        Log.d(TAG, "Api WhiteLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Log.d(TAG, "Api BlackLevel:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        PhotonCamera.getParameters().FillParameters(res, CameraFragment.mCameraCharacteristics, new android.graphics.Point(width, height));
+        Log.d(TAG, "Api WhiteLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG, "Api BlackLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
+        PhotonCamera.getParameters().FillParameters(res, CaptureController.mCameraCharacteristics, new android.graphics.Point(width, height));
         if (PhotonCamera.getParameters().realWL == -1) {
             PhotonCamera.getParameters().realWL = levell;
         }
@@ -182,7 +182,7 @@ public class ImageProcessing {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        long avr = PhotonCamera.getCameraFragment().BurstShakiness.get(0);
+        long avr = PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -198,7 +198,7 @@ public class ImageProcessing {
             }
             Log.d(TAG,"Sensivity:"+k);
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = PhotonCamera.getCameraFragment().BurstShakiness.get(i);
+            frame.luckyParameter = PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter+avr)/2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
@@ -248,11 +248,11 @@ public class ImageProcessing {
         rawPipeline.images = images;
         Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        Object sensitivity = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        Object sensitivity = CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
         if (sensitivity == null) {
             sensitivity = (int) 100;
         }
-        Object exposure = CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Object exposure = CaptureController.mCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
         if (exposure == null) {
             exposure = (long)100;
         }
@@ -342,16 +342,16 @@ public class ImageProcessing {
     }
     private void saveRaw(Image in,int patchWL) {
         if(patchWL != 0) {
-            Camera2ApiAutoFix.WhiteLevel(CameraFragment.mCaptureResult, patchWL);
-            Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult, PhotonCamera.getParameters().blackLevel, (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
+            Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, patchWL);
+            Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel, (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
         }
-        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+        DngCreator dngCreator = new DngCreator(CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
         try {
             FileOutputStream outB = new FileOutputStream(ImageSaver.imageFileToSave);
             dngCreator.setDescription(PhotonCamera.getParameters().toString());
             int rotation = PhotonCamera.getGravity().getCameraRotation();
             Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
-            Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
+            Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().getCaptureController().mSensorOrientation);
             int orientation = ORIENTATION_NORMAL;
             switch (rotation) {
                 case 90:
@@ -372,8 +372,8 @@ public class ImageProcessing {
             e.printStackTrace();
         }
         if(patchWL != 0) {
-            Camera2ApiAutoFix.WhiteLevel(CameraFragment.mCaptureResult, PhotonCamera.getParameters().whiteLevel);
-            Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
+            Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().whiteLevel);
+            Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
         }
     }
 

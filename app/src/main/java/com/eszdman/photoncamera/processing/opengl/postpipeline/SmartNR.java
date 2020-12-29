@@ -4,12 +4,11 @@ import android.hardware.camera2.CaptureResult;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -54,7 +53,7 @@ public class SmartNR extends Node {
         //GLTexture detectblur3 = glUtils.blurfast(detectblur2,1.5);
         //detectblur2.close();
 
-        float denoiseLevel = (float) Math.sqrt((CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
+        float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
         float str = (float)basePipeline.mSettings.noiseRstr;
         if(str > 1.0)
@@ -70,7 +69,7 @@ public class SmartNR extends Node {
         glProg.setTexture("NoiseMap", detectblur);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);*/
-        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
         if (denoiseLevel > 2.0) {
         glProg.useProgram(R.raw.bilateralguide);

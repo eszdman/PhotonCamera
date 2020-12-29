@@ -16,7 +16,7 @@ import android.util.Rational;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -106,8 +106,8 @@ public class Parameters {
 
     public float[] customNeutral;
     public void ReCalcColor(boolean customNeutr){
-        CameraCharacteristics characteristics = CameraFragment.mCameraCharacteristics;
-        CaptureResult result = CameraFragment.mCaptureResult;
+        CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
+        CaptureResult result = CaptureController.mCaptureResult;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         if(!customNeutr)
         for(int i =0; i<neutralR.length;i++){
@@ -158,7 +158,7 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
-        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         assert calibration2 != null;
         assert forwardt1 != null;
         assert forwardt2 != null;

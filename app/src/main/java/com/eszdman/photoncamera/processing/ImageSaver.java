@@ -16,7 +16,7 @@ import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -164,7 +164,7 @@ public class ImageSaver implements Runnable {
                         mImageProcessing.setRaw(false);
                         begin(mImageProcessing);
 
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, imageFileToSave.getAbsolutePath());
+                        ExifInterface inter = ParseExif.Parse(CaptureController.mCaptureResult, imageFileToSave.getAbsolutePath());
                         inter.saveAttributes();
                         processingEventsListener.onImageSaved(imageFileToSave);
 //                        triggerMediaScanner(imageFileToSave);
@@ -205,7 +205,7 @@ public class ImageSaver implements Runnable {
                         mImageProcessing.setRaw(true);
                         begin(mImageProcessing);
 
-                        ExifInterface inter = ParseExif.Parse(CameraFragment.mCaptureResult, mImageProcessing.getFilePath());
+                        ExifInterface inter = ParseExif.Parse(CaptureController.mCaptureResult, mImageProcessing.getFilePath());
                         if (!PhotonCamera.getSettings().rawSaver) {
                             inter.saveAttributes();
                         }
@@ -214,10 +214,10 @@ public class ImageSaver implements Runnable {
                         end(mReader);
                     }
                     if (PhotonCamera.getSettings().frameCount == 1) {
-                        Log.d(TAG, "activearr:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
-                        Log.d(TAG, "precorr:" + CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG, "activearr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+                        Log.d(TAG, "precorr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
                         Log.d(TAG, "image:" + mImage.getCropRect());
-                        DngCreator dngCreator = new DngCreator(CameraFragment.mCameraCharacteristics, CameraFragment.mCaptureResult);
+                        DngCreator dngCreator = new DngCreator(CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
                         File dngFileToSave = new File(getCurrentDirectory(), generateNewFileName() + ".dng");
                         output = new FileOutputStream(dngFileToSave);
                         dngCreator.writeImage(output, mImage);
@@ -261,7 +261,7 @@ public class ImageSaver implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        PhotonCamera.getCameraFragment().BurstShakiness.clear();
+        PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.clear();
         imageBuffer.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
         processingEventsListener.onProcessingFinished("Processing Cycle Ended!");

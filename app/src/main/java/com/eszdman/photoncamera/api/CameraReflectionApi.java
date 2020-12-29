@@ -5,9 +5,7 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
-
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
-
+import com.eszdman.photoncamera.capture.CaptureController;
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Array;
@@ -21,7 +19,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCameraCharacteristics);//Ur camera Characteristics
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);//Ur camera Characteristics
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(), "set", CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
@@ -35,7 +33,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CaptureResult.class, "mResults");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CameraFragment.mCaptureResult);
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCaptureResult);
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(), "set", CaptureResult.Key.class, Object.class);
             set.setAccessible(true);
@@ -106,7 +104,7 @@ public class CameraReflectionApi {
         for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
     }*/
     public static void setVERBOSE(boolean in) {
-        Object capres = CameraFragment.mCaptureResult;//Ur camera CaptureResult
+        Object capres = CaptureController.mCaptureResult;//Ur camera CaptureResult
         Field verbose;
         try {
             //noinspection JavaReflectionMemberAccess

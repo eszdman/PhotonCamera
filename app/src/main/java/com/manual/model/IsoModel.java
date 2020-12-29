@@ -1,7 +1,6 @@
 package com.manual.model;
 
 import android.graphics.drawable.StateListDrawable;
-import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
@@ -9,7 +8,6 @@ import android.util.Range;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.manual.KnobInfo;
 import com.manual.KnobItemInfo;
 import com.manual.KnobView;
@@ -88,16 +86,16 @@ public class IsoModel extends ManualModel<Integer> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
-        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().getCaptureController().mPreviewRequestBuilder;
         if (newval.equals(autoModel)) {
             if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value));
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCameraFragment().mPreviewExposureTime);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime);
         }
-        PhotonCamera.getCameraFragment().rebuildPreviewBuilder();
+        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreviewBuilder();
         //fireValueChangedEvent(newval.text);
     }
 

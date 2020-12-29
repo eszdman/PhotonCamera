@@ -3,7 +3,6 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 import android.graphics.*;
 import android.util.Log;
 
-import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.*;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
@@ -25,7 +24,7 @@ public class PostPipeline extends GLBasePipeline {
         int rotation = PhotonCamera.getParameters().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
-        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().mSensorOrientation);
+        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().getCaptureController().mSensorOrientation);
         return rotation;
     }
     private Point getRotatedCoords(Point in){

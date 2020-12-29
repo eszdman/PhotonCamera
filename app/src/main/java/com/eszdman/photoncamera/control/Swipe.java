@@ -120,7 +120,7 @@ public class Swipe {
             PhotonCamera.getSettings().ManualMode = true;
             ocManual.animate().rotation(180).setDuration(250).start();
         }
-        cameraFragment.rebuildPreview();
+        cameraFragment.getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
     }
@@ -132,9 +132,9 @@ public class Swipe {
         }
         PhotonCamera.getSettings().ManualMode = false;
 
-        CameraReflectionApi.set(cameraFragment.mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
-        CameraReflectionApi.set(cameraFragment.mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
-        PhotonCamera.getCameraFragment().rebuildPreview();
+        CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
+        CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
+        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.GONE);
         PhotonCamera.getManualMode().retractAllKnobs();
         arrowState ^= 1;

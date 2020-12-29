@@ -11,7 +11,7 @@ import android.util.Rational;
 
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
+import com.eszdman.photoncamera.capture.CaptureController;
 
 import java.lang.reflect.Field;
 
@@ -33,18 +33,18 @@ public class Camera2ApiAutoFix {
     }
 
     public static void Init() {
-        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CameraFragment.mCameraCharacteristics);
+        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CaptureController.mCameraCharacteristics);
         fix.ExposureTime();
     }
 
     public static void Apply() {
-        CameraCharacteristics characteristics = CameraFragment.mCameraCharacteristics;
+        CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         fix.MaxRegionsAF();
     }
     //private static double oldWL = -1.0;
     public static void ApplyRes() {
-        CaptureResult characteristics = CameraFragment.mCaptureResult;
+        CaptureResult characteristics = CaptureController.mCaptureResult;
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         //fix.gains();
         fix.BL();
@@ -64,11 +64,11 @@ public class Camera2ApiAutoFix {
     }
 
     private void whitePoint() {
-        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, PhotonCamera.getCameraFragment().mPreviewTemp);
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, PhotonCamera.getCameraFragment().getCaptureController().mPreviewTemp);
     }
 
     private void CCM() {
-        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM, PhotonCamera.getCameraFragment().mColorSpaceTransform);
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM, PhotonCamera.getCameraFragment().getCaptureController().mColorSpaceTransform);
     }
 
     public void curve() {
@@ -99,7 +99,7 @@ public class Camera2ApiAutoFix {
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, whitelevel);
     }
     public static void BlackLevel(CaptureResult res, int[] blacklevel){
-        BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern blackLevel = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelArr = new int[4];
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);
@@ -119,7 +119,7 @@ public class Camera2ApiAutoFix {
         }
     }
     public static void BlackLevel(CaptureResult res, float[] blacklevel,float mpy){
-        BlackLevelPattern blackLevel = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern blackLevel = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelArr = new int[4];
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);
@@ -177,7 +177,7 @@ public class Camera2ApiAutoFix {
     @SuppressLint("NewApi")
     public void BL() {
         float[] level = result.get(SENSOR_DYNAMIC_BLACK_LEVEL);
-        BlackLevelPattern ptr = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        BlackLevelPattern ptr = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (ptr == null) return;
         if (level == null) {
             level = new float[4];
