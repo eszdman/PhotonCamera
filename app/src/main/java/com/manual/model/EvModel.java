@@ -1,5 +1,6 @@
 package com.manual.model;
 
+import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
@@ -22,8 +23,8 @@ public class EvModel extends ManualModel<Float> {
     private final String TAG = EvModel.class.getSimpleName();
     private float evStep;
 
-    public EvModel(Range range, ValueChangedEvent valueChangedEvent) {
-        super(range, valueChangedEvent);
+    public EvModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
+        super(context, range, valueChangedEvent);
     }
 
     @Override
@@ -59,9 +60,9 @@ public class EvModel extends ManualModel<Float> {
             float value = values.get(tick);
             if (!isZero(value)) {
                 ShadowTextDrawable drawable = new ShadowTextDrawable();
-                drawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
+                drawable.setTextAppearance(context, R.style.ManualModeKnobText);
                 ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-                drawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
+                drawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
                 if (isInteger(value)) {
                     String valueStr = String.valueOf((int) value);
                     if (value > 0.0f) {
@@ -81,8 +82,8 @@ public class EvModel extends ManualModel<Float> {
                 }
             }
         }
-        int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -negativeValueCount, positiveValueCount, PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
+        int angle = context.getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
+        knobInfo = new KnobInfo(-angle, angle, -negativeValueCount, positiveValueCount, context.getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
 
     @Override

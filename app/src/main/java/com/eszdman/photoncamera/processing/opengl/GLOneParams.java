@@ -28,7 +28,7 @@ public class GLOneParams {
 
     static public String loadShader(int fragment) {
         StringBuilder source = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(fragment)));
         for (Object line : reader.lines().toArray()) {
             source.append(line).append("\n");
         }

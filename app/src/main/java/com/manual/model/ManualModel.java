@@ -1,24 +1,16 @@
 package com.manual.model;
 
+import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.util.Range;
-
 import androidx.annotation.NonNull;
-
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
-import com.manual.KnobInfo;
-import com.manual.KnobItemInfo;
-import com.manual.KnobView;
-import com.manual.KnobViewChangedListener;
-import com.manual.ManualMode;
-import com.manual.ShadowTextDrawable;
+import com.manual.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +20,9 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     private final int SET_TO_CAM = 1;
     //    private Handler mainHandler;
     private final HandlerThread mBackgroundThread;
-
+    private final List<KnobItemInfo> knobInfoList;
+    private final ValueChangedEvent valueChangedEvent;
+    private final Handler backgroundHandler;
     /*  private class UpdateTextHandler extends Handler
       {
           public UpdateTextHandler(Looper mainLooper) {
@@ -45,13 +39,12 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
       }*/
     protected Range<T> range;
     protected KnobInfo knobInfo;
-    private final List<KnobItemInfo> knobInfoList;
-    private final ValueChangedEvent valueChangedEvent;
-    private final Handler backgroundHandler;
     //    private final int UPDATE_TEXT = 1;
     protected KnobItemInfo currentInfo, autoModel;
+    protected Context context;
 
-    public ManualModel(Range range, ValueChangedEvent valueChangedEvent) {
+    public ManualModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
+        this.context = context;
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
         knobInfoList = new ArrayList<>();
@@ -83,14 +76,14 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     protected KnobItemInfo getNewAutoItem(double defaultVal, String defaultText) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-        String auto_string = PhotonCamera.getCameraActivity().getString(R.string.manual_mode_auto);
+        String auto_string = context.getString(R.string.manual_mode_auto);
         if (defaultText != null)
             auto_string = defaultText;
         autoDrawable.setText(auto_string);
-        autoDrawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
+        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
         autoDrawableSelected.setText(auto_string);
-        autoDrawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
+        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
@@ -101,10 +94,10 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     public KnobItemInfo getItemInfo(String text, double val, int tick) {
         ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
         autoDrawable.setText(text);
-        autoDrawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
+        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
         ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
         autoDrawableSelected.setText(text);
-        autoDrawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
+        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
         autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);

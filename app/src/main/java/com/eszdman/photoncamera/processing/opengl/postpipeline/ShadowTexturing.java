@@ -2,7 +2,6 @@ package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.drawable.BitmapDrawable;
 import android.util.Log;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
@@ -20,7 +19,7 @@ public class ShadowTexturing extends Node {
 
     @Override
     public void Run() {
-        BitmapDrawable dr = (BitmapDrawable) PhotonCamera.getCameraActivity().getDrawable(R.drawable.shadowtex);
+        BitmapDrawable dr = (BitmapDrawable) PhotonCamera.getDrawableStatic(R.drawable.shadowtex);
         ByteBuffer buff = ByteBuffer.allocate(dr.getBitmap().getByteCount());
         dr.getBitmap().copyPixelsToBuffer(buff);
         GLInterface glint = basePipeline.glint;

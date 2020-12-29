@@ -43,7 +43,7 @@ public class RotateWatermark extends Node {
     public void Run() {
         if(watermarkNeeded) {
         glProg.useProgram(R.raw.addwatermark_rotate);
-        watermark = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.photoncamera_watermark);
+        watermark = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.photoncamera_watermark);
         glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
         } else {
             glProg.useProgram(R.raw.rotate);

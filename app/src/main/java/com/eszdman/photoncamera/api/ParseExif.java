@@ -84,7 +84,7 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION, "0231");
         String version = "";
         try {
-            PackageInfo pInfo = PhotonCamera.getCameraActivity().getPackageManager().getPackageInfo(PhotonCamera.getCameraActivity().getPackageName(), 0);
+            PackageInfo pInfo = PhotonCamera.getPackageInfo();
             version = pInfo.versionName;
             version += pInfo.versionCode;
         } catch (PackageManager.NameNotFoundException e) {

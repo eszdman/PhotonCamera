@@ -38,7 +38,7 @@ public class GLInterface {
         return loadShader(fragment,null);
     }
     public static String loadShader(int fragment,ArrayList<String[]> defines){
-        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(fragment)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(fragment)));
         return readprog(reader,defines);
     }
     public static String loadShader(String code,ArrayList<String[]> defines){
@@ -104,7 +104,7 @@ public class GLInterface {
                 }
                 headers+="\n";
                 if(id!= 0) {
-                    BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getCameraActivity().getResources().openRawResource(id)));
+                    BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(id)));
                     for (Object line2 : reader2.lines().toArray()) {
                         imports.append(line2);
                         imports.append("\n");

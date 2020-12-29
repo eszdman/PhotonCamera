@@ -3,10 +3,14 @@ package com.eszdman.photoncamera.app;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.drawable.Drawable;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.widget.Toast;
+import androidx.core.content.ContextCompat;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.control.Gravity;
@@ -31,14 +35,6 @@ public class PhotonCamera extends Application {
     private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
-
-    public static CameraActivity getCameraActivity() {
-        return sPhotonCamera.mCameraActivity;
-    }
-
-    public static void setCameraActivity(CameraActivity cameraActivity) {
-        sPhotonCamera.mCameraActivity = cameraActivity;
-    }
 
     public static Settings getSettings() {
         return sPhotonCamera.mSettings;
@@ -96,6 +92,14 @@ public class PhotonCamera extends Application {
 
     public static Resources getResourcesStatic() {
         return sPhotonCamera.getResources();
+    }
+
+    public static Drawable getDrawableStatic(int resID) {
+        return ContextCompat.getDrawable(sPhotonCamera, resID);
+    }
+
+    public static PackageInfo getPackageInfo() throws PackageManager.NameNotFoundException {
+        return sPhotonCamera.getPackageManager().getPackageInfo(sPhotonCamera.getPackageName(), 0);
     }
 
     @Override

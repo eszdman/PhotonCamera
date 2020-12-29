@@ -123,6 +123,7 @@ public class Swipe {
         cameraFragment.getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.VISIBLE);
         arrowState ^= 1;
+        cameraFragment.getTouchFocus().resetFocusCircle();
     }
 
     public void SwipeDown() {

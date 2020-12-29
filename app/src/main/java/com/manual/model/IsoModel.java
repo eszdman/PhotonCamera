@@ -1,10 +1,10 @@
 package com.manual.model;
 
+import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
@@ -19,8 +19,8 @@ public class IsoModel extends ManualModel<Integer> {
 
     //public static final String[] ISO_CANDIDATES = {"100", "125", "160", "200", "250", "320", "400", "500", "640", "800", "1000", "1250", "1300", "1400", "1500", "1600", "1700", "1800", "1900", "2000", "2100", "2200", "2300", "2400", "2500", "3200", "4000", "5000", "6400", "12800", "25600"};
 
-    public IsoModel(Range range, ValueChangedEvent valueChangedEvent) {
-        super(range, valueChangedEvent);
+    public IsoModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
+        super(context, range, valueChangedEvent);
     }
 
     @Override
@@ -33,14 +33,14 @@ public class IsoModel extends ManualModel<Integer> {
         ArrayList<Integer> values = new ArrayList<>();
         Object isolow = range.getLower();
         Object isohigh = range.getUpper();
-        int miniso = (int)isolow;
-        int maxiso = (int)isohigh;
-        Log.v("IsoModel","Max iso:"+maxiso);
-        Log.v("IsoModel","Max iso cnt:"+Math.log10((double)maxiso/miniso)/Math.log10(2));
-        for(double isoCnt = Math.log10(1)/Math.log10(2); isoCnt<=Math.log10((double)maxiso/miniso)/Math.log10(2);isoCnt+=1.0/4.0){
-            int val = (int)(Math.pow(2.0,isoCnt)*miniso);
+        int miniso = (int) isolow;
+        int maxiso = (int) isohigh;
+        Log.v("IsoModel", "Max iso:" + maxiso);
+        Log.v("IsoModel", "Max iso cnt:" + Math.log10((double) maxiso / miniso) / Math.log10(2));
+        for (double isoCnt = Math.log10(1) / Math.log10(2); isoCnt <= Math.log10((double) maxiso / miniso) / Math.log10(2); isoCnt += 1.0 / 4.0) {
+            int val = (int) (Math.pow(2.0, isoCnt) * miniso);
             candidates.add(String.valueOf(val));
-            values.add((int)(val/IsoExpoSelector.getMPY()));
+            values.add((int) (val / IsoExpoSelector.getMPY()));
         }
         /*for (String isoCandidate : ISO_CANDIDATES) {
             int isoValue = Integer.parseInt(isoCandidate);
@@ -55,9 +55,9 @@ public class IsoModel extends ManualModel<Integer> {
         while (tick < candidates.size()) {
             boolean isLastItem = tick == candidates.size() + -1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobText);
+            drawable.setTextAppearance(context, R.style.ManualModeKnobText);
             ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(PhotonCamera.getCameraActivity(), R.style.ManualModeKnobTextSelected);
+            drawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
             if (tick % preferredIntervalCount == 0 || isLastItem) {
                 drawable.setText(candidates.get(tick));
                 drawableSelected.setText(candidates.get(tick));
@@ -71,11 +71,11 @@ public class IsoModel extends ManualModel<Integer> {
             tick++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
+        int angleMax = context.getResources().getInteger(R.integer.manual_iso_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
         }
-        knobInfo = new KnobInfo(0, angle, 0, candidates.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
+        knobInfo = new KnobInfo(0, angle, 0, candidates.size(), context.getResources().getInteger(R.integer.manual_iso_knob_view_auto_angle));
     }
 
     @Override

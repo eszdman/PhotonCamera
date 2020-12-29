@@ -1,11 +1,9 @@
 package com.manual.model;
 
+import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
-
-import androidx.core.content.ContextCompat;
-
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.manual.KnobInfo;
@@ -17,8 +15,8 @@ import java.util.ArrayList;
 
 public class FocusModel extends ManualModel<Float> {
 
-    public FocusModel(Range range, ValueChangedEvent valueChangedEvent) {
-        super(range, valueChangedEvent);
+    public FocusModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
+        super(context, range, valueChangedEvent);
     }
 
     @Override
@@ -26,7 +24,7 @@ public class FocusModel extends ManualModel<Float> {
         Drawable drawable;
         KnobItemInfo auto;
         if (range == null) {
-            auto = getNewAutoItem(-1.0d, PhotonCamera.getCameraActivity().getString(R.string.manual_mode_fixed));
+            auto = getNewAutoItem(-1.0d, PhotonCamera.getResourcesStatic().getString(R.string.manual_mode_fixed));
             getKnobInfoList().add(auto);
             currentInfo = auto;
             return;
@@ -44,9 +42,9 @@ public class FocusModel extends ManualModel<Float> {
         }
         for (int tick = 0; tick < values.size(); tick++) {
             if (tick == 0) {
-                drawable = ContextCompat.getDrawable(PhotonCamera.getCameraActivity(), R.drawable.manual_icon_focus_near);
+                drawable = context.getDrawable(R.drawable.manual_icon_focus_near);
             } else if (tick == values.size() - 1) {
-                drawable = ContextCompat.getDrawable(PhotonCamera.getCameraActivity(), R.drawable.manual_icon_focus_far);
+                drawable = context.getDrawable(R.drawable.manual_icon_focus_far);
             } else {
                 drawable = new ShadowTextDrawable();
             }
@@ -54,8 +52,8 @@ public class FocusModel extends ManualModel<Float> {
 //            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }
-        int angle = PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        knobInfo = new KnobInfo(0, angle, 0, values.size(), PhotonCamera.getCameraActivity().getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
+        int angle = context.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
+        knobInfo = new KnobInfo(0, angle, 0, values.size(), context.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
     }
 
     @Override

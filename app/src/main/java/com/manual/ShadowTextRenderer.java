@@ -2,15 +2,10 @@ package com.manual;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
-import android.graphics.Paint;
+import android.graphics.*;
 import android.graphics.Paint.Style;
-import android.graphics.Rect;
-import android.graphics.Typeface;
 import android.os.Build;
 import android.util.Size;
-
 import androidx.annotation.RequiresApi;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -149,7 +144,8 @@ public class ShadowTextRenderer {
     }
 
     public void setTextAppearance(Context context, int resId) {
-        TypedArray style = context.obtainStyledAttributes(resId, new int[]{16842901, 16842903, 16842904, 16843105, 16843106, 16843107, 16843108, 16843692});
+
+        TypedArray style = context.obtainStyledAttributes(resId, new int[]{android.R.attr.textSize, android.R.attr.textStyle, android.R.attr.textColor, android.R.attr.shadowColor, android.R.attr.shadowDx, android.R.attr.shadowDy, android.R.attr.shadowRadius, android.R.attr.fontFamily});
         boolean isTextSizeChanged = false;
         if (style.hasValue(0)) {
             this.m_TextSize = style.getDimension(0, -1.0f);

@@ -37,7 +37,7 @@ public class Initial extends Node {
     @Override
     public void Run() {
         GLInterface glint = basePipeline.glint;
-        lutbm = BitmapFactory.decodeResource(PhotonCamera.getCameraActivity().getResources(), R.drawable.lut);
+        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().toneMap));
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);

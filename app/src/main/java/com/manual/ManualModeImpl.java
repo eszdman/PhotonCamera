@@ -137,10 +137,10 @@ public final class ManualModeImpl implements ManualMode {
     private void addKnobs() {
         Timer timer = Timer.InitTimer(TAG, "addKnobs");
         CameraCharacteristicsOldWay aClass = new CameraCharacteristicsOldWay();
-        mfModel = new FocusModel(aClass.focusRange, mfChanged);
-        evModel = new EvModel(aClass.evRange, evChanged);
-        isoModel = new IsoModel(aClass.isoRange, isoChanged);
-        expoTimeModel = new ShutterModel(aClass.expRange, expoChanged);
+        mfModel = new FocusModel(activity,aClass.focusRange, mfChanged);
+        evModel = new EvModel(activity,aClass.evRange, evChanged);
+        isoModel = new IsoModel(activity,aClass.isoRange, isoChanged);
+        expoTimeModel = new ShutterModel(activity,aClass.expRange, expoChanged);
 
         aClass.logIt();
         knob_container.setVisibility(View.GONE);

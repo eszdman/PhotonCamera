@@ -33,7 +33,6 @@ public class CameraActivity extends BaseActivity {
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        PhotonCamera.setCameraActivity(this);
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
 
         //Preferences Init
