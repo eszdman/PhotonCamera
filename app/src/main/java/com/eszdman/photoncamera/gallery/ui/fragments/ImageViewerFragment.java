@@ -48,6 +48,7 @@ public class ImageViewerFragment extends Fragment {
     private ImageAdapter adapter;
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
+    private boolean isExifVisible;
 
     @Nullable
     @Override
@@ -187,12 +188,17 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void onExifButtonClick(View view) {
-        fragmentGalleryImageViewerBinding.setExifDialogVisible(!fragmentGalleryImageViewerBinding.getExifDialogVisible());
+        isExifVisible = !isExifVisible;
+        fragmentGalleryImageViewerBinding.setExifDialogVisible(isExifVisible);
         updateExif();
     }
 
     private void onImageViewClicked(View view) {
         fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+        if (isExifVisible) {
+            fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
+            updateExif();
+        }
     }
 
     private void updateExif() {
