@@ -69,7 +69,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                     CaptureController.mTargetFormat = CaptureController.rawFormat;
                 else
                     CaptureController.mTargetFormat = CaptureController.yuvFormat;
-                mCameraFragment.showToast(mCameraFragment.getString(R.string.hdrx) + ':' + onOff(PreferenceKeys.isHdrXOn()));
+                mCameraFragment.showSnackBar(mCameraFragment.getString(R.string.hdrx) + ':' + onOff(PreferenceKeys.isHdrXOn()));
                 restartCamera();
                 break;
 
@@ -79,17 +79,17 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
             case R.id.eis_toggle_button:
                 PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
-                mCameraFragment.showToast(mCameraFragment.getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
+                mCameraFragment.showSnackBar(mCameraFragment.getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
                 break;
 
             case R.id.fps_toggle_button:
                 PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
-                mCameraFragment.showToast(mCameraFragment.getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
+                mCameraFragment.showSnackBar(mCameraFragment.getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
                 break;
 
             case R.id.quad_res_toggle_button:
                 PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
-                mCameraFragment.showToast(mCameraFragment.getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
+                mCameraFragment.showSnackBar(mCameraFragment.getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
                 restartCamera();
                 break;
 

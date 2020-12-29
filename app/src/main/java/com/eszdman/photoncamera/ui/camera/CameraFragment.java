@@ -64,6 +64,7 @@ import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.log.CustomLogger;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -313,6 +314,13 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         final Activity activity = getActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, text, Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    public void showSnackBar(final String text){
+        final View v = getView();
+        if (v != null) {
+            new Handler(Looper.getMainLooper()).post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
         }
     }
 
