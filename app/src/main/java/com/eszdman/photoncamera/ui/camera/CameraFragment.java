@@ -217,6 +217,8 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
 
         captureController.startBackgroundThread();
         captureController.resumeCamera();
+
+        PhotonCamera.getSupportedDevice().loadCheck();
     }
 
     @Override

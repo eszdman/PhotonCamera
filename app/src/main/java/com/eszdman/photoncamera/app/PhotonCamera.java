@@ -9,7 +9,10 @@ import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.hardware.SensorManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
+import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.capture.CaptureController;
@@ -19,14 +22,12 @@ import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
-import com.eszdman.photoncamera.ui.camera.CameraActivity;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
 import com.manual.ManualMode;
 
 public class PhotonCamera extends Application {
     public static final boolean DEBUG = false;
     private static PhotonCamera sPhotonCamera;
-    private CameraActivity mCameraActivity;
     private Settings mSettings;
     private Gravity mGravity;
     private Sensors mSensors;
@@ -87,7 +88,12 @@ public class PhotonCamera extends Application {
     }
 
     public static void showToast(String msg) {
-        Toast.makeText(sPhotonCamera, msg, Toast.LENGTH_SHORT).show();
+        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, msg, Toast.LENGTH_LONG).show());
+    }
+
+    public static void showToast(@StringRes int stringRes) {
+        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, sPhotonCamera.getString(stringRes)
+                , Toast.LENGTH_LONG).show());
     }
 
     public static Resources getResourcesStatic() {

@@ -24,7 +24,7 @@ public class FocusModel extends ManualModel<Float> {
         Drawable drawable;
         KnobItemInfo auto;
         if (range == null) {
-            auto = getNewAutoItem(-1.0d, PhotonCamera.getResourcesStatic().getString(R.string.manual_mode_fixed));
+            auto = getNewAutoItem(-1.0d, context.getString(R.string.manual_mode_fixed));
             getKnobInfoList().add(auto);
             currentInfo = auto;
             return;
