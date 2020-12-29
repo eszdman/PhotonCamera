@@ -14,4 +14,6 @@ public interface CaptureEventsListener {
     void onCameraRestarted();
 
     void onCharacteristicsUpdated();
+
+    void onError(Object o);
 }

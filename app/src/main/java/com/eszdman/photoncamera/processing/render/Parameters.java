@@ -158,7 +158,7 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
-        ColorSpaceTransform CCT = PhotonCamera.getCameraFragment().getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CCT = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         assert calibration2 != null;
         assert forwardt1 != null;
         assert forwardt2 != null;

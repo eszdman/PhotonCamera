@@ -21,12 +21,15 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.RectF;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -36,6 +39,7 @@ import android.widget.Toast;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
@@ -101,8 +105,9 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
     private CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private CameraFragment(){
+    private CameraFragment() {
     }
 
     public static CameraFragment newInstance() {
@@ -164,6 +169,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         mTouchFocus = new TouchFocus(this);
         mSwipe = new Swipe(this);
         captureController = new CaptureController(this);
+        PhotonCamera.setCaptureController(captureController);
     }
 
     @Override
@@ -189,8 +195,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
                                            @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                ErrorDialog.newInstance(getString(R.string.request_permission))
-                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+                showErrorDialog(R.string.request_permission);
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -221,6 +226,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         captureController.closeCamera();
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
+        mTouchFocus.resetFocusCircle();
         super.onPause();
     }
 
@@ -236,35 +242,39 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
     }
 
     public void updateScreenLog(CaptureResult result) {
-        CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
-        if (PhotonCamera.getSettings().aFDebugData) {
-            IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);
-            LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
-            dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
-            dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
-            dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
-            dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
-            dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
+        mainHandler.post(() -> {
+            CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
+            if (PhotonCamera.getSettings().aFDebugData) {
+                IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);
+                LinkedHashMap<String, String> dataset = new LinkedHashMap<>();
+                dataset.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
+                dataset.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
+                dataset.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
+                dataset.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
+                dataset.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
 //            dataset.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
-            dataset.put("ISO", String.valueOf(expoPair.iso));
+                dataset.put("ISO", String.valueOf(expoPair.iso));
 //            dataset.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-            dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
-            dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
-            MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
-            if (rectobj != null && rectobj.length > 0) {
-                RectF rect = getScreenRectFromMeteringRect(rectobj[0]);
-                dataset.put("F_RECT(px)", rect.toString());
-                surfaceView.update(rect);
+                dataset.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
+                dataset.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
+                MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
+                if (rectobj != null && rectobj.length > 0) {
+                    RectF rect = getScreenRectFromMeteringRect(rectobj[0]);
+                    dataset.put("F_RECT(px)", rect.toString());
+                    surfaceView.update(rect);
+                }
+                surfaceView.setVisibility(View.VISIBLE);
+                cl.setVisibility(View.VISIBLE);
+                cl.updateText(cl.createTextFrom(dataset));
+            } else {
+                if (surfaceView.rectToDraw != null) {
+                    surfaceView.rectToDraw = null;
+                    surfaceView.invalidate();
+                    cl.setVisibility(View.GONE);
+                    surfaceView.setVisibility(View.GONE);
+                }
             }
-            cl.setVisibility(View.VISIBLE);
-            cl.updateText(cl.createTextFrom(dataset));
-        } else {
-            if (surfaceView.rectToDraw != null) {
-                surfaceView.rectToDraw = null;
-                surfaceView.invalidate();
-                cl.setVisibility(View.GONE);
-            }
-        }
+        });
     }
 
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
@@ -394,7 +404,20 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         return getActivity().findViewById(id);
     }
 
+    public void showErrorDialog(String errorMsg) {
+        ErrorDialog.newInstance(errorMsg).show(getChildFragmentManager(), FRAGMENT_DIALOG);
+    }
+
+    public void showErrorDialog(@StringRes int stringRes) {
+        try {
+            ErrorDialog.newInstance(getString(stringRes)).show(getChildFragmentManager(), FRAGMENT_DIALOG);
+        } catch (Resources.NotFoundException e) {
+            showErrorDialog(String.valueOf(stringRes));
+        }
+    }
+
     //*****************************************************************************************************************
+
     /**
      * Implementation of {@link ProcessingEventsListener}
      */
@@ -445,6 +468,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         onProcessingFinished("Processing Finished Unexpectedly!!");
     }
     //*****************************************************************************************************************
+
     /**
      * Implementation of {@link CaptureEventsListener}
      */
@@ -460,7 +484,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
 
     @Override
     public void onFrameCaptured(Object o) {
-        if(o instanceof Integer) {
+        if (o instanceof Integer) {
             mCameraUIView.incrementCaptureProgressBar((Integer) o);
         }
     }
@@ -490,7 +514,18 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         PhotonCamera.getManualMode().init();
     }
 
+    @Override
+    public void onError(Object o) {
+        if (o instanceof String) {
+            showErrorDialog(o.toString());
+        }
+        if (o instanceof Integer) {
+            showErrorDialog((Integer) o);
+        }
+    }
+
     //*****************************************************************************************************************
+
     /**
      * Shows an error message dialog.
      */

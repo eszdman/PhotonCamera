@@ -9,8 +9,8 @@ public class ExposureIndex {
     public static final long sec = 1000000000;
 
     public static double index() {
-        long exposureTime = PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime;
-        int iso = PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso;
+        long exposureTime = PhotonCamera.getCaptureController().mPreviewExposureTime;
+        int iso = PhotonCamera.getCaptureController().mPreviewIso;
         double time = (double) (exposureTime) / sec;
         return iso * time;
     }

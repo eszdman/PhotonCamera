@@ -64,11 +64,11 @@ public class Camera2ApiAutoFix {
     }
 
     private void whitePoint() {
-        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, PhotonCamera.getCameraFragment().getCaptureController().mPreviewTemp);
+        CameraReflectionApi.set(SENSOR_NEUTRAL_COLOR_POINT, PhotonCamera.getCaptureController().mPreviewTemp);
     }
 
     private void CCM() {
-        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM, PhotonCamera.getCameraFragment().getCaptureController().mColorSpaceTransform);
+        CameraReflectionApi.set(COLOR_CORRECTION_TRANSFORM, PhotonCamera.getCaptureController().mColorSpaceTransform);
     }
 
     public void curve() {

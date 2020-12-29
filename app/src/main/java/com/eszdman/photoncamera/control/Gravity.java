@@ -63,6 +63,6 @@ public class Gravity {
     }
 
     public int getCameraRotation() {
-        return (PhotonCamera.getCameraFragment().getCaptureController().mSensorOrientation + PhotonCamera.getGravity().getRotation() + 270) % 360;
+        return (PhotonCamera.getCaptureController().mSensorOrientation + PhotonCamera.getGravity().getRotation() + 270) % 360;
     }
 }

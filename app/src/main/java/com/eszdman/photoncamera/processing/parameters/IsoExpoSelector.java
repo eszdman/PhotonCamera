@@ -21,8 +21,8 @@ public class IsoExpoSelector {
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
         Log.v(TAG, "InputParams: " +
-                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime)) +
-                " iso:" + PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso+ " analog:"+getISOAnalog());
+                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCaptureController().mPreviewExposureTime)) +
+                " iso:" + PhotonCamera.getCaptureController().mPreviewIso+ " analog:"+getISOAnalog());
         ExpoPair pair = GenerateExpoPair(step);
         Log.v(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR);
@@ -34,8 +34,8 @@ public class IsoExpoSelector {
     private static double mpy1 = 1.0;
     public static ExpoPair GenerateExpoPair(int step) {
         double mpy = 1.0;
-        ExpoPair pair = new ExpoPair(PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
-                PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
+        ExpoPair pair = new ExpoPair(PhotonCamera.getCaptureController().mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
+                PhotonCamera.getCaptureController().mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
         pair.normalizeiso100();
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
         {
@@ -108,7 +108,7 @@ public class IsoExpoSelector {
             if (pair.exposure < ExposureIndex.sec * 3.00 && pair.exposure > ExposureIndex.sec / 3 && pair.normalizedIso() < 3200.0/mpy1 && PhotonCamera.getSettings().eisPhoto) {
                 pair.FixedExpo(1.0 / 8);
                 if (pair.normalizeCheck())
-                    PhotonCamera.getCameraFragment().showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
+                    PhotonCamera.showToast("Wrong parameters: iso:" + pair.iso + " exp:" + pair.exposure);
             }
         }
         if(step != -1) {

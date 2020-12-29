@@ -134,7 +134,7 @@ public class Swipe {
 
         CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, PhotonCamera.getSettings().aeModeOn);
         CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PhotonCamera.getSettings().afMode);
-        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreview();
+        PhotonCamera.getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.GONE);
         PhotonCamera.getManualMode().retractAllKnobs();
         arrowState ^= 1;

@@ -108,7 +108,7 @@ public class ShutterModel extends ManualModel<Long> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().getCaptureController().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
             if (PhotonCamera.getManualMode().getCurrentISOValue() == 0)//check if ISO is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
@@ -117,9 +117,9 @@ public class ShutterModel extends ManualModel<Long> {
             long out = (long)knobItemInfo.value;
             if(out > ExposureIndex.sec/5) out = ExposureIndex.sec/5;
             builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, out);
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, PhotonCamera.getCameraFragment().getCaptureController().mPreviewIso);
+            builder.set(CaptureRequest.SENSOR_SENSITIVITY, PhotonCamera.getCaptureController().mPreviewIso);
         }
-        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreviewBuilder();
+        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo2.text);
     }
 

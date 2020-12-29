@@ -66,14 +66,14 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().getCaptureController().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
         if (knobItemInfo.equals(autoModel)) {
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         } else {
             builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo.value);
         }
-        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreviewBuilder();
+        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
         //fireValueChangedEvent(knobItemInfo.text);
     }
 }

@@ -560,8 +560,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
             e.printStackTrace();
-            CameraFragment.ErrorDialog.newInstance(cameraFragment.getString(R.string.camera_error))
-                    .show(cameraFragment.getChildFragmentManager(), CameraFragment.FRAGMENT_DIALOG);
+            captureEventsListener.onError(R.string.camera_error);
         }
     }
 
@@ -811,7 +810,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void openCamera(int width, int height) {
         cameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
         mMediaRecorder = new MediaRecorder();
-        if (ContextCompat.checkSelfPermission(PhotonCamera.getCameraActivity(), Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(cameraFragment.getContext(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
             return;
@@ -924,7 +923,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
         Point displaySize = new Point();
-        PhotonCamera.getCameraActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
+        cameraFragment.getActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewWidth;
         int rotatedPreviewHeight = mPreviewHeight;
         int maxPreviewWidth = displaySize.x;
@@ -1177,7 +1176,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             mTextureView.setAlpha(0.5f);
 
-            MediaPlayer burstPlayer = MediaPlayer.create(PhotonCamera.getCameraActivity(), R.raw.sound_burst);
+            MediaPlayer burstPlayer = MediaPlayer.create(cameraFragment.getContext(), R.raw.sound_burst);
 
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
                 @Override

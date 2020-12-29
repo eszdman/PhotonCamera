@@ -86,16 +86,16 @@ public class IsoModel extends ManualModel<Integer> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo newval) {
         currentInfo = newval;
-        CaptureRequest.Builder builder = PhotonCamera.getCameraFragment().getCaptureController().mPreviewRequestBuilder;
+        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
         if (newval.equals(autoModel)) {
             if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
         } else {
             builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
             builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value));
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCameraFragment().getCaptureController().mPreviewExposureTime);
+            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCaptureController().mPreviewExposureTime);
         }
-        PhotonCamera.getCameraFragment().getCaptureController().rebuildPreviewBuilder();
+        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
         //fireValueChangedEvent(newval.text);
     }
 

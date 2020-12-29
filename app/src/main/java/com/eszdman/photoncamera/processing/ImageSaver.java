@@ -261,7 +261,7 @@ public class ImageSaver implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.clear();
+        PhotonCamera.getCaptureController().BurstShakiness.clear();
         imageBuffer.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
         processingEventsListener.onProcessingFinished("Processing Cycle Ended!");

@@ -3,10 +3,12 @@ package com.eszdman.photoncamera.app;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.widget.Toast;
 import com.eszdman.photoncamera.api.Settings;
+import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
 import com.eszdman.photoncamera.pro.SupportedDevice;
@@ -14,7 +16,6 @@ import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
 import com.eszdman.photoncamera.ui.camera.CameraActivity;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
 import com.manual.ManualMode;
 
@@ -26,7 +27,7 @@ public class PhotonCamera extends Application {
     private Gravity mGravity;
     private Sensors mSensors;
     private Parameters mParameters;
-    private CameraFragment mCameraFragment;
+    private CaptureController mCaptureController;
     private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
@@ -55,12 +56,12 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.mParameters;
     }
 
-    public static CameraFragment getCameraFragment() {
-        return sPhotonCamera.mCameraFragment;
+    public static CaptureController getCaptureController() {
+        return sPhotonCamera.mCaptureController;
     }
 
-    public static void setCameraFragment(CameraFragment cameraFragment) {
-        sPhotonCamera.mCameraFragment = cameraFragment;
+    public static void setCaptureController(CaptureController captureController) {
+        sPhotonCamera.mCaptureController = captureController;
     }
 
     public static SupportedDevice getSupportedDevice() {
@@ -89,12 +90,20 @@ public class PhotonCamera extends Application {
         System.exit(0);
     }
 
+    public static void showToast(String msg) {
+        Toast.makeText(sPhotonCamera, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    public static Resources getResourcesStatic() {
+        return sPhotonCamera.getResources();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
-        Toast.makeText(this, Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase(), Toast.LENGTH_SHORT).show();
+        showToast(Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase());
         initModules();
     }
 

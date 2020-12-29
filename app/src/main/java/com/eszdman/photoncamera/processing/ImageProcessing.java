@@ -182,7 +182,7 @@ public class ImageProcessing {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        long avr = PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.get(0);
+        long avr = PhotonCamera.getCaptureController().BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -198,7 +198,7 @@ public class ImageProcessing {
             }
             Log.d(TAG,"Sensivity:"+k);
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = PhotonCamera.getCameraFragment().getCaptureController().BurstShakiness.get(i);
+            frame.luckyParameter = PhotonCamera.getCaptureController().BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter+avr)/2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
@@ -351,7 +351,7 @@ public class ImageProcessing {
             dngCreator.setDescription(PhotonCamera.getParameters().toString());
             int rotation = PhotonCamera.getGravity().getCameraRotation();
             Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
-            Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCameraFragment().getCaptureController().mSensorOrientation);
+            Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
             int orientation = ORIENTATION_NORMAL;
             switch (rotation) {
                 case 90:
