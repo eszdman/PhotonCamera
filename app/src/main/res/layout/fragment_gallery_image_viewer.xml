@@ -21,7 +21,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_height="match_parent"
-            android:layout_width="match_parent">
+            android:layout_width="match_parent"
+            android:animateLayoutChanges="true">
 
         <androidx.viewpager.widget.ViewPager
                 android:id="@+id/view_pager"
