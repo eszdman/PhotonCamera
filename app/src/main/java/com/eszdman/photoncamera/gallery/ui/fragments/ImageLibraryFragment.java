@@ -1,6 +1,7 @@
 package com.eszdman.photoncamera.gallery.ui.fragments;
 
 import android.content.Intent;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -83,6 +84,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
                     for (File f : filesToDelete) {
                         f.delete();
+                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(f)}, null, null);
                     }
                     onImageSelectionStopped();
                     allFiles = FileManager.getAllImageFiles();
