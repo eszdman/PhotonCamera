@@ -6,7 +6,6 @@ import android.util.Log;
  * Interface that listens to events related to processing of image after it has been captured
  */
 public interface ProcessingEventsListener {
-    String TAG = "ProcessingEvents";
     String FAILED_MSG = "Image Processing/Saving Failed!";
 
     void onProcessingStarted(Object obj);
@@ -20,10 +19,6 @@ public interface ProcessingEventsListener {
     void onSaveImage(Object obj);
 
     void onErrorOccurred(Object obj);
-
-    default void log(String msg) {
-        Log.d(TAG, msg);
-    }
 
 
 }

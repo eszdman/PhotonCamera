@@ -47,6 +47,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraEventsListener;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
@@ -75,7 +76,7 @@ import java.util.Set;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
-public class CameraFragment extends Fragment implements CaptureEventsListener, ProcessingEventsListener {
+public class CameraFragment extends Fragment {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
     public static final String FRAGMENT_DIALOG = "dialog";
     /**
@@ -92,9 +93,10 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
      */
     public static String sActiveBackCamId = "0";
     public static String sActiveFrontCamId = "1";
+    public static CameraMode mSelectedMode;
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     public SurfaceViewOverViewfinder surfaceView;
-    public CameraMode mSelectedMode;
     public String[] mAllCameraIds;
     public Set<String> mFrontCameraIDs;
     public Set<String> mBackCameraIDs;
@@ -106,7 +108,6 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
     private CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private CameraFragment() {
     }
@@ -169,7 +170,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
         mTouchFocus = new TouchFocus(this);
         mSwipe = new Swipe(this);
-        captureController = new CaptureController(this);
+        captureController = new CaptureController(getActivity(), new CameraEventsListenerImpl());
         PhotonCamera.setCaptureController(captureController);
     }
 
@@ -244,7 +245,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         }
     }
 
-    public void updateScreenLog(CaptureResult result) {
+    private void updateScreenLog(CaptureResult result) {
         mainHandler.post(() -> {
             CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
             if (PhotonCamera.getSettings().aFDebugData) {
@@ -319,7 +320,7 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         }
     }
 
-    public void showSnackBar(final String text){
+    public void showSnackBar(final String text) {
         final View v = getView();
         if (v != null) {
             new Handler(Looper.getMainLooper()).post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
@@ -426,116 +427,6 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
         }
     }
 
-    //*****************************************************************************************************************
-
-    /**
-     * Implementation of {@link ProcessingEventsListener}
-     */
-    @Override
-    public void onProcessingStarted(Object obj) {
-        log("Started: " + obj);
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                mCameraUIView.setProcessingProgressBarIndeterminate(true);
-                mCameraUIView.activateShutterButton(false);
-            });
-        }
-    }
-
-    @Override
-    public void onProcessingChanged(Object obj) {
-    }
-
-    @Override
-    public void onProcessingFinished(Object obj) {
-        log("Finished: " + obj);
-        if (getActivity() != null) {
-            getActivity().runOnUiThread(() -> {
-                mCameraUIView.resetProcessingProgressBar();
-                mCameraUIView.activateShutterButton(true);
-            });
-        }
-    }
-
-    @Override
-    public void onSaveImage(Object obj) {
-    }
-
-    @Override
-    public void onImageSaved(Object obj) {
-        if (obj instanceof File) {
-            log("Saved: " + ((File) obj).getAbsolutePath());
-            triggerMediaScanner((File) obj);
-        }
-        if (getActivity() != null)
-            getActivity().runOnUiThread(() -> cameraFragmentViewModel.updateGalleryThumb());
-    }
-
-    @Override
-    public void onErrorOccurred(Object obj) {
-        if (obj instanceof String)
-            showToast((String) obj);
-        onProcessingFinished("Processing Finished Unexpectedly!!");
-    }
-    //*****************************************************************************************************************
-
-    /**
-     * Implementation of {@link CaptureEventsListener}
-     */
-    @Override
-    public void onFrameCountSet(int frameCount) {
-        mCameraUIView.setCaptureProgressMax(frameCount);
-    }
-
-    @Override
-    public void onCaptureStarted(Object o) {
-        mCameraUIView.setCaptureProgressBarOpacity(1.0f);
-    }
-
-    @Override
-    public void onFrameCaptured(Object o) {
-        if (o instanceof Integer) {
-            mCameraUIView.incrementCaptureProgressBar((Integer) o);
-        }
-    }
-
-    @Override
-    public void onCaptureProgressed(Object o) {
-        if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
-            timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
-        }
-    }
-
-    @Override
-    public void onCaptureCompleted(Object o) {
-        timerFrameCountViewModel.clearFrameTimeCnt();
-        mCameraUIView.resetCaptureProgressBar();
-        mTouchFocus.resetFocusCircle();
-    }
-
-    @Override
-    public void onCameraRestarted() {
-        mCameraUIView.refresh();
-    }
-
-    @Override
-    public void onCharacteristicsUpdated() {
-        mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
-        PhotonCamera.getManualMode().init();
-    }
-
-    @Override
-    public void onError(Object o) {
-        if (o instanceof String) {
-            showErrorDialog(o.toString());
-        }
-        if (o instanceof Integer) {
-            showErrorDialog((Integer) o);
-        }
-    }
-
-    //*****************************************************************************************************************
-
     /**
      * Shows an error message dialog.
      */
@@ -564,6 +455,132 @@ public class CameraFragment extends Fragment implements CaptureEventsListener, P
                         }
                     })
                     .create();
+        }
+    }
+
+    //*****************************************************************************************************************
+
+    public class CameraEventsListenerImpl extends CameraEventsListener {
+        /**
+         * Implementation of {@link ProcessingEventsListener}
+         */
+        @Override
+        public void onProcessingStarted(Object obj) {
+            logD("onProcessingStarted: " + obj);
+            mainHandler.post(() -> {
+                mCameraUIView.setProcessingProgressBarIndeterminate(true);
+                mCameraUIView.activateShutterButton(false);
+            });
+        }
+
+        @Override
+        public void onProcessingChanged(Object obj) {
+        }
+
+        @Override
+        public void onProcessingFinished(Object obj) {
+            logD("onProcessingFinished: " + obj);
+            mainHandler.post(() -> {
+                mCameraUIView.resetProcessingProgressBar();
+                mCameraUIView.activateShutterButton(true);
+            });
+        }
+
+        @Override
+        public void onSaveImage(Object obj) {
+        }
+
+        @Override
+        public void onImageSaved(Object obj) {
+            if (obj instanceof File) {
+                logD("onImageSaved: " + ((File) obj).getAbsolutePath());
+                triggerMediaScanner((File) obj);
+            }
+            cameraFragmentViewModel.updateGalleryThumb();
+        }
+
+        @Override
+        public void onErrorOccurred(Object obj) {
+            if (obj instanceof String)
+                showToast((String) obj);
+            onProcessingFinished("Processing Finished Unexpectedly!!");
+        }
+
+        //*****************************************************************************************************************
+        /**
+         * Implementation of {@link CaptureEventsListener}
+         */
+        @Override
+        public void onOpenCamera(CameraManager cameraManager) {
+            initCameraIDLists(cameraManager);
+        }
+
+        @Override
+        public void onFrameCountSet(int frameCount) {
+            mCameraUIView.setCaptureProgressMax(frameCount);
+        }
+
+        @Override
+        public void onCaptureStarted(Object o) {
+            mCameraUIView.setCaptureProgressBarOpacity(1.0f);
+        }
+
+        @Override
+        public void onFrameCaptured(Object o) {
+            if (o instanceof Integer) {
+                mCameraUIView.incrementCaptureProgressBar((Integer) o);
+            }
+        }
+
+        @Override
+        public void onCaptureProgressed(Object o) {
+            if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
+                timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
+            }
+        }
+
+        @Override
+        public void onCaptureSequenceCompleted(Object o) {
+            timerFrameCountViewModel.clearFrameTimeCnt();
+            mCameraUIView.resetCaptureProgressBar();
+            mTouchFocus.resetFocusCircle();
+        }
+
+        @Override
+        public void onCaptureCompleted(CaptureResult captureResult) {
+            updateScreenLog(captureResult);
+        }
+
+        @Override
+        public void onCameraRestarted() {
+            mCameraUIView.refresh();
+        }
+
+        @Override
+        public void onCharacteristicsUpdated() {
+            mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
+            PhotonCamera.getManualMode().init();
+        }
+
+        @Override
+        public void onError(Object o) {
+            if (o instanceof String) {
+                showErrorDialog(o.toString());
+            }
+            if (o instanceof Integer) {
+                showErrorDialog((Integer) o);
+            }
+        }
+
+        @Override
+        public void onFatalError(String errorMsg) {
+            logE("onFatalError: " + errorMsg);
+            getActivity().finish();
+        }
+
+        @Override
+        public void onRequestTriggerMediaScanner(File file) {
+            triggerMediaScanner(file);
         }
     }
 

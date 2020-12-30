@@ -78,7 +78,7 @@ public class IsoExpoSelector {
         if (pair.normalizedIso() >= 12700.0/mpy1) {
             pair.ReduceIso();
         }
-        if (CaptureController.mTargetFormat == CaptureController.rawFormat) {
+        if (CaptureController.getTargetFormat() == CaptureController.RAW_FORMAT) {
             pair.ExpoCompensateLower(mpy);
         }
         if (useTripod) {

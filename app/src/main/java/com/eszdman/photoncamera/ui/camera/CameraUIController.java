@@ -1,6 +1,5 @@
 package com.eszdman.photoncamera.ui.camera;
 
-import android.hardware.camera2.CameraAccessException;
 import android.util.Log;
 import android.view.View;
 import com.eszdman.photoncamera.R;
@@ -66,9 +65,9 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
             case R.id.hdrx_toggle_button:
                 PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
                 if (PreferenceKeys.isHdrXOn())
-                    CaptureController.mTargetFormat = CaptureController.rawFormat;
+                    CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
                 else
-                    CaptureController.mTargetFormat = CaptureController.yuvFormat;
+                    CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
                 mCameraFragment.showSnackBar(mCameraFragment.getString(R.string.hdrx) + ':' + onOff(PreferenceKeys.isHdrXOn()));
                 restartCamera();
                 break;
