@@ -1,19 +1,23 @@
 package com.eszdman.photoncamera.ui.camera;
 
 import android.annotation.SuppressLint;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import androidx.core.util.Pair;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraMode;
+import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
+import com.eszdman.photoncamera.databinding.LayoutBottombuttonsBinding;
+import com.eszdman.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
-import de.hdodenhof.circleimageview.CircleImageView;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -27,69 +31,48 @@ import java.util.Set;
  */
 public final class CameraUIViewImpl implements CameraUIView {
     private static final String TAG = "CameraUIView";
-    private final View mRootView;
+    private final CameraFragmentBinding cameraFragmentBinding;
+    private final LayoutMainTopbarBinding topbar;
+    private final LayoutBottombuttonsBinding bottombuttons;
     private ProgressBar mCaptureProgressBar;
-    private ImageView mGridView;
-    private ImageView mRoundEdgesView;
     private ImageButton mShutterButton;
     private ProgressBar mProcessingProgressBar;
-    private CircleImageView mGalleryImageButton;
     private LinearLayout mAuxGroupContainer;
     private CameraUIEventsListener mCameraUIEventsListener;
     private HorizontalPicker mModePicker;
-    private ToggleButton mFpsButton;
-    private ToggleButton mQuadResolutionButton;
-    private ToggleButton mEisPhotoButton;
-    private ImageButton mFlipCameraButton;
-    private ImageButton mSettingsButton;
-    private ToggleButton mHdrXButton;
     private HashMap<Integer, String> auxButtonsMap;
     private float baseF = 0.f;
 
-    public CameraUIViewImpl(View rootView) {
-        Log.d(TAG, "CameraUIView() called with: rootView = [" + rootView + "]");
-        mRootView = rootView;
-        initViews(rootView);
+    public CameraUIViewImpl(CameraFragmentBinding cameraFragmentBinding) {
+        this.cameraFragmentBinding = cameraFragmentBinding;
+        this.topbar = cameraFragmentBinding.layoutTopbar;
+        this.bottombuttons = cameraFragmentBinding.layoutBottombar.bottomButtons;
+        initViews();
         initListeners();
+        initModeSwitcher();
         refresh();
     }
 
-    private void initViews(View rview) {
-        mGridView = rview.findViewById(R.id.grid_view);
-        mRoundEdgesView = rview.findViewById(R.id.round_edges_view);
-        mCaptureProgressBar = rview.findViewById(R.id.capture_progress_bar);
-        mProcessingProgressBar = rview.findViewById(R.id.processing_progress_bar);
-        mShutterButton = rview.findViewById(R.id.shutter_button);
-        mGalleryImageButton = rview.findViewById(R.id.gallery_image_button);
-        mFpsButton = rview.findViewById(R.id.fps_toggle_button);
-        mHdrXButton = rview.findViewById(R.id.hdrx_toggle_button);
-        mModePicker = rview.findViewById(R.id.mode_picker_view);
-        mQuadResolutionButton = rview.findViewById(R.id.quad_res_toggle_button);
-        mEisPhotoButton = rview.findViewById(R.id.eis_toggle_button);
-        mFlipCameraButton = rview.findViewById(R.id.flip_camera_button);
-        mSettingsButton = rview.findViewById(R.id.settings_button);
-        mAuxGroupContainer = rview.findViewById(R.id.aux_buttons_container);
+    private void initViews() {
+        mCaptureProgressBar = cameraFragmentBinding.layoutViewfinder.captureProgressBar;
+        mProcessingProgressBar = bottombuttons.processingProgressBar;
+        mShutterButton = bottombuttons.shutterButton;
+        mModePicker = cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
+        mAuxGroupContainer = cameraFragmentBinding.auxButtonsContainer;
     }
 
     private void initListeners() {
-        View.OnClickListener commonOnClickListener = v -> mCameraUIEventsListener.onClick(v);
+        topbar.setTopBarClickListener(v -> mCameraUIEventsListener.onClick(v));
+        bottombuttons.setBottomBarClickListener(v -> mCameraUIEventsListener.onClick(v));
+    }
 
-        mShutterButton.setOnClickListener(commonOnClickListener);
-        mGalleryImageButton.setOnClickListener(commonOnClickListener);
-        mEisPhotoButton.setOnClickListener(commonOnClickListener);
-        mFpsButton.setOnClickListener(commonOnClickListener);
-        mQuadResolutionButton.setOnClickListener(commonOnClickListener);
-        mFlipCameraButton.setOnClickListener(commonOnClickListener);
-        mSettingsButton.setOnClickListener(commonOnClickListener);
-        mHdrXButton.setOnClickListener(commonOnClickListener);
-
+    private void initModeSwitcher() {
         String[] modes = CameraMode.names();
-
         mModePicker.setValues(modes);
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
         mModePicker.setSelectedItem(1);
-        //PreferenceKeys.setCameraMode(0); //this should not be here, Temporary
+        reConfigureModeViews(CameraMode.valueOf(modes[1]));
     }
 
     @Override
@@ -99,46 +82,36 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void switchToMode(CameraMode cameraMode) {
-        this.mCameraUIEventsListener.onCameraModeChanged(cameraMode);
         reConfigureModeViews(cameraMode);
+        this.mCameraUIEventsListener.onCameraModeChanged(cameraMode);
     }
 
     private void reConfigureModeViews(CameraMode input) {
         Log.d(TAG, "Current Mode:" + input.name());
         switch (input) {
             case VIDEO:
-                mEisPhotoButton.setVisibility(View.VISIBLE);
+                topbar.setEisVisible(true);
             case UNLIMITED:
-                mFpsButton.setVisibility(View.VISIBLE);
+                topbar.setFpsVisible(true);
                 mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                 break;
             case PHOTO:
             default:
-                mEisPhotoButton.setVisibility(View.VISIBLE);
-                mFpsButton.setVisibility(View.VISIBLE);
+                topbar.setEisVisible(true);
+                topbar.setFpsVisible(true);
                 mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                 break;
             case NIGHT:
-                mEisPhotoButton.setVisibility(View.GONE);
-                mFpsButton.setVisibility(View.GONE);
+                topbar.setEisVisible(false);
+                topbar.setFpsVisible(false);
+                mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                 break;
         }
     }
 
     @Override
     public void refresh() {
-        mFpsButton.setChecked(PreferenceKeys.isFpsPreviewOn());
-        mQuadResolutionButton.setChecked(PreferenceKeys.isQuadBayerOn());
-        mEisPhotoButton.setChecked(PreferenceKeys.isEisPhotoOn());
-        mHdrXButton.setChecked(PreferenceKeys.isHdrXOn());
-        if (PreferenceKeys.isShowGridOn())
-            mGridView.setVisibility(View.VISIBLE);
-        else
-            mGridView.setVisibility(View.GONE);
-        if (PreferenceKeys.isRoundEdgeOn())
-            mRoundEdgesView.setVisibility(View.VISIBLE);
-        else
-            mRoundEdgesView.setVisibility(View.GONE);
+        cameraFragmentBinding.invalidateAll();
         resetCaptureProgressBar();
         activateShutterButton(true);
         resetProcessingProgressBar();
@@ -194,9 +167,9 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void addToAuxGroupButtons(String cameraId, String name) {
-        Button b = new Button(mRootView.getContext());
-        int m = (int) mRootView.getResources().getDimension(R.dimen.aux_button_internal_margin);
-        int s = (int) mRootView.getResources().getDimension(R.dimen.aux_button_size);
+        Button b = new Button(mAuxGroupContainer.getContext());
+        int m = (int) mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_internal_margin);
+        int s = (int) mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_size);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
         lp.setMargins(m, m, m, m);
         b.setLayoutParams(lp);

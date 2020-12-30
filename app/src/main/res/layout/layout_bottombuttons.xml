@@ -5,6 +5,9 @@
         >
 
     <data>
+        <variable
+                name="bottom_bar_click_listener"
+                type="android.view.View.OnClickListener"/>
 
         <variable
                 name="uimodel"
@@ -37,6 +40,7 @@
                     android:id="@+id/flip_camera_button"
                     android:background="#00000000"
                     android:clickable="true"
+                    android:onClick="@{bottom_bar_click_listener}"
                     android:contentDescription="Lens Switch Button"
                     android:scaleType="centerInside"
                     android:src="@drawable/ic_flip_camera"
@@ -66,6 +70,7 @@
                     android:background="@drawable/roundbutton"
                     android:clickable="true"
                     android:contentDescription="Shutter Button"
+                    android:onClick="@{bottom_bar_click_listener}"
                     android:scaleX="1.0"
                     android:scaleY="1.0"
                     android:textAppearance="@style/TextAppearance.AppCompat"
@@ -114,7 +119,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    app:layout_constraintBottom_toBottomOf="parent"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <FrameLayout
@@ -138,6 +143,7 @@
                     app:civ_border_color="@color/Light"
                     app:civ_border_overlay="true"
                     app:civ_border_width="3dp"
+                    android:onClick="@{bottom_bar_click_listener}"
                     imageFromBitmap="@{uimodel.bitmap}"
                     bindRotate="@{uimodel}"
                     />

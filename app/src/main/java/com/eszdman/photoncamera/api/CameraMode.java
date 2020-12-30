@@ -1,9 +1,9 @@
 package com.eszdman.photoncamera.api;
 
 public enum CameraMode {
-    UNLIMITED(2),
-    PHOTO(0),
-    NIGHT(1),
+    UNLIMITED(0),
+    PHOTO(1),
+    NIGHT(2),
     VIDEO(3)
     ;
     public final int mNum;

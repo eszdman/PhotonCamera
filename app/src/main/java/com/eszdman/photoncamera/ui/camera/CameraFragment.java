@@ -170,7 +170,7 @@ public class CameraFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
-        this.mCameraUIView = new CameraUIViewImpl(view);
+        this.mCameraUIView = new CameraUIViewImpl(cameraFragmentBinding);
         this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
         mTouchFocus = new TouchFocus(this);
         mSwipe = new Swipe(this);

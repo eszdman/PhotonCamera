@@ -1,23 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<layout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:padding="@dimen/mode_switcher_padding">
-    <com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:textColor="@color/White"
-            app:selectedColor="?colorAccent"
-            android:textSize="@dimen/mode_chip_text_size"
-            android:marqueeRepeatLimit="-1"
-            android:id="@+id/mode_picker_view"
-            android:ellipsize="middle"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:background="@color/GreyDis"/>
-</androidx.constraintlayout.widget.ConstraintLayout>
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/mode_switcher_padding">
+
+        <com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/White"
+                app:selectedColor="?colorAccent"
+                android:textSize="@dimen/mode_chip_text_size"
+                android:marqueeRepeatLimit="-1"
+                android:id="@+id/mode_picker_view"
+                android:ellipsize="middle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:background="@color/GreyDis"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
