@@ -175,6 +175,10 @@ public class PreferenceKeys {
         return PhotonCamera.getSettingsManager().getBoolean(current_scope, Preference.KEY_SHOW_GRID);
     }
 
+    public static void setShowGridOn(boolean value) {
+        PhotonCamera.getSettingsManager().set(current_scope, Preference.KEY_SHOW_GRID, value);
+    }
+
     public static boolean isCameraSoundsOn() {
         return PhotonCamera.getSettingsManager().getBoolean(current_scope, Preference.KEY_CAMERA_SOUNDS);
     }

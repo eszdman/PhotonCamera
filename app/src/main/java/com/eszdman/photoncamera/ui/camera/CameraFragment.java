@@ -417,6 +417,10 @@ public class CameraFragment extends Fragment {
         startActivity(settingsIntent);
     }
 
+    public void invalidate(){
+        cameraFragmentBinding.invalidateAll();
+    }
+
     public <T extends View> T findViewById(@IdRes int id) {
         return getActivity().findViewById(id);
     }
