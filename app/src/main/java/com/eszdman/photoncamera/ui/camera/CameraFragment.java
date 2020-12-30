@@ -26,6 +26,7 @@ import android.graphics.RectF;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -60,6 +61,7 @@ import com.eszdman.photoncamera.databinding.CameraFragmentBinding;
 import com.eszdman.photoncamera.gallery.ui.GalleryActivity;
 import com.eszdman.photoncamera.processing.ProcessingEventsListener;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
@@ -108,6 +110,8 @@ public class CameraFragment extends Fragment {
     private CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
+    private MediaPlayer burstPlayer;
+
 
     private CameraFragment() {
     }
@@ -212,6 +216,7 @@ public class CameraFragment extends Fragment {
         PhotonCamera.getGravity().register();
         mTouchFocus.reInit();
         this.mCameraUIView.refresh();
+        burstPlayer = MediaPlayer.create(getActivity(), R.raw.sound_burst);
 
         cameraFragmentViewModel.updateGalleryThumb();
         cameraFragmentViewModel.onResume();
@@ -231,6 +236,7 @@ public class CameraFragment extends Fragment {
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
         mTouchFocus.resetFocusCircle();
+        burstPlayer.release();
         super.onPause();
     }
 
@@ -516,21 +522,29 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onCaptureStarted(Object o) {
+        public void onCaptureStillPictureStarted(Object o) {
             mCameraUIView.setCaptureProgressBarOpacity(1.0f);
         }
 
         @Override
-        public void onFrameCaptured(Object o) {
-            if (o instanceof Integer) {
-                mCameraUIView.incrementCaptureProgressBar((Integer) o);
+        public void onFrameCaptureStarted(Object o) {
+            burstPlayer.seekTo(0);
+        }
+
+        @Override
+        public void onFrameCaptureProgressed(Object o) {
+            if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
+                timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
             }
         }
 
         @Override
-        public void onCaptureProgressed(Object o) {
-            if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
-                timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
+        public void onFrameCaptureCompleted(Object o) {
+            if (o instanceof Integer) {
+                mCameraUIView.incrementCaptureProgressBar((Integer) o);
+            }
+            if (PreferenceKeys.isCameraSoundsOn()) {
+                burstPlayer.start();
             }
         }
 
@@ -542,7 +556,7 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onCaptureCompleted(CaptureResult captureResult) {
+        public void onPreviewCaptureCompleted(CaptureResult captureResult) {
             updateScreenLog(captureResult);
         }
 

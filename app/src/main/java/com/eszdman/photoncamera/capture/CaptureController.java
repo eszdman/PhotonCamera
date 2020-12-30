@@ -26,7 +26,6 @@ import android.hardware.camera2.*;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
-import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.*;
 import android.util.*;
@@ -44,7 +43,6 @@ import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
-import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
@@ -345,7 +343,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
-            cameraEventsListener.onCaptureCompleted(result);
+            cameraEventsListener.onPreviewCaptureCompleted(result);
         }
 
         //Automatic 60fps preview
@@ -1159,31 +1157,48 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             final int[] burstcount = {0, 0, frameCount};
             Log.d(TAG, "CaptureStarted!");
 
-            cameraEventsListener.onCaptureStarted("CaptureStarted!");
+            cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
 
             mTextureView.setAlpha(0.5f);
 
-            MediaPlayer burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
 
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
+
+                @Override
+                public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+                    cameraEventsListener.onFrameCaptureStarted(frameNumber);
+                    Log.v(TAG, "FrameCaptureStarted! FrameNumber:" + frameNumber);
+                    super.onCaptureStarted(session, request, timestamp, frameNumber);
+                    PhotonCamera.getSensors().CaptureGyroBurst();
+                }
+
+                @Override
+                public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
+                    burstcount[1]++;
+                    cameraEventsListener.onFrameCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
+//                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
+                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
+                        if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
+                            try {
+                                mCaptureSession.abortCaptures();
+                                cameraEventsListener.onCaptureSequenceCompleted(null);
+                                mTextureView.setAlpha(1f);
+                                createCameraPreviewSession();
+                            } catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    super.onCaptureProgressed(session, request, partialResult);
+                }
+
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    cameraEventsListener.onFrameCaptured(1);
-                    if (PreferenceKeys.isCameraSoundsOn())
-                        burstPlayer.start();
+                    cameraEventsListener.onFrameCaptureCompleted(1);
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     Log.v(TAG, "Completed!");
                     mCaptureResult = result;
-                }
-
-                @Override
-                public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-                    burstPlayer.seekTo(0);
-                    Log.v(TAG, "FrameCaptureStarted! FrameNumber:" + frameNumber);
-                    super.onCaptureStarted(session, request, timestamp, frameNumber);
-                    PhotonCamera.getSensors().CaptureGyroBurst();
                 }
 
                 @Override
@@ -1198,26 +1213,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     createCameraPreviewSession();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
-                }
-
-                @Override
-                public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
-                    burstcount[1]++;
-                    cameraEventsListener.onCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
-//                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
-                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
-                        if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
-                            try {
-                                mCaptureSession.abortCaptures();
-                                cameraEventsListener.onCaptureSequenceCompleted(null);
-                                burstPlayer.stop();
-                                mTextureView.setAlpha(1f);
-                                createCameraPreviewSession();
-                            } catch (CameraAccessException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    super.onCaptureProgressed(session, request, partialResult);
                 }
             };
 

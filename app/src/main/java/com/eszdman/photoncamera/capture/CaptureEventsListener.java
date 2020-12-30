@@ -5,13 +5,15 @@ import android.hardware.camera2.CaptureResult;
 public interface CaptureEventsListener {
     void onFrameCountSet(int frameCount);
 
-    void onCaptureStarted(Object o);
+    void onCaptureStillPictureStarted(Object o);
 
-    void onFrameCaptured(Object o);
+    void onFrameCaptureStarted(Object o);
 
-    void onCaptureProgressed(Object o);
+    void onFrameCaptureProgressed(Object o);
+
+    void onFrameCaptureCompleted(Object o);
 
     void onCaptureSequenceCompleted(Object o);
 
-    void onCaptureCompleted(CaptureResult captureResult);
+    void onPreviewCaptureCompleted(CaptureResult captureResult);
 }
