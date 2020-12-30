@@ -60,7 +60,7 @@ public class ImageProcessing {
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
-            processingEventsListener.onErrorOccurred(ProcessingEventsListener.FAILED_MSG);
+            processingEventsListener.onProcessingError(ProcessingEventsListener.FAILED_MSG);
         }
     }
     public static int unlimitedCounter = 1;

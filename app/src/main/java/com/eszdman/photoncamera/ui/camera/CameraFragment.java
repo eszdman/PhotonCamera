@@ -500,7 +500,7 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onErrorOccurred(Object obj) {
+        public void onProcessingError(Object obj) {
             if (obj instanceof String)
                 showToast((String) obj);
             onProcessingFinished("Processing Finished Unexpectedly!!");
@@ -510,11 +510,6 @@ public class CameraFragment extends Fragment {
         /**
          * Implementation of {@link CaptureEventsListener}
          */
-        @Override
-        public void onOpenCamera(CameraManager cameraManager) {
-            initCameraIDLists(cameraManager);
-        }
-
         @Override
         public void onFrameCountSet(int frameCount) {
             mCameraUIView.setCaptureProgressMax(frameCount);
@@ -549,6 +544,15 @@ public class CameraFragment extends Fragment {
         @Override
         public void onCaptureCompleted(CaptureResult captureResult) {
             updateScreenLog(captureResult);
+        }
+
+        /**
+         * Implementation of abstract methods of {@link CameraEventsListener}
+         */
+
+        @Override
+        public void onOpenCamera(CameraManager cameraManager) {
+            initCameraIDLists(cameraManager);
         }
 
         @Override

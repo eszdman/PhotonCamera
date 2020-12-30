@@ -40,7 +40,6 @@ import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
-import com.eszdman.photoncamera.processing.ProcessingEventsListener;
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
@@ -58,6 +57,13 @@ import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Class responsible for image capture and sending images for subsequent processing
+ *
+ * All relevant events are notified to cameraEventsListener
+ *
+ * Constructor {@link CaptureController#CaptureController(Activity, CameraEventsListener)}
+ */
 public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int RAW_FORMAT = ImageFormat.RAW_SENSOR;
     public static final int YUV_FORMAT = ImageFormat.YUV_420_888;
@@ -132,8 +138,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public final boolean mFlashEnabled = false;
-    private final CaptureEventsListener captureEventsListener;
-    private final ProcessingEventsListener processingEventsListener;
+    private final CameraEventsListener cameraEventsListener;
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
@@ -340,7 +345,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             process(result);
-            captureEventsListener.onCaptureCompleted(result);
+            cameraEventsListener.onCaptureCompleted(result);
         }
 
         //Automatic 60fps preview
@@ -395,7 +400,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mCameraOpenCloseLock.release();
             cameraDevice.close();
             mCameraDevice = null;
-            captureEventsListener.onFatalError("CameraDevice.StateCallback : onError() : cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
+            cameraEventsListener.onFatalError("CameraDevice.StateCallback : onError() : cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
         }
     };
     /**
@@ -427,10 +432,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     };
 
-    public CaptureController(Activity activity, CameraEventsListener eventsListener) {
+    public CaptureController(Activity activity, CameraEventsListener cameraEventsListener) {
         this.activity = activity;
-        this.captureEventsListener = eventsListener;
-        this.processingEventsListener = eventsListener;
+        this.cameraEventsListener = cameraEventsListener;
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
     }
@@ -548,8 +552,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewWidth = width;
             mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            mImageProcessing = new ImageProcessing(processingEventsListener);
-            mImageSaver = new ImageSaver(mImageProcessing, processingEventsListener);
+            mImageProcessing = new ImageProcessing(cameraEventsListener);
+            mImageSaver = new ImageSaver(mImageProcessing, cameraEventsListener);
             //Thread thr = new Thread(mImageSaver);
             //thr.start();
             if (mBackgroundHandler != null)
@@ -560,7 +564,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
             e.printStackTrace();
-            captureEventsListener.onError(R.string.camera_error);
+            cameraEventsListener.onError(R.string.camera_error);
         }
     }
 
@@ -713,7 +717,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             stopBackgroundThread();
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            captureEventsListener.onCameraRestarted();
+            cameraEventsListener.onCameraRestarted();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
@@ -806,7 +810,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //requestCameraPermission();
             return;
         }
-        captureEventsListener.onOpenCamera(this.mCameraManager);
+        cameraEventsListener.onOpenCamera(this.mCameraManager);
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
         try {
@@ -959,7 +963,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 e.printStackTrace();
             }
         }
-        captureEventsListener.onCharacteristicsUpdated();
+        cameraEventsListener.onCharacteristicsUpdated();
     }
 
     @SuppressLint("LongLogTag")
@@ -1128,7 +1132,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
-            captureEventsListener.onFrameCountSet(frameCount);
+            cameraEventsListener.onFrameCountSet(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
@@ -1155,7 +1159,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             final int[] burstcount = {0, 0, frameCount};
             Log.d(TAG, "CaptureStarted!");
 
-            captureEventsListener.onCaptureStarted("CaptureStarted!");
+            cameraEventsListener.onCaptureStarted("CaptureStarted!");
 
             mTextureView.setAlpha(0.5f);
 
@@ -1166,7 +1170,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    captureEventsListener.onFrameCaptured(1);
+                    cameraEventsListener.onFrameCaptured(1);
                     if (PreferenceKeys.isCameraSoundsOn())
                         burstPlayer.start();
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
@@ -1186,7 +1190,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
                     try {
-                        captureEventsListener.onCaptureSequenceCompleted(null);
+                        cameraEventsListener.onCaptureSequenceCompleted(null);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -1199,13 +1203,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    captureEventsListener.onCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
+                    cameraEventsListener.onCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
 //                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
                             try {
                                 mCaptureSession.abortCaptures();
-                                captureEventsListener.onCaptureSequenceCompleted(null);
+                                cameraEventsListener.onCaptureSequenceCompleted(null);
                                 burstPlayer.stop();
                                 mTextureView.setAlpha(1f);
                                 createCameraPreviewSession();
@@ -1313,7 +1317,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private void stopRecordingVideo() {
         // UI
         mIsRecordingVideo = false;
-        captureEventsListener.onRequestTriggerMediaScanner(vid);
+        cameraEventsListener.onRequestTriggerMediaScanner(vid);
         mMediaRecorder.reset();
     }
 

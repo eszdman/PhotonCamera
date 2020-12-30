@@ -18,7 +18,6 @@ public interface ProcessingEventsListener {
 
     void onSaveImage(Object obj);
 
-    void onErrorOccurred(Object obj);
-
+    void onProcessingError(Object obj);
 
 }
