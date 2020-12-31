@@ -20,6 +20,7 @@ import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
 import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.processing.render.Parameters;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
@@ -100,6 +101,10 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.getResources();
     }
 
+    public static String getStringStatic(@StringRes int stringRes) {
+        return sPhotonCamera.getResources().getString(stringRes);
+    }
+
     public static Drawable getDrawableStatic(int resID) {
         return ContextCompat.getDrawable(sPhotonCamera, resID);
     }
@@ -124,6 +129,8 @@ public class PhotonCamera extends Application {
         mSensors = new Sensors(sensorManager);
 
         mSettingsManager = new SettingsManager(this);
+        PreferenceKeys.initialise(mSettingsManager);
+
         mSettings = new Settings();
 
         mParameters = new Parameters();
@@ -136,4 +143,10 @@ public class PhotonCamera extends Application {
         activityManager.getMemoryInfo(memoryInfo);
         return memoryInfo;
     }*/
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        sPhotonCamera = null;
+    }
 }
