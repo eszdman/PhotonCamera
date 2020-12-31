@@ -52,8 +52,8 @@
 
         </FrameLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="wrap_content"
+        <FrameLayout
+                android:layout_width="@dimen/shutter_button_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1.0"
                 android:id="@+id/shutter_button_container"
@@ -65,29 +65,24 @@
 
             <ImageButton
                     android:id="@+id/shutter_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@drawable/roundbutton"
                     android:clickable="true"
                     android:contentDescription="Shutter Button"
                     android:onClick="@{bottom_bar_click_listener}"
-                    android:scaleX="1.0"
-                    android:scaleY="1.0"
+                    android:scaleX="0.75"
+                    android:scaleY="0.75"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
-                    app:layout_constraintBottom_toBottomOf="@id/processing_progress_bar"
-                    app:layout_constraintDimensionRatio="1.0"
-                    app:layout_constraintEnd_toEndOf="@id/processing_progress_bar"
-                    app:layout_constraintStart_toStartOf="@id/processing_progress_bar"
-                    app:layout_constraintTop_toTopOf="@id/processing_progress_bar"
                     tools:ignore="HardcodedText"
                     tools:text="Shot"/>
 
             <ProgressBar
                     android:id="@+id/processing_progress_bar"
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:indeterminate="false"
                     android:max="100"
                     tools:progress="50"
@@ -96,31 +91,23 @@
                     android:indeterminateDuration="1250"
                     android:indeterminateDrawable="@drawable/circular_progress_bar2"
                     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
-                    android:scaleX="1.30"
-                    android:scaleY="1.30"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintDimensionRatio="1.0"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
+                    android:scaleX="1.35"
+                    android:scaleY="1.35"
+                    />
 
             <TextView
                     android:id="@+id/frameCount"
-                    android:layout_width="80dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="25"
                     android:text="@{timermodel.frameCount}"
                     android:textColor="@android:color/white"
-                    android:textSize="36sp"
+                    android:textSize="34sp"
                     android:textAlignment="center"
                     android:typeface="normal"
                     android:visibility="visible"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"/>
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                    android:layout_gravity="center"/>
+        </FrameLayout>
 
         <FrameLayout
                 android:layout_width="@dimen/gallery_button_size"
