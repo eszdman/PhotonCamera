@@ -61,9 +61,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     private void showHideHdrxSettings() {
         if (PreferenceKeys.isHdrXOn())
-            removePreferenceFromScreen("pref_category_jpg");
+            removePreferenceFromScreen(getString(R.string.pref_category_jpg_key));
         else
-            removePreferenceFromScreen("pref_category_hdrx");
+            removePreferenceFromScreen(getString(R.string.pref_category_hdrx_key));
     }
 
     @Override
@@ -106,7 +106,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setRestorePref() {
-        Preference restorePref = findPreference("pref_restore_preferences_key");
+        Preference restorePref = findPreference(getString(R.string.pref_restore_preferences_key));
         if (restorePref != null && getContext() != null) {
             restorePref.setOnPreferenceChangeListener((preference, newValue) -> {
                 String restoreResult = BackupRestoreUtil.restorePreferences(getContext(), newValue.toString());
@@ -117,7 +117,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setBackupPref() {
-        Preference backupPref = findPreference("pref_backup_preferences_key");
+        Preference backupPref = findPreference(getString(R.string.pref_backup_preferences_key));
         if (backupPref != null && getContext() != null) {
             backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
                 String backupResult = BackupRestoreUtil.backupSettings(getContext(), newValue.toString());
@@ -167,7 +167,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setHdrxTitle() {
-        Preference p = findPreference("pref_category_hdrx");
+        Preference p = findPreference(getString(R.string.pref_category_hdrx_key));
         if (p != null && getContext() != null) {
             if (PreferenceKeys.isPerLensSettingsOn()) {
                 p.setTitle(getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
@@ -198,7 +198,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setVersionDetails() {
-        Preference about = findPreference("pref_version_key");
+        Preference about = findPreference(getString(R.string.pref_version_key));
         if (about != null && mContext != null) {
             try {
                 PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);

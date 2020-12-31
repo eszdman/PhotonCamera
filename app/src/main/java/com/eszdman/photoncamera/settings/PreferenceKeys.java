@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraManager2;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -301,68 +303,81 @@ public class PreferenceKeys {
      * Keys visible in Settings
      */
     public enum Preference {
-        KEY_SHOW_AF_DATA("pref_show_afdata_key"),
-        KEY_ENABLE_SYSTEM_NR("pref_enable_system_nr_key"),
-        KEY_SAVE_PER_LENS_SETTINGS("pref_save_per_lens_settings"),
-        KEY_DISABLE_ALIGNINIG("pref_disable_aligning_key"),
-        KEY_SHOW_WATERMARK("pref_show_watermark_key"),
-        KEY_ENERGY_SAVING("pref_energy_safe_key"),
-        KEY_ENHANCED_PROCESSING("pref_enhanced_processing_key"),
-        KEY_HDRX_NR("pref_hdrx_nr_key"),
-        KEY_SAVE_RAW("pref_save_raw_key"),
-        KEY_SHOW_ROUND_EDGE("pref_show_roundedge_key"),
-        KEY_SHOW_GRID("pref_show_grid_key"),
-        KEY_CAMERA_SOUNDS("pref_camera_sounds_key"),
-        KEY_CHROMA_NR_SEEKBAR("pref_chroma_nr_seekbar_key"),
-        KEY_LUMA_NR_SEEKBAR("pref_luma_nr_seekbar_key"),
-        KEY_COMPRESSOR_SEEKBAR("pref_compressor_seekbar_key"),
-        KEY_NOISESTR_SEEKBAR("pref_noise_seekbar_key"),
-        KEY_GAIN_SEEKBAR("pref_gain_seekbar_key"),
-        KEY_FRAME_COUNT("pref_frame_count_key"),
-        KEY_CONTRAST_SEEKBAR("pref_contrast_seekbar_key"),
-        KEY_SHARPNESS_SEEKBAR("pref_sharpness_seekbar_key"),
-        KEY_SATURATION_SEEKBAR("pref_saturation_seekbar_key"),
-        KEY_ALIGN_METHOD("pref_align_method_key"),
-        KEY_CFA("pref_cfa_key"),
-        KEY_REMOSAIC("pref_remosaic_key"),////TODO
-        KEY_TELEGRAM("pref_telegram_channel"),
-        KEY_CONTRIBUTORS("pref_contributors"),
-        KEY_THEME("pref_theme_key"),
-        KEY_THEME_ACCENT("pref_theme_accent_key"),
-        KEY_SHOW_GRADIENT("pref_show_gradient_key"),
-        KEY_AF_MODE("pref_af_mode_key"),
+        KEY_SHOW_AF_DATA(new Key(R.string.pref_show_afdata_key)),
+        KEY_ENABLE_SYSTEM_NR(new Key(R.string.pref_enable_system_nr_key)),
+        KEY_SAVE_PER_LENS_SETTINGS(new Key(R.string.pref_save_per_lens_settings)),
+        KEY_DISABLE_ALIGNINIG(new Key(R.string.pref_disable_aligning_key)),
+        KEY_SHOW_WATERMARK(new Key(R.string.pref_show_watermark_key)),
+        KEY_ENERGY_SAVING(new Key(R.string.pref_energy_safe_key)),
+        KEY_ENHANCED_PROCESSING(new Key(R.string.pref_enhanced_processing_key)),
+        KEY_HDRX_NR(new Key(R.string.pref_hdrx_nr_key)),
+        KEY_SAVE_RAW(new Key(R.string.pref_save_raw_key)),
+        KEY_SHOW_ROUND_EDGE(new Key(R.string.pref_show_roundedge_key)),
+        KEY_SHOW_GRID(new Key(R.string.pref_show_grid_key)),
+        KEY_CAMERA_SOUNDS(new Key(R.string.pref_camera_sounds_key)),
+        KEY_CHROMA_NR_SEEKBAR(new Key(R.string.pref_chroma_nr_seekbar_key)),
+        KEY_LUMA_NR_SEEKBAR(new Key(R.string.pref_luma_nr_seekbar_key)),
+        KEY_COMPRESSOR_SEEKBAR(new Key(R.string.pref_compressor_seekbar_key)),
+        KEY_NOISESTR_SEEKBAR(new Key(R.string.pref_noise_seekbar_key)),
+        KEY_GAIN_SEEKBAR(new Key(R.string.pref_gain_seekbar_key)),
+        KEY_FRAME_COUNT(new Key(R.string.pref_frame_count_key)),
+        KEY_CONTRAST_SEEKBAR(new Key(R.string.pref_contrast_seekbar_key)),
+        KEY_SHARPNESS_SEEKBAR(new Key(R.string.pref_sharpness_seekbar_key)),
+        KEY_SATURATION_SEEKBAR(new Key(R.string.pref_saturation_seekbar_key)),
+        KEY_ALIGN_METHOD(new Key(R.string.pref_align_method_key)),
+        KEY_CFA(new Key(R.string.pref_cfa_key)),
+        KEY_REMOSAIC(new Key(R.string.pref_remosaic_key)),////TODO
+        KEY_TELEGRAM(new Key(R.string.pref_telegram_channel_key)),
+        KEY_CONTRIBUTORS(new Key(R.string.pref_contributors_key)),
+        KEY_THEME(new Key(R.string.pref_theme_key)),
+        KEY_THEME_ACCENT(new Key(R.string.pref_theme_accent_key)),
+        KEY_SHOW_GRADIENT(new Key(R.string.pref_show_gradient_key)),
+        KEY_AF_MODE(new Key(R.string.pref_af_mode_key)),
         /**
          * Other Keys
          */
-        KEY_HDRX("pref_hdrx_key"),
-        KEY_EIS_PHOTO("pref_eis_photo_key"),
-        KEY_QUAD_BAYER("pref_quad_bayer_key"),
-        KEY_FPS_PREVIEW("pref_fps_preview_key"),
-        CAMERA_ID("camera_id"),
-        TONEMAP("tonemap"),
-        GAMMA("gamma"),
-        CAMERA_MODE("pref_camera_mode"),
+        KEY_HDRX(new Key(R.string.pref_hdrx_key)),
+        KEY_EIS_PHOTO(new Key(R.string.pref_eis_photo_key)),
+        KEY_QUAD_BAYER(new Key(R.string.pref_quad_bayer_key)),
+        KEY_FPS_PREVIEW(new Key(R.string.pref_fps_preview_key)),
+        CAMERA_ID(new Key(R.string.camera_id)),
+        TONEMAP(new Key(R.string.tonemap_key)),
+        GAMMA(new Key(R.string.gamma_key)),
+        CAMERA_MODE(new Key(R.string.pref_camera_mode_key)),
 
         /* CameraManager 2 keys */
-        CAMERAS_PREFERENCE_FILE_NAME("_cameras"),
-        ALL_CAMERA_IDS_KEY("all_camera_ids"),
-        FRONT_IDS_KEY("front_camera_ids"),
-        BACK_IDS_KEY("back_camera_ids"),
-        FOCAL_IDS_KEY("all_camera_focals"),
-        CAMERA_COUNT_KEY("all_camera_count"),
+        CAMERAS_PREFERENCE_FILE_NAME(new Key(R.string._cameras)),
+        ALL_CAMERA_IDS_KEY(new Key(R.string.all_camera_ids)),
+        FRONT_IDS_KEY(new Key(R.string.front_camera_ids)),
+        BACK_IDS_KEY(new Key(R.string.back_camera_ids)),
+        FOCAL_IDS_KEY(new Key(R.string.all_camera_focals)),
+        CAMERA_COUNT_KEY(new Key(R.string.all_camera_count)),
 
         /* SupportedDevice keys */
-        DEVICES_PREFERENCE_FILE_NAME("_devices"),
-        ALL_DEVICES_NAMES_KEY("all_devices_names"),
+        DEVICES_PREFERENCE_FILE_NAME(new Key(R.string._devices)),
+        ALL_DEVICES_NAMES_KEY(new Key(R.string.all_devices_names)),
         /**
          * Per Lens File
          */
-        PER_LENS_FILE_NAME("_per_lens"),
-        ;
+        PER_LENS_FILE_NAME(new Key(R.string._per_lens));
         public final String mValue;
 
-        Preference(String mName) {
-            mValue = mName;
+        Preference(Key key) {
+            mValue = key.toString();
+        }
+    }
+
+    private static class Key {
+        int stringId;
+
+        Key(@StringRes int stringId) {
+            this.stringId = stringId;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return PhotonCamera.getResourcesStatic().getString(stringId);
         }
     }
 }
