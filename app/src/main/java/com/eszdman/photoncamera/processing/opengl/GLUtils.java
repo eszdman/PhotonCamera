@@ -19,7 +19,7 @@ import javax.microedition.khronos.opengles.GL;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
+import static com.eszdman.photoncamera.processing.ImageSaver.imageFilePathToSave;
 
 public class GLUtils {
     private final GLProg glProg;
@@ -790,7 +790,7 @@ public class GLUtils {
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
         if(!namesuffix.equals("")) {
-            File debug = new File(imageFileToSave.getAbsolutePath() + namesuffix + ext);
+            File debug = new File(imageFilePathToSave.toString() + namesuffix + ext);
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();

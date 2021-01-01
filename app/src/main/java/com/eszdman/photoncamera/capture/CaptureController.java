@@ -37,7 +37,6 @@ import androidx.core.content.ContextCompat;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.*;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.ImageProcessing;
 import com.eszdman.photoncamera.processing.ImageSaver;
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
@@ -184,9 +183,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         public void onImageAvailable(ImageReader reader) {
             //mImageSaver.mImage = reader.acquireNextImage();
             //mImageSaver.initProcess(reader);
-            Message msg = new Message();
-            msg.obj = reader;
-            mImageSaver.processingHandler.sendMessage(msg);
+//            Message msg = new Message();
+//            msg.obj = reader;
+//            mImageSaver.processingHandler.sendMessage(msg);
+            PhotonCamera.getExecutorService().execute(() -> mImageSaver.initProcess(reader));
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
     };
@@ -197,9 +197,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         public void onImageAvailable(ImageReader reader) {
             //dequeueAndSaveImage(mRawResultQueue, mRawImageReader);
             //mImageSaver.mImage = reader.acquireNextImage();
-            Message msg = new Message();
-            msg.obj = reader;
-            mImageSaver.processingHandler.sendMessage(msg);
+//            Message msg = new Message();
+//            msg.obj = reader;
+//            mImageSaver.processingHandler.sendMessage(msg);
+            PhotonCamera.getExecutorService().execute(() -> mImageSaver.initProcess(reader));
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 
@@ -236,7 +237,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private Size mPreviewSize;
     /*An additional thread for running tasks that shouldn't block the UI.*/
     private HandlerThread mBackgroundThread;
-    private ImageProcessing mImageProcessing;
     /**
      * Timer to use with pre-capture sequence to ensure a timely capture if 3A convergence is
      * taking too long.
@@ -550,12 +550,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewWidth = width;
             mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            mImageProcessing = new ImageProcessing(cameraEventsListener);
-            mImageSaver = new ImageSaver(mImageProcessing, cameraEventsListener);
+            mImageSaver = new ImageSaver(cameraEventsListener);
             //Thread thr = new Thread(mImageSaver);
             //thr.start();
-            if (mBackgroundHandler != null)
-                mBackgroundHandler.post(mImageSaver);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         } catch (NullPointerException e) {
@@ -758,7 +755,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         //stopBackgroundThread();
         UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
         startBackgroundThread();
-        mBackgroundHandler.post(mImageSaver);
     }
 
     /**
@@ -1178,7 +1174,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     cameraEventsListener.onFrameCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
 //                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
-                        if (burstcount[1] >= burstcount[2] + 1 || ImageSaver.imageBuffer.size() >= burstcount[2]) {
+                        if (burstcount[1] >= burstcount[2] + 1 || mImageSaver.getImageBufferSize() >= burstcount[2]) {
                             try {
                                 mCaptureSession.abortCaptures();
                                 cameraEventsListener.onCaptureSequenceCompleted(null);
@@ -1261,12 +1257,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         return (SystemClock.elapsedRealtime() - mCaptureTimer) > PRECAPTURE_TIMEOUT_MS;
     }
 
-    public void unlimitedEnd() {
-        mImageProcessing.unlimitedEnd();
+    public void callUnlimitedEnd() {
+        mImageSaver.unlimitedEnd();
     }
 
-    public void unlimitedStart() {
-        mImageProcessing.unlimitedStart();
+    public void callUnlimitedStart() {
+        mImageSaver.unlimitedStart();
     }
 
     public void VideoEnd() {

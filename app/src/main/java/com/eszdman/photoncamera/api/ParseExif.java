@@ -19,6 +19,8 @@ import static android.hardware.camera2.CaptureResult.*;
 import static androidx.exifinterface.media.ExifInterface.*;
 
 public class ParseExif {
+    private static final String TAG = "ParseExif" ;
+
     static String getTime(long exposureTime) {
         String out;
         long sec = 1000000000;
@@ -100,5 +102,23 @@ public class ParseExif {
     static {
         sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
         sFormatter.setTimeZone(TimeZone.getDefault());
+    }
+    public static int getOrientation(){
+        int rotation = PhotonCamera.getGravity().getCameraRotation();
+        Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
+        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
+        int orientation = ORIENTATION_NORMAL;
+        switch (rotation) {
+            case 90:
+                orientation = ExifInterface.ORIENTATION_ROTATE_90;
+                break;
+            case 180:
+                orientation = ExifInterface.ORIENTATION_ROTATE_180;
+                break;
+            case 270:
+                orientation = ExifInterface.ORIENTATION_ROTATE_270;
+                break;
+        }
+        return orientation;
     }
 }

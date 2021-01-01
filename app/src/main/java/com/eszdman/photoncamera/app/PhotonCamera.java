@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.widget.Toast;
 import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
+import androidx.core.os.HandlerCompat;
 import com.eszdman.photoncamera.api.Settings;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.control.Gravity;
@@ -26,9 +27,16 @@ import com.eszdman.photoncamera.ui.SplashActivity;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
 import com.manual.ManualMode;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class PhotonCamera extends Application {
     public static final boolean DEBUG = false;
     private static PhotonCamera sPhotonCamera;
+//    private final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+//    private final ExecutorService executorService = Executors.newWorkStealingPool();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Handler mainThreadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private Settings mSettings;
     private Gravity mGravity;
     private Sensors mSensors;
@@ -37,6 +45,14 @@ public class PhotonCamera extends Application {
     private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
+
+    public static Handler getMainHandler() {
+        return sPhotonCamera.mainThreadHandler;
+    }
+
+    public static ExecutorService getExecutorService() {
+        return sPhotonCamera.executorService;
+    }
 
     public static Settings getSettings() {
         return sPhotonCamera.mSettings;
@@ -147,6 +163,7 @@ public class PhotonCamera extends Application {
     @Override
     public void onTerminate() {
         super.onTerminate();
+        executorService.shutdownNow();
         sPhotonCamera = null;
     }
 }

@@ -8,10 +8,7 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.app.PhotonCamera;
-
-import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
-import static com.eszdman.photoncamera.processing.ImageSaver.imageFileToSave;
 
 public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
@@ -40,7 +37,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         return in;
     }
-    public void Run(ByteBuffer inBuffer, Parameters parameters){
+    public Bitmap Run(ByteBuffer inBuffer, Parameters parameters){
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
         Point rotated = getRotatedCoords(parameters.rawSize);
@@ -89,15 +86,6 @@ public class PostPipeline extends GLBasePipeline {
         add(new RotateWatermark(getRotation()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         Bitmap img = runAll();
-        try {
-            imageFileToSave.createNewFile();
-            FileOutputStream fOut = new FileOutputStream(imageFileToSave);
-            img.compress(Bitmap.CompressFormat.JPEG, 97, fOut);
-            fOut.flush();
-            fOut.close();
-            img.recycle();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        return img;
     }
 }

@@ -38,7 +38,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                     boolean isVid = PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO;
                     if (!mCameraFragment.getCaptureController().onUnlimited) {
                         mCameraFragment.getCaptureController().onUnlimited = true;
-                        if (!isVid) mCameraFragment.getCaptureController().unlimitedStart();
+                        if (!isVid) mCameraFragment.getCaptureController().callUnlimitedStart();
                         else mCameraFragment.getCaptureController().VideoStart();
                         view.setActivated(false);
                         view.setClickable(true);
@@ -49,7 +49,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                         mCameraFragment.getCaptureController().onUnlimited = false;
                         if (!isVid) {
                             mCameraFragment.getCaptureController().abortCaptures();
-                            mCameraFragment.getCaptureController().unlimitedEnd();
+                            mCameraFragment.getCaptureController().callUnlimitedEnd();
                             mCameraFragment.getCaptureController().createCameraPreviewSession();
                         } else {
                             mCameraFragment.getCaptureController().VideoEnd();

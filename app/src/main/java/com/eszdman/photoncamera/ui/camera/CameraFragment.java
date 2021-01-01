@@ -71,6 +71,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -245,7 +246,6 @@ public class CameraFragment extends Fragment {
         super.onDestroy();
         try {
             captureController.stopBackgroundThread();
-            captureController.mImageSaver.stopProcessingThread();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -502,9 +502,10 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onImageSaved(Object obj) {
-            if (obj instanceof File) {
-                logD("onImageSaved: " + ((File) obj).getAbsolutePath());
-                triggerMediaScanner((File) obj);
+            if (obj instanceof Path) {
+                logD("onImageSaved: " + obj.toString());
+                triggerMediaScanner(((Path) obj).toFile());
+                showSnackBar("ImageSaved: " + obj.toString());
             }
             cameraFragmentViewModel.updateGalleryThumb();
         }
