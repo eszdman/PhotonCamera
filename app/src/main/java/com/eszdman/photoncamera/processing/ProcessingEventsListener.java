@@ -1,6 +1,8 @@
 package com.eszdman.photoncamera.processing;
 
-import android.util.Log;
+import androidx.annotation.Nullable;
+
+import java.nio.file.Path;
 
 /**
  * Interface that listens to events related to processing of image after it has been captured
@@ -14,9 +16,7 @@ public interface ProcessingEventsListener {
 
     void onProcessingFinished(Object obj);
 
-    void onImageSaved(Object obj);
-
-    void onSaveImage(Object obj);
+    void notifyImageSavedStatus(boolean saved, Path savedFilePath);
 
     void onProcessingError(Object obj);
 

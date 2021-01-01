@@ -2,16 +2,15 @@ package com.eszdman.photoncamera.processing;
 
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
-import androidx.exifinterface.media.ExifInterface;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraMode;
-import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
@@ -21,7 +20,6 @@ import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -64,7 +62,6 @@ public class ImageProcessing {
         }
         PhotonCamera.getCaptureController().BurstShakiness.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
-        processingEventsListener.onProcessingFinished("Processing Cycle Ended!");
     }
 
     /**
@@ -74,14 +71,12 @@ public class ImageProcessing {
     public void Run() {
         try {
             Camera2ApiAutoFix.ApplyRes();
-            processingEventsListener.onProcessingStarted("Multi Frames Processing Started");
             if (imageFormat == CaptureController.RAW_FORMAT) {
                 ApplyHdrX();
             }
 //            if (isYuv) {
 //                ApplyStabilization();
 //            }
-            processingEventsListener.onProcessingFinished((imageFormat == CaptureController.RAW_FORMAT ? "HDRX" : imageFormat == CaptureController.YUV_FORMAT ? "Stablization" : "") + " Processing Finished Successfully");
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
@@ -89,58 +84,67 @@ public class ImageProcessing {
         }
     }
 
-    public void unlimitedCycle(Image input) {
+    public void unlimitedCycle(Image image) {
         if (lock) {
-            input.close();
+            image.close();
             return;
         }
-        int width = input.getPlanes()[0].getRowStride() / input.getPlanes()[0].getPixelStride();
-        int height = input.getHeight();
-        PhotonCamera.getParameters().rawSize = new android.graphics.Point(width, height);
+        int width = image.getPlanes()[0].getRowStride() / image.getPlanes()[0].getPixelStride();
+        int height = image.getHeight();
+
+        PhotonCamera.getParameters().rawSize = new Point(width, height);
+
         if (averageRaw == null) {
-            PhotonCamera.getParameters().FillParameters(CaptureController.mCaptureResult, CaptureController.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+            PhotonCamera.getParameters().FillParameters(CaptureController.mCaptureResult,
+                    CaptureController.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
             averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
-        averageRaw.additionalParams = new AverageParams(null, input.getPlanes()[0].getBuffer());
+        averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
         averageRaw.Run();
         unlimitedCounter++;
         if (unlimitedEnd) {
             unlimitedEnd = false;
             lock = true;
             unlimitedCounter = 0;
-            processUnlimited(input);
+            processUnlimited(image);
         }
-        input.close();//code block
+        image.close();//code block
     }
 
     private void processUnlimited(Image image) {
 //        PhotonCamera.getParameters().path = ImageSaver.imageFilePathToSave.getAbsolutePath();
         processingEventsListener.onProcessingStarted("Unlimited Processing Started");
+
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
         averageRaw = null;
+
         if (PhotonCamera.getSettings().rawSaver) {
             image.getPlanes()[0].getBuffer().position(0);
             image.getPlanes()[0].getBuffer().put(unlimitedBuffer);
 
-            ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, image, (int) fakeWL);
+            processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
 
-            image.close();
+            boolean imageSaved = ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, image, (int) fakeWL);
+
+            processingEventsListener.notifyImageSavedStatus(imageSaved, ImageSaver.imageFilePathToSave);
             return;
         }
 
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
 
-        ImageSaver.Util.saveBitmapAsJPG(bitmap, ImageSaver.imageFilePathToSave, ImageSaver.JPG_QUALITY);
+        processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
+
+        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(ImageSaver.imageFilePathToSave, bitmap,
+                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+
+        processingEventsListener.notifyImageSavedStatus(imageSaved, ImageSaver.imageFilePathToSave);
 
         pipeline.close();
 
-        processingEventsListener.onProcessingFinished("Unlimited Processing Finished");
-        processingEventsListener.onImageSaved(ImageSaver.imageFilePathToSave);
     }
-
 
     public void unlimitedEnd() {
         unlimitedEnd = true;
@@ -154,10 +158,10 @@ public class ImageProcessing {
     //================================================Private Methods================================================
 
     private void ApplyHdrX() {
-        boolean debugAlignment = false;
-        if (PhotonCamera.getSettings().alignAlgorithm == 1) {
-            debugAlignment = true;
-        }
+        processingEventsListener.onProcessingStarted("HdrX Processing Started");
+
+        boolean debugAlignment = (PhotonCamera.getSettings().alignAlgorithm == 1);
+
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
         CaptureResult res = CaptureController.mCaptureResult;
 
@@ -317,14 +321,19 @@ public class ImageProcessing {
             rawPipeline.close();
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
+
         if (PhotonCamera.getSettings().rawSaver) {
-            if (debugAlignment) {
-                ImageSaver.Util.saveStackedRaw(filePath, images.get(0).image, (int) fakeWL);
-            } else {
-                ImageSaver.Util.saveStackedRaw(filePath, images.get(0).image, 0);
-            }
+            processingEventsListener.onProcessingFinished("HdrX RawSaver Processing Finished");
+
+            boolean imageSaved;
+
+            imageSaved = ImageSaver.Util.saveStackedRaw(filePath, images.get(0).image, debugAlignment ? (int) fakeWL : 0);
+
+            processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
+
             return;
         }
+
         if (debugAlignment) {
             for (int i = 0; i < 4; i++) {
                 PhotonCamera.getParameters().blackLevel[i] *= fakeWL / PhotonCamera.getParameters().whiteLevel;
@@ -339,8 +348,13 @@ public class ImageProcessing {
 
         Bitmap img = pipeline.Run(images.get(0).image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
 
+        processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
+
         //Saves the final bitmap
-        ImageSaver.Util.saveBitmapAsJPG(img, filePath, ImageSaver.JPG_QUALITY);
+        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(filePath, img,
+                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+
+        processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
 
         pipeline.close();
         images.get(0).image.close();
@@ -349,7 +363,8 @@ public class ImageProcessing {
 
     private void ProcessRaw(ByteBuffer input) {
         if (PhotonCamera.getSettings().rawSaver) {
-            ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, mImageFramesToProcess.get(0), 0);
+            boolean saved = ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, mImageFramesToProcess.get(0), 0);
+            processingEventsListener.notifyImageSavedStatus(saved, ImageSaver.imageFilePathToSave);
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
@@ -357,7 +372,10 @@ public class ImageProcessing {
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(mImageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
 
-        ImageSaver.Util.saveBitmapAsJPG(bitmap, filePath, ImageSaver.JPG_QUALITY);
+        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(filePath, bitmap,
+                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+
+        processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
 
         pipeline.close();
         mImageFramesToProcess.get(0).close();

@@ -497,17 +497,18 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onSaveImage(Object obj) {
-        }
-
-        @Override
-        public void onImageSaved(Object obj) {
-            if (obj instanceof Path) {
-                logD("onImageSaved: " + obj.toString());
-                triggerMediaScanner(((Path) obj).toFile());
-                showSnackBar("ImageSaved: " + obj.toString());
+        public void notifyImageSavedStatus(boolean saved, Path savedFilePath) {
+            if (saved) {
+                if (savedFilePath != null) {
+                    triggerMediaScanner(savedFilePath.toFile());
+                    logD("ImageSaved: " + savedFilePath.toString());
+//                    showSnackBar("ImageSaved: " + savedFilePath.toString());
+                }
+                cameraFragmentViewModel.updateGalleryThumb();
+            } else {
+                logE("ImageSavingError");
+                showSnackBar("ImageSavingError");
             }
-            cameraFragmentViewModel.updateGalleryThumb();
         }
 
         @Override

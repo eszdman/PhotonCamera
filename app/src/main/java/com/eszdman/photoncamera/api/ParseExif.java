@@ -9,6 +9,7 @@ import androidx.exifinterface.media.ExifInterface;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -35,10 +36,10 @@ public class ParseExif {
         else return "";
     }
 
-    public static ExifInterface Parse(CaptureResult result, String path) {
+    public static ExifInterface Parse(CaptureResult result, File file) {
         ExifInterface inter = null;
         try {
-            inter = new ExifInterface(path);
+            inter = new ExifInterface(file);
         } catch (IOException e) {
             e.printStackTrace();
             return inter;

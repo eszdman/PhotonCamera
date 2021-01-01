@@ -3,6 +3,7 @@ package com.eszdman.photoncamera.processing;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.media.Image;
 import android.media.ImageReader;
@@ -62,23 +63,26 @@ public class ImageSaver {
         int format = mImage.getFormat();
 
         switch (format) {
-            case ImageFormat.JPEG: {
+            case ImageFormat.JPEG:
                 saveJPEG(mImage, mReader);
                 break;
-            }
-            case ImageFormat.YUV_420_888: {
+
+            case ImageFormat.YUV_420_888:
                 saveYUV(mImage, mReader);
                 break;
-            }
+
             //case ImageFormat.RAW10:
-            case ImageFormat.RAW_SENSOR: {
-                saveRAW(mImage, mReader);
+            case ImageFormat.RAW_SENSOR:
+                if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
+                    mImageProcessing.unlimitedCycle(mImage);
+                } else {
+                    saveRAW(mImage, mReader);
+                }
                 break;
-            }
-            default: {
+
+            default:
                 Log.e(TAG, "Cannot save image, unexpected image format:" + format);
                 break;
-            }
         }
     }
 
@@ -96,7 +100,6 @@ public class ImageSaver {
                 mImageProcessing.end(mReader);
 
                 IMAGE_BUFFER.clear();
-                processingEventsListener.onImageSaved(imageFilePathToSave);
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
                 imageFilePathToSave = Util.getNewImageFilePath("jpg");
@@ -105,7 +108,7 @@ public class ImageSaver {
                 Files.write(imageFilePathToSave, bytes);
                 mImage.close();
                 processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
-                processingEventsListener.onImageSaved(imageFilePathToSave);
+                processingEventsListener.notifyImageSavedStatus(true, imageFilePathToSave);
             }
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
@@ -122,7 +125,6 @@ public class ImageSaver {
             mImageProcessing.end(mReader);
 
             IMAGE_BUFFER.clear();
-            processingEventsListener.onImageSaved(imageFilePathToSave);
         }
         if (PhotonCamera.getSettings().frameCount == 1) {
             IMAGE_BUFFER.clear();
@@ -137,28 +139,23 @@ public class ImageSaver {
             ext = "dng";
         }
         imageFilePathToSave = Util.getNewImageFilePath(ext);
-
         try {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
-            if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-                mImageProcessing.unlimitedCycle(mImage);
-                return;
-            }
             IMAGE_BUFFER.add(mImage);
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
 
                 mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
                 mImageProcessing.end(mReader);
 
-                processingEventsListener.onImageSaved(imageFilePathToSave);
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
                 Path dngFilePathToSave = Util.getNewImageFilePath("dng");
 
-                Util.saveSingleRaw(dngFilePathToSave, mImage);
+                boolean imageSaved = Util.saveSingleRaw(dngFilePathToSave, mImage);
 
-                processingEventsListener.onImageSaved(dngFilePathToSave);
+                processingEventsListener.notifyImageSavedStatus(imageSaved, dngFilePathToSave);
+
                 IMAGE_BUFFER.clear();
                 mImage.close();
             }
@@ -176,45 +173,39 @@ public class ImageSaver {
     }
 
     public static class Util {
-        public static void saveBitmapAsJPG(Bitmap img, Path fileToSave, int jpgQuality) {
+        public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, CaptureResult captureResult) {
             try {
                 OutputStream outputStream = Files.newOutputStream(fileToSave);
                 img.compress(Bitmap.CompressFormat.JPEG, jpgQuality, outputStream);
                 outputStream.flush();
                 outputStream.close();
                 img.recycle();
-                ExifInterface inter = ParseExif.Parse(CaptureController.mCaptureResult, fileToSave.toString());
+                ExifInterface inter = ParseExif.Parse(captureResult, fileToSave.toFile());
                 inter.saveAttributes();
+                return true;
             } catch (IOException e) {
                 e.printStackTrace();
+                return false;
             }
-
         }
 
-        public static void saveStackedRaw(Path dngFilePath, Image image, int patchWL) {
+        public static boolean saveStackedRaw(Path dngFilePath, Image image, int patchWL) {
             if (patchWL != 0) {
                 Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, patchWL);
-                Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel, (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
+                Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel,
+                        (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
             }
-            DngCreator dngCreator = new DngCreator(CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
-            try {
-                OutputStream outputStream = Files.newOutputStream(dngFilePath);
 
-                dngCreator.setDescription(PhotonCamera.getParameters().toString());
-                dngCreator.setOrientation(ParseExif.getOrientation());
-                dngCreator.writeImage(outputStream, image);
-                image.close();
-                outputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            boolean saved = saveSingleRaw(dngFilePath, image);
+
             if (patchWL != 0) {
                 Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().whiteLevel);
                 Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
             }
+            return saved;
         }
 
-        public static void saveSingleRaw(Path dngFilePath, Image image) {
+        public static boolean saveSingleRaw(Path dngFilePath, Image image) {
             Log.d(TAG, "activearr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "precorr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "image:" + image.getCropRect());
@@ -225,8 +216,12 @@ public class ImageSaver {
                 dngCreator.setDescription(PhotonCamera.getParameters().toString());
                 dngCreator.setOrientation(ParseExif.getOrientation());
                 dngCreator.writeImage(outputStream, image);
+                image.close();
+                outputStream.close();
+                return true;
             } catch (IOException e) {
                 e.printStackTrace();
+                return false;
             }
         }
 
