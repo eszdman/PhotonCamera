@@ -91,14 +91,34 @@ public class Camera2ApiAutoFix {
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE, nrange);
         }
     }
+    public static void patchWL(CameraCharacteristics characteristics,
+                               CaptureResult captureResult,
+                               int patchWL) {
+        if (patchWL != 0) {
+            WhiteLevel(captureResult, patchWL);
+            BlackLevel(characteristics, captureResult, PhotonCamera.getParameters().blackLevel,
+                    (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
+        }
+    }
 
-    public static void WhiteLevel(CaptureResult res, int whitelevel){
-        if(res != null)
-        CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, whitelevel);
+    public static void resetWL(CameraCharacteristics characteristics,
+                               CaptureResult captureResult,
+                               int patchWL) {
+        if (patchWL != 0) {
+            WhiteLevel(captureResult, PhotonCamera.getParameters().whiteLevel);
+            BlackLevel(characteristics, captureResult, PhotonCamera.getParameters().blackLevel,
+                    1.f);
+        }
+    }
+
+    public static void WhiteLevel(CaptureResult res, int whitelevel) {
+        if (res != null)
+            CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_WHITE_LEVEL, whitelevel);
         CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL, whitelevel);
     }
-    public static void BlackLevel(CaptureResult res, int[] blacklevel){
-        BlackLevelPattern blackLevel = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+
+    public static void BlackLevel(CameraCharacteristics characteristics, CaptureResult res, int[] blacklevel) {
+        BlackLevelPattern blackLevel = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelArr = new int[4];
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);
@@ -117,8 +137,9 @@ public class Camera2ApiAutoFix {
             CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
         }
     }
-    public static void BlackLevel(CaptureResult res, float[] blacklevel,float mpy){
-        BlackLevelPattern blackLevel = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+
+    public static void BlackLevel(CameraCharacteristics characteristics, CaptureResult res, float[] blacklevel, float mpy) {
+        BlackLevelPattern blackLevel = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         int[] levelArr = new int[4];
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);

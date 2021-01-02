@@ -9,7 +9,6 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
 import androidx.exifinterface.media.ExifInterface;
-import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
@@ -91,7 +90,7 @@ public class ImageSaver {
             IMAGE_BUFFER.add(mImage);
             byte[] bytes = new byte[buffer.remaining()];
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
-                Path jpgPath = Util.getNewJPGFilePath();
+                Path jpgPath = Util.newJPGFilePath();
                 buffer.duplicate().get(bytes);
                 Files.write(jpgPath, bytes);
 
@@ -102,7 +101,7 @@ public class ImageSaver {
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
-                Path jpgPath = Util.getNewJPGFilePath();
+                Path jpgPath = Util.newJPGFilePath();
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);
                 Files.write(jpgPath, bytes);
@@ -140,18 +139,18 @@ public class ImageSaver {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
             IMAGE_BUFFER.add(mImage);
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
-                Path dngFile = Util.getNewDNGFilePath();
-                Path jpgFile = Util.getNewJPGFilePath();
+                Path dngFile = Util.newDNGFilePath();
+                Path jpgFile = Util.newJPGFilePath();
                 hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
                         CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
                         () -> clearImageReader(mReader));
-
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
-                Path dngFile = Util.getNewDNGFilePath();
+                Path dngFile = Util.newDNGFilePath();
 
-                boolean imageSaved = Util.saveSingleRaw(dngFile, mImage);
+                boolean imageSaved = Util.saveSingleRaw(dngFile, mImage,
+                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
 
                 mImage.close();
 
@@ -179,9 +178,10 @@ public class ImageSaver {
     }
 
     public void unlimitedStart() {
-        Path dngFile = Util.getNewDNGFilePath();
-        Path jpgFile = Util.getNewJPGFilePath();
-        mUnlimitedProcessor.unlimitedStart(dngFile, jpgFile);
+        Path dngFile = Util.newDNGFilePath();
+        Path jpgFile = Util.newJPGFilePath();
+        mUnlimitedProcessor.unlimitedStart(dngFile, jpgFile,
+                CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
     }
 
     public void unlimitedEnd() {
@@ -204,28 +204,23 @@ public class ImageSaver {
                 return false;
             }
         }
-
-        public static boolean saveStackedRaw(Path dngFilePath, Image image, int patchWL) {
-            if (patchWL != 0) {
-                Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, patchWL);
-                Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel,
-                        (float) (patchWL) / PhotonCamera.getParameters().whiteLevel);
-            }
-
-            boolean saved = saveSingleRaw(dngFilePath, image);
-
-            if (patchWL != 0) {
-                Camera2ApiAutoFix.WhiteLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().whiteLevel);
-                Camera2ApiAutoFix.BlackLevel(CaptureController.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
-            }
-            return saved;
+        //Different method name just for clarity of usage
+        public static boolean saveStackedRaw(Path dngFilePath,
+                                             Image image,
+                                             CameraCharacteristics characteristics,
+                                             CaptureResult captureResult) {
+            return saveSingleRaw(dngFilePath, image, characteristics, captureResult);
         }
 
-        public static boolean saveSingleRaw(Path dngFilePath, Image image) {
-            Log.d(TAG, "activearr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
-            Log.d(TAG, "precorr:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
+        public static boolean saveSingleRaw(Path dngFilePath,
+                                            Image image,
+                                            CameraCharacteristics characteristics,
+                                            CaptureResult captureResult) {
+
+            Log.d(TAG, "activearr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
+            Log.d(TAG, "precorr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "image:" + image.getCropRect());
-            DngCreator dngCreator = new DngCreator(CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
+            DngCreator dngCreator = new DngCreator(characteristics, captureResult);
             try {
                 OutputStream outputStream = Files.newOutputStream(dngFilePath);
 
@@ -248,11 +243,11 @@ public class ImageSaver {
             return "IMG_" + dateText;
         }
 
-        public static Path getNewDNGFilePath() {
+        public static Path newDNGFilePath() {
             return getNewImageFilePath("dng");
         }
 
-        public static Path getNewJPGFilePath() {
+        public static Path newJPGFilePath() {
             return getNewImageFilePath("jpg");
         }
 

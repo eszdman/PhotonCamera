@@ -25,8 +25,6 @@ public class HdrxProcessor extends ImageProcessorAbstract {
     private static final float FAKE_WL = 65535.f;
     private ArrayList<Image> mImageFramesToProcess;
     private int imageFormat;
-    private CameraCharacteristics characteristics;
-    private CaptureResult captureResult;
 
 
     protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
@@ -228,9 +226,14 @@ public class HdrxProcessor extends ImageProcessorAbstract {
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 
         if (PhotonCamera.getSettings().rawSaver) {
+            int patchWL = debugAlignment ? (int) FAKE_WL : 0;
+
+            Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
 
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
-                    debugAlignment ? (int) FAKE_WL : 0);
+                    characteristics, captureResult);
+
+            Camera2ApiAutoFix.resetWL(characteristics, captureResult, patchWL);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
@@ -269,7 +272,7 @@ public class HdrxProcessor extends ImageProcessorAbstract {
 /*
     private void ProcessRaw(ByteBuffer input) {
         if (PhotonCamera.getSettings().rawSaver) {
-            Path dngFile = ImageSaver.Util.getNewDNGFilePath();
+            Path dngFile = ImageSaver.Util.newDNGFilePath();
             boolean saved = ImageSaver.Util.saveStackedRaw(dngFile, mImageFramesToProcess.get(0), 0);
             processingEventsListener.notifyImageSavedStatus(saved, dngFile);
             return;
@@ -278,7 +281,7 @@ public class HdrxProcessor extends ImageProcessorAbstract {
 //        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(mImageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
-        Path jpgFile = ImageSaver.Util.getNewJPGFilePath();
+        Path jpgFile = ImageSaver.Util.newJPGFilePath();
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
                 ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
 

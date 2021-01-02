@@ -3,9 +3,11 @@ package com.eszdman.photoncamera.processing;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureResult;
 import android.media.Image;
+import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
@@ -18,16 +20,20 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
     public static float fakeWL = 65535.f;
     public static int unlimitedCounter = 1;
     private static boolean unlimitedEnd = false;
-    AverageRaw averageRaw;
+    private AverageRaw averageRaw;
     private boolean lock = false;
 
     public UnlimitedProcessor(ProcessingEventsListener processingEventsListener) {
         super(processingEventsListener);
     }
 
-    public void unlimitedStart(Path dngFile, Path jpgFile) {
+    public void unlimitedStart(Path dngFile, Path jpgFile,
+                               CameraCharacteristics characteristics,
+                               CaptureResult captureResult) {
         this.dngFile = dngFile;
         this.jpgFile = jpgFile;
+        this.characteristics = characteristics;
+        this.captureResult = captureResult;
         unlimitedEnd = false;
         lock = false;
     }
@@ -43,8 +49,8 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         PhotonCamera.getParameters().rawSize = new Point(width, height);
 
         if (averageRaw == null) {
-            PhotonCamera.getParameters().FillParameters(CaptureController.mCaptureResult,
-                    CaptureController.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
+            PhotonCamera.getParameters().FillParameters(captureResult,
+                    characteristics, PhotonCamera.getParameters().rawSize);
             averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
         averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
@@ -74,7 +80,12 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
 
-            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, image, (int) fakeWL);
+            Camera2ApiAutoFix.patchWL(characteristics, captureResult, (int) fakeWL);
+
+            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, image,
+                    characteristics, captureResult);
+
+            Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) fakeWL);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
@@ -87,7 +98,7 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
 
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
-                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+                ImageSaver.JPG_QUALITY, captureResult);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
