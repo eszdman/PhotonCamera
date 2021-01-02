@@ -21,8 +21,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Created by Vibhor Srivastava on 03-Dec-2020
+ */
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
+    private static final int SELECTION_ANIMATION_DURATION = 100;
+    private static final float SELECTION_SCALE_DOWN_FACTOR = 0.8f;
     private final ArrayList<File> selectedFiles = new ArrayList<>();
     private final ArrayList<GridItemViewHolder> selectedViewHolders = new ArrayList<>();
     private List<File> imageList;
@@ -92,7 +97,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             } else {
                 selectFile(holder, file);
             }
-            Toast.makeText(v.getContext(), R.string.long_press_to_deselect,Toast.LENGTH_SHORT).show();
+            Toast.makeText(v.getContext(), R.string.long_press_to_deselect, Toast.LENGTH_SHORT).show();
             return true;
         });
 
@@ -116,8 +121,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         selectionStarted = true;
         holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(true);
         ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
-        imageView.setScaleX(0.85f);
-        imageView.setScaleY(0.85f);
+        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(SELECTION_SCALE_DOWN_FACTOR);
+        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(SELECTION_SCALE_DOWN_FACTOR);
         if (imageSelectionListener != null) {
             imageSelectionListener.onImageSelectionChanged(selectedFiles.size());
         }
@@ -129,8 +134,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         selectedViewHolders.remove(holder);
         holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(false);
         ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
-        imageView.setScaleX(1f);
-        imageView.setScaleY(1f);
+        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f);
+        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(1f);
         if (imageSelectionListener != null) {
             imageSelectionListener.onImageSelectionChanged(selectedFiles.size());
         }
@@ -146,8 +151,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     public void deselectAll() {
         selectedFiles.clear();
         for (GridItemViewHolder holder : selectedViewHolders) {
-            holder.thumbnailSquareImageViewBinding.squareImageView.setScaleX(1.0f);
-            holder.thumbnailSquareImageViewBinding.squareImageView.setScaleY(1.0f);
+            holder.thumbnailSquareImageViewBinding.squareImageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f);
+            holder.thumbnailSquareImageViewBinding.squareImageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(1f);
             holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(false);
         }
         selectedViewHolders.clear();
