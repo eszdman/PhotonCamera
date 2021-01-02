@@ -36,32 +36,18 @@ public class ImageProcessing {
     private int imageFormat;
     private ArrayList<Image> mImageFramesToProcess;
     private boolean lock = false;
+    private ProcesssingCallback processsingCallback;
 
     public ImageProcessing(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;
     }
 
-    public void start(Path fileToSave, ArrayList<Image> imageBuffer, int imageFormat) {
+    public void start(Path fileToSave, ArrayList<Image> imageBuffer, int imageFormat, ProcesssingCallback processsingCallback) {
         this.imageFormat = imageFormat;
         this.filePath = fileToSave;
         this.mImageFramesToProcess = imageBuffer;
+        this.processsingCallback = processsingCallback;
         Run();
-    }
-
-    public void end(ImageReader reader) {
-        try {
-            for (int i = 0; i < reader.getMaxImages(); i++) {
-                Image cur = reader.acquireNextImage();
-                if (cur == null) {
-                    continue;
-                }
-                cur.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        PhotonCamera.getCaptureController().BurstShakiness.clear();
-        //PhotonCamera.getCameraUI().unlockShutterButton();
     }
 
     /**
@@ -331,6 +317,8 @@ public class ImageProcessing {
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
 
+            processsingCallback.onFinished();
+
             return;
         }
 
@@ -358,6 +346,8 @@ public class ImageProcessing {
 
         pipeline.close();
         images.get(0).image.close();
+
+        processsingCallback.onFinished();
     }
 
 
@@ -416,6 +406,9 @@ public class ImageProcessing {
         return h;
     }*/
 
+    public interface ProcesssingCallback {
+        void onFinished();
+    }
 
 
     /*void processingstep() {

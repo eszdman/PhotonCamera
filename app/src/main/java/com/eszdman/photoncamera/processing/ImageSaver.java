@@ -73,11 +73,7 @@ public class ImageSaver {
 
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR:
-                if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-                    mImageProcessing.unlimitedCycle(mImage);
-                } else {
-                    saveRAW(mImage, mReader);
-                }
+                saveRAW(mImage, mReader);
                 break;
 
             default:
@@ -96,8 +92,7 @@ public class ImageSaver {
                 buffer.duplicate().get(bytes);
                 Files.write(imageFilePathToSave, bytes);
 
-                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-                mImageProcessing.end(mReader);
+                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat(), () -> clearImageReader(mReader));
 
                 IMAGE_BUFFER.clear();
             }
@@ -121,8 +116,7 @@ public class ImageSaver {
         IMAGE_BUFFER.add(mImage);
         if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
 
-            mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-            mImageProcessing.end(mReader);
+            mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat(), () -> clearImageReader(mReader));
 
             IMAGE_BUFFER.clear();
         }
@@ -139,13 +133,15 @@ public class ImageSaver {
             ext = "dng";
         }
         imageFilePathToSave = Util.getNewImageFilePath(ext);
-        try {
+
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
+            mImageProcessing.unlimitedCycle(mImage);
+        } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
             IMAGE_BUFFER.add(mImage);
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
 
-                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-                mImageProcessing.end(mReader);
+                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat(), () -> clearImageReader(mReader));
 
                 IMAGE_BUFFER.clear();
             }
@@ -157,11 +153,24 @@ public class ImageSaver {
                 processingEventsListener.notifyImageSavedStatus(imageSaved, dngFilePathToSave);
 
                 IMAGE_BUFFER.clear();
-                mImage.close();
             }
-        } catch (NullPointerException e) {
+        }
+    }
+
+    private void clearImageReader(ImageReader reader) {
+        try {
+            for (int i = 0; i < reader.getMaxImages(); i++) {
+                Image cur = reader.acquireNextImage();
+                if (cur == null) {
+                    continue;
+                }
+                cur.close();
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
+        PhotonCamera.getCaptureController().BurstShakiness.clear();
+        //PhotonCamera.getCameraUI().unlockShutterButton();
     }
 
     public void unlimitedStart() {
