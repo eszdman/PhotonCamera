@@ -56,9 +56,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     @Override
     public void onBindViewHolder(@NonNull GridItemViewHolder holder, int position) {
         final File file = imageList.get(position);
-        if (FileUtils.getExtension(file.getName()).equalsIgnoreCase("dng")) {
-            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("RAW");
-        }
+        setTagText(holder, file.getName());
         checkSelectable(holder);
         Glide
                 .with(holder.itemView.getContext())
@@ -98,6 +96,14 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             return true;
         });
 
+    }
+
+    private void setTagText(GridItemViewHolder holder, String fileName) {
+        if (FileUtils.getExtension(fileName).equalsIgnoreCase("dng")) {
+            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("RAW");
+        } else {
+            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("");
+        }
     }
 
     private void checkSelectable(GridItemViewHolder holder) {
