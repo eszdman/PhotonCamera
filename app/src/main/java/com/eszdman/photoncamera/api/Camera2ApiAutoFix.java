@@ -43,9 +43,8 @@ public class Camera2ApiAutoFix {
         fix.MaxRegionsAF();
     }
     //private static double oldWL = -1.0;
-    public static void ApplyRes() {
-        CaptureResult characteristics = CaptureController.mCaptureResult;
-        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
+    public static void ApplyRes(CaptureResult captureResult) {
+        Camera2ApiAutoFix fix = new Camera2ApiAutoFix(captureResult);
         //fix.gains();
         fix.BL();
         fix.whitePoint();

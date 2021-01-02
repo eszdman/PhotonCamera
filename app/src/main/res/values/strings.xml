@@ -28,7 +28,7 @@
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>
-    <string name="raw">Save Stacked RAW</string>
+    <string name="raw">Save Stacked RAW + JPG</string>
     <string name="turn_on_round_edges">Enable Round Edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>

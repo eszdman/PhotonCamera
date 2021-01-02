@@ -37,13 +37,16 @@ public class ImageSaver {
     public static final int JPG_QUALITY = 97;
     private static final ArrayList<Image> IMAGE_BUFFER = new ArrayList<>();
     private static final String TAG = "ImageSaver";
-    public static Path imageFilePathToSave;
+    public static Path jpgFilePathToSave = null;//dummy file; not required
+
     private final ProcessingEventsListener processingEventsListener;
-    private final ImageProcessing mImageProcessing;
+    private final UnlimitedProcessor mUnlimitedProcessor;
+    private final HdrxProcessor hdrxProcessor;
 
     public ImageSaver(ProcessingEventsListener processingEventsListener) {
-        this.mImageProcessing = new ImageProcessing(processingEventsListener);
         this.processingEventsListener = processingEventsListener;
+        this.hdrxProcessor = new HdrxProcessor(processingEventsListener);
+        this.mUnlimitedProcessor = new UnlimitedProcessor(processingEventsListener);
     }
 
     public int getImageBufferSize() {
@@ -73,11 +76,7 @@ public class ImageSaver {
 
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR:
-                if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-                    mImageProcessing.unlimitedCycle(mImage);
-                } else {
-                    saveRAW(mImage, mReader);
-                }
+                saveRAW(mImage, mReader);
                 break;
 
             default:
@@ -92,23 +91,24 @@ public class ImageSaver {
             IMAGE_BUFFER.add(mImage);
             byte[] bytes = new byte[buffer.remaining()];
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
-                imageFilePathToSave = Util.getNewImageFilePath("jpg");
+                Path jpgPath = Util.getNewJPGFilePath();
                 buffer.duplicate().get(bytes);
-                Files.write(imageFilePathToSave, bytes);
+                Files.write(jpgPath, bytes);
 
-                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-                mImageProcessing.end(mReader);
+//                hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
+//                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
+//                        () -> clearImageReader(mReader));
 
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
-                imageFilePathToSave = Util.getNewImageFilePath("jpg");
+                Path jpgPath = Util.getNewJPGFilePath();
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);
-                Files.write(imageFilePathToSave, bytes);
+                Files.write(jpgPath, bytes);
                 mImage.close();
                 processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
-                processingEventsListener.notifyImageSavedStatus(true, imageFilePathToSave);
+                processingEventsListener.notifyImageSavedStatus(true, jpgPath);
             }
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
@@ -116,13 +116,13 @@ public class ImageSaver {
     }
 
     private void saveYUV(Image mImage, ImageReader mReader) {
-        imageFilePathToSave = Util.getNewImageFilePath("jpg");
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
         IMAGE_BUFFER.add(mImage);
         if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
 
-            mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-            mImageProcessing.end(mReader);
+//            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
+//                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
+//                        () -> clearImageReader(mReader));
 
             IMAGE_BUFFER.clear();
         }
@@ -134,42 +134,58 @@ public class ImageSaver {
     }
 
     private void saveRAW(Image mImage, ImageReader mReader) {
-        String ext = "jpg";
-        if (PhotonCamera.getSettings().rawSaver) {
-            ext = "dng";
-        }
-        imageFilePathToSave = Util.getNewImageFilePath(ext);
-        try {
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
+            mUnlimitedProcessor.unlimitedCycle(mImage);
+        } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
             IMAGE_BUFFER.add(mImage);
             if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
-
-                mImageProcessing.start(imageFilePathToSave, IMAGE_BUFFER, mImage.getFormat());
-                mImageProcessing.end(mReader);
+                Path dngFile = Util.getNewDNGFilePath();
+                Path jpgFile = Util.getNewJPGFilePath();
+                hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
+                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
+                        () -> clearImageReader(mReader));
 
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
-                Path dngFilePathToSave = Util.getNewImageFilePath("dng");
+                Path dngFile = Util.getNewDNGFilePath();
 
-                boolean imageSaved = Util.saveSingleRaw(dngFilePathToSave, mImage);
+                boolean imageSaved = Util.saveSingleRaw(dngFile, mImage);
 
-                processingEventsListener.notifyImageSavedStatus(imageSaved, dngFilePathToSave);
+                mImage.close();
+
+                processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
                 IMAGE_BUFFER.clear();
-                mImage.close();
             }
-        } catch (NullPointerException e) {
-            e.printStackTrace();
         }
     }
 
+    private void clearImageReader(ImageReader reader) {
+        try {
+            for (int i = 0; i < reader.getMaxImages(); i++) {
+                Image cur = reader.acquireNextImage();
+                if (cur == null) {
+                    continue;
+                }
+                cur.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        PhotonCamera.getCaptureController().BurstShakiness.clear();
+        //PhotonCamera.getCameraUI().unlockShutterButton();
+    }
+
     public void unlimitedStart() {
-        mImageProcessing.unlimitedStart();
+        Path dngFile = Util.getNewDNGFilePath();
+        Path jpgFile = Util.getNewJPGFilePath();
+        mUnlimitedProcessor.unlimitedStart(dngFile, jpgFile);
     }
 
     public void unlimitedEnd() {
-        mImageProcessing.unlimitedEnd();
+        mUnlimitedProcessor.unlimitedEnd();
     }
 
     public static class Util {
@@ -216,7 +232,7 @@ public class ImageSaver {
                 dngCreator.setDescription(PhotonCamera.getParameters().toString());
                 dngCreator.setOrientation(ParseExif.getOrientation());
                 dngCreator.writeImage(outputStream, image);
-                image.close();
+//                image.close();
                 outputStream.close();
                 return true;
             } catch (IOException e) {
@@ -230,6 +246,14 @@ public class ImageSaver {
             DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
             String dateText = dateFormat.format(currentDate);
             return "IMG_" + dateText;
+        }
+
+        public static Path getNewDNGFilePath() {
+            return getNewImageFilePath("dng");
+        }
+
+        public static Path getNewJPGFilePath() {
+            return getNewImageFilePath("jpg");
         }
 
         public static Path getNewImageFilePath(String extension) {

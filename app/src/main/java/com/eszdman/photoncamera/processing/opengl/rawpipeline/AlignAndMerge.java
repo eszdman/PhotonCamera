@@ -6,7 +6,7 @@ import android.util.Log;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.ImageFrame;
-import com.eszdman.photoncamera.processing.ImageProcessing;
+import com.eszdman.photoncamera.processing.UnlimitedProcessor;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
@@ -17,7 +17,6 @@ import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     Point rawSize;
@@ -238,7 +237,7 @@ public class AlignAndMerge extends Node {
         //startT();
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer", input);
-        glProg.setVar("whitelevel", ImageProcessing.fakeWL);
+        glProg.setVar("whitelevel", UnlimitedProcessor.fakeWL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);
         glProg.drawBlocks(output);
         glProg.closed = true;
