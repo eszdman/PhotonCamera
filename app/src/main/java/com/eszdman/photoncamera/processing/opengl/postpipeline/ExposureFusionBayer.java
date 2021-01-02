@@ -19,7 +19,7 @@ public class ExposureFusionBayer extends Node {
     @Override
     public void Compile() {}
 
-    private double dynamR = 1.5;
+    private double dynamR = 1.8;
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DR","("+dynamR+")");
@@ -72,7 +72,7 @@ public class ExposureFusionBayer extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        float fact2 = 4.5f;
+        float fact2 = 5.0f;
         GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
         //in.close();

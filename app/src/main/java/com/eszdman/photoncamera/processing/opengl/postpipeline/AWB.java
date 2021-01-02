@@ -129,6 +129,11 @@ public class AWB extends Node {
         output[0] = 1.f/output[0];
         output[1] = 1.f/output[1];
         output[2] = 1.f/output[2];
+        mean = (float) (output[0] + output[1] + output[2]) / 3;
+        output[0]/= mean;
+        output[1]/= mean;
+        output[2]/= mean;
+
         //if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
         //if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
         //if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);

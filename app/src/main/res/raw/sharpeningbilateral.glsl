@@ -5,7 +5,7 @@ uniform sampler2D InputBuffer;
 uniform float size;
 uniform float strength;
 #import interpolation
-#define MSIZE 3
+#define MSIZE 5
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MinDepth (0.0004)
 float normpdf(in float x, in float sigma)
@@ -24,12 +24,15 @@ void main() {
     vec2 insize = vec2(textureSize(InputBuffer, 0))+0.5;
     //Output = textureBicubic(InputBuffer, vec2(gl_FragCoord.xy)/vec2(insize)).rgb;
     Output = texelFetch(InputBuffer, (xy), 0).rgb;
+    /*Output = textureBicubic(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(-0.10,-0.10))/vec2(insize)).rgb;
+    Output += textureBicubic(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(0.10,0.10))/vec2(insize)).rgb;
+    Output/=2.0;*/
     const int kSize = (MSIZE-1)/2;
     float kernel[MSIZE];
     float mask = 0.0;
     float Z = 0.0;
-    float sigX = 0.9;
-    float sigY = 0.2;
+    float sigX = 0.9*size;
+    float sigY = 0.32;
     vec3 final_colour = vec3(0.0);
     for (int j = 0; j <= kSize; ++j)
     {
@@ -44,8 +47,6 @@ void main() {
         for (int j=-kSize; j <= kSize; ++j)
         {
             cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*1),0).rgb);
-            cc += vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*2),0).rgb);
-            cc/=2.0;
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;
