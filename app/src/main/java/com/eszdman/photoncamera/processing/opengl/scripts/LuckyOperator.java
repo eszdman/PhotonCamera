@@ -1,19 +1,15 @@
 package com.eszdman.photoncamera.processing.opengl.scripts;
 
-import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLOneScript;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
-
-import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedCounter;
 
 public class LuckyOperator extends GLOneScript {
     Point insize;

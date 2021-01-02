@@ -1,12 +1,10 @@
 package com.eszdman.photoncamera.processing;
 
-
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
-import android.media.ImageReader;
 import android.util.Log;
 import com.eszdman.photoncamera.Wrapper;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
@@ -15,8 +13,6 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.rawpipeline.RawPipeline;
-import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
-import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 
@@ -24,39 +20,35 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-
-public class ImageProcessing {
-    private static final String TAG = "ImageProcessing";
-    public static float fakeWL = 65535.f;
-    public static int unlimitedCounter = 1;
-    public static boolean unlimitedEnd = false;
-    private final ProcessingEventsListener processingEventsListener;
-    AverageRaw averageRaw;
-    private Path filePath;
-    private int imageFormat;
+public class HdrxProcessor extends ImageProcessorAbstract {
+    private static final String TAG = "HdrxProcessor";
+    private static final float FAKE_WL = 65535.f;
     private ArrayList<Image> mImageFramesToProcess;
-    private boolean lock = false;
-    private ProcesssingCallback processsingCallback;
+    private int imageFormat;
+    private CameraCharacteristics characteristics;
+    private CaptureResult captureResult;
 
-    public ImageProcessing(ProcessingEventsListener processingEventsListener) {
-        this.processingEventsListener = processingEventsListener;
+
+    protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
+        super(processingEventsListener);
     }
 
-    public void start(Path fileToSave, ArrayList<Image> imageBuffer, int imageFormat, ProcesssingCallback processsingCallback) {
+    public void start(Path dngFile, Path jpgFile, ArrayList<Image> imageBuffer, int imageFormat,
+                      CameraCharacteristics characteristics, CaptureResult captureResult,
+                      ProcessingCallback callback) {
+        this.jpgFile = jpgFile;
+        this.dngFile = dngFile;
         this.imageFormat = imageFormat;
-        this.filePath = fileToSave;
         this.mImageFramesToProcess = imageBuffer;
-        this.processsingCallback = processsingCallback;
+        this.callback = callback;
+        this.characteristics = characteristics;
+        this.captureResult = captureResult;
         Run();
     }
 
-    /**
-     * Applies Processing algorithms to Image
-     * based on image type
-     */
     public void Run() {
         try {
-            Camera2ApiAutoFix.ApplyRes();
+            Camera2ApiAutoFix.ApplyRes(captureResult);
             if (imageFormat == CaptureController.RAW_FORMAT) {
                 ApplyHdrX();
             }
@@ -70,95 +62,21 @@ public class ImageProcessing {
         }
     }
 
-    public void unlimitedCycle(Image image) {
-        if (lock) {
-            image.close();
-            return;
-        }
-        int width = image.getPlanes()[0].getRowStride() / image.getPlanes()[0].getPixelStride();
-        int height = image.getHeight();
-
-        PhotonCamera.getParameters().rawSize = new Point(width, height);
-
-        if (averageRaw == null) {
-            PhotonCamera.getParameters().FillParameters(CaptureController.mCaptureResult,
-                    CaptureController.mCameraCharacteristics, PhotonCamera.getParameters().rawSize);
-            averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
-        }
-        averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
-        averageRaw.Run();
-        unlimitedCounter++;
-        if (unlimitedEnd) {
-            unlimitedEnd = false;
-            lock = true;
-            unlimitedCounter = 0;
-            processUnlimited(image);
-        }
-        image.close();//code block
-    }
-
-    private void processUnlimited(Image image) {
-//        PhotonCamera.getParameters().path = ImageSaver.imageFilePathToSave.getAbsolutePath();
-        processingEventsListener.onProcessingStarted("Unlimited Processing Started");
-
-        averageRaw.FinalScript();
-        ByteBuffer unlimitedBuffer = averageRaw.Output;
-        averageRaw.close();
-        averageRaw = null;
-
-        if (PhotonCamera.getSettings().rawSaver) {
-            image.getPlanes()[0].getBuffer().position(0);
-            image.getPlanes()[0].getBuffer().put(unlimitedBuffer);
-
-            processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
-
-            boolean imageSaved = ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, image, (int) fakeWL);
-
-            processingEventsListener.notifyImageSavedStatus(imageSaved, ImageSaver.imageFilePathToSave);
-            return;
-        }
-
-        PostPipeline pipeline = new PostPipeline();
-        Bitmap bitmap = pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
-
-        processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
-
-        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(ImageSaver.imageFilePathToSave, bitmap,
-                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
-
-        processingEventsListener.notifyImageSavedStatus(imageSaved, ImageSaver.imageFilePathToSave);
-
-        pipeline.close();
-
-    }
-
-    public void unlimitedEnd() {
-        unlimitedEnd = true;
-    }
-
-    public void unlimitedStart() {
-        unlimitedEnd = false;
-        lock = false;
-    }
-
-    //================================================Private Methods================================================
-
     private void ApplyHdrX() {
         processingEventsListener.onProcessingStarted("HdrX Processing Started");
 
         boolean debugAlignment = (PhotonCamera.getSettings().alignAlgorithm == 1);
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
-        CaptureResult res = CaptureController.mCaptureResult;
 
         long startTime = System.currentTimeMillis();
         int width = mImageFramesToProcess.get(0).getPlanes()[0].getRowStride() /
                 mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride(); //mImageFramesToProcess.get(0).getWidth()*mImageFramesToProcess.get(0).getHeight()/(mImageFramesToProcess.get(0).getPlanes()[0].getRowStride()/mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride());
         int height = mImageFramesToProcess.get(0).getHeight();
         Log.d(TAG, "APPLYHDRX: buffer:" + mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Log.d(TAG, "Api WhiteLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
 
-        Object whiteLevel = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
+        Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
 
         int levell = 1023;
         if (whiteLevel != null)
@@ -171,9 +89,9 @@ public class ImageProcessing {
         } else {
             levell = PhotonCamera.getParameters().realWL;
         }
-        Log.d(TAG, "Api WhiteLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-        Log.d(TAG, "Api BlackLevel:" + CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        PhotonCamera.getParameters().FillParameters(res, CaptureController.mCameraCharacteristics, new android.graphics.Point(width, height));
+        Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
+        Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
+        PhotonCamera.getParameters().FillParameters(captureResult, characteristics, new Point(width, height));
         if (PhotonCamera.getParameters().realWL == -1) {
             PhotonCamera.getParameters().realWL = levell;
         }
@@ -235,7 +153,7 @@ public class ImageProcessing {
             for (int i = 0; i < images.size(); i++) {
                 /*RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
                 rawSensivity.oldWhiteLevel = levell;
-                rawSensivity.sensitivity = fakeWL/levell;
+                rawSensivity.sensitivity = FAKE_WL/levell;
                 rawSensivity.input = images.get(i).buffer;
                 rawSensivity.Output = images.get(i).buffer;
                 rawSensivity.Run();*/
@@ -248,11 +166,11 @@ public class ImageProcessing {
         rawPipeline.images = images;
         Log.d(TAG, "WhiteLevel:" + PhotonCamera.getParameters().whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        Object sensitivity = CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        Object sensitivity = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
         if (sensitivity == null) {
             sensitivity = (int) 100;
         }
-        Object exposure = CaptureController.mCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Object exposure = captureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
         if (exposure == null) {
             exposure = (long) 100;
         }
@@ -261,9 +179,10 @@ public class ImageProcessing {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
         if (!debugAlignment) {
-            float ghosting = fakeWL / levell;
-            if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) ghosting = 0.f;
-            output = Wrapper.processFrame(ghosting, ((float) (fakeWL)) / levell);
+            float ghosting = FAKE_WL / levell;
+            if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
+                ghosting = 0.f;
+            output = Wrapper.processFrame(ghosting, ((float) (FAKE_WL)) / levell);
             debugAlignment = true;
         } else {
             output = rawPipeline.Run();
@@ -309,24 +228,19 @@ public class ImageProcessing {
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 
         if (PhotonCamera.getSettings().rawSaver) {
-            processingEventsListener.onProcessingFinished("HdrX RawSaver Processing Finished");
 
-            boolean imageSaved;
+            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
+                    debugAlignment ? (int) FAKE_WL : 0);
 
-            imageSaved = ImageSaver.Util.saveStackedRaw(filePath, images.get(0).image, debugAlignment ? (int) fakeWL : 0);
+            processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
-            processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
-
-            processsingCallback.onFinished();
-
-            return;
         }
 
         if (debugAlignment) {
             for (int i = 0; i < 4; i++) {
-                PhotonCamera.getParameters().blackLevel[i] *= fakeWL / PhotonCamera.getParameters().whiteLevel;
+                PhotonCamera.getParameters().blackLevel[i] *= FAKE_WL / PhotonCamera.getParameters().whiteLevel;
             }
-            PhotonCamera.getParameters().whiteLevel = (int) (fakeWL);
+            PhotonCamera.getParameters().whiteLevel = (int) (FAKE_WL);
         }
         Log.d(TAG, "Wrapper.processFrame()");
 //        PhotonCamera.getParameters().path = path;
@@ -339,37 +253,41 @@ public class ImageProcessing {
         processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
 
         //Saves the final bitmap
-        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(filePath, img,
-                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, img,
+                ImageSaver.JPG_QUALITY, captureResult);
 
-        processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
+        processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
         pipeline.close();
         images.get(0).image.close();
 
-        processsingCallback.onFinished();
+        callback.onFinished();
     }
 
+    //================================================Private Methods================================================
 
+/*
     private void ProcessRaw(ByteBuffer input) {
         if (PhotonCamera.getSettings().rawSaver) {
-            boolean saved = ImageSaver.Util.saveStackedRaw(ImageSaver.imageFilePathToSave, mImageFramesToProcess.get(0), 0);
-            processingEventsListener.notifyImageSavedStatus(saved, ImageSaver.imageFilePathToSave);
+            Path dngFile = ImageSaver.Util.getNewDNGFilePath();
+            boolean saved = ImageSaver.Util.saveStackedRaw(dngFile, mImageFramesToProcess.get(0), 0);
+            processingEventsListener.notifyImageSavedStatus(saved, dngFile);
             return;
         }
         Log.d(TAG, "Wrapper.processFrame()");
 //        PhotonCamera.getParameters().path = path;
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(mImageFramesToProcess.get(0).getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
-
-        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(filePath, bitmap,
+        Path jpgFile = ImageSaver.Util.getNewJPGFilePath();
+        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
                 ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
 
-        processingEventsListener.notifyImageSavedStatus(imageSaved, filePath);
+        processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
         pipeline.close();
         mImageFramesToProcess.get(0).close();
     }
+*/
 
 
     //final ORB orb = ORB.create();
@@ -406,12 +324,11 @@ public class ImageProcessing {
         return h;
     }*/
 
-    public interface ProcesssingCallback {
-        void onFinished();
-    }
+
 
 
     /*void processingstep() {
         processingEventsListener.onProcessingChanged(null);
     }*/
+
 }

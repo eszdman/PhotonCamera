@@ -11,7 +11,6 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
-import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedCounter;
 
 public class HotPixelRemoval extends GLOneScript {
     public HotPixelRemoval(Point size, int rid, String name) {

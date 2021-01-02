@@ -5,15 +5,14 @@ import android.util.Log;
 
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
-import com.eszdman.photoncamera.processing.ImageProcessing;
+import com.eszdman.photoncamera.processing.UnlimitedProcessor;
 import com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLOneScript;
 import com.eszdman.photoncamera.processing.opengl.GLProg;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 
-import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedCounter;
-import static com.eszdman.photoncamera.processing.ImageProcessing.unlimitedEnd;
+import static com.eszdman.photoncamera.processing.UnlimitedProcessor.unlimitedCounter;
 
 public class AverageRaw extends GLOneScript {
     GLTexture in1,in2, first,second,stack,finalTex;
@@ -121,7 +120,7 @@ public class AverageRaw extends GLOneScript {
         glProg.setTexture("InputBuffer",stack);
         if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(int)(PhotonCamera.getParameters().whiteLevel));
         else {
-            glProg.setVar("whitelevel",(int) ImageProcessing.fakeWL);
+            glProg.setVar("whitelevel",(int) UnlimitedProcessor.fakeWL);
         }
         first.close();
         second.close();
