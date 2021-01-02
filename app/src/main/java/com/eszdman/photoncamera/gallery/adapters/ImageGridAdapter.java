@@ -59,7 +59,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         if (FileUtils.getExtension(file.getName()).equalsIgnoreCase("dng")) {
             holder.thumbnailSquareImageViewBinding.thumbTagText.setText("RAW");
         }
-        holder.thumbnailSquareImageViewBinding.setIsSelectable(selectionStarted);
+        checkSelectable(holder);
         Glide
                 .with(holder.itemView.getContext())
                 .asBitmap()
@@ -98,6 +98,10 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             return true;
         });
 
+    }
+
+    private void checkSelectable(GridItemViewHolder holder) {
+        holder.thumbnailSquareImageViewBinding.selectionCircle.setVisibility(selectionStarted ? ViewGroup.VISIBLE : ViewGroup.GONE);
     }
 
     private void selectFile(GridItemViewHolder holder, File file) {

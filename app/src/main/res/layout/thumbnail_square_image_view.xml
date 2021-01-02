@@ -11,10 +11,6 @@
                 name="clicklistener"
                 type="android.view.View.OnClickListener"/>
 
-        <variable
-                name="is_selectable"
-                type="boolean"/>
-
     </data>
 
     <FrameLayout
@@ -31,7 +27,7 @@
 
         <com.eszdman.photoncamera.gallery.views.SquareImageView
                 android:id="@+id/square_image_view"
-                android:background="@drawable/ic_photo"
+                android:background="@android:color/darker_gray"
                 android:scaleType="centerCrop"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -40,7 +36,6 @@
 
         <TextView
                 android:id="@+id/thumb_tag_text"
-                android:background="@drawable/gradient_shadow_vector"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:layout_gravity="end"
@@ -56,7 +51,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_thumbnail_selected_radio"
-                android:visibility="@{is_selectable ? View.VISIBLE : View.INVISIBLE}"
+                android:visibility="gone"
+                tools:visibility="visible"
                 >
 
         </ImageView>
