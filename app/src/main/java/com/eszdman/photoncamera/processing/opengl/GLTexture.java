@@ -5,6 +5,8 @@ import android.graphics.Point;
 import android.opengl.GLUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import static android.opengl.GLES30.*;
@@ -17,6 +19,7 @@ public class GLTexture implements AutoCloseable {
     public Point mSize;
     public final int mGLFormat;
     public final int mTextureID;
+    @NonNull
     public final GLFormat mFormat;
     public int filter;
     public int wrap;

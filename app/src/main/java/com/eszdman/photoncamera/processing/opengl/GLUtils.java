@@ -528,26 +528,30 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
-    public GLTexture ops(GLTexture in, String operation){
-        return ops(in,operation,"");
-    }
     public GLTexture ops(GLTexture in, String operation,String operation2){
+        return ops(in,"",operation,operation2);
+    }
+    public GLTexture ops(GLTexture in, String operation){
+        return ops(in,"",operation,"");
+    }
+    public GLTexture ops(GLTexture in1,String add, String operation,String operation2){
         glProg.useProgram("#version 300 es\n" +
-                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
-                "#define tvar "+in.mFormat.getTemVar()+"\n" +
-                "#define tscal "+in.mFormat.getScalar()+"\n" +
-                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "#define tvar "+in1.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in1.mFormat.getScalar()+"\n" +
+                "uniform "+in1.mFormat.getTemSamp()+" InputBuffer;\n" +
                 "uniform int yOffset;\n" +
                 "out tvar Output;\n" +
+                add+"\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
-                "    tvar in = (texelFetch(InputBuffer, xy, 0));\n" +
+                "    tvar in1 = (texelFetch(InputBuffer, xy, 0));\n" +
                 "    Output = tvar("+operation+")"+operation2+";\n" +
                 "}\n");
-        glProg.setTexture("InputBuffer",in);
-        GLTexture out = new GLTexture(in);
+        glProg.setTexture("InputBuffer",in1);
+        GLTexture out = new GLTexture(in1);
         glProg.drawBlocks(out);
         glProg.closed = true;
         return out;
