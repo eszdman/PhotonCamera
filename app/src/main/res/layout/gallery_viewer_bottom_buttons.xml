@@ -28,65 +28,121 @@
             android:background="@drawable/gradient_shadow_vector_bottom"
             >
 
-        <Button
+        <FrameLayout
                 android:id="@+id/delete"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:text=""
-                android:background="@drawable/ic_delete"
-                app:backgroundTint="@android:color/white"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="90dp"
+                app:layout_constraintDimensionRatio="1:1"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/exif"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".6"
+                app:layout_constraintVertical_bias="1"
                 android:onClick="@{on_delete}"
-                />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
 
-        <Button
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_delete"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
+
+
+        <FrameLayout
                 android:id="@+id/exif"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="90dp"
+                app:layout_constraintDimensionRatio="1:1"
                 android:text=""
-                android:background="@drawable/ic_info"
-                app:backgroundTint="@android:color/white"
                 app:layout_constraintStart_toEndOf="@id/edit"
                 app:layout_constraintEnd_toStartOf="@id/delete"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".6"
+                app:layout_constraintVertical_bias="1"
                 android:onClick="@{on_exif}"
-                />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
 
-        <Button
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_info"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
+
+        <FrameLayout
                 android:id="@+id/edit"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="90dp"
+                app:layout_constraintDimensionRatio="1:1"
                 android:text=""
-                android:background="@drawable/ic_edit"
-                app:backgroundTint="@android:color/white"
                 app:layout_constraintStart_toEndOf="@+id/share"
                 app:layout_constraintEnd_toStartOf="@id/exif"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".6"
+                app:layout_constraintVertical_bias="1"
                 android:onClick="@{on_edit}"
-                />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
 
-        <Button
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_edit"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
+
+        <FrameLayout
                 android:id="@+id/share"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="90dp"
+                app:layout_constraintDimensionRatio="1:1"
                 android:text=""
-                android:background="@drawable/ic_share"
-                app:backgroundTint="@android:color/white"
                 app:layout_constraintEnd_toStartOf="@+id/edit"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias=".6"
+                app:layout_constraintVertical_bias="1"
                 android:onClick="@{on_share}"
-                />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
+
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_share"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

@@ -14,21 +14,34 @@
             android:layout_height="100dp"
             android:background="@drawable/gradient_shadow_vector"
             >
-
-        <Button
+        <FrameLayout
                 android:id="@+id/gallery_grid_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="80dp"
+                app:layout_constraintDimensionRatio="1:1"
                 android:text=""
-                android:background="@drawable/ic_photo_library"
-                app:backgroundTint="@android:color/white"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintHorizontal_bias="0.92"
                 app:layout_constraintBottom_toBottomOf="parent"
                 android:onClick="@{on_gallery}"
-                />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
+
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_photo_library"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
