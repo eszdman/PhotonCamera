@@ -21,4 +21,5 @@
     <color name="manual_icon_text">@color/white</color>
     <color name="manual_icon_text_selected">@color/white</color>
     <color name="aux_container_color">#99000000</color>
+    <color name="grid_thumbnail_background">#AAAAAA</color>
 </resources>

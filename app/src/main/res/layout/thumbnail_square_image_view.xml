@@ -27,7 +27,7 @@
 
         <com.eszdman.photoncamera.gallery.views.SquareImageView
                 android:id="@+id/square_image_view"
-                android:background="@android:color/darker_gray"
+                android:background="@color/grid_thumbnail_background"
                 android:scaleType="centerCrop"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
