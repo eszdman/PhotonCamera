@@ -156,6 +156,8 @@ public class ImageSaver {
 
                 processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
+                processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
+
                 IMAGE_BUFFER.clear();
             }
         }
