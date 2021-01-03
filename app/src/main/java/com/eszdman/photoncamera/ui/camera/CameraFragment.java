@@ -264,6 +264,7 @@ public class CameraFragment extends Fragment {
 
     private void updateScreenLog(CaptureResult result) {
         mainHandler.post(() -> {
+            mTouchFocus.setState(result.get(CaptureResult.CONTROL_AF_STATE));
             CustomLogger cl = new CustomLogger(getActivity(), R.id.screen_log_focus);
             if (PhotonCamera.getSettings().aFDebugData) {
                 IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);

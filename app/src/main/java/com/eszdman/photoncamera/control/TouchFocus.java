@@ -4,12 +4,14 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import androidx.annotation.Nullable;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
@@ -56,6 +58,17 @@ public class TouchFocus {
         focusEl.setVisibility(View.VISIBLE);
         setFocus((int) fy, (int) fx);
         captureController.rebuildPreviewBuilder();
+
+    }
+
+    /**
+     * Sets state of focus circle view based on AF State
+     */
+    public void setState(@Nullable Integer afstate) {
+        if (afstate != null) {
+            focusEl.setActivated(afstate == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED);
+            focusEl.setSelected(afstate == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED);
+        }
     }
 
     private void setInitialAFAE() {
