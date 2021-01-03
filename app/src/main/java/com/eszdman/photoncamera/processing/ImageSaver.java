@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -222,12 +221,12 @@ public class ImageSaver {
             Log.d(TAG, "activearr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "precorr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "image:" + image.getCropRect());
-            DngCreator dngCreator = new DngCreator(characteristics, captureResult);
+            DngCreator dngCreator =
+                    new DngCreator(characteristics, captureResult)
+                            .setDescription(PhotonCamera.getParameters().toString())
+                            .setOrientation(ParseExif.getOrientation());
             try {
                 OutputStream outputStream = Files.newOutputStream(dngFilePath);
-
-                dngCreator.setDescription(PhotonCamera.getParameters().toString());
-                dngCreator.setOrientation(ParseExif.getOrientation());
                 dngCreator.writeImage(outputStream, image);
 //                image.close();
                 outputStream.close();
@@ -239,10 +238,7 @@ public class ImageSaver {
         }
 
         public static String generateNewFileName() {
-            Date currentDate = new Date();
-            DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
-            String dateText = dateFormat.format(currentDate);
-            return "IMG_" + dateText;
+            return "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
         }
 
         public static Path newDNGFilePath() {

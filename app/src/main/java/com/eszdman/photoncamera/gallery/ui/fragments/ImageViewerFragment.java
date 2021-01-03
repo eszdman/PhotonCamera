@@ -30,14 +30,12 @@ import com.eszdman.photoncamera.gallery.adapters.DepthPageTransformer;
 import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.helper.Constants;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
+import com.eszdman.photoncamera.processing.ImageSaver;
 import com.eszdman.photoncamera.util.FileManager;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
@@ -116,17 +114,14 @@ public class ImageViewerFragment extends Fragment {
             Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
             Intent editIntent = new Intent(Intent.ACTION_EDIT);
             editIntent.setDataAndType(uri, mediaType);
-            String outputFilePath = file.getAbsolutePath().replace(file.getName(), generateNewFileName() + '.' + FileUtils.getExtension(fileName));
+            String outputFilePath = file.getAbsolutePath().replace(file.getName(),
+                    ImageSaver.Util.generateNewFileName() + '.' + FileUtils.getExtension(fileName));
             newEditedFile = new File(outputFilePath);
             editIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newEditedFile));
             editIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             Intent chooser = Intent.createChooser(editIntent, null);
             startActivityForResult(chooser, Constants.REQUEST_EDIT_IMAGE);
         }
-    }
-
-    private String generateNewFileName() {
-        return "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
     }
 
     @Override
