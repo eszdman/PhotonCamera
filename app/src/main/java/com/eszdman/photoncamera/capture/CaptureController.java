@@ -1005,7 +1005,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
                                 setAutoFlash();
-                                PhotonCamera.getSettings().applyPrev(mPreviewRequestBuilder);
+                                Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
                                 if (is30Fps) {
                                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
@@ -1103,7 +1103,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else
                 captureBuilder.addTarget(mImageReaderPreview.getSurface());
-            PhotonCamera.getSettings().applyRes(captureBuilder);
+            Camera2ApiAutoFix.applyRes(captureBuilder);
             PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);

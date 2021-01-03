@@ -22,6 +22,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureResult;
@@ -64,6 +65,7 @@ import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.eszdman.photoncamera.ui.settings.SettingsActivity;
 import com.eszdman.photoncamera.util.log.CustomLogger;
@@ -173,7 +175,6 @@ public class CameraFragment extends Fragment {
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
         this.mCameraUIView = new CameraUIViewImpl(cameraFragmentBinding);
         this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
-        mTouchFocus = new TouchFocus(this);
         mSwipe = new Swipe(this);
         captureController = new CaptureController(getActivity(), new CameraEventsListenerImpl());
         PhotonCamera.setCaptureController(captureController);
@@ -215,7 +216,7 @@ public class CameraFragment extends Fragment {
         mSwipe.init();
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
-        mTouchFocus.reInit();
+        initTouchFocus();
         this.mCameraUIView.refresh();
         burstPlayer = MediaPlayer.create(getActivity(), R.raw.sound_burst);
 
@@ -226,6 +227,16 @@ public class CameraFragment extends Fragment {
         captureController.resumeCamera();
 
         PhotonCamera.getSupportedDevice().loadCheck();
+    }
+
+    private void initTouchFocus() {
+        if (cameraFragmentBinding != null && captureController != null) {
+            View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
+            AutoFitTextureView textureView = cameraFragmentBinding.layoutViewfinder.texture;
+            Point size = new Point(textureView.getWidth(), textureView.getHeight());
+
+            mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
+        }
     }
 
     @Override
@@ -399,7 +410,6 @@ public class CameraFragment extends Fragment {
 
     public void triggerMediaScanner(File imageToSave) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        PhotonCamera.getSettings().setLastPicture(imageToSave.getAbsolutePath());
         Uri contentUri = Uri.fromFile(imageToSave);
 //        Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
         mediaScanIntent.setData(contentUri);
@@ -578,6 +588,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onCameraRestarted() {
             mCameraUIView.refresh();
+            mTouchFocus.resetFocusCircle();
         }
 
         @Override
