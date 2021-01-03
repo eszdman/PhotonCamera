@@ -213,6 +213,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private ArrayList<CaptureRequest> captures;
     private CameraCaptureSession.CaptureCallback CaptureCallback;
     private File vid = null;
+    public int mMeasuredFrameCnt;
     /**
      * An {@link AutoFitTextureView} for camera preview.
      */
@@ -1111,7 +1112,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-            if (stabilizationModes.length > 1) {
+            if (stabilizationModes != null && stabilizationModes.length > 1) {
                 captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
             }
             for (int i = 0; i < 3; i++) {
@@ -1154,7 +1155,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "CaptureStarted!");
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
-
+            mMeasuredFrameCnt = 0;
             mTextureView.setAlpha(0.5f);
 
 
@@ -1201,6 +1202,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
                     try {
+                        mMeasuredFrameCnt = burstcount[1];
                         cameraEventsListener.onCaptureSequenceCompleted(null);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e) {

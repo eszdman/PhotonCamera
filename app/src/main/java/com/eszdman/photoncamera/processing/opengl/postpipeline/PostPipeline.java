@@ -14,7 +14,6 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
-    GLTexture LowPass40;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
@@ -24,14 +23,13 @@ public class PostPipeline extends GLBasePipeline {
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
         return rotation;
     }
+    @SuppressWarnings("SuspiciousNameCombination")
     private Point getRotatedCoords(Point in){
         switch (getRotation()){
             case 0:
-                return in;
-            case 90:
-                return new Point(in.y,in.x);
             case 180:
                 return in;
+            case 90:
             case 270:
                 return new Point(in.y,in.x);
         }
@@ -85,7 +83,6 @@ public class PostPipeline extends GLBasePipeline {
         add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
         add(new RotateWatermark(getRotation()));
         //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
-        Bitmap img = runAll();
-        return img;
+        return runAll();
     }
 }

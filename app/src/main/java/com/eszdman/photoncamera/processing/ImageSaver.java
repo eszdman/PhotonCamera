@@ -89,7 +89,7 @@ public class ImageSaver {
         try {
             IMAGE_BUFFER.add(mImage);
             byte[] bytes = new byte[buffer.remaining()];
-            if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
+            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
                 Path jpgPath = Util.newJPGFilePath();
                 buffer.duplicate().get(bytes);
                 Files.write(jpgPath, bytes);
@@ -117,7 +117,7 @@ public class ImageSaver {
     private void saveYUV(Image mImage, ImageReader mReader) {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
         IMAGE_BUFFER.add(mImage);
-        if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
+        if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
 
 //            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
 //                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
@@ -138,7 +138,7 @@ public class ImageSaver {
         } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
             IMAGE_BUFFER.add(mImage);
-            if (IMAGE_BUFFER.size() == FrameNumberSelector.frameCount && PhotonCamera.getSettings().frameCount != 1) {
+            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
                 Path dngFile = Util.newDNGFilePath();
                 Path jpgFile = Util.newJPGFilePath();
                 hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),

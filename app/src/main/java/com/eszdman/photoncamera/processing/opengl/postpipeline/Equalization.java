@@ -69,8 +69,6 @@ public class Equalization extends Node {
         float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[0]));
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
-        GLTexture postCurve = new GLTexture(new Point(6,1),new GLFormat(GLFormat.DataType.FLOAT_16),
-                FloatBuffer.wrap(new float[]{0f,0.12f,0.4f,0.60f,0.78f,1.f}),GL_LINEAR,GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizek:"+eq);
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
@@ -80,10 +78,8 @@ public class Equalization extends Node {
         Log.d(Name,"HistFactor:"+bilatHistFactor*EqualizePower);
         glProg.setVar("HistFactor",bilatHistFactor*EqualizePower);
         glProg.setVar("histOffset", 0.5f, 1.f - 1.f / histParser.hist.length);
-        glProg.setTexture("PostCurve",postCurve);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture);
-        postCurve.close();
         histogram.close();
         lutbm.recycle();
         glProg.closed = true;

@@ -6,7 +6,6 @@ uniform float HistFactor;
 uniform sampler2D Histogram;
 uniform vec2 HistOffset;
 uniform sampler2D InputBuffer;
-uniform sampler2D PostCurve;
 out vec3 Output;
 //#import interpolation
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
@@ -15,7 +14,6 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     float luma = luminocity(sRGB);
-
     if(luma > EPS){
         sRGB/=luma;
         float HistEq = texture(Histogram, vec2(luma, 0.5f)).r;
