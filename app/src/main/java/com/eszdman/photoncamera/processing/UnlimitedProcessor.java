@@ -8,6 +8,7 @@ import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import com.eszdman.photoncamera.api.Camera2ApiAutoFix;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageParams;
 import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
@@ -98,7 +99,7 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
 
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
-                ImageSaver.JPG_QUALITY, captureResult);
+                ImageSaver.JPG_QUALITY,  CaptureController.mCaptureResult);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 

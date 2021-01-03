@@ -229,7 +229,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * Whether the app is recording video now
      */
-    private boolean mIsRecordingVideo;
+    public boolean mIsRecordingVideo;
     private Size target;
     private float mFocus;
     /**
@@ -1260,11 +1260,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void callUnlimitedEnd() {
+        onUnlimited = false;
         mImageSaver.unlimitedEnd();
+        abortCaptures();
+        createCameraPreviewSession();
     }
 
     public void callUnlimitedStart() {
+        onUnlimited = true;
         mImageSaver.unlimitedStart();
+        takePicture();
     }
 
     public void VideoEnd() {

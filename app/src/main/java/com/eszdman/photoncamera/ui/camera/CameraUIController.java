@@ -29,35 +29,34 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.shutter_button:
-                if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED &&
-                        PhotonCamera.getSettings().selectedMode != CameraMode.VIDEO) {
-                    view.setActivated(false);
-                    view.setClickable(false);
-                    mCameraFragment.getCaptureController().takePicture();
-                } else {
-                    boolean isVid = PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO;
-                    if (!mCameraFragment.getCaptureController().onUnlimited) {
-                        mCameraFragment.getCaptureController().onUnlimited = true;
-                        if (!isVid) mCameraFragment.getCaptureController().callUnlimitedStart();
-                        else mCameraFragment.getCaptureController().VideoStart();
+                CaptureController captureController = mCameraFragment.getCaptureController();
+                switch (PhotonCamera.getSettings().selectedMode) {
+                    case PHOTO:
+                    case NIGHT:
                         view.setActivated(false);
-                        view.setClickable(true);
-                        mCameraFragment.getCaptureController().takePicture();
-                    } else {
-                        view.setActivated(true);
-                        view.setClickable(true);
-                        mCameraFragment.getCaptureController().onUnlimited = false;
-                        if (!isVid) {
-                            mCameraFragment.getCaptureController().abortCaptures();
-                            mCameraFragment.getCaptureController().callUnlimitedEnd();
-                            mCameraFragment.getCaptureController().createCameraPreviewSession();
+                        view.setClickable(false);
+                        captureController.takePicture();
+                        break;
+                    case UNLIMITED:
+                        if (!captureController.onUnlimited) {
+                            captureController.callUnlimitedStart();
+                            view.setActivated(false);
                         } else {
-                            mCameraFragment.getCaptureController().VideoEnd();
+                            captureController.callUnlimitedEnd();
+                            view.setActivated(true);
                         }
-                    }
+                        break;
+                    case VIDEO:
+                        if (!captureController.mIsRecordingVideo) {
+                            captureController.VideoStart();
+                            view.setActivated(false);
+                        } else {
+                            captureController.VideoEnd();
+                            view.setActivated(true);
+                        }
+                        break;
                 }
                 break;
-
             case R.id.settings_button:
                 mCameraFragment.launchSettings();
                 break;
