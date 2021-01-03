@@ -56,6 +56,9 @@ public class TouchFocus {
         focusEl.setX(fx - focusEl.getMeasuredWidth() / 2.0f);
         focusEl.setY(fy - focusEl.getMeasuredHeight() / 2.0f);
         focusEl.setVisibility(View.VISIBLE);
+        focusEl.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
+                .withEndAction(() -> focusEl.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
+                .start();
         setFocus((int) fy, (int) fx);
         captureController.rebuildPreviewBuilder();
 
