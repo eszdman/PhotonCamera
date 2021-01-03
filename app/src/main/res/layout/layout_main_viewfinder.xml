@@ -16,7 +16,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:animateLayoutChanges="true">
         <!--    Layout that contains viewfinder texture view-->
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/texture_container"

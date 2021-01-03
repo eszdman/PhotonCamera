@@ -152,11 +152,17 @@ public class TouchFocus {
 
 
     public void resetFocusCircle() { //resets the position and visibility of focus circle
-        new Handler(Looper.getMainLooper()).post(() -> {
-            focusEl.setVisibility(View.GONE);
-            focusEl.setX((float) previewMaxSize.x / 2.f);
-            focusEl.setY((float) previewMaxSize.y / 2.f);
-        });
+        new Handler(Looper.getMainLooper()).post(() ->
+                focusEl.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
+                .withEndAction(() -> {
+                    focusEl.setVisibility(View.GONE);
+                    focusEl.setX((float) previewMaxSize.x / 2.f);
+                    focusEl.setY((float) previewMaxSize.y / 2.f);
+                    focusEl.setScaleY(1f);
+                    focusEl.setScaleX(1f);
+                    focusEl.setAlpha(1f);
+                })
+                .start());
     }
 
 
