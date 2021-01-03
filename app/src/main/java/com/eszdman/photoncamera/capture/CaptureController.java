@@ -933,6 +933,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
                 maxPreviewHeight*2, target);*/
         mPreviewSize = new Size(rotatedPreviewWidth, rotatedPreviewHeight);
+        showToast("preview:"+new Point(rotatedPreviewWidth,rotatedPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         int orientation = activity.getResources().getConfiguration().orientation;

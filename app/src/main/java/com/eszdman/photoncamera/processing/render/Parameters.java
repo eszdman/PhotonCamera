@@ -69,8 +69,11 @@ public class Parameters {
         if (whiteLevel != null) this.whiteLevel = ((int) whiteLevel);
         hasGainMap = false;
         mapSize = new Point(1, 1);
-        gainMap = new float[1];
+        gainMap = new float[4];
         gainMap[0] = 1.f;
+        gainMap[1] = 1.f;
+        gainMap[2] = 1.f;
+        gainMap[3] = 1.f;
         sensorPix = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if(sensorPix==null){
             sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
