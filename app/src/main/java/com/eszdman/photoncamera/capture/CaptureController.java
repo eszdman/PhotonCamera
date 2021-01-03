@@ -907,7 +907,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         int rotatedPreviewHeight = mPreviewHeight;
         int maxPreviewWidth = displaySize.x;
         int maxPreviewHeight = displaySize.y;
-
+        mPreviewWidth = Math.max(rotatedPreviewHeight,rotatedPreviewWidth);
+        mPreviewHeight = Math.min(rotatedPreviewHeight,rotatedPreviewWidth);
         if (swappedDimensions) {
             rotatedPreviewWidth = mPreviewHeight;
             rotatedPreviewHeight = mPreviewWidth;
@@ -932,8 +933,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         /*mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
                 maxPreviewHeight*2, target);*/
-        mPreviewSize = new Size(rotatedPreviewWidth, rotatedPreviewHeight);
-        showToast("preview:"+new Point(rotatedPreviewWidth,rotatedPreviewHeight));
+        mPreviewSize = new Size(mPreviewWidth, mPreviewHeight);
+        showToast("preview:"+new Point(mPreviewWidth,mPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         int orientation = activity.getResources().getConfiguration().orientation;
@@ -1173,19 +1174,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
                     burstcount[1]++;
-                    cameraEventsListener.onFrameCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[1], burstcount[2], frametime));
 //                    mCameraUIView.setFrameTimeCnt(burstcount[1],burstcount[2],frametime);
-                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
+                    Log.d(TAG,"burstcount[1]:"+burstcount[1]+" burstcount[2]+1:"+(burstcount[2]+1));
+                    /*if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
                         if (burstcount[1] >= burstcount[2] + 1 || mImageSaver.getImageBufferSize() >= burstcount[2]) {
                             try {
                                 mCaptureSession.abortCaptures();
+                                mMeasuredFrameCnt = burstcount[1];
                                 cameraEventsListener.onCaptureSequenceCompleted(null);
                                 mTextureView.setAlpha(1f);
                                 createCameraPreviewSession();
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
-                        }
+                        }*/
                     super.onCaptureProgressed(session, request, partialResult);
                 }
 
@@ -1195,6 +1197,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                                @NonNull TotalCaptureResult result) {
                     cameraEventsListener.onFrameCaptureCompleted(1);
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
+                    burstcount[0]++;
+                    cameraEventsListener.onFrameCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(burstcount[0], burstcount[2], frametime));
                     Log.v(TAG, "Completed!");
                     mCaptureResult = result;
                 }
@@ -1202,8 +1206,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 @Override
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session, int sequenceId, long frameNumber) {
                     Log.d(TAG, "SequenceCompleted");
+                    mMeasuredFrameCnt = burstcount[1];
+                    if(mMeasuredFrameCnt == 0) mMeasuredFrameCnt = burstcount[0];
+                    Log.d(TAG,"burstcount[1]:"+burstcount[1]+" burstcount[0]:"+burstcount[0]);
+
                     try {
-                        mMeasuredFrameCnt = burstcount[1];
                         cameraEventsListener.onCaptureSequenceCompleted(null);
                         mTextureView.setAlpha(1f);
                     } catch (Exception e) {
@@ -1212,6 +1219,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     createCameraPreviewSession();
                     super.onCaptureSequenceCompleted(session, sequenceId, frameNumber);
+                    PhotonCamera.getExecutorService().execute(() -> mImageSaver.processRaw());
                 }
             };
 

@@ -130,21 +130,20 @@ public class ImageSaver {
 
         }
     }
-
+    Image lastImage;
+    ImageReader lastImageReader;
     private void saveRAW(Image mImage, ImageReader mReader) {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
             mUnlimitedProcessor.unlimitedCycle(mImage);
         } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
+            mImage.getFormat();
             IMAGE_BUFFER.add(mImage);
-            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
-                Path dngFile = Util.newDNGFilePath();
-                Path jpgFile = Util.newJPGFilePath();
-                hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
-                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
-                        () -> clearImageReader(mReader));
-                IMAGE_BUFFER.clear();
-            }
+            lastImage = mImage;
+            lastImageReader = mReader;
+            /*if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
+                processRaw();
+            }*/
             if (PhotonCamera.getSettings().frameCount == 1) {
                 Path dngFile = Util.newDNGFilePath();
 
@@ -161,19 +160,38 @@ public class ImageSaver {
             }
         }
     }
+    public void processRaw(){
+            Path dngFile = Util.newDNGFilePath();
+            Path jpgFile = Util.newJPGFilePath();
+            //Remove broken images
+            /*for(int i =0; i<IMAGE_BUFFER.size();i++){
+                try{
+                    IMAGE_BUFFER.get(i).getFormat();
+                } catch (IllegalStateException e){
+                    IMAGE_BUFFER.remove(i);
+                    i--;
+                    Log.d(TAG,"IMGBufferSize:"+IMAGE_BUFFER.size());
+                    e.printStackTrace();
+                }
+            }*/
+            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, lastImageReader.getImageFormat(),
+                    CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
+                    () -> clearImageReader(lastImageReader));
+            IMAGE_BUFFER.clear();
+    }
 
     private void clearImageReader(ImageReader reader) {
-        try {
             for (int i = 0; i < reader.getMaxImages(); i++) {
+                try {
                 Image cur = reader.acquireNextImage();
                 if (cur == null) {
                     continue;
                 }
                 cur.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         PhotonCamera.getCaptureController().BurstShakiness.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
     }
