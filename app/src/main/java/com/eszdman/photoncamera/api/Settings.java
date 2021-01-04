@@ -39,8 +39,6 @@ public class Settings {
     public CameraMode selectedMode;
     public float[] toneMap;
     public float[] gamma;
-    //Other
-    public boolean ManualMode = false;
 
     public void loadCache() {
         noiseReduction = PreferenceKeys.isSystemNrOn();
