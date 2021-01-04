@@ -2,3 +2,4 @@ xiaomi:cepheus
 xiaomi:raphael
 xiaomi:davinci
 xiaomi:umi
+xiaomi:dipper

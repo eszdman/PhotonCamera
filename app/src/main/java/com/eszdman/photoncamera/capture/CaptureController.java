@@ -1159,7 +1159,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //            final int[] burstcount = {0, 0, frameCount};
             Log.d(TAG, "CaptureStarted!");
 
-            final int[] baseFrameNumber = {0};
+            final long[] baseFrameNumber = {0};
             final int[] maxFrameCount = {frameCount};
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
@@ -1176,7 +1176,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                              long frameNumber) {
 
                     if (baseFrameNumber[0] == 0) {
-                        baseFrameNumber[0] = (int) frameNumber - 1;
+                        baseFrameNumber[0] = frameNumber - 1L;
                         Log.v("BurstCounter", "CaptureStarted with FirstFrameNumber:" + frameNumber);
                     }
                     cameraEventsListener.onFrameCaptureStarted(null);
