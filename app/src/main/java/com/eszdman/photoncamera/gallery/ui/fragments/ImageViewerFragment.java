@@ -79,6 +79,7 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnShare(this::onShareButtonClick);
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnEdit(this::onEditButtonClick);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnGallery(this::onGalleryButtonClick);
+        fragmentGalleryImageViewerBinding.topControlsContainer.setOnBack(this::onBack);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
     }
 
@@ -97,6 +98,9 @@ public class ImageViewerFragment extends Fragment {
             viewPager.setCurrentItem(bundle.getInt("imagePosition", 0));
     }
 
+    private void onBack(View view){
+        getActivity().finish();
+    }
 
     private void onGalleryButtonClick(View view) {
         if (navController.getPreviousBackStackEntry() == null)

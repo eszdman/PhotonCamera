@@ -37,12 +37,13 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:id="@+id/top_controls_container"
-                android:visibility="@{buttons_visible ? View.VISIBLE : View.INVISIBLE}"
+                android:visibility='@{buttons_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintVertical_bias="0"
+                tools:visibility="visible"
                 />
 
         <include
@@ -50,7 +51,7 @@
                 android:id="@+id/exif_layout"
                 android:layout_width="@dimen/exif_dialog_width"
                 android:layout_height="wrap_content"
-                android:visibility="@{exif_dialog_visible ? View.VISIBLE : View.INVISIBLE}"
+                android:visibility='@{exif_dialog_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -63,12 +64,13 @@
                 android:id="@+id/bottom_controls_container"
                 android:layout_width="match_parent"
                 android:layout_height="120dp"
-                android:visibility="@{buttons_visible ? View.VISIBLE : View.INVISIBLE}"
+                android:visibility='@{buttons_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_bias="1"
+                tools:visibility="visible"
                 />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
