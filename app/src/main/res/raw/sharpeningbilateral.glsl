@@ -32,7 +32,7 @@ void main() {
     float mask = 0.0;
     float Z = 0.0;
     float sigX = 0.9*size;
-    float sigY = 0.32;
+    float sigY = 0.29;
     vec3 final_colour = vec3(0.0);
     for (int j = 0; j <= kSize; ++j)
     {
@@ -46,7 +46,7 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)*1),0).rgb);
+            cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)),0).rgb);
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;
@@ -60,7 +60,7 @@ void main() {
     }
     mask = lum-mask;
     float dstrength = strength;
-    dstrength*=clamp(1.0 - (0.5-lum)*7.7+3.1 ,0.0,1.0);
+    //dstrength*=clamp(1.0 - abs(0.5-lum)*7.7+3.1 ,0.0,1.0);
     if(abs(mask) < MinDepth) mask =0.0;
     Output+=mask*((dstrength)*4.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
 }

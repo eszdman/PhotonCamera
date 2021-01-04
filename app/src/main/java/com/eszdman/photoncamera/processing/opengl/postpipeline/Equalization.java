@@ -62,7 +62,8 @@ public class Equalization extends Node {
         Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut2);
         int wrongHist = 0;
         for(int i =0; i<histParser.hist.length;i++){
-            if(3.f < histParser.hist[i]) {
+            float val = ((float)(i))/histParser.hist.length;
+            if(3.f < histParser.hist[i] || val*0.5 > histParser.hist[i]) {
                 wrongHist++;
             }
         }

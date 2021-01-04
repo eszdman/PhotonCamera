@@ -33,6 +33,7 @@ void main() {
     inp.g = texelFetch(InputBuffer, xyCenter+ivec2(1,0), 0).r;
     inp.b = texelFetch(InputBuffer, xyCenter+ivec2(0,1), 0).r;
     inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
+    inp = clamp(inp,vec4(0.0001),neutralPoint.rggb);
     if(factor > 1.0){
         float br2 = inp.r+inp.g+inp.b+inp.a;
         br2/=4.0;
@@ -45,7 +46,7 @@ void main() {
     }*/
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
-    result = clamp(inp,vec4(0.0001),neutralPoint.rggb);
+    result = inp;
     result/=neutralPoint.rggb;
     float br = (result.r+result.g+result.b+result.a)/4.0;
     result/=br;

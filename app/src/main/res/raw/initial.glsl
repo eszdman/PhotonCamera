@@ -189,6 +189,9 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 }
 vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
+    float br = pRGB.r+pRGB.g+pRGB.b;
+    br/=3.0;
+    pRGB=mix(pRGB*1.75,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
     //pRGB = tonemap(pRGB);

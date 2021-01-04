@@ -60,7 +60,7 @@ public class Histogram {
         }
 
         // Crush shadows.
-        crushShadows(cumulativeHist);
+        //crushShadows(cumulativeHist);
 
         hist = cumulativeHist;
     }
