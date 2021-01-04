@@ -247,7 +247,6 @@ public class CameraFragment extends Fragment {
         captureController.closeCamera();
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
-        mTouchFocus.resetFocusCircle();
         burstPlayer.release();
         super.onPause();
     }
@@ -567,7 +566,6 @@ public class CameraFragment extends Fragment {
         public void onCaptureSequenceCompleted(Object o) {
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
-            mTouchFocus.resetFocusCircle();
         }
 
         @Override

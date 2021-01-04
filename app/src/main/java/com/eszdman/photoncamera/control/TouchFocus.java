@@ -26,10 +26,9 @@ public class TouchFocus {
     private final Point previewMaxSize;
     private final View focusEl;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Runnable hideFocusCircleRunnable = this::resetFocus;
+    private final Runnable hideFocusCircleRunnable = this::hideFocusCircleView;
     private final OnTouchListener focusListener = (v, event) -> {
         v.performClick();
-        mainHandler.removeCallbacks(hideFocusCircleRunnable);
         resetFocusCircle();
         setInitialAFAE();
         return true;
@@ -50,16 +49,20 @@ public class TouchFocus {
 
     public void processTouchToFocus(float fx, float fy) {
         mainHandler.removeCallbacks(hideFocusCircleRunnable);
+        showFocusCircle(fx, fy);
+        setFocus((int) fy, (int) fx);
+        mainHandler.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
+        captureController.rebuildPreviewBuilder();
+
+    }
+
+    private void showFocusCircle(float fx, float fy) {
         focusEl.setX(fx - focusEl.getMeasuredWidth() / 2.0f);
         focusEl.setY(fy - focusEl.getMeasuredHeight() / 2.0f);
         focusEl.setVisibility(View.VISIBLE);
         focusEl.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
                 .withEndAction(() -> focusEl.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
                 .start();
-        setFocus((int) fy, (int) fx);
-        mainHandler.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
-        captureController.rebuildPreviewBuilder();
-
     }
 
     /**
@@ -149,12 +152,14 @@ public class TouchFocus {
     }
 
     //Thread safe
+    //call when focus circle needs to be hidden immediately
     public void resetFocusCircle() {
+        mainHandler.removeCallbacks(hideFocusCircleRunnable);
         mainHandler.post(hideFocusCircleRunnable);
     }
 
     //Must be run on UI Thread
-    private void resetFocus() {
+    private void hideFocusCircleView() {
         if (focusEl.getVisibility() == View.VISIBLE) {
             focusEl.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
                     .withEndAction(() -> {
