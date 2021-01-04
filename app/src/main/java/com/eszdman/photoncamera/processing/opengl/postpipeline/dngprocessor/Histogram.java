@@ -7,7 +7,7 @@ public class Histogram {
 
     public final float[] sigma = new float[3];
     public final float[] hist;
-    public final float gamma;
+    public float gamma;
     public final float logAvgLuminance;
 
     public Histogram(float[] f, int whPixels) {

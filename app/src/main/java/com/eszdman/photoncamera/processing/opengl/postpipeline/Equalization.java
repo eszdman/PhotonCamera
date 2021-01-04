@@ -60,9 +60,24 @@ public class Equalization extends Node {
 
         Histogram histParser = Analyze();
         Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut2);
+        int wrongHist = 0;
+        for(int i =0; i<histParser.hist.length;i++){
+            if(3.f < histParser.hist[i]) {
+                wrongHist++;
+            }
+        }
+        if(wrongHist != 0){
+            float wrongP = ((float)wrongHist)/histParser.hist.length;
+            Log.d(Name,"WrongHistPercent:"+wrongP);
+            histParser.gamma = (1.f-wrongP)*histParser.gamma + 1.f*wrongP;
+            for(int i =0; i<histParser.hist.length;i++){
+                histParser.hist[i] = (((float)(i))/histParser.hist.length)*wrongP + histParser.hist[i]*(1.f-wrongP);
+            }
+        }
+        Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
+
 
         float eq = histParser.gamma;
         Log.d(Name,"Gamma:"+eq);
