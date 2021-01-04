@@ -21,6 +21,7 @@ import com.eszdman.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.eszdman.photoncamera.gallery.adapters.ImageGridAdapter;
 import com.eszdman.photoncamera.util.FileManager;
 import com.google.android.material.snackbar.Snackbar;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -74,27 +75,28 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
 
     private void onDeleteFabClicked(View view) {
         List<File> filesToDelete = imageGridAdapter.getSelectedFiles();
-        int numOfFiles = filesToDelete.size();
+        String numOfFiles = String.valueOf(filesToDelete.size());
+        String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(File::length).sum());
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder
-                .setMessage(getContext().getString(R.string.sure_delete_multiple, String.valueOf(numOfFiles)))
+                .setMessage(getContext().getString(R.string.sure_delete_multiple, numOfFiles, totalFileSize))
                 .setTitle(android.R.string.dialog_alert_title)
                 .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
-                    for (File f : filesToDelete) {
-                        f.delete();
-                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(f)}, null, null);
-                    }
+                    filesToDelete.forEach(file -> {
+                        file.delete();
+                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);});
                     onImageSelectionStopped();
                     allFiles = FileManager.getAllImageFiles();
                     imageGridAdapter.setImageList(allFiles);
                     recyclerView.requestLayout();
-                    Snackbar.make(view, getString(R.string.multiple_deleted_success, String.valueOf(numOfFiles)), Snackbar.LENGTH_SHORT).show();
+                    Snackbar.make(view,
+                            getString(R.string.multiple_deleted_success, numOfFiles, totalFileSize),
+                            Snackbar.LENGTH_SHORT).show();
                 })
                 .create()
                 .show();
-
     }
 
     private void onShareFabClicked(View view) {
