@@ -1111,6 +1111,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG, "Focus:" + focus);
+            if(focus != 0.0)
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
@@ -1132,10 +1133,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             cameraEventsListener.onFrameCountSet(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            if(focus != 0.0)
             captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             //showToast("AF:"+mFocus);
 
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            if(focus != 0.0)
             mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();
 

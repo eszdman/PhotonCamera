@@ -31,7 +31,7 @@ public class SupportedDevice {
     public void loadCheck() {
         new Thread(() -> {
             try {
-                if (checkedCount <= 3) {
+                if (checkedCount <= 1) {
                     loadSupportedDevicesList();
                     isSupported();
                 }
@@ -51,9 +51,9 @@ public class SupportedDevice {
             return;
         }
         if (mSupportedDevicesSet.contains(thisDevice)) {
-            PhotonCamera.showToast(R.string.device_support);
+            PhotonCamera.showToastFast(R.string.device_support);
         } else {
-            PhotonCamera.showToast(R.string.device_unsupport);
+            PhotonCamera.showToastFast(R.string.device_unsupport);
         }
     }
 

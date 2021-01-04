@@ -112,6 +112,10 @@ public class PhotonCamera extends Application {
         new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, sPhotonCamera.getString(stringRes)
                 , Toast.LENGTH_LONG).show());
     }
+    public static void showToastFast(@StringRes int stringRes) {
+        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, sPhotonCamera.getString(stringRes)
+                , Toast.LENGTH_SHORT).show());
+    }
 
     public static Resources getResourcesStatic() {
         return sPhotonCamera.getResources();

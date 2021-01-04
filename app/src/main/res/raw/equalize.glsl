@@ -17,7 +17,9 @@ void main() {
     if(luma > EPS){
         sRGB/=luma;
         float HistEq = texture(Histogram, vec2(luma, 0.5f)).r;
-        luma *= pow(HistEq/luma,HistFactor);
+        float factor = 1.0;
+        factor*=1.0-abs(0.5-luma)*1.7;
+        luma = mix(luma,luma*pow(HistEq/luma,HistFactor),factor);
         luma = pow(luma,Equalize);
         sRGB*=luma;
     }
