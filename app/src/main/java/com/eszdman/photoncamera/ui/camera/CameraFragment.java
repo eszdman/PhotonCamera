@@ -550,18 +550,16 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onFrameCaptureProgressed(Object o) {
-            if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
-                timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
-            }
         }
 
         @Override
         public void onFrameCaptureCompleted(Object o) {
-            if (o instanceof Integer) {
-                mCameraUIView.incrementCaptureProgressBar((Integer) o);
-            }
+            mCameraUIView.incrementCaptureProgressBar(1);
             if (PreferenceKeys.isCameraSoundsOn()) {
                 burstPlayer.start();
+            }
+            if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
+                timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
             }
         }
 

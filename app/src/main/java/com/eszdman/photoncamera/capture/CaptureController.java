@@ -1172,13 +1172,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                              long timestamp,
                                              long frameNumber) {
 
-                    cameraEventsListener.onFrameCaptureStarted(null);
                     if (baseFrameNumber[0] == 0) {
                         baseFrameNumber[0] = (int) frameNumber - 1;
                         Log.v("BurstCounter", "CaptureStarted with FirstFrameNumber:" + frameNumber);
                     }
-
-                    super.onCaptureStarted(session, request, timestamp, frameNumber);
+                    cameraEventsListener.onFrameCaptureStarted(null);
                     PhotonCamera.getSensors().CaptureGyroBurst();
                 }
 
@@ -1192,13 +1190,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
+
                     int frameCount = (int) (result.getFrameNumber() - baseFrameNumber[0]);
                     Log.v("BurstCounter", "CaptureCompleted! FrameCount:" + frameCount);
-                    cameraEventsListener.onFrameCaptureCompleted(1);
-                    BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
-//                    burstcount[0]++;
-                    cameraEventsListener.onFrameCaptureProgressed(new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
                     Log.v(TAG, "Completed!");
+
+                    BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
+                    cameraEventsListener.onFrameCaptureCompleted(
+                            new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
                     mCaptureResult = result;
                 }
 
@@ -1206,25 +1205,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session,
                                                        int sequenceId,
                                                        long lastFrameNumber) {
+
                     int finalFrameCount = (int) (lastFrameNumber - baseFrameNumber[0]);
                     Log.v("BurstCounter", "CaptureSequenceCompleted! FrameCount:" + finalFrameCount);
                     Log.v("BurstCounter", "CaptureSequenceCompleted! LastFrameNumber:" + lastFrameNumber);
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
-//                    if(mMeasuredFrameCnt == 0) mMeasuredFrameCnt = burstcount[0];
-//                    Log.d(TAG,"burstcount[1]:"+burstcount[1]+" burstcount[0]:"+burstcount[0]);
-
-                    try {
-                        cameraEventsListener.onCaptureSequenceCompleted(null);
-                        mTextureView.setAlpha(1f);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    cameraEventsListener.onCaptureSequenceCompleted(null);
+                    mTextureView.setAlpha(1f);
                     //unlockFocus();
                     createCameraPreviewSession();
-                    super.onCaptureSequenceCompleted(session, sequenceId, lastFrameNumber);
-                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED)
-                    PhotonCamera.getExecutorService().execute(() -> mImageSaver.processRaw());
+                    if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
+                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.processRaw());
+                    }
                 }
             };
 
