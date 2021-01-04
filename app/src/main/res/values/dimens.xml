@@ -41,6 +41,7 @@
     <dimen name="camera_switch_button_size">@dimen/gallery_button_size</dimen>
     <dimen name="standard_65">65dp</dimen>
     <dimen name="standard_125">125dp</dimen>
+    <dimen name="standard_20">20dp</dimen>
     <dimen name="gallery_viewer_button_size">30dp</dimen>
     <dimen name="gallery_viewer_button_conainer_size">80dp</dimen>
 </resources>
