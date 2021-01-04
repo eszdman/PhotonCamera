@@ -20,22 +20,17 @@ import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 
 public class TouchFocus {
-    public static boolean onConfigured = false;
-    private final String TAG = "TouchFocus";
+    private static final String TAG = "TouchFocus";
+    private static final int AUTO_HIDE_DELAY_MS = 3000;
     private final CaptureController captureController;
     private final Point previewMaxSize;
     private final View focusEl;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable hideFocusCircleRunnable = this::hideFocusCircleView;
     private final OnTouchListener focusListener = (v, event) -> {
         v.performClick();
         resetFocusCircle();
-        //setFocus(previewMaxSize.x/2,previewMaxSize.y/2);
         setInitialAFAE();
-        //Interface.getCameraFragment().rebuildPreviewBuilder();
-        //CaptureRequest.Builder build = Interface.getCameraFragment().mPreviewRequestBuilder;
-        //build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        //build.set(CaptureRequest.CONTROL_AF_MODE, Interface.getSettings().afMode);
-        //set focus area repeating,else cam forget after one frame where it should focus
-        //Interface.getCameraFragment().rebuildPreviewBuilder();
         return true;
     };
 
@@ -53,15 +48,21 @@ public class TouchFocus {
     }
 
     public void processTouchToFocus(float fx, float fy) {
+        mainHandler.removeCallbacks(hideFocusCircleRunnable);
+        showFocusCircle(fx, fy);
+        setFocus((int) fy, (int) fx);
+        mainHandler.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
+        captureController.rebuildPreviewBuilder();
+
+    }
+
+    private void showFocusCircle(float fx, float fy) {
         focusEl.setX(fx - focusEl.getMeasuredWidth() / 2.0f);
         focusEl.setY(fy - focusEl.getMeasuredHeight() / 2.0f);
         focusEl.setVisibility(View.VISIBLE);
         focusEl.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
                 .withEndAction(() -> focusEl.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
                 .start();
-        setFocus((int) fy, (int) fx);
-        captureController.rebuildPreviewBuilder();
-
     }
 
     /**
@@ -150,20 +151,26 @@ public class TouchFocus {
 //        }
     }
 
-
-    public void resetFocusCircle() { //resets the position and visibility of focus circle
-        new Handler(Looper.getMainLooper()).post(() ->
-                focusEl.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
-                .withEndAction(() -> {
-                    focusEl.setVisibility(View.GONE);
-                    focusEl.setX((float) previewMaxSize.x / 2.f);
-                    focusEl.setY((float) previewMaxSize.y / 2.f);
-                    focusEl.setScaleY(1f);
-                    focusEl.setScaleX(1f);
-                    focusEl.setAlpha(1f);
-                })
-                .start());
+    //Thread safe
+    //call when focus circle needs to be hidden immediately
+    public void resetFocusCircle() {
+        mainHandler.removeCallbacks(hideFocusCircleRunnable);
+        mainHandler.post(hideFocusCircleRunnable);
     }
 
-
+    //Must be run on UI Thread
+    private void hideFocusCircleView() {
+        if (focusEl.getVisibility() == View.VISIBLE) {
+            focusEl.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
+                    .withEndAction(() -> {
+                        focusEl.setVisibility(View.GONE);
+                        focusEl.setX((float) previewMaxSize.x / 2.f);
+                        focusEl.setY((float) previewMaxSize.y / 2.f);
+                        focusEl.setScaleY(1f);
+                        focusEl.setScaleX(1f);
+                        focusEl.setAlpha(1f);
+                    })
+                    .start();
+        }
+    }
 }
