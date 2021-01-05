@@ -99,7 +99,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 break;
             case R.id.grid_toggle_button:
                 PreferenceKeys.setShowGridOn(!PreferenceKeys.isShowGridOn());
-                mCameraFragment.refreshSurfaceView();
+                mCameraFragment.invalidateSurfaceView();
                 break;
 
         }

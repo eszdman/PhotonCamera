@@ -445,9 +445,9 @@ public class CameraFragment extends Fragment {
         }
     }
 
-    public void refreshSurfaceView() {
+    public void invalidateSurfaceView() {
         if(surfaceView!=null){
-            surfaceView.refresh();
+            surfaceView.invalidate();
         }
     }
 

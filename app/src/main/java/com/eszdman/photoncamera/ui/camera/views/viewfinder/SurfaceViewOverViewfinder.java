@@ -23,6 +23,13 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
     }
 
     @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        drawGrid(canvas);
+        drawRoundEdges(canvas);
+    }
+
+    @Override
     public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
         this.setWillNotDraw(false);
         try {
@@ -31,9 +38,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
                 Log.e(TAG, "Canvas is null");
             } else {
                 canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
-                drawGrid(canvas);
                 drawMeteringRect(canvas);
-                drawRoundEdges(canvas);
                 surfaceHolder.unlockCanvasAndPost(canvas);
             }
         } catch (Exception e) {
