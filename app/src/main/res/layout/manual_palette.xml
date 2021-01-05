@@ -49,7 +49,7 @@
                     tools:textColor="@color/White"
                     android:textSize="15sp"
                     app:drawableBottomCompat="@drawable/manual_control_icon_focus"
-                    app:drawableTint="@android:color/white"
+                    app:drawableTint="@color/manual_text_color"
                     tools:text="NULL"
                     android:textAlignment="center"
                     android:layout_weight="1"
@@ -68,7 +68,7 @@
                     android:textSize="15sp"
                     android:textAlignment="center"
                     app:drawableBottomCompat="@drawable/manual_control_icon_exposure"
-                    app:drawableTint="@android:color/white"
+                    app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
                     bindRotate="@{uimodel}"
                     tools:text="NULL"/>
@@ -87,7 +87,7 @@
                     android:textAlignment="center"
                     android:textSize="15sp"
                     app:drawableBottomCompat="@drawable/manual_control_icon_iso"
-                    app:drawableTint="@android:color/white"
+                    app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
                     bindRotate="@{uimodel}"
                     />
@@ -106,7 +106,7 @@
                     android:textAlignment="center"
                     android:textSize="15sp"
                     app:drawableBottomCompat="@drawable/ic_exposure"
-                    app:drawableTint="@android:color/white"
+                    app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
                     bindRotate="@{uimodel}"
                     />
