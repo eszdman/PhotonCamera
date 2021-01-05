@@ -133,6 +133,7 @@ public final class ManualModeImpl implements ManualMode {
 
         aClass.logIt();
         defaultKnobView.setVisibility(View.GONE);
+        unSelectOthers(null);
         timer.endTimer();
     }
 
