@@ -10,6 +10,8 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.api.CameraReflectionApi;
@@ -25,7 +27,7 @@ public class Swipe {
     private final CameraFragment cameraFragment;
     private boolean manualModeTranslationSet;
     private GestureDetector gestureDetector;
-    private FrameLayout manualMode;
+    private RelativeLayout manualMode;
     private ImageView ocManual;
     private boolean isManualPanelOpened;
 

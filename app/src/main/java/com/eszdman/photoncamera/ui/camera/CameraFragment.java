@@ -164,7 +164,7 @@ public class CameraFragment extends Fragment {
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
-        cameraFragmentBinding.manualMode.manualPalette.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
+        cameraFragmentBinding.manualMode.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         // associating timer model with layouts
         cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());

@@ -1,80 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <layout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools">
+
     <data>
+
         <variable
-            name="uimodel"
-            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
+                name="uimodel"
+                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
     </data>
-<LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-    <FrameLayout
+
+    <RelativeLayout
+            android:orientation="vertical"
+            android:id="@+id/manual_mode"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:id="@+id/knob_container"
-            android:orientation="horizontal"
-    >
+            android:translationY="@dimen/standard_20"
+            android:visibility="gone"
+            tools:visibility="visible"
+            android:layout_height="wrap_content">
 
         <com.manual.KnobView
-            android:id="@+id/knobView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            bindChildsRotate="@{uimodel}"/>
-    </FrameLayout>
-    <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/buttons_container"
-            android:paddingBottom="15dp"
-            android:orientation="horizontal"
-            android:background="@color/panel_transparency"
-    >
+                android:id="@+id/knobView"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                bindChildsRotate="@{uimodel}"
+                />
+
         <LinearLayout
-                android:id="@+id/focus_button_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:textAlignment="center"
-                bindRotate="@{uimodel}"
-        >
+                android:id="@+id/buttons_container"
+                android:layout_below="@id/knobView"
+                android:paddingBottom="15dp"
+                android:orientation="horizontal"
+                android:background="@color/panel_transparency"
+                >
+
             <TextView
                     android:id="@+id/focus_option_tv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="5dp"
+                    android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
                     tools:textColor="@color/White"
                     android:textSize="15sp"
+                    app:drawableBottomCompat="@drawable/manual_control_icon_focus"
+                    app:drawableTint="@android:color/white"
                     tools:text="NULL"
-                    android:textAlignment="center"/>
-            <ImageButton
-                    android:id="@+id/focus_option"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:tint="@android:color/white"
-                    android:background="#00000000"
-                    app:srcCompat="@drawable/manual_control_icon_focus"
-                />
-
-
-        </LinearLayout>
-
-        <LinearLayout
-                android:id="@+id/shutter_button_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:textAlignment="center"
-                bindRotate="@{uimodel}"
-               >
+                    android:textAlignment="center"
+                    android:layout_weight="1"
+                    bindRotate="@{uimodel}"
+                    />
 
             <TextView
                     android:id="@+id/exposure_option_tv"
@@ -82,79 +62,54 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="5dp"
+                    android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
                     tools:textColor="@color/White"
                     android:textSize="15sp"
                     android:textAlignment="center"
+                    app:drawableBottomCompat="@drawable/manual_control_icon_exposure"
+                    app:drawableTint="@android:color/white"
+                    android:layout_weight="1"
+                    bindRotate="@{uimodel}"
                     tools:text="NULL"/>
-            <ImageButton
-                    android:id="@+id/exposure_option"
+
+
+            <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    tools:text="NULL"
+                    android:paddingTop="5dp"
+                    android:textAppearance="@style/BoldTextWithShadow"
+                    android:textColor="@color/manual_text_color"
+                    tools:textColor="@color/White"
+                    android:id="@+id/iso_option_tv"
                     android:layout_gravity="center"
-                    android:background="#00000000"
-                    android:tint="@android:color/white"
-                    app:srcCompat="@drawable/manual_control_icon_exposure"
-                />
-        </LinearLayout>
-        <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:id="@+id/iso_button_container"
-                bindRotate="@{uimodel}"
-
-        >
-            <TextView android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      tools:text="NULL"
-                      android:paddingTop="5dp"
-                      android:textColor="@color/manual_text_color"
-                      tools:textColor="@color/White"
-                      android:id="@+id/iso_option_tv"
-                      android:layout_gravity="center"
-                      android:textAlignment="center"
-                      android:textSize="15sp"/>
-            <ImageButton android:layout_width="match_parent"
-                         android:layout_height="wrap_content"
-                         android:id="@+id/iso_option"
-                         app:srcCompat="@drawable/manual_control_icon_iso"
-                         android:tint="@android:color/white"
-                         android:layout_gravity="center"
-                         android:background="#00000000"
+                    android:textAlignment="center"
+                    android:textSize="15sp"
+                    app:drawableBottomCompat="@drawable/manual_control_icon_iso"
+                    app:drawableTint="@android:color/white"
+                    android:layout_weight="1"
+                    bindRotate="@{uimodel}"
                     />
 
-        </LinearLayout>
-        <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:id="@+id/ev_button_container"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                bindRotate="@{uimodel}"
 
-        >
-
-            <TextView android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      tools:text="NULL"
-                      android:paddingTop="5dp"
-                      android:textColor="@color/manual_text_color"
-                      tools:textColor="@color/White"
-                      android:id="@+id/ev_option_tv"
-                      android:layout_gravity="center"
-                      android:textAlignment="center"
-                      android:textSize="15sp"/>
-            <ImageButton android:layout_width="match_parent"
-                         android:layout_height="wrap_content"
-                         android:id="@+id/ev_option"
-                         app:srcCompat="@drawable/ic_exposure"
-                         android:tint="@android:color/white"
-                         android:layout_gravity="center"
-                         android:background="#00000000"
-                />
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="NULL"
+                    android:paddingTop="5dp"
+                    android:textAppearance="@style/BoldTextWithShadow"
+                    android:textColor="@color/manual_text_color"
+                    tools:textColor="@color/White"
+                    android:id="@+id/ev_option_tv"
+                    android:layout_gravity="center"
+                    android:textAlignment="center"
+                    android:textSize="15sp"
+                    app:drawableBottomCompat="@drawable/ic_exposure"
+                    app:drawableTint="@android:color/white"
+                    android:layout_weight="1"
+                    bindRotate="@{uimodel}"
+                    />
         </LinearLayout>
-    </LinearLayout>
-</LinearLayout>
+    </RelativeLayout>
 </layout>

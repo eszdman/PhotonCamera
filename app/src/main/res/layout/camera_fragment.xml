@@ -88,7 +88,7 @@
             <!--   includes the Layout resource of Manual Mode palette-->
             <include
                     android:id="@+id/manual_mode"
-                    layout="@layout/layout_main_manualbar"
+                    layout="@layout/manual_palette"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
