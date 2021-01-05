@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface
@@ -67,12 +68,12 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void initModeSwitcher() {
-        String[] modes = CameraMode.names();
+        String[] modes = Stream.of(CameraMode.names()).map(s -> s.charAt(0) + s.substring(1).toLowerCase(Locale.ROOT)).toArray(String[]::new);
         mModePicker.setValues(modes);
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index])));
+        mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(modes[index].toUpperCase(Locale.ROOT))));
         mModePicker.setSelectedItem(1);
-        reConfigureModeViews(CameraMode.valueOf(modes[1]));
+        reConfigureModeViews(CameraMode.valueOf(modes[1].toUpperCase(Locale.ROOT)));
     }
 
     @Override

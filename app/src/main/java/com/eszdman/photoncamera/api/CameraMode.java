@@ -1,5 +1,7 @@
 package com.eszdman.photoncamera.api;
 
+import java.util.stream.Stream;
+
 public enum CameraMode {
     UNLIMITED(0),
     PHOTO(1),
@@ -13,10 +15,7 @@ public enum CameraMode {
     }
 
     public static String[] names() {
-        String[] names = new String[values().length];
-        for (int i = 0; i < values().length; i++) {
-            names[i] = values()[i].name();
-        }
-        return names;
+        return Stream.of(values()).map(Enum::name).toArray(String[]::new);
     }
+
 }
