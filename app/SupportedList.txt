@@ -3,3 +3,4 @@ xiaomi:raphael
 xiaomi:davinci
 xiaomi:umi
 xiaomi:dipper
+realme:rmx1931l1
