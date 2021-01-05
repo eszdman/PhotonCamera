@@ -19,7 +19,7 @@
     <dimen name="focus_circle_size">80dp</dimen>
     <dimen name="mode_chip_text_size">15sp</dimen>
     <dimen name="exif_dialog_width">320dp</dimen>
-    <dimen name="mode_switcher_padding">7dp</dimen>
+    <dimen name="mode_switcher_padding">8dp</dimen>
     <dimen name="manual_knob_dash_length">6dp</dimen>
     <dimen name="manual_knob_dash_padding">11dp</dimen>
     <dimen name="manual_knob_icon_padding">7dp</dimen>

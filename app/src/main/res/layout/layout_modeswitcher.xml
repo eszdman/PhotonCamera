@@ -8,20 +8,22 @@
 
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="2dp"
+            android:paddingTop="5dp"
             android:clipToPadding="false"
+            android:clipChildren="false"
             >
 
         <com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
-                android:layout_width="0dp"
+                android:layout_width="500dp"
                 android:padding="@dimen/mode_switcher_padding"
                 android:layout_height="wrap_content"
                 android:textColor="@color/White"
                 app:selectedColor="?colorControlActivated"
                 android:textSize="@dimen/mode_chip_text_size"
+                app:sideItems="2"
                 android:marqueeRepeatLimit="-1"
                 android:id="@+id/mode_picker_view"
-                android:ellipsize="middle"
+                android:ellipsize="end"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"

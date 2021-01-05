@@ -277,7 +277,7 @@ public class HorizontalPicker extends View {
                 if (i == selectedItem) {
                     RectF background = new RectF(canvas.getClipBounds());
                     float width = itemClipBounds.width();
-                    float margin = (width - getTextWidth(values[i], textPaint)) / 4;
+                    float margin = (width - getTextWidth(values[i], textPaint)) / 6;
                     background.left = itemClipBounds.left + margin;
                     background.right = itemClipBounds.right - margin;
                     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
