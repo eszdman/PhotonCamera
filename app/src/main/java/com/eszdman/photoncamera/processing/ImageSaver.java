@@ -62,19 +62,20 @@ public class ImageSaver {
         if (mImage == null)
             return;
         int format = mImage.getFormat();
-
+        lastImage = mImage;
+        lastImageReader = mReader;
         switch (format) {
             case ImageFormat.JPEG:
-                saveJPEG(mImage, mReader);
+                saveJPEG();
                 break;
 
             case ImageFormat.YUV_420_888:
-                saveYUV(mImage, mReader);
+                saveYUV();
                 break;
 
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR:
-                saveRAW(mImage, mReader);
+                saveRAW();
                 break;
 
             default:
@@ -83,10 +84,10 @@ public class ImageSaver {
         }
     }
 
-    private void saveJPEG(Image mImage, ImageReader mReader) {
-        ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
+    private void saveJPEG() {
+        ByteBuffer buffer = lastImage.getPlanes()[0].getBuffer();
         try {
-            IMAGE_BUFFER.add(mImage);
+            IMAGE_BUFFER.add(lastImage);
             byte[] bytes = new byte[buffer.remaining()];
             if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
                 Path jpgPath = Util.newJPGFilePath();
@@ -104,7 +105,7 @@ public class ImageSaver {
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);
                 Files.write(jpgPath, bytes);
-                mImage.close();
+                lastImage.close();
                 processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
                 processingEventsListener.notifyImageSavedStatus(true, jpgPath);
             }
@@ -113,9 +114,9 @@ public class ImageSaver {
         }
     }
 
-    private void saveYUV(Image mImage, ImageReader mReader) {
+    private void saveYUV() {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
-        IMAGE_BUFFER.add(mImage);
+        IMAGE_BUFFER.add(lastImage);
         if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
 
 //            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
@@ -130,37 +131,30 @@ public class ImageSaver {
 
         }
     }
-    Image lastImage;
-    ImageReader lastImageReader;
-    private void saveRAW(Image mImage, ImageReader mReader) {
+    private Image lastImage;
+    private ImageReader lastImageReader;
+    private void saveRAW() {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-            mUnlimitedProcessor.unlimitedCycle(mImage);
+            mUnlimitedProcessor.unlimitedCycle(lastImage);
         } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
-            mImage.getFormat();
-            IMAGE_BUFFER.add(mImage);
-            lastImage = mImage;
-            lastImageReader = mReader;
-            /*if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
-                processRaw();
-            }*/
-            if (PhotonCamera.getSettings().frameCount == 1) {
-                Path dngFile = Util.newDNGFilePath();
-
-                boolean imageSaved = Util.saveSingleRaw(dngFile, mImage,
-                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
-
-                mImage.close();
-
-                processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-
-                processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
-
-                IMAGE_BUFFER.clear();
-            }
+            lastImage.getFormat();
+            IMAGE_BUFFER.add(lastImage);
         }
     }
     public void processRaw(){
+        if (PhotonCamera.getSettings().frameCount == 1) {
+            Path dngFile = Util.newDNGFilePath();
+            boolean imageSaved = Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
+                    CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
+            IMAGE_BUFFER.get(0).close();
+            IMAGE_BUFFER.remove(0);
+            processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
+            processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
+            IMAGE_BUFFER.clear();
+            clearImageReader(lastImageReader);
+            return;
+        }
             Path dngFile = Util.newDNGFilePath();
             Path jpgFile = Util.newJPGFilePath();
             jpgFilePathToSave = jpgFile;
