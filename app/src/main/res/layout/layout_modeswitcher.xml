@@ -8,13 +8,16 @@
 
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="@dimen/mode_switcher_padding">
+            android:paddingTop="2dp"
+            android:clipToPadding="false"
+            >
 
         <com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
                 android:layout_width="0dp"
+                android:padding="@dimen/mode_switcher_padding"
                 android:layout_height="wrap_content"
                 android:textColor="@color/White"
-                app:selectedColor="?colorAccent"
+                app:selectedColor="?colorControlActivated"
                 android:textSize="@dimen/mode_chip_text_size"
                 android:marqueeRepeatLimit="-1"
                 android:id="@+id/mode_picker_view"
