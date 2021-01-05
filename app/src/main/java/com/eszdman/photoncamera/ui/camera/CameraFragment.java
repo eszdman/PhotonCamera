@@ -116,7 +116,7 @@ public class CameraFragment extends Fragment {
     private MediaPlayer burstPlayer;
 
 
-    private CameraFragment() {
+    public CameraFragment() {
     }
 
     public static CameraFragment newInstance() {
