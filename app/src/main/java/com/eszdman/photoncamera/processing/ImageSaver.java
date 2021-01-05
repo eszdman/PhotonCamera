@@ -163,6 +163,7 @@ public class ImageSaver {
     public void processRaw(){
             Path dngFile = Util.newDNGFilePath();
             Path jpgFile = Util.newJPGFilePath();
+            jpgFilePathToSave = jpgFile;
             //Remove broken images
             /*for(int i =0; i<IMAGE_BUFFER.size();i++){
                 try{
