@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.*;
 import android.text.TextPaint;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -13,6 +14,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
 
     private static final String TAG = "SurfaceViewOverViewfinder";
     private final SurfaceHolder mHolder;
+    private final float screenRatio;
     public boolean isCanvasDrawn = false;
     private RectF rectToDraw = new RectF();
     private String debugText = null;
@@ -22,6 +24,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         this.setZOrderOnTop(true);
         mHolder = this.getHolder();
         mHolder.setFormat(PixelFormat.TRANSPARENT);
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        screenRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
     }
 
     @Override
@@ -111,6 +115,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
                 paint.setTextSize(30);
                 paint.setTextAlign(Paint.Align.CENTER);
                 int y = 180;
+                if (screenRatio > 16 / 9f) y = 50;
                 for (String line : debugText.split("\n")) {
                     canvas.drawText(line, canvas.getWidth() / 2f, y, paint);
                     y += paint.descent() - paint.ascent();
