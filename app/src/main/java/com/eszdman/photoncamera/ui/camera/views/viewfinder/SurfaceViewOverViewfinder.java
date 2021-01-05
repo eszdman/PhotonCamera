@@ -2,24 +2,26 @@ package com.eszdman.photoncamera.ui.camera.views.viewfinder;
 
 import android.content.Context;
 import android.graphics.*;
+import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import androidx.annotation.NonNull;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 
-public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHolder.Callback {
+public class SurfaceViewOverViewfinder extends SurfaceView {
 
     private static final String TAG = "SurfaceViewOverViewfinder";
-    private final SurfaceHolder mHolder = this.getHolder();
-    public RectF rectToDraw = new RectF();
+    private final SurfaceHolder mHolder;
+    public boolean isCanvasDrawn = false;
+    private RectF rectToDraw = new RectF();
+    private String debugText = null;
 
     public SurfaceViewOverViewfinder(Context context, AttributeSet attrs) {
         super(context, attrs);
         this.setZOrderOnTop(true);
+        mHolder = this.getHolder();
         mHolder.setFormat(PixelFormat.TRANSPARENT);
-        mHolder.addCallback(this);
     }
 
     @Override
@@ -27,33 +29,6 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
         super.onDraw(canvas);
         drawGrid(canvas);
         drawRoundEdges(canvas);
-    }
-
-    @Override
-    public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
-        this.setWillNotDraw(false);
-        try {
-            Canvas canvas = surfaceHolder.lockCanvas();
-            if (canvas == null) {
-                Log.e(TAG, "Canvas is null");
-            } else {
-                canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
-                drawMeteringRect(canvas);
-                surfaceHolder.unlockCanvasAndPost(canvas);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-
-    }
-
-    @Override
-    public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
-
     }
 
     private void drawGrid(Canvas canvas) {
@@ -82,6 +57,68 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
         }
     }
 
+    public void setMeteringRect(RectF rect) {
+        this.rectToDraw = rect;
+    }
+
+    public void setDebugText(String debugText) {
+        this.debugText = debugText;
+    }
+
+    public void refresh() {
+        drawOnCanvas(mHolder);
+    }
+
+    private void drawOnCanvas(SurfaceHolder surfaceHolder) {
+        try {
+            Canvas canvas = surfaceHolder.lockHardwareCanvas();
+            if (canvas == null) {
+                Log.e(TAG, "Canvas is null");
+            } else {
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
+                drawMeteringRect(canvas);
+                drawAFDebugText(canvas);
+                surfaceHolder.unlockCanvasAndPost(canvas);
+                isCanvasDrawn = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void clear() {
+        try {
+            Canvas canvas = mHolder.lockHardwareCanvas();
+            if (canvas == null) {
+                Log.e(TAG, "Canvas is null");
+            } else {
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
+                mHolder.unlockCanvasAndPost(canvas);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        rectToDraw = null;
+        debugText = null;
+        isCanvasDrawn = false;
+    }
+
+    private void drawAFDebugText(Canvas canvas) {
+        if (PreferenceKeys.isAfDataOn()) {
+            if (debugText != null) {
+                TextPaint paint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
+                paint.setColor(Color.WHITE);
+                paint.setTextSize(30);
+                paint.setTextAlign(Paint.Align.CENTER);
+                int y = 180;
+                for (String line : debugText.split("\n")) {
+                    canvas.drawText(line, canvas.getWidth() / 2f, y, paint);
+                    y += paint.descent() - paint.ascent();
+                }
+            }
+        }
+    }
+
     private void drawMeteringRect(Canvas canvas) {
         if (PreferenceKeys.isAfDataOn()) {
             if (rectToDraw != null && !rectToDraw.isEmpty()) {
@@ -92,15 +129,6 @@ public class SurfaceViewOverViewfinder extends SurfaceView implements SurfaceHol
                 canvas.drawRect(rectToDraw, myPaint);
             }
         }
-    }
-
-    public void setMeteringRect(RectF rect) {
-        this.rectToDraw = rect;
-        refresh();
-    }
-
-    public void refresh() {
-        surfaceCreated(mHolder);
     }
 }
 

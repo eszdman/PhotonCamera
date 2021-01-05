@@ -2,6 +2,9 @@ package com.eszdman.photoncamera.util.log;
 
 import android.util.Log;
 
+import java.util.Map;
+import java.util.Set;
+
 public class Logger {
     public static void callerLog(String tag, String message) {
         Log.d("CallerLog", tag + ": " + message + " <called by> " + getCallerClassMethodName());
@@ -28,5 +31,16 @@ public class Logger {
         return null;
     }
 
+    public static String createTextFrom(Map<String, String> stringMap) {
+        Set<String> keys = stringMap.keySet();
+        StringBuilder sb = new StringBuilder();
+        for (String k : keys) {
+            sb.append(k);
+            sb.append(" : ");
+            sb.append(stringMap.get(k));
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
 
 }
