@@ -282,17 +282,15 @@ public class CameraFragment extends Fragment {
                 if (rectobj != null && rectobj.length > 0) {
                     RectF rect = getScreenRectFromMeteringRect(rectobj[0]);
                     dataset.put("F_RECT(px)", rect.toString());
-                    surfaceView.update(rect);
+                    surfaceView.setMeteringRect(rect);
                 }
                 surfaceView.setVisibility(View.VISIBLE);
                 cl.setVisibility(View.VISIBLE);
                 cl.updateText(cl.createTextFrom(dataset));
             } else {
                 if (surfaceView.rectToDraw != null) {
-                    surfaceView.rectToDraw = null;
-                    surfaceView.invalidate();
                     cl.setVisibility(View.GONE);
-                    surfaceView.setVisibility(View.GONE);
+                    surfaceView.setMeteringRect(null);
                 }
             }
         });
@@ -444,6 +442,12 @@ public class CameraFragment extends Fragment {
             ErrorDialog.newInstance(getString(stringRes)).show(getChildFragmentManager(), FRAGMENT_DIALOG);
         } catch (Resources.NotFoundException e) {
             showErrorDialog(String.valueOf(stringRes));
+        }
+    }
+
+    public void refreshSurfaceView() {
+        if(surfaceView!=null){
+            surfaceView.refresh();
         }
     }
 
