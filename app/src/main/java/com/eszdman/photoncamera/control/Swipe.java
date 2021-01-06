@@ -6,11 +6,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import com.eszdman.photoncamera.R;
@@ -25,7 +21,6 @@ public class Swipe {
     private static final String TAG = "Swipe";
     private static int arrowState;
     private final CameraFragment cameraFragment;
-    private boolean manualModeTranslationSet;
     private GestureDetector gestureDetector;
     private RelativeLayout manualMode;
     private ImageView ocManual;
@@ -39,7 +34,7 @@ public class Swipe {
         Log.d(TAG, "SwipeDetection - ON");
         manualMode = cameraFragment.findViewById(R.id.manual_mode);
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
-        setManualPanelInitialTranslation();
+        hidePanel();
         ocManual.setOnClickListener((v) -> {
             if (arrowState == 0) {
                 SwipeUp();
@@ -98,14 +93,6 @@ public class Swipe {
         if (holder != null) holder.setOnTouchListener(touchListener);
     }
 
-    private void setManualPanelInitialTranslation() {
-        float translationY = cameraFragment.getResources().getDimension(R.dimen.standard_20);
-        if (manualMode.getTranslationY() != translationY && !manualModeTranslationSet) {
-            manualMode.setTranslationY(translationY);
-            manualModeTranslationSet = true;
-        }
-    }
-
     private void startTouchToFocus(MotionEvent event) {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
@@ -128,7 +115,7 @@ public class Swipe {
 
     public void SwipeUp() {
         if (!isManualPanelOpened) {
-            manualMode.animate().translationY(0).setDuration(100).alpha(1f).start();
+            showPanel();
             ocManual.animate().rotation(180).setDuration(250).start();
             isManualPanelOpened = true;
         }
@@ -140,12 +127,7 @@ public class Swipe {
 
     public void SwipeDown() {
         if (isManualPanelOpened) {
-            manualMode.animate()
-                    .translationY(cameraFragment.getResources().getDimension(R.dimen.standard_20))
-                    .alpha(0f)
-                    .setDuration(100)
-                    .withEndAction(() -> manualMode.setVisibility(View.GONE))
-                    .start();
+            hidePanel();
             ocManual.animate().rotation(0).setDuration(250).start();
         }
         isManualPanelOpened = false;
@@ -163,5 +145,18 @@ public class Swipe {
 
     public void SwipeLeft() {
 
+    }
+
+    private void hidePanel() {
+        manualMode.animate()
+                .translationY(cameraFragment.getResources().getDimension(R.dimen.standard_20))
+                .alpha(0f)
+                .setDuration(100)
+                .withEndAction(() -> manualMode.setVisibility(View.GONE))
+                .start();
+    }
+
+    private void showPanel() {
+        manualMode.animate().translationY(0).setDuration(100).alpha(1f).start();
     }
 }

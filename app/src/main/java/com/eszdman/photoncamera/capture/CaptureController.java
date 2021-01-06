@@ -1367,4 +1367,26 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
 
     }
+
+    public static class CameraProperties {
+        private final Float minFocal = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        private final Float maxFocal = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_HYPERFOCAL_DISTANCE);
+        public Range<Float> focusRange = (!(minFocal == null || maxFocal == null || minFocal == 0.0f)) ? new Range<>(Math.min(minFocal, maxFocal), Math.max(minFocal, maxFocal)) : null;
+        public Range<Integer> isoRange = new Range<>(IsoExpoSelector.getISOLOWExt(), IsoExpoSelector.getISOHIGHExt());
+        public Range<Long> expRange = new Range<>(IsoExpoSelector.getEXPLOW(), IsoExpoSelector.getEXPHIGH());
+        private final float evStep = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue();
+        public Range<Float> evRange = new Range<>((mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getLower() * evStep),
+                (mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getUpper() * evStep));
+        public CameraProperties(){
+            logIt();
+        }
+        private void logIt() {
+            String lens = PhotonCamera.getSettings().mCameraID;
+            Log.d(TAG, "focusRange(" + lens + ") : " + (focusRange == null ? "Fixed [" + maxFocal + "]" : focusRange.toString()));
+            Log.d(TAG, "isoRange(" + lens + ") : " + isoRange.toString());
+            Log.d(TAG, "expRange(" + lens + ") : " + expRange.toString());
+            Log.d(TAG, "evCompRange(" + lens + ") : " + evRange.toString());
+        }
+
+    }
 }
