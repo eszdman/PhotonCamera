@@ -105,16 +105,15 @@ public class PhotonCamera extends Application {
     }
 
     public static void showToast(String msg) {
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, msg, Toast.LENGTH_LONG).show());
+        getMainHandler().post(() -> Toast.makeText(sPhotonCamera, msg, Toast.LENGTH_LONG).show());
     }
 
     public static void showToast(@StringRes int stringRes) {
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, sPhotonCamera.getString(stringRes)
-                , Toast.LENGTH_LONG).show());
+        getMainHandler().post(() -> Toast.makeText(sPhotonCamera, stringRes, Toast.LENGTH_LONG).show());
     }
+
     public static void showToastFast(@StringRes int stringRes) {
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(sPhotonCamera, sPhotonCamera.getString(stringRes)
-                , Toast.LENGTH_SHORT).show());
+        getMainHandler().post(() -> Toast.makeText(sPhotonCamera, stringRes, Toast.LENGTH_SHORT).show());
     }
 
     public static Resources getResourcesStatic() {
@@ -138,7 +137,6 @@ public class PhotonCamera extends Application {
         super.onCreate();
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
         sPhotonCamera = this;
-        showToast(Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase());
         initModules();
     }
 

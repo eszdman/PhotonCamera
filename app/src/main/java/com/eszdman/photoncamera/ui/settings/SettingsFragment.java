@@ -20,6 +20,8 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.settings.BackupRestoreUtil;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
@@ -27,11 +29,9 @@ import com.eszdman.photoncamera.ui.settings.custompreferences.ResetPreferences;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.TimeZone;
+import java.util.*;
 
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY;
 import static com.eszdman.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
@@ -83,6 +83,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         setGithubPref();
         setBackupPref();
         setRestorePref();
+        setSupportedDevices();
+        setProTitle();
+        setThisDevice();
     }
 
     private void setTelegramPref() {
@@ -124,6 +127,29 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
                 return true;
             });
+        }
+    }
+
+    private void setSupportedDevices() {
+        Preference preference = findPreference(PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY.mValue);
+        if (preference != null) {
+            preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue,
+                    ALL_DEVICES_NAMES_KEY, Collections.singleton(getString(R.string.list_not_loaded)))
+                    .stream().map(s -> s + "\n").reduce("\n", String::concat)));
+        }
+    }
+
+    private void setProTitle() {
+        Preference preference = findPreference(getString(R.string.pref_about_key));
+        if (preference != null && PhotonCamera.getSupportedDevice().isSupportedDevice()) {
+            preference.setTitle(R.string.device_support);
+        }
+    }
+
+    private void setThisDevice() {
+        Preference preference = findPreference(getString(R.string.pref_this_device_key));
+        if (preference != null) {
+            preference.setSummary(getString(R.string.this_device, SupportedDevice.THIS_DEVICE));
         }
     }
 

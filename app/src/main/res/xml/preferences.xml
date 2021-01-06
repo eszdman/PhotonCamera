@@ -313,6 +313,20 @@
                     android:icon="@drawable/ic_telegram"
                     android:key="@string/pref_telegram_channel_key"
                     />
+            <Preference
+                    android:layout="@layout/preference_about"
+                    android:title="@string/supported_devices"
+                    android:enabled="false"
+                    android:persistent="false"
+                    android:key="@string/all_devices_names"
+                    />
+            <Preference
+                    android:layout="@layout/preference_about"
+                    app:singleLineTitle="true"
+                    android:enabled="false"
+                    android:persistent="false"
+                    android:key="@string/pref_this_device_key"
+                    />
         </PreferenceScreen>
     </PreferenceCategory>
 </PreferenceScreen>

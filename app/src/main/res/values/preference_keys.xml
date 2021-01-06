@@ -56,6 +56,7 @@
     <string name="_cameras">_cameras</string>
     <string name="_devices">_devices</string>
     <string name="all_devices_names">all_devices_names</string>
+    <string name="pref_this_device_key">pref_this_device_key</string>
     <string name="_per_lens">_per_lens</string>
 
 
