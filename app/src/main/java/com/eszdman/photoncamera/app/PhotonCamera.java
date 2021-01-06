@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
@@ -92,6 +91,10 @@ public class PhotonCamera extends Application {
 
     public static SettingsManager getSettingsManager() {
         return sPhotonCamera.mSettingsManager;
+    }
+    
+    public static void restartWithDelay(long delayMs) {
+        getMainHandler().postDelayed(PhotonCamera::restartApp, delayMs);
     }
 
     public static void restartApp() {
