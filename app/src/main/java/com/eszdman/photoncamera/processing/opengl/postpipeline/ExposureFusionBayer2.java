@@ -37,17 +37,6 @@ public class ExposureFusionBayer2 extends Node {
         glProg.drawBlocks(outp);
         return outp;
     }
-    GLTexture unexpose(GLTexture in,GLTexture br,float str){
-        glProg.setDefine("DH","("+dehaze+")");
-        glProg.useProgram(R.raw.unexposebayer2);
-        glProg.setTexture("InputBuffer",in);
-        glProg.setTexture("BayerBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("BrBuffer",br);
-        glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
-        glProg.drawBlocks(basePipeline.main2,initialSize);
-        return basePipeline.main2;
-    }
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
         glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.fusionmap);
@@ -78,9 +67,9 @@ public class ExposureFusionBayer2 extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        float fact2 = 5.0f;
+        float fact2 = 3.0f;
         GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(0.3f)));
         //in.close();
         glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);
@@ -144,7 +133,9 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main2.mSize.y = initialSize.y;
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
-        ((PostPipeline)basePipeline).FusionMap = fusionMap(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+        ((PostPipeline)basePipeline).FusionMap =
+                fusionMap(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+                //wip;
         wip.close();
         //WorkingTexture = unexpose(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
         WorkingTexture = previousNode.WorkingTexture;

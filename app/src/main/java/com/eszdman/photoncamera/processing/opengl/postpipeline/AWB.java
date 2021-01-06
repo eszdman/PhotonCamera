@@ -35,9 +35,12 @@ public class AWB extends Node {
                 int r = ((rgba) & 0xff);
                 int g = ((rgba >> 8) & 0xff);
                 int b = ((rgba >> 16) & 0xff);
-                colorsMap[0][(int)((double)(r)*(255.0)/(r+g+b))]++;
-                colorsMap[1][(int)((double)(g)*(255.0)/(r+g+b))]++;
-                colorsMap[2][(int)((double)(b)*(255.0)/(r+g+b))]++;
+                int br = (r+g+b);
+                if(br/3 > 30 && br/3 < 250) {
+                    colorsMap[0][(int) ((double) (r) * (255.0) / br)]++;
+                    colorsMap[1][(int) ((double) (g) * (255.0) / br)]++;
+                    colorsMap[2][(int) ((double) (b) * (255.0) / br)]++;
+                }
             }
         }
         return colorsMap;
