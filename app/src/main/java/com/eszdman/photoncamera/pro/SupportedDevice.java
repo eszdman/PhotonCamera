@@ -18,6 +18,7 @@ import java.util.Set;
 import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY;
 
 public class SupportedDevice {
+    public static final String THIS_DEVICE = Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase();
     private static final String TAG = "SupportedDevice";
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevicesSet = new LinkedHashSet<>();
@@ -46,15 +47,21 @@ public class SupportedDevice {
     private void isSupported() {
         Log.d(TAG, "isSupported(): checkedCount = " + checkedCount);
         checkedCount++;
-        String thisDevice = Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase();
         if (mSupportedDevicesSet == null) {
             return;
         }
-        if (mSupportedDevicesSet.contains(thisDevice)) {
+        if (mSupportedDevicesSet.contains(THIS_DEVICE)) {
             PhotonCamera.showToastFast(R.string.device_support);
         } else {
             PhotonCamera.showToastFast(R.string.device_unsupport);
         }
+    }
+
+    public boolean isSupportedDevice() {
+        if (mSupportedDevicesSet == null) {
+            return false;
+        }
+        return mSupportedDevicesSet.contains(THIS_DEVICE);
     }
 
     private void loadSupportedDevicesList() throws IOException {
