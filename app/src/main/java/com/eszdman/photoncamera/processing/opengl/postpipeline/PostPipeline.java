@@ -1,13 +1,19 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.util.Log;
 
-import com.eszdman.photoncamera.processing.opengl.*;
-import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.app.PhotonCamera;
+import com.eszdman.photoncamera.processing.opengl.GLBasePipeline;
+import com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing;
+import com.eszdman.photoncamera.processing.opengl.GLFormat;
+import com.eszdman.photoncamera.processing.opengl.GLInterface;
+import com.eszdman.photoncamera.processing.opengl.GLTexture;
+import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.render.Parameters;
+
 import java.nio.ByteBuffer;
 
 public class PostPipeline extends GLBasePipeline {
@@ -15,6 +21,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
     public GLTexture FusionMap;
+    public GLTexture GainMap;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
@@ -70,7 +77,6 @@ public class PostPipeline extends GLBasePipeline {
          * * * All filters after demosaicing * * *
          */
         //add(new AEC("AEC"));
-        //add(new ExposureFusionFast2("ExposureFusion"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR("SmartNR"));
         }

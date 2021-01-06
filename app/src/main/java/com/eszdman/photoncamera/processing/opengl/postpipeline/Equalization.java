@@ -53,7 +53,7 @@ public class Equalization extends Node {
         r1.close();
         return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
     }
-    private float EqualizePower = 0.6f;
+    private float EqualizePower = 0.5f;
     @Override
     public void Run() {
         WorkingTexture = basePipeline.getMain();

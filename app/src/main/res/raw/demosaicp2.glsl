@@ -3,6 +3,7 @@ precision highp float;
 precision mediump sampler2D;
 uniform sampler2D RawBuffer;
 uniform sampler2D GreenBuffer;
+uniform sampler2D GainMap;
 uniform int yOffset;
 uniform int CfaPattern;
 uniform vec3 whitePoint;
@@ -99,6 +100,15 @@ void main() {
         outp.r = interpolateColor(xy);
     }
     Output = outp;
-
+    vec4 gains = textureBicubicHardware(GainMap, vec2(gl_FragCoord.xy)/vec2(textureSize(GreenBuffer, 0)));
+    vec3 neutralScaled = min(min(gains.x, gains.y), min(gains.z, gains.w)) * whitePoint;
+    vec3 npf = Output / neutralScaled;
+    Output = min(Output, neutralScaled);
+    // When both red and blue channels are above white point, assume green is too
+    // So extend dynamic range by scaling white point
+    // Use a bias so only high green values become higher
+    // In highlights, bias should be one
+    float bias = npf.g * npf.g * npf.g;
+    Output *= mix(1.f, min(npf.r + npf.b, 2.f) * 0.5f, bias);
     Output = clamp(Output,0.0,1.0);
 }

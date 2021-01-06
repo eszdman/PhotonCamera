@@ -181,15 +181,18 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
-vec3 applyColorSpace(vec3 pRGB){
+vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
+    pRGB*=tonemapGain;
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
-    //pRGB=mix(pRGB*1.75,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
+    pRGB=mix(pRGB*1.67,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
+
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
-    //pRGB = tonemap(pRGB);
+
     pRGB = gammaCorrectPixel2(pRGB);
+    pRGB = mix(pRGB,tonemap(pRGB),clamp(abs(1.0-tonemapGain)/2.0,0.0,1.0));
     //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
@@ -229,12 +232,11 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*13.0;
+    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
-    sRGB*=tonemapGain;
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
-    sRGB = applyColorSpace(sRGB);
+    sRGB = applyColorSpace(sRGB,tonemapGain);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
     br = (clamp(br-0.0004,0.0,0.002)*(1.0/0.002));
