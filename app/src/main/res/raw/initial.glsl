@@ -229,7 +229,10 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    sRGB*=clamp(textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*13.0 - 0.01,0.0,100.0);
+    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*13.0;
+    //tonemapGain = mix(1.f,tonemapGain,1.5);
+    sRGB*=tonemapGain;
+
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);
