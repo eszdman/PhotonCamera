@@ -21,14 +21,12 @@ public class GLTexture implements AutoCloseable {
     public final int mTextureID;
     @NonNull
     public final GLFormat mFormat;
-    public int filter;
-    public int wrap;
     private int Cur;
     public GLTexture(GLTexture in,GLFormat format) {
-        this(in.mSize,new GLFormat(format),null,in.filter,in.wrap,0);
+        this(in.mSize,new GLFormat(format),null,in.mFormat.filter,in.mFormat.wrap,0);
     }
     public GLTexture(GLTexture in) {
-        this(in.mSize,in.mFormat,null,in.filter,in.wrap,0);
+        this(in.mSize,in.mFormat,null,in.mFormat.filter,in.mFormat.wrap,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels) {
         this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
@@ -55,15 +53,13 @@ public class GLTexture implements AutoCloseable {
         this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,level);
     }
     public GLTexture(Point size, GLFormat glFormat) {
-        this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
+        this(new Point(size), new GLFormat(glFormat), null, glFormat.filter, glFormat.wrap,0);
     }
     public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
         this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
     }
     public GLTexture(Bitmap bmp, int textureFilter, int textureWrapper,int level) {
         mFormat = null;
-        filter = textureFilter;
-        wrap = textureWrapper;
         this.mSize = new Point(bmp.getWidth(),bmp.getHeight());
         this.mGLFormat = 0;
         int[] TexID = new int[1];
@@ -80,9 +76,9 @@ public class GLTexture implements AutoCloseable {
         checkEglError("Tex glTexParameteri");
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
-        filter = textureFilter;
-        wrap = textureWrapper;
         mFormat = glFormat;
+        mFormat.filter = textureFilter;
+        mFormat.wrap = textureWrapper;
         this.mSize = size;
         this.mGLFormat = glFormat.getGLFormatInternal();
         int[] TexID = new int[1];

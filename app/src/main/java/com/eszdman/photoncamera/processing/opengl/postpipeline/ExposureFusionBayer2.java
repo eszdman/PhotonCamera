@@ -4,20 +4,14 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
-import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 
-import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
+public class ExposureFusionBayer2 extends Node {
 
-public class ExposureFusionBayer extends Node {
-
-    public ExposureFusionBayer(String name) {
+    public ExposureFusionBayer2(String name) {
         super(0, name);
     }
     @Override
@@ -25,32 +19,45 @@ public class ExposureFusionBayer extends Node {
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DH","("+dehaze+")");
-        glProg.useProgram(R.raw.exposebayer);
+        glProg.useProgram(R.raw.exposebayer2);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
-        GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,4));
+        GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,2));
         glProg.drawBlocks(outp);
         return outp;
     }
     GLTexture expose2(GLTexture in, float str){
         glProg.setDefine("DH","("+dehaze+")");
-        glProg.useProgram(R.raw.exposebayer);
+        glProg.useProgram(R.raw.exposebayer2);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
-        GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,4));
+        GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,2));
         glProg.drawBlocks(outp);
         return outp;
     }
-    GLTexture unexpose(GLTexture in,float str){
+    GLTexture unexpose(GLTexture in,GLTexture br,float str){
         glProg.setDefine("DH","("+dehaze+")");
-        glProg.useProgram(R.raw.unexposebayer);
+        glProg.useProgram(R.raw.unexposebayer2);
         glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("BayerBuffer",previousNode.WorkingTexture);
+        glProg.setTexture("BrBuffer",br);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         glProg.drawBlocks(basePipeline.main2,initialSize);
         return basePipeline.main2;
+    }
+    GLTexture fusionMap(GLTexture in,GLTexture br,float str){
+        glProg.setDefine("DH","("+dehaze+")");
+        glProg.useProgram(R.raw.fusionmap);
+        glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("BrBuffer",br);
+        glProg.setVar("factor", str);
+        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
+        GLTexture out = new GLTexture(in);
+        glProg.drawBlocks(out);
+        return out;
     }
     Point initialSize;
     Point WorkSize;
@@ -75,7 +82,7 @@ public class ExposureFusionBayer extends Node {
         GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
         //in.close();
-        glProg.useProgram(R.raw.fusionbayer);
+        glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
         GLTexture wip = new GLTexture(normalExpo.gauss[ind]);
@@ -92,18 +99,18 @@ public class ExposureFusionBayer extends Node {
             //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
             GLTexture upsampleWip = wip;
             Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
-            glProg.useProgram(R.raw.fusionbayer);
+            glProg.useProgram(R.raw.fusionbayer2);
 
             glProg.setTexture("upsampled", upsampleWip);
             glProg.setVar("useUpsampled", 1);
             glProg.setVar("level",i);
-            glProg.setVar("upscaleIn",normalExpo.sizes[i].x,normalExpo.sizes[i].y);
+            glProg.setVar("upscaleIn",normalExpo.sizes[i]);
             // We can discard the previous work in progress merge.
             //wip.close();
             Point wsize;
             if(normalExpo.laplace[i].mSize.equals(WorkSize)){
-                wip = basePipeline.main1;
-                wsize = WorkSize;
+                wip = new GLTexture(normalExpo.laplace[i]);
+                wsize = wip.mSize;
             } else {
                 wip = new GLTexture(normalExpo.laplace[i]);
                 wsize = wip.mSize;
@@ -120,13 +127,13 @@ public class ExposureFusionBayer extends Node {
             glProg.drawBlocks(wip,wsize);
             //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
 
-            /*upsampleWip.close();
+            upsampleWip.close();
             if(!normalExpo.gauss[i].mSize.equals(WorkSize)) {
                 normalExpo.gauss[i].close();
                 highExpo.gauss[i].close();
             }
             normalExpo.laplace[i].close();
-            highExpo.laplace[i].close();*/
+            highExpo.laplace[i].close();
 
         }
         //previousNode.WorkingTexture.close();
@@ -137,8 +144,10 @@ public class ExposureFusionBayer extends Node {
         basePipeline.main2.mSize.y = initialSize.y;
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
-
-        WorkingTexture = unexpose(wip, (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+        ((PostPipeline)basePipeline).FusionMap = fusionMap(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+        wip.close();
+        //WorkingTexture = unexpose(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+        WorkingTexture = previousNode.WorkingTexture;
         Log.d(Name,"Output Size:"+wip.mSize);
         glProg.closed = true;
     }

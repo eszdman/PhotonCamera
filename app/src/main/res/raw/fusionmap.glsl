@@ -2,6 +2,7 @@
 precision highp sampler2D;
 precision highp float;
 uniform sampler2D InputBuffer;
+uniform sampler2D BrBuffer;
 uniform float factor;
 uniform vec3 neutralPoint;
 out float result;
@@ -14,19 +15,12 @@ float gammaInverse(float x) {
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
-    ivec2 shift = xy%2;
-    xy/=2;
-    int cnt = shift.x+shift.y*2;
-    vec4 tmp = texelFetch(InputBuffer, xy, 0);
-    vec3 v3 = vec3(tmp.r,(tmp.g+tmp.b)/2.0,tmp.a);
-    float br = luminocity(v3);
-    //00 0
-    //10 1
-    //01 2
-    //11 3
-    tmp/=br;
+    float br = texelFetch(BrBuffer, xy, 0).r;
+    float br2 = texelFetch(InputBuffer, xy, 0).r;
+    br2 = gammaInverse(br2);
+    br2+=DH;
     br = gammaInverse(br);
     br+=DH;
-    tmp*=factor*br;
-    result = clamp(tmp[cnt],0.0,1.0);
+    result=(factor*(br2/br))/10.0;
+    result = clamp(result,0.0,1.0);
 }

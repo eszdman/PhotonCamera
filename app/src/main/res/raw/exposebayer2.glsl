@@ -4,10 +4,19 @@ precision highp float;
 uniform sampler2D InputBuffer;
 uniform float factor;
 uniform vec3 neutralPoint;
-out vec4 result;
+out vec2 result;
 uniform int yOffset;
-#define DR (1.4)
 #define DH (0.0)
+#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+float gammaEncode(float x) {
+    return sqrt(x);
+}
+float stddev(vec3 XYZ) {
+    float avg = (XYZ.r + XYZ.g + XYZ.b) / 3.;
+    vec3 diff = XYZ - avg;
+    diff *= diff;
+    return sqrt((diff.r + diff.g + diff.b) / 3.);
+}
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
     xyCenter+=ivec2(0,yOffset);
@@ -17,11 +26,15 @@ void main() {
     inp.g = texelFetch(InputBuffer, xyCenter+ivec2(1,0), 0).r;
     inp.b = texelFetch(InputBuffer, xyCenter+ivec2(0,1), 0).r;
     inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
+    inp = clamp(inp,vec4(0.0001),neutralPoint.rggb);
     if(factor > 1.0){
         float br2 = inp.r+inp.g+inp.b+inp.a;
         br2/=4.0;
         inp*=factor*clamp((0.7-br2)*1.3,0.5,1.0);
     }
-    result = clamp(inp,vec4(0.0001),neutralPoint.rggb);
-    result/=neutralPoint.rggb;
+    vec3 v3 = vec3(inp.r,(inp.g+inp.b)/2.0,inp.a);
+    float br = luminocity(v3);
+    br = gammaEncode(clamp(br-DH,0.0,1.0));
+    result.r = br;
+    result.g = stddev(v3);
 }

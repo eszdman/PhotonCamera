@@ -61,14 +61,25 @@ public class Equalization extends Node {
         Histogram histParser = Analyze();
         Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut2);
         int wrongHist = 0;
+        int brokeHist = 0;
         for(int i =0; i<histParser.hist.length;i++){
             float val = ((float)(i))/histParser.hist.length;
             if(3.f < histParser.hist[i] || val*0.5 > histParser.hist[i]) {
                 wrongHist++;
             }
+            if(histParser.hist[i] > 10.f){
+                brokeHist++;
+            }
+        }
+        if(brokeHist >= 10){
+            wrongHist = histParser.hist.length;
         }
         if(wrongHist != 0){
             float wrongP = ((float)wrongHist)/histParser.hist.length;
+            wrongP-=0.5f;
+            if(wrongP > 0.0) wrongP*=1.6f;
+            wrongP+=0.5f;
+            wrongP = Math.min(wrongP,1.f);
             Log.d(Name,"WrongHistPercent:"+wrongP);
             histParser.gamma = (1.f-wrongP)*histParser.gamma + 1.f*wrongP;
             for(int i =0; i<histParser.hist.length;i++){
@@ -82,7 +93,7 @@ public class Equalization extends Node {
 
         float eq = histParser.gamma;
         Log.d(Name,"Gamma:"+eq);
-        float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[0]));
+        float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
         Log.d(Name,"Equalizek:"+eq);

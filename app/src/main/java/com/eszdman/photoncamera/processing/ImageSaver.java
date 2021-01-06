@@ -13,7 +13,6 @@ import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.api.ParseExif;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
-import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.util.FileManager;
 
 import java.io.File;
@@ -47,10 +46,6 @@ public class ImageSaver {
         this.mUnlimitedProcessor = new UnlimitedProcessor(processingEventsListener);
     }
 
-    public int getImageBufferSize() {
-        return IMAGE_BUFFER.size();
-    }
-
     public void initProcess(ImageReader mReader) {
         Log.v(TAG, "initProcess() : called from \"" + Thread.currentThread().getName() + "\" Thread");
         Image mImage = null;
@@ -66,16 +61,16 @@ public class ImageSaver {
         lastImageReader = mReader;
         switch (format) {
             case ImageFormat.JPEG:
-                saveJPEG();
+                addJPEG();
                 break;
 
             case ImageFormat.YUV_420_888:
-                saveYUV();
+                addYUV();
                 break;
 
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR:
-                saveRAW();
+                addRAW();
                 break;
 
             default:
@@ -84,7 +79,7 @@ public class ImageSaver {
         }
     }
 
-    private void saveJPEG() {
+    private void addJPEG() {
         ByteBuffer buffer = lastImage.getPlanes()[0].getBuffer();
         try {
             IMAGE_BUFFER.add(lastImage);
@@ -114,7 +109,7 @@ public class ImageSaver {
         }
     }
 
-    private void saveYUV() {
+    private void addYUV() {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
         IMAGE_BUFFER.add(lastImage);
         if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
@@ -133,7 +128,7 @@ public class ImageSaver {
     }
     private Image lastImage;
     private ImageReader lastImageReader;
-    private void saveRAW() {
+    private void addRAW() {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
             mUnlimitedProcessor.unlimitedCycle(lastImage);
         } else {
@@ -142,7 +137,7 @@ public class ImageSaver {
             IMAGE_BUFFER.add(lastImage);
         }
     }
-    public void processRaw(){
+    public void runRaw(){
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();
             boolean imageSaved = Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),

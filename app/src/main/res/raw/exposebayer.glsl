@@ -6,15 +6,10 @@ uniform float factor;
 uniform vec3 neutralPoint;
 out vec4 result;
 uniform int yOffset;
-#define DR (1.4)
 #define DH (0.0)
-/*float gammaEncode(float x) {
-    if(x>1.0) return x;
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/DR));
-}*/
+#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 float gammaEncode(float x) {
-    if(x>1.0) return x;
-    return pow(float(x), (1.f/DR));
+    return sqrt(x);
 }
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
@@ -47,8 +42,9 @@ void main() {
     //br = br*factor*(clamp((1.0-br),0.0,0.05)*(1.0/0.05));
     //
     result = inp;
-    result/=neutralPoint.rggb;
-    float br = (result.r+result.g+result.b+result.a)/4.0;
+    //result/=neutralPoint.rggb;
+    vec3 v3 = vec3(result.r,(result.g+result.b)/2.0,result.a);
+    float br = luminocity(v3);
     result/=br;
     /*if(br > 0.93 && factor <= 1.1){
         result = mix(vec3((result.r+result.g+result.b)/3.0),result,(1.0-br)/0.03);
@@ -57,4 +53,6 @@ void main() {
 
     //br = clamp(br,0.0,1.0);
     result*=br;
+    //Second green channel hide
+    //result.b = ((result.r+result.g+result.a)/4.0)+(result.b-result.g);
 }

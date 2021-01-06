@@ -328,6 +328,10 @@ public class GLUtils {
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);
     }
+    public GLTexture interpolate(GLTexture in, Point nsize){
+        GLTexture out = new GLTexture(nsize,in.mFormat);
+        return interpolate(in,out);
+    }
     public GLTexture interpolate(GLTexture in, double k){
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);
@@ -373,29 +377,6 @@ public class GLUtils {
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",(int)(in.mSize.x*k),(int)(in.mSize.y*k));
         glProg.drawBlocks(out,out.mSize);
-        glProg.closed = true;
-        return out;
-    }
-    public GLTexture interpolate(GLTexture in, Point nsize){
-        glProg.useProgram("#version 300 es\n" +
-                "precision highp "+in.mFormat.getTemSamp()+";\n" +
-                "precision highp float;\n" +
-                "#define tvar "+in.mFormat.getTemVar()+"\n" +
-                "#define tscal "+in.mFormat.getScalar()+"\n" +
-                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
-                "uniform int yOffset;\n" +
-                "uniform ivec2 size;" +
-                "out tvar Output;\n" +
-                "#import interpolation\n" +
-                "void main() {\n" +
-                "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
-                "    xy+=vec2(0,yOffset);\n" +
-                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
-                "}\n");
-        glProg.setTexture("InputBuffer",in);
-        glProg.setVar("size",nsize);
-        GLTexture out = new GLTexture(nsize,in.mFormat);
-        glProg.drawBlocks(out);
         glProg.closed = true;
         return out;
     }

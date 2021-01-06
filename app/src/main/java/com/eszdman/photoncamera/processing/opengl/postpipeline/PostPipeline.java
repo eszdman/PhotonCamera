@@ -14,6 +14,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
+    public GLTexture FusionMap;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
@@ -50,7 +51,7 @@ public class PostPipeline extends GLBasePipeline {
         stackFrame = inBuffer;
         glint.parameters = parameters;
         add(new Bayer2Float(0,"Bayer2Float"));
-        add(new ExposureFusionBayer("FusionBayer"));
+        add(new ExposureFusionBayer2("FusionBayer"));
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
                 //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {

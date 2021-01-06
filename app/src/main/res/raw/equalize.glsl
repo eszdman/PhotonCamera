@@ -18,7 +18,7 @@ void main() {
         sRGB/=luma;
         float HistEq = texture(Histogram, vec2(luma, 0.5f)).r;
         float factor = 1.0;
-        factor*=1.0-abs(0.5-luma)*1.5;
+        factor*=1.0-abs(0.5-luma)*1.9;
         luma = mix(luma,luma*pow(HistEq/luma,HistFactor),factor);
         luma = pow(luma,Equalize);
         sRGB*=luma;

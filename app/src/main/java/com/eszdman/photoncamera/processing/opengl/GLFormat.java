@@ -2,6 +2,8 @@ package com.eszdman.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_NEAREST;
 import static android.opengl.GLES30.GL_BYTE;
 import static android.opengl.GLES30.GL_FLOAT;
 import static android.opengl.GLES30.GL_INT;
@@ -53,7 +55,8 @@ import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 public class GLFormat {
     final int mChannels;
     final DataType mFormat;
-
+    public int filter = GL_NEAREST;
+    public int wrap = GL_CLAMP_TO_EDGE;
     public enum DataType {
         NONE(0, 0),
         FLOAT_16(1, 2),

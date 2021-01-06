@@ -30,10 +30,11 @@ float laplace(sampler2D tex, vec4 mid, ivec2 xyCenter) {
 }
 
 float stddev(vec4 XYZ) {
-    float avg = (XYZ.r + XYZ.g + XYZ.b + XYZ.a) / 4.;
-    vec4 diff = XYZ - avg;
+    vec3 xyz3 = vec3(XYZ.r,(XYZ.g+XYZ.b)/2.0,XYZ.a);
+    float avg = (xyz3.r + xyz3.g + xyz3.b) / 3.;
+    vec3 diff = xyz3 - avg;
     diff *= diff;
-    return sqrt((diff.r + diff.g + diff.b + diff.a) / 4.);
+    return sqrt((diff.r + diff.g + diff.b) / 3.);
 }
 
 void main() {
@@ -57,11 +58,12 @@ void main() {
     float highWeight = 1000.;
 
     // Factor 1: Well-exposedness.
-    vec4 midNormalToAvg = sqrt(unscaledGaussian(midNormal - 0.35, 0.50));
-    vec4 midHighToAvg = sqrt(unscaledGaussian(midHigh - 0.35, 0.50));
 
-    normalWeight *= midNormalToAvg.r * midNormalToAvg.g * midNormalToAvg.b * midNormalToAvg.a;
-    highWeight *= midHighToAvg.r * midHighToAvg.g * midHighToAvg.b * midHighToAvg.a;
+    vec3 midNormalToAvg = sqrt(unscaledGaussian(vec3(midNormal.r,(midNormal.g+midNormal.b)/2.0,midNormal.a) - 0.35, 0.50));
+    vec3 midHighToAvg = sqrt(unscaledGaussian(vec3(midHigh.r,(midHigh.g+midHigh.b)/2.0,midHigh.a) - 0.35, 0.50));
+
+    normalWeight *= midNormalToAvg.r * midNormalToAvg.g * midNormalToAvg.b;
+    highWeight *= midHighToAvg.r * midHighToAvg.g * midHighToAvg.b;
 
     // Factor 2: Contrast.
     float laplaceNormal = laplace(normalExpo, midNormal, xyCenter);

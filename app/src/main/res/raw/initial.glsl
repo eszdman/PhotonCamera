@@ -4,6 +4,7 @@ precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
 uniform sampler2D LookupTable;
+uniform sampler2D FusionMap;
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
@@ -35,24 +36,17 @@ out vec3 Output;
     ? x * 12.92f
     : 1.055f * pow(x, 0.4166667f) - 0.055f;
 }*/
-float gammaEncode2(float x) {
+/*float gammaEncode2(float x) {
     return 1.055 * pow(x, 1.0/1.8) - 0.055;
-}
-float gammaEncode3(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
+}*/
+float gammaEncode2(float x) {
+    return 1.055 * sqrt(x) - 0.055;
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
     float br = (x.r+x.g+x.b)/3.0;
     x/=br;
     return x*(x1*br+x2*br*br+x3*br*br*br);
-}
-vec3 gammaCorrectPixel3(vec3 x) {
-    x+=0.0001;
-    float br = (x.r+x.g+x.b)/3.0;
-    x/=br;
-    br = clamp(gammaEncode3(br),0.0,1.0);
-    return x*br;
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -191,7 +185,7 @@ vec3 applyColorSpace(vec3 pRGB){
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
-    pRGB=mix(pRGB*1.75,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
+    //pRGB=mix(pRGB*1.75,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
     //pRGB = tonemap(pRGB);
@@ -221,7 +215,7 @@ vec3 saturate(vec3 rgb,float model) {
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
-    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation*model*1.05),0.,1.0);
     rgb = hsv2rgb(hsv);
     //rgb.r+=r*redcorr*saturation;
     //rgb.g=clamp(rgb.g,0.0,1.0);
@@ -235,6 +229,7 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    sRGB*=clamp(textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*13.0 - 0.01,0.0,100.0);
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB);
     sRGB = clamp(sRGB,0.0,1.0);

@@ -298,7 +298,7 @@ public class AWB extends Node {
         r0.close();
         r1.close();
         basePipeline.texnum = 1;
-        float[] CCV = CCV(ChromaHistogram(preview));
+        float[] CCV = CCVAccel(ChromaHistogram(preview));
         //CCV = CCVAEC(Histogram(preview),CCV);
         preview.recycle();
         WorkingTexture = glUtils.mpy(previousNode.WorkingTexture,CCV,basePipeline.getMain());
