@@ -94,7 +94,6 @@
                     app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:translationY="@dimen/standard_20"
                     tools:visibility="visible"/>
 
             <!--    Block 1.5-->

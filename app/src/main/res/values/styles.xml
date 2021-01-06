@@ -50,9 +50,8 @@
         <item name="android:textColor">@color/manual_icon_text</item>
     </style>
 
-    <style name="ManualModeKnobTextSelected">
-        <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/Blue</item>
+    <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">
+        <item name="android:textColor">?colorControlActivated</item>
     </style>
 
     <style name="AuxButtonText">

@@ -72,8 +72,8 @@ public class EvModel extends ManualModel<Float> {
                     drawableSelected.setText(valueStr);
                 }
                 StateListDrawable stateDrawable = new StateListDrawable();
-                stateDrawable.addState(new int[]{-16842913}, drawable);
-                stateDrawable.addState(new int[]{-16842913}, drawableSelected);
+                stateDrawable.addState(new int[]{-android.R.attr.state_selected}, drawable);
+                stateDrawable.addState(new int[]{android.R.attr.state_selected}, drawableSelected);
                 String text = String.format(Locale.ROOT, "%.2f", value);
                 if (value > 0.0f) {
                     getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, positiveValueCount - tick, value));

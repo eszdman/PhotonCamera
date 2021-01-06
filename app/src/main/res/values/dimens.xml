@@ -20,10 +20,10 @@
     <dimen name="mode_chip_text_size">15sp</dimen>
     <dimen name="exif_dialog_width">320dp</dimen>
     <dimen name="mode_switcher_padding">8dp</dimen>
-    <dimen name="manual_knob_dash_length">6dp</dimen>
+    <dimen name="manual_knob_dash_length">8dp</dimen>
     <dimen name="manual_knob_dash_padding">11dp</dimen>
-    <dimen name="manual_knob_icon_padding">7dp</dimen>
-    <dimen name="manual_knob_text_size">14dp</dimen>
+    <dimen name="manual_knob_icon_padding">8dp</dimen>
+    <dimen name="manual_knob_text_size">13dp</dimen>
     <dimen name="manual_knob_icon_size">17dp</dimen>
     <dimen name="camera_settings_preference_font_size">15sp</dimen>
     <dimen name="camera_settings_entry_left_margin">16dp</dimen>

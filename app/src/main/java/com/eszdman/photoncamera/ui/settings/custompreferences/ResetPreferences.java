@@ -39,7 +39,7 @@ public class ResetPreferences extends DialogPreference {
                     if (!BackupRestoreUtil.resetPreferences(getContext()))
                         status = "Failed";
                     Snackbar.make(getActivity().findViewById(android.R.id.content), status, Snackbar.LENGTH_SHORT).show();
-                    new Handler(Looper.getMainLooper()).postDelayed(PhotonCamera::restartApp, 1000);
+                    PhotonCamera.restartWithDelay(1000);
                 }
             }
         }

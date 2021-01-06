@@ -50,10 +50,12 @@ public class TouchFocus {
     public void processTouchToFocus(float fx, float fy) {
         mainHandler.removeCallbacks(hideFocusCircleRunnable);
         showFocusCircle(fx, fy);
-        setFocus((int) fy, (int) fx);
+        try {
+            setFocus((int) fy, (int) fx);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         mainHandler.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
-        captureController.rebuildPreviewBuilder();
-
     }
 
     private void showFocusCircle(float fx, float fy) {
@@ -148,6 +150,7 @@ public class TouchFocus {
         build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
         build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
         captureController.rebuildPreviewBuilderOneShot();
+        captureController.rebuildPreviewBuilder();
 //        }
     }
 
