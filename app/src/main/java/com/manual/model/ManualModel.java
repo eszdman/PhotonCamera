@@ -85,8 +85,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         autoDrawableSelected.setText(auto_string);
         autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
-        autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
-        autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
+        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
+        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
         autoModel = new KnobItemInfo(autoStateDrawable, auto_string, 0, defaultVal);
         return autoModel;
     }
@@ -99,8 +99,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         autoDrawableSelected.setText(text);
         autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
         StateListDrawable autoStateDrawable = new StateListDrawable();
-        autoStateDrawable.addState(new int[]{-16842913}, autoDrawable);
-        autoStateDrawable.addState(new int[]{-16842913}, autoDrawableSelected);
+        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
+        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
         return new KnobItemInfo(autoStateDrawable, text, tick, val);
     }
 
@@ -130,6 +130,10 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         msg.arg1 = SET_TO_CAM;
         msg.obj = knobItemInfo2;
         backgroundHandler.sendMessage(msg);
+        if (knobItemInfo != null) {
+            knobItemInfo.drawable.setState(new int[]{-android.R.attr.state_selected});
+        }
+        knobItemInfo2.drawable.setState(new int[]{android.R.attr.state_selected});
         fireValueChangedEvent(knobItemInfo2.text);
         //backgroundHandler.post(()->onSelectedKnobItemChanged(knobItemInfo2));
         //backgroundHandler.post(()->onSelectedKnobItemChanged(knobItemInfo2));

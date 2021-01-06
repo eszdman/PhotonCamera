@@ -105,6 +105,8 @@ public class ShadowTextRenderer {
 
     private void measure(float currentTextSize) {
         this.m_TextPaint.getTextBounds(this.m_Text, 0, this.m_Text.length(), this.m_MeasuredTextBounds);
+        this.m_MeasuredTextBounds.left -= 5;
+        this.m_MeasuredTextBounds.right += 5;
         if (this.m_MaximumSize.getWidth() >= 0 && this.m_MaximumSize.getHeight() >= 0 && currentTextSize > 12.0f && this.m_MeasuredTextBounds.width() > this.m_MaximumSize.getWidth()) {
             float currentTextSize2 = currentTextSize - 1.0f;
             this.m_TextPaint.setTextSize(currentTextSize2);

@@ -86,8 +86,8 @@ public class ShutterModel extends ManualModel<Long> {
                 indicatorCount++;
             }
             StateListDrawable stateDrawable = new StateListDrawable();
-            stateDrawable.addState(new int[]{-16842913}, drawable);
-            stateDrawable.addState(new int[]{-16842913}, drawableSelected);
+            stateDrawable.addState(new int[]{-android.R.attr.state_selected}, drawable);
+            stateDrawable.addState(new int[]{android.R.attr.state_selected}, drawableSelected);
 //            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, (double) values.get(tick)));
             tick++;
