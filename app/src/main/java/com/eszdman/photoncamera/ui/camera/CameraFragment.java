@@ -233,9 +233,10 @@ public class CameraFragment extends Fragment {
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
             AutoFitTextureView textureView = cameraFragmentBinding.layoutViewfinder.texture;
-            Point size = new Point(textureView.getWidth(), textureView.getHeight());
-
-            mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
+            textureView.post(() -> {
+                Point size = new Point(textureView.getWidth(), textureView.getHeight());
+                mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
+            });
         }
     }
 
