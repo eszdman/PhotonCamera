@@ -47,71 +47,52 @@ public class GLInterface {
     }
     static public String readprog(BufferedReader reader, ArrayList<String[]> defines) {
         StringBuilder source = new StringBuilder();
-        StringBuilder imports = new StringBuilder();
+        int linecnt = 0;
         for (Object line : reader.lines().toArray()) {
+            linecnt++;
             String val = String.valueOf(line);
             if(val.contains("#import")){
                 val = val.replace("\n","").replace(" ","").toLowerCase();
                 @RawRes
                 int id = 0;
-                String headers = "";
                 switch (val){
                     case "#importxyytoxyz":
                         id = R.raw.import_xyy2xyz;
-                        headers+="vec3 xyYtoXYZ(vec3);";
                         break;
                     case "#importxyztoxyy":
                         id = R.raw.import_xyz2xyy;
-                        headers+="vec3 XYZtoxyY(vec3);";
                         break;
                     case "#importsigmoid":
                         id = R.raw.import_sigmoid;
-                        headers+="float sigmoid(float, float);";
                         break;
                     case "#importgaussian":
                         id = R.raw.import_gaussian;
-                        headers+="float unscaledGaussian(float, float);";
-                        headers+="vec3 unscaledGaussian(vec3, float);";
-                        headers+="vec3 unscaledGaussian(vec3, vec3);";
-                        headers+="vec4 unscaledGaussian(vec4, float);";
-                        headers+="vec2 unscaledGaussian(vec2, float);";
                         break;
                     case "#importcubic":
                         id = R.raw.import_cubic;
-                        headers+="vec4 cubic(float);";
                         break;
                     case "#importinterpolation":
                         id = R.raw.import_interpolation;
-                        headers+="vec4 cubic(float);";
-                        headers+="vec4 textureLinear(sampler2D, vec2);";
-                        headers+="vec4 textureLinear1D(sampler2D, vec2);";
-                        headers+="vec4 textureBicubic(sampler2D, vec2);";
-                        headers+="vec4 textureBicubicHardware(sampler2D, vec2);";
-                        headers+="vec4 textureCubic(sampler2D, vec2);";
-                        headers+="vec4 textureCubicHardware(sampler2D, vec2);";
                         break;
                     case "#importloadbayer":
                         id = R.raw.import_loadbayer;
-                        headers+="float[9] loadbayer9(sampler2D tex, ivec2 coords, int bayer);";
                         break;
                     case "#importcoords":
                         id = R.raw.import_coords;
-                        headers+="ivec2 mirrorCoords(ivec2 xy, ivec4 bounds);";
                         break;
                     case "#importcmyk":
                         id = R.raw.import_cmyk;
-                        headers+="vec3 cmyk2rgb (vec4 cmyk);";
-                        headers+="vec4 rgb2cmyk (vec3 rgb);";
                 }
-                headers+="\n";
                 if(id!= 0) {
                     BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(id)));
                     for (Object line2 : reader2.lines().toArray()) {
-                        imports.append(line2);
-                        imports.append("\n");
+                        source.append("#line 1\n");
+                        source.append(line2);
+                        source.append("\n");
                     }
+                    //linecnt++;
+                    source.append("#line ").append(linecnt+1).append("\n");
                 }
-                source.append(headers);
                 continue;
             }
             if(val.contains("#define") && defines != null){
@@ -125,7 +106,6 @@ public class GLInterface {
             }
             source.append(line).append("\n");
         }
-        source.append(imports);
         return source.toString();
     }
 }

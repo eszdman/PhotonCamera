@@ -28,17 +28,6 @@ out vec3 Output;
 #define x3 1.2899f
 #import coords
 #import interpolation
-//float gammaEncode2(float x) {
-//    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
-//}
-/*float gammaEncode2(float x) {
-    return x <= 0.0031308f
-    ? x * 12.92f
-    : 1.055f * pow(x, 0.4166667f) - 0.055f;
-}*/
-/*float gammaEncode2(float x) {
-    return 1.055 * pow(x, 1.0/1.8) - 0.055;
-}*/
 float gammaEncode2(float x) {
     return 1.055 * sqrt(x) - 0.055;
 }

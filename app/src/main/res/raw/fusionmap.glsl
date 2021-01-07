@@ -20,7 +20,7 @@ void main() {
     br2 = gammaInverse(br2);
     br2+=DH;
     br = gammaInverse(br);
-    br+=DH;
+    br+=DH+0.003;
     result=(factor*(br2/br))/10.0;
     result = clamp(result,0.0,1.0);
 }

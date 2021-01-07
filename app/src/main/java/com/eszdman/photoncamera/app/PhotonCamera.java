@@ -23,6 +23,7 @@ import com.eszdman.photoncamera.processing.render.Parameters;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
+import com.eszdman.photoncamera.util.AssetLoader;
 import com.eszdman.photoncamera.util.log.ActivityLifecycleMonitor;
 import com.manual.ManualMode;
 
@@ -44,6 +45,7 @@ public class PhotonCamera extends Application {
     private SupportedDevice mSupportedDevice;
     private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
+    private AssetLoader mAssetLoader;
 
     public static Handler getMainHandler() {
         return sPhotonCamera.mainThreadHandler;
@@ -79,6 +81,9 @@ public class PhotonCamera extends Application {
 
     public static SupportedDevice getSupportedDevice() {
         return sPhotonCamera.mSupportedDevice;
+    }
+    public static AssetLoader getAssetLoader() {
+        return sPhotonCamera.mAssetLoader;
     }
 
     public static ManualMode getManualMode() {
@@ -156,6 +161,7 @@ public class PhotonCamera extends Application {
 
         mParameters = new Parameters();
         mSupportedDevice = new SupportedDevice(mSettingsManager);
+        mAssetLoader = new AssetLoader(this);
     }
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {
