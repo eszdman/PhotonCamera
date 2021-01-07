@@ -32,9 +32,6 @@ public class Equalization extends Node {
     @Override
     public void Compile() {}
     private Histogram Analyze(){
-        /*GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(previousNode.WorkingTexture.mSize.x/8,previousNode.WorkingTexture.mSize.x/8));
-        GLTexture r1 = glUtils.interpolate(r0,new Point(40,40));
-        glUtils.ops(r1,"#import xyztoxyy","XYZtoxyY(in1.rgb),1.0","");*/
         int resize = 16;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);

@@ -24,7 +24,6 @@ public class Demosaic extends Node {
 
     @Override
     public void Run() {
-        PostPipeline postPipeline = (PostPipeline) (basePipeline);
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         glProg.useProgram(R.raw.demosaicp1);
