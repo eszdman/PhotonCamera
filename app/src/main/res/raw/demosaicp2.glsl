@@ -109,6 +109,6 @@ void main() {
     // Use a bias so only high green values become higher
     // In highlights, bias should be one
     float bias = npf.g * npf.g * npf.g;
-    Output *= mix(1.f, min(npf.r + npf.b, 2.f) * 0.5f, bias);
+    Output *= mix(1.f, max(npf.r + npf.b, 2.f) * 0.5f, bias);
     Output = clamp(Output,0.0,1.0);
 }

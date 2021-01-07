@@ -14,6 +14,7 @@ uniform float Regeneration;
 uniform int MinimalInd;
 uniform int yOffset;
 #import interpolation
+#import median
 out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -23,24 +24,18 @@ void main() {
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
-    //Output*=whitePoint;
     if(fact.x+fact.y == 1){
         balance = whitePoint.g;
-        Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
+        float[5] g;
+        g[0] = float(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).x);
+        g[1] = float(texelFetch(InputBuffer, (xy+ivec2(-1,-1)), 0).x);
+        g[2] = float(texelFetch(InputBuffer, (xy+ivec2(-1,1)), 0).x);
+        g[3] = float(texelFetch(InputBuffer, (xy+ivec2(1,-1)), 0).x);
+        g[4] = float(texelFetch(InputBuffer, (xy+ivec2(1,1)), 0).x);
+        float outp = median5(g);
+        if(g[0] > outp*1.3) g[0] = outp;
+        Output = float(g[0])/float(whitelevel);
         Output = gains.g*(Output-level.g)/(1.0-level.g);
-
-        /*float col = float(texelFetch(InputBuffer, (xy-fact+ivec2(MinimalInd/2)), 0).x)/float(whitelevel);
-        col = gains[MinimalInd]*(col-level[MinimalInd])/(1.0-level[MinimalInd]);
-        //Green channel regeneration
-        if(Output > 0.999 && col > whitePoint[MinimalInd]){
-            float oldGreen = Output;
-            Output = col/whitePoint[MinimalInd];
-            //Output*= whitePoint[1];
-            //Output = mix(Output,oldGreen,clamp((1.0-oldGreen)/0.07,0.00000001,0.9999999));
-            //Output = mix(oldGreen,Output,1.0-clamp((1.0-oldGreen)/0.03,0.0,1.0));
-            //float k = clamp((1.0-oldGreen)/0.03,0.0,1.0);
-            //Output = Output*k + oldGreen*(1.0-k);
-        }*/
     } else {
         if(fact.x == 0){
             balance = whitePoint.r;

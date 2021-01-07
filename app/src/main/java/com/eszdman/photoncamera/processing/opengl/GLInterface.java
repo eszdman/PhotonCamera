@@ -82,6 +82,10 @@ public class GLInterface {
                         break;
                     case "#importcmyk":
                         id = R.raw.import_cmyk;
+                        break;
+                    case "#importmedian":
+                        id = R.raw.import_median;
+                        break;
                 }
                 if(id!= 0) {
                     BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(id)));
