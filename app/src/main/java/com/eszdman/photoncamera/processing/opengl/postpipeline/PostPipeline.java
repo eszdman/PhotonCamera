@@ -82,7 +82,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         add(new Initial(R.raw.initial,"Initial"));
-        add(new AWB(0,"AWB"));
+        //add(new AWB(0,"AWB"));
         add(new Equalization(0,"Equalization"));
 
         //if(PhotonCamera.getParameters().focalLength <= 3.0)

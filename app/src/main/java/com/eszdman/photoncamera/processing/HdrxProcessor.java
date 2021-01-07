@@ -20,9 +20,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
-public class HdrxProcessor extends ImageProcessorAbstract {
+public class HdrxProcessor extends ProcessorBase {
     private static final String TAG = "HdrxProcessor";
-    private static final float FAKE_WL = 65535.f;
     private ArrayList<Image> mImageFramesToProcess;
     private int imageFormat;
 
@@ -181,7 +180,6 @@ public class HdrxProcessor extends ImageProcessorAbstract {
             if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
                 ghosting = 0.f;
             output = Wrapper.processFrame(ghosting, ((float) (FAKE_WL)) / levell);
-            debugAlignment = true;
         } else {
             output = rawPipeline.Run();
         }
@@ -226,7 +224,7 @@ public class HdrxProcessor extends ImageProcessorAbstract {
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 
         if (PhotonCamera.getSettings().rawSaver) {
-            int patchWL = debugAlignment ? (int) FAKE_WL : 0;
+            int patchWL = (int)FAKE_WL;
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
 
@@ -239,14 +237,8 @@ public class HdrxProcessor extends ImageProcessorAbstract {
 
         }
 
-        if (debugAlignment) {
-            for (int i = 0; i < 4; i++) {
-                PhotonCamera.getParameters().blackLevel[i] *= FAKE_WL / PhotonCamera.getParameters().whiteLevel;
-            }
-            PhotonCamera.getParameters().whiteLevel = (int) (FAKE_WL);
-        }
-        Log.d(TAG, "Wrapper.processFrame()");
-//        PhotonCamera.getParameters().path = path;
+        IncreaseWLBL();
+
         PostPipeline pipeline = new PostPipeline();
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;

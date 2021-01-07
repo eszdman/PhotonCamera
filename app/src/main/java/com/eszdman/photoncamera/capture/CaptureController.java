@@ -934,6 +934,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
                 maxPreviewHeight*2, target);*/
         mPreviewSize = new Size(mPreviewWidth, mPreviewHeight);
+        if(PhotonCamera.getSettings().DebugData)
         showToast("preview:"+new Point(mPreviewWidth,mPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.

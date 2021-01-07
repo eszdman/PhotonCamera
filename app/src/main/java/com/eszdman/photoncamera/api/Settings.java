@@ -15,7 +15,7 @@ public class Settings {
     public boolean grid;
     public boolean watermark;
     public boolean energySaving;
-    public boolean aFDebugData;
+    public boolean DebugData;
     public boolean roundEdge;
     public boolean align;
     public boolean hdrx;
@@ -50,7 +50,7 @@ public class Settings {
         grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
         energySaving = PreferenceKeys.getBool(PreferenceKeys.Preference.KEY_ENERGY_SAVING);
-        aFDebugData = PreferenceKeys.isAfDataOn();
+        DebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
         contrastMpy = PreferenceKeys.getContrastValue();//TODO recheck

@@ -297,7 +297,7 @@ public class AWB extends Node {
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
 
-        if(PhotonCamera.getSettings().aFDebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
+        if(PhotonCamera.getSettings().DebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
         r0.close();
         r1.close();
         basePipeline.texnum = 1;

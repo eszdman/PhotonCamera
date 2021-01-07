@@ -32,7 +32,7 @@ public class SupportedDevice {
     public void loadCheck() {
         new Thread(() -> {
             try {
-                if (checkedCount <= 1) {
+                if (checkedCount < 1) {
                     loadSupportedDevicesList();
                     isSupported();
                 }

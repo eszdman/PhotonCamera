@@ -16,13 +16,13 @@ import com.eszdman.photoncamera.processing.opengl.scripts.AverageRaw;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-public class UnlimitedProcessor extends ImageProcessorAbstract {
+public class UnlimitedProcessor extends ProcessorBase {
     private static final String TAG = "UnlimitedProcessor";
-    public static float fakeWL = 65535.f;
     public static int unlimitedCounter = 1;
     private static boolean unlimitedEnd = false;
     private AverageRaw averageRaw;
     private boolean lock = false;
+    private boolean fillParams = false;
 
     public UnlimitedProcessor(ProcessingEventsListener processingEventsListener) {
         super(processingEventsListener);
@@ -37,6 +37,7 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         this.captureResult = captureResult;
         unlimitedEnd = false;
         lock = false;
+        fillParams = false;
     }
 
     public void unlimitedCycle(Image image) {
@@ -50,9 +51,14 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         PhotonCamera.getParameters().rawSize = new Point(width, height);
 
         if (averageRaw == null) {
+
+
+            averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
+        }
+        if(!fillParams) {
+            fillParams = true;
             PhotonCamera.getParameters().FillParameters(captureResult,
                     characteristics, PhotonCamera.getParameters().rawSize);
-            averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
         averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
         averageRaw.Run();
@@ -74,27 +80,28 @@ public class UnlimitedProcessor extends ImageProcessorAbstract {
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
         averageRaw = null;
-
+        image.getPlanes()[0].getBuffer().position(0);
+        image.getPlanes()[0].getBuffer().put(unlimitedBuffer);
+        image.getPlanes()[0].getBuffer().position(0);
         if (PhotonCamera.getSettings().rawSaver) {
-            image.getPlanes()[0].getBuffer().position(0);
-            image.getPlanes()[0].getBuffer().put(unlimitedBuffer);
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
 
-            Camera2ApiAutoFix.patchWL(characteristics, captureResult, (int) fakeWL);
+            Camera2ApiAutoFix.patchWL(characteristics, captureResult, (int) FAKE_WL);
 
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, image,
                     characteristics, captureResult);
 
-            Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) fakeWL);
+            Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) FAKE_WL);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
             return;
         }
 
+        IncreaseWLBL();
         PostPipeline pipeline = new PostPipeline();
-        Bitmap bitmap = pipeline.Run(unlimitedBuffer, PhotonCamera.getParameters());
+        Bitmap bitmap = pipeline.Run(image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
 

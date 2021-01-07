@@ -136,6 +136,7 @@ public class ExposureFusionBayer2 extends Node {
         ((PostPipeline)basePipeline).FusionMap =
                 fusionMap(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
                 //wip;
+        if(basePipeline.mSettings.DebugData) glUtils.SaveProgResult(wip.mSize,"tonemap");
         wip.close();
         //WorkingTexture = unexpose(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
         WorkingTexture = previousNode.WorkingTexture;

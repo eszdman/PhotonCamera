@@ -9,6 +9,7 @@ out float Output;
 #define mainv (1.0)
 #define greenmin (0.04)
 #define greenmax (0.7)
+#define EPS (0.001)
 #import median
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -16,11 +17,11 @@ void main() {
     int fact2 = xy.y%2;
     if(fact1+fact2 != 1){
         vec2 vin[5];
-        vin[0].g = (texelFetch(GreenBuffer, (xy+ivec2(0,0)), 0).x);
-        vin[1].g = (texelFetch(GreenBuffer, (xy+ivec2(-2,0)), 0).x);
-        vin[2].g = (texelFetch(GreenBuffer, (xy+ivec2(0,-2)), 0).x);
-        vin[3].g = (texelFetch(GreenBuffer, (xy+ivec2(2,0)), 0).x);
-        vin[4].g = (texelFetch(GreenBuffer, (xy+ivec2(0,2)), 0).x);
+        vin[0].g = (texelFetch(GreenBuffer, (xy+ivec2(0,0)), 0).x)+EPS;
+        vin[1].g = (texelFetch(GreenBuffer, (xy+ivec2(-2,0)), 0).x)+EPS;
+        vin[2].g = (texelFetch(GreenBuffer, (xy+ivec2(0,-2)), 0).x)+EPS;
+        vin[3].g = (texelFetch(GreenBuffer, (xy+ivec2(2,0)), 0).x)+EPS;
+        vin[4].g = (texelFetch(GreenBuffer, (xy+ivec2(0,2)), 0).x)+EPS;
 
         /*vin[5].g = (texelFetch(GreenBuffer, (xy+ivec2(-2,-2)), 0).x);
         vin[6].g = (texelFetch(GreenBuffer, (xy+ivec2(2,-2)), 0).x);

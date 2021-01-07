@@ -87,7 +87,6 @@ public class AverageRaw extends GLOneScript {
             glProg.drawBlocks(GetAlterOut());
             //glOne.glProcessing.drawBlocksToOutput();
             AfterRun();
-            //glOne.glProgram.close();
         //Stage 2 average stack
         if(unlimitedCounter > 80) {
             AverageStack();
@@ -118,10 +117,7 @@ public class AverageRaw extends GLOneScript {
         glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
         Log.d(Name,"CFAPattern:"+PhotonCamera.getParameters().cfaPattern);
         glProg.setTexture("InputBuffer",stack);
-        if(!PhotonCamera.getSettings().rawSaver)glProg.setVar("whitelevel",(int)(PhotonCamera.getParameters().whiteLevel));
-        else {
-            glProg.setVar("whitelevel",(int) UnlimitedProcessor.fakeWL);
-        }
+        glProg.setVar("whitelevel",(int) UnlimitedProcessor.FAKE_WL);
         first.close();
         second.close();
         //in1 = WorkingTexture;
