@@ -88,7 +88,7 @@
                     tools:progress="50"
                     android:progressDrawable="@drawable/circular_progress_bar2"
                     android:indeterminateBehavior="cycle"
-                    android:indeterminateDuration="1250"
+                    android:indeterminateDuration="2000"
                     android:indeterminateDrawable="@drawable/circular_progress_bar2"
                     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
                     android:scaleX="1.35"
