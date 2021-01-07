@@ -775,7 +775,7 @@ public class GLUtils {
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
         if(!namesuffix.equals("")) {
-            File debug = new File(jpgFilePathToSave.toString() + namesuffix + ext);
+            File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + namesuffix + ext);
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();
