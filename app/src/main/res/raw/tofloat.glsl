@@ -32,8 +32,8 @@ void main() {
         g[2] = float(texelFetch(InputBuffer, (xy+ivec2(-1,1)), 0).x);
         g[3] = float(texelFetch(InputBuffer, (xy+ivec2(1,-1)), 0).x);
         g[4] = float(texelFetch(InputBuffer, (xy+ivec2(1,1)), 0).x);
-        float outp = median5(g);
-        if(g[0] > outp*1.3) g[0] = outp;
+        float sum = (g[1]+g[2]+g[3]+g[4])/4.0;
+        if(g[0] > sum*1.9) g[0] = median5(g);
         Output = float(g[0])/float(whitelevel);
         Output = gains.g*(Output-level.g)/(1.0-level.g);
     } else {
