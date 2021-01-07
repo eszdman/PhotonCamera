@@ -2,14 +2,10 @@ package com.manual.model;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.hardware.camera2.CaptureRequest;
+import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
-import com.manual.KnobInfo;
-import com.manual.KnobItemInfo;
-import com.manual.KnobView;
-import com.manual.ShadowTextDrawable;
+import com.manual.*;
 
 import java.util.ArrayList;
 
@@ -29,7 +25,7 @@ public class FocusModel extends ManualModel<Float> {
             currentInfo = auto;
             return;
         }
-        auto = getNewAutoItem(-1.0d, null);
+        auto = getNewAutoItem(FOCUS_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         float focusStep = (range.getUpper() - range.getLower()) / 20;
@@ -64,14 +60,7 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
-        if (knobItemInfo.equals(autoModel)) {
-            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-        } else {
-            builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, (float) knobItemInfo.value);
-        }
-        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo.text);
+        ParamController.setFocus((float) knobItemInfo.value);
+        Log.d("TAG", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 }

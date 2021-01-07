@@ -17,29 +17,17 @@ import java.util.List;
 
 public abstract class ManualModel<T extends Comparable<? super T>> implements KnobViewChangedListener, IModel {
 
+    public static final double SHUTTER_AUTO = 0;
+    public static final double EV_AUTO = 0;
+    public static final double ISO_AUTO = 0;
+    public static final double FOCUS_AUTO = -1.0d;
     private final int SET_TO_CAM = 1;
-    //    private Handler mainHandler;
     private final HandlerThread mBackgroundThread;
     private final List<KnobItemInfo> knobInfoList;
     private final ValueChangedEvent valueChangedEvent;
     private final Handler backgroundHandler;
-    /*  private class UpdateTextHandler extends Handler
-      {
-          public UpdateTextHandler(Looper mainLooper) {
-              super(mainLooper);
-          }
-
-          @Override
-          public void handleMessage(@NonNull Message msg) {
-              if (msg.arg1 == UPDATE_TEXT) {
-                  if (valueChangedEvent != null)
-                      valueChangedEvent.onValueChanged((String)msg.obj);
-              }
-          }
-      }*/
     protected Range<T> range;
     protected KnobInfo knobInfo;
-    //    private final int UPDATE_TEXT = 1;
     protected KnobItemInfo currentInfo, autoModel;
     protected Context context;
 
@@ -51,7 +39,6 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         mBackgroundThread = new HandlerThread(ManualMode.class.getName());
         mBackgroundThread.start();
         backgroundHandler = new ManualModelHandler(mBackgroundThread.getLooper());
-//        mainHandler = new UpdateTextHandler(Looper.getMainLooper());
         fillKnobInfoList();
     }
 
@@ -64,10 +51,6 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     public void fireValueChangedEvent(final String txt) {
         if (valueChangedEvent != null)
             valueChangedEvent.onValueChanged(txt);
-       /* Message msg = new Message();
-        msg.arg1 = UPDATE_TEXT;
-        msg.obj = txt;
-        mainHandler.sendMessage(msg);*/
     }
 
     public KnobItemInfo getAutoModel() {
@@ -135,8 +118,6 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         }
         knobItemInfo2.drawable.setState(new int[]{android.R.attr.state_selected});
         fireValueChangedEvent(knobItemInfo2.text);
-        //backgroundHandler.post(()->onSelectedKnobItemChanged(knobItemInfo2));
-        //backgroundHandler.post(()->onSelectedKnobItemChanged(knobItemInfo2));
     }
 
     public void resetModel() {
@@ -158,7 +139,6 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         public void handleMessage(@NonNull Message msg) {
             if (msg.arg1 == SET_TO_CAM) {
                 onSelectedKnobItemChanged((KnobItemInfo) msg.obj);
-                //fireValueChangedEvent(((KnobItemInfo) msg.obj).text);
             }
         }
     }

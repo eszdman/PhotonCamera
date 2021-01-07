@@ -2,16 +2,11 @@ package com.manual.model;
 
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
-import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
-import com.manual.KnobInfo;
-import com.manual.KnobItemInfo;
-import com.manual.KnobView;
-import com.manual.ShadowTextDrawable;
+import com.manual.*;
 
 import java.util.ArrayList;
 
@@ -33,7 +28,7 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getNewAutoItem(0.0d, null);
+        KnobItemInfo auto = getNewAutoItem(SHUTTER_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -93,6 +88,7 @@ public class ShutterModel extends ManualModel<Long> {
             tick++;
         }
         int angle = findPreferredKnobViewAngle(indicatorCount);
+        Log.d("TAGTAG", "findPreferredKnobViewAngle: " + angle);
         int angleMax = context.getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
         if (angle > angleMax) {
             angle = angleMax;
@@ -108,23 +104,12 @@ public class ShutterModel extends ManualModel<Long> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
-        if (knobItemInfo.equals(autoModel)) {
-            if (PhotonCamera.getManualMode().getCurrentISOValue() == 0)//check if ISO is Auto
-                builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-        } else {
-            builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            long out = (long) knobItemInfo.value;
-            if (out > ExposureIndex.sec / 5) out = ExposureIndex.sec / 5;
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, out);
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, PhotonCamera.getCaptureController().mPreviewIso);
-        }
-        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo2.text);
+        ParamController.setShutter((long) knobItemInfo.value);
+        Log.d("Shutter", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 
     private int findPreferredIntervalCount(int totalCount) {
-        int result = 9;
+        int result = 12;
         int minRemainder = Integer.MAX_VALUE;
         int i = 9;
         while (i >= 5 && (((float) (totalCount - 1)) / ((float) i)) + 1.0f <= 7.0f) {

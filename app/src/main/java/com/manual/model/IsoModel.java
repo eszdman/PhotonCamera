@@ -2,16 +2,11 @@ package com.manual.model;
 
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
-import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
-import com.manual.KnobInfo;
-import com.manual.KnobItemInfo;
-import com.manual.KnobView;
-import com.manual.ShadowTextDrawable;
+import com.manual.*;
 
 import java.util.ArrayList;
 
@@ -25,7 +20,7 @@ public class IsoModel extends ManualModel<Integer> {
 
     @Override
     protected void fillKnobInfoList() {
-        KnobItemInfo auto = getNewAutoItem(-0.0d, null);
+        KnobItemInfo auto = getNewAutoItem(ISO_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -84,19 +79,10 @@ public class IsoModel extends ManualModel<Integer> {
     }
 
     @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo newval) {
-        currentInfo = newval;
-        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
-        if (newval.equals(autoModel)) {
-            if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
-                builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-        } else {
-            builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-            builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int) (newval.value));
-            builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, PhotonCamera.getCaptureController().mPreviewExposureTime);
-        }
-        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-        //fireValueChangedEvent(newval.text);
+    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
+        currentInfo = knobItemInfo;
+        ParamController.setISO((int) knobItemInfo.value);
+        Log.d("isoModel", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 
     private int findPreferredKnobViewAngle(int indicatorCount) {

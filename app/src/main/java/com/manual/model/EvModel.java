@@ -3,17 +3,11 @@ package com.manual.model;
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.util.Range;
-
 import com.eszdman.photoncamera.R;
-import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
-import com.manual.KnobInfo;
-import com.manual.KnobItemInfo;
-import com.manual.KnobView;
-import com.manual.ShadowTextDrawable;
+import com.manual.*;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -34,7 +28,7 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getNewAutoItem(0, null);
+        KnobItemInfo auto = getNewAutoItem(EV_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         int positiveValueCount = 0;
@@ -94,10 +88,8 @@ public class EvModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        CaptureRequest.Builder builder = PhotonCamera.getCaptureController().mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (int) (knobItemInfo.value / evStep));
-        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-        //fireValueChangedEvent(knobItemInfo.text);
+        ParamController.setEV((int) (knobItemInfo.value / evStep));
+        Log.d(TAG, "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 
     private boolean isZero(float value) {
