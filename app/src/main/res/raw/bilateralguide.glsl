@@ -27,7 +27,7 @@ float nlmeans(ivec2 coords) {
     noisefactor*=0.6;
     for(int i = -KERNEL; i <= KERNEL; i++) {
         for(int j = -KERNEL; j <= KERNEL; j++) {
-            ivec2 sxy = ivec2(i,j);
+            ivec2 sxy = abs(ivec2(i,j));
             sxy = clamp(sxy-SMOOTHING,0,KERNEL);
             #if LANCZOS == 1
             float dist = pdf2(float(sxy.x)/float(KERNEL))*pdf2(float(sxy.y)/float(KERNEL));
