@@ -8,10 +8,12 @@ import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.processing.opengl.GLBasePipeline;
 import com.eszdman.photoncamera.processing.opengl.GLCoreBlockProcessing;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
+import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
 import java.nio.ByteBuffer;
@@ -47,6 +49,11 @@ public class PostPipeline extends GLBasePipeline {
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
         Point rotated = getRotatedCoords(parameters.rawSize);
+        if(PhotonCamera.getSettings().energySaving || mParameters.rawSize.x*mParameters.rawSize.y < ResolutionSolution.smallRes){
+            GLDrawParams.TileSize = 8;
+        } else {
+            GLDrawParams.TileSize = 256;
+        }
         /*if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;
             rotated.y/=2;

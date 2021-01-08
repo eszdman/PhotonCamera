@@ -134,7 +134,7 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
         ((PostPipeline)basePipeline).FusionMap =
-                fusionMap(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+                fusionMap(wip,normalExpo.gauss[0], (float)((PostPipeline)basePipeline).AecCorr/2.f);
                 //wip;
         if(basePipeline.mSettings.DebugData) {
             glUtils.convertVec4(((PostPipeline)basePipeline).FusionMap,"in1.r*5.0");
