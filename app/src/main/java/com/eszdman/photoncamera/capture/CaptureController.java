@@ -293,7 +293,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     }
                     break;
                 }
-                //TODO Check why this wrong
                 case STATE_WAITING_PRECAPTURE: {
                     Log.v(TAG, "WAITING_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
@@ -306,9 +305,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (PhotonCamera.getManualMode().isManualMode()) mState = STATE_WAITING_NON_PRECAPTURE;
                     break;
                 }
-                //case STATE_WAITING_PRECAPTURE:
                 case STATE_WAITING_NON_PRECAPTURE: {
-                    //Log.v(TAG, "WAITING_NON_PRECAPTURE");
                     // CONTROL_AE_STATE can be null on some devices
                     Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                     if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
@@ -1142,6 +1139,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
+            if(frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
             IsoExpoSelector.HDR = false;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);

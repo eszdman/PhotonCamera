@@ -19,7 +19,7 @@ public class FileManager {
     };
     public static File sEXTERNAL_DIR = Environment.getExternalStorageDirectory();
     public static File sPHOTON_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera//");
-    public static File sPHOTON_RAW_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera///Raw//");
+    public static File sPHOTON_RAW_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera//Raw//");
     public static File sDCIM_CAMERA = new File(sEXTERNAL_DIR + "//DCIM//Camera//");
 
     public static void CreateFolders() {

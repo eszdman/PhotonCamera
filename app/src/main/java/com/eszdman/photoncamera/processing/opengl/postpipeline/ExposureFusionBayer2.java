@@ -9,6 +9,9 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.GLUtils;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_LINEAR;
+
 public class ExposureFusionBayer2 extends Node {
 
     public ExposureFusionBayer2(String name) {
@@ -44,7 +47,10 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("BrBuffer",br);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
-        GLTexture out = new GLTexture(in);
+        GLFormat format = new GLFormat(in.mFormat);
+        format.filter = GL_LINEAR;
+        format.wrap = GL_CLAMP_TO_EDGE;
+        GLTexture out = new GLTexture(in,format);
         glProg.drawBlocks(out);
         return out;
     }

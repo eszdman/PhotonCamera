@@ -41,7 +41,10 @@ public class SmartNR extends Node {
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer",detectblur);
         glProg.setVar("tpose",1,1);
-        GLTexture detectblur2 = new GLTexture(detectblur);
+        GLFormat format = new GLFormat(detectblur.mFormat);
+        format.wrap = GL_CLAMP_TO_EDGE;
+        format.filter = GL_LINEAR;
+        GLTexture detectblur2 = new GLTexture(detectblur,format);
         glProg.drawBlocks(detectblur2);
         detectblur.close();
 
@@ -73,19 +76,29 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
         if (denoiseLevel > 2.0) {
+        float isofactor = denoiseLevel*str/11.f;
+        int kernelsize = (int)(denoiseLevel*0.35) + 1;
+        kernelsize = Math.max(kernelsize,1);
+        kernelsize = Math.min(kernelsize,7);
+        glProg.setDefine("KERNEL","("+kernelsize+")");
+        if(isofactor > 0.4)
+        glProg.setDefine("TONEMAPED","1");
+        glProg.setDefine("ISOFACTOR","("+isofactor+")");
+        glProg.setDefine("SIZE","("+((double)(previousNode.WorkingTexture.mSize.x))+","+
+                ((double)(previousNode.WorkingTexture.mSize.y))+")");
         glProg.useProgram(R.raw.bilateralguide);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setTexture("NoiseMap",detectblur2);
-        int kernelsize = (int)(denoiseLevel) + 1;
-        kernelsize = Math.max(kernelsize,2);
-        kernelsize = Math.min(kernelsize,8);
+        glProg.setTexture("ToneMap",((PostPipeline)basePipeline).FusionMap);
+
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
         glProg.setVar("kernel",kernelsize);
         if(str > 1.f) str = 1.f;
-        if(denoiseLevel > 6.f)
-        glProg.setVar("isofactor",denoiseLevel*str/9.f);
-        else glProg.setVar("isofactor",str/2.5f);
+        //if(denoiseLevel > 6.f)
+        //else glProg.setVar("isofactor",str/2.5f);
+        Log.d(Name,"IsoFactor:"+isofactor);
+        Log.d(Name,"IsoFactor2:"+str/2.5f);
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
