@@ -1,5 +1,8 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline.dngprocessor;
 
+import com.aparapi.Kernel;
+import com.aparapi.Range;
+
 public class Histogram {
     private static final int HIST_BINS = 256;
     private static final double EPSILON = 0.01;
@@ -13,9 +16,25 @@ public class Histogram {
     public Histogram(float[] f, int whPixels) {
         int[] histv = new int[HIST_BINS];
 
-        double logTotalLuminance = 0d;
+        final double[] logTotalLuminance = {0d};
         // Loop over all values
-        for (int i = 0; i < f.length; i += 4) {
+        new Kernel(){
+            @Override
+            public void run() {
+                int i = getGlobalId(0)*4;
+                for (int j = 0; j < 3; j++) {
+                    sigma[j] += f[i + j];
+                }
+
+                int bin = (int) (f[i + 3] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histv[bin]++;
+
+                logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
+            }
+        }.execute(Range.create(f.length/4));
+        /*for (int i = 0; i < f.length; i += 4) {
             for (int j = 0; j < 3; j++) {
                 sigma[j] += f[i + j];
             }
@@ -25,10 +44,10 @@ public class Histogram {
             if (bin >= HIST_BINS) bin = HIST_BINS - 1;
             histv[bin]++;
 
-            logTotalLuminance += Math.log(f[i + 3] + EPSILON);
-        }
+            logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
+        }*/
 
-        logAvgLuminance = (float) Math.exp(logTotalLuminance * 4 / f.length);
+        logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / f.length);
         for (int j = 0; j < 3; j++) {
             sigma[j] /= whPixels;
         }
