@@ -9,7 +9,6 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.capture.CaptureController;
-
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
@@ -33,14 +32,14 @@ public class SmartNR extends Node {
         GLTexture detectresize = glUtils.gaussdown(detect,3);
         detect.close();
         GLTexture detectblur = new GLTexture(detectresize);
+        glProg.setDefine("TRANSPOSE",1,1);
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer",detectresize);
-        glProg.setVar("tpose",1,1);
         glProg.drawBlocks(detectblur);
         detectresize.close();
+        glProg.setDefine("TRANSPOSE",1,1);
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer",detectblur);
-        glProg.setVar("tpose",1,1);
         GLFormat format = new GLFormat(detectblur.mFormat);
         format.wrap = GL_CLAMP_TO_EDGE;
         format.filter = GL_LINEAR;
@@ -59,9 +58,7 @@ public class SmartNR extends Node {
 
         float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
-        float str = (float)basePipeline.mSettings.noiseRstr;
-        if(str > 1.0)
-        denoiseLevel*=str;
+        float str = ((float)basePipeline.mSettings.noiseRstr)/4.f;
         //Chroma NR
         /*glProg.useProgram(R.raw.bilateralcolor);
 
@@ -76,22 +73,33 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         //glProg.useProgram(R.raw.nlmeans);
         if (denoiseLevel > 2.0) {
-        float isofactor = denoiseLevel*str/11.f;
-        int kernelsize = (int)(denoiseLevel*0.35) + 1;
+        GLTexture tonemapUpscale = null;
+        boolean tonemaped = false;
+        float isofactor = denoiseLevel/11.f;
+        int kernelsize = (int)(denoiseLevel*0.25) + 1;
         kernelsize = Math.max(kernelsize,1);
         kernelsize = Math.min(kernelsize,7);
+        if(isofactor > 0.4){
+            tonemaped = true;
+            tonemapUpscale = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16));
+            glUtils.interpolate(((PostPipeline) (basePipeline)).FusionMap, tonemapUpscale);
+        }
+        if(kernelsize >2) glProg.setDefine("LANCZOS",true);
         glProg.setDefine("KERNEL","("+kernelsize+")");
-        if(isofactor > 0.4)
-        glProg.setDefine("TONEMAPED","1");
+        if(isofactor > 0.4){
+            tonemaped = true;
+            glProg.setDefine("TONEMAPED",true);
+        }
         glProg.setDefine("ISOFACTOR","("+isofactor+")");
+        glProg.setDefine("STR",str);
         glProg.setDefine("SIZE","("+((double)(previousNode.WorkingTexture.mSize.x))+","+
                 ((double)(previousNode.WorkingTexture.mSize.y))+")");
         glProg.useProgram(R.raw.bilateralguide);
-        glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setTexture("NoiseMap",detectblur2);
-        glProg.setTexture("ToneMap",((PostPipeline)basePipeline).FusionMap);
-
+        if(tonemaped) {
+            glProg.setTexture("ToneMap", tonemapUpscale);
+        }
         Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " windowSize:" + kernelsize);
         glProg.setVar("kernel",kernelsize);
         if(str > 1.f) str = 1.f;
@@ -102,6 +110,7 @@ public class SmartNR extends Node {
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
+        if(tonemapUpscale != null) tonemapUpscale.close();
         } else{
             WorkingTexture = previousNode.WorkingTexture;
         }
@@ -127,10 +136,8 @@ public class SmartNR extends Node {
                 outp = new GLTexture(outp);
                 glProg.drawBlocks(outp);
                 in.close();*/
-
+                glProg.setDefine("TRANSPOSE",1,1);
                 glProg.useProgram(R.raw.hybridmedianfiltercolor);
-                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
-                glProg.setVar("tpose", 1, 1);
                 GLTexture in = outp;
                 glProg.setTexture("InputBuffer", in);
                 outp = new GLTexture(outp);
@@ -140,14 +147,13 @@ public class SmartNR extends Node {
             WorkingTexture = glUtils.ops(outp, WorkingTexture, basePipeline.getMain(), "(in1.rgba/((in1.r+in1.g+in1.b)/3.0))*((in2.r+in2.g+in2.b)/3.0)", "", 1);
         } else {
             for(int i =1;i<2;i++) {
+                glProg.setDefine("TRANSPOSE",1,i);
                 glProg.useProgram(R.raw.hybridmedianfiltercolor);
-                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
-                glProg.setVar("tpose", 1, i);
                 glProg.setTexture("InputBuffer", WorkingTexture);
                 WorkingTexture = basePipeline.getMain();
                 glProg.drawBlocks(WorkingTexture);
-                glProg.setVar("robust", 10.5f - denoiseLevel + 3.5f);
-                glProg.setVar("tpose", i, 1);
+                glProg.setDefine("TRANSPOSE",i,1);
+                glProg.useProgram(R.raw.hybridmedianfiltercolor);
                 glProg.setTexture("InputBuffer", WorkingTexture);
                 WorkingTexture = basePipeline.getMain();
                 glProg.drawBlocks(WorkingTexture);

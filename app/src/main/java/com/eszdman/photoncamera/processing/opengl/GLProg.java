@@ -6,6 +6,7 @@ import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,54 @@ public class GLProg implements AutoCloseable {
     }
     boolean changedDef = false;
     ArrayList<String[]> Defines = new ArrayList<>();
+    public void setDefine(String DefineName, Point in){
+        setDefine(DefineName,(float)in.x,(float)in.y);
+    }
+    public void setDefine(String DefineName, boolean bool){
+        if(bool)
+        setDefine(DefineName,"1");
+        else {
+        setDefine(DefineName,"0");
+        }
+    }
+    public void setDefine(String DefineName, float... vars){
+        switch (vars.length) {
+            case 1:
+                setDefine(DefineName,String.valueOf(vars[0]));
+                break;
+            case 2:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+")");
+                break;
+            case 3:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");
+                break;
+            case 4:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
+                break;
+            default:
+                setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
+                break;
+        }
+    }
+    public void setDefine(String DefineName, int... vars){
+        switch (vars.length) {
+            case 1:
+                setDefine(DefineName,"("+(vars[0])+")");
+                break;
+            case 2:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+")");
+                break;
+            case 3:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");
+                break;
+            case 4:
+                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
+                break;
+            default:
+                setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
+                break;
+        }
+    }
     public void setDefine(String DefineName, String DefineVal){
         Defines.add(new String[]{DefineName,DefineVal});
         changedDef = true;

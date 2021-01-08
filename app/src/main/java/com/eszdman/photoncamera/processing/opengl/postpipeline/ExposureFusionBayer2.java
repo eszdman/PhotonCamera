@@ -22,20 +22,20 @@ public class ExposureFusionBayer2 extends Node {
     private double dehaze = 0.0;
     GLTexture expose(GLTexture in, float str){
         glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);
         glProg.useProgram(R.raw.exposebayer2);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
         GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,2));
         glProg.drawBlocks(outp);
         return outp;
     }
     GLTexture expose2(GLTexture in, float str){
         glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);
         glProg.useProgram(R.raw.exposebayer2);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,2));
         glProg.drawBlocks(outp);
         return outp;
@@ -46,7 +46,6 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("BrBuffer",br);
         glProg.setVar("factor", str);
-        glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
         GLFormat format = new GLFormat(in.mFormat);
         format.filter = GL_LINEAR;
         format.wrap = GL_CLAMP_TO_EDGE;

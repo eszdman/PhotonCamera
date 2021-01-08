@@ -4,7 +4,6 @@ precision highp float;
 uniform sampler2D InputBuffer;
 uniform sampler2D BrBuffer;
 uniform float factor;
-uniform vec3 neutralPoint;
 out float result;
 uniform int yOffset;
 #define DH (0.0)
