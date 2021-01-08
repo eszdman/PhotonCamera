@@ -48,4 +48,11 @@ public class CustomBinding {
             }
         }
     }
+
+    @BindingAdapter("selected")
+    public static void setSelected(View view, Boolean selected) {
+        if (selected != null && view != null) {
+            view.setSelected(selected);
+        }
+    }
 }

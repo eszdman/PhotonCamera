@@ -35,6 +35,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
 
     private void initPaints() {
         whitePaint.setColor(Color.WHITE);
+        whitePaint.setStrokeWidth(1.5f);
 
         textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(30);
@@ -53,13 +54,57 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     }
 
     private void drawGrid(Canvas canvas) {
-        if (PreferenceKeys.isShowGridOn()) {
-            int w = canvas.getWidth();
-            int h = canvas.getHeight();
-            canvas.drawLine(w / 3f, 0, w / 3f, h, whitePaint);
-            canvas.drawLine(2.f * w / 3f, 0, 2f * w / 3f, h, whitePaint);
-            canvas.drawLine(0, h / 3f, w, h / 3f, whitePaint);
-            canvas.drawLine(0, 2f * h / 3f, w, 2f * h / 3f, whitePaint);
+        switch (PreferenceKeys.getGridValue()) {
+            case 1:
+                draw3x3(canvas);
+                break;
+            case 2:
+                draw4x4(canvas);
+                break;
+            case 3:
+                drawGoldenRatio(canvas);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void draw3x3(Canvas canvas) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        canvas.drawLine(w / 3f, 0, w / 3f, h, whitePaint);
+        canvas.drawLine(2.f * w / 3f, 0, 2f * w / 3f, h, whitePaint);
+        canvas.drawLine(0, h / 3f, w, h / 3f, whitePaint);
+        canvas.drawLine(0, 2f * h / 3f, w, 2f * h / 3f, whitePaint);
+    }
+
+    private void draw4x4(Canvas canvas) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        canvas.drawLine(w / 4f, 0, w / 4f, h, whitePaint);
+        canvas.drawLine(w / 2f, 0, w / 2f, h, whitePaint);
+        canvas.drawLine(3 * w / 4f, 0, 3 * w / 4f, h, whitePaint);
+        canvas.drawLine(0, h / 4f, w, h / 4f, whitePaint);
+        canvas.drawLine(0, h / 2f, w, h / 2f, whitePaint);
+        canvas.drawLine(0, 3 * h / 4f, w, 3 * h / 4f, whitePaint);
+    }
+
+    private void drawGoldenRatio(Canvas canvas) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        float gr = (float) goldenRatio(1, 1);
+        canvas.drawLine(w / (1 + gr), 0, w / (1 + gr), h, whitePaint);
+        canvas.drawLine(gr * w / (1 + gr), 0, gr * w / (1 + gr), h, whitePaint);
+        canvas.drawLine(0, h / (1 + gr), w, h / (1 + gr), whitePaint);
+        canvas.drawLine(0, gr * h / (1 + gr), w, gr * h / (1 + gr), whitePaint);
+    }
+
+    private double goldenRatio(double a, double b) {
+        double e = 0.00001;
+        if (Math.abs((b / a) - ((a + b) / b)) < e) {
+            return ((a + b) / b);
+        } else {
+            return goldenRatio(b, a + b);
         }
     }
 

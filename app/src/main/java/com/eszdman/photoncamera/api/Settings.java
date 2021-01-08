@@ -12,7 +12,6 @@ public class Settings {
     public int lumenCount;
     public int chromaCount;
     public boolean enhancedProcess;
-    public boolean grid;
     public boolean watermark;
     public boolean energySaving;
     public boolean DebugData;
@@ -47,7 +46,6 @@ public class Settings {
         lumenCount = PreferenceKeys.getLumaNrValue();
         chromaCount = PreferenceKeys.getChromaNrValue();
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
-        grid = PreferenceKeys.isShowGridOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
         energySaving = PreferenceKeys.getBool(PreferenceKeys.Preference.KEY_ENERGY_SAVING);
         DebugData = PreferenceKeys.isAfDataOn();

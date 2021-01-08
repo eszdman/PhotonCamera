@@ -183,11 +183,11 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getBoolean(current_scope, Preference.KEY_SHOW_ROUND_EDGE);
     }
 
-    public static boolean isShowGridOn() {
-        return preferenceKeys.settingsManager.getBoolean(current_scope, Preference.KEY_SHOW_GRID);
+    public static int getGridValue() {
+        return preferenceKeys.settingsManager.getInteger(current_scope, Preference.KEY_SHOW_GRID);
     }
 
-    public static void setShowGridOn(boolean value) {
+    public static void setGridValue(int value) {
         preferenceKeys.settingsManager.set(current_scope, Preference.KEY_SHOW_GRID, value);
     }
 

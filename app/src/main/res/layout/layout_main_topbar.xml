@@ -125,13 +125,14 @@
                     tools:visibility="visible"
                     bindRotate="@{uimodel}"/>
 
-            <ToggleButton
+            <Button
                     android:id="@+id/grid_toggle_button"
                     android:layout_width="@dimen/topbar_icon_size"
                     android:layout_height="0dp"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_grid_toggle"
-                    android:checked="@{PreferenceKeys.isShowGridOn()}"
+                    selected="@{PreferenceKeys.getGridValue() != 0}"
+                    app:backgroundTint="@android:color/white"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"

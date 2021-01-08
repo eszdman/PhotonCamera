@@ -34,12 +34,15 @@
                 android:summary=""
                 android:icon="@drawable/ic_camera_sounds"
                 />
-        <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+        <ListPreference
                 android:key="@string/pref_show_grid_key"
-                android:defaultValue="@bool/pref_show_grid_default"
+                android:defaultValue="@string/pref_show_grid_default"
                 android:layout="@layout/preference_with_margin"
                 android:title="@string/turn_on_grid"
+                app:useSimpleSummaryProvider="true"
                 android:summary=""
+                android:entries="@array/vf_grid_entries"
+                android:entryValues="@array/vf_grid_entryvalues"
                 android:icon="@drawable/ic_settings_grid"
                 />
         <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
