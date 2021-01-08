@@ -84,7 +84,7 @@ public class SmartNR extends Node {
             tonemapUpscale = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16));
             glUtils.interpolate(((PostPipeline) (basePipeline)).FusionMap, tonemapUpscale);
         }
-        if(kernelsize >2) glProg.setDefine("LANCZOS",true);
+        if(kernelsize >2) glProg.setDefine("MEDIAN",true);
         glProg.setDefine("KERNEL","("+kernelsize+")");
         if(isofactor > 0.4){
             tonemaped = true;

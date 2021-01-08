@@ -11,7 +11,7 @@ uniform sampler2D ToneMap;
 #define SIZE (1.0,1.0)
 #define STR (1.0)
 #define SMOOTHING (1)
-#define LANCZOS 0
+#define MEDIAN 0
 #define sinc(x) (sin(x) / (x+0.0001))
 #import interpolation
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
@@ -19,21 +19,40 @@ uniform sampler2D ToneMap;
 #define distribute2(x,dev) (1.0-abs(x-dev)*STR)
 #define pdf(x) (exp(-0.5*x*x/(STR*STR))/STR)
 #define pdf2(x) (sinc((x)*3.0)/(STR*3.0))
+#import median
 float nlmeans(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
     float noisefactor = clamp((textureBicubicHardware(NoiseMap, vec2(gl_FragCoord.xy)/vec2(SIZE)).r)*0.55*ISOFACTOR,0.0005,1.0);
     noisefactor*=noisefactor;
     noisefactor*=0.6;
+    #if MEDIAN == 1
+    float arr[5];
+    arr[0] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,0),0).rgb);
+    arr[1] = luminocity(texelFetch(InputBuffer, coords+ivec2(-1,0),0).rgb);
+    arr[2] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,-1),0).rgb);
+    arr[3] = luminocity(texelFetch(InputBuffer, coords+ivec2(1,0),0).rgb);
+    arr[4] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,1),0).rgb);
+    processed+=median5(arr);
+    weights+=1.5;
+    #endif
+
     for(int i = -KERNEL; i <= KERNEL; i++) {
         for(int j = -KERNEL; j <= KERNEL; j++) {
-            ivec2 sxy = abs(ivec2(i,j));
-            sxy = clamp(sxy-SMOOTHING,0,KERNEL);
-            #if LANCZOS == 1
-            float dist = pdf2(float(sxy.x)/float(KERNEL))*pdf2(float(sxy.y)/float(KERNEL));
-            #else
-            float dist = pdf(float(sxy.x)/float(KERNEL))*pdf(float(sxy.y)/float(KERNEL));
+            #if MEDIAN == 1
+            if(i+j <= 1) continue;
             #endif
+            ivec2 sxy = abs(ivec2(i,j));
+            /*if(sxy.x == 0){
+                sxy = clamp(sxy-SMOOTHING,0,KERNEL);
+            } else if(sxy.y == 0){
+                sxy = clamp(sxy-SMOOTHING,0,KERNEL);
+            }*/
+            //#if LANCZOS == 1
+            //float dist = pdf2(float(sxy.x)/float(KERNEL))*pdf2(float(sxy.y)/float(KERNEL));
+            //#else
+            float dist = pdf(float(sxy.x)/float(KERNEL))*pdf(float(sxy.y)/float(KERNEL));
+            //#endif
             ivec2 patchCoord = coords + ivec2(i, j);
             float sigma = (0.01*0.5 + noisefactor*0.25);
             float w;
