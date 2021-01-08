@@ -24,6 +24,8 @@ import android.content.res.Configuration;
 import android.graphics.*;
 import android.hardware.camera2.*;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.OutputConfiguration;
+import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
@@ -53,6 +55,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Class responsible for image capture and sending images for subsequent processing
@@ -993,8 +996,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (CameraFragment.mSelectedMode == CameraMode.VIDEO) {
                 surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
             }
-            mCameraDevice.createCaptureSession(surfaces,
-                    new CameraCaptureSession.StateCallback() {
+            int sessionType = SessionConfiguration.SESSION_REGULAR;
+            if (!is30Fps) {
+               sessionType = SessionConfiguration.SESSION_HIGH_SPEED;
+            }
+            mCameraDevice.createCaptureSession(
+                    new SessionConfiguration(
+                            sessionType,
+                            surfaces.stream().map(OutputConfiguration::new).collect(Collectors.toList()),
+                            command -> mBackgroundHandler.post(command),
+                            new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                             // The camera is already closed
@@ -1046,7 +1057,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 @NonNull CameraCaptureSession cameraCaptureSession) {
                             showToast("Failed");
                         }
-                    }, null
+                    })
             );
         } catch (Exception e) {
             e.printStackTrace();
