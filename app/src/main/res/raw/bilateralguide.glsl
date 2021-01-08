@@ -39,20 +39,14 @@ float nlmeans(ivec2 coords) {
 
     for(int i = -KERNEL; i <= KERNEL; i++) {
         for(int j = -KERNEL; j <= KERNEL; j++) {
-            #if MEDIAN == 1
-            if(i+j <= 1) continue;
-            #endif
             ivec2 sxy = abs(ivec2(i,j));
-            /*if(sxy.x == 0){
-                sxy = clamp(sxy-SMOOTHING,0,KERNEL);
-            } else if(sxy.y == 0){
-                sxy = clamp(sxy-SMOOTHING,0,KERNEL);
-            }*/
-            //#if LANCZOS == 1
-            //float dist = pdf2(float(sxy.x)/float(KERNEL))*pdf2(float(sxy.y)/float(KERNEL));
-            //#else
+            #if MEDIAN == 1
+            if(i+j <= 1) continue; else {
+                if(i==0 || j == 0)
+                sxy-=1;
+            }
+            #endif
             float dist = pdf(float(sxy.x)/float(KERNEL))*pdf(float(sxy.y)/float(KERNEL));
-            //#endif
             ivec2 patchCoord = coords + ivec2(i, j);
             float sigma = (0.01*0.5 + noisefactor*0.25);
             float w;
