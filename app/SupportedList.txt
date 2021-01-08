@@ -4,3 +4,4 @@ xiaomi:davinci
 xiaomi:umi
 xiaomi:dipper
 realme:rmx1931l1
+samsung:x1s
