@@ -4,6 +4,7 @@ precision highp float;
 uniform int samplingFactor;
 uniform sampler2D InputBuffer;
 out vec4 Output;
+#define BR (0.6)
 #import xyztoxyy
 void main() {
     ivec2 xy = samplingFactor * ivec2(gl_FragCoord.xy);
@@ -22,5 +23,5 @@ void main() {
     }
 
     float z = XYZtoxyY(texelFetch(InputBuffer, xy, 0).rgb).z;
-    Output = vec4(sqrt(sigma / 9.f), z);
+    Output = vec4(sqrt(sigma / 9.f), mix(z,z*z,BR));
 }

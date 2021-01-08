@@ -24,6 +24,7 @@ public class SmartNR extends Node {
 
     @Override
     public void Run() {
+
         GLTexture inpdetect = glUtils.interpolate(previousNode.WorkingTexture,1.0/2.0);
         glProg.useProgram(R.raw.noisedetection44);
         glProg.setTexture("InputBuffer", inpdetect);
@@ -75,7 +76,7 @@ public class SmartNR extends Node {
         glProg.useProgram(R.raw.bilateralguide);
         glProg.setVar("tpose",1,1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        //glProg.setTexture("NoiseMap",detectblur2);
+        glProg.setTexture("NoiseMap",detectblur2);
         int kernelsize = (int)(denoiseLevel) + 1;
         kernelsize = Math.max(kernelsize,2);
         kernelsize = Math.min(kernelsize,8);
@@ -84,7 +85,7 @@ public class SmartNR extends Node {
         if(str > 1.f) str = 1.f;
         if(denoiseLevel > 6.f)
         glProg.setVar("isofactor",denoiseLevel*str/9.f);
-        else glProg.setVar("isofactor",1.f);
+        else glProg.setVar("isofactor",str/2.5f);
         glProg.setVar("size",previousNode.WorkingTexture.mSize);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
