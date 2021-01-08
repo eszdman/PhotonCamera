@@ -7,10 +7,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
-
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
-
 import com.eszdman.photoncamera.R;
 
 import java.util.Locale;
@@ -74,7 +72,9 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        set(progress);
+        if (fromUser) {
+            set(progress);
+        }
     }
 
     @Override
