@@ -331,6 +331,7 @@ public class PreferenceKeys {
         KEY_COMPRESSOR_SEEKBAR(R.string.pref_compressor_seekbar_key),
         KEY_NOISESTR_SEEKBAR(R.string.pref_noise_seekbar_key),
         KEY_GAIN_SEEKBAR(R.string.pref_gain_seekbar_key),
+        KEY_SHADOWS_SEEKBAR(R.string.pref_shadows_seekbar_key),
         KEY_FRAME_COUNT(R.string.pref_frame_count_key),
         KEY_CONTRAST_SEEKBAR(R.string.pref_contrast_seekbar_key),
         KEY_SHARPNESS_SEEKBAR(R.string.pref_sharpness_seekbar_key),

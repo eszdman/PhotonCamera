@@ -35,6 +35,7 @@ public class Equalization extends Node {
         int resize = 16;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
+        glProg.setDefine("BR","("+basePipeline.mSettings.shadows*0.6+")");
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("samplingFactor",resize);

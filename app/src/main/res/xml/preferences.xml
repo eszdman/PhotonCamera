@@ -194,9 +194,9 @@
                 android:icon="@drawable/ic_compressor"
             />
         <com.eszdman.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
-                android:key="@string/pref_gain_seekbar_key"
+                android:key="@string/pref_shadows_seekbar_key"
                 android:layout="@layout/preference_seekbar"
-                android:title="@string/gain"
+                android:title="@string/shadows"
                 android:summary=""
                 android:defaultValue="@string/pref_gain_seekbar_default"
                 app:maxValue="2.5"

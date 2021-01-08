@@ -20,6 +20,7 @@
 
     <string name="comp">Compressor</string>
     <string name="gain">Gain</string>
+    <string name="shadows">Shadows</string>
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
     <string name="saturation">Saturation</string>
@@ -36,7 +37,7 @@
     <string name="hdrxNR">HDRX Noise Reduction</string>
     <string name="turn_on_watermark">Enable Watermark</string>
     <string name="sure_delete">Are you sure to delete this image?</string>
-    <string name="sure_delete_multiple">Are you sure to delete %1$s image(s)?\n%2$s will be cleared.</string>
+    <string name="sure_delete_multiple">Are you sure to delete %1$s image(s)? %2$s will be cleared.</string>
     <string name="cancel">Cancel</string>
     <string name="yes">Yes</string>
     <string name="image_deleted">Image Deleted</string>
@@ -92,7 +93,7 @@
     <string name="device_unsupport">Warning: Unsupported device</string>
     <string name="af_mode">Auto Focus Mode</string>
     <string name="long_press_to_deselect">Long press button to deselect all</string>
-    <string name="multiple_deleted_success">%1$s File(s) Deleted!\n%2$s Cleared.</string>
+    <string name="multiple_deleted_success">%1$s File(s) Deleted! %2$s Cleared.</string>
     <string name="supported_devices">Supported Devices</string>
     <string name="list_not_loaded"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">Your Device - %1$s</string>

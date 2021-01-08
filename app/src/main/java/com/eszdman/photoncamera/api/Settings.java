@@ -26,6 +26,7 @@ public class Settings {
     public double noiseRstr;
     public double compressor;
     public double gain;
+    public double shadows;
     public boolean rawSaver;
     public boolean QuadBayer;
     public int cfaPattern;
@@ -58,6 +59,7 @@ public class Settings {
         compressor = PreferenceKeys.getCompressorValue();
         noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
+        shadows = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_SHADOWS_SEEKBAR);
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();
         rawSaver = PreferenceKeys.isSaveRawOn();

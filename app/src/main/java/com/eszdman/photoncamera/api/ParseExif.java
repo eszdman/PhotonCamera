@@ -84,6 +84,8 @@ public class ParseExif {
         inter.setAttribute(ExifInterface.TAG_DATETIME, sFormatter.format(new Date(System.currentTimeMillis())));
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
+        inter.setAttribute(TAG_COMPRESSION,"97");
+        inter.setAttribute(TAG_COLOR_SPACE,"sRGB");
         inter.setAttribute(TAG_EXIF_VERSION, "0231");
         String version = "";
         try {

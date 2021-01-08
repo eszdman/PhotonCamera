@@ -80,4 +80,11 @@
     <string name="compressor">Компрессор</string>
     <string name="backup_restore">Сохранение/Восстановление настроек</string>
     <string name="device_unsupport">Предупреждение: Не поддерживаемый девайс</string>
+    <string name="sure_delete_multiple">Вы уверены что хотите удалить %1$s изображение(ий)? %2$s будут удалены.</string>
+    <string name="af_mode">Режим автофокуса</string>
+    <string name="multiple_deleted_success">%1$s Файл(ов) Удалены! %2$s Очищено.</string>
+    <string name="long_press_to_deselect">Долгое нажатие кнопки чтобы убрать выделение</string>
+    <string name="supported_devices">Поддерживаемые устройства</string>
+    <string name="this_device">Ваше устройство - %1$s</string>
+    <string name="shadows">Тени</string>
 </resources>
