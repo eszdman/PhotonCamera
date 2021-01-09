@@ -24,6 +24,9 @@ float nlmeans(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
     float noisefactor = clamp((textureBicubicHardware(NoiseMap, vec2(gl_FragCoord.xy)/vec2(SIZE)).r)*0.55*ISOFACTOR,0.0005,1.0);
+    #if TONEMAPED == 1
+    noisefactor*=clamp((1.3-texelFetch(ToneMap,coords,0).r*10.0),0.3,1.0);
+    #endif
     noisefactor*=noisefactor;
     noisefactor*=0.6;
     #if MEDIAN == 1
@@ -51,8 +54,8 @@ float nlmeans(ivec2 coords) {
             float sigma = (0.01*0.5 + noisefactor*0.25);
             float w;
             #if TONEMAPED == 1
-            w = distribute((texelFetch(ToneMap,coords,0).r),
-                    (texelFetch(ToneMap,  patchCoord,0).r), sigma)*dist;
+            w = distribute((texelFetch(ToneMap,coords,0).r*2.0),
+                    (texelFetch(ToneMap,  patchCoord,0).r*2.0), sigma)*dist;
             #else
             w = distribute(luminocity(texelFetch(InputBuffer, coords,0).rgb), luminocity(texelFetch(InputBuffer, patchCoord,0).rgb), sigma)*dist;
             #endif
