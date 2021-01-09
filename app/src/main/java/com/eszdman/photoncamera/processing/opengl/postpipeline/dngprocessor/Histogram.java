@@ -89,7 +89,7 @@ public class Histogram {
     private static float findBL(int[] hist) {
         for(int i =0; i<25; i++){
             if(hist[i] >= 1) {
-                return hist[i]/256.f;
+                return i/((float)hist.length);
             }
         }
         return 0.f;
