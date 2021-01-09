@@ -19,8 +19,17 @@ public class ExifDialogModel extends BaseObservable {
     private String fnum;
     private String focal;
     private String file_size;
+    private String miniText;
     private Histogram.HistogramModel histogramModel;
 
+    @Bindable
+    public String getMiniText() {
+        return miniText;
+    }
+
+    public void setMiniText(String miniText) {
+        this.miniText = miniText;
+    }
 
     @Bindable
     public String getTitle() {

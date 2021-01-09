@@ -43,6 +43,10 @@
         <item name="android:shadowDy">1</item>
         <item name="android:shadowRadius">1</item>
     </style>
+    <style name="TextWithShadow" parent="BoldTextWithShadow">
+        <item name="android:textStyle">normal</item>
+        <item name="android:shadowRadius">2</item>
+    </style>
 
     <style name="ManualModeKnobText" parent="BoldTextWithShadow">
         <item name="android:textSize">@dimen/manual_knob_text_size</item>

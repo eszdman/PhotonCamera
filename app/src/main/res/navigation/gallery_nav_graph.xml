@@ -32,6 +32,25 @@
                 app:popEnterAnim="@anim/animate_slide_down_enter"
                 app:popExitAnim="@anim/animate_slide_down_exit">
         </action>
+        <action
+                android:id="@+id/action_imageLibraryFragment_to_imageCompareFragment"
+                app:destination="@id/imageCompareFragment"
+                app:enterAnim="@anim/animate_slide_up_enter"
+                app:exitAnim="@anim/animate_slide_up_exit"
+                app:popEnterAnim="@anim/animate_slide_down_enter"
+                app:popExitAnim="@anim/animate_slide_down_exit"/>
 
+    </fragment>
+    <fragment
+            android:id="@+id/imageCompareFragment"
+            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageCompareFragment"
+            android:label="ImageCompareFragment">
+        <action
+                android:id="@+id/action_imageCompareFragment_to_imageLibraryFragment"
+                app:destination="@id/imageLibraryFragment"
+                app:enterAnim="@anim/animate_slide_up_enter"
+                app:exitAnim="@anim/animate_slide_up_exit"
+                app:popEnterAnim="@anim/animate_slide_down_enter"
+                app:popExitAnim="@anim/animate_slide_down_exit"/>
     </fragment>
 </navigation>

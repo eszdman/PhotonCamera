@@ -21,6 +21,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.eszdman.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
+
 /**
  * Created by Vibhor Srivastava on 03-Dec-2020
  */
@@ -84,7 +86,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                 }
             } else {
                 Bundle b = new Bundle();
-                b.putInt("imagePosition", position);
+                b.putInt(IMAGE_POSITION_KEY, position);
                 NavController navController = Navigation.findNavController(view);
                 navController.navigate(R.id.action_imageLibraryFragment_to_imageViewerFragment, b);
 //            navController.setGraph(navController.getGraph(), b);

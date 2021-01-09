@@ -37,6 +37,8 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.util.List;
 
+import static com.eszdman.photoncamera.gallery.helper.Constants.*;
+
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
     private List<File> allFiles;
@@ -47,6 +49,7 @@ public class ImageViewerFragment extends Fragment {
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
+    private String mode;
 
     @Nullable
     @Override
@@ -61,6 +64,7 @@ public class ImageViewerFragment extends Fragment {
         viewPager = fragmentGalleryImageViewerBinding.viewPager;
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
+        fragmentGalleryImageViewerBinding.setExifmodel(exifDialogViewModel.getExifDataModel());
         navController = NavHostFragment.findNavController(this);
         initImageAdapter();
     }
@@ -94,11 +98,16 @@ public class ImageViewerFragment extends Fragment {
             }
         });
         Bundle bundle = getArguments();
-        if (bundle != null)
-            viewPager.setCurrentItem(bundle.getInt("imagePosition", 0));
+        if (bundle != null) {
+            mode = bundle.getString(MODE_KEY);
+            viewPager.setCurrentItem(bundle.getInt(IMAGE_POSITION_KEY, 0));
+        }
+        if (isCompareMode()) {
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(true);
+        }
     }
 
-    private void onBack(View view){
+    private void onBack(View view) {
         getActivity().finish();
     }
 
@@ -193,18 +202,26 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void onImageViewClicked(View view) {
-        fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
-        if (isExifVisible) {
-            fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
-            updateExif();
+        if (isCompareMode()) {
+            onExifButtonClick(null);
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!isExifVisible);
+        } else {
+            fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            if (isExifVisible) {
+                fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
+                updateExif();
+            }
         }
     }
 
     private void updateExif() {
+        int position = viewPager.getCurrentItem();
+        File currentFile = allFiles.get(position);
         if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-            int position = viewPager.getCurrentItem();
-            File currentFile = allFiles.get(position);
             //update values for exif dialog
+            exifDialogViewModel.updateModel(currentFile);
+            exifDialogViewModel.updateHistogramView(currentFile);
+        } else {
             exifDialogViewModel.updateModel(currentFile);
         }
     }
@@ -218,5 +235,9 @@ public class ImageViewerFragment extends Fragment {
             }
         });
 
+    }
+
+    private boolean isCompareMode() {
+        return mode != null && mode.equalsIgnoreCase(COMPARE);
     }
 }

@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public ExifDialogViewModel(Application application) {
         super(application);
@@ -44,7 +45,6 @@ public class ExifDialogViewModel extends AndroidViewModel {
     public ExifDialogModel getExifDataModel() {
         return exifDialogModel;
     }
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     /**
      * Updates the ExifDialogModel using exif attributes stored in the Image File
@@ -75,18 +75,28 @@ public class ExifDialogViewModel extends AndroidViewModel {
         String resolution_mp = (String.format(Locale.US, "%.1f",
                 Double.parseDouble((attr_width == null ? "NaN" : attr_width))
                         * Double.parseDouble((attr_length == null ? "NaN" : attr_length)) / 1E6) + " MP");
+        String disp_exp = exposure + "s";
+        String disp_fnum = "\u0192/" + attr_fnum;
+        String disp_focal = Rational.parseRational(attr_focal == null ? "NaN" : attr_focal).doubleValue() + "mm";
+        String disp_iso = "ISO" + attr_iso;
 
         exifDialogModel.setTitle(imageFile.getAbsolutePath());
         exifDialogModel.setRes(attr_length + "x" + attr_width);
         exifDialogModel.setDevice(attr_make + " " + attr_model);
         exifDialogModel.setDate(getDateText(attr_date));
-        exifDialogModel.setExposure(exposure + "s");
-        exifDialogModel.setIso("ISO" + attr_iso);
-        exifDialogModel.setFnum("\u0192/" + attr_fnum);
-        exifDialogModel.setFocal(Rational.parseRational(attr_focal == null ? "NaN" : attr_focal).doubleValue() + "mm");
+        exifDialogModel.setExposure(disp_exp);
+        exifDialogModel.setIso(disp_iso);
+        exifDialogModel.setFnum(disp_fnum);
+        exifDialogModel.setFocal(disp_focal);
         exifDialogModel.setFile_size((FileUtils.byteCountToDisplaySize((int) imageFile.length())));
         exifDialogModel.setRes_mp(resolution_mp);
-        updateHistogramView(imageFile);
+        exifDialogModel.setMiniText(
+                imageFile.getName() + "\n" +
+                        disp_exp + " | " +
+                        disp_iso + " | " +
+                        disp_fnum + " | " +
+                        disp_focal + " | " +
+                        resolution_mp);
         exifDialogModel.notifyChange(); //important
     }
 
@@ -94,7 +104,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * Updates the {@link Histogram.HistogramModel} view which is associated with ExifDialogModel
      * check for more detail {@link com.eszdman.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
-    private void updateHistogramView(File imageFile) {
+    public void updateHistogramView(File imageFile) {
         Handler handler = new Handler(Looper.getMainLooper(), msg -> {
             exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
             return true;

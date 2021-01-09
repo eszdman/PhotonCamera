@@ -14,6 +14,7 @@ import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.RecyclerView;
 import com.eszdman.photoncamera.R;
@@ -26,6 +27,9 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.eszdman.photoncamera.gallery.helper.Constants.IMAGE1_KEY;
+import static com.eszdman.photoncamera.gallery.helper.Constants.IMAGE2_KEY;
 
 public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.ImageSelectionListener {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
@@ -71,6 +75,20 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
         fragmentGalleryImageLibraryBinding.fabGroup.setOnNumFabClicked(this::onNumFabClicked);
         fragmentGalleryImageLibraryBinding.fabGroup.setOnShareFabClicked(this::onShareFabClicked);
         fragmentGalleryImageLibraryBinding.fabGroup.setOnDeleteFabClicked(this::onDeleteFabClicked);
+        fragmentGalleryImageLibraryBinding.fabGroup.setOnCompareFabClicked(this::onCompareFabClicked);
+    }
+
+    private void onCompareFabClicked(View view) {
+        List<File> list = imageGridAdapter.getSelectedFiles();
+        if (list.size() == 2) {
+            NavController navController = Navigation.findNavController(view);
+            Bundle b = new Bundle(2);
+            int image1pos = allFiles.indexOf(list.get(0));
+            int image2pos = allFiles.indexOf(list.get(1));
+            b.putInt(IMAGE1_KEY, image1pos);
+            b.putInt(IMAGE2_KEY, image2pos);
+            navController.navigate(R.id.action_imageLibraryFragment_to_imageCompareFragment, b);
+        }
     }
 
     private void onDeleteFabClicked(View view) {
@@ -86,7 +104,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
                     filesToDelete.forEach(file -> {
                         file.delete();
-                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);});
+                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);
+                    });
                     onImageSelectionStopped();
                     allFiles = FileManager.getAllImageFiles();
                     imageGridAdapter.setImageList(allFiles);
@@ -135,6 +154,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
     public void onImageSelectionChanged(int numOfSelectedFiles) {
         fragmentGalleryImageLibraryBinding.setButtonsVisible(true);
         fragmentGalleryImageLibraryBinding.fabGroup.setSelectedCount(String.valueOf(numOfSelectedFiles));
+        fragmentGalleryImageLibraryBinding.fabGroup.setCompareVisible(numOfSelectedFiles == 2);
     }
 
     @Override

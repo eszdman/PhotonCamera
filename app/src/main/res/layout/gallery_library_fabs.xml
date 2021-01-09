@@ -5,6 +5,8 @@
 
     <data>
 
+        <import type="android.view.View"/>
+
         <variable
                 name="selected_count"
                 type="java.lang.String"/>
@@ -20,6 +22,14 @@
         <variable
                 name="on_share_fab_clicked"
                 type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="on_compare_fab_clicked"
+                type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="compare_visible"
+                type="boolean"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -70,5 +80,22 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintVertical_bias=".95"
                 app:layout_constraintHorizontal_bias=".9"/>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                app:backgroundTint="?colorControlActivated"
+                app:srcCompat="@drawable/ic_compare"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/compare_fab"
+                android:onClick="@{on_compare_fab_clicked}"
+                android:visibility="@{compare_visible ? View.VISIBLE : View.INVISIBLE}"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintVertical_bias=".95"
+                app:layout_constraintHorizontal_bias=".1"/>
+
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
