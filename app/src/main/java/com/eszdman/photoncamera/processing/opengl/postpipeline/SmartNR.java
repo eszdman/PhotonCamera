@@ -58,7 +58,7 @@ public class SmartNR extends Node {
 
         float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         denoiseLevel += 0.25;
-        float str = ((float)basePipeline.mSettings.noiseRstr)/4.f;
+        float str = ((float)basePipeline.mSettings.noiseRstr)/16.f;
         //Chroma NR
         /*glProg.useProgram(R.raw.bilateralcolor);
 
@@ -80,15 +80,16 @@ public class SmartNR extends Node {
         kernelsize = Math.max(kernelsize,1);
         kernelsize = Math.min(kernelsize,7);
         if(isofactor > 0.4){
-            tonemaped = true;
-            tonemapUpscale = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16));
-            glUtils.interpolate(((PostPipeline) (basePipeline)).FusionMap, tonemapUpscale);
+            tonemaped = false;
+            if(tonemaped) {
+                tonemapUpscale = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16));
+                glUtils.interpolate(((PostPipeline) (basePipeline)).FusionMap, tonemapUpscale);
+            }
         }
         if(kernelsize >2) glProg.setDefine("MEDIAN",true);
         glProg.setDefine("KERNEL","("+kernelsize+")");
         if(isofactor > 0.4){
-            tonemaped = true;
-            glProg.setDefine("TONEMAPED",true);
+            glProg.setDefine("TONEMAPED",false);
         }
         glProg.setDefine("ISOFACTOR","("+isofactor+")");
         glProg.setDefine("STR",str);
