@@ -95,6 +95,8 @@ public class Equalization extends Node {
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
         Log.d(Name,"Equalizek:"+eq);
+        glProg.setDefine("BL",histParser.BL);
+        Log.d(Name,"BL:"+histParser.BL);
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
         glProg.setTexture("Histogram",histogram);

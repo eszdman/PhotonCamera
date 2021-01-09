@@ -11,6 +11,7 @@ public class Histogram {
     public final float[] sigma = new float[3];
     public final float[] hist;
     public float gamma;
+    public float BL;
     public final float logAvgLuminance;
 
     public Histogram(float[] f, int whPixels) {
@@ -53,6 +54,7 @@ public class Histogram {
         }
 
         //limitHighlightContrast(histv, f.length / 4);
+        BL = findBL(histv);
         float[] cumulativeHist = buildCumulativeHist(histv);
 
         // Find gamma: Inverse of the average exponent.
@@ -84,6 +86,14 @@ public class Histogram {
         hist = cumulativeHist;
     }
 
+    private static float findBL(int[] hist) {
+        for(int i =0; i<25; i++){
+            if(hist[i] >= 1) {
+                return hist[i]/256.f;
+            }
+        }
+        return 0.f;
+    }
     private static float[] buildCumulativeHist(int[] hist) {
         float[] cumulativeHist = new float[HIST_BINS + 1];
         for (int i = 1; i < cumulativeHist.length; i++) {
