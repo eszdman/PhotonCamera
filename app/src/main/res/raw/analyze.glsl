@@ -2,7 +2,7 @@
 precision highp sampler2D;
 precision highp float;
 uniform sampler2D InputBuffer;
-uniform int step;
+uniform int stp;
 out vec4 Output;
 #define SAMPLING (1)
 #define BR (0.6)
@@ -11,7 +11,7 @@ out vec4 Output;
 void main() {
     ivec2 xy = SAMPLING * ivec2(gl_FragCoord.xy);
     vec3[9]inp;
-    if(step == 0){
+    if(stp == 0){
         for (int i = 0; i < 9; i++) {
             inp[i] = XYZtoxyY(texelFetch(InputBuffer, xy + 2*ivec2((i % 3) - 1, (i / 3) - 1), 0).rgb);
         }

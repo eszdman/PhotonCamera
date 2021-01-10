@@ -50,7 +50,7 @@ public class Equalization extends Node {
         fb.get(brArr);
         fb.clear();
 
-        glProg.setVar("step",1);
+        glProg.setVar("stp",1);
         glProg.drawBlocks(r1);
         float [] colArr = new float[r1.mSize.x*r1.mSize.y * 4];
         fb.mark();
