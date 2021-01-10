@@ -60,6 +60,6 @@ public class Initial extends Node {
         if(PhotonCamera.getSettings().cfaPattern == 4) sat = 0.f;
         glProg.setVar("saturation",sat);
         //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
-        WorkingTexture = basePipeline.main1;
+        WorkingTexture = basePipeline.getMain();
     }
 }

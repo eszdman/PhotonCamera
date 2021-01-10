@@ -115,7 +115,7 @@ public class Equalization extends Node {
         Log.d(Name,"HistFactor:"+bilatHistFactor*EqualizePower);
         glProg.setVar("HistFactor",bilatHistFactor*EqualizePower);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.drawBlocks(WorkingTexture,256);
+        glProg.drawBlocks(WorkingTexture);
         histogram.close();
         lutbm.recycle();
         glProg.closed = true;
