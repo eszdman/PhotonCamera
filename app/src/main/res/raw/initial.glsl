@@ -24,7 +24,7 @@ out vec3 Output;
 #define x1 2.8586f
 #define x2 -3.1643f
 #define x3 1.2899f
-#define EPS (0.0005)
+#define EPS (0.0008)
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import coords
 #import interpolation
@@ -172,6 +172,8 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
+#define TONEMAPSWITCH (0.05)
+#define TONEMAPAMP (0.5)
 vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     /*float grmodel = clamp(pRGB.g-0.8,0.0,0.2)*5.0;
     grmodel*=grmodel;
@@ -197,7 +199,13 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
         tonemapGain=(tonemapGain-1.0)*-0.5 + 1.0;
     }*/
 
-    br=pow(br,tonemapGain);
+    //br=mix(br,sqrt(br),tonemapGain-1.0);
+    if(br>TONEMAPSWITCH){
+        float model = clamp((br-TONEMAPSWITCH)*TONEMAPAMP,0.0,1.0);
+        //model*=model;
+        br=mix(br,pow(br,tonemapGain),model);
+    }
+    //br=pow(br,tonemapGain);
 
     pRGB*=br;
     //float brmodel = clamp(br-0.8,0.0,0.2)*5.0;
