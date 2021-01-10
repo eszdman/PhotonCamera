@@ -10,7 +10,7 @@ out vec3 Output;
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyytoxyz
 #import xyztoxyy
-#define EPS (0.035)
+#define EPS (0.0008)
 #define EPSAMP (3.0)
 #define BL (0.02,0.02,0.02)
 #define BLAVR (0.02)
@@ -27,6 +27,5 @@ void main() {
     if(ch.z > EPS) ch.z = mix(ch.z,ch.z*pow(HistEq/ch.z,HistFactor),factor);
     ch.z = pow(ch.z,Equalize);
     sRGB = xyYtoXYZ(ch);
-
     Output = clamp(sRGB,EPS,1.0);
 }
