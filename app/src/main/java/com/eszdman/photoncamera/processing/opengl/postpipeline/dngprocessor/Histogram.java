@@ -11,11 +11,13 @@ public class Histogram {
     public final float[] sigma = new float[3];
     public final float[] hist;
     public float gamma;
-    public float BL;
+    public float BL[];
     public final float logAvgLuminance;
-
-    public Histogram(float[] f, int whPixels) {
+    public Histogram(float[] f,float[] cols, int whPixels) {
         int[] histv = new int[HIST_BINS];
+        int[] histr = new int[HIST_BINS];
+        int[] histg = new int[HIST_BINS];
+        int[] histb = new int[HIST_BINS];
 
         final double[] logTotalLuminance = {0d};
         // Loop over all values
@@ -32,9 +34,22 @@ public class Histogram {
                 if (bin >= HIST_BINS) bin = HIST_BINS - 1;
                 histv[bin]++;
 
+                bin = (int) (cols[i] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histr[bin]++;
+                bin = (int) (cols[i + 1] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histg[bin]++;
+                bin = (int) (cols[i + 2] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histb[bin]++;
+
                 logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
             }
-        }.execute(Range.create(f.length/4));
+        }.execute(Range.create2D(f.length/4,4));
         /*for (int i = 0; i < f.length; i += 4) {
             for (int j = 0; j < 3; j++) {
                 sigma[j] += f[i + j];
@@ -54,7 +69,7 @@ public class Histogram {
         }
 
         //limitHighlightContrast(histv, f.length / 4);
-        BL = findBL(histv);
+        BL = findBL(histr,histg,histb);
         float[] cumulativeHist = buildCumulativeHist(histv);
 
         // Find gamma: Inverse of the average exponent.
@@ -86,13 +101,27 @@ public class Histogram {
         hist = cumulativeHist;
     }
 
-    private static float findBL(int[] hist) {
+    private static float[] findBL(int[] histr,int[] histg,int[] histb) {
+        float[] bl = new float[3];
         for(int i =0; i<25; i++){
-            if(hist[i] >= 1) {
-                return i/((float)hist.length);
+            if(histr[i] >= 1) {
+                bl[0] = i/((float)histr.length);
+                break;
             }
         }
-        return 0.f;
+        for(int i =0; i<25; i++){
+            if(histg[i] >= 1) {
+                bl[1] = i/((float)histg.length);
+                break;
+            }
+        }
+        for(int i =0; i<25; i++){
+            if(histb[i] >= 1) {
+                bl[2] = i/((float)histb.length);
+                break;
+            }
+        }
+        return bl;
     }
     private static float[] buildCumulativeHist(int[] hist) {
         float[] cumulativeHist = new float[HIST_BINS + 1];

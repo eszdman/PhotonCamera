@@ -36,9 +36,10 @@ public class Equalization extends Node {
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
         glProg.setDefine("BR","("+basePipeline.mSettings.shadows*0.6+")");
+        glProg.setDefine("SAMPLING",resize);
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setVar("samplingFactor",resize);
+        glProg.setVar("step",0);
         glProg.drawBlocks(r1);
         float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
         FloatBuffer fb = ByteBuffer.allocateDirect(brArr.length * 4)
@@ -47,9 +48,17 @@ public class Equalization extends Node {
         fb.mark();
         glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
         fb.get(brArr);
+        fb.clear();
+
+        glProg.setVar("step",1);
+        glProg.drawBlocks(r1);
+        float [] colArr = new float[r1.mSize.x*r1.mSize.y * 4];
+        fb.mark();
+        glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
+        fb.get(colArr);
         //Log.d(Name,"brArr:"+ Arrays.toString(brArr));
         r1.close();
-        return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
+        return new Histogram(brArr,colArr, r1.mSize.x*r1.mSize.y);
     }
     private float EqualizePower = 0.5f;
     @Override
@@ -96,7 +105,8 @@ public class Equalization extends Node {
         eq = (float) Math.pow(eq, 0.6);
         Log.d(Name,"Equalizek:"+eq);
         glProg.setDefine("BL",histParser.BL);
-        Log.d(Name,"BL:"+histParser.BL);
+        glProg.setDefine("BLAVR",(histParser.BL[0]+histParser.BL[1]+histParser.BL[2])/3.f);
+        Log.d(Name,"BL:"+Arrays.toString(histParser.BL));
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
         glProg.setTexture("Histogram",histogram);
@@ -104,7 +114,6 @@ public class Equalization extends Node {
                 - 4f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
         Log.d(Name,"HistFactor:"+bilatHistFactor*EqualizePower);
         glProg.setVar("HistFactor",bilatHistFactor*EqualizePower);
-        glProg.setVar("histOffset", 0.5f, 1.f - 1.f / histParser.hist.length);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture,256);
         histogram.close();

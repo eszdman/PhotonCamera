@@ -171,11 +171,19 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
 vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
-    pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
-    pRGB*=tonemapGain;
+    /*float grmodel = clamp(pRGB.g-0.8,0.0,0.2)*5.0;
+    grmodel*=grmodel;
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
-    pRGB=mix(pRGB*1.67,pRGB,clamp(br-0.8,0.0,0.2)*5.0);
+    br = mix(br,min(pRGB.r,pRGB.b),grmodel);
+    pRGB*=br;*/
+    pRGB*=tonemapGain;
+    pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
+    float br = pRGB.r+pRGB.g+pRGB.b;
+    br/=3.0;
+    float brmodel = clamp(br-0.8,0.0,0.2)*5.0;
+    brmodel*=brmodel;
+    pRGB=mix(pRGB*1.67,pRGB,brmodel);
 
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     //pRGB*=exposing;
@@ -207,7 +215,7 @@ vec3 saturate(vec3 rgb,float model) {
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
-    hsv.g = clamp(hsv.g*(saturation*model*1.05),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
     rgb = hsv2rgb(hsv);
     //rgb.r+=r*redcorr*saturation;
     //rgb.g=clamp(rgb.g,0.0,1.0);
@@ -221,7 +229,7 @@ void main() {
     xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
+    float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

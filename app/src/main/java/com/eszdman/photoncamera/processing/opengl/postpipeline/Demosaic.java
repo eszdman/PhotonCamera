@@ -46,7 +46,6 @@ public class Demosaic extends Node {
         glProg.useProgram(R.raw.demosaicp2);
         glProg.setTexture("RawBuffer", outp);
         glProg.setTexture("GreenBuffer", basePipeline.main1);
-        glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         WorkingTexture = basePipeline.main3;
