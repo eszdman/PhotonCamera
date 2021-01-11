@@ -46,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Preference.KEY_CAMERA_SOUNDS.mValue);
         COMMON_KEYS.add(Preference.KEY_SHOW_GRADIENT.mValue);
         COMMON_KEYS.add(Preference.KEY_AF_MODE.mValue);
+        COMMON_KEYS.add(Preference.CAMERA_MODE.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -69,6 +70,7 @@ public class PreferenceKeys {
             settingsManager.set(current_scope, Preference.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
             settingsManager.set(current_scope, Preference.KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
             settingsManager.set(current_scope, Preference.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
+            settingsManager.set(current_scope, Preference.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
         }
         settingsManager.setDefaults(Preference.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Preference.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
