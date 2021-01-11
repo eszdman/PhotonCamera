@@ -41,10 +41,17 @@
     <attr name="cameraFragmentBackground" format="reference"/>
 
     <declare-styleable name="FlashButtonStates">
-        <attr name="flash_off" format="boolean" />
-        <attr name="flash_on" format="boolean" />
-        <attr name="flash_auto" format="boolean" />
-        <attr name="flash_torch" format="boolean" />
+        <attr name="flash_off" format="boolean"/>
+        <attr name="flash_on" format="boolean"/>
+        <attr name="flash_auto" format="boolean"/>
+        <attr name="flash_torch" format="boolean"/>
+    </declare-styleable>
+
+    <declare-styleable name="FocusCircleView">
+        <attr name="focused_locked" format="boolean"/>
+        <attr name="unfocused_locked" format="boolean"/>
+        <attr name="android:color" format="reference|color"/>
+        <attr name="android:thickness" format="dimension"/>
     </declare-styleable>
 
 </resources>

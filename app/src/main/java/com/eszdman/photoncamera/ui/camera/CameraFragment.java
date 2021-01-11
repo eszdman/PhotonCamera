@@ -101,7 +101,6 @@ public class CameraFragment extends Fragment {
     public static String sActiveFrontCamId = "1";
     public static CameraMode mSelectedMode;
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     public SurfaceViewOverViewfinder surfaceView;
     public String[] mAllCameraIds;
     public Set<String> mFrontCameraIDs;
@@ -115,6 +114,7 @@ public class CameraFragment extends Fragment {
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
+    private AutoFitTextureView textureView;
 
 
     public CameraFragment() {
@@ -159,6 +159,7 @@ public class CameraFragment extends Fragment {
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
+        textureView = cameraFragmentBinding.layoutViewfinder.texture;
     }
 
     private void setModelsToLayout() {
@@ -217,7 +218,6 @@ public class CameraFragment extends Fragment {
         mSwipe.init();
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
-        initTouchFocus();
         this.mCameraUIView.refresh();
         burstPlayer = MediaPlayer.create(getActivity(), R.raw.sound_burst);
 
@@ -226,6 +226,7 @@ public class CameraFragment extends Fragment {
 
         captureController.startBackgroundThread();
         captureController.resumeCamera();
+        initTouchFocus();
 
         PhotonCamera.getSupportedDevice().loadCheck();
     }
@@ -233,7 +234,6 @@ public class CameraFragment extends Fragment {
     private void initTouchFocus() {
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
-            AutoFitTextureView textureView = cameraFragmentBinding.layoutViewfinder.texture;
             textureView.post(() -> {
                 Point size = new Point(textureView.getWidth(), textureView.getHeight());
                 mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
@@ -264,7 +264,7 @@ public class CameraFragment extends Fragment {
     }
 
     private void updateScreenLog(CaptureResult result) {
-        mainHandler.post(() -> {
+        surfaceView.post(() -> {
             mTouchFocus.setState(result.get(CaptureResult.CONTROL_AF_STATE));
             if (PreferenceKeys.isAfDataOn()) {
                 IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);
@@ -351,7 +351,7 @@ public class CameraFragment extends Fragment {
     public void showSnackBar(final String text) {
         final View v = getView();
         if (v != null) {
-            mainHandler.post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
+            v.post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
         }
     }
 
@@ -504,10 +504,9 @@ public class CameraFragment extends Fragment {
         @Override
         public void onProcessingStarted(Object obj) {
             logD("onProcessingStarted: " + obj);
-            mainHandler.post(() -> {
-                mCameraUIView.setProcessingProgressBarIndeterminate(true);
-                mCameraUIView.activateShutterButton(false);
-            });
+            mCameraUIView.setProcessingProgressBarIndeterminate(true);
+            mCameraUIView.activateShutterButton(false);
+
         }
 
         @Override
@@ -517,10 +516,8 @@ public class CameraFragment extends Fragment {
         @Override
         public void onProcessingFinished(Object obj) {
             logD("onProcessingFinished: " + obj);
-            mainHandler.post(() -> {
-                mCameraUIView.resetProcessingProgressBar();
-                mCameraUIView.activateShutterButton(true);
-            });
+            mCameraUIView.resetProcessingProgressBar();
+            mCameraUIView.activateShutterButton(true);
         }
 
         @Override
@@ -558,6 +555,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onCaptureStillPictureStarted(Object o) {
             mCameraUIView.setCaptureProgressBarOpacity(1.0f);
+            textureView.post(() -> textureView.setAlpha(0.5f));
         }
 
         @Override
@@ -584,6 +582,7 @@ public class CameraFragment extends Fragment {
         public void onCaptureSequenceCompleted(Object o) {
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
+            textureView.post(() -> textureView.setAlpha(1f));
         }
 
         @Override

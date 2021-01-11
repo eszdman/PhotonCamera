@@ -4,16 +4,14 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import androidx.annotation.Nullable;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.views.FocusCircleView;
 
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
@@ -24,8 +22,7 @@ public class TouchFocus {
     private static final int AUTO_HIDE_DELAY_MS = 3000;
     private final CaptureController captureController;
     private final Point previewMaxSize;
-    private final View focusEl;
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final View focusCircleView;
     private final Runnable hideFocusCircleRunnable = this::hideFocusCircleView;
     private final OnTouchListener focusListener = (v, event) -> {
         v.performClick();
@@ -37,9 +34,9 @@ public class TouchFocus {
 
     private TouchFocus(CaptureController captureController, View focusCircle, Point previewMaxSize) {
         this.captureController = captureController;
-        this.focusEl = focusCircle;
+        this.focusCircleView = focusCircle;
         this.previewMaxSize = previewMaxSize;
-        focusEl.setOnTouchListener(focusListener);
+        focusCircleView.setOnTouchListener(focusListener);
         resetFocusCircle();
     }
 
@@ -48,22 +45,22 @@ public class TouchFocus {
     }
 
     public void processTouchToFocus(float fx, float fy) {
-        mainHandler.removeCallbacks(hideFocusCircleRunnable);
-        showFocusCircle(fx, fy);
+        focusCircleView.removeCallbacks(hideFocusCircleRunnable);
+        focusCircleView.post(() -> showFocusCircle(fx, fy));
         try {
             setFocus((int) fy, (int) fx);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        mainHandler.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
+        focusCircleView.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
     }
 
     private void showFocusCircle(float fx, float fy) {
-        focusEl.setX(fx - focusEl.getMeasuredWidth() / 2.0f);
-        focusEl.setY(fy - focusEl.getMeasuredHeight() / 2.0f);
-        focusEl.setVisibility(View.VISIBLE);
-        focusEl.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
-                .withEndAction(() -> focusEl.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
+        focusCircleView.setX(fx - focusCircleView.getMeasuredWidth() / 2.0f);
+        focusCircleView.setY(fy - focusCircleView.getMeasuredHeight() / 2.0f);
+        focusCircleView.setVisibility(View.VISIBLE);
+        focusCircleView.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
+                .withEndAction(() -> focusCircleView.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
                 .start();
     }
 
@@ -72,8 +69,7 @@ public class TouchFocus {
      */
     public void setState(@Nullable Integer afstate) {
         if (afstate != null) {
-            focusEl.setActivated(afstate == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED);
-            focusEl.setSelected(afstate == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED);
+            ((FocusCircleView) focusCircleView).setAfState(afstate);
         }
     }
 
@@ -157,21 +153,21 @@ public class TouchFocus {
     //Thread safe
     //call when focus circle needs to be hidden immediately
     public void resetFocusCircle() {
-        mainHandler.removeCallbacks(hideFocusCircleRunnable);
-        mainHandler.post(hideFocusCircleRunnable);
+        focusCircleView.removeCallbacks(hideFocusCircleRunnable);
+        focusCircleView.post(hideFocusCircleRunnable);
     }
 
     //Must be run on UI Thread
     private void hideFocusCircleView() {
-        if (focusEl.getVisibility() == View.VISIBLE) {
-            focusEl.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
+        if (focusCircleView.getVisibility() == View.VISIBLE) {
+            focusCircleView.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
                     .withEndAction(() -> {
-                        focusEl.setVisibility(View.GONE);
-                        focusEl.setX((float) previewMaxSize.x / 2.f);
-                        focusEl.setY((float) previewMaxSize.y / 2.f);
-                        focusEl.setScaleY(1f);
-                        focusEl.setScaleX(1f);
-                        focusEl.setAlpha(1f);
+                        focusCircleView.setVisibility(View.GONE);
+                        focusCircleView.setX((float) previewMaxSize.x / 2.f);
+                        focusCircleView.setY((float) previewMaxSize.y / 2.f);
+                        focusCircleView.setScaleY(1f);
+                        focusCircleView.setScaleX(1f);
+                        focusCircleView.setAlpha(1f);
                     })
                     .start();
         }

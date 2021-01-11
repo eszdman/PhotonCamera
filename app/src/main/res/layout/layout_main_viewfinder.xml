@@ -41,20 +41,21 @@
                 app:layout_constraintBottom_toBottomOf="parent"
         />
 
-            <!--FocusCircle-->
+            <!--FocusCircleView-->
             <!--        putting focus circle here will make it
-             not visible outside viewfinnder container-->
-            <ImageView
+             not visible outside viewfinder container-->
+            <com.eszdman.photoncamera.ui.camera.views.FocusCircleView
                     android:id="@+id/touchFocus"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/focus_circle_size"
                     android:layout_height="0dp"
                     app:layout_constraintDimensionRatio="1:1"
                     android:visibility="invisible"
+                    android:color="@color/focus_circle_color"
+                    android:thickness="1.5dp"
                     app:layout_constraintBottom_toBottomOf="@id/texture"
                     app:layout_constraintEnd_toEndOf="@id/texture"
                     app:layout_constraintStart_toStartOf="@id/texture"
                     app:layout_constraintTop_toTopOf="@id/texture"
-                    app:srcCompat="@drawable/ic_touch_focus"
                     tools:visibility="visible"/>
 
             <com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder

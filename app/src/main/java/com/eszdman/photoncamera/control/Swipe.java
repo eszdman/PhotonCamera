@@ -31,7 +31,7 @@ public class Swipe {
         Log.d(TAG, "SwipeDetection - ON");
         manualMode = cameraFragment.findViewById(R.id.manual_mode);
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
-        hidePanel();
+        manualMode.post(this::hidePanel);
         ocManual.setOnClickListener((v) -> {
             if (!panelShowing) {
                 SwipeUp();
@@ -111,14 +111,14 @@ public class Swipe {
     }
 
     public void SwipeUp() {
-        showPanel();
+        manualMode.post(this::showPanel);
 //        cameraFragment.getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.VISIBLE);
         cameraFragment.getTouchFocus().resetFocusCircle();
     }
 
     public void SwipeDown() {
-        hidePanel();
+        manualMode.post(this::hidePanel);
         cameraFragment.getTouchFocus().resetFocusCircle();
         cameraFragment.getCaptureController().setPreviewAEMode();
         cameraFragment.getCaptureController().mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());

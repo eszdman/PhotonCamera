@@ -43,6 +43,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     private HorizontalPicker mModePicker;
     private HashMap<Integer, String> auxButtonsMap;
     private float baseF = 0.f;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public CameraUIViewImpl(CameraFragmentBinding cameraFragmentBinding) {
         this.cameraFragmentBinding = cameraFragmentBinding;
@@ -78,8 +79,10 @@ public final class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void activateShutterButton(boolean status) {
-        mShutterButton.setActivated(status);
-        mShutterButton.setClickable(status);
+        mainHandler.post(() -> {
+            mShutterButton.setActivated(status);
+            mShutterButton.setClickable(status);
+        });
     }
 
     private void switchToMode(CameraMode cameraMode) {
@@ -187,29 +190,31 @@ public final class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void resetProcessingProgressBar() {
-        mProcessingProgressBar.setProgress(0);
-        mProcessingProgressBar.setIndeterminate(false);
+        mainHandler.post(() -> {
+            mProcessingProgressBar.setProgress(0);
+            mProcessingProgressBar.setIndeterminate(false);
+        });
     }
 
     @Override
     public void setProcessingProgressBarIndeterminate(boolean indeterminate) {
-        mProcessingProgressBar.setIndeterminate(indeterminate);
+        mainHandler.post(() -> mProcessingProgressBar.setIndeterminate(indeterminate));
     }
 
     @Override
     public void incrementCaptureProgressBar(int step) {
-        mCaptureProgressBar.incrementProgressBy(step);
+        mainHandler.post(() -> mCaptureProgressBar.incrementProgressBy(step));
     }
 
     @Override
     public void resetCaptureProgressBar() {
-        mCaptureProgressBar.setProgress(0);
+        mainHandler.post(() -> mCaptureProgressBar.setProgress(0));
         setCaptureProgressBarOpacity(0);
     }
 
     @Override
     public void setCaptureProgressBarOpacity(float alpha) {
-        new Handler(Looper.getMainLooper()).post(() -> mCaptureProgressBar.setAlpha(alpha));
+        mainHandler.post(() -> mCaptureProgressBar.setAlpha(alpha));
     }
 
     /*@SuppressLint("DefaultLocale")
@@ -219,7 +224,7 @@ public final class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void setCaptureProgressMax(int max) {
-        mCaptureProgressBar.setMax(max);
+        mainHandler.post(() -> mCaptureProgressBar.setMax(max));
     }
 
     @Override

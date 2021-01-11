@@ -1166,7 +1166,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
             mMeasuredFrameCnt = 0;
-            mTextureView.setAlpha(0.5f);
 
 
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
@@ -1217,7 +1216,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
-                    mTextureView.setAlpha(1f);
                     //unlockFocus();
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
