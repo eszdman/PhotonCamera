@@ -29,9 +29,9 @@ void main() {
         Output = vec4(sqrt(sigma / 9.f), mix(z, z*z, BR));
     } else {
         vec3 inp = texelFetch(InputBuffer, xy, 0).rgb;
-        float br = XYZtoxyY(inp).z;
-        inp/=br;
-        br = mix(br,br*br,BR);
-        Output = vec4(inp*br,1.0);
+        //float br = XYZtoxyY(inp).z;
+        //inp/=br;
+        //br = mix(br,br*br,BR);
+        Output = vec4(inp,1.0);
     }
 }

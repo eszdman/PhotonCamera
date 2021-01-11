@@ -103,9 +103,11 @@ public class Histogram {
 
     private static float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
+        int rmax = 25;
         for(int i =0; i<25; i++){
             if(histr[i] >= 1) {
                 bl[0] = i/((float)histr.length);
+                rmax = i;
                 break;
             }
         }

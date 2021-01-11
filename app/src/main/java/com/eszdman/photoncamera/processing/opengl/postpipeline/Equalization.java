@@ -104,8 +104,29 @@ public class Equalization extends Node {
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
         Log.d(Name,"Equalizek:"+eq);
+        int check = 0;
+        if(histParser.BL[0] == 0.0) {
+            histParser.BL[0] = histParser.BL[2];
+            check++;
+        }
+        if(histParser.BL[1] == 0.0) {
+            if(histParser.BL[2] != 0.0)
+            histParser.BL[1] = (histParser.BL[0]+histParser.BL[2])/2.f;
+            check++;
+        }
+        if(histParser.BL[2] == 0.0) {
+            histParser.BL[2] = histParser.BL[0];
+            check++;
+        }
         glProg.setDefine("BL",histParser.BL);
         glProg.setDefine("BLAVR",(histParser.BL[0]+histParser.BL[1]+histParser.BL[2])/3.f);
+        float green = ((histParser.BL[0]+histParser.BL[2]+0.0002f)/2.f)/(histParser.BL[1]+0.0001f);
+        Log.d(Name,"Interpolation check:"+check);
+        if(green > 0.0f && green < 1.7f && check <= 1) {
+            float tcor = (green+1.f)/2.f;
+            glProg.setDefine("TINT",tcor);
+            glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
+        }
         Log.d(Name,"BL:"+Arrays.toString(histParser.BL));
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);

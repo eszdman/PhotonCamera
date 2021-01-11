@@ -173,7 +173,7 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
 #define TONEMAPSWITCH (0.05)
-#define TONEMAPAMP (0.5)
+#define TONEMAPAMP (1.0)
 vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     /*float grmodel = clamp(pRGB.g-0.8,0.0,0.2)*5.0;
     grmodel*=grmodel;
@@ -200,10 +200,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     }*/
 
     //br=mix(br,sqrt(br),tonemapGain-1.0);
-    if(br>TONEMAPSWITCH){
-        float model = clamp((br-TONEMAPSWITCH)*TONEMAPAMP,0.0,1.0);
+    if(br>EPS){
+        float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
         //model*=model;
-        br=mix(br,pow(br,tonemapGain),model);
+        br=mix(br, pow(br,tonemapGain*br),model);
     }
     //br=pow(br,tonemapGain);
 
@@ -213,12 +213,12 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB=mix(pRGB*1.67,pRGB,brmodel);
 
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
-    pRGB*=tonemapGain;
+    //pRGB*=tonemapGain;
     //pRGB*=exposing;
 
     pRGB = gammaCorrectPixel2(pRGB);
     //pRGB = mix(pRGB,tonemap(pRGB),clamp(abs(1.0-tonemapGain)/2.0,0.0,1.0));
-    return brightnessContrast(pRGB,0.0,1.018);
+    //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
 }
@@ -264,6 +264,7 @@ void main() {
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
     br = (clamp(br-0.0004,0.0,0.002)*(1.0/0.002));
+    br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
     //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
     sRGB = clamp(sRGB,EPS,1.0);
