@@ -767,7 +767,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             startTimerLocked();
             // This is how to tell the camera to lock focus.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                    CameraMetadata.CONTROL_AF_TRIGGER_START);
+                    CameraMetadata.CONTROL_AF_TRIGGER_IDLE); //don't trigger focus since focus is set by touch
             // Tell #mCaptureCallback to wait for the lock.
             mState = STATE_WAITING_LOCK;
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
