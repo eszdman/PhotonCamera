@@ -69,7 +69,7 @@ public class Settings {
         fpsPreview = PreferenceKeys.isFpsPreviewOn();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
-        selectedMode = CameraMode.PHOTO;
+        selectedMode = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
         toneMap = parseToneMapArray();
         gamma = parseGammaArray();
         mCameraID = PreferenceKeys.getCameraID();
@@ -103,18 +103,5 @@ public class Settings {
         }
         return finalArray;
     }
-
-    /*CameraMode getCameraMode() {
-        switch (PreferenceKeys.getCameraMode()) {
-            case (0):
-                return CameraMode.PHOTO;
-            case (1):
-                return CameraMode.NIGHT;
-            case (2):
-                return CameraMode.UNLIMITED;
-        }
-        return CameraMode.PHOTO;
-    }*/
-
 
 }

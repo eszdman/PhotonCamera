@@ -295,13 +295,13 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(current_scope, Preference.KEY_AE_MODE, value);
     }
 
-    /*public static int getCameraMode() {
+    public static int getCameraModeOrdinal() {
         return preferenceKeys.settingsManager.getInteger(current_scope, Preference.CAMERA_MODE);
-    }*/
+    }
 
-    /*public static void setCameraMode(int value) {
+    public static void setCameraModeOrdinal(int value) {
         preferenceKeys.settingsManager.set(current_scope, Preference.CAMERA_MODE, value);
-    }*/
+    }
 
     public static String getToneMap() {
         return preferenceKeys.settingsManager.getString(current_scope, Preference.TONEMAP);

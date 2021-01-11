@@ -3,15 +3,19 @@ package com.eszdman.photoncamera.api;
 import java.util.stream.Stream;
 
 public enum CameraMode {
-    UNLIMITED(0),
-    PHOTO(1),
-    NIGHT(2),
-    VIDEO(3)
-    ;
-    public final int mNum;
+    UNLIMITED,
+    PHOTO,
+    NIGHT,
+    VIDEO;
 
-    CameraMode(int number) {
-        mNum = number;
+
+    public static CameraMode valueOf(int modeOrdinal) {
+        for (CameraMode mode : values()) {
+            if (modeOrdinal == mode.ordinal()) {
+                return mode;
+            }
+        }
+        return PHOTO;
     }
 
     public static String[] names() {

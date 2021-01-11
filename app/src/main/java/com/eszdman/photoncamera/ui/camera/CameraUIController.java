@@ -121,21 +121,17 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
     @Override
     public void onCameraModeChanged(CameraMode cameraMode) {
+        PreferenceKeys.setCameraModeOrdinal(cameraMode.ordinal());
         Log.d(TAG, "onCameraModeChanged() called with: cameraMode = [" + cameraMode + "]");
         switch (cameraMode) {
             case PHOTO:
-            default:
-                PhotonCamera.getSettings().selectedMode = CameraMode.PHOTO;
-                break;
             case NIGHT:
-                PhotonCamera.getSettings().selectedMode = CameraMode.NIGHT;
-                break;
             case UNLIMITED:
-                PhotonCamera.getSettings().selectedMode = CameraMode.UNLIMITED;
+            default:
                 break;
-            /*case VIDEO:
-                PhotonCamera.getSettings().selectedMode = CameraMode.VIDEO;
-                break;*/
+            case VIDEO:
+                PreferenceKeys.setCameraModeOrdinal(CameraMode.PHOTO.ordinal()); //since Video Mode is broken at the moment
+                break;
         }
         restartCamera();
     }
