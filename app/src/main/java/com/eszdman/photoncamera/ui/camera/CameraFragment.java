@@ -24,6 +24,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.RectF;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
@@ -271,20 +272,32 @@ public class CameraFragment extends Fragment {
                 stringMap.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
                 stringMap.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
                 stringMap.put("AF_STATE", getResultFieldName("CONTROL_AF_STATE_", result.get(CaptureResult.CONTROL_AF_STATE)));
+                stringMap.put("AE_MODE", getResultFieldName("CONTROL_AE_MODE_", result.get(CaptureResult.CONTROL_AE_MODE)));
+                stringMap.put("FLASH_MODE", getResultFieldName("FLASH_MODE_", result.get(CaptureResult.FLASH_MODE)));
                 stringMap.put("FOCUS_DISTANCE", String.valueOf(result.get(CaptureResult.LENS_FOCUS_DISTANCE)));
                 stringMap.put("EXPOSURE_TIME", expoPair.ExposureString() + "s");
 //            stringMap.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
                 stringMap.put("ISO", String.valueOf(expoPair.iso));
 //            stringMap.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
                 stringMap.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
-                stringMap.put("FOCUS_RECT", Arrays.deepToString(result.get(CaptureResult.CONTROL_AF_REGIONS)));
-                MeteringRectangle[] rectobj = result.get(CaptureResult.CONTROL_AF_REGIONS);
-                if (rectobj != null && rectobj.length > 0) {
-                    RectF rect = getScreenRectFromMeteringRect(rectobj[0]);
-                    stringMap.put("F_RECT(px)", rect.toString());
-                    surfaceView.setMeteringRect(rect);
+                stringMap.put("FrameNumber", String.valueOf(result.getFrameNumber()));
+                MeteringRectangle[] afRect = result.get(CaptureResult.CONTROL_AF_REGIONS);
+                stringMap.put("AF_RECT", Arrays.deepToString(afRect));
+                if (afRect != null && afRect.length > 0) {
+                    RectF rect = getScreenRectFromMeteringRect(afRect[0]);
+                    stringMap.put("AF_RECT(px)", rect.toString());
+                    surfaceView.setAFRect(rect);
                 } else {
-                    surfaceView.setMeteringRect(null);
+                    surfaceView.setAFRect(null);
+                }
+                MeteringRectangle[] aeRect = result.get(CaptureResult.CONTROL_AE_REGIONS);
+                stringMap.put("AE_RECT", Arrays.deepToString(aeRect));
+                if (aeRect != null && aeRect.length > 0) {
+                    RectF rect = getScreenRectFromMeteringRect(aeRect[0]);
+                    stringMap.put("AE_RECT(px)", rect.toString());
+                    surfaceView.setAERect(rect);
+                } else {
+                    surfaceView.setAERect(null);
                 }
                 surfaceView.setDebugText(Logger.createTextFrom(stringMap));
                 surfaceView.refresh();
@@ -338,7 +351,7 @@ public class CameraFragment extends Fragment {
     public void showSnackBar(final String text) {
         final View v = getView();
         if (v != null) {
-            new Handler(Looper.getMainLooper()).post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
+            mainHandler.post(() -> Snackbar.make(v, text, Snackbar.LENGTH_SHORT).show());
         }
     }
 
@@ -594,8 +607,10 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onCharacteristicsUpdated() {
+        public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
             mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
+            Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+            mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
             PhotonCamera.getManualMode().init();
         }
 

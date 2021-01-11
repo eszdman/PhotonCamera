@@ -78,11 +78,11 @@ public class TouchFocus {
     }
 
     private void setInitialAFAE() {
-        CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
-        builder.set(CaptureRequest.CONTROL_AF_REGIONS, builder.get(CONTROL_AF_REGIONS));
-        builder.set(CaptureRequest.CONTROL_AE_REGIONS, builder.get(CONTROL_AE_REGIONS));
-        builder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-        builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+        CaptureRequest.Builder previewRequestBuilder = captureController.mPreviewRequestBuilder;
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, previewRequestBuilder.get(CONTROL_AF_REGIONS));
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, previewRequestBuilder.get(CONTROL_AE_REGIONS));
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+        captureController.setPreviewAEMode();
         captureController.rebuildPreviewBuilder();
     }
 
@@ -138,7 +138,7 @@ public class TouchFocus {
         build.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
         build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
         build.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-        build.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+        build.set(CaptureRequest.CONTROL_AE_MODE, Math.max(PreferenceKeys.getAeMode(), 1));
         //set focus area repeating,else cam forget after one frame where it should focus
         //Interface.getCameraFragment().rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed

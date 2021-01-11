@@ -18,6 +18,7 @@
     <bool name="pref_eis_photo_default">false</bool>
     <bool name="pref_fps_preview_default">false</bool>
     <bool name="pref_hdrx_mode_default">true</bool>
+    <string name="pref_ae_mode_default">1</string>
 
     <string name="camera_id_default" translatable="false">0</string>
     <string name="tonemap_default" translatable="false">[0f, 0.0036874f, 0.00740041f, 0.0111387f, 0.0149021f, 0.0186902f, 0.0225028f,

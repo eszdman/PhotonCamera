@@ -15,8 +15,6 @@ import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 
-import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
-
 public class Swipe {
     private static final String TAG = "Swipe";
     private static boolean panelShowing;
@@ -114,7 +112,7 @@ public class Swipe {
 
     public void SwipeUp() {
         showPanel();
-        cameraFragment.getCaptureController().rebuildPreview();
+//        cameraFragment.getCaptureController().rebuildPreview();
         manualMode.setVisibility(View.VISIBLE);
         cameraFragment.getTouchFocus().resetFocusCircle();
     }
@@ -122,9 +120,9 @@ public class Swipe {
     public void SwipeDown() {
         hidePanel();
         cameraFragment.getTouchFocus().resetFocusCircle();
-        CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
-        CameraReflectionApi.set(cameraFragment.getCaptureController().mPreviewRequest, CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-        PhotonCamera.getCaptureController().rebuildPreview();
+        cameraFragment.getCaptureController().setPreviewAEMode();
+        cameraFragment.getCaptureController().mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
+        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
         PhotonCamera.getManualMode().retractAllKnobs();
     }
 

@@ -42,6 +42,7 @@ import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.processing.parameters.FrameNumberSelector;
 import com.eszdman.photoncamera.processing.parameters.IsoExpoSelector;
 import com.eszdman.photoncamera.processing.parameters.ResolutionSolution;
+import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
@@ -53,6 +54,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 
 /**
  * Class responsible for image capture and sending images for subsequent processing
@@ -958,7 +962,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 e.printStackTrace();
             }
         }
-        cameraEventsListener.onCharacteristicsUpdated();
+        cameraEventsListener.onCharacteristicsUpdated(characteristics);
     }
 
     @SuppressLint("LongLogTag")
@@ -1004,7 +1008,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 // Auto focus should be continuous for camera preview.
                                 //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
-                                setAutoFlash();
+                                setPreviewAEMode();
                                 Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
                                 if (is30Fps) {
@@ -1079,7 +1083,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         // Reset the auto-focus trigger
         //mCaptureSession.stopRepeating();
         CameraReflectionApi.set(mPreviewRequest, CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-        setAutoFlash();
         //mCaptureSession.capture(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
@@ -1102,10 +1105,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());
             else
                 captureBuilder.addTarget(mImageReaderPreview.getSurface());
-            Camera2ApiAutoFix.applyRes(captureBuilder);
+            Camera2ApiAutoFix.applyEnergySaving();
             PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+            setCaptureAEMode(captureBuilder);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG, "Focus:" + focus);
             if(focus != 0.0)
@@ -1240,10 +1244,30 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
-    public void setAutoFlash() {
+    public void setPreviewAEModeRebuild() {
+        setPreviewAEMode();
+        rebuildPreviewBuilder();
+    }
+
+    public void setPreviewAEMode() {
+        setAEMode(mPreviewRequestBuilder);
+    }
+    private void setCaptureAEMode(CaptureRequest.Builder captureRequestBuilder) {
+        setAEMode(captureRequestBuilder);
+    }
+
+    private void setAEMode(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
-            if (mFlashEnabled)
-                CameraReflectionApi.set(mPreviewRequest, CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+            int aeMode = PreferenceKeys.getAeMode(); // possible values = 0, 1, 2, 3
+
+            requestBuilder.set(CONTROL_AE_MODE, Math.max(aeMode, 1));//here AE_MODE will never be OFF(0)
+
+            //if PreferenceKeys.getAeMode() returns zero, we set the FLASH_MODE_TORCH instead of setting AE_MODE to OFF(0)
+            requestBuilder.set(CaptureRequest.FLASH_MODE,
+                    aeMode == 0 ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
+        } else {
+            requestBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
+            requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
         }
     }
 

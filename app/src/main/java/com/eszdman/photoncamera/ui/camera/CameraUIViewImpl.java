@@ -223,6 +223,11 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     @Override
+    public void showFlashButton(boolean flashAvailable) {
+        topbar.setFlashVisible(flashAvailable);
+    }
+
+    @Override
     public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
         this.mCameraUIEventsListener = cameraUIEventsListener;
     }

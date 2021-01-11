@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+            app:flash_auto="true"
+            android:drawable="@drawable/ic_flash_auto"/>
+    <item
+            app:flash_off="true"
+            android:drawable="@drawable/ic_flash_off"/>
+    <item
+            app:flash_on="true"
+            android:drawable="@drawable/ic_flash_on"/>
+    <item
+            app:flash_torch="true"
+            android:drawable="@drawable/ic_torch"/>
+
+    <item android:drawable="@drawable/ic_flash_off"/>
+</selector>

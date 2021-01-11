@@ -14,7 +14,9 @@ public class ParamController {
             CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
             if (shutterNs == SHUTTER_AUTO) {
                 if (PhotonCamera.getManualMode().getCurrentISOValue() == 0)//check if ISO is Auto
-                    builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+                {
+                    captureController.setPreviewAEMode();
+                }
             } else {
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
                 if (shutterNs > ExposureIndex.sec / 5)
@@ -34,7 +36,9 @@ public class ParamController {
             CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
             if (isoVal == ISO_AUTO) {
                 if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
-                    builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+                {
+                    captureController.setPreviewAEMode();
+                }
             } else {
                 builder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
                 builder.set(CaptureRequest.SENSOR_SENSITIVITY, isoVal);

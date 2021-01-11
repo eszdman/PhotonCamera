@@ -9,22 +9,17 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Log;
 import android.util.Range;
 import android.util.Rational;
-
-import com.eszdman.photoncamera.control.TouchFocus;
-import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
-import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
+import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
+import com.eszdman.photoncamera.processing.parameters.ExposureIndex;
 
 import java.lang.reflect.Field;
 
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
-import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
-import static android.hardware.camera2.CaptureResult.*;
 import static android.hardware.camera2.CameraCharacteristics.*;
+import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
+import static android.hardware.camera2.CaptureResult.LENS_OPTICAL_STABILIZATION_MODE_ON;
+import static android.hardware.camera2.CaptureResult.*;
 
 @SuppressWarnings("ALL")
 public class Camera2ApiAutoFix {
@@ -216,22 +211,17 @@ public class Camera2ApiAutoFix {
         }
     }
 
-    public static void applyRes(CaptureRequest.Builder captureBuilder) {
-        captureBuilder.set(CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+    public static void applyEnergySaving() {
         if(PhotonCamera.getSettings().energySaving){
             GLDrawParams.TileSize = 8;
         } else {
             GLDrawParams.TileSize = 256;
         }
-        //captureBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
-        //captureBuilder.set(STATISTICS_LENS_SHADING_MAP_MODE, STATISTICS_LENS_SHADING_MAP_MODE_ON);
-        //captureBuilder.set(CONTROL_SCENE_MODE,CONTROL_SCENE_MODE_HDR);
-        //captureBuilder.set(EDGE_MODE, EDGE_MODE_HIGH_QUALITY);
     }
 
     public static void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
-        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
+//        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
         int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
         if (stabilizationModes != null && stabilizationModes.length >= 1) {

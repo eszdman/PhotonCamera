@@ -72,6 +72,8 @@ public interface CameraUIView {
      */
     void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener);
 
+    void showFlashButton(boolean flashAvailable);
+
     /**
      * Interface which listens to input events from User
      */

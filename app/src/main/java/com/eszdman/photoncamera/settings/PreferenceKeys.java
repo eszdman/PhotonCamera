@@ -68,6 +68,7 @@ public class PreferenceKeys {
             settingsManager.set(current_scope, Preference.KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
             settingsManager.set(current_scope, Preference.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
             settingsManager.set(current_scope, Preference.KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
+            settingsManager.set(current_scope, Preference.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         }
         settingsManager.setDefaults(Preference.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Preference.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
@@ -286,6 +287,14 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getInteger(current_scope, Preference.KEY_AF_MODE);
     }
 
+    public static int getAeMode() {
+        return preferenceKeys.settingsManager.getInteger(current_scope, Preference.KEY_AE_MODE);
+    }
+
+    public static void setAeMode(int value) {
+        preferenceKeys.settingsManager.set(current_scope, Preference.KEY_AE_MODE, value);
+    }
+
     /*public static int getCameraMode() {
         return preferenceKeys.settingsManager.getInteger(current_scope, Preference.CAMERA_MODE);
     }*/
@@ -345,6 +354,7 @@ public class PreferenceKeys {
         KEY_THEME_ACCENT(R.string.pref_theme_accent_key),
         KEY_SHOW_GRADIENT(R.string.pref_show_gradient_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
+        KEY_AE_MODE(R.string.pref_ae_mode_key),
         /**
          * Other Keys
          */

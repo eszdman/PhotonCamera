@@ -20,7 +20,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     private final Paint rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     public boolean isCanvasDrawn = false;
-    private RectF rectToDraw = new RectF();
+    private RectF afRectToDraw = new RectF();
+    private RectF aeRectToDraw = new RectF();
     private String debugText = null;
 
     public SurfaceViewOverViewfinder(Context context, AttributeSet attrs) {
@@ -38,10 +39,9 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         whitePaint.setStrokeWidth(1.5f);
 
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(30);
-        textPaint.setTextAlign(Paint.Align.CENTER);
+        textPaint.setTextSize(25);
+        textPaint.setTextAlign(Paint.Align.LEFT);
 
-        rectPaint.setColor(Color.GREEN);
         rectPaint.setStyle(Paint.Style.STROKE);
         rectPaint.setStrokeWidth(3);
     }
@@ -118,8 +118,12 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         }
     }
 
-    public void setMeteringRect(RectF rect) {
-        this.rectToDraw = rect;
+    public void setAFRect(RectF rect) {
+        this.afRectToDraw = rect;
+    }
+
+    public void setAERect(RectF rect) {
+        this.aeRectToDraw = rect;
     }
 
     public void setDebugText(String debugText) {
@@ -137,7 +141,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
                 Log.e(TAG, "Canvas is null");
             } else {
                 canvas.drawColor(0, PorterDuff.Mode.CLEAR);//Clears the canvas
-                drawMeteringRect(canvas);
+                drawAFRect(canvas);
+                drawAERect(canvas);
                 drawAFDebugText(canvas);
                 surfaceHolder.unlockCanvasAndPost(canvas);
                 isCanvasDrawn = true;
@@ -159,7 +164,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        rectToDraw = null;
+        afRectToDraw = null;
+        aeRectToDraw = null;
         debugText = null;
         isCanvasDrawn = false;
     }
@@ -170,17 +176,34 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
                 int y = 180;
                 if (screenRatio > 16 / 9f) y = 50;
                 for (String line : debugText.split("\n")) {
-                    canvas.drawText(line, canvas.getWidth() / 2f, y, textPaint);
+                    if (line.contains("AF_RECT")) {
+                        textPaint.setColor(Color.GREEN);
+                    } else if (line.contains("AE_RECT")) {
+                        textPaint.setColor(Color.YELLOW);
+                    } else {
+                        textPaint.setColor(Color.WHITE);
+                    }
+                    canvas.drawText(line, 50, y, textPaint);
                     y += textPaint.descent() - textPaint.ascent();
                 }
             }
         }
     }
 
-    private void drawMeteringRect(Canvas canvas) {
+    private void drawAFRect(Canvas canvas) {
         if (PreferenceKeys.isAfDataOn()) {
-            if (rectToDraw != null && !rectToDraw.isEmpty()) {
-                canvas.drawRect(rectToDraw, rectPaint);
+            if (afRectToDraw != null && !afRectToDraw.isEmpty()) {
+                rectPaint.setColor(Color.GREEN);
+                canvas.drawRect(afRectToDraw, rectPaint);
+            }
+        }
+    }
+
+    private void drawAERect(Canvas canvas) {
+        if (PreferenceKeys.isAfDataOn()) {
+            if (aeRectToDraw != null && !aeRectToDraw.isEmpty()) {
+                rectPaint.setColor(Color.YELLOW);
+                canvas.drawRect(aeRectToDraw, rectPaint);
             }
         }
     }

@@ -22,6 +22,9 @@
                 type="boolean"/>
 
         <variable
+                name="flash_visible"
+                type="boolean"/>
+        <variable
                 name="top_bar_click_listener"
                 type="android.view.View.OnClickListener"/>
 
@@ -138,8 +141,26 @@
                     android:onClick="@{top_bar_click_listener}"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@id/fps_toggle_button"
+                    app:layout_constraintEnd_toStartOf="@id/flash_button"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:visibility="visible"
+                    bindRotate="@{uimodel}"/>
+
+            <com.eszdman.photoncamera.ui.camera.views.FlashButton
+                    android:id="@+id/flash_button"
+                    android:layout_width="@dimen/topbar_icon_size"
+                    android:layout_height="0dp"
+                    app:layout_constraintDimensionRatio="1:1"
+                    android:background="@drawable/ic_flash"
+                    android:backgroundTint="@android:color/white"
+                    android:textOff=""
+                    android:textOn=""
+                    android:onClick="@{top_bar_click_listener}"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/grid_toggle_button"
                     app:layout_constraintEnd_toStartOf="@id/settings_button"
                     app:layout_constraintTop_toTopOf="parent"
+                    android:visibility='@{flash_visible ? View.VISIBLE:View.GONE, default=visible}'
                     tools:visibility="visible"
                     bindRotate="@{uimodel}"/>
 
@@ -154,7 +175,7 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintDimensionRatio="1:1"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/grid_toggle_button"
+                    app:layout_constraintStart_toEndOf="@id/flash_button"
                     app:layout_constraintTop_toTopOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

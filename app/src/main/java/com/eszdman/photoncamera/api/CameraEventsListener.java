@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.api;
 
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import com.eszdman.photoncamera.capture.CaptureEventsListener;
@@ -22,7 +23,7 @@ public abstract class CameraEventsListener implements CaptureEventsListener, Pro
 
     public abstract void onCameraRestarted();
 
-    public abstract void onCharacteristicsUpdated();
+    public abstract void onCharacteristicsUpdated(CameraCharacteristics characteristics);
 
     public abstract void onError(Object o);
 

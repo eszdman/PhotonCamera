@@ -7,6 +7,7 @@ import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.capture.CaptureController;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
+import com.eszdman.photoncamera.ui.camera.views.FlashButton;
 
 /**
  * Implementation of {@link CameraUIView.CameraUIEventsListener}
@@ -27,9 +28,9 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
     @Override
     public void onClick(View view) {
+        CaptureController captureController = mCameraFragment.getCaptureController();
         switch (view.getId()) {
             case R.id.shutter_button:
-                CaptureController captureController = mCameraFragment.getCaptureController();
                 switch (PhotonCamera.getSettings().selectedMode) {
                     case PHOTO:
                     case NIGHT:
@@ -102,7 +103,11 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 view.setSelected(PreferenceKeys.getGridValue() != 0);
                 mCameraFragment.invalidateSurfaceView();
                 break;
-
+            case R.id.flash_button:
+                PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
+                ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
+                captureController.setPreviewAEModeRebuild();
+                break;
         }
     }
 
