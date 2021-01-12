@@ -1224,7 +1224,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw());
+                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult));
                     }
                 }
             };
@@ -1303,7 +1303,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void callUnlimitedStart() {
         onUnlimited = true;
-        mImageSaver.unlimitedStart();
+        mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
         takePicture();
     }
 

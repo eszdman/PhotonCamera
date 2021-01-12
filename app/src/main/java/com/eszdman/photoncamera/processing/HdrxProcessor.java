@@ -24,10 +24,20 @@ public class HdrxProcessor extends ProcessorBase {
     private static final String TAG = "HdrxProcessor";
     private ArrayList<Image> mImageFramesToProcess;
     private int imageFormat;
+    /* config */
+    private int alignAlgorithm;
+    private boolean saveRAW;
+    private CameraMode cameraMode;
 
 
     protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
         super(processingEventsListener);
+    }
+
+    public void configure(int alignAlgorithm, boolean saveRAW, CameraMode cameraMode){
+        this.alignAlgorithm = alignAlgorithm;
+        this.saveRAW = saveRAW;
+        this.cameraMode = cameraMode;
     }
 
     public void start(Path dngFile, Path jpgFile, ArrayList<Image> imageBuffer, int imageFormat,
@@ -64,7 +74,7 @@ public class HdrxProcessor extends ProcessorBase {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HdrX Processing Started");
 
-        boolean debugAlignment = (PhotonCamera.getSettings().alignAlgorithm == 1);
+        boolean debugAlignment = (alignAlgorithm == 1);
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
@@ -179,7 +189,7 @@ public class HdrxProcessor extends ProcessorBase {
         ByteBuffer output;
         if (!debugAlignment) {
             float ghosting = FAKE_WL / levell;
-            if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
+            if (cameraMode == CameraMode.NIGHT)
                 ghosting = 0.f;
             output = Wrapper.processFrame(ghosting, ((float) (FAKE_WL)) / levell);
         } else {
@@ -225,7 +235,7 @@ public class HdrxProcessor extends ProcessorBase {
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 
-        if (PhotonCamera.getSettings().rawSaver) {
+        if (saveRAW) {
             int patchWL = (int)FAKE_WL;
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);

@@ -154,11 +154,12 @@ public class ImageSaver {
         }
     }
 
-    public void runRaw() {
+    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult) {
+
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();
             boolean imageSaved = Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
-                    CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
+                    characteristics, captureResult);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
             IMAGE_BUFFER.clear();
@@ -179,13 +180,18 @@ public class ImageSaver {
                     e.printStackTrace();
                 }
             }*/
+        hdrxProcessor.configure(
+                PhotonCamera.getSettings().alignAlgorithm,
+                PhotonCamera.getSettings().rawSaver,
+                PhotonCamera.getSettings().selectedMode
+        );
         hdrxProcessor.start(
                 dngFile,
                 jpgFile,
                 IMAGE_BUFFER,
                 imageReader.getImageFormat(),
-                CaptureController.mCameraCharacteristics,
-                CaptureController.mCaptureResult,
+                characteristics,
+                captureResult,
                 processingCallback
         );
         IMAGE_BUFFER.clear();
@@ -207,15 +213,19 @@ public class ImageSaver {
         //PhotonCamera.getCameraUI().unlockShutterButton();
     }
 
-    public void unlimitedStart() {
+    public void unlimitedStart(CameraCharacteristics characteristics, CaptureResult captureResult) {
+
         Path dngFile = Util.newDNGFilePath();
         Path jpgFile = Util.newJPGFilePath();
+
+        mUnlimitedProcessor.configure(PhotonCamera.getSettings().rawSaver);
         mUnlimitedProcessor.unlimitedStart(
                 dngFile,
                 jpgFile,
-                CaptureController.mCameraCharacteristics,
-                CaptureController.mCaptureResult,
-                processingCallback);
+                characteristics,
+                captureResult,
+                processingCallback
+        );
     }
 
     public void unlimitedEnd() {

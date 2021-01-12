@@ -24,8 +24,15 @@ public class UnlimitedProcessor extends ProcessorBase {
     private boolean lock = false;
     private boolean fillParams = false;
 
+    /* config */
+    private boolean saveRAW;
+
     public UnlimitedProcessor(ProcessingEventsListener processingEventsListener) {
         super(processingEventsListener);
+    }
+
+    public void configure(boolean saveRAW) {
+        this.saveRAW = saveRAW;
     }
 
     public void unlimitedStart(Path dngFile, Path jpgFile,
@@ -57,7 +64,7 @@ public class UnlimitedProcessor extends ProcessorBase {
 
             averageRaw = new AverageRaw(PhotonCamera.getParameters().rawSize, "UnlimitedAvr");
         }
-        if(!fillParams) {
+        if (!fillParams) {
             fillParams = true;
             PhotonCamera.getParameters().FillParameters(captureResult,
                     characteristics, PhotonCamera.getParameters().rawSize);
@@ -91,7 +98,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         image.getPlanes()[0].getBuffer().position(0);
         image.getPlanes()[0].getBuffer().put(unlimitedBuffer);
         image.getPlanes()[0].getBuffer().position(0);
-        if (PhotonCamera.getSettings().rawSaver) {
+        if (saveRAW) {
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
 
@@ -114,7 +121,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
 
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
-                ImageSaver.JPG_QUALITY,  CaptureController.mCaptureResult);
+                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
