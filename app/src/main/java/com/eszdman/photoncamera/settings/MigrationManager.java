@@ -3,7 +3,7 @@ package com.eszdman.photoncamera.settings;
 import android.content.SharedPreferences;
 
 public class MigrationManager {
-    private static final PreferenceKeys.Key KEY_PREFERENCES_VERSION = PreferenceKeys.Key.KEY_PREFERENCES_VERSION;
+    private static final PreferenceKeys.Key KEY_PREF_VERSION = PreferenceKeys.Key.KEY_PREF_VERSION;
     private final static int PREFERENCES_VERSION = 2; //this value should be incremented whenever the preferences need to be reset
     public static boolean readAgain = false;
 
@@ -15,18 +15,12 @@ public class MigrationManager {
         SharedPreferences defaultPreferences = settingsManager.getDefaultPreferences();
         SharedPreferences perLensPreferences = settingsManager.openPreferences(PreferenceKeys.Key.PER_LENS_FILE_NAME.mValue);
 
-        int oldVersion = settingsManager.getInteger(SettingsManager.SCOPE_GLOBAL, KEY_PREFERENCES_VERSION, 1);
+        int oldVersion = settingsManager.getInteger(KEY_PREF_VERSION.mValue, KEY_PREF_VERSION, 1);
 
         if (oldVersion < PREFERENCES_VERSION) {
-            defaultPreferences
-                    .edit()
-                    .clear()
-                    .putString(KEY_PREFERENCES_VERSION.mValue, String.valueOf(PREFERENCES_VERSION))
-                    .apply();
-            perLensPreferences
-                    .edit()
-                    .clear()
-                    .apply();
+            defaultPreferences.edit().clear().apply();
+            perLensPreferences.edit().clear().apply();
+            settingsManager.set(KEY_PREF_VERSION.mValue, KEY_PREF_VERSION, PREFERENCES_VERSION);
             readAgain = true;
         }
     }

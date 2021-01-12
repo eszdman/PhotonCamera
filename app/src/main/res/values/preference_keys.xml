@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools"
            tools:ignore="MissingTranslation">
-    <string name="preferences_version_key" translatable="false">preferences_version_key</string>
+    <string name="_pref_version" translatable="false">_pref_version</string>
     <string name="pref_category_general_key" translatable="false">pref_category_general_key</string>
     <string name="pref_category_jpg_key" translatable="false">pref_category_jpg_key</string>
     <string name="pref_category_hdrx_key" translatable="false">pref_category_hdrx_key</string>

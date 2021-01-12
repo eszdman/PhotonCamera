@@ -31,7 +31,6 @@ public class PreferenceKeys {
     private static PreferenceKeys preferenceKeys;
 
     static {
-        COMMON_KEYS.add(Key.KEY_PREFERENCES_VERSION.mValue);
         COMMON_KEYS.add(Key.CAMERA_ID.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_PER_LENS_SETTINGS.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_AF_DATA.mValue);
@@ -319,7 +318,7 @@ public class PreferenceKeys {
 
 
     public enum Key {
-        KEY_PREFERENCES_VERSION(R.string.preferences_version_key),
+        KEY_PREF_VERSION(R.string._pref_version),
 
         KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
         KEY_ENABLE_SYSTEM_NR(R.string.pref_enable_system_nr_key),
