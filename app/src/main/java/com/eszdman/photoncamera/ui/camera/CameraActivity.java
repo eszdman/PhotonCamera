@@ -36,7 +36,7 @@ public class CameraActivity extends BaseActivity {
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
 
         //Preferences Init
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, true);
         PreferenceKeys.setDefaults(this);
         PhotonCamera.getSettings().loadCache();
 

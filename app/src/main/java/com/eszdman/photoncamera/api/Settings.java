@@ -48,7 +48,7 @@ public class Settings {
         chromaCount = PreferenceKeys.getChromaNrValue();
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
-        energySaving = PreferenceKeys.getBool(PreferenceKeys.Preference.KEY_ENERGY_SAVING);
+        energySaving = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
         DebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
@@ -57,9 +57,9 @@ public class Settings {
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
         compressor = PreferenceKeys.getCompressorValue();
-        noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR);
+        noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
-        shadows = PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_SHADOWS_SEEKBAR);
+        shadows = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_SHADOWS_SEEKBAR);
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();
         rawSaver = PreferenceKeys.isSaveRawOn();
@@ -93,7 +93,7 @@ public class Settings {
     }
 
     float[] parseGammaArray() {
-        String savedArrayAsString = PreferenceKeys.getPref(PreferenceKeys.Preference.GAMMA);
+        String savedArrayAsString = PreferenceKeys.getPref(PreferenceKeys.Key.GAMMA);
         if (savedArrayAsString == null)
             return new float[0];
         String[] array = savedArrayAsString.replace("[", "").replace("]", "").split(",");

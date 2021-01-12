@@ -243,7 +243,7 @@ public class Parameters {
                 ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
                 ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
                 ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
-                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Preference.KEY_NOISESTR_SEEKBAR))+
+                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
                 ",\n FocalL=" + FltFormat(focalLength);
     }
 

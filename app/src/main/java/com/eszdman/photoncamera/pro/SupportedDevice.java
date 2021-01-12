@@ -15,7 +15,7 @@ import java.net.URL;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY;
 
 public class SupportedDevice {
     public static final String THIS_DEVICE = Build.BRAND.toLowerCase() + ":" + Build.DEVICE.toLowerCase();
@@ -39,8 +39,8 @@ public class SupportedDevice {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if (!loaded && mSettingsManager.isSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
-                mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
+            if (!loaded && mSettingsManager.isSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
+                mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
     }
 
@@ -76,6 +76,6 @@ public class SupportedDevice {
         }
         loaded = true;
         in.close();
-        mSettingsManager.set(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, mSupportedDevicesSet);
+        mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, mSupportedDevicesSet);
     }
 }

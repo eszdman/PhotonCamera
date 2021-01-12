@@ -31,7 +31,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY;
 import static com.eszdman.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
@@ -89,7 +89,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setTelegramPref() {
-        Preference myPref = findPreference(PreferenceKeys.Preference.KEY_TELEGRAM.mValue);
+        Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
         if (myPref != null)
             myPref.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
@@ -99,7 +99,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setGithubPref() {
-        Preference github = findPreference(PreferenceKeys.Preference.KEY_CONTRIBUTORS.mValue);
+        Preference github = findPreference(PreferenceKeys.Key.KEY_CONTRIBUTORS.mValue);
         if (github != null)
             github.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
@@ -131,9 +131,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setSupportedDevices() {
-        Preference preference = findPreference(PreferenceKeys.Preference.ALL_DEVICES_NAMES_KEY.mValue);
+        Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
         if (preference != null) {
-            preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Preference.DEVICES_PREFERENCE_FILE_NAME.mValue,
+            preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
                     ALL_DEVICES_NAMES_KEY, Collections.singleton(getString(R.string.list_not_loaded)))
                     .stream().map(s -> s + "\n").reduce("\n", String::concat)));
         }
@@ -163,33 +163,33 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(PreferenceKeys.Preference.KEY_SAVE_PER_LENS_SETTINGS.mValue)) {
+        if (key.equals(PreferenceKeys.Key.KEY_SAVE_PER_LENS_SETTINGS.mValue)) {
             setHdrxTitle();
             if (PreferenceKeys.isPerLensSettingsOn()) {
                 PreferenceKeys.loadSettingsForCamera(PreferenceKeys.getCameraID());
                 restartActivity();
             }
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME.mValue)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_THEME.mValue)) {
             restartActivity();
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_THEME_ACCENT.mValue)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_THEME_ACCENT.mValue)) {
             checkEszdTheme();
             restartActivity();
             SettingsActivity.toRestartApp = true;
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_SHOW_GRADIENT.mValue)) {
             SettingsActivity.toRestartApp = true;
         }
-        if (key.equalsIgnoreCase(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue)) {
+        if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue)) {
             setFramesSummary();
         }
     }
 
     private void checkEszdTheme() {
-        Preference p = findPreference(PreferenceKeys.Preference.KEY_SHOW_GRADIENT.mValue);
+        Preference p = findPreference(PreferenceKeys.Key.KEY_SHOW_GRADIENT.mValue);
         if (p != null && getContext() != null)
-            p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Preference.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
+            p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Key.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
     }
 
     private void setHdrxTitle() {
@@ -204,9 +204,9 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setFramesSummary() {
-        Preference frameCountPreference = findPreference(PreferenceKeys.Preference.KEY_FRAME_COUNT.mValue);
+        Preference frameCountPreference = findPreference(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue);
         if (frameCountPreference != null && getContext() != null) {
-            if (mSettingsManager.getInteger(PreferenceKeys.current_scope, PreferenceKeys.Preference.KEY_FRAME_COUNT) == 1) {
+            if (mSettingsManager.getInteger(PreferenceKeys.SCOPE_GLOBAL, PreferenceKeys.Key.KEY_FRAME_COUNT) == 1) {
                 frameCountPreference.setSummary(getString(R.string.unprocessed_raw));
             } else {
                 frameCountPreference.setSummary(getString(R.string.frame_count_summary));

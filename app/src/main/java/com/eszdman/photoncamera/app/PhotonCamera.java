@@ -20,6 +20,7 @@ import com.eszdman.photoncamera.control.Gravity;
 import com.eszdman.photoncamera.control.Sensors;
 import com.eszdman.photoncamera.pro.SupportedDevice;
 import com.eszdman.photoncamera.processing.render.Parameters;
+import com.eszdman.photoncamera.settings.MigrationManager;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 import com.eszdman.photoncamera.ui.SplashActivity;
@@ -155,6 +156,9 @@ public class PhotonCamera extends Application {
         mSensors = new Sensors(sensorManager);
 
         mSettingsManager = new SettingsManager(this);
+
+        MigrationManager.migrate(mSettingsManager);
+
         PreferenceKeys.initialise(mSettingsManager);
 
         mSettings = new Settings();
