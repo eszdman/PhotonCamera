@@ -39,6 +39,24 @@ public class ImageSaver {
     private final ProcessingEventsListener processingEventsListener;
     private final UnlimitedProcessor mUnlimitedProcessor;
     private final HdrxProcessor hdrxProcessor;
+    private ImageReader imageReader;
+    private final ProcessorBase.ProcessingCallback processingCallback = new ProcessorBase.ProcessingCallback() {
+        @Override
+        public void onStarted() {
+            CaptureController.isProcessing = true;
+        }
+
+        @Override
+        public void onFailed() {
+            onFinished();
+        }
+
+        @Override
+        public void onFinished() {
+            clearImageReader(imageReader);
+            CaptureController.isProcessing = false;
+        }
+    };
 
     public ImageSaver(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;
@@ -57,20 +75,19 @@ public class ImageSaver {
         if (mImage == null)
             return;
         int format = mImage.getFormat();
-        lastImage = mImage;
-        lastImageReader = mReader;
+        imageReader = mReader;
         switch (format) {
             case ImageFormat.JPEG:
-                addJPEG();
+                addJPEG(mImage);
                 break;
 
             case ImageFormat.YUV_420_888:
-                addYUV();
+                addYUV(mImage);
                 break;
 
             //case ImageFormat.RAW10:
             case ImageFormat.RAW_SENSOR:
-                addRAW();
+                addRAW(mImage);
                 break;
 
             default:
@@ -79,10 +96,10 @@ public class ImageSaver {
         }
     }
 
-    private void addJPEG() {
-        ByteBuffer buffer = lastImage.getPlanes()[0].getBuffer();
+    private void addJPEG(Image image) {
+        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         try {
-            IMAGE_BUFFER.add(lastImage);
+            IMAGE_BUFFER.add(image);
             byte[] bytes = new byte[buffer.remaining()];
             if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
                 Path jpgPath = Util.newJPGFilePath();
@@ -100,7 +117,7 @@ public class ImageSaver {
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);
                 Files.write(jpgPath, bytes);
-                lastImage.close();
+                image.close();
                 processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
                 processingEventsListener.notifyImageSavedStatus(true, jpgPath);
             }
@@ -109,9 +126,9 @@ public class ImageSaver {
         }
     }
 
-    private void addYUV() {
+    private void addYUV(Image image) {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
-        IMAGE_BUFFER.add(lastImage);
+        IMAGE_BUFFER.add(image);
         if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
 
 //            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
@@ -126,34 +143,32 @@ public class ImageSaver {
 
         }
     }
-    private Image lastImage;
-    private ImageReader lastImageReader;
-    private void addRAW() {
+
+    private void addRAW(Image image) {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-            mUnlimitedProcessor.unlimitedCycle(lastImage);
+            mUnlimitedProcessor.unlimitedCycle(image);
         } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
-            lastImage.getFormat();
-            IMAGE_BUFFER.add(lastImage);
+            image.getFormat();
+            IMAGE_BUFFER.add(image);
         }
     }
-    public void runRaw(){
+
+    public void runRaw() {
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();
             boolean imageSaved = Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
                     CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
-            IMAGE_BUFFER.get(0).close();
-            IMAGE_BUFFER.remove(0);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
             IMAGE_BUFFER.clear();
-            clearImageReader(lastImageReader);
+            clearImageReader(imageReader);
             return;
         }
-            Path dngFile = Util.newDNGFilePath();
-            Path jpgFile = Util.newJPGFilePath();
-            jpgFilePathToSave = jpgFile;
-            //Remove broken images
+        Path dngFile = Util.newDNGFilePath();
+        Path jpgFile = Util.newJPGFilePath();
+        jpgFilePathToSave = jpgFile;
+        //Remove broken images
             /*for(int i =0; i<IMAGE_BUFFER.size();i++){
                 try{
                     IMAGE_BUFFER.get(i).getFormat();
@@ -164,24 +179,30 @@ public class ImageSaver {
                     e.printStackTrace();
                 }
             }*/
-            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, lastImageReader.getImageFormat(),
-                    CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
-                    () -> clearImageReader(lastImageReader));
-            IMAGE_BUFFER.clear();
+        hdrxProcessor.start(
+                dngFile,
+                jpgFile,
+                IMAGE_BUFFER,
+                imageReader.getImageFormat(),
+                CaptureController.mCameraCharacteristics,
+                CaptureController.mCaptureResult,
+                processingCallback
+        );
+        IMAGE_BUFFER.clear();
     }
 
     private void clearImageReader(ImageReader reader) {
-            for (int i = 0; i < reader.getMaxImages(); i++) {
-                try {
+        for (int i = 0; i < reader.getMaxImages(); i++) {
+            try {
                 Image cur = reader.acquireNextImage();
                 if (cur == null) {
                     continue;
                 }
                 cur.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
         PhotonCamera.getCaptureController().BurstShakiness.clear();
         //PhotonCamera.getCameraUI().unlockShutterButton();
     }
@@ -189,8 +210,12 @@ public class ImageSaver {
     public void unlimitedStart() {
         Path dngFile = Util.newDNGFilePath();
         Path jpgFile = Util.newJPGFilePath();
-        mUnlimitedProcessor.unlimitedStart(dngFile, jpgFile,
-                CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult);
+        mUnlimitedProcessor.unlimitedStart(
+                dngFile,
+                jpgFile,
+                CaptureController.mCameraCharacteristics,
+                CaptureController.mCaptureResult,
+                processingCallback);
     }
 
     public void unlimitedEnd() {
@@ -213,6 +238,7 @@ public class ImageSaver {
                 return false;
             }
         }
+
         //Different method name just for clarity of usage
         public static boolean saveStackedRaw(Path dngFilePath,
                                              Image image,

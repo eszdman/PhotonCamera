@@ -30,7 +30,8 @@ public class UnlimitedProcessor extends ProcessorBase {
 
     public void unlimitedStart(Path dngFile, Path jpgFile,
                                CameraCharacteristics characteristics,
-                               CaptureResult captureResult) {
+                               CaptureResult captureResult,
+                               ProcessingCallback callback) {
         this.dngFile = dngFile;
         this.jpgFile = jpgFile;
         this.characteristics = characteristics;
@@ -38,6 +39,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         unlimitedEnd = false;
         lock = false;
         fillParams = false;
+        this.callback = callback;
     }
 
     public void unlimitedCycle(Image image) {
@@ -67,15 +69,21 @@ public class UnlimitedProcessor extends ProcessorBase {
             unlimitedEnd = false;
             lock = true;
             unlimitedCounter = 0;
-            processUnlimited(image);
+            try {
+                processUnlimited(image);
+            } catch (Exception e) {
+                callback.onFailed();
+                processingEventsListener.onProcessingError("Unlimited Processing Failed!");
+                e.printStackTrace();
+            }
         }
         image.close();//code block
     }
 
     private void processUnlimited(Image image) {
+        callback.onStarted();
 //        PhotonCamera.getParameters().path = ImageSaver.jpgFilePathToSave.getAbsolutePath();
         processingEventsListener.onProcessingStarted("Unlimited Processing Started");
-
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
@@ -111,6 +119,8 @@ public class UnlimitedProcessor extends ProcessorBase {
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
         pipeline.close();
+
+        callback.onFinished();
 
     }
 

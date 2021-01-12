@@ -31,8 +31,6 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -218,7 +216,7 @@ public class CameraFragment extends Fragment {
         mSwipe.init();
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
-        this.mCameraUIView.refresh();
+        this.mCameraUIView.refresh(CaptureController.isProcessing);
         burstPlayer = MediaPlayer.create(getActivity(), R.raw.sound_burst);
 
         cameraFragmentViewModel.updateGalleryThumb();
@@ -516,7 +514,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onProcessingFinished(Object obj) {
             logD("onProcessingFinished: " + obj);
-            mCameraUIView.resetProcessingProgressBar();
+            mCameraUIView.setProcessingProgressBarIndeterminate(false);
             mCameraUIView.activateShutterButton(true);
         }
 
@@ -601,7 +599,7 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onCameraRestarted() {
-            mCameraUIView.refresh();
+            mCameraUIView.refresh(CaptureController.isProcessing);
             mTouchFocus.resetFocusCircle();
         }
 

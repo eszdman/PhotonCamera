@@ -52,7 +52,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         initViews();
         initListeners();
         initModeSwitcher();
-        refresh();
     }
 
     private void initViews() {
@@ -114,11 +113,13 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     @Override
-    public void refresh() {
+    public void refresh(boolean processing) {
         cameraFragmentBinding.invalidateAll();
         resetCaptureProgressBar();
-        activateShutterButton(true);
-        resetProcessingProgressBar();
+        if (!processing) {
+            activateShutterButton(true);
+            setProcessingProgressBarIndeterminate(false);
+        }
     }
 
     @Override
@@ -186,14 +187,6 @@ public final class CameraUIViewImpl implements CameraUIView {
         b.setId(buttonId);
         auxButtonsMap.put(buttonId, cameraId);
         mAuxGroupContainer.addView(b);
-    }
-
-    @Override
-    public void resetProcessingProgressBar() {
-        mainHandler.post(() -> {
-            mProcessingProgressBar.setProgress(0);
-            mProcessingProgressBar.setIndeterminate(false);
-        });
     }
 
     @Override

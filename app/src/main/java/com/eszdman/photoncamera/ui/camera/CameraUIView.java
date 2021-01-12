@@ -1,7 +1,5 @@
 package com.eszdman.photoncamera.ui.camera;
 
-import android.graphics.Bitmap;
-import android.hardware.camera2.CaptureResult;
 import android.view.View;
 
 import androidx.core.util.Pair;
@@ -26,8 +24,9 @@ public interface CameraUIView {
 
     /**
      * Refresh all contained views here
+     * @param processing status of any ongoing process that might be relevant to view state
      */
-    void refresh();
+    void refresh(boolean processing);
 
     /**
      * Initialise Multi camera switch buttons here
@@ -49,8 +48,6 @@ public interface CameraUIView {
      * Processing ProgressBar methods
      * Control the Progress bar that displays image processing sequence
      */
-    void resetProcessingProgressBar();
-
     void setProcessingProgressBarIndeterminate(boolean indeterminate);
 
     /**

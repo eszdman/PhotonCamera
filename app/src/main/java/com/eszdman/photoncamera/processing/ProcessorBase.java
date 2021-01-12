@@ -21,6 +21,8 @@ public abstract class ProcessorBase {
     public void process() {}
 
     public interface ProcessingCallback {
+        void onStarted();
+        void onFailed();
         void onFinished();
     }
 

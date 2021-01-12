@@ -218,6 +218,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private CameraCaptureSession.CaptureCallback CaptureCallback;
     private File vid = null;
     public int mMeasuredFrameCnt;
+    public static boolean isProcessing;
     /**
      * An {@link AutoFitTextureView} for camera preview.
      */
@@ -580,8 +581,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
+                if(!isProcessing)
                 mImageReaderPreview.close();
                 mImageReaderPreview = null;
+                if(!isProcessing)
                 mImageReaderRaw.close();
                 mImageReaderRaw = null;
             }
@@ -700,8 +703,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
+                if(!isProcessing)
                 mImageReaderPreview.close();
                 mImageReaderPreview = null;
+                if(!isProcessing)
                 mImageReaderRaw.close();
                 mImageReaderRaw = null;
             }

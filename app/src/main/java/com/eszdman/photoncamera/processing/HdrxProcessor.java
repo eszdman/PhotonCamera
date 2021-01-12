@@ -55,11 +55,13 @@ public class HdrxProcessor extends ProcessorBase {
         } catch (Exception e) {
             Log.e(TAG, ProcessingEventsListener.FAILED_MSG);
             e.printStackTrace();
-            processingEventsListener.onProcessingError(ProcessingEventsListener.FAILED_MSG);
+            callback.onFailed();
+            processingEventsListener.onProcessingError("HdrX Processing Failed");
         }
     }
 
     private void ApplyHdrX() {
+        callback.onStarted();
         processingEventsListener.onProcessingStarted("HdrX Processing Started");
 
         boolean debugAlignment = (PhotonCamera.getSettings().alignAlgorithm == 1);
