@@ -13,6 +13,7 @@ import androidx.preference.PreferenceManager;
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.app.PhotonCamera;
 import com.eszdman.photoncamera.app.base.BaseActivity;
+import com.eszdman.photoncamera.settings.MigrationManager;
 import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.util.FileManager;
 import com.eszdman.photoncamera.util.log.FragmentLifeCycleMonitor;
@@ -36,7 +37,7 @@ public class CameraActivity extends BaseActivity {
         PhotonCamera.setManualMode(ManualMode.getInstance(this));
 
         //Preferences Init
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, true);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, MigrationManager.readAgain);
         PreferenceKeys.setDefaults(this);
         PhotonCamera.getSettings().loadCache();
 
