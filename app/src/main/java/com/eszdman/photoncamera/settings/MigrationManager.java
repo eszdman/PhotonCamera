@@ -12,14 +12,16 @@ public class MigrationManager {
     }
 
     private static void checkPreferences(SettingsManager settingsManager) {
-        SharedPreferences defaultPreferences = settingsManager.getDefaultPreferences();
-        SharedPreferences perLensPreferences = settingsManager.openPreferences(PreferenceKeys.Key.PER_LENS_FILE_NAME.mValue);
-
         int oldVersion = settingsManager.getInteger(KEY_PREF_VERSION.mValue, KEY_PREF_VERSION, 1);
 
         if (oldVersion < PREFERENCES_VERSION) {
+            SharedPreferences defaultPreferences = settingsManager.getDefaultPreferences();
+            SharedPreferences perLensPreferences = settingsManager.openPreferences(PreferenceKeys.Key.PER_LENS_FILE_NAME.mValue);
+            SharedPreferences camerasPreference = settingsManager.openPreferences(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue);
+
             defaultPreferences.edit().clear().apply();
             perLensPreferences.edit().clear().apply();
+            camerasPreference.edit().clear().apply();
             settingsManager.set(KEY_PREF_VERSION.mValue, KEY_PREF_VERSION, PREFERENCES_VERSION);
             readAgain = true;
         }

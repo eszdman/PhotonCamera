@@ -4,28 +4,21 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import android.util.SizeF;
-
 import androidx.core.util.Pair;
-
-import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.settings.SettingsManager;
 
 import java.util.*;
 
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.ALL_CAMERA_IDS_KEY;
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.BACK_IDS_KEY;
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.CAMERA_COUNT_KEY;
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.FOCAL_IDS_KEY;
-import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.FRONT_IDS_KEY;
+import static com.eszdman.photoncamera.settings.PreferenceKeys.Key.*;
 
 /**
  * Responsible for Scanning all Camera IDs on a Device and Storing them in SharedPreferences as a {@link Set<String>}
  */
 public final class CameraManager2 {
+    public static final String _CAMERAS = CAMERAS_PREFERENCE_FILE_NAME.mValue;
     private static final String TAG = "CameraManager2";
-
-    private final SettingsManager mSettingsManager;
     public final Map<String, Pair<Float, Float>> mFocalLengthAperturePairList = new LinkedHashMap<>();
+    private final SettingsManager mSettingsManager;
     private Set<String> mAllCameraIDs = new LinkedHashSet<>();
     private Set<String> mFrontIDs = new LinkedHashSet<>();
     private Set<String> mBackIDs = new LinkedHashSet<>();
@@ -43,23 +36,21 @@ public final class CameraManager2 {
     }
 
     private void init(CameraManager cameraManager) {
-        if (!mSettingsManager.isSet(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY)) {
+        if (!mSettingsManager.isSet(_CAMERAS, ALL_CAMERA_IDS_KEY)) {
             scanAllCameras(cameraManager);
             save();
         } else {
-            mAllCameraIDs = mSettingsManager.getStringSet(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, null);
-            mFrontIDs = mSettingsManager.getStringSet(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, null);
-            mBackIDs = mSettingsManager.getStringSet(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, null);
-            mFocals = mSettingsManager.getStringSet(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue,FOCAL_IDS_KEY,null);
-            String[] mFocalL = mFocals.toArray(new String[0]);
-            for(int i =0; i<mFocalL.length;i++){
-                String id,focal;
-                String []splitted = mFocalL[i].split(":");
-                id = splitted[0];
-                focal = splitted[1];
-                Pair<Float, Float> focalAperturePair = new Pair<>(Float.parseFloat(focal), Float.parseFloat(splitted[2]));
-                mFocalLengthAperturePairList.put(id,focalAperturePair);
-            }
+            mAllCameraIDs = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_IDS_KEY, null);
+            mFrontIDs = mSettingsManager.getStringSet(_CAMERAS, FRONT_IDS_KEY, null);
+            mBackIDs = mSettingsManager.getStringSet(_CAMERAS, BACK_IDS_KEY, null);
+            mFocals = mSettingsManager.getStringSet(_CAMERAS, FOCAL_IDS_KEY, null);
+            mFocals.forEach(entry -> {
+                String[] split = entry.split(":");
+                String id = split[0];
+                String focal = split[1];
+                String aperture = split[2];
+                mFocalLengthAperturePairList.put(id, new Pair<>(Float.parseFloat(focal), Float.parseFloat(aperture)));
+            });
         }
     }
 
@@ -71,8 +62,8 @@ public final class CameraManager2 {
                 log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
                 float[] focalLength = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
                 SizeF size = cameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
-                if(size!= null && focalLength != null){
-                    focalLength[0]/=size.getWidth();
+                if (size != null && focalLength != null) {
+                    focalLength[0] /= size.getWidth();
                 }
                 float[] aperture = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
                 if (focalLength != null && aperture != null) {
@@ -80,7 +71,7 @@ public final class CameraManager2 {
                     if (!getBit(6, num) && !mFocalLengthAperturePairList.containsValue(focalAperturePair)) {
                         mFocalLengthAperturePairList.put(String.valueOf(num), focalAperturePair);
                         mAllCameraIDs.add(String.valueOf(num));
-                        mFocals.add(num+":"+(focalAperturePair.first)+":"+aperture[0]);
+                        mFocals.add(num + ":" + (focalAperturePair.first) + ":" + aperture[0]);
                         fillBackFrontLists(cameraCharacteristics.get(CameraCharacteristics.LENS_FACING), String.valueOf(num));
                     }
                 }
@@ -103,11 +94,11 @@ public final class CameraManager2 {
     }
 
     private void save() {
-        mSettingsManager.set(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, CAMERA_COUNT_KEY, mAllCameraIDs.size());
-        mSettingsManager.set(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
-        mSettingsManager.set(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, BACK_IDS_KEY, mBackIDs);
-        mSettingsManager.set(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, FRONT_IDS_KEY, mFrontIDs);
-        mSettingsManager.set(PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, FOCAL_IDS_KEY, mFocals);
+        mSettingsManager.set(_CAMERAS, CAMERA_COUNT_KEY, mAllCameraIDs.size());
+        mSettingsManager.set(_CAMERAS, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
+        mSettingsManager.set(_CAMERAS, BACK_IDS_KEY, mBackIDs);
+        mSettingsManager.set(_CAMERAS, FRONT_IDS_KEY, mFrontIDs);
+        mSettingsManager.set(_CAMERAS, FOCAL_IDS_KEY, mFocals);
     }
 
     //Getters===========================================================================================================
