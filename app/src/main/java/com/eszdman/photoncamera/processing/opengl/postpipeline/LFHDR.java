@@ -14,8 +14,8 @@ import com.eszdman.photoncamera.processing.render.Parameters;
 public class LFHDR extends Node {
     GLProg glProg;
 
-    public LFHDR(int rid, String name) {
-        super(rid, name);
+    public LFHDR() {
+        super(0, "LFHDR");
     }
 
     @Override

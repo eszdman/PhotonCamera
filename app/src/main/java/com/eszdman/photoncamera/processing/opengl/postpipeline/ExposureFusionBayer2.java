@@ -14,8 +14,8 @@ import static android.opengl.GLES20.GL_LINEAR;
 
 public class ExposureFusionBayer2 extends Node {
 
-    public ExposureFusionBayer2(String name) {
-        super(0, name);
+    public ExposureFusionBayer2() {
+        super(0, "FusionBayer");
     }
     @Override
     public void Compile() {}

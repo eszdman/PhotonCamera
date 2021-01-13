@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.processing.opengl.GLDrawParams;
 import com.eszdman.photoncamera.processing.opengl.GLFormat;
 import com.eszdman.photoncamera.processing.opengl.GLInterface;
@@ -9,8 +10,8 @@ import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
 public class MonoDemosaic extends Node {
-    public MonoDemosaic(int rid, String name) {
-        super(rid, name);
+    public MonoDemosaic() {
+        super(R.raw.monochrome, "Monochrome");
     }
 
     @Override

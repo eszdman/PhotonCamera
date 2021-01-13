@@ -24,6 +24,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer highFrame;
     public GLTexture FusionMap;
     public GLTexture GainMap;
+    public float[] analyzedBL;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
@@ -64,8 +65,9 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
-        add(new Bayer2Float(0,"Bayer2Float"));
-        add(new ExposureFusionBayer2("FusionBayer"));
+        add(new Bayer2Float());
+
+        add(new ExposureFusionBayer2());
         if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
                 //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
@@ -73,31 +75,29 @@ public class PostPipeline extends GLBasePipeline {
                 //} else {
                 //    add(new BinnedDemosaic());
                 //}
-                //add(new Debug3(R.raw.debugraw,"Debug3"));
             } else {
-                add(new MonoDemosaic(R.raw.monochrome, "Monochrome"));
+                add(new MonoDemosaic());
             }
         } else {
-            add(new LFHDR(0, "LFHDR"));
+            add(new LFHDR());
         }
         /*
          * * * All filters after demosaicing * * *
          */
-        //add(new AEC("AEC"));
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new SmartNR("SmartNR"));
+            add(new SmartNR());
         }
+        add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
-        add(new Initial(R.raw.initial,"Initial"));
+
+        add(new Initial());
+
         //add(new AWB(0,"AWB"));
 
-        add(new Equalization(0,"Equalization"));
+        add(new Equalization());
 
-        //if(PhotonCamera.getParameters().focalLength <= 3.0)
-        //add(new LensCorrection());
-        add(new Sharpen(R.raw.sharpeningbilateral,"Sharpening"));
+        add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));
-        //add(new ShadowTexturing(R.raw.shadowtexturing,"Shadow Texturing"));
         return runAll();
     }
 }

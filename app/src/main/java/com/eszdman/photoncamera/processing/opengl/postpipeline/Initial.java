@@ -18,8 +18,8 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
 public class Initial extends Node {
-    public Initial(int rid, String name) {
-        super(rid, name);
+    public Initial() {
+        super(0, "Initial");
     }
 
     @Override
@@ -27,6 +27,10 @@ public class Initial extends Node {
         lutbm.recycle();
         lut.close();
     }
+
+    @Override
+    public void Compile() {}
+
     GLTexture lut;
     Bitmap lutbm;
     @Override
@@ -40,7 +44,14 @@ public class Initial extends Node {
         oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();*/
-
+        float green = ((((PostPipeline)basePipeline).analyzedBL[0]+((PostPipeline)basePipeline).analyzedBL[2]+0.0002f)/2.f)/(((PostPipeline)basePipeline).analyzedBL[1]+0.0001f);
+        if(green > 0.0f && green < 1.7f) {
+            float tcor = (green+1.f)/2.f;
+            glProg.setDefine("TINT",tcor);
+            glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
+        }
+        glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
+        glProg.useProgram(R.raw.initial);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);

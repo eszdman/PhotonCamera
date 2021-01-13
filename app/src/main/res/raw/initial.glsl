@@ -14,6 +14,9 @@ uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace t
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform ivec4 activeSize;
 #define PI (3.1415926535)
+#define DYNAMICBL (0.0, 0.0, 0.0)
+#define TINT (1.35)
+#define TINT2 (1.0)
 out vec3 Output;
 //#define x1 2.8114
 //#define x2 -3.5701
@@ -186,6 +189,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
+    //ISO tint correction
+    //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
+
     //float tonebl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(-0.5)));
     //float tonewl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(0.5)));
     //br = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(br-0.5)));
@@ -256,6 +262,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    sRGB-=vec3(DYNAMICBL)/64.0;
     float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 

@@ -25,8 +25,8 @@ import static android.opengl.GLES20.GL_RGBA;
 import static android.opengl.GLES20.glReadPixels;
 
 public class Equalization extends Node {
-    public Equalization(int rid, String name) {
-        super(rid, name);
+    public Equalization() {
+        super(0,"Equalization");
     }
     private static final float MIN_GAMMA = 0.55f;
     @Override
@@ -39,7 +39,7 @@ public class Equalization extends Node {
         glProg.setDefine("SAMPLING",resize);
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setVar("step",0);
+        glProg.setVar("stp",0);
         glProg.drawBlocks(r1);
         float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
         FloatBuffer fb = ByteBuffer.allocateDirect(brArr.length * 4)
@@ -48,17 +48,8 @@ public class Equalization extends Node {
         fb.mark();
         glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
         fb.get(brArr);
-        fb.clear();
-
-        glProg.setVar("stp",1);
-        glProg.drawBlocks(r1);
-        float [] colArr = new float[r1.mSize.x*r1.mSize.y * 4];
-        fb.mark();
-        glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
-        fb.get(colArr);
-        //Log.d(Name,"brArr:"+ Arrays.toString(brArr));
         r1.close();
-        return new Histogram(brArr,colArr, r1.mSize.x*r1.mSize.y);
+        return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
     }
     private float EqualizePower = 0.5f;
     @Override
@@ -104,30 +95,6 @@ public class Equalization extends Node {
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
         Log.d(Name,"Equalizek:"+eq);
-        int check = 0;
-        if(histParser.BL[0] == 0.0) {
-            histParser.BL[0] = histParser.BL[2];
-            check++;
-        }
-        if(histParser.BL[1] == 0.0) {
-            if(histParser.BL[2] != 0.0)
-            histParser.BL[1] = (histParser.BL[0]+histParser.BL[2])/2.f;
-            check++;
-        }
-        if(histParser.BL[2] == 0.0) {
-            histParser.BL[2] = histParser.BL[0];
-            check++;
-        }
-        glProg.setDefine("BL",histParser.BL);
-        glProg.setDefine("BLAVR",(histParser.BL[0]+histParser.BL[1]+histParser.BL[2])/3.f);
-        float green = ((histParser.BL[0]+histParser.BL[2]+0.0002f)/2.f)/(histParser.BL[1]+0.0001f);
-        Log.d(Name,"Interpolation check:"+check);
-        if(green > 0.0f && green < 1.7f && check <= 1) {
-            float tcor = (green+1.f)/2.f;
-            glProg.setDefine("TINT",tcor);
-            glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
-        }
-        Log.d(Name,"BL:"+Arrays.toString(histParser.BL));
         glProg.useProgram(R.raw.equalize);
         glProg.setVar("Equalize",eq);
         glProg.setTexture("Histogram",histogram);

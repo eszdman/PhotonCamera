@@ -19,8 +19,8 @@ import static android.opengl.GLES20.GL_LINEAR;
 
 public class Bayer2Float extends Node {
 
-    public Bayer2Float(int rid, String name) {
-        super(rid, name);
+    public Bayer2Float() {
+        super(0, "Bayer2Float");
     }
 
     @Override

@@ -14,8 +14,8 @@ import static android.opengl.GLES20.GL_LINEAR;
 
 public class SmartNR extends Node {
 
-    public SmartNR(String name) {
-        super(0, name);
+    public SmartNR() {
+        super(0, "SmartNR");
     }
 
     @Override

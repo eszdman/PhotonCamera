@@ -11,13 +11,9 @@ public class Histogram {
     public final float[] sigma = new float[3];
     public final float[] hist;
     public float gamma;
-    public float BL[];
     public final float logAvgLuminance;
-    public Histogram(float[] f,float[] cols, int whPixels) {
+    public Histogram(float[] f, int whPixels) {
         int[] histv = new int[HIST_BINS];
-        int[] histr = new int[HIST_BINS];
-        int[] histg = new int[HIST_BINS];
-        int[] histb = new int[HIST_BINS];
 
         final double[] logTotalLuminance = {0d};
         // Loop over all values
@@ -34,22 +30,9 @@ public class Histogram {
                 if (bin >= HIST_BINS) bin = HIST_BINS - 1;
                 histv[bin]++;
 
-                bin = (int) (cols[i] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histr[bin]++;
-                bin = (int) (cols[i + 1] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histg[bin]++;
-                bin = (int) (cols[i + 2] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histb[bin]++;
-
                 logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
             }
-        }.execute(Range.create2D(f.length/4,4));
+        }.execute(Range.create(f.length/4));
         /*for (int i = 0; i < f.length; i += 4) {
             for (int j = 0; j < 3; j++) {
                 sigma[j] += f[i + j];
@@ -68,8 +51,6 @@ public class Histogram {
             sigma[j] /= whPixels;
         }
 
-        //limitHighlightContrast(histv, f.length / 4);
-        BL = findBL(histr,histg,histb);
         float[] cumulativeHist = buildCumulativeHist(histv);
 
         // Find gamma: Inverse of the average exponent.

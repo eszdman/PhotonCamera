@@ -9,8 +9,8 @@ import com.eszdman.photoncamera.settings.PreferenceKeys;
 import com.eszdman.photoncamera.capture.CaptureController;
 
 public class Sharpen extends Node {
-    public Sharpen(int rid, String name) {
-        super(rid, name);
+    public Sharpen(int rid) {
+        super(rid, "Sharpening");
     }
     @Override
     public void Run() {
