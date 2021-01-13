@@ -51,6 +51,7 @@ public class Initial extends Node {
             glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
         }
         glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
+        glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         glProg.useProgram(R.raw.initial);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);

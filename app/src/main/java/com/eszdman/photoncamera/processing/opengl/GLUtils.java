@@ -324,6 +324,32 @@ public class GLUtils {
         //return blur(out,k-1);
         return out;
     }
+    public GLTexture patch(GLTexture in, Point size){
+        GLTexture out = new GLTexture(size,in.mFormat);
+        return patch(in,out);
+    }
+    public GLTexture patch(GLTexture in, GLTexture out){
+        glProg.setDefine("RES",(((float)in.mSize.x)/out.mSize.x),(((float)in.mSize.y)/out.mSize.y));
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define RES (1.0,1.0)\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "uniform ivec2 size;" +
+                "out tvar Output;\n" +
+                "#import interpolation\n" +
+                "void main() {\n" +
+                "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
+                "    Output = tvar(texelFetch(InputBuffer, ivec2(vec2(xy)*vec2(RES)),0)"+in.mFormat.getTemExt()+");\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.setVar("size",(int)(out.mSize.x),(int)(out.mSize.y));
+        glProg.drawBlocks(out,out.mSize);
+        glProg.closed = true;
+        return out;
+    }
     public GLTexture interpolate(GLTexture in, int k){
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);

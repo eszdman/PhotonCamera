@@ -189,8 +189,8 @@ public class HdrxProcessor extends ProcessorBase {
         ByteBuffer output;
         if (!debugAlignment) {
             float ghosting = FAKE_WL / levell;
-            if (cameraMode == CameraMode.NIGHT)
-                ghosting = 0.f;
+            //if (cameraMode == CameraMode.NIGHT)
+            //    ghosting = 0.f;
             output = Wrapper.processFrame(ghosting, ((float) (FAKE_WL)) / levell);
         } else {
             output = rawPipeline.Run();

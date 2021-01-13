@@ -15,6 +15,7 @@ uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform ivec4 activeSize;
 #define PI (3.1415926535)
 #define DYNAMICBL (0.0, 0.0, 0.0)
+#define PRECISION (64.0)
 #define TINT (1.35)
 #define TINT2 (1.0)
 out vec3 Output;
@@ -262,7 +263,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    sRGB-=vec3(DYNAMICBL)/64.0;
+    sRGB-=vec3(DYNAMICBL)/PRECISION;
     float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 

@@ -24,7 +24,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer highFrame;
     public GLTexture FusionMap;
     public GLTexture GainMap;
-    public float[] analyzedBL;
+    public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
@@ -92,7 +92,7 @@ public class PostPipeline extends GLBasePipeline {
 
         add(new Initial());
 
-        //add(new AWB(0,"AWB"));
+        //add(new AWB());
 
         add(new Equalization());
 

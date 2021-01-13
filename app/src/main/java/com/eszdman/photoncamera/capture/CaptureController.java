@@ -1149,7 +1149,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();
 
-            IsoExpoSelector.useTripod = PhotonCamera.getSensors().getShakiness() < 2;
+            IsoExpoSelector.useTripod = (PhotonCamera.getSensors().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());

@@ -5,6 +5,7 @@ import android.util.Log;
 import com.aparapi.Kernel;
 import com.aparapi.Range;
 import com.eszdman.photoncamera.R;
+import com.eszdman.photoncamera.api.CameraMode;
 import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 
@@ -21,30 +22,34 @@ public class DynamicBL extends Node {
     public DynamicBL() {
         super(0, "DynamicBL");
     }
-    private static int precisionFactor = 64;
+    public static int precisionFactor = 64;
     private static float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
         int integrate = 0;
+        int prevW = 0;
         for(int i =0; i<200; i++){
             integrate+=histr[i];
-            if(integrate > 6) {
+            if(integrate > 9) {
                 bl[0] = i/(((float)histr.length));
+                prevW = integrate;
                 break;
             }
         }
         integrate = 0;
         for(int i =0; i<200; i++){
             integrate+=histg[i];
-            if(integrate > 9) {
+            if(integrate >= prevW) {
                 bl[1] = i/(((float)histr.length));
+                prevW = integrate;
                 break;
             }
         }
         integrate = 0;
         for(int i =0; i<200; i++){
             integrate+=histb[i];
-            if(integrate > 6) {
+            if(integrate >= prevW) {
                 bl[2] = i/(((float)histr.length));
+                prevW = integrate;
                 break;
             }
         }
@@ -89,6 +94,7 @@ public class DynamicBL extends Node {
     }
     private float[] AnalyzeBL(){
         int resize = 16;
+        if(basePipeline.mSettings.selectedMode == CameraMode.NIGHT) precisionFactor = 32; else precisionFactor = 64;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
         glProg.setDefine("SAMPLING",resize);
