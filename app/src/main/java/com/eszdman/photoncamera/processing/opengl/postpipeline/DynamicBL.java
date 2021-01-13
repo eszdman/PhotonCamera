@@ -87,9 +87,9 @@ public class DynamicBL extends Node {
         if(histb[0] >= 100){
             histb[0] = 0;
         }
-        Log.d(Name,"HistR:"+Arrays.toString(histr));
-        Log.d(Name,"HistG:"+Arrays.toString(histg));
-        Log.d(Name,"HistB:"+Arrays.toString(histb));
+        //Log.d(Name,"HistR:"+Arrays.toString(histr));
+        //Log.d(Name,"HistG:"+Arrays.toString(histg));
+        //Log.d(Name,"HistB:"+Arrays.toString(histb));
         return findBL(histr,histg,histb);
     }
     private float[] AnalyzeBL(){

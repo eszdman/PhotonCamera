@@ -6,3 +6,4 @@ xiaomi:dipper
 xiaomi:apollo
 realme:rmx1931l1
 samsung:x1s
+motorola:sofia

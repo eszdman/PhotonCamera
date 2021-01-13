@@ -85,7 +85,7 @@ public class Equalization extends Node {
                 histParser.hist[i] = (((float)(i))/histParser.hist.length)*wrongP + histParser.hist[i]*(1.f-wrongP);
             }
         }
-        Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
+        //Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
 

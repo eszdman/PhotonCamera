@@ -103,7 +103,7 @@ public class GLInterface {
                 for(String[] define : defines){
                     if(val.contains(" "+define[0]+" ")){
                         line = (String)("#define "+define[0]+" "+define[1]);
-                        Log.d("GLInterface","Overwrite:"+line);
+                        //Log.d("GLInterface","Overwrite:"+line);
                         break;
                     }
                 }

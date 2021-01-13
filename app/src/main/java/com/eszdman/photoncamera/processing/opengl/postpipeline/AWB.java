@@ -12,6 +12,9 @@ import com.eszdman.photoncamera.processing.opengl.GLTexture;
 import com.eszdman.photoncamera.processing.opengl.nodes.Node;
 import com.eszdman.photoncamera.processing.render.Parameters;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 public class AWB extends Node {
 
     public AWB() {
@@ -29,12 +32,33 @@ public class AWB extends Node {
     private short[][] ChromaHistogram(Bitmap in) {
         short[][] colorsMap;
         colorsMap = new short[3][SIZE];
-        for (int h = 0; h < in.getHeight(); h++) {
-            for (int w = 0; w < in.getWidth(); w++) {
+        new Kernel() {
+            @Override
+            public void run() {
+                int w = getGlobalId(0);
+                int h = getGlobalId(1);
                 int rgba = in.getPixel(w, h);
                 int r = ((rgba) & 0xff);
                 int g = ((rgba >> 8) & 0xff);
                 int b = ((rgba >> 16) & 0xff);
+                int br = (r+g+b);
+                colorsMap[0][(int) ((double) (r) * (255.0) / br)]++;
+                colorsMap[1][(int) ((double) (g) * (255.0) / br)]++;
+                colorsMap[2][(int) ((double) (b) * (255.0) / br)]++;
+            }
+        }.execute(Range.create2D(in.getWidth(),in.getHeight()));
+        return colorsMap;
+    }
+    private short[][] ChromaHistogram(byte[] in) {
+        short[][] colorsMap;
+        colorsMap = new short[3][SIZE];
+        new Kernel() {
+            @Override
+            public void run() {
+                int w = getGlobalId(0)*4;
+                int r = ((in[w]))+128;
+                int g = ((in[w + 1]))+128;
+                int b = ((in[w + 2]))+128;
                 int br = (r+g+b);
                 if(br/3 > 30 && br/3 < 250) {
                     colorsMap[0][(int) ((double) (r) * (255.0) / br)]++;
@@ -42,7 +66,7 @@ public class AWB extends Node {
                     colorsMap[2][(int) ((double) (b) * (255.0) / br)]++;
                 }
             }
-        }
+        }.execute(Range.create(in.length/4));
         return colorsMap;
     }
     private short[][] Histogram(Bitmap in) {
@@ -290,20 +314,26 @@ public class AWB extends Node {
 
     @Override
     public void Run() {
-        GLTexture r0 = glUtils.interpolate(previousNode.WorkingTexture,new Point(previousNode.WorkingTexture.mSize.x/8,previousNode.WorkingTexture.mSize.x/8));
-        GLTexture r1 = glUtils.patch(r0,new Point(40,40));
+        GLTexture r1 = glUtils.medianpatch(previousNode.WorkingTexture,new Point(400,300));
+        //GLTexture r1 = glUtils.patch(r0,new Point(80,80));
         //GLTexture r2 = glUtils.blursmall(r1,3,1.8);
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
-        Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
+        /*Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
-
         if(PhotonCamera.getSettings().DebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
         r0.close();
+        r1.close();*/
+        ByteBuffer bb = glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF).asReadOnlyBuffer();
+        byte[] bytearr = new byte[r1.mSize.x*r1.mSize.y * 4];
+        bb.order(ByteOrder.nativeOrder());
+        bb.mark();
+        bb.get(bytearr);
+        bb.reset();
+        //r0.close();
         r1.close();
-        basePipeline.texnum = 1;
-        float[] CCV = CCVAccel(ChromaHistogram(preview));
+        float[] CCV = CCVAccel(ChromaHistogram(bytearr));
         //CCV = CCVAEC(Histogram(preview),CCV);
-        preview.recycle();
+        //preview.recycle();
         WorkingTexture = glUtils.mpy(previousNode.WorkingTexture,CCV,basePipeline.getMain());
         //PatchPoint(CCVBased(Histogram(preview)));
         //WorkingTexture = previousNode.WorkingTexture;

@@ -324,6 +324,46 @@ public class GLUtils {
         //return blur(out,k-1);
         return out;
     }
+    public GLTexture medianpatch(GLTexture in, Point size){
+        GLTexture out = new GLTexture(size,in.mFormat);
+        return medianpatch(in,out);
+    }
+    public GLTexture medianpatch(GLTexture in, GLTexture out){
+        glProg.setDefine("RES",(((float)in.mSize.x)/out.mSize.x),(((float)in.mSize.y)/out.mSize.y));
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define RES (1.0,1.0)\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "out tvar Output;\n" +
+                "#import median\n" +
+                "void main() {\n" +
+                "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
+                "    tvar temp;\n" +
+                "    tvar temp2;\n" +
+                "    tvar v[5];\n" +
+                "    v[0] = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(-1,-1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    v[1] = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(-1,0))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    v[2] = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(-1, 1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    v[3] = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(0,-1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    v[4] = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(0,0))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    temp2 = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(0,1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    mnmx6(v[0], v[1], v[2], v[3], v[4], temp2);\n" +
+                "    temp2 = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(1,-1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    mnmx5(v[1], v[2], v[3], v[4], temp2);\n" +
+                "    temp2 = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(1,0))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    mnmx4(v[2], v[3], v[4], temp2);\n" +
+                "    temp2 = tvar(texelFetch(InputBuffer, ivec2(vec2(xy+vec2(1,1))*(vec2(RES)*0.75)),0)"+in.mFormat.getTemExt()+");\n" +
+                "    mnmx3(v[3], v[4], temp2);\n" +
+                "    Output = tvar(v[4]);\n" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
+        glProg.drawBlocks(out,out.mSize);
+        glProg.closed = true;
+        return out;
+    }
     public GLTexture patch(GLTexture in, Point size){
         GLTexture out = new GLTexture(size,in.mFormat);
         return patch(in,out);
@@ -481,7 +521,7 @@ public class GLUtils {
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
                 "    Output = tvar(texelFetch(InputBuffer, xy, 0));\n" +
-                "    Output.rgb*=colorvec;\n" +
+                "    Output.rgb=clamp(Output.rgb*colorvec,0.0,1.0);\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("colorvec",vecmat);
