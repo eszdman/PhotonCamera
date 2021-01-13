@@ -5,6 +5,7 @@ uniform sampler2D InputBuffer;
 uniform int stp;
 out vec4 Output;
 #define SAMPLING (1)
+#define DIV (1.0,1.0,1.0)
 #define BR (0.6)
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
@@ -32,6 +33,6 @@ void main() {
         //float br = XYZtoxyY(inp).z;
         //inp/=br;
         //br = mix(br,br*br,BR);
-        Output = vec4(inp,1.0);
+        Output = vec4(inp/vec3(DIV),1.0);
     }
 }

@@ -24,24 +24,31 @@ public class DynamicBL extends Node {
     private static int precisionFactor = 64;
     private static float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
+        int integrate = 0;
         for(int i =0; i<200; i++){
-            if(histr[i]+histr[i+1]+histr[i+2] > 3) {
+            integrate+=histr[i];
+            if(integrate > 6) {
                 bl[0] = i/(((float)histr.length));
                 break;
             }
         }
+        integrate = 0;
         for(int i =0; i<200; i++){
-            if(histg[i]+histg[i+1]+histg[i+2] > 5) {
+            integrate+=histg[i];
+            if(integrate > 9) {
                 bl[1] = i/(((float)histr.length));
                 break;
             }
         }
+        integrate = 0;
         for(int i =0; i<200; i++){
-            if(histb[i]+histb[i+1]+histb[i+2] > 3) {
+            integrate+=histb[i];
+            if(integrate > 6) {
                 bl[2] = i/(((float)histr.length));
                 break;
             }
         }
+        if(bl[0] == 0.0 || bl[1] == 0.0 || bl[2] == 0.0) return new float[]{0.f,0.f,0.f};
         return bl;
     }
     private float[] getBL(float[] hist){

@@ -165,20 +165,19 @@ public class Parameters {
         assert calibration2 != null;
         assert forwardt1 != null;
         assert forwardt2 != null;
-        /*boolean wrongCalibration =
+        boolean wrongCalibration =
                 forwardt1.getElement(0,0).floatValue() == forwardt2.getElement(0,0).floatValue() &&
                         forwardt1.getElement(1,1).floatValue() == forwardt2.getElement(1,1).floatValue() &&
                         forwardt1.getElement(2,2).floatValue() == forwardt2.getElement(2,2).floatValue() &&
-                        forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();*/
-        boolean wrongCalibration = true;
+                        forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();
         Rational rat[] = new Rational[9];
         if(CCT != null) {
             CCT.copyElements(rat, 0);
             int cnt = 0;
             for (int i = 0; i < 9; i++) {
-                if (rat[i].floatValue() == 0.0f) cnt++;
+                if (rat[i].floatValue() != 0.0f) cnt++;
             }
-            if (cnt > 3) wrongCalibration = false;
+            if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
         if (wrongCalibration && !customCCM.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
