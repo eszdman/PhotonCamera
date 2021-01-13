@@ -29,7 +29,11 @@ void main() {
         float z = XYZtoxyY(texelFetch(InputBuffer, xy, 0).rgb).z;
         Output = vec4(sqrt(sigma / 9.f), mix(z, z*z, BR));
     } else {
+        //vec3 inp;
         vec3 inp = texelFetch(InputBuffer, xy, 0).rgb;
+        for (int i = 0; i < 9; i++) {
+            inp = min(inp,texelFetch(InputBuffer, xy + 2*ivec2((i % 3) - 1, (i / 3) - 1)*((SAMPLING/2)-1), 0).rgb);
+        }
         //float br = XYZtoxyY(inp).z;
         //inp/=br;
         //br = mix(br,br*br,BR);

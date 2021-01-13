@@ -48,6 +48,7 @@ public class Equalization extends Node {
         fb.mark();
         glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
         fb.get(brArr);
+        fb.reset();
         r1.close();
         return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
     }

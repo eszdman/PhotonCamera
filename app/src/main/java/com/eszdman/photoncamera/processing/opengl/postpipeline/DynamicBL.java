@@ -109,6 +109,7 @@ public class DynamicBL extends Node {
         fb.mark();
         glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
         fb.get(colArr);
+        fb.reset();
         r1.close();
         return getBL(colArr);
     }
