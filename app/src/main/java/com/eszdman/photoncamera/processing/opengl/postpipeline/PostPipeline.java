@@ -84,6 +84,7 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
+
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR());
         }

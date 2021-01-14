@@ -5,7 +5,6 @@ uniform sampler2D InputBuffer;
 uniform int stp;
 out vec4 Output;
 #define SAMPLING (1)
-#define DIV (1.0,1.0,1.0)
 #define BR (0.6)
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
@@ -31,12 +30,11 @@ void main() {
     } else {
         //vec3 inp;
         vec3 inp = texelFetch(InputBuffer, xy, 0).rgb;
-        for (int i = 0; i < 9; i++) {
-            inp = min(inp,texelFetch(InputBuffer, xy + 2*ivec2((i % 3) - 1, (i / 3) - 1)*((SAMPLING/2)-1), 0).rgb);
+        for(int i = -2;i<2;i++){
+            for(int j = -2;j<2;j++){
+                inp = min(inp,texelFetch(InputBuffer, xy + ivec2(i,j)*int(float(SAMPLING/2)*0.24), 0).rgb);
+            }
         }
-        //float br = XYZtoxyY(inp).z;
-        //inp/=br;
-        //br = mix(br,br*br,BR);
-        Output = vec4(inp/vec3(DIV),1.0);
+        Output = vec4(inp,1.0);
     }
 }

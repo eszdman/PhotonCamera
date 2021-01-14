@@ -1,5 +1,6 @@
 package com.eszdman.photoncamera.processing.opengl.postpipeline;
 
+import android.graphics.Point;
 import android.util.Log;
 
 import com.aparapi.Kernel;
@@ -23,36 +24,59 @@ public class DynamicBL extends Node {
         super(0, "DynamicBL");
     }
     public static int precisionFactor = 64;
-    private static float[] findBL(int[] histr,int[] histg,int[] histb) {
+    private float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
-        int integrate = 0;
+        int integmax = 1;
+        int start = 20;
+        int integrate = 4;
         int prevW = 0;
-        for(int i =0; i<200; i++){
+
+        for(int i =start; i<200; i++){
             integrate+=histr[i];
-            if(integrate > 9) {
+            if(integrate > integmax) {
                 bl[0] = i/(((float)histr.length));
                 prevW = integrate;
                 break;
             }
         }
         integrate = 0;
-        for(int i =0; i<200; i++){
+        for(int i =start; i<200; i++){
             integrate+=histg[i];
-            if(integrate >= prevW) {
+            if(integrate > integmax) {
                 bl[1] = i/(((float)histr.length));
                 prevW = integrate;
                 break;
             }
         }
         integrate = 0;
-        for(int i =0; i<200; i++){
+        for(int i =start; i<200; i++){
             integrate+=histb[i];
-            if(integrate >= prevW) {
+            if(integrate > integmax) {
                 bl[2] = i/(((float)histr.length));
                 prevW = integrate;
                 break;
             }
         }
+        /*int con = 25;
+        int min = 500;
+        for(int i = -10;i<10;i++){
+            for(int j = -10;j<10;j++){
+                for(int k = -10;k<10;k++){
+                    int avr = (histr[35+i]+histg[35+j]+histb[35+k])/3;
+                    int val = Math.abs(avr-histr[35+i])+Math.abs(avr-histr[35+j])+Math.abs(avr-histr[35+k]);
+                    if(min > val && avr > 20){
+                        min = val;
+                        Log.d(Name,"Found:"+min+" ijk:"+i+","+j+","+k);
+                        bl[0] = 35+i;
+                        bl[1] = 35+j;
+                        bl[2] = 35+k;
+                    }
+                }
+            }
+        }
+        bl[0]/=(((float)histr.length));
+        bl[1]/=(((float)histg.length));
+        bl[2]/=(((float)histb.length));*/
         if(bl[0] == 0.0 || bl[1] == 0.0 || bl[2] == 0.0) return new float[]{0.f,0.f,0.f};
         return bl;
     }
@@ -60,6 +84,18 @@ public class DynamicBL extends Node {
         int[] histr = new int[256];
         int[] histg = new int[256];
         int[] histb = new int[256];
+        float min = 0.015f;
+        boolean notfound = true;
+        /*for (float v : hist) {
+            if (min > v && v != 0.0) {
+                min = v;
+                notfound = false;
+            }
+        }*/
+        //if(notfound) return new float[]{0.f,0.f,0.f};
+        //precisionFactor = (int)(0.1f/min);
+        Log.d(Name,"Minimum:"+min);
+        Log.d(Name,"precisionFactor:"+precisionFactor);
         new Kernel(){
             @Override
             public void run() {
@@ -78,19 +114,40 @@ public class DynamicBL extends Node {
                 histb[bin]++;
             }
         }.execute(Range.create(hist.length/4));
-        if(histr[0] >= 100){
-            histr[0] = 0;
-        }
-        if(histg[0] >= 100){
-            histg[0] = 0;
-        }
-        if(histb[0] >= 100){
-            histb[0] = 0;
-        }
-        //Log.d(Name,"HistR:"+Arrays.toString(histr));
-        //Log.d(Name,"HistG:"+Arrays.toString(histg));
-        //Log.d(Name,"HistB:"+Arrays.toString(histb));
+        histr[0] = 0;
+        histg[0] = 0;
+        histb[0] = 0;
+        Log.d(Name,"HistR:"+Arrays.toString(histr));
+        Log.d(Name,"HistG:"+Arrays.toString(histg));
+        Log.d(Name,"HistB:"+Arrays.toString(histb));
         return findBL(histr,histg,histb);
+    }
+    private float[] getBL2(float[] hist){
+        float[] min = new float[3];
+        min[0] = hist[0];
+        min[1] = hist[1];
+        min[2] = hist[2];
+        new Kernel(){
+            @Override
+            public void run() {
+                int i = getGlobalId(0)*4;
+                if(min[0] < hist[i]) min[0] = hist[i];
+                if(min[1] < hist[i+1]) min[1] = hist[i+1];
+                if(min[2] < hist[i+2]) min[2] = hist[i+2];
+            }
+        }.execute(Range.create(hist.length/4));
+        return min;
+    }
+    private float[] getFL(Point size){
+        float [] colArr = new float[size.x*size.y * 4];
+        FloatBuffer fb = ByteBuffer.allocateDirect(colArr.length * 4)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        fb.mark();
+        glReadPixels(0, 0, size.x, size.y, GL_RGBA, GL_FLOAT, fb.reset());
+        fb.asReadOnlyBuffer().get(colArr);
+        fb.reset();
+        return colArr;
     }
     private float[] AnalyzeBL(){
         int resize = 16;
@@ -102,14 +159,7 @@ public class DynamicBL extends Node {
         glProg.setVar("stp",1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(r1);
-        float [] colArr = new float[r1.mSize.x*r1.mSize.y * 4];
-        FloatBuffer fb = ByteBuffer.allocateDirect(colArr.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer();
-        fb.mark();
-        glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
-        fb.get(colArr);
-        fb.reset();
+        float[] colArr = getFL(r1.mSize);
         r1.close();
         return getBL(colArr);
     }
