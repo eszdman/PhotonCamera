@@ -1,0 +1,2 @@
+PhotonCamera accesses and records camera sensor and microphone data, which is used for the purpose of taking photos and recording videos, to fulfil its purpose as a camera.
+PhotonCamera requires permission to storage access, as this permission is required for Android to save resultant files such as photos and videos to your device.
