@@ -34,13 +34,11 @@ android {
     }
 
     defaultConfig {
-        applicationId 'com.eszdman.photoncamera'
+        applicationId 'com.particlesdevs.photoncamera'
         minSdkVersion 26
         targetSdkVersion 30
-        renderscriptTargetApi 24
-        renderscriptSupportModeEnabled false
         versionCode versionBuild
-        versionName '0.70'
+        versionName '0.71'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
@@ -57,18 +55,18 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = false
             zipAlignEnabled = true
+            signingConfig signingConfigs.debug
         }
         debug {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = true
-            renderscriptDebuggable = true
             zipAlignEnabled = true
         }
     }
@@ -108,4 +106,9 @@ dependencies {
     implementation "androidx.navigation:navigation-ui:2.3.2"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
+    //Google Material
+    implementation 'com.google.android.material:material:1.2.1'
+    //Leak Canary
+    //Use this lib to detect memory leaks when debugging
+    //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
 }

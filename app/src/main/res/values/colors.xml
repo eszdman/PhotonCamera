@@ -16,9 +16,10 @@
     <color name="colorText">#B794F6</color>
     <color name="colorSeparator">#616161</color>
     <color name="panel_transparency">#40000000</color>
-    <color name="transparent_focus_circle">@color/panel_transparency</color>
+    <color name="transparent_focus_circle">#20000000</color>
     <color name="white">#FFFFFF</color>
     <color name="manual_icon_text">@color/white</color>
     <color name="manual_icon_text_selected">@color/white</color>
     <color name="aux_container_color">#99000000</color>
+    <color name="grid_thumbnail_background">#AAAAAA</color>
 </resources>

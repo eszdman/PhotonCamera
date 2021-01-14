@@ -54,4 +54,24 @@
         <item>orange</item>
         <item>green</item>
     </string-array>
+    <string-array name="af_mode_entries">
+        <item>Continuous Picture</item>
+        <item>Auto</item>
+    </string-array>
+    <string-array name="af_mode_entryvalues">
+        <item>4</item>
+        <item>1</item>
+    </string-array>
+    <string-array name="vf_grid_entries">
+        <item>Off</item>
+        <item>3x3</item>
+        <item>4x4</item>
+        <item>Golden Ratio</item>
+    </string-array>
+    <string-array name="vf_grid_entryvalues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
 </resources>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+           tools:ignore="MissingTranslation">
+    <string name="_pref_version" translatable="false">_pref_version</string>
+    <string name="pref_category_general_key" translatable="false">pref_category_general_key</string>
+    <string name="pref_category_jpg_key" translatable="false">pref_category_jpg_key</string>
+    <string name="pref_category_hdrx_key" translatable="false">pref_category_hdrx_key</string>
+    <string name="pref_theme_category_key" translatable="false">pref_theme_category_key</string>
+    <string name="pref_category_about_key" translatable="false">pref_category_about_key</string>
+
+
+    <string name="pref_show_afdata_key" translatable="false">pref_show_afdata_key</string>
+    <string name="pref_enable_system_nr_key" translatable="false">pref_enable_system_nr_key</string>
+    <string name="pref_save_per_lens_settings" translatable="false">pref_save_per_lens_settings</string>
+    <string name="pref_disable_aligning_key" translatable="false">pref_disable_aligning_key</string>
+    <string name="pref_show_watermark_key" translatable="false">pref_show_watermark_key</string>
+    <string name="pref_energy_safe_key" translatable="false">pref_energy_safe_key</string>
+    <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
+    <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
+    <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>
+    <string name="pref_show_roundedge_key" translatable="false">pref_show_roundedge_key</string>
+    <string name="pref_show_grid_key" translatable="false">pref_show_grid_key</string>
+    <string name="pref_camera_sounds_key" translatable="false">pref_camera_sounds_key</string>
+    <string name="pref_chroma_nr_seekbar_key" translatable="false">pref_chroma_nr_seekbar_key</string>
+    <string name="pref_luma_nr_seekbar_key" translatable="false">pref_luma_nr_seekbar_key</string>
+    <string name="pref_compressor_seekbar_key" translatable="false">pref_compressor_seekbar_key</string>
+    <string name="pref_noise_seekbar_key" translatable="false">pref_noise_seekbar_key</string>
+    <string name="pref_gain_seekbar_key" translatable="false">pref_gain_seekbar_key</string>
+    <string name="pref_shadows_seekbar_key" translatable="false">pref_shadows_seekbar_key</string>
+    <string name="pref_frame_count_key" translatable="false">pref_frame_count_key</string>
+    <string name="pref_contrast_seekbar_key" translatable="false">pref_contrast_seekbar_key</string>
+    <string name="pref_sharpness_seekbar_key" translatable="false">pref_sharpness_seekbar_key</string>
+    <string name="pref_saturation_seekbar_key" translatable="false">pref_saturation_seekbar_key</string>
+    <string name="pref_align_method_key" translatable="false">pref_align_method_key</string>
+    <string name="pref_cfa_key" translatable="false">pref_cfa_key</string>
+    <string name="pref_remosaic_key" translatable="false">pref_remosaic_key</string>
+    <string name="pref_telegram_channel_key" translatable="false">pref_telegram_channel_key</string>
+    <string name="pref_contributors_key" translatable="false">pref_contributors_key</string>
+    <string name="pref_theme_key" translatable="false">pref_theme_key</string>
+    <string name="pref_theme_accent_key" translatable="false">pref_theme_accent_key</string>
+    <string name="pref_show_gradient_key" translatable="false">pref_show_gradient_key</string>
+    <string name="pref_af_mode_key" translatable="false">pref_af_mode_key</string>
+    <string name="pref_hdrx_key" translatable="false">pref_hdrx_key</string>
+    <string name="pref_eis_photo_key" translatable="false">pref_eis_photo_key</string>
+    <string name="pref_quad_bayer_key" translatable="false">pref_quad_bayer_key</string>
+    <string name="pref_fps_preview_key" translatable="false">pref_fps_preview_key</string>
+    <string name="camera_id" translatable="false">camera_id</string>
+    <string name="tonemap_key" translatable="false">tonemap_key</string>
+    <string name="gamma_key" translatable="false">gamma_key</string>
+    <string name="pref_camera_mode_key" translatable="false">pref_camera_mode_key</string>
+    <string name="pref_ae_mode_key" translatable="false">pref_ae_mode_key</string>
+
+    <string name="all_camera_ids" translatable="false">all_camera_ids</string>
+    <string name="front_camera_ids" translatable="false">front_camera_ids</string>
+    <string name="back_camera_ids" translatable="false">back_camera_ids</string>
+    <string name="all_camera_focals" translatable="false">all_camera_focals</string>
+    <string name="all_camera_count" translatable="false">all_camera_count</string>
+
+    <string name="_cameras" translatable="false">_cameras</string>
+    <string name="_devices" translatable="false">_devices</string>
+    <string name="all_devices_names" translatable="false">all_devices_names</string>
+    <string name="pref_this_device_key" translatable="false">pref_this_device_key</string>
+    <string name="_per_lens" translatable="false">_per_lens</string>
+
+
+    <string name="pref_category_backup_restore" translatable="false">pref_category_backup_restore</string>
+    <string name="pref_backup_preferences_key" translatable="false">pref_backup_preferences_key</string>
+    <string name="pref_restore_preferences_key" translatable="false">pref_restore_preferences_key</string>
+    <string name="pref_reset_preferences_key" translatable="false">pref_reset_preferences_key</string>
+    <string name="pref_about_key" translatable="false">pref_about_key</string>
+    <string name="pref_photoncamera" translatable="false">pref_photoncamera</string>
+    <string name="pref_version_key" translatable="false">pref_version_key</string>
+</resources>

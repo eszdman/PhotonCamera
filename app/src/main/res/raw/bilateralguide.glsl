@@ -1,56 +1,94 @@
 #version 300 es
 precision highp float;
-precision mediump sampler2D;
+precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D NoiseMap;
-uniform int kernel;
-uniform float isofactor;
-uniform ivec2 size;
-uniform ivec2 tpose;
+uniform sampler2D ToneMap;
 #define M_PI 3.1415926535897932384626433832795
-
-//#define sigma (0.05)
-//const int kernel = 6;
-const int window = 2;
+#define TONEMAPED 0
+#define KERNEL 1
+#define ISOFACTOR (0.5)
+#define SIZE (1.0,1.0)
+#define STR (1.0)
+#define SMOOTHING (1)
+#define MEDIAN 0
+#define sinc(x) (sin(x) / (x+0.0001))
 #import interpolation
-#define luminocity(x) ((((x.r+x.g+x.b)/3.0))+0.001)
-/*float luminocity(vec3 color) {
-    return (color.r+color.g+color.b)/3.0;
-}*/
-#define distribute(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
-
+#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+#define distributegauss(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
+#define distributesinc(x,dev,sigma) (sin(M_PI*x/sigma)/(M_PI*x*sigma))
+#define distribute2(x,dev) (1.0-abs(x-dev)*STR)
+#define pdf(x) (exp(-0.5*x*x/(STR*STR))/STR)
+#define pdf2(x) (sinc((x)*3.0)/(STR*3.0))
+#if MEDIAN == 1
+#define distribute distributegauss
+#else
+#define distribute distributesinc
+#endif
+#import median
 float nlmeans(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
-    float noisefactor = clamp((textureBicubic(NoiseMap, vec2(coords)/vec2(size)).r)*0.55*isofactor,0.0005,1.0);
+    float noisefactor = clamp((textureBicubicHardware(NoiseMap, vec2(gl_FragCoord.xy)/vec2(SIZE)).r)*0.55*ISOFACTOR,0.0005,1.0);
+
+    #if TONEMAPED == 1
+    float inp = (texelFetch(ToneMap,coords,0).r*2.0);
+    noisefactor*=clamp((1.3-texelFetch(ToneMap,coords,0).r*10.0),0.3,1.0);
+    #else
+    float inp = luminocity(texelFetch(InputBuffer, coords,0).rgb);
+    #endif
     noisefactor*=noisefactor;
     noisefactor*=0.6;
-    for(int i = -kernel; i < kernel; i++) {
-        for(int j = -kernel; j < kernel; j++) {
+    #if MEDIAN == 1
+    float arr[5];
+    arr[0] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,0),0).rgb);
+    arr[1] = luminocity(texelFetch(InputBuffer, coords+ivec2(-1,0),0).rgb);
+    arr[2] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,-1),0).rgb);
+    arr[3] = luminocity(texelFetch(InputBuffer, coords+ivec2(1,0),0).rgb);
+    arr[4] = luminocity(texelFetch(InputBuffer, coords+ivec2(0,1),0).rgb);
+    float med = median5(arr);
+    inp = med;
+    processed+=med*1.5;
+    weights+=1.5;
+    #endif
+
+    for(int i = -KERNEL; i <= KERNEL; i++) {
+        for(int j = -KERNEL; j <= KERNEL; j++) {
+            ivec2 sxy = abs(ivec2(i,j));
+            #if MEDIAN == 1
+            if(sxy.x+sxy.y <= 1) continue; else {
+                if(i != 0)
+                sxy.x-=1;
+                else if(j != 0) sxy.y-=1;
+            }
+            #endif
+            float dist = pdf(float(sxy.x)/float(KERNEL))*pdf(float(sxy.y)/float(KERNEL));
             ivec2 patchCoord = coords + ivec2(i, j);
-            //float w = comparePatches(patchCoord, coords,0.01*0.5 + noisefactor*0.35);
-            float sigma = (0.01*0.5 + noisefactor*0.35);
-            float w = distribute(luminocity(texelFetch(InputBuffer, coords,0).rgb),
-            luminocity(texelFetch(InputBuffer,patchCoord,0).rgb),sigma);
-            w/=((2.0 * float(window) + 1.0) * (2.0 * float(window) + 1.0));
+            float sigma = (0.01*0.5 + noisefactor*0.25);
+            float w;
+            #if TONEMAPED == 1
+            w = distribute(inp,(texelFetch(ToneMap,  patchCoord,0).r*2.0), sigma)*dist;
+            #else
+            w = distribute(inp, luminocity(texelFetch(InputBuffer, patchCoord,0).rgb), sigma)*dist;
+            #endif
             processed += w * luminocity(texelFetch(InputBuffer, patchCoord,0).rgb);
             weights += w;
         }
     }
-    return processed / weights;
+    //processed = clamp(processed,0.0,10000.0);
+    //weights = clamp(weights,0.0,10000.0);
+    if(abs(weights) > 0.0001){
+        return ((processed) / (weights));
+    } else return luminocity(texelFetch(InputBuffer, coords,0).rgb);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
 out vec3 Output;
-uniform int yOffset;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
     vec3 xyz = (texelFetch(InputBuffer, xy,0).rgb)+0.001;
-    float br = (xyz.r+xyz.g+xyz.b)/3.0;
+    float br = luminocity(xyz);
     xyz/=br;
     br = nlmeans(xy);
-    Output = clamp(xyz*br,0.0,1.0);
-    //float noisefactor = clamp(textureLinear(NoiseMap, vec2(xy)/vec2(size)).r,0.0005,0.6);
-    //Output = vec3(noisefactor*1.9);
+    Output = clamp(xyz*br - 0.002,0.0,1.0);
 }

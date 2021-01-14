@@ -16,7 +16,7 @@
     <data>
         <variable
             name="uimodel"
-            type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel" />
+            type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -47,9 +47,12 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintVertical_bias="0"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:visibility="visible"></include>
+                tools:visibility="visible">
+            </include>
 
             <!--    Block 1.2-->
             <!--    includes the Layout resource of BottomBar-->
@@ -60,9 +63,10 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
-                app:layout_constraintVertical_bias="0.0"></include>
+                app:layout_constraintVertical_bias="0.957">
+            </include>
             <!--    Block 1.3-->
             <!--   includes the Layout resource of Aux Buttons palette-->
             <LinearLayout
@@ -83,14 +87,14 @@
             <!--    Block 1.4-->
             <!--   includes the Layout resource of Manual Mode palette-->
             <include
-                android:id="@+id/manual_mode"
-                layout="@layout/layout_main_manualbar"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                tools:visibility="visible"></include>
+                    android:id="@+id/manual_mode"
+                    layout="@layout/manual_palette"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:visibility="visible"/>
 
             <!--    Block 1.5-->
             <!--Arrow-->
@@ -109,22 +113,13 @@
         <!--    Block 2-->
         <!--    includes the Layout resource of TopBar-->
         <include
-            android:id="@+id/layout_topbar"
-            layout="@layout/layout_main_topbar"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"></include>
-
-        <include
-            android:id="@+id/screen_log"
-            layout="@layout/screen_log"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/layout_topbar"></include>
+                android:id="@+id/layout_topbar"
+                layout="@layout/layout_main_topbar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

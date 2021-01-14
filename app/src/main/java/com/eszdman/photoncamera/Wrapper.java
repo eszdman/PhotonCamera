@@ -1,7 +1,10 @@
 package com.eszdman.photoncamera;
 
 import java.nio.ByteBuffer;
-
+//PhotonCamera
+//Copyright (C) 2020-2021  Eszdman
+//https://github.com/eszdman/PhotonCamera
+//Using this file when changing the main application package is prohibited
 public class Wrapper {
     static {
         System.loadLibrary("HdrX");

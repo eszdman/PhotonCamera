@@ -7,9 +7,6 @@ uniform int yOffset;
 uniform int CfaPattern;
 uniform vec3 whitePoint;
 
-uniform sampler2D GainMap;
-uniform vec4 blackLevel;
-uniform ivec2 RawSize;
 
 //#define greenmin (0.04)
 #define greenmin (0.01)
@@ -75,39 +72,26 @@ void main() {
     int fact1 = xy.x%2;
     int fact2 = xy.y%2;
     xy+=ivec2(0,yOffset);
-    vec3 outp;
     if(fact1 ==0 && fact2 == 0) {//rggb
-        outp.g = texelFetch(GreenBuffer, (xy), 0).x;
-        outp.r = float(texelFetch(RawBuffer, (xy), 0).x);
-        outp.b = interpolateColor(xy);
+        Output.g = texelFetch(GreenBuffer, (xy), 0).x;
+        Output.r = float(texelFetch(RawBuffer, (xy), 0).x);
+        Output.b = interpolateColor(xy);
     } else
     if(fact1 ==1 && fact2 == 0) {//grbg
-        outp.g = texelFetch(GreenBuffer, (xy), 0).x;
-        //outp.r =((float(texelFetch(RawBuffer, (xy+ivec2(-1,0)), 0).x)+float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x))/(2.*float(WhiteLevel)));
-        outp.r = interpolateColorx(xy);
-        //outp.b =((float(texelFetch(RawBuffer, (xy+ivec2(0,-1)), 0).x)+float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x))/(2.*float(WhiteLevel)));
-        outp.b = interpolateColory(xy);
+        Output.g = texelFetch(GreenBuffer, (xy), 0).x;
+        Output.r = interpolateColorx(xy);
+        Output.b = interpolateColory(xy);
 
     } else
     if(fact1 ==0 && fact2 == 1) {//gbrg
-        outp.g = texelFetch(GreenBuffer, (xy), 0).x;
-        //outp.b =((float(texelFetch(RawBuffer, (xy+ivec2(-1,0)), 0).x)+float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x))/(2.*float(WhiteLevel)));
-        outp.b = interpolateColorx(xy);
-        //outp.r =((float(texelFetch(RawBuffer, (xy+ivec2(0,-1)), 0).x)+float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x))/(2.*float(WhiteLevel)));
-        outp.r = interpolateColory(xy);
+        Output.g = texelFetch(GreenBuffer, (xy), 0).x;
+        Output.b = interpolateColorx(xy);
+        Output.r = interpolateColory(xy);
 
     } else  {//bggr
-        outp.g = texelFetch(GreenBuffer, (xy), 0).x;
-        outp.b = float(texelFetch(RawBuffer, (xy), 0).x);
-        outp.r = interpolateColor(xy);
+        Output.g = texelFetch(GreenBuffer, (xy), 0).x;
+        Output.b = float(texelFetch(RawBuffer, (xy), 0).x);
+        Output.r = interpolateColor(xy);
     }
-    Output = outp;
-    vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
-    //Output*=whitePoint;
-    Output.r = gains.r*(Output.r-blackLevel.r);
-    Output.g = ((gains.g+gains.b)/2.)*(Output.g-(blackLevel.g+blackLevel.b)/2.);
-    Output.b = gains.a*(Output.b-blackLevel.a);
-    Output/=(1.0-blackLevel.g);
-
     Output = clamp(Output,0.0,1.0);
 }

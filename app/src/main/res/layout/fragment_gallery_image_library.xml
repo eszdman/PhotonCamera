@@ -4,9 +4,19 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         tools:context=".gallery.ui.fragments.ImageLibraryFragment">
 
+    <data>
+
+        <import type="android.view.View"/>
+
+        <variable
+                name="buttons_visible"
+                type="boolean"/>
+    </data>
+
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:animateLayoutChanges="true">
 
         <androidx.recyclerview.widget.RecyclerView
                 android:scrollbars="vertical"
@@ -19,5 +29,10 @@
                 tools:listitem="@layout/thumbnail_square_image_view"
                 />
 
+        <include
+                layout="@layout/gallery_library_fabs"
+                android:id="@+id/fab_group"
+                android:visibility="@{buttons_visible ? View.VISIBLE : View.INVISIBLE}"
+                />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

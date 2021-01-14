@@ -71,4 +71,20 @@
     <string name="quad_bayer_toggle_text">Сверхвысокое разрешение</string>
     <string name="frame_count_summary">Количество кадров шумоподавления</string>
     <string name="unprocessed_raw">Необработанный исходник</string>
+    <string name="backup">Сохранить</string>
+    <string name="reset_preferences_warning">Это сбросит настройки на стандартные, продолжить?</string>
+    <string name="app_will_restart">Приложение перезапустится</string>
+    <string name="restore">Восстановить</string>
+    <string name="empty_file_name_error">Название не может быть пустым</string>
+    <string name="reset">Сбросить всё</string>
+    <string name="compressor">Компрессор</string>
+    <string name="backup_restore">Сохранение/Восстановление настроек</string>
+    <string name="device_unsupport">Предупреждение: Не поддерживаемый девайс</string>
+    <string name="sure_delete_multiple">Вы уверены что хотите удалить %1$s изображение(ий)? %2$s будут удалены.</string>
+    <string name="af_mode">Режим автофокуса</string>
+    <string name="multiple_deleted_success">%1$s Файл(ов) Удалены! %2$s Очищено.</string>
+    <string name="long_press_to_deselect">Долгое нажатие кнопки чтобы убрать выделение</string>
+    <string name="supported_devices">Поддерживаемые устройства</string>
+    <string name="this_device">Ваше устройство - %1$s</string>
+    <string name="shadows">Тени</string>
 </resources>

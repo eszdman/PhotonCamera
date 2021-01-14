@@ -5,14 +5,17 @@
         >
 
     <data>
+        <variable
+                name="bottom_bar_click_listener"
+                type="android.view.View.OnClickListener"/>
 
         <variable
                 name="uimodel"
-                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
 
         <variable
                 name="timermodel"
-                type="com.eszdman.photoncamera.ui.camera.model.TimerFrameCountModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel"/>
 
     </data>
 
@@ -22,10 +25,10 @@
             android:layout_margin="5dp"
             >
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <FrameLayout
                 android:id="@+id/camera_switch_container"
-                android:layout_width="61dp"
-                android:layout_height="59dp"
+                android:layout_width="@dimen/camera_switch_button_size"
+                android:layout_height="0dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintDimensionRatio="1.0"
                 app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
@@ -33,29 +36,24 @@
                 app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
+                    android:layout_gravity="center"
                     android:id="@+id/flip_camera_button"
                     android:background="#00000000"
                     android:clickable="true"
+                    android:onClick="@{bottom_bar_click_listener}"
                     android:contentDescription="Lens Switch Button"
                     android:scaleType="centerInside"
                     android:src="@drawable/ic_flip_camera"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.0"
-
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.0"
                     tools:ignore="HardcodedText"
-                    android:layout_height="0dp"
-                    android:layout_width="0dp"/>
+                    android:layout_height="match_parent"
+                    android:layout_width="match_parent"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="wrap_content"
+        <FrameLayout
+                android:layout_width="@dimen/shutter_button_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1.0"
                 android:id="@+id/shutter_button_container"
@@ -67,63 +65,51 @@
 
             <ImageButton
                     android:id="@+id/shutter_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@drawable/roundbutton"
                     android:clickable="true"
                     android:contentDescription="Shutter Button"
-                    android:scaleX="1.0"
-                    android:scaleY="1.0"
+                    android:onClick="@{bottom_bar_click_listener}"
+                    android:scaleX="0.75"
+                    android:scaleY="0.75"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
-                    app:layout_constraintBottom_toBottomOf="@id/processing_progress_bar"
-                    app:layout_constraintDimensionRatio="1.0"
-                    app:layout_constraintEnd_toEndOf="@id/processing_progress_bar"
-                    app:layout_constraintStart_toStartOf="@id/processing_progress_bar"
-                    app:layout_constraintTop_toTopOf="@id/processing_progress_bar"
                     tools:ignore="HardcodedText"
                     tools:text="Shot"/>
 
             <ProgressBar
                     android:id="@+id/processing_progress_bar"
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:indeterminate="false"
                     android:max="100"
                     tools:progress="50"
                     android:progressDrawable="@drawable/circular_progress_bar2"
                     android:indeterminateBehavior="cycle"
-                    android:indeterminateDuration="1250"
+                    android:indeterminateDuration="2000"
                     android:indeterminateDrawable="@drawable/circular_progress_bar2"
                     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
-                    android:scaleX="1.30"
-                    android:scaleY="1.30"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintDimensionRatio="1.0"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_weight="1"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"/>
+                    android:scaleX="1.35"
+                    android:scaleY="1.35"
+                    />
 
             <TextView
                     android:id="@+id/frameCount"
-                    android:layout_width="80dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="25"
                     android:text="@{timermodel.frameCount}"
                     android:textColor="@android:color/white"
-                    android:textSize="36sp"
+                    android:textSize="34sp"
                     android:textAlignment="center"
                     android:typeface="normal"
                     android:visibility="visible"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+                    android:layout_gravity="center"/>
+        </FrameLayout>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <FrameLayout
                 android:layout_width="@dimen/gallery_button_size"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="1.0"
@@ -137,19 +123,17 @@
 
             <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/gallery_image_button"
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@drawable/round"
                     app:civ_border_color="@color/Light"
                     app:civ_border_overlay="true"
                     app:civ_border_width="3dp"
+                    android:onClick="@{bottom_bar_click_listener}"
                     imageFromBitmap="@{uimodel.bitmap}"
                     bindRotate="@{uimodel}"
                     />
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

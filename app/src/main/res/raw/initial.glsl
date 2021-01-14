@@ -4,17 +4,20 @@ precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
 uniform sampler2D LookupTable;
+uniform sampler2D FusionMap;
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
-uniform int yOffset;
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
-
 uniform ivec4 activeSize;
 #define PI (3.1415926535)
+#define DYNAMICBL (0.0, 0.0, 0.0)
+#define PRECISION (64.0)
+#define TINT (1.35)
+#define TINT2 (1.0)
 out vec3 Output;
 //#define x1 2.8114
 //#define x2 -3.5701
@@ -25,34 +28,18 @@ out vec3 Output;
 #define x1 2.8586f
 #define x2 -3.1643f
 #define x3 1.2899f
+#define EPS (0.0008)
+#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import coords
 #import interpolation
-//float gammaEncode2(float x) {
-//    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.8)) - 0.055;
-//}
-/*float gammaEncode2(float x) {
-    return x <= 0.0031308f
-    ? x * 12.92f
-    : 1.055f * pow(x, 0.4166667f) - 0.055f;
-}*/
 float gammaEncode2(float x) {
-    return 1.055 * pow(x, 1.0/1.8) - 0.055;
-}
-float gammaEncode3(float x) {
-    return (x <= 0.0031308) ? x * 12.92 : 1.055 * pow(float(x), (1.f/1.2)) - 0.055;
+    return 1.055 * sqrt(x+EPS) - 0.055;
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
     float br = (x.r+x.g+x.b)/3.0;
     x/=br;
     return x*(x1*br+x2*br*br+x3*br*br*br);
-}
-vec3 gammaCorrectPixel3(vec3 x) {
-    x+=0.0001;
-    float br = (x.r+x.g+x.b)/3.0;
-    x/=br;
-    br = clamp(gammaEncode3(br),0.0,1.0);
-    return x*br;
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -88,10 +75,11 @@ vec3 lookup(in vec3 textureColor) {
     highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
     return newColor;
 }
+#define TONEMAP_GAMMA (1.5)
 float tonemapSin(float ch) {
     return ch < 0.0001f
     ? ch
-    : 0.5f - 0.5f * cos(pow(ch, 0.8f) * PI);
+    : 0.5f - 0.5f * cos(pow(ch, 1.0/TONEMAP_GAMMA) * PI);
 }
 
 vec2 tonemapSin(vec2 ch) {
@@ -183,16 +171,60 @@ vec3 tonemap(vec3 rgb) {
     }
     return finalRGB;
 }
+#define TONEMAP_CONTRAST (1.3)
 vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
-vec3 applyColorSpace(vec3 pRGB){
+#define TONEMAPSWITCH (0.05)
+#define TONEMAPAMP (1.0)
+vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
+    /*float grmodel = clamp(pRGB.g-0.8,0.0,0.2)*5.0;
+    grmodel*=grmodel;
+    float br = pRGB.r+pRGB.g+pRGB.b;
+    br/=3.0;
+    br = mix(br,min(pRGB.r,pRGB.b),grmodel);
+    pRGB*=br;*/
+
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
+    float br = pRGB.r+pRGB.g+pRGB.b;
+    br/=3.0;
+    pRGB/=br;
+    //ISO tint correction
+    //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
+
+    //float tonebl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(-0.5)));
+    //float tonewl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(0.5)));
+    //br = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(br-0.5)));
+    //br-=tonebl;
+    //br/=(tonewl-tonebl);
+    //br = 0.8*(1.0-exp(-7.0*pow(br,1.26)))/(1.0-exp(-7.0));
+
+    /*if(tonemapGain-1.0 > 0.0){
+        tonemapGain=(tonemapGain-1.0)*1.5 + 1.0;
+    } else {
+        tonemapGain=(tonemapGain-1.0)*-0.5 + 1.0;
+    }*/
+
+    //br=mix(br,sqrt(br),tonemapGain-1.0);
+    if(br>EPS){
+        float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
+        //model*=model;
+        br=mix(br, pow(br,tonemapGain*br),model);
+    }
+    //br=pow(br,tonemapGain);
+
+    pRGB*=br;
+    //float brmodel = clamp(br-0.8,0.0,0.2)*5.0;
+    //brmodel*=brmodel;
+    //pRGB=mix(pRGB*1.67,pRGB,brmodel);
+
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
+    //pRGB*=tonemapGain;
     //pRGB*=exposing;
-    //pRGB = tonemap(pRGB);
+
     pRGB = gammaCorrectPixel2(pRGB);
+    //pRGB = mix(pRGB,tonemap(pRGB),clamp(abs(1.0-tonemapGain)/2.0,0.0,1.0));
     //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
@@ -229,16 +261,20 @@ vec3 saturate(vec3 rgb,float model) {
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    sRGB-=vec3(DYNAMICBL)/PRECISION;
+    float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
+    //tonemapGain = mix(1.f,tonemapGain,1.5);
+
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
-    sRGB = applyColorSpace(sRGB);
+    sRGB = applyColorSpace(sRGB,tonemapGain);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
-    br = (clamp(br-0.0018,0.0,0.003)*(1.0/0.003));
+    br = (clamp(br-0.0004,0.0,0.002)*(1.0/0.002));
+    br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
     //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
-    sRGB = clamp(sRGB,0.00,1.0);
+    sRGB = clamp(sRGB,EPS,1.0);
     Output = sRGB;
 }
