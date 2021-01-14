@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -24,6 +25,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager.widget.ViewPager;
+
 import com.eszdman.photoncamera.R;
 import com.eszdman.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.eszdman.photoncamera.gallery.adapters.DepthPageTransformer;
@@ -31,18 +33,20 @@ import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.helper.Constants;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.eszdman.photoncamera.processing.ImageSaver;
-import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.util.FileManager;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
 
-import static com.eszdman.photoncamera.gallery.helper.Constants.*;
+import static com.eszdman.photoncamera.gallery.helper.Constants.COMPARE;
+import static com.eszdman.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
+import static com.eszdman.photoncamera.gallery.helper.Constants.MODE_KEY;
 
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
-    private List<File> allFiles;
+    private List < File > allFiles;
     private File newEditedFile;
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
@@ -52,8 +56,7 @@ public class ImageViewerFragment extends Fragment {
     private boolean isExifVisible;
     private String mode;
 
-    @Nullable
-    @Override
+    @Nullable@Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
         initialiseDataMembers();
@@ -98,11 +101,10 @@ public class ImageViewerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
-        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageSelected(int position) {
-                updateExif();
-            }
+        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {@Override
+        public void onPageSelected(int position) {
+            updateExif();
+        }
         });
         Bundle bundle = getArguments();
         if (bundle != null) {
@@ -119,10 +121,8 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void onGalleryButtonClick(View view) {
-        if (navController.getPreviousBackStackEntry() == null)
-            navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
-        else
-            navController.navigateUp();
+        if (navController.getPreviousBackStackEntry() == null) navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
+        else navController.navigateUp();
     }
 
     private void onEditButtonClick(View view) {
@@ -134,8 +134,7 @@ public class ImageViewerFragment extends Fragment {
             Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
             Intent editIntent = new Intent(Intent.ACTION_EDIT);
             editIntent.setDataAndType(uri, mediaType);
-            String outputFilePath = file.getAbsolutePath().replace(file.getName(),
-                    ImageSaver.Util.generateNewFileName() + '.' + FileUtils.getExtension(fileName));
+            String outputFilePath = file.getAbsolutePath().replace(file.getName(), ImageSaver.Util.generateNewFileName() + '.' + FileUtils.getExtension(fileName));
             newEditedFile = new File(outputFilePath);
             editIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newEditedFile));
             editIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -150,8 +149,7 @@ public class ImageViewerFragment extends Fragment {
         if (requestCode == Constants.REQUEST_EDIT_IMAGE) {
             if (resultCode == Activity.RESULT_CANCELED) {
                 if (newEditedFile != null) {
-                    if (newEditedFile.exists() && newEditedFile.length() == 0)
-                        Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
+                    if (newEditedFile.exists() && newEditedFile.length() == 0) Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
                 }
             }
             if (resultCode == Activity.RESULT_OK) {
@@ -160,32 +158,30 @@ public class ImageViewerFragment extends Fragment {
                     Toast.makeText(getContext(), "Saved : " + savedFilePath, Toast.LENGTH_LONG).show();
                 }
             }
-//            Log.d(TAG, "onActivityResult(): requestCode = [" + requestCode + "], resultCode = [" + resultCode + "], data = [" + data + "]");
+            //            Log.d(TAG, "onActivityResult(): requestCode = [" + requestCode + "], resultCode = [" + resultCode + "], data = [" + data + "]");
         }
     }
 
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setMessage(R.string.sure_delete)
-                .setTitle(android.R.string.dialog_alert_title)
-                .setIcon(R.drawable.ic_delete)
-                .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
+        builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) ->dialog.dismiss())
 
-                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                .setPositiveButton(R.string.yes, (dialog, which) ->{
 
                     int position = viewPager.getCurrentItem();
                     File thisFile = new File(String.valueOf(allFiles.get(position)));
                     thisFile.delete();
-                    MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(thisFile)}, null, null);
+                    MediaScannerConnection.scanFile(getContext(), new String[] {
+                                    String.valueOf(thisFile)
+                            },
+                            null, null);
                     initImageAdapter();
                     //auto scroll to the next photo
                     viewPager.setCurrentItem(position, true);
                     updateExif();
-                    Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT)
-                            .show();
+                    Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT).show();
                 });
-        builder.create()
-                .show();
+        builder.create().show();
     }
 
     private void onShareButtonClick(View view) {
@@ -234,7 +230,7 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void isHistogramLoading(boolean loading) {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        new Handler(Looper.getMainLooper()).post(() ->{
             if (loading) {
                 fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.VISIBLE);
             } else {
