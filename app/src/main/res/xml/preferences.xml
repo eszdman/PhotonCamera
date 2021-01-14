@@ -24,7 +24,7 @@
             android:layout="@layout/preference_with_margin"
             android:title="@string/energy_saving"
             android:summary=""
-            android:icon="@drawable/ic_watermark"
+            android:icon="@drawable/ic_round_battery_std_24"
             />
         <com.eszdman.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_camera_sounds_key"
