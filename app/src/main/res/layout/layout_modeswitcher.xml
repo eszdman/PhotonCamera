@@ -13,7 +13,7 @@
             android:clipChildren="false"
             >
 
-        <com.eszdman.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
+        <com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker
                 android:layout_width="500dp"
                 android:padding="@dimen/mode_switcher_padding"
                 android:layout_height="wrap_content"

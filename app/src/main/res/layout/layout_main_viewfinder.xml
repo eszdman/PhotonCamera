@@ -5,13 +5,13 @@
         >
     <data>
 
-        <import type="com.eszdman.photoncamera.settings.PreferenceKeys"/>
+        <import type="com.particlesdevs.photoncamera.settings.PreferenceKeys"/>
 
         <import type="android.view.View"/>
 
         <variable
                 name="timermodel"
-                type="com.eszdman.photoncamera.ui.camera.model.TimerFrameCountModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -30,7 +30,7 @@
                 android:paddingTop="@dimen/viewfinder_top_padding">
 
         <!--Viewfinder TextureView-->   <!--Aspect ratio of viewfinder = 3:4 -->
-        <com.eszdman.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView
+        <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView
                 android:id="@+id/texture"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
@@ -44,7 +44,7 @@
             <!--FocusCircleView-->
             <!--        putting focus circle here will make it
              not visible outside viewfinder container-->
-            <com.eszdman.photoncamera.ui.camera.views.FocusCircleView
+            <com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView
                     android:id="@+id/touchFocus"
                     android:layout_width="@dimen/focus_circle_size"
                     android:layout_height="0dp"
@@ -58,7 +58,7 @@
                     app:layout_constraintTop_toTopOf="@id/texture"
                     tools:visibility="visible"/>
 
-            <com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:id="@+id/surfaceView"
@@ -69,7 +69,7 @@
                     android:background="#00000000"
                     tools:visibility="gone"
                     >
-            </com.eszdman.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder>
+            </com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!--Capture Progress circle-->

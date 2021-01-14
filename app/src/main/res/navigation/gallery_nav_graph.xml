@@ -7,7 +7,7 @@
 
     <fragment
             android:id="@+id/imageViewerFragment"
-            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageViewerFragment"
+            android:name="com.particlesdevs.photoncamera.gallery.ui.fragments.ImageViewerFragment"
             android:label="ImageViewerFragment"
             tools:layout="@layout/fragment_gallery_image_viewer">
         <action
@@ -21,7 +21,7 @@
     </fragment>
     <fragment
             android:id="@+id/imageLibraryFragment"
-            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageLibraryFragment"
+            android:name="com.particlesdevs.photoncamera.gallery.ui.fragments.ImageLibraryFragment"
             android:label="ImageLibraryFragment"
             tools:layout="@layout/fragment_gallery_image_library">
         <action
@@ -43,7 +43,7 @@
     </fragment>
     <fragment
             android:id="@+id/imageCompareFragment"
-            android:name="com.eszdman.photoncamera.gallery.ui.fragments.ImageCompareFragment"
+            android:name="com.particlesdevs.photoncamera.gallery.ui.fragments.ImageCompareFragment"
             android:label="ImageCompareFragment">
         <action
                 android:id="@+id/action_imageCompareFragment_to_imageLibraryFragment"

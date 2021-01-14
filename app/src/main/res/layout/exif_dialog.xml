@@ -7,7 +7,7 @@
 
         <variable
                 name="exifmodel"
-                type="com.eszdman.photoncamera.gallery.model.ExifDialogModel"/>
+                type="com.particlesdevs.photoncamera.gallery.model.ExifDialogModel"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -153,7 +153,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"/>
 
-            <com.eszdman.photoncamera.gallery.views.Histogram
+            <com.particlesdevs.photoncamera.gallery.views.Histogram
                     android:id="@+id/histogram_view"
                     android:layout_width="0dp"
                     android:layout_height="100dp"

@@ -11,11 +11,11 @@
 
         <variable
                 name="uimodel"
-                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
 
         <variable
                 name="timermodel"
-                type="com.eszdman.photoncamera.ui.camera.model.TimerFrameCountModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel"/>
 
     </data>
 

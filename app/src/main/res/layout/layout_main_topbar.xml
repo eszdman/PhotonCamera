@@ -5,7 +5,7 @@
 
     <data>
 
-        <import type="com.eszdman.photoncamera.settings.PreferenceKeys"/>
+        <import type="com.particlesdevs.photoncamera.settings.PreferenceKeys"/>
 
         <import type="android.view.View"/>
 
@@ -30,7 +30,7 @@
 
         <variable
                 name="uimodel"
-                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -146,7 +146,7 @@
                     tools:visibility="visible"
                     bindRotate="@{uimodel}"/>
 
-            <com.eszdman.photoncamera.ui.camera.views.FlashButton
+            <com.particlesdevs.photoncamera.ui.camera.views.FlashButton
                     android:id="@+id/flash_button"
                     android:layout_width="@dimen/topbar_icon_size"
                     android:layout_height="0dp"

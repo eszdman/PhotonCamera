@@ -26,7 +26,7 @@
             >
 
 
-        <com.eszdman.photoncamera.gallery.views.SquareImageView
+        <com.particlesdevs.photoncamera.gallery.views.SquareImageView
                 android:id="@+id/square_image_view"
                 android:background="@color/grid_thumbnail_background"
                 android:scaleType="centerCrop"

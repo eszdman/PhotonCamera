@@ -5,7 +5,7 @@
 
         <variable
                 name="uimodel"
-                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout

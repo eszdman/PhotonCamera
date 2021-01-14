@@ -34,11 +34,9 @@ android {
     }
 
     defaultConfig {
-        applicationId 'com.eszdman.photoncamera'
+        applicationId 'com.particlesdevs.photoncamera'
         minSdkVersion 26
         targetSdkVersion 30
-        renderscriptTargetApi 24
-        renderscriptSupportModeEnabled false
         versionCode versionBuild
         versionName '0.71'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -57,18 +55,18 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = false
             zipAlignEnabled = true
+            signingConfig signingConfigs.debug
         }
         debug {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = true
-            renderscriptDebuggable = true
             zipAlignEnabled = true
         }
     }

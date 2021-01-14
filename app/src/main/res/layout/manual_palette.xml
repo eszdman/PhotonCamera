@@ -9,7 +9,7 @@
 
         <variable
                 name="uimodel"
-                type="com.eszdman.photoncamera.ui.camera.model.CameraFragmentModel"/>
+                type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
     </data>
 
     <RelativeLayout
@@ -20,7 +20,7 @@
             tools:visibility="visible"
             android:layout_height="wrap_content">
 
-        <com.manual.KnobView
+        <com.particlesdevs.photoncamera.manual.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"

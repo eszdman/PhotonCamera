@@ -26,7 +26,7 @@
 
         <variable
                 name="exifmodel"
-                type="com.eszdman.photoncamera.gallery.model.ExifDialogModel"/>
+                type="com.particlesdevs.photoncamera.gallery.model.ExifDialogModel"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
