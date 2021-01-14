@@ -2,13 +2,12 @@
 
 Android Camera that uses Enhanced image processing
 
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
+
 <p align="center">
 <img src="https://i.imgur.com/EE28RZY.png" alt="PhotonCamera">
 </p>
 
-
-
-[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 
     PhotonCamera
     Copyright (C) 2020-2021  Eszdman
