@@ -259,6 +259,7 @@ public class CameraFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        getFragmentManager().beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
     }
 
     private void updateScreenLog(CaptureResult result) {

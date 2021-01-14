@@ -309,7 +309,7 @@
                     android:key="@string/pref_contributors_key"
                     android:icon="@drawable/ic_github"
                     android:title="@string/contributors_title"
-                    android:summary="eszdman, assasinfil, killerink, mirai, Urnyx05, vibhorSrv"/>
+                    android:summary="eszdman, assasinfil, killerink, mirai, Urnyx05, vibhorSrv, snajdovski"/>
             <Preference
                     android:layout="@layout/preference_about"
                     android:title="@string/telegram"

@@ -31,6 +31,7 @@ import com.eszdman.photoncamera.gallery.adapters.ImageAdapter;
 import com.eszdman.photoncamera.gallery.helper.Constants;
 import com.eszdman.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.eszdman.photoncamera.processing.ImageSaver;
+import com.eszdman.photoncamera.ui.camera.CameraFragment;
 import com.eszdman.photoncamera.util.FileManager;
 import org.apache.commons.io.FileUtils;
 
@@ -58,6 +59,12 @@ public class ImageViewerFragment extends Fragment {
         initialiseDataMembers();
         setClickListeners();
         return fragmentGalleryImageViewerBinding.getRoot();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getFragmentManager().beginTransaction().remove((Fragment) ImageViewerFragment.this).commitAllowingStateLoss();
     }
 
     private void initialiseDataMembers() {
