@@ -10,7 +10,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
@@ -19,6 +21,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
+import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
@@ -26,7 +29,6 @@ import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
-import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -61,9 +63,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     private void showHideHdrxSettings() {
         if (PreferenceKeys.isHdrXOn())
-            removePreferenceFromScreen(getString(R.string.pref_category_jpg_key));
+            removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
         else
-            removePreferenceFromScreen(getString(R.string.pref_category_hdrx_key));
+            removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
+    }
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        if (container != null) container.removeAllViews();
+        return super.onCreateView(inflater, container, savedInstanceState);
     }
 
     @Override
@@ -88,6 +96,12 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         setThisDevice();
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getParentFragmentManager().beginTransaction().remove(SettingsFragment.this).commitAllowingStateLoss();
+    }
+
     private void setTelegramPref() {
         Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
         if (myPref != null)
@@ -109,10 +123,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setRestorePref() {
-        Preference restorePref = findPreference(getString(R.string.pref_restore_preferences_key));
-        if (restorePref != null && getContext() != null) {
+        Preference restorePref = findPreference(mContext.getString(R.string.pref_restore_preferences_key));
+        if (restorePref != null) {
             restorePref.setOnPreferenceChangeListener((preference, newValue) -> {
-                String restoreResult = BackupRestoreUtil.restorePreferences(getContext(), newValue.toString());
+                String restoreResult = BackupRestoreUtil.restorePreferences(mContext, newValue.toString());
                 Snackbar.make(mRootView, restoreResult, Snackbar.LENGTH_LONG).show();
                 return true;
             });
@@ -120,10 +134,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setBackupPref() {
-        Preference backupPref = findPreference(getString(R.string.pref_backup_preferences_key));
-        if (backupPref != null && getContext() != null) {
+        Preference backupPref = findPreference(mContext.getString(R.string.pref_backup_preferences_key));
+        if (backupPref != null) {
             backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                String backupResult = BackupRestoreUtil.backupSettings(getContext(), newValue.toString());
+                String backupResult = BackupRestoreUtil.backupSettings(mContext, newValue.toString());
                 Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
                 return true;
             });
@@ -134,22 +148,22 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
         if (preference != null) {
             preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
-                    ALL_DEVICES_NAMES_KEY, Collections.singleton(getString(R.string.list_not_loaded)))
+                    ALL_DEVICES_NAMES_KEY, Collections.singleton(mContext.getString(R.string.list_not_loaded)))
                     .stream().map(s -> s + "\n").reduce("\n", String::concat)));
         }
     }
 
     private void setProTitle() {
-        Preference preference = findPreference(getString(R.string.pref_about_key));
+        Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
         if (preference != null && PhotonCamera.getSupportedDevice().isSupportedDevice()) {
             preference.setTitle(R.string.device_support);
         }
     }
 
     private void setThisDevice() {
-        Preference preference = findPreference(getString(R.string.pref_this_device_key));
+        Preference preference = findPreference(mContext.getString(R.string.pref_this_device_key));
         if (preference != null) {
-            preference.setSummary(getString(R.string.this_device, SupportedDevice.THIS_DEVICE));
+            preference.setSummary(mContext.getString(R.string.this_device, SupportedDevice.THIS_DEVICE));
         }
     }
 
@@ -188,44 +202,44 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
 
     private void checkEszdTheme() {
         Preference p = findPreference(PreferenceKeys.Key.KEY_SHOW_GRADIENT.mValue);
-        if (p != null && getContext() != null)
+        if (p != null)
             p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Key.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
     }
 
     private void setHdrxTitle() {
-        Preference p = findPreference(getString(R.string.pref_category_hdrx_key));
-        if (p != null && getContext() != null) {
-            if (PreferenceKeys.isPerLensSettingsOn()) {
-                p.setTitle(getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
-            } else {
-                p.setTitle(getString(R.string.hdrx));
+            Preference p = findPreference(mContext.getString(R.string.pref_category_hdrx_key));
+            if (p != null) {
+                if (PreferenceKeys.isPerLensSettingsOn()) {
+                    p.setTitle(mContext.getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
+                } else {
+                    p.setTitle(mContext.getString(R.string.hdrx));
+                }
             }
-        }
     }
 
     private void setFramesSummary() {
         Preference frameCountPreference = findPreference(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue);
-        if (frameCountPreference != null && getContext() != null) {
+        if (frameCountPreference != null) {
             if (mSettingsManager.getInteger(PreferenceKeys.SCOPE_GLOBAL, PreferenceKeys.Key.KEY_FRAME_COUNT) == 1) {
-                frameCountPreference.setSummary(getString(R.string.unprocessed_raw));
+                frameCountPreference.setSummary(mContext.getString(R.string.unprocessed_raw));
             } else {
-                frameCountPreference.setSummary(getString(R.string.frame_count_summary));
+                frameCountPreference.setSummary(mContext.getString(R.string.frame_count_summary));
             }
         }
     }
 
     private void restartActivity() {
         if (getActivity() != null) {
-            Intent intent = new Intent(getContext(), getActivity().getClass());
+            Intent intent = new Intent(mContext, getActivity().getClass());
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent,
-                    ActivityOptions.makeCustomAnimation(getContext(), R.anim.fade_in, R.anim.fade_out).toBundle());
+                    ActivityOptions.makeCustomAnimation(mContext, R.anim.fade_in, R.anim.fade_out).toBundle());
         }
     }
 
     private void setVersionDetails() {
-        Preference about = findPreference(getString(R.string.pref_version_key));
-        if (about != null && mContext != null) {
+        Preference about = findPreference(mContext.getString(R.string.pref_version_key));
+        if (about != null) {
             try {
                 PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
                 String versionName = packageInfo.versionName;
@@ -235,7 +249,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
                 SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
                 sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-                about.setSummary(getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
+                about.setSummary(mContext.getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
 
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
