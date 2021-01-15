@@ -33,7 +33,7 @@ public class Sensors {
             mAngles = sensorEvent.values;
             if(gyroburst){
                 for (float f : mAngles) {
-                    burstout += Math.abs((int)(f * 1000));
+                    burstout += Math.abs((int)(f * 10000));
                 }
             } else
             getShakiness();//For filtering
@@ -49,9 +49,9 @@ public class Sensors {
         burstout = 0;
         gyroburst = true;
     }
-    public int CompleteGyroBurst(){
+    public long CompleteGyroBurst(){
         gyroburst = false;
-        return (int)Math.min(burstout,Integer.MAX_VALUE);
+        return (long)Math.min(burstout*burstout,Long.MAX_VALUE);
     }
     public int getShakiness() {
         if (mAngles == null) {

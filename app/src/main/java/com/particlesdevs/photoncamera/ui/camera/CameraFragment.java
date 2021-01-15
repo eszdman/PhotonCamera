@@ -16,6 +16,7 @@
 
 package com.particlesdevs.photoncamera.ui.camera;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -262,6 +263,7 @@ public class CameraFragment extends Fragment {
         getFragmentManager().beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateScreenLog(CaptureResult result) {
         surfaceView.post(() -> {
             mTouchFocus.setState(result.get(CaptureResult.CONTROL_AF_STATE));
@@ -280,6 +282,11 @@ public class CameraFragment extends Fragment {
 //            stringMap.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
                 stringMap.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
                 stringMap.put("FrameNumber", String.valueOf(result.getFrameNumber()));
+                float[] temp = new float[3];
+                temp[0] = PhotonCamera.getCaptureController().mPreviewTemp[0].floatValue();
+                temp[1] = PhotonCamera.getCaptureController().mPreviewTemp[1].floatValue();
+                temp[2] = PhotonCamera.getCaptureController().mPreviewTemp[2].floatValue();
+                stringMap.put("White Point", String.format("%.3f %.3f %.3f", temp[0],temp[1],temp[2]));
                 MeteringRectangle[] afRect = result.get(CaptureResult.CONTROL_AF_REGIONS);
                 stringMap.put("AF_RECT", Arrays.deepToString(afRect));
                 if (afRect != null && afRect.length > 0) {

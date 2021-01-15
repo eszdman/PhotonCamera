@@ -160,7 +160,7 @@ public class Parameters {
                 calibrationTransform1, calibrationTransform2, whitePoint,
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
-        File customCCM = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCM.txt");
+        File customCCT = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCT.txt");
         ColorSpaceTransform CCT = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         assert calibration2 != null;
         assert forwardt1 != null;
@@ -179,7 +179,7 @@ public class Parameters {
             }
             if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
-        if (wrongCalibration && !customCCM.exists()) {
+        if (wrongCalibration && !customCCT.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;
             sensorToProPhoto[2] = 0.0f;
@@ -193,7 +193,7 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / whitePoint[2];
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        if (CCT != null && wrongCalibration && !customCCM.exists()) {
+        if (CCT != null && wrongCalibration && !customCCT.exists()) {
             Rational[] temp = new Rational[9];
             CCT.copyElements(temp, 0);
             for (int i = 0; i < 9; i++) {
@@ -201,11 +201,11 @@ public class Parameters {
             }
         }
 
-        Log.d(TAG, "customCCM exist:" + customCCM.exists());
+        Log.d(TAG, "customCCT exist:" + customCCT.exists());
         Scanner sc = null;
-        if (customCCM.exists()) {
+        if (customCCT.exists()) {
             try {
-                sc = new Scanner(customCCM);
+                sc = new Scanner(customCCT);
             } catch (FileNotFoundException ignored) {
             }
             sc.useDelimiter(",");

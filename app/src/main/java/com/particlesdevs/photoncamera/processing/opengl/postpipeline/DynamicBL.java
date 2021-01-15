@@ -41,7 +41,7 @@ public class DynamicBL extends Node {
                 min = histr[i];
             }
             //if(histr[i] > shift) {
-            if(integrate > integmax) {
+            if(integrate > integmax/2) {
                 bl[0] = i/(((float)histr.length));
                 prevW = integrate;
                 break;
@@ -69,7 +69,7 @@ public class DynamicBL extends Node {
                 min = histb[i];
             }
             //if(histb[i] > shift) {
-            if(integrate > integmax) {
+            if(integrate > integmax/2) {
                 bl[2] = i/(((float)histr.length));
                 prevW = integrate;
                 break;

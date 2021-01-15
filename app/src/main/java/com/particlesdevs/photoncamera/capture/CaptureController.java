@@ -175,7 +175,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public int mSensorOrientation;
     public boolean is30Fps = true;
     public boolean onUnlimited = false;
-    public ArrayList<Integer> BurstShakiness;
+    public ArrayList<Long> BurstShakiness;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.

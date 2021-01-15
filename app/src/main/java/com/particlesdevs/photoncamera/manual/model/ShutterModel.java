@@ -33,7 +33,7 @@ public class ShutterModel extends ManualModel<Long> {
         ArrayList<Long> values = new ArrayList<>();
 
         long minexp = (long) range.getLower();
-        minexp += 5000 - minexp % 5000;
+        //minexp += 5000 - minexp % 5000;
         long maxexp = (long) range.getUpper();
         Log.v("ExpModel", "Max exp:" + maxexp);
         Log.v("ExpModel", "Min exp:" + minexp);
@@ -48,7 +48,7 @@ public class ShutterModel extends ManualModel<Long> {
             values.add(val);
         }
         int indicatorCount = 0;
-        int preferredIntervalCount = findPreferredIntervalCount(candidates.size());
+        int preferredIntervalCount = 8;
         int tick = 0;
         while (tick < candidates.size()) {
             boolean isLastItem = tick == candidates.size() - 1;
