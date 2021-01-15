@@ -45,7 +45,7 @@ public class IsoModel extends ManualModel<Integer> {
         }*/
         int indicatorCount = 0;
         int tick = 0;
-        int preferredIntervalCount = findPreferredIntervalCount(candidates.size());
+        int preferredIntervalCount = 4;
         while (tick < candidates.size()) {
             boolean isLastItem = tick == candidates.size() + -1;
             ShadowTextDrawable drawable = new ShadowTextDrawable();
