@@ -10,7 +10,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
@@ -19,6 +21,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
+import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
@@ -26,7 +29,6 @@ import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
-import com.google.android.material.snackbar.Snackbar;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -67,6 +69,12 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        if (container != null) container.removeAllViews();
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mRootView = view;
@@ -86,6 +94,12 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         setSupportedDevices();
         setProTitle();
         setThisDevice();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getParentFragmentManager().beginTransaction().remove(SettingsFragment.this).commitAllowingStateLoss();
     }
 
     private void setTelegramPref() {
