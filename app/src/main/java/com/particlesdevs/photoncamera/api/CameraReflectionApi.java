@@ -19,7 +19,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);//Ur camera Characteristics
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(), "set", CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
@@ -86,34 +86,7 @@ public class CameraReflectionApi {
         }
 
     }
-
     public static Field[] getAllMetadataFields() {
         return CameraMetadata.class.getDeclaredFields();
-    }
-
-    /*public static void PrintMethods(Object in){
-        Log.d(TAG,"StartPrinting:"+in.getClass());
-        Method[] methods = in.getClass().getDeclaredMethods();
-        int cnt = 0;
-        for(Method m : methods) {Log.d(TAG,"["+cnt+"]"+m.toString());cnt++;}
-    }
-    public static void PrintFields(Object in){
-        Log.d(TAG,"StartPrinting:"+in.getClass());
-        Field[] fields = in.getClass().getDeclaredFields();
-        int cnt = 0;
-        for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
-    }*/
-    public static void setVERBOSE(boolean in) {
-        Object capres = CaptureController.mCaptureResult;//Ur camera CaptureResult
-        Field verbose;
-        try {
-            //noinspection JavaReflectionMemberAccess
-            verbose = CaptureResult.class.getDeclaredField("VERBOSE");
-            verbose.setAccessible(true);
-            verbose.set(capres, in);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
     }
 }

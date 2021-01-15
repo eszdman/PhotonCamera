@@ -30,7 +30,7 @@
                 android:paddingTop="@dimen/viewfinder_top_padding">
 
         <!--Viewfinder TextureView-->   <!--Aspect ratio of viewfinder = 3:4 -->
-        <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView
+        <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView
                 android:id="@+id/texture"
                 android:layout_width="0dp"
                 android:layout_height="0dp"

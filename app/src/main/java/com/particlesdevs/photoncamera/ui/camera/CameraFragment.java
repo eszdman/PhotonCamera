@@ -64,7 +64,7 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
-import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitTextureView;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.log.Logger;
@@ -112,7 +112,7 @@ public class CameraFragment extends Fragment {
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
-    private AutoFitTextureView textureView;
+    private AutoFitPreviewView textureView;
 
 
     public CameraFragment() {

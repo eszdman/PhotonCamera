@@ -12,8 +12,6 @@ import java.util.ArrayList;
 
 public class IsoModel extends ManualModel<Integer> {
 
-    //public static final String[] ISO_CANDIDATES = {"100", "125", "160", "200", "250", "320", "400", "500", "640", "800", "1000", "1250", "1300", "1400", "1500", "1600", "1700", "1800", "1900", "2000", "2100", "2200", "2300", "2400", "2500", "3200", "4000", "5000", "6400", "12800", "25600"};
-
     @SuppressWarnings("rawtypes")
     public IsoModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
         super(context, range, valueChangedEvent);

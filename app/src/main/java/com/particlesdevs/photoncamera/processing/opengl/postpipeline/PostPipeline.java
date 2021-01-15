@@ -28,7 +28,7 @@ public class PostPipeline extends GLBasePipeline {
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     public int getRotation() {
-        int rotation = PhotonCamera.getParameters().cameraRotation;
+        int rotation = mParameters.cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);

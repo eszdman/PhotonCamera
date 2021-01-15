@@ -264,6 +264,7 @@ void main() {
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     sRGB-=vec3(DYNAMICBL)/PRECISION;
+    sRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
     float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 

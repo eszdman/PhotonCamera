@@ -3,8 +3,6 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
-
-import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
@@ -80,7 +78,7 @@ public class AEC extends Node {
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
         Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
-        if(PhotonCamera.getSettings().DebugData) glUtils.SaveProgResult(r1.mSize,"debAEC");
+        if(basePipeline.mSettings.DebugData) glUtils.SaveProgResult(r1.mSize,"debAEC");
         ((PostPipeline)basePipeline).AecCorr = MpyAEC(Histogram(preview));
         WorkingTexture = previousNode.WorkingTexture;
         preview.recycle();

@@ -16,7 +16,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <application
-        android:name=".app.PhotonCamera"
+        android:name="com.particlesdevs.photoncamera.app.PhotonCamera"
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
@@ -28,10 +28,10 @@
         android:theme="@style/Theme.Photon.BaseApp"
         tools:targetApi="q">
         <activity
-            android:name=".ui.settings.SettingsActivity"
+            android:name="com.particlesdevs.photoncamera.ui.settings.SettingsActivity"
             android:theme="@style/Theme.Photon.SettingsActivity" />
         <activity
-            android:name=".ui.SplashActivity"
+            android:name="com.particlesdevs.photoncamera.ui.SplashActivity"
             android:theme="@style/Theme.Photon.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,9 +51,9 @@
         </activity>
 
         <activity
-            android:name=".ui.camera.CameraActivity"
+            android:name="com.particlesdevs.photoncamera.ui.camera.CameraActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
-        <activity android:name=".gallery.ui.GalleryActivity" />
+        <activity android:name="com.particlesdevs.photoncamera.gallery.ui.GalleryActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

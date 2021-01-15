@@ -37,7 +37,7 @@ public class Initial extends Node {
     public void Run() {
         GLInterface glint = basePipeline.glint;
         lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(PhotonCamera.getSettings().toneMap));
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap));
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();
@@ -67,9 +67,9 @@ public class Initial extends Node {
         glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,
                 basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-4);
         glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
-        Log.d(Name,"compressor:"+1.f/((float)PhotonCamera.getSettings().compressor));
-        float sat =(float) PhotonCamera.getSettings().saturation;
-        if(PhotonCamera.getSettings().cfaPattern == 4) sat = 0.f;
+        Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
+        float sat =(float) basePipeline.mSettings.saturation;
+        if(basePipeline.mSettings.cfaPattern == 4) sat = 0.f;
         glProg.setVar("saturation",sat);
         //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
         WorkingTexture = basePipeline.getMain();

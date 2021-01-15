@@ -26,13 +26,21 @@ public class DynamicBL extends Node {
     public static int precisionFactor = 64;
     private float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
-        int integmax = 1;
+        int integmax = 450;
         int start = 20;
-        int integrate = 4;
+        int integrate = 0;
+        int shift = 400;
         int prevW = 0;
+        int min = 1000;
+        int minind = 0;
 
         for(int i =start; i<200; i++){
-            integrate+=histr[i];
+            integrate+=(int)((float)histr[i]);
+            if(min > histr[i] && histr[i] != 0) {
+                minind = i;
+                min = histr[i];
+            }
+            //if(histr[i] > shift) {
             if(integrate > integmax) {
                 bl[0] = i/(((float)histr.length));
                 prevW = integrate;
@@ -41,7 +49,12 @@ public class DynamicBL extends Node {
         }
         integrate = 0;
         for(int i =start; i<200; i++){
-            integrate+=histg[i];
+            integrate+=(int)((float)histg[i]);
+            if(min > histg[i] && histg[i] != 0) {
+                minind = i;
+                min = histg[i];
+            }
+            //if(histg[i] > shift) {
             if(integrate > integmax) {
                 bl[1] = i/(((float)histr.length));
                 prevW = integrate;
@@ -50,13 +63,19 @@ public class DynamicBL extends Node {
         }
         integrate = 0;
         for(int i =start; i<200; i++){
-            integrate+=histb[i];
+            integrate+=(int)((float)histb[i]);
+            if(min > histb[i] && histb[i] != 0) {
+                minind = i;
+                min = histb[i];
+            }
+            //if(histb[i] > shift) {
             if(integrate > integmax) {
                 bl[2] = i/(((float)histr.length));
                 prevW = integrate;
                 break;
             }
         }
+
         /*int con = 25;
         int min = 500;
         for(int i = -10;i<10;i++){
@@ -77,7 +96,13 @@ public class DynamicBL extends Node {
         bl[0]/=(((float)histr.length));
         bl[1]/=(((float)histg.length));
         bl[2]/=(((float)histb.length));*/
+        Log.d(Name,"ShadowFinder:"+Arrays.toString(bl));
         if(bl[0] == 0.0 || bl[1] == 0.0 || bl[2] == 0.0) return new float[]{0.f,0.f,0.f};
+        float minf = ((float)minind)/((float)histr.length);
+        float blmin = minf/((bl[0]+bl[1]+bl[2])/3.f);
+        bl[0]*=blmin;
+        bl[1]*=blmin;
+        bl[2]*=blmin;
         return bl;
     }
     private float[] getBL(float[] hist){
