@@ -110,7 +110,7 @@ public class HdrxProcessor extends ProcessorBase {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        long avr = PhotonCamera.getCaptureController().BurstShakiness.get(0);
+        float avr = PhotonCamera.getCaptureController().BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -135,9 +135,9 @@ public class HdrxProcessor extends ProcessorBase {
             images.add(frame);
         }
         if (mImageFramesToProcess.size() >= 3)
-            images.sort((img1, img2) -> Long.compare(img1.luckyParameter, img2.luckyParameter));
+            images.sort((img1, img2) -> Float.compare(img1.luckyParameter, img2.luckyParameter));
         double unluckypickiness = 1.05;
-        long unluckyavr = 0;
+        float unluckyavr = 0;
         for (ImageFrame image : images) {
             unluckyavr += image.luckyParameter;
             Log.d(TAG, "unluckymap:" + image.luckyParameter + "n:" + image.number);
@@ -149,7 +149,7 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "ImageCount:" + images.size());
             if (size == images.size()) size = (int) (images.size() * 0.75);
             for (int i = images.size(); i > size; i--) {
-                long curunlucky = images.get(images.size() - 1).luckyParameter;
+                float curunlucky = images.get(images.size() - 1).luckyParameter;
                 if (curunlucky > unluckyavr * unluckypickiness) {
                     Log.d(TAG, "Removing unlucky:" + curunlucky + " number:" + images.get(images.size() - 1).number);
                     images.remove(images.size() - 1);

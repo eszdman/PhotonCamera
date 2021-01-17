@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 public class ImageFrame {
     public ByteBuffer buffer;
     public Image image;
-    long luckyParameter;
+    float luckyParameter;
     int number;
     IsoExpoSelector.ExpoPair pair;
     public ImageFrame(ByteBuffer in){

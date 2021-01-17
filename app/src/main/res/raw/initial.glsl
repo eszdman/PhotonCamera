@@ -186,7 +186,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     br = mix(br,min(pRGB.r,pRGB.b),grmodel);
     pRGB*=br;*/
 
-    pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
+    pRGB = clamp(pRGB+vec3(EPS), vec3(EPS), neutralPoint);
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
@@ -207,11 +207,12 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     }*/
 
     //br=mix(br,sqrt(br),tonemapGain-1.0);
-    if(br>EPS){
+
+    //if(br>EPS){
         float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
         //model*=model;
         br=mix(br, pow(br,tonemapGain*br),model);
-    }
+    //}
     //br=pow(br,tonemapGain);
 
     pRGB*=br;

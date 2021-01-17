@@ -26,14 +26,14 @@ public class Sensors {
         mSensorManager.unregisterListener(mGravityTracker, mGyroSensor);
     }
     private boolean gyroburst = false;
-    private long burstout = 0;
+    private float burstout = 0.f;
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
             mAngles = sensorEvent.values;
             if(gyroburst){
                 for (float f : mAngles) {
-                    burstout += Math.abs((int)(f * 10000));
+                    burstout += Math.abs((f));
                 }
             } else
             getShakiness();//For filtering
@@ -49,9 +49,9 @@ public class Sensors {
         burstout = 0;
         gyroburst = true;
     }
-    public long CompleteGyroBurst(){
+    public float CompleteGyroBurst(){
         gyroburst = false;
-        return (long)Math.min(burstout*burstout,Long.MAX_VALUE);
+        return Math.min(burstout*burstout, Float.MAX_VALUE);
     }
     public int getShakiness() {
         if (mAngles == null) {
