@@ -216,10 +216,10 @@ public class HdrxProcessor extends ProcessorBase {
         } else {
             output = rawPipeline.Run();
         }
-        PhotonCamera.getParameters().blackLevel[0]-=bl;
+        PhotonCamera.getParameters().blackLevel[0]-=bl+0.25;
         PhotonCamera.getParameters().blackLevel[1]-=bl+0.5;
         PhotonCamera.getParameters().blackLevel[2]-=bl+0.5;
-        PhotonCamera.getParameters().blackLevel[3]-=bl;
+        PhotonCamera.getParameters().blackLevel[3]-=bl+0.25;
        /*
         if (IsoExpoSelector.HDR) {
             Wrapper.init(width,height,2);

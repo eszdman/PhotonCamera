@@ -33,6 +33,7 @@ public class ShutterModel extends ManualModel<Long> {
         ArrayList<Long> values = new ArrayList<>();
 
         long minexp = (long) range.getLower();
+        if(minexp < 1000) minexp = 1000;
         //minexp += 5000 - minexp % 5000;
         long maxexp = (long) range.getUpper();
         Log.v("ExpModel", "Max exp:" + maxexp);

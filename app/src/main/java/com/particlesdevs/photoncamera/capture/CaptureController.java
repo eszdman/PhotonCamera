@@ -1145,7 +1145,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int frameCount = FrameNumberSelector.getFrames();
             if(frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
-            IsoExpoSelector.HDR = true;//Force HDR for tests
+            IsoExpoSelector.HDR = !PhotonCamera.getManualMode().isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             if(focus != 0.0)
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
