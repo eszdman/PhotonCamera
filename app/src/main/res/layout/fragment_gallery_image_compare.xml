@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools">
+        xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+
+        <import type="android.view.View"/>
 
         <variable
                 name="on_sync_click"
                 type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="on_share"
+                type="android.view.View.OnClickListener"/>
+
+        <variable
+                name="hide_buttons"
+                type="boolean"/>
     </data>
 
     <FrameLayout
@@ -45,11 +56,25 @@
                 android:checked="true"
                 android:textSize="13sp"
                 android:background="@color/panel_transparency"
+                android:visibility='@{hide_buttons ? View.INVISIBLE : View.VISIBLE, default="visible"}'
                 android:textColor="#FFF"
                 android:textOn="@string/sync_on"
                 android:textOff="@string/sync_off"
                 android:onClick="@{on_sync_click}"
                 />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/screen_share_button"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="bottom|end"
+                app:backgroundTint="@color/panel_transparency"
+                app:srcCompat="@drawable/ic_share"
+                app:tint="@color/white"
+                app:elevation="0dp"
+                android:visibility='@{hide_buttons ? View.INVISIBLE : View.VISIBLE, default="visible"}'
+                android:onClick="@{on_share}"
+                android:layout_margin="20dp"/>
     </FrameLayout>
 
 </layout>
