@@ -6,11 +6,11 @@ import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import androidx.annotation.StringRes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +68,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, 0);
 
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
@@ -276,6 +277,14 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getString(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID);
     }
 
+    public static int getCountdownTimerIndex() {
+        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER);
+    }
+
+    public static void setCountdownTimerIndex(int valueMS) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, valueMS);
+    }
+
     public static void setCameraID(String value) {
         preferenceKeys.settingsManager.set(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID, value);
     }
@@ -352,6 +361,7 @@ public class PreferenceKeys {
         KEY_SHOW_GRADIENT(R.string.pref_show_gradient_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
+        KEY_COUNTDOWN_TIMER(R.string.pref_countdown_timer_key),
         /**
          * Other Keys
          */

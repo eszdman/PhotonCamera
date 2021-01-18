@@ -49,6 +49,7 @@
     <string name="gamma_key" translatable="false">gamma_key</string>
     <string name="pref_camera_mode_key" translatable="false">pref_camera_mode_key</string>
     <string name="pref_ae_mode_key" translatable="false">pref_ae_mode_key</string>
+    <string name="pref_countdown_timer_key" translatable="false">pref_countdown_timer_key</string>
 
     <string name="all_camera_ids" translatable="false">all_camera_ids</string>
     <string name="front_camera_ids" translatable="false">front_camera_ids</string>

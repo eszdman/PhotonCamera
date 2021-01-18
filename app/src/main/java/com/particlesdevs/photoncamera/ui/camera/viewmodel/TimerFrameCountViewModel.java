@@ -48,6 +48,10 @@ public class TimerFrameCountViewModel extends ViewModel {
         changeFrameTimeCnt.sendMessage(msg);
     }
 
+    public void setTimerText(String text) {
+        timerFrameCountModel.setTimerCount(text);
+    }
+
     public void clearFrameTimeCnt() {
         //mframeCount.setText("");
         //mframeTimer.setText("");

@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
+import android.content.Context;
 import android.util.Log;
 import android.view.View;
 import com.particlesdevs.photoncamera.R;
@@ -8,6 +9,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
+import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 
 /**
  * Implementation of {@link CameraUIView.CameraUIEventsListener}
@@ -36,7 +38,11 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                     case NIGHT:
                         view.setActivated(false);
                         view.setClickable(false);
-                        captureController.takePicture();
+                        new CameraFragment.CountdownTimer(
+                                mCameraFragment,
+                                getTimerValue(view.getContext()) * 1000L,
+                                1000
+                        ).start();
                         break;
                     case UNLIMITED:
                         if (!captureController.onUnlimited) {
@@ -103,12 +109,23 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 view.setSelected(PreferenceKeys.getGridValue() != 0);
                 mCameraFragment.invalidateSurfaceView();
                 break;
+
             case R.id.flash_button:
                 PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
                 ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
                 captureController.setPreviewAEModeRebuild();
                 break;
+
+            case R.id.countdown_timer_button:
+                PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
+                ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
+                break;
         }
+    }
+
+    private int getTimerValue(Context context) {
+        int[] timerValues = context.getResources().getIntArray(R.array.countdowntimer_entryvalues);
+        return timerValues[PreferenceKeys.getCountdownTimerIndex()];
     }
 
     @Override

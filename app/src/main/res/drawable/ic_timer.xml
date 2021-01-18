@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+            app:timer_3s="true"
+            android:drawable="@drawable/ic_round_timer_3_24"/>
+    <item
+            app:timer_10s="true"
+            android:drawable="@drawable/ic_round_timer_10_24"/>
+
+    <item android:drawable="@drawable/ic_round_timer_off_24"/>
+</selector>
