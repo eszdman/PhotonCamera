@@ -30,6 +30,9 @@ public class AlignAndMerge extends Node {
     public void Compile() {}
 
     private void CorrectedRaw(GLTexture out, int number) {
+        float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0],PhotonCamera.getParameters().blackLevel[1]),
+                PhotonCamera.getParameters().blackLevel[2]),PhotonCamera.getParameters().blackLevel[3]);    
+        glProg.setDefine("BL",bl);
         glProg.useProgram(R.raw.precorrection);
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
