@@ -1,13 +1,14 @@
 package com.particlesdevs.photoncamera.processing;
 
 import android.graphics.Bitmap;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
-import com.eszdman.photoncamera.Wrapper;
+import com.particlesdevs.photoncamera.Wrapper;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -114,7 +115,7 @@ public class HdrxProcessor extends ProcessorBase {
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
-            if (i == 3 && IsoExpoSelector.HDR) {
+            /*if (i == 3 && IsoExpoSelector.HDR) {
                 //rawPipeline.sensivity = k*0.7f;
                 highexp = byteBuffer;
                 continue;
@@ -124,7 +125,7 @@ public class HdrxProcessor extends ProcessorBase {
                 lowexp = byteBuffer;
                 continue;
             }
-            Log.d(TAG, "Sensivity:" + k);
+            Log.d(TAG, "Sensivity:" + k);*/
             ImageFrame frame = new ImageFrame(byteBuffer);
             frame.luckyParameter = PhotonCamera.getCaptureController().BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;
@@ -157,7 +158,16 @@ public class HdrxProcessor extends ProcessorBase {
             }
             Log.d(TAG, "Size after removal:" + images.size());
         }
-
+        if(images.get(0).pair.curlayer != IsoExpoSelector.ExpoPair.exposureLayer.Normal){
+            for(int i =1; i<images.size();i++){
+                if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal){
+                    ImageFrame frame = images.get(0);
+                    images.set(0,images.get(i));
+                    images.set(i,frame);
+                    break;
+                }
+            }
+        }
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
@@ -167,9 +177,17 @@ public class HdrxProcessor extends ProcessorBase {
                 rawSensivity.input = images.get(i).buffer;
                 rawSensivity.Output = images.get(i).buffer;
                 rawSensivity.Run();*/
-                Wrapper.loadFrame(images.get(i).buffer);
+                float mpy = 1.f/4.f;
+                if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal) mpy = 1.f;
+                //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 4.f;
+                Log.d(TAG,"Load:i:"+i+" expolayer:"+images.get(i).pair.curlayer+" mpy:"+mpy);
+                Wrapper.loadFrame(images.get(i).buffer,(FAKE_WL/levell)*mpy);
                 //rawSensivity.close();
             }
+            PhotonCamera.getParameters().blackLevel[0]-=levell*63.f/1023.f;
+            PhotonCamera.getParameters().blackLevel[1]-=levell*63.f/1023.f;
+            PhotonCamera.getParameters().blackLevel[2]-=levell*63.f/1023.f;
+            PhotonCamera.getParameters().blackLevel[3]-=levell*63.f/1023.f;
         }
 
         rawPipeline.imageObj = mImageFramesToProcess;
@@ -189,10 +207,7 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
         if (!debugAlignment) {
-            float ghosting = FAKE_WL / levell;
-            //if (cameraMode == CameraMode.NIGHT)
-            //    ghosting = 0.f;
-            output = Wrapper.processFrame(((float) (FAKE_WL)) / levell,200,1200);
+            output = Wrapper.processFrame(200,1200,512);
         } else {
             output = rawPipeline.Run();
         }
@@ -227,8 +242,8 @@ public class HdrxProcessor extends ProcessorBase {
         images.get(0).image.getPlanes()[0].getBuffer().put(output);
         images.get(0).image.getPlanes()[0].getBuffer().position(0);
         for (int i = 1; i < images.size(); i++) {
-            if ((i == 3 || i == 2) && IsoExpoSelector.HDR)
-                continue;
+            //if ((i == 3 || i == 2) && IsoExpoSelector.HDR)
+            //    continue;
             images.get(i).image.close();
         }
         if (debugAlignment) {

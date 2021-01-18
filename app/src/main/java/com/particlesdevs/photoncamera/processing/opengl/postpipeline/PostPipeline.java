@@ -68,7 +68,7 @@ public class PostPipeline extends GLBasePipeline {
         add(new Bayer2Float());
 
         add(new ExposureFusionBayer2());
-        if(!IsoExpoSelector.HDR) {
+        //if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
                 //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
                     add(new Demosaic());
@@ -78,9 +78,9 @@ public class PostPipeline extends GLBasePipeline {
             } else {
                 add(new MonoDemosaic());
             }
-        } else {
-            add(new LFHDR());
-        }
+        //} else {
+        //    add(new LFHDR());
+        //}
         /*
          * * * All filters after demosaicing * * *
          */
