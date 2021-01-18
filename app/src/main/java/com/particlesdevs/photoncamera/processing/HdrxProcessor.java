@@ -179,15 +179,15 @@ public class HdrxProcessor extends ProcessorBase {
                 rawSensivity.Run();*/
                 float mpy = 1.f/4.f;
                 if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal) mpy = 1.f;
-                //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 4.f;
+                //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
                 Log.d(TAG,"Load:i:"+i+" expolayer:"+images.get(i).pair.curlayer+" mpy:"+mpy);
                 Wrapper.loadFrame(images.get(i).buffer,(FAKE_WL/levell)*mpy);
                 //rawSensivity.close();
             }
-            PhotonCamera.getParameters().blackLevel[0]-=levell*63.f/1023.f;
+            /*PhotonCamera.getParameters().blackLevel[0]-=levell*63.f/1023.f;
             PhotonCamera.getParameters().blackLevel[1]-=levell*63.f/1023.f;
             PhotonCamera.getParameters().blackLevel[2]-=levell*63.f/1023.f;
-            PhotonCamera.getParameters().blackLevel[3]-=levell*63.f/1023.f;
+            PhotonCamera.getParameters().blackLevel[3]-=levell*63.f/1023.f;*/
         }
 
         rawPipeline.imageObj = mImageFramesToProcess;
@@ -206,12 +206,20 @@ public class HdrxProcessor extends ProcessorBase {
         deghostlevel = Math.min(0.25f, deghostlevel);
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
+        float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0],PhotonCamera.getParameters().blackLevel[1]),
+                PhotonCamera.getParameters().blackLevel[2]),PhotonCamera.getParameters().blackLevel[3]);
+        //float bl = PhotonCamera.getParameters().blackLevel[0]+PhotonCamera.getParameters().blackLevel[1]+
+        //        PhotonCamera.getParameters().blackLevel[2]+PhotonCamera.getParameters().blackLevel[3];
+        //bl/=4.0;
         if (!debugAlignment) {
-            output = Wrapper.processFrame(200,1200,512);
+            output = Wrapper.processFrame(200,1200,512,bl,levell);
         } else {
             output = rawPipeline.Run();
         }
-
+        PhotonCamera.getParameters().blackLevel[0]-=bl;
+        PhotonCamera.getParameters().blackLevel[1]-=bl+0.5;
+        PhotonCamera.getParameters().blackLevel[2]-=bl+0.5;
+        PhotonCamera.getParameters().blackLevel[3]-=bl;
        /*
         if (IsoExpoSelector.HDR) {
             Wrapper.init(width,height,2);
@@ -263,6 +271,15 @@ public class HdrxProcessor extends ProcessorBase {
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
+            PhotonCamera.getParameters().blackLevel[0]+=bl;
+            PhotonCamera.getParameters().blackLevel[1]+=bl;
+            PhotonCamera.getParameters().blackLevel[2]+=bl;
+            PhotonCamera.getParameters().blackLevel[3]+=bl;
+            Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int)FAKE_WL);
+            PhotonCamera.getParameters().blackLevel[0]-=bl;
+            PhotonCamera.getParameters().blackLevel[1]-=bl;
+            PhotonCamera.getParameters().blackLevel[2]-=bl;
+            PhotonCamera.getParameters().blackLevel[3]-=bl;
         }
 
         IncreaseWLBL();
@@ -283,7 +300,6 @@ public class HdrxProcessor extends ProcessorBase {
 
         pipeline.close();
         images.get(0).image.close();
-
         callback.onFinished();
     }
 

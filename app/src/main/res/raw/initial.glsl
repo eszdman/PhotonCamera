@@ -211,7 +211,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //if(br>EPS){
         float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
         //model*=model;
-        br=mix(br, pow(br,tonemapGain*br),model);
+        //br=mix(br, pow(br,tonemapGain*br),model);
+    if(tonemapGain > 1.01) tonemapGain*=1.0;
+    br*=clamp((sqrt(tonemapGain)),0.99,50.0);
     //}
     //br=pow(br,tonemapGain);
 
@@ -251,7 +253,7 @@ vec3 saturate(vec3 rgb,float model) {
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
     //color wide filter
-    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
     rgb = hsv2rgb(hsv);
     //rgb.r+=r*redcorr*saturation;
     //rgb.g=clamp(rgb.g,0.0,1.0);
@@ -266,7 +268,7 @@ void main() {
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     sRGB-=vec3(DYNAMICBL)/PRECISION;
     sRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
-    float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*10.0;
+    float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

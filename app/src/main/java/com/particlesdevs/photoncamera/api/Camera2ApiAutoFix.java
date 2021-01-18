@@ -147,7 +147,11 @@ public class Camera2ApiAutoFix {
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);
             for (int i = 0; i < 4; i++) {
+                if(blacklevel[i] >= 0)
                 levelArr[i] = (int) (blacklevel[i]*mpy);
+                else {
+                    levelArr[i] = (int) (0);
+                }
             }
             CameraReflectionApi.PatchBL(blackLevel, levelArr);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
@@ -156,7 +160,11 @@ public class Camera2ApiAutoFix {
             float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
             if (dynBL != null) {
                 for (int i = 0; i < dynBL.length; i++) {
+                    if(blacklevel[i] >=0)
                     dynBL[i] = blacklevel[i] * mpy;
+                    else {
+                        dynBL[i] = 0.f;
+                    }
                 }
                 CameraReflectionApi.set(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL, dynBL, res);
             }

@@ -27,5 +27,5 @@ public class Wrapper {
      */
     public static native void loadFrame(ByteBuffer bufferptr,float Exposure);
 
-    public static native ByteBuffer processFrame(float DistMin,float DistMax,float ElFactor);
+    public static native ByteBuffer processFrame(float DistMin,float DistMax,float ElFactor,float BLConst,float WLFactor);
 }
