@@ -32,6 +32,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -48,6 +49,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
@@ -69,15 +71,12 @@ import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewV
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.log.Logger;
-import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -114,7 +113,6 @@ public class CameraFragment extends Fragment {
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
     private AutoFitPreviewView textureView;
-
 
     public CameraFragment() {
     }
@@ -286,7 +284,7 @@ public class CameraFragment extends Fragment {
                 temp[0] = PhotonCamera.getCaptureController().mPreviewTemp[0].floatValue();
                 temp[1] = PhotonCamera.getCaptureController().mPreviewTemp[1].floatValue();
                 temp[2] = PhotonCamera.getCaptureController().mPreviewTemp[2].floatValue();
-                stringMap.put("White Point", String.format("%.3f %.3f %.3f", temp[0],temp[1],temp[2]));
+                stringMap.put("White Point", String.format("%.3f %.3f %.3f", temp[0], temp[1], temp[2]));
                 MeteringRectangle[] afRect = result.get(CaptureResult.CONTROL_AF_REGIONS);
                 stringMap.put("AF_RECT", Arrays.deepToString(afRect));
                 if (afRect != null && afRect.length > 0) {
@@ -502,6 +500,34 @@ public class CameraFragment extends Fragment {
     }
 
     //*****************************************************************************************************************
+
+    public static class CountdownTimer extends CountDownTimer {
+        private final CameraFragment cameraFragment;
+
+        /**
+         * @param millisInFuture    The number of millis in the future from the call
+         *                          to {@link #start()} until the countdown is done and {@link #onFinish()}
+         *                          is called.
+         * @param countDownInterval The interval along the way to receive
+         *                          {@link #onTick(long)} callbacks.
+         */
+        public CountdownTimer(CameraFragment cameraFragment, long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+            this.cameraFragment = cameraFragment;
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1;
+            cameraFragment.timerFrameCountViewModel.setTimerText((String.format(Locale.ROOT, "%2d", seconds)));
+        }
+
+        @Override
+        public void onFinish() {
+            cameraFragment.timerFrameCountViewModel.clearFrameTimeCnt();
+            cameraFragment.captureController.takePicture();
+        }
+    }
 
     public class CameraEventsListenerImpl extends CameraEventsListener {
         /**

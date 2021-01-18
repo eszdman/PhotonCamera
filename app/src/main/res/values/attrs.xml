@@ -54,4 +54,10 @@
         <attr name="android:thickness" format="dimension"/>
     </declare-styleable>
 
+    <declare-styleable name="TimerButtonStates">
+        <attr name="timer_off" format="boolean"/>
+        <attr name="timer_3s" format="boolean"/>
+        <attr name="timer_10s" format="boolean"/>
+    </declare-styleable>
+
 </resources>

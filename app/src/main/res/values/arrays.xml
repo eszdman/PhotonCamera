@@ -74,4 +74,9 @@
         <item>2</item>
         <item>3</item>
     </string-array>
+    <integer-array name="countdowntimer_entryvalues">
+        <item>0</item>
+        <item>3</item>
+        <item>10</item>
+    </integer-array>
 </resources>
