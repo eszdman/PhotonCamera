@@ -2,27 +2,54 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools">
 
-    <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+    <data>
 
-        <FrameLayout
-                android:id="@+id/image_container1"
-                tools:background="@drawable/ic_photo"
+        <variable
+                name="on_sync_click"
+                type="android.view.View.OnClickListener"/>
+    </data>
+
+    <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                >
-        </FrameLayout>
+                android:orientation="vertical">
 
-        <FrameLayout
-                android:id="@+id/image_container2"
-                android:layout_width="match_parent"
-                android:layout_weight="1"
-                tools:background="@drawable/ic_photo"
-                android:layout_height="match_parent">
-        </FrameLayout>
+            <FrameLayout
+                    android:id="@+id/image_container1"
+                    tools:background="@drawable/ic_photo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    >
+            </FrameLayout>
 
-    </LinearLayout>
+            <FrameLayout
+                    android:id="@+id/image_container2"
+                    android:layout_width="match_parent"
+                    android:layout_weight="1"
+                    tools:background="@drawable/ic_photo"
+                    android:layout_height="match_parent">
+            </FrameLayout>
+        </LinearLayout>
+
+        <ToggleButton
+                android:id="@+id/sync"
+                android:layout_gravity="center|end"
+                android:layout_marginTop="25dp"
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:checked="true"
+                android:textSize="13sp"
+                android:background="@color/panel_transparency"
+                android:textColor="#FFF"
+                android:textOn="@string/sync_on"
+                android:textOff="@string/sync_off"
+                android:onClick="@{on_sync_click}"
+                />
+    </FrameLayout>
+
 </layout>
