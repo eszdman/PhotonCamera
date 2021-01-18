@@ -97,5 +97,7 @@
     <string name="supported_devices">Supported Devices</string>
     <string name="list_not_loaded"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">Your Device - %1$s</string>
+    <string name="sync_on">Sync On</string>
+    <string name="sync_off">Sync Off</string>
 
 </resources>

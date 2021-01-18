@@ -16,18 +16,27 @@ import com.bumptech.glide.request.transition.Transition;
 import com.bumptech.glide.signature.ObjectKey;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
+import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
 
+import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
+
 
 public class ImageAdapter extends PagerAdapter {
+    private static final int BASE_ID = View.generateViewId();
     private final List<File> imageFiles;
     private ImageViewClickListener imageViewClickListener;
+    private SSIVListener ssivListener;
 
     public ImageAdapter(List<File> imageFiles) {
         this.imageFiles = imageFiles;
+    }
+
+    public void setSsivListener(SSIVListener ssivListener) {
+        this.ssivListener = ssivListener;
     }
 
     @Override
@@ -48,10 +57,13 @@ public class ImageAdapter extends PagerAdapter {
         String fileExt = FileUtils.getExtension(file.getName());
 
         SubsamplingScaleImageView scaleImageView = new CustomSSIV(container.getContext());
+        scaleImageView.setId(getSsivId(position));
         if (imageViewClickListener != null) {
             scaleImageView.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
         }
-
+        if (ssivListener != null) {
+            scaleImageView.setOnStateChangedListener(ssivListener);
+        }
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
             scaleImageView.setImage(ImageSource.uri(Uri.fromFile(file)));
         } else if (fileExt.equalsIgnoreCase("dng")) { //For DNG Files
@@ -89,6 +101,14 @@ public class ImageAdapter extends PagerAdapter {
         this.imageViewClickListener = imageViewClickListener;
     }
 
+    public int getSsivId(int position) {
+        return BASE_ID + position;
+    }
+
+    public interface ImageViewClickListener {
+        void onImageViewClicked(View v);
+    }
+
     static class CustomSSIV extends SubsamplingScaleImageView {
         public CustomSSIV(Context context) {
             super(context);
@@ -96,13 +116,9 @@ public class ImageAdapter extends PagerAdapter {
             setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
             setQuickScaleEnabled(true);
             setEagerLoadingEnabled(false);
-            setDoubleTapZoomDuration(200);
+            setDoubleTapZoomDuration(DOUBLE_TAP_ZOOM_DURATION_MS);
             setPreferredBitmapConfig(Bitmap.Config.ARGB_8888);
         }
-    }
-
-    public interface ImageViewClickListener {
-        void onImageViewClicked(View v);
     }
 }
 
