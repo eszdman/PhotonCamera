@@ -29,6 +29,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     }
 
     private void restartCamera() {
+        resetTimer();
         this.mCameraFragment.getCaptureController().restartCamera();
     }
 
@@ -153,7 +154,6 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
     @Override
     public void onCameraModeChanged(CameraMode cameraMode) {
-        resetTimer();
         PreferenceKeys.setCameraModeOrdinal(cameraMode.ordinal());
         Log.d(TAG, "onCameraModeChanged() called with: cameraMode = [" + cameraMode + "]");
         switch (cameraMode) {
