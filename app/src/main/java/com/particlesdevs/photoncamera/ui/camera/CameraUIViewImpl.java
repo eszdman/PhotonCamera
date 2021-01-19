@@ -68,7 +68,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void initModeSwitcher() {
-        String[] modes = Stream.of(CameraMode.names()).map(s -> s.charAt(0) + s.substring(1).toLowerCase(Locale.ROOT)).toArray(String[]::new);
+        String[] modes = CameraMode.names();
         mModePicker.setValues(modes);
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));

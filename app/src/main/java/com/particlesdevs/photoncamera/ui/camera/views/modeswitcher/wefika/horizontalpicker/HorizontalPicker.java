@@ -114,6 +114,7 @@ public class HorizontalPicker extends View {
         // create the selector wheel paint
         TextPaint paint = new TextPaint();
         paint.setAntiAlias(true);
+        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
         textPaint = paint;
 
         TypedArray a = context.getTheme().obtainStyledAttributes(
@@ -276,7 +277,7 @@ public class HorizontalPicker extends View {
                 if (i == selectedItem) {
                     RectF background = new RectF(canvas.getClipBounds());
                     float width = itemClipBounds.width();
-                    float margin = (width - getTextWidth(values[i], textPaint)) / 6;
+                    float margin = (width - getTextWidth(values[i], textPaint)) / 8;
                     background.left = itemClipBounds.left + margin;
                     background.right = itemClipBounds.right - margin;
                     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
