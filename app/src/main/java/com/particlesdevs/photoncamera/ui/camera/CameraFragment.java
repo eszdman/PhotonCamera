@@ -38,6 +38,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -503,6 +504,8 @@ public class CameraFragment extends Fragment {
 
     public static class CountdownTimer extends CountDownTimer {
         private final CameraFragment cameraFragment;
+        private final TextView tv;
+        private final View shutterButton;
 
         /**
          * @param millisInFuture    The number of millis in the future from the call
@@ -511,20 +514,36 @@ public class CameraFragment extends Fragment {
          * @param countDownInterval The interval along the way to receive
          *                          {@link #onTick(long)} callbacks.
          */
-        public CountdownTimer(CameraFragment cameraFragment, long millisInFuture, long countDownInterval) {
+        public CountdownTimer(CameraFragment cameraFragment, View shutterButton, long millisInFuture, long countDownInterval) {
             super(millisInFuture, countDownInterval);
             this.cameraFragment = cameraFragment;
+            this.shutterButton = shutterButton;
+            this.tv = cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer;
         }
 
         @Override
         public void onTick(long millisUntilFinished) {
             long seconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1;
-            cameraFragment.timerFrameCountViewModel.setTimerText((String.format(Locale.ROOT, "%2d", seconds)));
+            tv.post(() -> {
+                tv.setScaleX(3);
+                tv.setScaleY(3);
+                tv.setAlpha(1);
+                tv.setText((String.format(Locale.ROOT, "%d", seconds)));
+                tv.animate().scaleXBy(2).scaleYBy(2).alpha(0).setDuration(950).start();
+            });
         }
 
         @Override
         public void onFinish() {
-            cameraFragment.timerFrameCountViewModel.clearFrameTimeCnt();
+            tv.post(() -> {
+                tv.setText("");
+                tv.setAlpha(1);
+                tv.setScaleY(1);
+                tv.setScaleX(1);
+            });
+            shutterButton.setHovered(false);
+            shutterButton.setActivated(false);
+            shutterButton.setClickable(false);
             cameraFragment.captureController.takePicture();
         }
     }

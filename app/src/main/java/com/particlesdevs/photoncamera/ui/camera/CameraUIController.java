@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
 import android.content.Context;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 import com.particlesdevs.photoncamera.R;
@@ -19,6 +20,7 @@ import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 public final class CameraUIController implements CameraUIView.CameraUIEventsListener {
     private static final String TAG = "CameraUIController";
     private final CameraFragment mCameraFragment;
+    private CountDownTimer countdownTimer;
 
     public CameraUIController(CameraFragment cameraFragment) {
         this.mCameraFragment = cameraFragment;
@@ -36,13 +38,17 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 switch (PhotonCamera.getSettings().selectedMode) {
                     case PHOTO:
                     case NIGHT:
-                        view.setActivated(false);
-                        view.setClickable(false);
-                        new CameraFragment.CountdownTimer(
-                                mCameraFragment,
-                                getTimerValue(view.getContext()) * 1000L,
-                                1000
-                        ).start();
+                        if (view.isHovered()) {
+                            if (countdownTimer != null) countdownTimer.cancel();
+                            view.setHovered(false);
+                        } else {
+                            view.setHovered(true);
+                            countdownTimer = new CameraFragment.CountdownTimer(
+                                    mCameraFragment,
+                                    view,
+                                    getTimerValue(view.getContext()) * 1000L,
+                                    1000).start();
+                        }
                         break;
                     case UNLIMITED:
                         if (!captureController.onUnlimited) {
