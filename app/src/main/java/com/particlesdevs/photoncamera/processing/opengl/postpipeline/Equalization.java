@@ -93,11 +93,11 @@ public class Equalization extends Node {
             prev = prevh;
         }
         */
-        histParser.hist[255] = 1.f;
-        float prev = histParser.hist[255];
-        for(int i = histParser.hist.length-1; i>=0;i--){
+        histParser.hist[0] = 0.f;
+        float prev = histParser.hist[0];
+        for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
-            histParser.hist[i] = prev+Math.min(prev-histParser.hist[i],0.001f);
+            histParser.hist[i] = prev+Math.max(Math.min(histParser.hist[i]-prev,0.0005f),1.2f/histParser.hist.length);
             prev = prevh;
         }
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
