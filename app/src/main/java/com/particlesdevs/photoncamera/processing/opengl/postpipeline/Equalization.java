@@ -99,9 +99,9 @@ public class Equalization extends Node {
         for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
             float move = ((float)(i))/histParser.hist.length;
-            float accel = 1.2f+Math.min(0.3f-move,0.3f)*1.5f;
-            histParser.hist[i] = prev+Math.max(Math.min(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
-            prev = prevh;
+            float accel = 1.2f+Math.min(0.3f-move,0.3f)*1.35f;
+            histParser.hist[i] = prev+Math.min(Math.max(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
+            prev = histParser.hist[i];
         }
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);

@@ -276,10 +276,6 @@ public class HdrxProcessor extends ProcessorBase {
             PhotonCamera.getParameters().blackLevel[2]+=bl;
             PhotonCamera.getParameters().blackLevel[3]+=bl;
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int)FAKE_WL);
-            PhotonCamera.getParameters().blackLevel[0]-=bl;
-            PhotonCamera.getParameters().blackLevel[1]-=bl;
-            PhotonCamera.getParameters().blackLevel[2]-=bl;
-            PhotonCamera.getParameters().blackLevel[3]-=bl;
         }
 
         IncreaseWLBL();
