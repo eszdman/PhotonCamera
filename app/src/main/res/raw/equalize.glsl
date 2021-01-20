@@ -24,7 +24,8 @@ void main() {
     float factor = 1.0;
     factor*=1.0-abs(0.5-br)*0.75;
     factor*=clamp((br-EPS)*EPSAMP,0.0,1.0);
-    if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    if(br > EPS) br = mix(br,br*sqrt(HistEq/br),factor);
     br = pow(br,Equalize);
     sRGB*=br;
     Output = clamp(sRGB,EPS,1.0);

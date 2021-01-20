@@ -16,7 +16,7 @@ public class IsoExpoSelector {
     private static final String TAG = "IsoExpoSelector";
     public static boolean HDR = false;
     public static boolean useTripod = false;
-    public static final int patternSize = 3;
+    public static final int patternSize = 2;
     public static ArrayList<ExpoPair> pairs = new ArrayList<>();
 
     public static void setExpo(CaptureRequest.Builder builder, int step) {
@@ -95,10 +95,13 @@ public class IsoExpoSelector {
             pair.curlayer = ExpoPair.exposureLayer.Low;
         }*/
         if (step%patternSize == 1 && HDR) {
-            pair.layerMpy = 4.f;
+            pair.layerMpy = 5.f;
             pair.ExpoCompensateLower(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.High;
-        }
+        } /*else {
+            pair.layerMpy = 1.f/2.f;
+            pair.ExpoCompensateLower(1.0 / pair.layerMpy);
+        }*/
         /*if (step%patternSize == 2 && HDR) {
             pair.layerMpy = 1.f/4.f;
             pair.ExpoCompensateLower(1.0 / pair.layerMpy);

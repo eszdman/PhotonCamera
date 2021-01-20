@@ -49,7 +49,10 @@ public class Parameters {
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         int[] blarr = new int[4];
         BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        //float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+        float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+        if(dynbl != null){
+            System.arraycopy(dynbl, 0, blackLevel, 0, 4);
+        } else
         if (level != null) {
             level.copyTo(blarr, 0);
             for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];

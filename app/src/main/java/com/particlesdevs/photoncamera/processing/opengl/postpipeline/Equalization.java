@@ -49,7 +49,7 @@ public class Equalization extends Node {
         r1.close();
         return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
     }
-    private float EqualizePower = 0.5f;
+    private float EqualizePower = 0.9f;
     @Override
     public void Run() {
         WorkingTexture = basePipeline.getMain();
@@ -60,7 +60,7 @@ public class Equalization extends Node {
         int brokeHist = 0;
         for(int i =0; i<histParser.hist.length;i++){
             float val = ((float)(i))/histParser.hist.length;
-            if(3.f < histParser.hist[i] || val*0.5 > histParser.hist[i]) {
+            if(3.f < histParser.hist[i] || val*0.25 > histParser.hist[i]) {
                 wrongHist++;
             }
             if(histParser.hist[i] > 10.f){
@@ -70,6 +70,7 @@ public class Equalization extends Node {
         if(brokeHist >= 10){
             wrongHist = histParser.hist.length;
         }
+        Log.d(Name,"WrongHistFactor:"+wrongHist);
         if(wrongHist != 0){
             float wrongP = ((float)wrongHist)/histParser.hist.length;
             wrongP-=0.5f;
@@ -83,6 +84,22 @@ public class Equalization extends Node {
             }
         }
         //Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
+
+        /*histParser.hist[0] = 0.f;
+        float prev = histParser.hist[0];
+        for(int i = 0; i<histParser.hist.length;i++){
+            float prevh = histParser.hist[i];
+            histParser.hist[i] = prev-Math.min(histParser.hist[i]-prev,0.001f);
+            prev = prevh;
+        }
+        */
+        histParser.hist[255] = 1.f;
+        float prev = histParser.hist[255];
+        for(int i = histParser.hist.length-1; i>=0;i--){
+            float prevh = histParser.hist[i];
+            histParser.hist[i] = prev+Math.min(prev-histParser.hist[i],0.001f);
+            prev = prevh;
+        }
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
 

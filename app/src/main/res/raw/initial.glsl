@@ -187,6 +187,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;*/
 
     pRGB = clamp(pRGB+vec3(EPS), vec3(EPS), neutralPoint);
+    pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
+    pRGB-=vec3(DYNAMICBL)/PRECISION;
+    pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
@@ -212,8 +215,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
         float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
         //model*=model;
         //br=mix(br, pow(br,tonemapGain*br),model);
-    if(tonemapGain > 1.01) tonemapGain*=1.0;
-    br*=clamp((sqrt(tonemapGain)),0.99,50.0);
+    //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
+    br*=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
+    //br*=4.0;
+    br*=clamp(((tonemapGain)),1.00,50.0)*1.0;
     //}
     //br=pow(br,tonemapGain);
 
@@ -222,7 +227,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //brmodel*=brmodel;
     //pRGB=mix(pRGB*1.67,pRGB,brmodel);
 
-    pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
+
+
+
     //pRGB*=tonemapGain;
     //pRGB*=exposing;
 
@@ -266,9 +273,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    sRGB-=vec3(DYNAMICBL)/PRECISION;
-    sRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
-    float tonemapGain = textureBicubicHardware(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
+    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

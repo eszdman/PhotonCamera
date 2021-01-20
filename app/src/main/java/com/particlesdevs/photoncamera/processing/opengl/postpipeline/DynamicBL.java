@@ -105,6 +105,38 @@ public class DynamicBL extends Node {
         bl[2]*=blmin;
         return bl;
     }
+    private float[] findPoint(int[] histr,int[] histg,int[] histb) {
+        float[] bl = new float[3];
+        int start = 20;
+        int min = 1000;
+        int minind = 0;
+
+        for(int i =start; i<200; i++){
+            if(min > histr[i] && histr[i] != 0) {
+                minind = i;
+                min = histr[i];
+            }
+        }
+        for(int i =start; i<200; i++){
+            if(min > histg[i] && histg[i] != 0) {
+                minind = i;
+                min = histg[i];
+            }
+        }
+        for(int i =start; i<200; i++){
+            if(min > histb[i] && histb[i] != 0) {
+                minind = i;
+                min = histb[i];
+            }
+        }
+
+        float minf = ((float)minind)/((float)histr.length);
+        bl[0]=minf;
+        bl[1]=minf;
+        bl[2]=minf;
+        Log.d(Name,"PointBL:"+Arrays.toString(bl));
+        return bl;
+    }
     private float[] getBL(float[] hist){
         int[] histr = new int[256];
         int[] histg = new int[256];
@@ -145,7 +177,7 @@ public class DynamicBL extends Node {
         Log.d(Name,"HistR:"+Arrays.toString(histr));
         Log.d(Name,"HistG:"+Arrays.toString(histg));
         Log.d(Name,"HistB:"+Arrays.toString(histb));
-        return findBL(histr,histg,histb);
+        return findPoint(histr,histg,histb);
     }
     private float[] getBL2(float[] hist){
         float[] min = new float[3];
@@ -176,10 +208,11 @@ public class DynamicBL extends Node {
     }
     private float[] AnalyzeBL(){
         int resize = 16;
-        if(basePipeline.mSettings.selectedMode == CameraMode.NIGHT) precisionFactor = 32; else precisionFactor = 64;
+        if(basePipeline.mSettings.selectedMode == CameraMode.NIGHT) precisionFactor = 16; else precisionFactor = 32;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
         glProg.setDefine("SAMPLING",resize);
+        glProg.setDefine("WP",basePipeline.mParameters.whitePoint);
         glProg.useProgram(R.raw.analyze);
         glProg.setVar("stp",1);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);

@@ -5,6 +5,7 @@ uniform sampler2D InputBuffer;
 uniform int stp;
 out vec4 Output;
 #define SAMPLING (1)
+#define WP (1.0,1.0,1.0)
 #define BR (0.6)
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
@@ -35,6 +36,6 @@ void main() {
                 inp = min(inp,texelFetch(InputBuffer, xy + ivec2(i,j)*int(float(SAMPLING/2)*0.24), 0).rgb);
             }
         }
-        Output = vec4(inp,1.0);
+        Output = vec4(inp/vec3(WP),1.0);
     }
 }

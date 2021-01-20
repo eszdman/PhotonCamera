@@ -29,6 +29,7 @@ void main() {
         float br2 = inp.r+inp.g+inp.b+inp.a;
         br2/=4.0;
         inp*=factor*clamp((0.7-br2)*1.3,0.5,1.0);
+        //inp*=factor;
     }
     vec3 v3 = vec3(inp.r,(inp.g+inp.b)/2.0,inp.a);
     float br = luminocity(v3);

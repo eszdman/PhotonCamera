@@ -32,7 +32,7 @@ void main() {
     float mask = 0.0;
     float Z = 0.0;
     float sigX = 0.9*size;
-    float sigY = 0.29;
+    float sigY = 0.33;
     vec3 final_colour = vec3(0.0);
     for (int j = 0; j <= kSize; ++j)
     {

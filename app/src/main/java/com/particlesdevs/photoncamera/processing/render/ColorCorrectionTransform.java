@@ -39,6 +39,11 @@ public class ColorCorrectionTransform {
                 cubes[1].FillCube(in);
                 break;
             }
+            case "CUBE":{
+                correctionMode = CorrectionMode.CUBE;
+                cubes[0].FillCube(in);
+                break;
+            }
         }
     }
 }
@@ -57,8 +62,9 @@ class ColorCorrectionCube {
         ColorRatio = point[0]/point[2];
         Log.d("COLORCCT",sc.nextLine());
         for(int i =0; i<3;i++){
-            for(int j =0; j<3;j++){
-
+            for(int j =0; j<9;j++){
+                String inp = sc.next();
+                cube[i][j] = Float.parseFloat(inp);
             }
         }
     }

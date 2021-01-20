@@ -177,7 +177,7 @@ public class HdrxProcessor extends ProcessorBase {
                 rawSensivity.input = images.get(i).buffer;
                 rawSensivity.Output = images.get(i).buffer;
                 rawSensivity.Run();*/
-                float mpy = 1.f/4.f;
+                float mpy = 1.f/5.f;
                 if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal) mpy = 1.f;
                 //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
                 Log.d(TAG,"Load:i:"+i+" expolayer:"+images.get(i).pair.curlayer+" mpy:"+mpy);
