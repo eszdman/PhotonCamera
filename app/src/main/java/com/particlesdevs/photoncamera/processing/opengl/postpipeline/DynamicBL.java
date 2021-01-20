@@ -174,9 +174,9 @@ public class DynamicBL extends Node {
         histr[0] = 0;
         histg[0] = 0;
         histb[0] = 0;
-        Log.d(Name,"HistR:"+Arrays.toString(histr));
-        Log.d(Name,"HistG:"+Arrays.toString(histg));
-        Log.d(Name,"HistB:"+Arrays.toString(histb));
+//        Log.d(Name,"HistR:"+Arrays.toString(histr));
+//        Log.d(Name,"HistG:"+Arrays.toString(histg));
+//        Log.d(Name,"HistB:"+Arrays.toString(histb));
         return findPoint(histr,histg,histb);
     }
     private float[] getBL2(float[] hist){

@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocesso
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_FLOAT;
@@ -97,7 +98,9 @@ public class Equalization extends Node {
         float prev = histParser.hist[0];
         for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
-            histParser.hist[i] = prev+Math.max(Math.min(histParser.hist[i]-prev,0.0005f),1.2f/histParser.hist.length);
+            float move = ((float)(i))/histParser.hist.length;
+            float accel = 1.2f+Math.min(0.3f-move,0.3f)*1.5f;
+            histParser.hist[i] = prev+Math.max(Math.min(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
             prev = prevh;
         }
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
