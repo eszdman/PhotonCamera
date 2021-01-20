@@ -159,7 +159,7 @@ public class ShadowTextRenderer {
             this.m_TextPaint.setColor(style.getColor(2, -1));
         }
         if (style.hasValue(1) || style.hasValue(7)) {
-            Typeface typeface = getTypefaceFromAttrs(style.getString(7), style.getInt(1, -1));
+            Typeface typeface = context.getResources().getFont(style.getResourceId(7, 0));
             this.m_TextPaint.setTypeface(typeface);
             this.m_StrokePaint.setTypeface(typeface);
             isTextSizeChanged = true;

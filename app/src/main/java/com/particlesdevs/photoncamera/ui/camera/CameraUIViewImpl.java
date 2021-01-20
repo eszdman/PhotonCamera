@@ -68,7 +68,7 @@ public final class CameraUIViewImpl implements CameraUIView {
     }
 
     private void initModeSwitcher() {
-        String[] modes = Stream.of(CameraMode.names()).map(s -> s.charAt(0) + s.substring(1).toLowerCase(Locale.ROOT)).toArray(String[]::new);
+        String[] modes = CameraMode.names();
         mModePicker.setValues(modes);
         mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
         mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
@@ -89,24 +89,27 @@ public final class CameraUIViewImpl implements CameraUIView {
         this.mCameraUIEventsListener.onCameraModeChanged(cameraMode);
     }
 
-    private void reConfigureModeViews(CameraMode input) {
-        Log.d(TAG, "Current Mode:" + input.name());
-        switch (input) {
+    private void reConfigureModeViews(CameraMode mode) {
+        Log.d(TAG, "Current Mode:" + mode.name());
+        switch (mode) {
             case VIDEO:
                 topbar.setEisVisible(true);
             case UNLIMITED:
                 topbar.setFpsVisible(true);
+                topbar.setTimerVisible(false);
                 mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                 break;
             case PHOTO:
             default:
                 topbar.setEisVisible(true);
                 topbar.setFpsVisible(true);
+                topbar.setTimerVisible(true);
                 mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                 break;
             case NIGHT:
                 topbar.setEisVisible(false);
                 topbar.setFpsVisible(false);
+                topbar.setTimerVisible(true);
                 mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                 break;
         }

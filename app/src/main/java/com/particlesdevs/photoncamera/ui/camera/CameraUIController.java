@@ -1,13 +1,17 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
+import android.content.Context;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.control.CountdownTimer;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
+import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 
 /**
  * Implementation of {@link CameraUIView.CameraUIEventsListener}
@@ -17,12 +21,15 @@ import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 public final class CameraUIController implements CameraUIView.CameraUIEventsListener {
     private static final String TAG = "CameraUIController";
     private final CameraFragment mCameraFragment;
+    private CountDownTimer countdownTimer;
+    private View shutterButton;
 
     public CameraUIController(CameraFragment cameraFragment) {
         this.mCameraFragment = cameraFragment;
     }
 
     private void restartCamera() {
+        resetTimer();
         this.mCameraFragment.getCaptureController().restartCamera();
     }
 
@@ -31,12 +38,12 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
         CaptureController captureController = mCameraFragment.getCaptureController();
         switch (view.getId()) {
             case R.id.shutter_button:
+                shutterButton = view;
                 switch (PhotonCamera.getSettings().selectedMode) {
                     case PHOTO:
                     case NIGHT:
-                        view.setActivated(false);
-                        view.setClickable(false);
-                        captureController.takePicture();
+                        if (view.isHovered()) resetTimer();
+                        else startTimer();
                         break;
                     case UNLIMITED:
                         if (!captureController.onUnlimited) {
@@ -103,12 +110,38 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
                 view.setSelected(PreferenceKeys.getGridValue() != 0);
                 mCameraFragment.invalidateSurfaceView();
                 break;
+
             case R.id.flash_button:
                 PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
                 ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
                 captureController.setPreviewAEModeRebuild();
                 break;
+
+            case R.id.countdown_timer_button:
+                PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
+                ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
+                break;
         }
+    }
+
+    private int getTimerValue(Context context) {
+        int[] timerValues = context.getResources().getIntArray(R.array.countdowntimer_entryvalues);
+        return timerValues[PreferenceKeys.getCountdownTimerIndex()];
+    }
+
+    private void startTimer() {
+        if (shutterButton != null) {
+            shutterButton.setHovered(true);
+            countdownTimer = new CountdownTimer(
+                    mCameraFragment.findViewById(R.id.frameTimer),
+                    getTimerValue(shutterButton.getContext()) * 1000L, 1000,
+                    this::onTimerFinished).start();
+        }
+    }
+
+    private void resetTimer() {
+        if (countdownTimer != null) countdownTimer.cancel();
+        if (shutterButton != null) shutterButton.setHovered(false);
     }
 
     @Override
@@ -138,5 +171,12 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
 
     private String onOff(boolean value) {
         return value ? "On" : "Off";
+    }
+
+    public void onTimerFinished() {
+        shutterButton.setHovered(false);
+        shutterButton.setActivated(false);
+        shutterButton.setClickable(false);
+        mCameraFragment.getCaptureController().takePicture();
     }
 }

@@ -1,21 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_activated="true" android:state_pressed="false" >
+    <item android:state_hovered="true">
+        <layer-list>
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="@android:color/darker_gray"/>
+                    <size android:width="80dp" android:height="80dp"/>
+                </shape>
+            </item>
+            <item android:bottom="20dp"
+                  android:top="20dp"
+                  android:left="20dp"
+                  android:right="20dp">
+                <rotate
+                        android:fromDegrees="135"
+                        android:pivotX="50%"
+                        android:pivotY="50%"
+                        android:toDegrees="135">
+                    <shape android:shape="line">
+                        <stroke android:width="4dp" android:color="@color/GreyDis"/>
+                    </shape>
+                </rotate>
+            </item>
+            <item android:bottom="20dp"
+                  android:top="20dp"
+                  android:left="20dp"
+                  android:right="20dp">
+                <rotate
+                        android:fromDegrees="45"
+                        android:pivotX="50%"
+                        android:pivotY="50%"
+                        android:toDegrees="45">
+                    <shape android:shape="line">
+                        <stroke android:width="4dp" android:color="@color/GreyDis"/>
+                    </shape>
+                </rotate>
+            </item>
+
+        </layer-list>
+    </item>
+    <item android:state_activated="true" android:state_pressed="false">
         <shape android:shape="oval">
-            <solid android:color="@android:color/darker_gray" />
+            <solid android:color="@android:color/darker_gray"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
-</item>
+    </item>
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <solid android:color="?colorControlActivated" />
+            <solid android:color="?colorControlActivated"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_activated="false">
         <shape android:shape="oval">
-            <solid android:color="@color/GreyDis" />
-            <size android:width="80dp" android:height="80dp" />
+            <solid android:color="@color/GreyDis"/>
+            <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
 </selector>
