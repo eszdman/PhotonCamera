@@ -4,6 +4,7 @@ precision highp float;
 uniform float Equalize;
 uniform float HistFactor;
 uniform sampler2D Histogram;
+uniform sampler2D Equalizing;
 uniform sampler2D InputBuffer;
 out vec3 Output;
 //#import interpolation
@@ -23,10 +24,12 @@ void main() {
     HistEq = clamp(HistEq,0.0,5.0);
     float factor = 1.0;
     factor*=1.0-abs(0.5-br)*0.75;
-    factor*=clamp((br-EPS)*EPSAMP,0.0,1.0);
+    //factor*=clamp((br-EPS)*EPSAMP,0.0,1.0);
     //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
-    if(br > EPS) br = mix(br,br*sqrt(HistEq/br),factor);
-    br = pow(br,Equalize);
+    //if(br > EPS)
+    br = mix(br,br*sqrt(HistEq/br),factor);
+    br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    //br = pow(br,Equalize);
     sRGB*=br;
-    Output = clamp(sRGB,EPS,1.0);
+    Output = clamp(sRGB,0.0,1.0);
 }

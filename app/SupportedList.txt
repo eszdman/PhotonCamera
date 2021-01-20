@@ -8,4 +8,4 @@ xiaomi:laurel_sprout
 realme:rmx1931l1
 samsung:x1s
 motorola:sofia
-lg:flashlm
+lge:flashlm

@@ -189,7 +189,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = clamp(pRGB+vec3(EPS), vec3(EPS), neutralPoint);
     pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
     pRGB = tonemap(pRGB);
-    pRGB-=vec3(DYNAMICBL)/PRECISION;
+    pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
     pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;

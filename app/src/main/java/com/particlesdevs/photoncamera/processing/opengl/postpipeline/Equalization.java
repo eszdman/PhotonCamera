@@ -94,6 +94,11 @@ public class Equalization extends Node {
             prev = prevh;
         }
         */
+        float eq = histParser.gamma;
+        Log.d(Name,"Gamma:"+eq);
+        float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
+        eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
+        eq = (float) Math.pow(eq, 0.6);
         histParser.hist[0] = 0.f;
         float prev = histParser.hist[0];
         for(int i = 0; i<histParser.hist.length;i++){
@@ -103,18 +108,20 @@ public class Equalization extends Node {
             histParser.hist[i] = prev+Math.min(Math.max(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
             prev = histParser.hist[i];
         }
+        Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
-
-
-        float eq = histParser.gamma;
-        Log.d(Name,"Gamma:"+eq);
-        float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
-        eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
-        eq = (float) Math.pow(eq, 0.6);
+        float[] equalizingCurve = new float[histParser.hist.length];
+        for(int i =0; i<histParser.hist.length;i++){
+            equalizingCurve[i] = (float)(Math.pow(((double)i)/histParser.hist.length,eq));
+        }
+        GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
+                FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));
         Log.d(Name,"Equalizek:"+eq);
         glProg.useProgram(R.raw.equalize);
-        glProg.setVar("Equalize",eq);
+        //glProg.setVar("Equalize",eq);
+        glProg.setTexture("Equalizing",equalizing);
         glProg.setTexture("Histogram",histogram);
         float bilatHistFactor = Math.max(0.4f, 1f - histParser.gamma * EqualizePower
                 - 4f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
