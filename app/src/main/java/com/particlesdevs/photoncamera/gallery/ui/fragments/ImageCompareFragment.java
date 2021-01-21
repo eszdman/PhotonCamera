@@ -159,6 +159,7 @@ public class ImageCompareFragment extends Fragment {
     private class SSIVListenerImpl extends SSIVListener {
         private final ScaleAndPan scaleAndPan = new ScaleAndPan();
         private final Handler mainHandler = new Handler(Looper.getMainLooper());
+        private int idTouched = 0;
 
         SSIVListenerImpl() {
             scaleAndPan.addObserver(this::update);
@@ -176,24 +177,24 @@ public class ImageCompareFragment extends Fragment {
             scaleAndPan.setCenter(newCenter);
         }
 
-        public void update(Observable o, Object arg) {
-            int syncDelay = 0;
-            if (((ScaleAndPan) o).getOrigin() == SubsamplingScaleImageView.ORIGIN_DOUBLE_TAP_ZOOM)
-                syncDelay = DOUBLE_TAP_ZOOM_DURATION_MS;
+        @Override
+        public void onTouched(int id) {
+            idTouched = id;
+        }
 
-            mainHandler.postDelayed(() -> {
+        public void update(Observable o, Object arg) {
+            mainHandler.post(() -> {
                 if (toSync) {
                     copyZoomPan(fragment1.getCurrentSSIV(), fragment2.getCurrentSSIV(), (ScaleAndPan) o);
                 }
                 fragment1.updateScaleText();
                 fragment2.updateScaleText();
-            }, syncDelay);
-
+            });
         }
 
         private void copyZoomPan(SubsamplingScaleImageView v1, SubsamplingScaleImageView v2, ScaleAndPan scaleAndPan) {
-            v1.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
-            v2.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
+            if (v1.getId() == idTouched) v2.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
+            if (v2.getId() == idTouched) v1.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
         }
     }
 }

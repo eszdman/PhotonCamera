@@ -128,7 +128,7 @@ public class ImageViewerFragment extends Fragment {
         this.ssivListener = ssivListener;
     }
 
-    public SubsamplingScaleImageView getCurrentSSIV() {
+    public ImageAdapter.CustomSSIV getCurrentSSIV() {
         return viewPager.findViewById(adapter.getSsivId(viewPager.getCurrentItem()));
     }
 
