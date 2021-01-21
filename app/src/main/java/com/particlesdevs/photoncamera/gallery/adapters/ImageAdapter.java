@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
@@ -56,13 +57,14 @@ public class ImageAdapter extends PagerAdapter {
         File file = imageFiles.get(position);
         String fileExt = FileUtils.getExtension(file.getName());
 
-        SubsamplingScaleImageView scaleImageView = new CustomSSIV(container.getContext());
+        CustomSSIV scaleImageView = new CustomSSIV(container.getContext());
         scaleImageView.setId(getSsivId(position));
         if (imageViewClickListener != null) {
             scaleImageView.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
         }
         if (ssivListener != null) {
             scaleImageView.setOnStateChangedListener(ssivListener);
+            scaleImageView.setTouchCallBack(ssivListener);
         }
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
             scaleImageView.setImage(ImageSource.uri(Uri.fromFile(file)));
@@ -109,7 +111,9 @@ public class ImageAdapter extends PagerAdapter {
         void onImageViewClicked(View v);
     }
 
-    static class CustomSSIV extends SubsamplingScaleImageView {
+    public static class CustomSSIV extends SubsamplingScaleImageView {
+        private TouchCallBack touchCallBack;
+
         public CustomSSIV(Context context) {
             super(context);
             setMinimumDpi(40);
@@ -118,6 +122,22 @@ public class ImageAdapter extends PagerAdapter {
             setEagerLoadingEnabled(false);
             setDoubleTapZoomDuration(DOUBLE_TAP_ZOOM_DURATION_MS);
             setPreferredBitmapConfig(Bitmap.Config.ARGB_8888);
+        }
+
+        @Override
+        public boolean onTouchEvent(@NonNull MotionEvent event) {
+            if (touchCallBack != null) {
+                touchCallBack.onTouched(getId());
+            }
+            return super.onTouchEvent(event);
+        }
+
+        public void setTouchCallBack(TouchCallBack touchCallBack) {
+            this.touchCallBack = touchCallBack;
+        }
+
+        public interface TouchCallBack {
+            void onTouched(int id);
         }
     }
 }
