@@ -4,21 +4,19 @@ import android.app.Application;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
+import android.os.HandlerThread;
+import android.os.Process;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
-
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.util.FileManager;
 import rapid.decoder.BitmapDecoder;
+import rapid.decoder.Quality;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Class get used to update the Models binded to the ui
@@ -83,25 +81,21 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         };
     }
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
     public void updateGalleryThumb() {
         List<File> allFiles = FileManager.getAllImageFiles();
         if (allFiles.isEmpty())
             return;
         File lastImage = allFiles.get(0);
-        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            cameraFragmentModel.setBitmap((Bitmap) msg.obj);
-            return true;
-        });
+        HandlerThread t = new HandlerThread("ThumbnailUpdater", Process.THREAD_PRIORITY_BACKGROUND);
+        t.start();
         if (lastImage != null) {
-            executorService.execute(() -> {
+            new Handler(t.getLooper()).post(() -> {
                 Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
+                        .quality(Quality.LOWEST_OPAQUE)
                         .scaleBy(0.1f)
                         .decode();
-                Message m = new Message();
-                m.obj = bitmap;
-                handler.sendMessage(m);
+                cameraFragmentModel.setBitmap(bitmap);
+                t.quitSafely();
             });
         }
     }
