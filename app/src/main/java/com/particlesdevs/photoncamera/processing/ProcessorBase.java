@@ -31,6 +31,9 @@ public abstract class ProcessorBase {
         for (int i = 0; i < 4; i++) {
             PhotonCamera.getParameters().blackLevel[i] *= FAKE_WL / PhotonCamera.getParameters().whiteLevel;
         }
+        IncreaseWL();
+    }
+    public void IncreaseWL(){
         PhotonCamera.getParameters().whiteLevel = (int) (FAKE_WL);
     }
 

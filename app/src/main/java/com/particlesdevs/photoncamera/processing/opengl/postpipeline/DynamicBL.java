@@ -208,7 +208,7 @@ public class DynamicBL extends Node {
     }
     private float[] AnalyzeBL(){
         int resize = 16;
-        if(basePipeline.mSettings.selectedMode == CameraMode.NIGHT) precisionFactor = 16; else precisionFactor = 32;
+        if(basePipeline.mSettings.selectedMode == CameraMode.NIGHT) precisionFactor = 48; else precisionFactor = 64;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
         glProg.setDefine("SAMPLING",resize);
