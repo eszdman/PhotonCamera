@@ -2,10 +2,10 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
             app:timer_3s="true"
-            android:drawable="@drawable/ic_round_timer_3_24"/>
+            android:drawable="@drawable/ic_timer3s"/>
     <item
             app:timer_10s="true"
-            android:drawable="@drawable/ic_round_timer_10_24"/>
+            android:drawable="@drawable/ic_timer10s"/>
 
-    <item android:drawable="@drawable/ic_round_timer_off_24"/>
+    <item android:drawable="@drawable/ic_timeroff"/>
 </selector>
