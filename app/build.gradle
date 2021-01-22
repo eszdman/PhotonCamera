@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     def versionPropsFile = file('version.properties')
@@ -95,6 +96,7 @@ dependencies {
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     implementation 'com.aparapi:aparapi:2.0.0'
+    implementation 'com.google.firebase:firebase-analytics:17.2.2'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
