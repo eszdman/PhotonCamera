@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
@@ -21,7 +22,9 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
+
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
@@ -43,6 +46,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     private Context mContext;
     private View mRootView;
 
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.preferences, rootKey);
@@ -54,6 +58,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         activity = getActivity();
         mSettingsManager = new SettingsManager(getContext());
         mContext = getContext();
+
+
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
         showHideHdrxSettings();
@@ -207,14 +213,14 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void setHdrxTitle() {
-            Preference p = findPreference(mContext.getString(R.string.pref_category_hdrx_key));
-            if (p != null) {
-                if (PreferenceKeys.isPerLensSettingsOn()) {
-                    p.setTitle(mContext.getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
-                } else {
-                    p.setTitle(mContext.getString(R.string.hdrx));
-                }
+        Preference p = findPreference(mContext.getString(R.string.pref_category_hdrx_key));
+        if (p != null) {
+            if (PreferenceKeys.isPerLensSettingsOn()) {
+                p.setTitle(mContext.getString(R.string.hdrx) + "\t(Lens: " + PreferenceKeys.getCameraID() + ')');
+            } else {
+                p.setTitle(mContext.getString(R.string.hdrx));
             }
+        }
     }
 
     private void setFramesSummary() {

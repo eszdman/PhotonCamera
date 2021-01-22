@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
+
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
@@ -27,10 +29,12 @@ public class CameraActivity extends BaseActivity {
     private static final int CODE_REQUEST_PERMISSIONS = 1;
     private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
     private static int requestCount;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
