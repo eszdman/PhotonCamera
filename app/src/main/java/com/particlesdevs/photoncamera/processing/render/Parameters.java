@@ -24,7 +24,7 @@ import java.util.Locale;
 import java.util.Scanner;
 
 public class Parameters {
-    private static final String TAG = "parameters";
+    private static final String TAG = "Parameters";
     public byte cfaPattern;
     public Point rawSize;
     public final float[] blackLevel = new float[4];
@@ -42,6 +42,7 @@ public class Parameters {
     public Point[] hotPixels;
     public float focalLength;
     public int cameraRotation;
+    public ColorCorrectionTransform CCT;
     public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         boolean isHuawei = Build.BRAND.equals("Huawei");
@@ -165,18 +166,19 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCT = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCT.txt");
-        ColorSpaceTransform CCT = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CST = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         assert calibration2 != null;
         assert forwardt1 != null;
         assert forwardt2 != null;
+        CCT = new ColorCorrectionTransform();
         boolean wrongCalibration =
                 forwardt1.getElement(0,0).floatValue() == forwardt2.getElement(0,0).floatValue() &&
                         forwardt1.getElement(1,1).floatValue() == forwardt2.getElement(1,1).floatValue() &&
                         forwardt1.getElement(2,2).floatValue() == forwardt2.getElement(2,2).floatValue() &&
                         forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();
         Rational rat[] = new Rational[9];
-        if(CCT != null) {
-            CCT.copyElements(rat, 0);
+        if(CST != null) {
+            CST.copyElements(rat, 0);
             int cnt = 0;
             for (int i = 0; i < 9; i++) {
                 if (rat[i].floatValue() != 0.0f) cnt++;
@@ -197,9 +199,9 @@ public class Parameters {
             sensorToProPhoto[8] = 1.0f / whitePoint[2];
         }
         Converter.multiply(Converter.HDRXCCM, Converter.sProPhotoToXYZ, /*out*/proPhotoToSRGB);
-        if (CCT != null && wrongCalibration && !customCCT.exists()) {
+        if (CST != null && wrongCalibration && !customCCT.exists()) {
             Rational[] temp = new Rational[9];
-            CCT.copyElements(temp, 0);
+            CST.copyElements(temp, 0);
             for (int i = 0; i < 9; i++) {
                 proPhotoToSRGB[i] = temp[i].floatValue();
             }
@@ -207,18 +209,20 @@ public class Parameters {
 
         Log.d(TAG, "customCCT exist:" + customCCT.exists());
         Scanner sc = null;
+        CCT.matrix = proPhotoToSRGB;
         if (customCCT.exists()) {
             try {
                 sc = new Scanner(customCCT);
             } catch (FileNotFoundException ignored) {
             }
-            sc.useDelimiter(",");
+            CCT.FillCCT(sc);
+            /*sc.useDelimiter(",");
             sc.useLocale(Locale.US);
             for (int i = 0; i < 9; i++) {
                 String inp = sc.next();
                 proPhotoToSRGB[i] = Float.parseFloat(inp);
                 //Log.d(TAG, "Read1:" + proPhotoToSRGB[i]);
-            }
+            }*/
         }
         customTonemap = new float[]{
                 -2f + 2f * tonemapStrength,
