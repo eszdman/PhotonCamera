@@ -124,6 +124,11 @@ public class ImageViewerFragment extends Fragment {
             mode = bundle.getString(MODE_KEY);
             viewPager.setCurrentItem(bundle.getInt(IMAGE_POSITION_KEY, 0));
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         if (isCompareMode()) {
             fragmentGalleryImageViewerBinding.setMiniExifVisible(true);
         }

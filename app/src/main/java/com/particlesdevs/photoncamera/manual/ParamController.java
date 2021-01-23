@@ -14,7 +14,7 @@ public class ParamController {
         try {
             CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
             if (shutterNs == SHUTTER_AUTO) {
-                if (PhotonCamera.getManualMode().getCurrentISOValue() == 0)//check if ISO is Auto
+                if (PhotonCamera.getManualMode().getCurrentISOValue() == ISO_AUTO)//check if ISO is Auto
                 {
                     captureController.setPreviewAEMode();
                 }
@@ -36,7 +36,7 @@ public class ParamController {
         try {
             CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
             if (isoVal == ISO_AUTO) {
-                if (PhotonCamera.getManualMode().getCurrentExposureValue() == 0) //check if Exposure is Auto
+                if (PhotonCamera.getManualMode().getCurrentExposureValue() == SHUTTER_AUTO) //check if Exposure is Auto
                 {
                     captureController.setPreviewAEMode();
                 }

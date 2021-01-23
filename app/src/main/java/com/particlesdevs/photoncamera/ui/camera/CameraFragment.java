@@ -38,7 +38,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -50,7 +49,6 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
@@ -64,6 +62,7 @@ import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
+import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -108,6 +107,7 @@ public class CameraFragment extends Fragment {
     public Set<String> mFrontCameraIDs;
     public Set<String> mBackCameraIDs;
     public Map<String, Pair<Float, Float>> mFocalLengthAperturePairList;
+    private Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
     private CaptureController captureController;
@@ -138,6 +138,7 @@ public class CameraFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        this.activity = getActivity();
     }
 
     @Override
@@ -180,8 +181,9 @@ public class CameraFragment extends Fragment {
         this.mCameraUIView = new CameraUIViewImpl(cameraFragmentBinding);
         this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
         mSwipe = new Swipe(this);
-        captureController = new CaptureController(getActivity(), new CameraEventsListenerImpl());
+        captureController = new CaptureController(activity, new CameraEventsListenerImpl());
         PhotonCamera.setCaptureController(captureController);
+        PhotonCamera.setManualMode(ManualMode.getInstance(activity));
     }
 
     @Override
@@ -221,7 +223,7 @@ public class CameraFragment extends Fragment {
         PhotonCamera.getSensors().register();
         PhotonCamera.getGravity().register();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
-        burstPlayer = MediaPlayer.create(getActivity(), R.raw.sound_burst);
+        burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
 
         cameraFragmentViewModel.updateGalleryThumb();
         cameraFragmentViewModel.onResume();
@@ -352,7 +354,6 @@ public class CameraFragment extends Fragment {
      * @param text The message to show
      */
     public void showToast(final String text) {
-        final Activity activity = getActivity();
         if (activity != null) {
             activity.runOnUiThread(() -> Toast.makeText(activity, text, Toast.LENGTH_SHORT).show());
         }
@@ -434,17 +435,17 @@ public class CameraFragment extends Fragment {
         Uri contentUri = Uri.fromFile(imageToSave);
 //        Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
         mediaScanIntent.setData(contentUri);
-        if (getActivity() != null)
-            getActivity().sendBroadcast(mediaScanIntent);
+        if (activity != null)
+            activity.sendBroadcast(mediaScanIntent);
     }
 
     public void launchGallery() {
-        Intent galleryIntent = new Intent(getActivity(), GalleryActivity.class);
+        Intent galleryIntent = new Intent(activity, GalleryActivity.class);
         startActivity(galleryIntent);
     }
 
     public void launchSettings() {
-        Intent settingsIntent = new Intent(getActivity(), SettingsActivity.class);
+        Intent settingsIntent = new Intent(activity, SettingsActivity.class);
         startActivity(settingsIntent);
     }
 
@@ -453,7 +454,7 @@ public class CameraFragment extends Fragment {
 //    }
 
     public <T extends View> T findViewById(@IdRes int id) {
-        return getActivity().findViewById(id);
+        return activity.findViewById(id);
     }
 
     public void showErrorDialog(String errorMsg) {
@@ -636,7 +637,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onFatalError(String errorMsg) {
             logE("onFatalError: " + errorMsg);
-            getActivity().finish();
+            activity.finish();
         }
 
         @Override

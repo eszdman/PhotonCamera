@@ -38,13 +38,14 @@ import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
  * Created by Vibhor Srivastava on 09-Jan-2021
  */
 public class ImageCompareFragment extends Fragment {
+    private static final int SEND_URI = 1000;
     private static boolean toSync = true;
     private final SSIVListenerImpl ssivListener = new SSIVListenerImpl();
     private final ImageViewerFragment fragment1 = new ImageViewerFragment();
     private final ImageViewerFragment fragment2 = new ImageViewerFragment();
     private FragmentGalleryImageCompareBinding binding;
     private final Handler shareHandler = new Handler(Looper.getMainLooper(), msg -> {
-        if (msg.obj instanceof Uri) {
+        if (msg.what == SEND_URI) {
             shareUri((Uri) msg.obj);
         }
         hideButtons(false);
@@ -102,9 +103,7 @@ public class ImageCompareFragment extends Fragment {
         Handler bitmapHandler = new Handler(bmpThread.getLooper());
         bitmapHandler.post(() -> {
             Uri uri = saveBitmap(screenShot(binding.getRoot()));
-            Message m = shareHandler.obtainMessage();
-            m.obj = uri;
-            m.sendToTarget();
+            shareHandler.obtainMessage(SEND_URI, uri).sendToTarget();
         });
         bmpThread.quitSafely();
     }

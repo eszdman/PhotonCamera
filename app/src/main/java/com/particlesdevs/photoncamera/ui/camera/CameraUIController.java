@@ -148,7 +148,7 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     @Override
     public void onAuxButtonClicked(String id) {
         Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
-        PreferenceKeys.setCameraID(String.valueOf(id));  //i = RadioButton's resource ID
+        PreferenceKeys.setCameraID(String.valueOf(id));
         restartCamera();
 
     }
