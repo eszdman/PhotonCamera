@@ -20,14 +20,14 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Locale;
 import java.util.Scanner;
 
 public class Parameters {
     private static final String TAG = "Parameters";
     public byte cfaPattern;
     public Point rawSize;
-    public final float[] blackLevel = new float[4];
+    public boolean usedDynamic = false;
+    public float[] blackLevel = new float[4];
     public float[] whitePoint = new float[3];
     public int whiteLevel = 1023;
     public int realWL = -1;
@@ -36,28 +36,17 @@ public class Parameters {
     public Rect sensorPix;
     public float[] gainMap;
     public float[] proPhotoToSRGB = new float[9];
-    public final float[] sensorToProPhoto = new float[9];
+    public float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
     public float[] customTonemap;
     public Point[] hotPixels;
     public float focalLength;
     public int cameraRotation;
     public ColorCorrectionTransform CCT;
-    public void FillParameters(CaptureResult result, CameraCharacteristics characteristics, Point size) {
+    public void FillConstParameters(CameraCharacteristics characteristics, Point size) {
         rawSize = size;
-        boolean isHuawei = Build.BRAND.equals("Huawei");
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
-        int[] blarr = new int[4];
-        BlackLevelPattern level = characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
-        if(dynbl != null){
-            System.arraycopy(dynbl, 0, blackLevel, 0, 4);
-        } else
-        if (level != null) {
-            level.copyTo(blarr, 0);
-            for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
-        }
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
         if (ptr != null) cfaPattern = (byte) (int) ptr;
         if (PhotonCamera.getSettings().cfaPattern >= 0) {
@@ -83,6 +72,22 @@ public class Parameters {
         if(sensorPix==null){
             sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
         }
+        //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
+    }
+    public void FillDynamicParameters(CaptureResult result){
+        int[] blarr = new int[4];
+        boolean isHuawei = Build.BRAND.equals("Huawei");
+        BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
+        float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+        if(dynbl != null){
+            System.arraycopy(dynbl, 0, blackLevel, 0, 4);
+            usedDynamic = true;
+        }
+        if(!usedDynamic)
+            if (level != null) {
+                level.copyTo(blarr, 0);
+                for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
+            }
         if(result != null) {
             LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
             if (lensMap != null) {
@@ -109,8 +114,8 @@ public class Parameters {
             hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
             ReCalcColor(false);
         }
-        //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
     }
+
 
     public float[] customNeutral;
     public void ReCalcColor(boolean customNeutr){
@@ -238,6 +243,28 @@ public class Parameters {
             if(i%3 == 2) outp+="\n";
         }
         Log.d(TAG,"matrix:\n"+outp);
+    }
+    protected Parameters Build() {
+        Parameters params = new Parameters();
+        params.cfaPattern = cfaPattern;
+        params.usedDynamic = usedDynamic;
+        params.blackLevel = blackLevel.clone();
+        params.whitePoint = whitePoint.clone();
+        params.whiteLevel = whiteLevel;
+        params.realWL = realWL;
+        params.hasGainMap = hasGainMap;
+        params.mapSize = new Point(mapSize);
+        params.sensorPix = new Rect(sensorPix);
+        params.gainMap = gainMap.clone();
+        params.proPhotoToSRGB = proPhotoToSRGB.clone();
+        params.sensorToProPhoto = sensorToProPhoto.clone();
+        params.tonemapStrength = tonemapStrength;
+        params.customTonemap = customTonemap.clone();
+        params.hotPixels = hotPixels.clone();
+        params.focalLength = focalLength;
+        params.cameraRotation = cameraRotation;
+        params.CCT = CCT;
+        return params;
     }
     @androidx.annotation.NonNull
     @Override

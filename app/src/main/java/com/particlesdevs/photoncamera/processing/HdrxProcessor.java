@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.processing;
 
 import android.graphics.Bitmap;
-import android.graphics.Paint;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
@@ -102,7 +101,8 @@ public class HdrxProcessor extends ProcessorBase {
         }
         Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        PhotonCamera.getParameters().FillParameters(captureResult, characteristics, new Point(width, height));
+        PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
+        PhotonCamera.getParameters().FillDynamicParameters(captureResult);
         if (PhotonCamera.getParameters().realWL == -1) {
             PhotonCamera.getParameters().realWL = levell;
         }
