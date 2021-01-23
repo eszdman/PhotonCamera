@@ -131,9 +131,9 @@ public class DynamicBL extends Node {
         }
 
         float minf = ((float)minind)/((float)histr.length);
-        bl[0]=minf;
-        bl[1]=minf;
-        bl[2]=minf;
+        bl[0]=minf*0.85f;
+        bl[1]=minf*0.85f;
+        bl[2]=minf*0.85f;
         Log.d(Name,"PointBL:"+Arrays.toString(bl));
         return bl;
     }

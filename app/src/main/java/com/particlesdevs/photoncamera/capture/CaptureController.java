@@ -856,7 +856,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         int maxjpg = 3;
         if (mTargetFormat == mPreviewTargetFormat)
             maxjpg = PhotonCamera.getSettings().frameCount + 3;
-        mImageReaderPreview = ImageReader.newInstance(target.getWidth(), target.getHeight(), mPreviewTargetFormat, maxjpg);
+        mImageReaderPreview = ImageReader.newInstance(preview.getWidth(), preview.getHeight(), mPreviewTargetFormat, maxjpg);
         mImageReaderPreview.setOnImageAvailableListener(mOnYuvImageAvailableListener, mBackgroundHandler);
 
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, PhotonCamera.getSettings().frameCount + 3);
@@ -864,8 +864,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = PhotonCamera.getGravity().getRotation();
-        //int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        //noinspection ConstantConditions
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         Range<Integer>[] ranges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
         int def = 30;
@@ -995,8 +993,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
+
             List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             if (burst) {
+
                 surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
             }
             if (mTargetFormat == mPreviewTargetFormat) {
