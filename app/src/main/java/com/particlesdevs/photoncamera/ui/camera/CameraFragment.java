@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -32,12 +33,13 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+import android.widget.*;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -57,9 +59,12 @@ import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
+import com.particlesdevs.photoncamera.control.CountdownTimer;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
+import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
+import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
 import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
@@ -67,6 +72,9 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
+import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
+import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -75,10 +83,7 @@ import com.particlesdevs.photoncamera.util.log.Logger;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -109,6 +114,7 @@ public class CameraFragment extends Fragment {
     private Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
+    private CameraUIView.CameraUIEventsListener mCameraUIEventsListener;
     private CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
     private CameraFragmentBinding cameraFragmentBinding;
@@ -144,7 +150,7 @@ public class CameraFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //create the ui binding
-        cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
+        this.cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
 
         initMembers();
         setModelsToLayout();
@@ -177,10 +183,11 @@ public class CameraFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
-        this.mCameraUIView = new CameraUIViewImpl(cameraFragmentBinding);
-        this.mCameraUIView.setCameraUIEventsListener(new CameraUIController(this));
-        mSwipe = new Swipe(this);
-        captureController = new CaptureController(activity, new CameraEventsListenerImpl());
+        this.mCameraUIView = new CameraUIViewImpl();
+        this.mCameraUIEventsListener = new CameraUIController();
+        this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
+        this.mSwipe = new Swipe(this);
+        this.captureController = new CaptureController(activity, new CameraEventsListenerImpl());
         PhotonCamera.setCaptureController(captureController);
         PhotonCamera.setManualMode(ManualMode.getInstance(activity));
     }
@@ -252,6 +259,7 @@ public class CameraFragment extends Fragment {
         captureController.closeCamera();
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
+        mCameraUIEventsListener.onPause();
         burstPlayer.release();
         super.onPause();
     }
@@ -264,7 +272,7 @@ public class CameraFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        getParentFragmentManager().beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
+        getParentFragmentManager().beginTransaction().remove(CameraFragment.this).commitAllowingStateLoss();
     }
 
     @SuppressLint("DefaultLocale")
@@ -447,10 +455,6 @@ public class CameraFragment extends Fragment {
         startActivity(settingsIntent);
     }
 
-//    public void invalidate() {
-//        cameraFragmentBinding.invalidateAll();
-//    }
-
     public <T extends View> T findViewById(@IdRes int id) {
         return activity.findViewById(id);
     }
@@ -472,6 +476,10 @@ public class CameraFragment extends Fragment {
             surfaceView.invalidate();
         }
     }
+
+    //*****************************************************************************************************************
+    //**************************************ErrorDialog****************************************************************
+    //*****************************************************************************************************************
 
     /**
      * Shows an error message dialog.
@@ -505,8 +513,10 @@ public class CameraFragment extends Fragment {
     }
 
     //*****************************************************************************************************************
+    //**************************************CameraEventsListenerImpl***************************************************
+    //*****************************************************************************************************************
 
-    public class CameraEventsListenerImpl extends CameraEventsListener {
+    private class CameraEventsListenerImpl extends CameraEventsListener {
         /**
          * Implementation of {@link ProcessingEventsListener}
          */
@@ -644,4 +654,375 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    //*****************************************************************************************************************
+    //**********************************************CameraUIViewImpl***************************************************
+    //*****************************************************************************************************************
+
+    /**
+     * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface
+     * <p>
+     * It gets instantiated in {@link CameraFragment#onViewCreated(View, Bundle)}
+     */
+    private final class CameraUIViewImpl implements CameraUIView {
+        private static final String TAG = "CameraUIView";
+        private final LayoutMainTopbarBinding topbar;
+        private final LayoutBottombuttonsBinding bottombuttons;
+        private final ProgressBar mCaptureProgressBar;
+        private final ImageButton mShutterButton;
+        private final ProgressBar mProcessingProgressBar;
+        private final LinearLayout mAuxGroupContainer;
+        private final HorizontalPicker mModePicker;
+        private CameraUIEventsListener uiEventsListener;
+        private HashMap<Integer, String> auxButtonsMap;
+        private float baseF = 0.f;
+
+        private CameraUIViewImpl() {
+            this.topbar = cameraFragmentBinding.layoutTopbar;
+            this.bottombuttons = cameraFragmentBinding.layoutBottombar.bottomButtons;
+            this.mCaptureProgressBar = cameraFragmentBinding.layoutViewfinder.captureProgressBar;
+            this.mProcessingProgressBar = bottombuttons.processingProgressBar;
+            this.mShutterButton = bottombuttons.shutterButton;
+            this.mModePicker = cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
+            this.mAuxGroupContainer = cameraFragmentBinding.auxButtonsContainer;
+            this.initListeners();
+            this.initModeSwitcher();
+        }
+
+        private void initListeners() {
+            this.topbar.setTopBarClickListener(v -> this.uiEventsListener.onClick(v));
+            this.bottombuttons.setBottomBarClickListener(v -> this.uiEventsListener.onClick(v));
+        }
+
+        private void initModeSwitcher() {
+            this.mModePicker.setValues(CameraMode.names());
+            this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
+            this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
+            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
+        }
+
+        @Override
+        public void activateShutterButton(boolean status) {
+            this.mShutterButton.post(() -> {
+                this.mShutterButton.setActivated(status);
+                this.mShutterButton.setClickable(status);
+            });
+        }
+
+        private void switchToMode(CameraMode cameraMode) {
+            this.reConfigureModeViews(cameraMode);
+            this.uiEventsListener.onCameraModeChanged(cameraMode);
+        }
+
+        private void reConfigureModeViews(CameraMode mode) {
+            Log.d(TAG, "Current Mode:" + mode.name());
+            switch (mode) {
+                case VIDEO:
+                    this.topbar.setEisVisible(true);
+                case UNLIMITED:
+                    this.topbar.setFpsVisible(true);
+                    this.topbar.setTimerVisible(false);
+                    this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    break;
+                case PHOTO:
+                default:
+                    this.topbar.setEisVisible(true);
+                    this.topbar.setFpsVisible(true);
+                    this.topbar.setTimerVisible(true);
+                    this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    break;
+                case NIGHT:
+                    this.topbar.setEisVisible(false);
+                    this.topbar.setFpsVisible(false);
+                    this.topbar.setTimerVisible(true);
+                    this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    break;
+            }
+        }
+
+        @Override
+        public void refresh(boolean processing) {
+            cameraFragmentBinding.invalidateAll();
+            this.resetCaptureProgressBar();
+            if (!processing) {
+                this.activateShutterButton(true);
+                this.setProcessingProgressBarIndeterminate(false);
+            }
+        }
+
+        @Override
+        public void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
+            String savedCameraID = PreferenceKeys.getCameraID();
+            for (String id : backCameraIdsList) {
+                if (this.baseF == 0.f) {
+                    this.baseF = Focals.get(id).first;
+                }
+            }
+            if (this.mAuxGroupContainer.getChildCount() == 0) {
+                if (backCameraIdsList.contains(savedCameraID)) {
+                    this.setAuxButtons(backCameraIdsList, Focals, savedCameraID);
+                } else if (frontCameraIdsList.contains(savedCameraID)) {
+                    this.setAuxButtons(frontCameraIdsList, Focals, savedCameraID);
+                }
+            }
+        }
+
+        @SuppressLint("DefaultLocale")
+        @Override
+        public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
+            this.mAuxGroupContainer.removeAllViews();
+            if (idsList.size() > 1) {
+                Locale.setDefault(Locale.US);
+                this.auxButtonsMap = new HashMap<>();
+                for (String id : idsList) {
+                    this.addToAuxGroupButtons(id, String.format("%.1fx",
+                            ((Focals.get(id).first / this.baseF) - 0.049)).replace(".0", ""));
+                }
+                View.OnClickListener auxButtonListener = this::onAuxButtonClick;
+                for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
+                    Button b = (Button) this.mAuxGroupContainer.getChildAt(i);
+                    b.setOnClickListener(auxButtonListener);
+                    if (active.equals(auxButtonsMap.get(b.getId()))) {
+                        b.setSelected(true);
+                    }
+                }
+                this.mAuxGroupContainer.setVisibility(View.VISIBLE);
+            } else {
+                this.mAuxGroupContainer.setVisibility(View.GONE);
+            }
+        }
+
+        private void onAuxButtonClick(View view) {
+            for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
+                this.mAuxGroupContainer.getChildAt(i).setSelected(false);
+            }
+            view.setSelected(true);
+            this.uiEventsListener.onAuxButtonClicked(this.auxButtonsMap.get(view.getId()));
+        }
+
+        private void addToAuxGroupButtons(String cameraId, String name) {
+            Button b = new Button(this.mAuxGroupContainer.getContext());
+            int m = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_internal_margin);
+            int s = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_size);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
+            lp.setMargins(m, m, m, m);
+            b.setLayoutParams(lp);
+            b.setText(name);
+            b.setTextAppearance(R.style.AuxButtonText);
+            b.setBackgroundResource(R.drawable.aux_button_background);
+            b.setStateListAnimator(null);
+            b.setTransformationMethod(null);
+            int buttonId = View.generateViewId();
+            b.setId(buttonId);
+            this.auxButtonsMap.put(buttonId, cameraId);
+            this.mAuxGroupContainer.addView(b);
+        }
+
+        @Override
+        public void setProcessingProgressBarIndeterminate(boolean indeterminate) {
+            this.mProcessingProgressBar.post(() -> this.mProcessingProgressBar.setIndeterminate(indeterminate));
+        }
+
+        @Override
+        public void incrementCaptureProgressBar(int step) {
+            this.mCaptureProgressBar.post(() -> this.mCaptureProgressBar.incrementProgressBy(step));
+        }
+
+        @Override
+        public void resetCaptureProgressBar() {
+            this.mCaptureProgressBar.post(() -> this.mCaptureProgressBar.setProgress(0));
+            this.setCaptureProgressBarOpacity(0);
+        }
+
+        @Override
+        public void setCaptureProgressBarOpacity(float alpha) {
+            this.mCaptureProgressBar.post(() -> this.mCaptureProgressBar.setAlpha(alpha));
+        }
+
+        @Override
+        public void setCaptureProgressMax(int max) {
+            this.mCaptureProgressBar.post(() -> this.mCaptureProgressBar.setMax(max));
+        }
+
+        @Override
+        public void showFlashButton(boolean flashAvailable) {
+            this.topbar.setFlashVisible(flashAvailable);
+        }
+
+        @Override
+        public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
+            this.uiEventsListener = cameraUIEventsListener;
+        }
+    }
+
+    //*****************************************************************************************************************
+    //**********************************************CameraUIController*************************************************
+    //*****************************************************************************************************************
+
+    /**
+     * Implementation of {@link CameraUIView.CameraUIEventsListener}
+     * <p>
+     * Responsible for converting user inputs into actions
+     */
+    private final class CameraUIController implements CameraUIView.CameraUIEventsListener {
+        private static final String TAG = "CameraUIController";
+        private CountDownTimer countdownTimer;
+        private View shutterButton;
+
+        @Override
+        public void onClick(View view) {
+            switch (view.getId()) {
+                case R.id.shutter_button:
+                    shutterButton = view;
+                    switch (PhotonCamera.getSettings().selectedMode) {
+                        case PHOTO:
+                        case NIGHT:
+                            if (view.isHovered()) resetTimer();
+                            else startTimer();
+                            break;
+                        case UNLIMITED:
+                            if (!captureController.onUnlimited) {
+                                captureController.callUnlimitedStart();
+                                view.setActivated(false);
+                            } else {
+                                captureController.callUnlimitedEnd();
+                                view.setActivated(true);
+                            }
+                            break;
+                        case VIDEO:
+                            if (!captureController.mIsRecordingVideo) {
+                                captureController.VideoStart();
+                                view.setActivated(false);
+                            } else {
+                                captureController.VideoEnd();
+                                view.setActivated(true);
+                            }
+                            break;
+                    }
+                    break;
+                case R.id.settings_button:
+                    launchSettings();
+                    break;
+
+                case R.id.hdrx_toggle_button:
+                    PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
+                    if (PreferenceKeys.isHdrXOn())
+                        CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
+                    else
+                        CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
+                    showSnackBar(getString(R.string.hdrx) + ':' + onOff(PreferenceKeys.isHdrXOn()));
+                    this.restartCamera();
+                    break;
+
+                case R.id.gallery_image_button:
+                    launchGallery();
+                    break;
+
+                case R.id.eis_toggle_button:
+                    PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
+                    showSnackBar(getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
+                    break;
+
+                case R.id.fps_toggle_button:
+                    PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
+                    showSnackBar(getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
+                    break;
+
+                case R.id.quad_res_toggle_button:
+                    PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
+                    showSnackBar(getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
+                    this.restartCamera();
+                    break;
+
+                case R.id.flip_camera_button:
+                    view.animate().rotationBy(180).setDuration(450).start();
+                    textureView.animate().rotationBy(360).setDuration(450).start();
+                    PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
+                    this.restartCamera();
+                    break;
+                case R.id.grid_toggle_button:
+                    PreferenceKeys.setGridValue((PreferenceKeys.getGridValue() + 1) % view.getResources().getStringArray(R.array.vf_grid_entryvalues).length);
+                    view.setSelected(PreferenceKeys.getGridValue() != 0);
+                    invalidateSurfaceView();
+                    break;
+
+                case R.id.flash_button:
+                    PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
+                    ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
+                    captureController.setPreviewAEModeRebuild();
+                    break;
+
+                case R.id.countdown_timer_button:
+                    PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
+                    ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
+                    break;
+            }
+        }
+
+        private int getTimerValue(Context context) {
+            int[] timerValues = context.getResources().getIntArray(R.array.countdowntimer_entryvalues);
+            return timerValues[PreferenceKeys.getCountdownTimerIndex()];
+        }
+
+        private void startTimer() {
+            if (this.shutterButton != null) {
+                this.shutterButton.setHovered(true);
+                this.countdownTimer = new CountdownTimer(
+                        findViewById(R.id.frameTimer),
+                        getTimerValue(this.shutterButton.getContext()) * 1000L, 1000,
+                        this::onTimerFinished).start();
+            }
+        }
+
+        private void resetTimer() {
+            if (this.countdownTimer != null) this.countdownTimer.cancel();
+            if (this.shutterButton != null) this.shutterButton.setHovered(false);
+        }
+
+        @Override
+        public void onAuxButtonClicked(String id) {
+            Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
+            PreferenceKeys.setCameraID(String.valueOf(id));
+            this.restartCamera();
+
+        }
+
+        @Override
+        public void onCameraModeChanged(CameraMode cameraMode) {
+            PreferenceKeys.setCameraModeOrdinal(cameraMode.ordinal());
+            Log.d(TAG, "onCameraModeChanged() called with: cameraMode = [" + cameraMode + "]");
+            switch (cameraMode) {
+                case PHOTO:
+                case NIGHT:
+                case UNLIMITED:
+                default:
+                    break;
+                case VIDEO:
+                    PreferenceKeys.setCameraModeOrdinal(CameraMode.PHOTO.ordinal()); //since Video Mode is broken at the moment
+                    break;
+            }
+            this.restartCamera();
+        }
+
+        @Override
+        public void onPause() {
+            this.resetTimer();
+        }
+
+        private void restartCamera() {
+            this.resetTimer();
+            captureController.restartCamera();
+        }
+
+        private String onOff(boolean value) {
+            return value ? "On" : "Off";
+        }
+
+        private void onTimerFinished() {
+            this.shutterButton.setHovered(false);
+            this.shutterButton.setActivated(false);
+            this.shutterButton.setClickable(false);
+            captureController.takePicture();
+        }
+    }
 }
