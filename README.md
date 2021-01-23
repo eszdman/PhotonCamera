@@ -1,13 +1,31 @@
 # PhotonCamera
 
-Android Camera that uses Enhanced image processing
+Android Camera that uses Enhanced Image Processing
 
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
+## Links
+
+[![Telegram - ENG](https://img.shields.io/badge/Telegram-ENG-blue)](https://t.me/PhotonCameraEN)
+[![Telegram - RU](https://img.shields.io/badge/Telegram-RU-blue)](https://t.me/PhotonCamera)
+
+[<img height="80px" src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play">](https://play.google.com/store/apps/details?id=com.particlesdevs.photoncamera)
+
+## Screenshots
 
 <p align="center">
 <img src="https://i.imgur.com/na2Tvx6.png" alt="PhotonCamera">
 </p>
 
+## Libraries used by Photon Camera
+
+* [Glide](https://github.com/bumptech/glide)
+* [SSIV](https://github.com/davemorrissey/subsampling-scale-image-view)
+* [GSON](https://github.com/google/gson)
+* [MaterialComponents](https://github.com/material-components/material-components-android)
+* [CircleImageView](https://github.com/hdodenhof/CircleImageView)
+* [HorizontalPicker](https://github.com/blazsolar/HorizontalPicker)
+
+## License
 
     PhotonCamera
     Copyright (C) 2020-2021  Eszdman
