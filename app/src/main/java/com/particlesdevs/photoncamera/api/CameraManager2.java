@@ -4,7 +4,9 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import android.util.SizeF;
+
 import androidx.core.util.Pair;
+
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 
 import java.util.*;

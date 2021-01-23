@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -24,7 +25,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.viewpager.widget.ViewPager;
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.DepthPageTransformer;
@@ -34,13 +35,17 @@ import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.util.FileManager;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
+import static com.particlesdevs.photoncamera.gallery.helper.Constants.COMPARE;
+import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
+import static com.particlesdevs.photoncamera.gallery.helper.Constants.MODE_KEY;
+
 /**
  * Created by Vibhor Srivastava on 02-Dec-2020
  */
@@ -188,7 +193,10 @@ public class ImageViewerFragment extends Fragment {
 
                     int position = viewPager.getCurrentItem();
                     File thisFile = new File(String.valueOf(allFiles.get(position)));
-                    thisFile.delete();
+                    boolean result = thisFile.delete();
+                    if (!result) {
+                        Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
+                    }
                     MediaScannerConnection.scanFile(getContext(), new String[]{
                                     String.valueOf(thisFile)
                             },

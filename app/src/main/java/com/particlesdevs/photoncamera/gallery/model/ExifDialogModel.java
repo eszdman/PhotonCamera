@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.gallery.model;
 
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
 /**

@@ -2,7 +2,6 @@ package com.particlesdevs.photoncamera.ui;
 
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.AiPhoto;
 

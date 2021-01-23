@@ -3,9 +3,11 @@ package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.AttributeSet;
+
 import androidx.preference.DialogPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceDialogFragmentCompat;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;

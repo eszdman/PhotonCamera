@@ -95,7 +95,7 @@
     <string name="long_press_to_deselect">Long press button to deselect all</string>
     <string name="multiple_deleted_success">%1$s File(s) Deleted! %2$s Cleared.</string>
     <string name="supported_devices">Supported Devices</string>
-    <string name="list_not_loaded"><![CDATA[<list not loaded>]]></string>
+    <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">Your Device - %1$s</string>
     <string name="sync_on">Sync On</string>
     <string name="sync_off">Sync Off</string>

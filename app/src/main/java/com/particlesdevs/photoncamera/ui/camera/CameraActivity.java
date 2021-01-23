@@ -10,8 +10,6 @@ import android.view.View;
 import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
-
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;

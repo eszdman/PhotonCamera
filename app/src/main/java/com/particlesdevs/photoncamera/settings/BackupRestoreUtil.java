@@ -5,6 +5,7 @@ import android.content.Context;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.FileManager;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

@@ -7,16 +7,19 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.util.FileManager;
-import rapid.decoder.BitmapDecoder;
-import rapid.decoder.Quality;
 
 import java.io.File;
 import java.util.List;
+
+import rapid.decoder.BitmapDecoder;
+import rapid.decoder.Quality;
 
 /**
  * Class get used to update the Models binded to the ui

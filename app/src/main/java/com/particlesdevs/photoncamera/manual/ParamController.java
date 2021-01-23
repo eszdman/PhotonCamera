@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.manual;
 
 import android.hardware.camera2.CaptureRequest;
+
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;

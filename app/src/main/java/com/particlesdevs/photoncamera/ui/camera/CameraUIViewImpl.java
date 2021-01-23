@@ -10,7 +10,9 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+
 import androidx.core.util.Pair;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
@@ -23,7 +25,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * This Class is a dumb 'View' which contains view components visible in the main Camera User Interface

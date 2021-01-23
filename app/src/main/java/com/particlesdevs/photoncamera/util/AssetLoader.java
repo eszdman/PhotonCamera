@@ -11,9 +11,11 @@ import java.io.OutputStream;
 
 public class AssetLoader {
     private final Context context;
-    public AssetLoader(Context context){
+
+    public AssetLoader(Context context) {
         this.context = context;
     }
+
     public File getFile(String name) throws IOException {
         InputStream initialStream = context.getAssets().open(name, AssetManager.ACCESS_BUFFER);
         byte[] buffer = new byte[initialStream.available()];

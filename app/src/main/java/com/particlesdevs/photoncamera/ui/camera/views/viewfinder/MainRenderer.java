@@ -1,4 +1,5 @@
 package com.particlesdevs.photoncamera.ui.camera.views.viewfinder;
+
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
@@ -17,32 +18,32 @@ import javax.microedition.khronos.opengles.GL10;
 public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableListener {
     private final String vss_default =
             "in vec2 vPosition;\n" +
-            "in vec2 vTexCoord;\n" +
-            "uniform mat4 uTexRotateMatrix;\n" +
-            "void main() {\n" +
-            "  gl_Position = uTexRotateMatrix * vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n" +
-            "}";
+                    "in vec2 vTexCoord;\n" +
+                    "uniform mat4 uTexRotateMatrix;\n" +
+                    "void main() {\n" +
+                    "  gl_Position = uTexRotateMatrix * vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n" +
+                    "}";
 
     private final String fss_default =
             "#extension GL_OES_EGL_image_external_essl3 : require\n" +
-            "precision mediump float;\n" +
-            "uniform samplerExternalOES sTexture;\n" +
-            //"uniform ivec2 outSize;" +
-            "uniform int yOffset;" +
-            "out vec4 Output;" +
-            "void main() {\n" +
-            "  vec2 texSize = vec2(textureSize(sTexture, 0));" +
-            "  vec2 posScaled = (vec2(gl_FragCoord.xy)+vec2(0,yOffset));" +
-            "  vec2 pos = posScaled/texSize;" +
-            "  pos.y = 1.0-pos.y;" +
-            "  Output = texture(sTexture,pos);\n" +
-            //"  if(pos.x > 1.0 || pos.x < 0.0) Output = vec4(0.0);" +
-            //"  if(pos.y > 1.0 || pos.y < 0.0) Output = vec4(0.0);" +
-            "}";
+                    "precision mediump float;\n" +
+                    "uniform samplerExternalOES sTexture;\n" +
+                    //"uniform ivec2 outSize;" +
+                    "uniform int yOffset;" +
+                    "out vec4 Output;" +
+                    "void main() {\n" +
+                    "  vec2 texSize = vec2(textureSize(sTexture, 0));" +
+                    "  vec2 posScaled = (vec2(gl_FragCoord.xy)+vec2(0,yOffset));" +
+                    "  vec2 pos = posScaled/texSize;" +
+                    "  pos.y = 1.0-pos.y;" +
+                    "  Output = texture(sTexture,pos);\n" +
+                    //"  if(pos.x > 1.0 || pos.x < 0.0) Output = vec4(0.0);" +
+                    //"  if(pos.y > 1.0 || pos.y < 0.0) Output = vec4(0.0);" +
+                    "}";
 
     private int[] hTex;
-    private FloatBuffer pVertex;
-    private FloatBuffer pTexCoord;
+    private final FloatBuffer pVertex;
+    private final FloatBuffer pTexCoord;
     private int hProgram;
 
     private SurfaceTexture mSTexture;
@@ -50,7 +51,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private boolean mGLInit = false;
     private boolean mUpdateST = false;
 
-    private GLPreview mView;
+    private final GLPreview mView;
 
     MainRenderer(GLPreview view) {
         mView = view;
@@ -87,7 +88,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
 
         hProgram = loadShader(vss_default, fss_default);
         GLES20.glUseProgram(hProgram);
-        int trmh = GLES20.glGetUniformLocation ( hProgram, "uTexRotateMatrix" );
+        int trmh = GLES20.glGetUniformLocation(hProgram, "uTexRotateMatrix");
         GLES20.glUniformMatrix4fv(trmh, 1, false, mTexRotateMatrix, 0);
         int ph = GLES20.glGetAttribLocation(hProgram, "vPosition");
         int tch = GLES20.glGetAttribLocation(hProgram, "vTexCoord");
@@ -96,16 +97,16 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glEnableVertexAttribArray(ph);
         GLES20.glEnableVertexAttribArray(tch);
         mGLInit = true;
-        mView.fireOnSurfaceTextureAvailable(mSTexture,0,0);
+        mView.fireOnSurfaceTextureAvailable(mSTexture, 0, 0);
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         GLES30.glViewport(0, 0, width, height);
     }
 
-    private float[] mTexRotateMatrix = new float[] {1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 0,   0, 0, 0, 1};
-    public SurfaceTexture getmSTexture()
-    {
+    private final float[] mTexRotateMatrix = new float[]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+
+    public SurfaceTexture getmSTexture() {
         return mSTexture;
     }
 
@@ -123,14 +124,15 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         mUpdateST = true;
         mView.requestRender();
     }
-    private static String GetSupportedVersion(){
+
+    private static String GetSupportedVersion() {
         return "#version 300 es";
     }
 
     private static int loadShader(String vss, String fss) {
         String SupportedVersion = GetSupportedVersion();
-        vss =SupportedVersion+"\n #line 1\n"+vss;
-        fss =SupportedVersion+"\n #line 1\n"+fss;
+        vss = SupportedVersion + "\n #line 1\n" + vss;
+        fss = SupportedVersion + "\n #line 1\n" + fss;
         int vshader = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER);
         GLES20.glShaderSource(vshader, vss);
         GLES20.glCompileShader(vshader);
@@ -161,19 +163,20 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
 
         return program;
     }
-    public void setOrientation(int or)
-    {
-        android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0,  or, 0f, 0f, 1f);
+
+    public void setOrientation(int or) {
+        android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0, or, 0f, 0f, 1f);
     }
+
     RectF mLastImageRect = new RectF();
     RectF inputRect = new RectF();
-    public void scale(int in_width, int in_height, int out_width, int out_height, int rotation)
-    {
+
+    public void scale(int in_width, int in_height, int out_width, int out_height, int rotation) {
         int difw = out_width - in_width;
         int difh = out_height - in_height;
 
-        inputRect.left = difw/2;
-        inputRect.top = difh/2;
+        inputRect.left = (int) (difw / 2);
+        inputRect.top = (int) (difh / 2);
         inputRect.right = in_width;
         inputRect.bottom = in_height;
         if (mLastImageRect != inputRect) {

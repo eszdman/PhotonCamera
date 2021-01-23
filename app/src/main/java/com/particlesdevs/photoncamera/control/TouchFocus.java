@@ -8,7 +8,9 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnTouchListener;
+
 import androidx.annotation.Nullable;
+
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;

@@ -2,12 +2,10 @@ package com.particlesdevs.photoncamera.ui.settings;
 
 import android.os.Bundle;
 import android.view.View;
-
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
-
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -30,6 +28,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 .replace(R.id.settings_container, new SettingsFragment())
                 .commit();
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(), true);
+
     }
 
     public void back(View view) {

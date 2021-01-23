@@ -32,14 +32,13 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -49,7 +48,9 @@ import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
+
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
@@ -77,8 +78,10 @@ import com.particlesdevs.photoncamera.util.log.Logger;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -118,6 +121,7 @@ public class CameraFragment extends Fragment {
     private FirebaseAnalytics mFirebaseAnalytics;
 
     public CameraFragment() {
+        Log.v(TAG, "fragment created");
     }
 
     public static CameraFragment newInstance() {
@@ -262,7 +266,8 @@ public class CameraFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        getFragmentManager().beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
+        FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
+        fragmentManager.beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
     }
 
     @SuppressLint("DefaultLocale")
@@ -446,9 +451,9 @@ public class CameraFragment extends Fragment {
         startActivity(settingsIntent);
     }
 
-    public void invalidate() {
-        cameraFragmentBinding.invalidateAll();
-    }
+//    public void invalidate() {
+//        cameraFragmentBinding.invalidateAll();
+//    }
 
     public <T extends View> T findViewById(@IdRes int id) {
         return getActivity().findViewById(id);

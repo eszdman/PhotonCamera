@@ -15,25 +15,31 @@ public abstract class ProcessorBase {
     protected CaptureResult captureResult;
     protected ProcessingCallback callback;
     public static float FAKE_WL = 65535.f;
+
     public ProcessorBase(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;
     }
-    public void process() {}
+
+    public void process() {
+    }
 
     public interface ProcessingCallback {
         void onStarted();
+
         void onFailed();
+
         void onFinished();
     }
 
-    public void IncreaseWLBL(){
+    public void IncreaseWLBL() {
         //Increase WL and BL for processing
         for (int i = 0; i < 4; i++) {
             PhotonCamera.getParameters().blackLevel[i] *= FAKE_WL / PhotonCamera.getParameters().whiteLevel;
         }
         IncreaseWL();
     }
-    public void IncreaseWL(){
+
+    public void IncreaseWL() {
         PhotonCamera.getParameters().whiteLevel = (int) (FAKE_WL);
     }
 

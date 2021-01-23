@@ -5,16 +5,19 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

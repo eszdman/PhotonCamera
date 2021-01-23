@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.pro;
 
 import android.os.Build;
 import android.util.Log;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;

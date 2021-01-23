@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.ui.camera.model;
 
 import android.graphics.Bitmap;
+
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 

@@ -4,7 +4,7 @@
     <bool name="pref_enhanced_processing_default">false</bool>
     <bool name="pref_camera_sounds_default">true</bool>
     <bool name="pref_energy_safe_default">false</bool>
-    <string name="pref_show_grid_default">0</string>
+    <string name="pref_show_grid_default" translatable="false">0</string>
     <bool name="pref_show_watermark_default">true</bool>
     <bool name="pref_show_afdata_default">false</bool>
     <bool name="pref_show_roundedge_default">true</bool>
@@ -18,8 +18,8 @@
     <bool name="pref_eis_photo_default">false</bool>
     <bool name="pref_fps_preview_default">false</bool>
     <bool name="pref_hdrx_mode_default">true</bool>
-    <string name="pref_ae_mode_default">1</string>
-    <string name="pref_camera_mode_default">1</string>
+    <string name="pref_ae_mode_default" translatable="false">1</string>
+    <string name="pref_camera_mode_default" translatable="false">1</string>
 
     <string name="camera_id_default" translatable="false">0</string>
     <string name="tonemap_default" translatable="false">[0f, 0.0036874f, 0.00740041f, 0.0111387f, 0.0149021f, 0.0186902f, 0.0225028f,

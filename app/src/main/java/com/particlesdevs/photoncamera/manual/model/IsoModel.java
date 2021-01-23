@@ -88,18 +88,18 @@ public class IsoModel extends ManualModel<Integer> {
         return (indicatorCount - 1) * 30;
     }
 
-    private int findPreferredIntervalCount(int totalCount) {
-        int result = 9;
-        int minRemainder = Integer.MAX_VALUE;
-        int i = 9;
-        while (i >= 5 && (((float) (totalCount - 1)) / ((float) i)) + 1.0f <= 7.0f) {
-            int remainder = ((totalCount % i) + (i - 1)) % i;
-            if (minRemainder > remainder) {
-                minRemainder = remainder;
-                result = i;
-            }
-            i--;
-        }
-        return result;
-    }
+//    private int findPreferredIntervalCount(int totalCount) {
+//        int result = 9;
+//        int minRemainder = Integer.MAX_VALUE;
+//        int i = 9;
+//        while (i >= 5 && (((float) (totalCount - 1)) / ((float) i)) + 1.0f <= 7.0f) {
+//            int remainder = ((totalCount % i) + (i - 1)) % i;
+//            if (minRemainder > remainder) {
+//                minRemainder = remainder;
+//                result = i;
+//            }
+//            i--;
+//        }
+//        return result;
+//    }
 }

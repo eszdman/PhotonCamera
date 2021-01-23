@@ -5,7 +5,9 @@ import android.content.pm.PackageManager;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
 import android.util.Log;
+
 import androidx.exifinterface.media.ExifInterface;
+
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 
@@ -20,7 +22,7 @@ import static android.hardware.camera2.CaptureResult.*;
 import static androidx.exifinterface.media.ExifInterface.*;
 
 public class ParseExif {
-    private static final String TAG = "ParseExif" ;
+    private static final String TAG = "ParseExif";
 
     static String getTime(long exposureTime) {
         String out;
@@ -84,8 +86,8 @@ public class ParseExif {
         inter.setAttribute(ExifInterface.TAG_DATETIME, sFormatter.format(new Date(System.currentTimeMillis())));
         inter.setAttribute(TAG_MODEL, Build.MODEL);
         inter.setAttribute(TAG_MAKE, Build.BRAND);
-        inter.setAttribute(TAG_COMPRESSION,"97");
-        inter.setAttribute(TAG_COLOR_SPACE,"sRGB");
+        inter.setAttribute(TAG_COMPRESSION, "97");
+        inter.setAttribute(TAG_COLOR_SPACE, "sRGB");
         inter.setAttribute(TAG_EXIF_VERSION, "0231");
         String version = "";
         try {
@@ -106,7 +108,8 @@ public class ParseExif {
         sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
         sFormatter.setTimeZone(TimeZone.getDefault());
     }
-    public static int getOrientation(){
+
+    public static int getOrientation() {
         int rotation = PhotonCamera.getGravity().getCameraRotation();
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);

@@ -24,6 +24,7 @@ public interface CameraUIView {
 
     /**
      * Refresh all contained views here
+     *
      * @param processing status of any ongoing process that might be relevant to view state
      */
     void refresh(boolean processing);
@@ -34,7 +35,7 @@ public interface CameraUIView {
      * @param backCameraIdsList  set of cameras on the back
      * @param frontCameraIdsList set of cameras on the front
      */
-    void initAuxButtons(Set<String> backCameraIdsList,Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList);
+    void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList);
 
     /**
      * Set Multi camera Buttons in an event of configuration change

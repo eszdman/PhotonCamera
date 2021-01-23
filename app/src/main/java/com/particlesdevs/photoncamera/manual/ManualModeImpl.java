@@ -4,7 +4,9 @@ package com.particlesdevs.photoncamera.manual;
 import android.app.Activity;
 import android.view.View;
 import android.widget.TextView;
+
 import androidx.annotation.Nullable;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.util.Timer;
