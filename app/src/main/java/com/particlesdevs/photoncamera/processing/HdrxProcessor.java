@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 
@@ -165,7 +166,10 @@ public class HdrxProcessor extends ProcessorBase {
                 Wrapper.loadFrame(images.get(i).buffer, (FAKE_WL / PhotonCamera.getParameters().whiteLevel) * mpy);
             }
         }
-
+        /*InterpolateGainMap interpolateGainMap = new InterpolateGainMap(new Point(width,height));
+        interpolateGainMap.parameters = PhotonCamera.getParameters();
+        interpolateGainMap.Run();
+        Log.d(TAG,"interpolator:"+interpolateGainMap.Output.asShortBuffer().get(6000000));*/
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "White Level:" + PhotonCamera.getParameters().whiteLevel);
