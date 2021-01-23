@@ -1062,7 +1062,7 @@ public class HorizontalPicker extends View {
 
         private float mScroll;
 
-        private boolean mRtl;
+        private final boolean mRtl;
 
         Marquee(HorizontalPicker v, Layout l, boolean rtl) {
             final float density = v.getContext().getResources().getDisplayMetrics().density;
