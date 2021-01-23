@@ -4,7 +4,9 @@ import android.graphics.Bitmap;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
+
 import androidx.databinding.BindingAdapter;
+
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
 public class CustomBinding {

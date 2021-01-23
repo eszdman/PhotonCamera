@@ -12,7 +12,8 @@ public class ImageFrame {
     float luckyParameter;
     int number;
     IsoExpoSelector.ExpoPair pair;
-    public ImageFrame(ByteBuffer in){
+
+    public ImageFrame(ByteBuffer in) {
         buffer = in;
     }
 }

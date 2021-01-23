@@ -2,6 +2,8 @@ package com.particlesdevs.photoncamera.manual;
 
 import android.graphics.drawable.Drawable;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +47,7 @@ public class KnobItemInfo implements Comparable<KnobItemInfo> {
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return "KnobItemInfo [Tick: " + this.tick + ", Text: " + this.text + ", Value: " + this.value + ", Rotation: " + this.rotationCenter + ", Rotation left: " + this.rotationLeft + ", Rotation right: " + this.rotationRight + "]";
     }
 }

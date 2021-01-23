@@ -32,8 +32,10 @@ import android.util.*;
 import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.*;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -63,9 +65,9 @@ import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 
 /**
  * Class responsible for image capture and sending images for subsequent processing
- *
+ * <p>
  * All relevant events are notified to cameraEventsListener
- *
+ * <p>
  * Constructor {@link CaptureController#CaptureController(Activity, CameraEventsListener)}
  */
 public class CaptureController implements MediaRecorder.OnInfoListener {
@@ -308,7 +310,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
-                    if (PhotonCamera.getManualMode().isManualMode()) mState = STATE_WAITING_NON_PRECAPTURE;
+                    if (PhotonCamera.getManualMode().isManualMode())
+                        mState = STATE_WAITING_NON_PRECAPTURE;
                     break;
                 }
                 case STATE_WAITING_NON_PRECAPTURE: {
@@ -346,7 +349,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (mTemp != null) mPreviewTemp = mTemp;
             if (mPreviewTemp == null) {
                 mPreviewTemp = new Rational[3];
-                for (int i = 0; i < mPreviewTemp.length; i++) mPreviewTemp[i] = new Rational(101, 100);
+                for (int i = 0; i < mPreviewTemp.length; i++)
+                    mPreviewTemp[i] = new Rational(101, 100);
             }
             mColorSpaceTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
             Integer state = result.get(CaptureResult.FLASH_STATE);
@@ -587,10 +591,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
-                if(!isProcessing)
+                if (!isProcessing)
                     mImageReaderPreview.close();
                 mImageReaderPreview = null;
-                if(!isProcessing)
+                if (!isProcessing)
                     mImageReaderRaw.close();
                 mImageReaderRaw = null;
             }
@@ -709,10 +713,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
-                if(!isProcessing)
+                if (!isProcessing)
                     mImageReaderPreview.close();
                 mImageReaderPreview = null;
-                if(!isProcessing)
+                if (!isProcessing)
                     mImageReaderRaw.close();
                 mImageReaderRaw = null;
             }
@@ -917,8 +921,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         int rotatedPreviewHeight = mPreviewHeight;
         int maxPreviewWidth = displaySize.x;
         int maxPreviewHeight = displaySize.y;
-        mPreviewWidth = Math.max(rotatedPreviewHeight,rotatedPreviewWidth);
-        mPreviewHeight = Math.min(rotatedPreviewHeight,rotatedPreviewWidth);
+        mPreviewWidth = Math.max(rotatedPreviewHeight, rotatedPreviewWidth);
+        mPreviewHeight = Math.min(rotatedPreviewHeight, rotatedPreviewWidth);
         if (swappedDimensions) {
             rotatedPreviewWidth = mPreviewHeight;
             rotatedPreviewHeight = mPreviewWidth;
@@ -944,8 +948,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
                 maxPreviewHeight*2, target);*/
         mPreviewSize = new Size(mPreviewWidth, mPreviewHeight);
-        if(PhotonCamera.getSettings().DebugData)
-            showToast("preview:"+new Point(mPreviewWidth,mPreviewHeight));
+        if (PhotonCamera.getSettings().DebugData)
+            showToast("preview:" + new Point(mPreviewWidth, mPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         int orientation = activity.getResources().getConfiguration().orientation;
@@ -1058,7 +1062,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 @NonNull CameraCaptureSession cameraCaptureSession) {
                             showToast("Failed");
                         }
-                    },null);
+                    }, null);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1121,10 +1125,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //setCaptureAEMode(captureBuilder);
-            if(mFlashed) captureBuilder.set(FLASH_MODE,FLASH_MODE_TORCH);
+            if (mFlashed) captureBuilder.set(FLASH_MODE, FLASH_MODE_TORCH);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG, "Focus:" + focus);
-            if(focus != 0.0)
+            if (focus != 0.0)
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
@@ -1145,19 +1149,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
-            if(frameCount == 1) frameCount++;
+            if (frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
             IsoExpoSelector.HDR = !PhotonCamera.getManualMode().isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
-            Log.d(TAG,"HDRFact1:"+PhotonCamera.getManualMode().isManualMode()+" HDRFact2:"+PhotonCamera.getSettings().alignAlgorithm);
+            Log.d(TAG, "HDRFact1:" + PhotonCamera.getManualMode().isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
             IsoExpoSelector.HDR = (PhotonCamera.getManualMode().isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
-            Log.d(TAG,"HDR:"+IsoExpoSelector.HDR);
+            Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            if(focus != 0.0)
+            if (focus != 0.0)
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             //showToast("AF:"+mFocus);
 
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
-            if(focus != 0.0)
+            if (focus != 0.0)
                 mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();
 
@@ -1267,6 +1271,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void setPreviewAEMode() {
         setAEMode(mPreviewRequestBuilder);
     }
+
     private void setCaptureAEMode(CaptureRequest.Builder captureRequestBuilder) {
         setAEMode(captureRequestBuilder);
     }
@@ -1414,9 +1419,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         private final float evStep = mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue();
         public Range<Float> evRange = new Range<>((mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getLower() * evStep),
                 (mCameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE).getUpper() * evStep));
-        public CameraProperties(){
+
+        public CameraProperties() {
             logIt();
         }
+
         private void logIt() {
             String lens = PhotonCamera.getSettings().mCameraID;
             Log.d(TAG, "focusRange(" + lens + ") : " + (focusRange == null ? "Fixed [" + maxFocal + "]" : focusRange.toString()));

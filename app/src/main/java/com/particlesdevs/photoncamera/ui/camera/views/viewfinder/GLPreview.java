@@ -33,14 +33,12 @@ public class GLPreview extends GLSurfaceView {
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 
-    public void fireOnSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int w, int h)
-    {
+    public void fireOnSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int w, int h) {
         if (surfaceTextureListener != null)
-            surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture,w,h);
+            surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
     }
 
-    public void fireOnSurfaceTextureDestroyed(SurfaceTexture surfaceTexture)
-    {
+    public void fireOnSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
         if (surfaceTextureListener != null)
             surfaceTextureListener.onSurfaceTextureDestroyed(surfaceTexture);
     }
@@ -56,7 +54,7 @@ public class GLPreview extends GLSurfaceView {
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         super.surfaceChanged(holder, format, w, h);
         if (surfaceTextureListener != null)
-            surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(),w,h);
+            surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(), w, h);
     }
 
     @Override
@@ -114,31 +112,30 @@ public class GLPreview extends GLSurfaceView {
         }
     }
 
-    public SurfaceTexture getSurfaceTexture()
-    {
+    public SurfaceTexture getSurfaceTexture() {
         return mRenderer.getmSTexture();
     }
 
-    public void setTransform(Matrix matrix)
-    {
+    public void setTransform(Matrix matrix) {
 
     }
 
-    public void setOrientation(int or)
-    {
+    public void setOrientation(int or) {
         mRenderer.setOrientation(or);
     }
+
     boolean available = false;
-    public boolean isAvailable(){
+
+    public boolean isAvailable() {
         return available;
     }
+
     public void setSurfaceTextureListener(TextureView.SurfaceTextureListener l) {
         this.surfaceTextureListener = l;
         available = true;
     }
 
-    public void scale(int in_width, int in_height, int out_width, int out_height, int or)
-    {
-        mRenderer.scale(in_width,in_height,out_width,out_height,or);
+    public void scale(int in_width, int in_height, int out_width, int out_height, int or) {
+        mRenderer.scale(in_width, in_height, out_width, out_height, or);
     }
 }

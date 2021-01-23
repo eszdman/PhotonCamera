@@ -129,7 +129,11 @@ public class ImageCompareFragment extends Fragment {
         File imagesFolder = new File(getContext().getCacheDir(), "images");
         Uri uri = null;
         try {
-            imagesFolder.mkdirs();
+            boolean result = imagesFolder.mkdirs();
+            if (!result){
+                Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
+                return uri;
+            }
             File file = new File(imagesFolder, "compare_screenshot.jpg");
             OutputStream stream = Files.newOutputStream(file.toPath());
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);

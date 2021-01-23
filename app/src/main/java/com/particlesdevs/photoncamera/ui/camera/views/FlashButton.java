@@ -2,7 +2,9 @@ package com.particlesdevs.photoncamera.ui.camera.views;
 
 import android.content.Context;
 import android.util.AttributeSet;
+
 import androidx.appcompat.widget.AppCompatButton;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 

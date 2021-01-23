@@ -329,7 +329,6 @@ public class GLProg implements AutoCloseable {
         }
     }
 
-    @SuppressWarnings("ConstantConditions")
     public void setTexture(String var, GLTexture tex) {
         if(tex == null) try {
             throw new Exception("Wrong Texture:"+var);

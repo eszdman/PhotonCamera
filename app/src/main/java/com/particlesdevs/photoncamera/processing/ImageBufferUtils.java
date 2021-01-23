@@ -6,10 +6,10 @@ import android.hardware.camera2.CaptureResult;
 import java.nio.ByteBuffer;
 
 public class ImageBufferUtils {
-    public static void RemoveHotpixelsRaw(ByteBuffer in, Point size, CaptureResult res){
+    public static void RemoveHotpixelsRaw(ByteBuffer in, Point size, CaptureResult res) {
         Point[] hotpixels = res.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-        for(Point hotpixel: hotpixels){
-            int ind = size.x*hotpixel.y + hotpixel.x;
+        for (Point hotpixel : hotpixels) {
+            int ind = size.x * hotpixel.y + hotpixel.x;
             in.asShortBuffer().put(ind, (short) 1024);
         }
         /*for(int h = 30; h<90;h++) {

@@ -8,8 +8,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Rational;
+
 import androidx.exifinterface.media.ExifInterface;
 import androidx.lifecycle.AndroidViewModel;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
@@ -18,6 +20,7 @@ import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.gallery.model.ExifDialogModel;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 import com.particlesdevs.photoncamera.util.Utilities;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

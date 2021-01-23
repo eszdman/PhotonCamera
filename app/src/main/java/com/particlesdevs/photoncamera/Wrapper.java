@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera;
 
 import java.nio.ByteBuffer;
+
 //PhotonCamera
 //Copyright (C) 2020-2021  Eszdman
 //https://github.com/eszdman/PhotonCamera
@@ -25,7 +26,7 @@ public class Wrapper {
      *
      * @param bufferptr Image buffer.
      */
-    public static native void loadFrame(ByteBuffer bufferptr,float Exposure);
+    public static native void loadFrame(ByteBuffer bufferptr, float Exposure);
 
-    public static native ByteBuffer processFrame(float DistMin,float DistMax,float ElFactor,float BLConst,float WLFactor);
+    public static native ByteBuffer processFrame(float DistMin, float DistMax, float ElFactor, float BLConst, float WLFactor);
 }

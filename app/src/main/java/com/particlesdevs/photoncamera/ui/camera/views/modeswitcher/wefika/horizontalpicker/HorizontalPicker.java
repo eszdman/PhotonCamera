@@ -32,11 +32,14 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
+
+import androidx.annotation.RequiresApi;
 import androidx.core.text.TextDirectionHeuristicCompat;
 import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+
 import com.particlesdevs.photoncamera.R;
 
 import java.lang.ref.WeakReference;
@@ -221,6 +224,7 @@ public class HorizontalPicker extends View {
         setMeasuredDimension(width, height);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -307,6 +311,7 @@ public class HorizontalPicker extends View {
         drawEdgeEffect(canvas, rightEdgeEffect, 90);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     private float getTextWidth(CharSequence text, Paint paint) {
         Rect rect = new Rect();
         paint.getTextBounds(text, 0, text.length(), rect);

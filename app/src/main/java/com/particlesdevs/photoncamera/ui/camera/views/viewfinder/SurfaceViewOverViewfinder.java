@@ -8,6 +8,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class SurfaceViewOverViewfinder extends SurfaceView {

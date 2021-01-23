@@ -11,9 +11,11 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
+
 import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.os.HandlerCompat;
+
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
@@ -34,7 +36,7 @@ import java.util.concurrent.Executors;
 public class PhotonCamera extends Application {
     public static final boolean DEBUG = false;
     private static PhotonCamera sPhotonCamera;
-//    private final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    //    private final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 //    private final ExecutorService executorService = Executors.newWorkStealingPool();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainThreadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
@@ -83,6 +85,7 @@ public class PhotonCamera extends Application {
     public static SupportedDevice getSupportedDevice() {
         return sPhotonCamera.mSupportedDevice;
     }
+
     public static AssetLoader getAssetLoader() {
         return sPhotonCamera.mAssetLoader;
     }
@@ -98,7 +101,7 @@ public class PhotonCamera extends Application {
     public static SettingsManager getSettingsManager() {
         return sPhotonCamera.mSettingsManager;
     }
-    
+
     public static void restartWithDelay(long delayMs) {
         getMainHandler().postDelayed(PhotonCamera::restartApp, delayMs);
     }

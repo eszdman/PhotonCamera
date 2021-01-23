@@ -4,6 +4,9 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.util.Range;
+
+import androidx.core.content.ContextCompat;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.manual.*;
 
@@ -38,13 +41,13 @@ public class FocusModel extends ManualModel<Float> {
         }
         for (int tick = 0; tick < values.size(); tick++) {
             if (tick == 0) {
-                drawable = context.getDrawable(R.drawable.manual_icon_focus_near);
+                drawable = ContextCompat.getDrawable(context, R.drawable.manual_icon_focus_near);
             } else if (tick == values.size() - 1) {
-                drawable = context.getDrawable(R.drawable.manual_icon_focus_far);
+                drawable = ContextCompat.getDrawable(context, R.drawable.manual_icon_focus_far);
             } else {
                 drawable = new ShadowTextDrawable();
             }
-            String text = String.format("%.2f", values.get(tick));
+            String text = values.get(tick).toString();
 //            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }

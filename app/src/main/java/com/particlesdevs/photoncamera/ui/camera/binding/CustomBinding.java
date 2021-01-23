@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.ui.camera.binding;
 import android.view.View;
 
 import android.view.ViewGroup;
+
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
@@ -17,8 +18,7 @@ public class CustomBinding {
     //handel the rotation that should get applied when the CameraFragmentModels rotation change
     //the view item must add bindRotate="@{uimodel}"/>
     @BindingAdapter("bindRotate")
-    public static void rotatetView(View view, CameraFragmentModel model)
-    {
+    public static void rotatedView(View view, CameraFragmentModel model) {
         if (model != null)
             view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
     }
@@ -26,8 +26,7 @@ public class CustomBinding {
     //handel the rotation that should get applied to "@+id/buttons_container" when the CameraFragmentModels rotation change
     //the ui item must add bindChildsRotate="@{uimodel}"/>
     @BindingAdapter("bindChildsRotate")
-    public static void rotatetKnobView(KnobView view, CameraFragmentModel model)
-    {
+    public static void rotatedKnobView(KnobView view, CameraFragmentModel model) {
         if (model != null) {
             int orientation = model.getOrientation();
             view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));

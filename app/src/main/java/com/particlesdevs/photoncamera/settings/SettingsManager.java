@@ -20,6 +20,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.util.Log;
 import android.util.Size;
+
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
@@ -162,13 +163,7 @@ public class SettingsManager {
 
     private OnSharedPreferenceChangeListener getSharedPreferenceListener(
             final OnSettingChangedListener listener) {
-        return new OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(
-                    SharedPreferences sharedPreferences, String key) {
-                listener.onSettingChanged(SettingsManager.this, key);
-            }
-        };
+        return (sharedPreferences, key) -> listener.onSettingChanged(SettingsManager.this, key);
     }
 
     /**
@@ -325,6 +320,7 @@ public class SettingsManager {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         return preferences.getString(key.mValue, defaultValue);
     }
+
     public String getString(String scope, String key, String defaultValue) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         return preferences.getString(key, defaultValue);
@@ -388,6 +384,7 @@ public class SettingsManager {
         String value = getString(scope, key, defaultValueString);
         return (Integer.parseInt(value) != 0);
     }
+
     public boolean getBoolean(String scope, String key, boolean defaultValue) {
         String defaultValueString = defaultValue ? "1" : "0";
         String value = getString(scope, key, defaultValueString);
@@ -466,6 +463,7 @@ public class SettingsManager {
             preferences.edit().putString(key.mValue, value).apply();
         }
     }
+
     public void set(String scope, String key, String value) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         preferences.edit().putString(key, value).apply();
@@ -499,9 +497,11 @@ public class SettingsManager {
     public void set(String scope, PreferenceKeys.Key key, boolean value) {
         set(scope, key, convert(value));
     }
+
     public void set(String scope, String key, boolean value) {
         set(scope, key, convert(value));
     }
+
     public void set(String scope, PreferenceKeys.Key key, Set<String> value) {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         preferences.edit().putStringSet(key.mValue, value).apply();
@@ -512,6 +512,7 @@ public class SettingsManager {
             set(scope, key, convert(value));
         }
     }
+
     /**
      * Set a setting to the default value stored in the DefaultsStore.
      */

@@ -5,7 +5,9 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+
 import androidx.annotation.StringRes;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;

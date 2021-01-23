@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.gallery.adapters;
 
 import android.view.View;
+
 import androidx.viewpager.widget.ViewPager;
 
 public class DepthPageTransformer implements ViewPager.PageTransformer {

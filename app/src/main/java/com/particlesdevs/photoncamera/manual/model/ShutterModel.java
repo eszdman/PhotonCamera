@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.util.Log;
 import android.util.Range;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.manual.*;
@@ -33,7 +34,7 @@ public class ShutterModel extends ManualModel<Long> {
         ArrayList<Long> values = new ArrayList<>();
 
         long minexp = (long) range.getLower();
-        if(minexp < 1000) minexp = 1000;
+        if (minexp < 1000) minexp = 1000;
         //minexp += 5000 - minexp % 5000;
         long maxexp = (long) range.getUpper();
         Log.v("ExpModel", "Max exp:" + maxexp);

@@ -18,7 +18,7 @@
 
     <application
         android:name="com.particlesdevs.photoncamera.app.PhotonCamera"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:isGame="true"
@@ -27,7 +27,8 @@
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.Photon.BaseApp"
-        tools:targetApi="q">
+        tools:targetApi="q"
+        android:fullBackupContent="@xml/backup_descriptor">
         <activity
             android:name="com.particlesdevs.photoncamera.ui.settings.SettingsActivity"
             android:theme="@style/Theme.Photon.SettingsActivity" />

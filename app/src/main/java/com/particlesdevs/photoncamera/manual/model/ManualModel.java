@@ -31,7 +31,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     protected KnobItemInfo currentInfo, autoModel;
     protected Context context;
 
-    public ManualModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
+    public ManualModel(Context context, Range<T> range, ValueChangedEvent valueChangedEvent) {
         this.context = context;
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
@@ -74,18 +74,18 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         return autoModel;
     }
 
-    public KnobItemInfo getItemInfo(String text, double val, int tick) {
-        ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-        autoDrawable.setText(text);
-        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
-        ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
-        autoDrawableSelected.setText(text);
-        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
-        StateListDrawable autoStateDrawable = new StateListDrawable();
-        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
-        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
-        return new KnobItemInfo(autoStateDrawable, text, tick, val);
-    }
+//    public KnobItemInfo getItemInfo(String text, double val, int tick) {
+//        ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
+//        autoDrawable.setText(text);
+//        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
+//        ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
+//        autoDrawableSelected.setText(text);
+//        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
+//        StateListDrawable autoStateDrawable = new StateListDrawable();
+//        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
+//        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
+//        return new KnobItemInfo(autoStateDrawable, text, tick, val);
+//    }
 
     protected abstract void fillKnobInfoList();
 

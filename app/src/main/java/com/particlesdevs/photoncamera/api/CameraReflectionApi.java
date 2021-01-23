@@ -5,7 +5,9 @@ import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
+
 import com.particlesdevs.photoncamera.capture.CaptureController;
+
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Array;
@@ -86,6 +88,7 @@ public class CameraReflectionApi {
         }
 
     }
+
     public static Field[] getAllMetadataFields() {
         return CameraMetadata.class.getDeclaredFields();
     }

@@ -3,8 +3,10 @@ package com.particlesdevs.photoncamera.ui.camera.viewmodel;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
+
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel;
 

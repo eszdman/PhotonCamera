@@ -9,6 +9,7 @@ import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Log;
 import android.util.Range;
 import android.util.Rational;
+
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
@@ -45,6 +46,7 @@ public class Camera2ApiAutoFix {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(characteristics);
         fix.MaxRegionsAF();
     }
+
     //private static double oldWL = -1.0;
     public static void ApplyRes(CaptureResult captureResult) {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(captureResult);
@@ -56,6 +58,7 @@ public class Camera2ApiAutoFix {
         Camera2ApiAutoFix.BlackLevel(CameraFragment.mCaptureResult, PhotonCamera.getParameters().blackLevel, 1.f);
         oldWL = -1.0;*/
     }
+
     public static void ApplyBurst() {
         /*if(oldWL == -1.0) {
             PhotonCamera.getParameters().FillParameters(null,CameraFragment.mCameraCharacteristics,null);
@@ -94,6 +97,7 @@ public class Camera2ApiAutoFix {
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE, nrange);
         }
     }
+
     public static void patchWL(CameraCharacteristics characteristics,
                                CaptureResult captureResult,
                                int patchWL) {
@@ -147,8 +151,8 @@ public class Camera2ApiAutoFix {
         if (blackLevel != null) {
             blackLevel.copyTo(levelArr, 0);
             for (int i = 0; i < 4; i++) {
-                if(blacklevel[i] >= 0)
-                levelArr[i] = (int) (blacklevel[i]*mpy);
+                if (blacklevel[i] >= 0)
+                    levelArr[i] = (int) (blacklevel[i] * mpy);
                 else {
                     levelArr[i] = (int) (0);
                 }
@@ -156,12 +160,12 @@ public class Camera2ApiAutoFix {
             CameraReflectionApi.PatchBL(blackLevel, levelArr);
             CameraReflectionApi.set(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN, blackLevel);
         }
-        if(res != null) {
+        if (res != null) {
             float[] dynBL = res.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
             if (dynBL != null) {
                 for (int i = 0; i < dynBL.length; i++) {
-                    if(blacklevel[i] >=0)
-                    dynBL[i] = blacklevel[i] * mpy;
+                    if (blacklevel[i] >= 0)
+                        dynBL[i] = blacklevel[i] * mpy;
                     else {
                         dynBL[i] = 0.f;
                     }
@@ -170,6 +174,7 @@ public class Camera2ApiAutoFix {
             }
         }
     }
+
     private void MaxRegionsAF() {
         //CameraReflectionApi.set(CONTROL_MAX_REGIONS_AF,5);
     }
@@ -219,7 +224,7 @@ public class Camera2ApiAutoFix {
     }
 
     public static void applyEnergySaving() {
-        if(PhotonCamera.getSettings().energySaving){
+        if (PhotonCamera.getSettings().energySaving) {
             GLDrawParams.TileSize = 8;
         } else {
             GLDrawParams.TileSize = 256;

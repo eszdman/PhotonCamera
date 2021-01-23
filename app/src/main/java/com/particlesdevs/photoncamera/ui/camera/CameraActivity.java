@@ -8,8 +8,10 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
@@ -25,7 +27,7 @@ import java.util.Arrays;
 public class CameraActivity extends BaseActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
-    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
+    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
     private static int requestCount;
 
     @Override
@@ -45,7 +47,7 @@ public class CameraActivity extends BaseActivity {
 
         if (hasAllPermissions()) {
 //            if (null == savedInstanceState)
-                tryLoad();
+            tryLoad();
         } else {
             requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //First Permission request
         }

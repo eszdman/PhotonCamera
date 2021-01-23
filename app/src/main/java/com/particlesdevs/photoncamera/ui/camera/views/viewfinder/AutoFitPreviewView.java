@@ -28,6 +28,7 @@ public class AutoFitPreviewView extends TextureView {
     private int mRatioWidth = 0;
     private int mRatioHeight = 0;
     public Point cameraSize;
+
     public AutoFitPreviewView(Context context) {
         this(context, null);
     }
@@ -59,7 +60,7 @@ public class AutoFitPreviewView extends TextureView {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        if(cameraSize != null) {
+        if (cameraSize != null) {
             widthMeasureSpec = cameraSize.x;
             heightMeasureSpec = cameraSize.y;
         }
