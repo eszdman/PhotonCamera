@@ -47,7 +47,6 @@ import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
@@ -265,8 +264,7 @@ public class CameraFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
-        fragmentManager.beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
+        getParentFragmentManager().beginTransaction().remove((Fragment) CameraFragment.this).commitAllowingStateLoss();
     }
 
     @SuppressLint("DefaultLocale")

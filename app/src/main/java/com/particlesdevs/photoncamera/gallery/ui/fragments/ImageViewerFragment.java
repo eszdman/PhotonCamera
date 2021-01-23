@@ -75,7 +75,7 @@ public class ImageViewerFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getFragmentManager().beginTransaction().remove((Fragment) ImageViewerFragment.this).commitAllowingStateLoss();
+        getParentFragmentManager().beginTransaction().remove((Fragment) ImageViewerFragment.this).commitAllowingStateLoss();
     }
 
     private void initialiseDataMembers() {

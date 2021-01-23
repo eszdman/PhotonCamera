@@ -273,14 +273,13 @@ public class Parameters {
                 ",\n hasGainMap=" + hasGainMap +
                 ",\n framecount=" + FrameNumberSelector.frameCount +
                 ",\n CameraID=" + PhotonCamera.getSettings().mCameraID +
-                ",\n Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
-                ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
+                ",\n Sat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
+                ",\n Shadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
                 ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
                 ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
+                ",\n DenoiseOn=" + FltFormat(PhotonCamera.getSettings().hdrxNR)+
                 ",\n FocalL=" + FltFormat(focalLength);
     }
-
     @SuppressLint("DefaultLocale")
     private String FltFormat(Object in) {
         return String.format("%.2f", in);
