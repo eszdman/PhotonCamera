@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="request_permission">Este aplicativo necessita de permissão para acesso à câmera.</string>
-    <string name="camera_error">Este aparelho não suporta Camera2 API.</string>
+    <string name="camera_error">Este aparelho não suporta Câmera2 API.</string>
     <string name="luma_nr_count">Contagem de redução de ruido de luminância:</string>
     <string name="frame_count">Contagem de quadros:</string>
     <string name="disable_aligning">Desabilitar alinhamento</string>
