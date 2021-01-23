@@ -4,6 +4,8 @@ import android.content.Context;
 import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
+
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -23,9 +25,11 @@ public final class CameraUIController implements CameraUIView.CameraUIEventsList
     private final CameraFragment mCameraFragment;
     private CountDownTimer countdownTimer;
     private View shutterButton;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     public CameraUIController(CameraFragment cameraFragment) {
         this.mCameraFragment = cameraFragment;
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(cameraFragment.getContext());
     }
 
     private void restartCamera() {

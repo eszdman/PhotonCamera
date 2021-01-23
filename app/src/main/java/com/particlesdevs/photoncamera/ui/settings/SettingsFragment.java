@@ -45,7 +45,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     private SettingsManager mSettingsManager;
     private Context mContext;
     private View mRootView;
-
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -58,8 +58,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         activity = getActivity();
         mSettingsManager = new SettingsManager(getContext());
         mContext = getContext();
-
-
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this.mContext);
         getPreferenceScreen().getSharedPreferences()
                 .registerOnSharedPreferenceChangeListener(this);
         showHideHdrxSettings();
@@ -114,6 +113,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             myPref.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
                 startActivity(browserIntent);
+                Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "Telegram button");
+                bundle.putString(FirebaseAnalytics.Param.DESTINATION, "https://t.me/photon_camera_channel");
+                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_ITEM, bundle);
                 return true;
             });
     }
@@ -124,6 +127,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             github.setOnPreferenceClickListener(preference -> {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/eszdman/PhotonCamera"));
                 startActivity(browserIntent);
+                Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "Github button");
+                bundle.putString(FirebaseAnalytics.Param.DESTINATION, "https://github.com/eszdman/PhotonCamera");
+                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_ITEM, bundle);
                 return true;
             });
     }

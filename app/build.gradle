@@ -69,9 +69,10 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            jniDebuggable = false
+            jniDebuggable = true
             zipAlignEnabled = true
-            debuggable false
+            debuggable true
+            renderscriptDebuggable true
         }
     }
 
@@ -88,6 +89,9 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation 'com.google.android.gms:play-services-basement:17.5.0'
+
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
@@ -103,6 +107,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-config:20.0.2'
     implementation 'com.google.firebase:firebase-crashlytics:17.3.0'
     implementation 'com.google.firebase:firebase-perf:19.1.0'
+    implementation 'com.google.firebase:firebase-core:18.0.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'

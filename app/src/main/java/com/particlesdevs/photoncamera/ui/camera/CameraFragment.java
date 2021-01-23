@@ -51,6 +51,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
@@ -114,6 +115,7 @@ public class CameraFragment extends Fragment {
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
     private AutoFitPreviewView textureView;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     public CameraFragment() {
     }
@@ -134,6 +136,7 @@ public class CameraFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this.getContext());
     }
 
     @Override
