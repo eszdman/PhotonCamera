@@ -8,16 +8,19 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+
 import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
+
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
+import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 
 import java.util.Arrays;
 
