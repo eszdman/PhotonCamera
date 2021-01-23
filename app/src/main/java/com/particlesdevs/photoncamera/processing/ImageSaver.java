@@ -69,8 +69,8 @@ public class ImageSaver {
         Image mImage = null;
         try {
             mImage = mReader.acquireNextImage();
-        } catch (Exception e) {
-            mReader.close();
+        } catch (Exception ignored) {
+            return;
         }
         if (mImage == null)
             return;
@@ -194,6 +194,7 @@ public class ImageSaver {
                 captureResult,
                 processingCallback
         );
+        clearImageReader(imageReader);
         IMAGE_BUFFER.clear();
     }
 

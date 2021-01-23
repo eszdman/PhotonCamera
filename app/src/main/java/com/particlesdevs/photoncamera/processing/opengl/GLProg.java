@@ -102,6 +102,15 @@ public class GLProg implements AutoCloseable {
             case 4:
                 setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
                 break;
+            case 9:
+                float[] transpose = new float[9];
+                for(int i =0; i<3;i++){
+                    for(int j =0; j<3;j++){
+                        transpose[j + i*3] = vars[i + j*3];
+                    }
+                }
+                setDefine(DefineName,"("+ Arrays.toString(transpose).replace("]","").replace("[","")+")");
+                break;
             default:
                 setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
                 break;

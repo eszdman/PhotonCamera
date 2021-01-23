@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.processing;
 
 import android.graphics.Bitmap;
-import android.graphics.Paint;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
@@ -88,24 +87,10 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
 
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
-
-        int levell = 1023;
-        if (whiteLevel != null)
-            levell = (int) whiteLevel;
-        float fakelevel = levell;//(float)Math.pow(2,15)-1.f;//bits raw
-        //if(debugAlignment) fakelevel = 16384;
-        float k = fakelevel / levell;
-        if (PhotonCamera.getParameters().realWL == -1) {
-            PhotonCamera.getParameters().realWL = levell;
-        } else {
-            levell = PhotonCamera.getParameters().realWL;
-        }
         Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
-        PhotonCamera.getParameters().FillParameters(captureResult, characteristics, new Point(width, height));
-        if (PhotonCamera.getParameters().realWL == -1) {
-            PhotonCamera.getParameters().realWL = levell;
-        }
+        PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
+        PhotonCamera.getParameters().FillDynamicParameters(captureResult);
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ImageFrame> images = new ArrayList<>();
@@ -153,6 +138,7 @@ public class HdrxProcessor extends ProcessorBase {
                 float curunlucky = images.get(images.size() - 1).luckyParameter;
                 if (curunlucky > unluckyavr * unluckypickiness) {
                     Log.d(TAG, "Removing unlucky:" + curunlucky + " number:" + images.get(images.size() - 1).number);
+                    images.get(images.size() - 1).image.close();
                     images.remove(images.size() - 1);
                 }
             }
@@ -171,23 +157,12 @@ public class HdrxProcessor extends ProcessorBase {
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
-                /*RawSensivity rawSensivity = new RawSensivity(new Point(width,height));
-                rawSensivity.oldWhiteLevel = levell;
-                rawSensivity.sensitivity = FAKE_WL/levell;
-                rawSensivity.input = images.get(i).buffer;
-                rawSensivity.Output = images.get(i).buffer;
-                rawSensivity.Run();*/
                 float mpy = 1.f/5.f;
                 if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal) mpy = 1.f;
                 //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
                 Log.d(TAG,"Load:i:"+i+" expolayer:"+images.get(i).pair.curlayer+" mpy:"+mpy);
-                Wrapper.loadFrame(images.get(i).buffer,(FAKE_WL/levell)*mpy);
-                //rawSensivity.close();
+                Wrapper.loadFrame(images.get(i).buffer,(FAKE_WL/PhotonCamera.getParameters().whiteLevel)*mpy);
             }
-            /*PhotonCamera.getParameters().blackLevel[0]-=levell*63.f/1023.f;
-            PhotonCamera.getParameters().blackLevel[1]-=levell*63.f/1023.f;
-            PhotonCamera.getParameters().blackLevel[2]-=levell*63.f/1023.f;
-            PhotonCamera.getParameters().blackLevel[3]-=levell*63.f/1023.f;*/
         }
 
         rawPipeline.imageObj = mImageFramesToProcess;
@@ -212,39 +187,15 @@ public class HdrxProcessor extends ProcessorBase {
         //        PhotonCamera.getParameters().blackLevel[2]+PhotonCamera.getParameters().blackLevel[3];
         //bl/=4.0;
         if (!debugAlignment) {
-            output = Wrapper.processFrame(200,1200,512,bl,levell);
+            output = Wrapper.processFrame(200,1200,512,bl,PhotonCamera.getParameters().whiteLevel);
         } else {
             output = rawPipeline.Run();
         }
-        PhotonCamera.getParameters().blackLevel[0]-=bl+0.25;
-        PhotonCamera.getParameters().blackLevel[1]-=bl+0.5;
-        PhotonCamera.getParameters().blackLevel[2]-=bl+0.5;
-        PhotonCamera.getParameters().blackLevel[3]-=bl+0.25;
-       /*
-        if (IsoExpoSelector.HDR) {
-            Wrapper.init(width,height,2);
-            RawSensivity rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
-            RawParams rawParams = new RawParams(res);
-            rawParams.input = mImageFramesToProcess.get(0).getPlanes()[0].getBuffer();
-            rawParams.sensivity = 0.7f;
-            rawSensivity.additionalParams = rawParams;
-            rawSensivity.Run();
-            Wrapper.loadFrame(rawSensivity.Output);
-            Wrapper.loadFrame(highexp);
-            highexp = Wrapper.processFrame(0.9f+deghostlevel);
-
-            Wrapper.init(width,height,2);
-            rawSensivity = new RawSensivity(new android.graphics.Point(width,height),null);
-            rawParams = new RawParams(res);
-            rawParams.input = mImageFramesToProcess.get(0).getPlanes()[0].getBuffer();
-            rawParams.sensivity = 6.0f;
-            rawSensivity.Run();
-            Wrapper.loadFrame(rawSensivity.Output);
-            Wrapper.loadFrame(lowexp);
-            lowexp = Wrapper.processFrame(0.9f+deghostlevel);
-            rawSensivity.close();
-        }
-        */
+        float[] oldBL = PhotonCamera.getParameters().blackLevel.clone();
+        PhotonCamera.getParameters().blackLevel[0]-=bl;
+        PhotonCamera.getParameters().blackLevel[1]-=bl;
+        PhotonCamera.getParameters().blackLevel[2]-=bl;
+        PhotonCamera.getParameters().blackLevel[3]-=bl;
         //Black shot fix
         images.get(0).image.getPlanes()[0].getBuffer().position(0);
         images.get(0).image.getPlanes()[0].getBuffer().put(output);
@@ -271,10 +222,10 @@ public class HdrxProcessor extends ProcessorBase {
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
 
-            PhotonCamera.getParameters().blackLevel[0]+=bl;
-            PhotonCamera.getParameters().blackLevel[1]+=bl;
-            PhotonCamera.getParameters().blackLevel[2]+=bl;
-            PhotonCamera.getParameters().blackLevel[3]+=bl;
+            PhotonCamera.getParameters().blackLevel[0]+=oldBL[0];
+            PhotonCamera.getParameters().blackLevel[1]+=oldBL[1];
+            PhotonCamera.getParameters().blackLevel[2]+=oldBL[2];
+            PhotonCamera.getParameters().blackLevel[3]+=oldBL[3];
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int)FAKE_WL);
             PhotonCamera.getParameters().blackLevel[0]-=bl;
             PhotonCamera.getParameters().blackLevel[1]-=bl;

@@ -8,11 +8,23 @@ uniform sampler2D FusionMap;
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
+#define CCT 0
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
+#if CCT != 1
 uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace to sRGB
+#endif
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform ivec4 activeSize;
+
+//#define CUBE0 (10.0)
+//#define CUBE1 (10.0)
+//#define CUBE2 (10.0)
+#if CCT == 1
+uniform mat3 CUBE0;
+uniform mat3 CUBE1;
+uniform mat3 CUBE2;
+#endif
 #define PI (3.1415926535)
 #define DYNAMICBL (0.0, 0.0, 0.0)
 #define PRECISION (64.0)
@@ -187,7 +199,24 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;*/
 
     pRGB = clamp(pRGB+vec3(EPS), vec3(EPS), neutralPoint);
-    pRGB = clamp(intermediateToSRGB*sensorToIntermediate*pRGB,0.0,1.0);
+    #if CCT == 0
+    mat3 corr = intermediateToSRGB;
+    #endif
+    #if CCT == 1
+    mat3 corr;
+    float br0 = ((pRGB.r+pRGB.g+pRGB.b))/(neutralPoint.r+neutralPoint.g+neutralPoint.b);
+    if(br0 > 0.5){
+        mat3 cub1 = mat3(CUBE1);
+        mat3 cub2 = mat3(CUBE2);
+        corr = cub1*(1.0-(br0-0.5)*2.0) + cub2*((br0-0.5)*2.0);
+    } else {
+        mat3 cub0 = mat3(CUBE0);
+        mat3 cub1 = mat3(CUBE1);
+        corr = cub0*(1.0-(br0-0.25)*4.0) + cub1*((br0-0.25)*4.0);
+    }
+    #endif
+    pRGB = corr*sensorToIntermediate*pRGB;
+    pRGB = clamp(pRGB,0.0,1.0);
     pRGB = tonemap(pRGB);
     pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
     pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;

@@ -36,7 +36,7 @@ public class AlignAndMerge extends Node {
         glProg.useProgram(R.raw.precorrection);
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
-        glProg.setVar("WhiteLevel", (float) PhotonCamera.getParameters().realWL);
+        glProg.setVar("WhiteLevel",(float)PhotonCamera.getParameters().whiteLevel);
         glProg.drawBlocks(out);
         inraw.close();
     }

@@ -41,11 +41,11 @@ android {
         minSdkVersion 26
         targetSdkVersion 30
         versionCode versionBuild
-        versionName '0.71'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
         }
+        versionName '0.72'
     }
 
     gradle.taskGraph.whenReady { taskGraph ->
@@ -69,8 +69,9 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            jniDebuggable = true
+            jniDebuggable = false
             zipAlignEnabled = true
+            debuggable false
         }
     }
 
