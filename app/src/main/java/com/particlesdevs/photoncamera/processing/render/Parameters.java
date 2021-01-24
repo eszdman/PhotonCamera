@@ -80,21 +80,16 @@ public class Parameters {
 
     public void FillDynamicParameters(CaptureResult result) {
         int[] blarr = new int[4];
-        boolean isHuawei = Build.BRAND.equals("Huawei");
         BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (result != null) {
+            boolean isHuawei = Build.BRAND.equals("Huawei");
+
             float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
             if (dynbl != null) {
                 System.arraycopy(dynbl, 0, blackLevel, 0, 4);
                 usedDynamic = true;
             }
-        }
-        if (!usedDynamic)
-            if (level != null) {
-                level.copyTo(blarr, 0);
-                for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
-            }
-        if (result != null) {
+
             LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
             if (lensMap != null) {
                 gainMap = new float[lensMap.getGainFactorCount()];
@@ -120,6 +115,11 @@ public class Parameters {
             hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
             ReCalcColor(false);
         }
+        if (!usedDynamic)
+            if (level != null) {
+                level.copyTo(blarr, 0);
+                for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
+            }
     }
 
 
