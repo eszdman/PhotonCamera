@@ -10,6 +10,7 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.Wrapper;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
@@ -30,6 +31,7 @@ public class HdrxProcessor extends ProcessorBase {
     private int alignAlgorithm;
     private boolean saveRAW;
     private CameraMode cameraMode;
+    private ArrayList<Float> BurstShakiness;
 
 
     protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
@@ -42,11 +44,16 @@ public class HdrxProcessor extends ProcessorBase {
         this.cameraMode = cameraMode;
     }
 
-    public void start(Path dngFile, Path jpgFile, ArrayList<Image> imageBuffer, int imageFormat,
+    public void start(Path dngFile, Path jpgFile,
+                      ParseExif.ExifData exifData,
+                      ArrayList<Float> BurstShakiness,
+                      ArrayList<Image> imageBuffer, int imageFormat,
                       CameraCharacteristics characteristics, CaptureResult captureResult,
                       ProcessingCallback callback) {
         this.jpgFile = jpgFile;
         this.dngFile = dngFile;
+        this.exifData = exifData;
+        this.BurstShakiness = new ArrayList<>(BurstShakiness);
         this.imageFormat = imageFormat;
         this.mImageFramesToProcess = imageBuffer;
         this.callback = callback;
@@ -97,7 +104,7 @@ public class HdrxProcessor extends ProcessorBase {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        float avr = PhotonCamera.getCaptureController().BurstShakiness.get(0);
+        float avr = BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -113,7 +120,7 @@ public class HdrxProcessor extends ProcessorBase {
             }
             Log.d(TAG, "Sensivity:" + k);*/
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = PhotonCamera.getCaptureController().BurstShakiness.get(i);
+            frame.luckyParameter = BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
@@ -250,7 +257,7 @@ public class HdrxProcessor extends ProcessorBase {
 
         //Saves the final bitmap
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, img,
-                ImageSaver.JPG_QUALITY, captureResult);
+                ImageSaver.JPG_QUALITY, exifData);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 

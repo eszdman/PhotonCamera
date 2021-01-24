@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
 
+import androidx.annotation.NonNull;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -266,19 +267,19 @@ public class Parameters {
         params.CCT = CCT;
         return params;
     }
-    @androidx.annotation.NonNull
+    @NonNull
     @Override
     public String toString() {
         return "parameters:\n" +
-                ",\n hasGainMap=" + hasGainMap +
-                ",\n framecount=" + FrameNumberSelector.frameCount +
-                ",\n CameraID=" + PhotonCamera.getSettings().mCameraID +
-                ",\n Sat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                ",\n Shadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
-                ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
-                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
-                ",\n DenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
-                ",\n FocalL=" + FltFormat(focalLength);
+                "\n hasGainMap=" + hasGainMap +
+                "\n FrameCount=" + FrameNumberSelector.frameCount +
+                "\n CameraID=" + PhotonCamera.getSettings().mCameraID +
+                "\n Sat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
+                "\n Shadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
+                "\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
+                "\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
+                "\n DenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
+                "\n FocalL=" + FltFormat(focalLength);
     }
     @SuppressLint("DefaultLocale")
     private String FltFormat(Object in) {

@@ -6,10 +6,9 @@ import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
-
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
+import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
@@ -36,12 +35,13 @@ public class UnlimitedProcessor extends ProcessorBase {
         this.saveRAW = saveRAW;
     }
 
-    public void unlimitedStart(Path dngFile, Path jpgFile,
+    public void unlimitedStart(Path dngFile, Path jpgFile, ParseExif.ExifData exifData,
                                CameraCharacteristics characteristics,
                                CaptureResult captureResult,
                                ProcessingCallback callback) {
         this.dngFile = dngFile;
         this.jpgFile = jpgFile;
+        this.exifData = exifData;
         this.characteristics = characteristics;
         this.captureResult = captureResult;
         unlimitedEnd = false;
@@ -123,7 +123,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
 
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, bitmap,
-                ImageSaver.JPG_QUALITY, CaptureController.mCaptureResult);
+                ImageSaver.JPG_QUALITY, exifData);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 

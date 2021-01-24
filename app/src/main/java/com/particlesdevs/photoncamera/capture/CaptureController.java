@@ -1240,7 +1240,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult));
+                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness));
                     }
                 }
             };
