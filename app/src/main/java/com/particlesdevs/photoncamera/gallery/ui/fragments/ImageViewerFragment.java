@@ -258,13 +258,15 @@ public class ImageViewerFragment extends Fragment {
 
     private void updateExif() {
         int position = viewPager.getCurrentItem();
-        File currentFile = allFiles.get(position);
-        if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-            //update values for exif dialog
-            exifDialogViewModel.updateModel(currentFile);
-            exifDialogViewModel.updateHistogramView(currentFile);
-        } else {
-            exifDialogViewModel.updateModel(currentFile);
+        if (allFiles.size() > 0) {
+            File currentFile = allFiles.get(position);
+            if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+                //update values for exif dialog
+                exifDialogViewModel.updateModel(currentFile);
+                exifDialogViewModel.updateHistogramView(currentFile);
+            } else {
+                exifDialogViewModel.updateModel(currentFile);
+            }
         }
     }
 

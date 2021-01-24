@@ -1301,12 +1301,11 @@ public class HorizontalPicker extends View {
 
             int left = (int) (virtualViewId * itemWidth - scrollOffset);
             int right = left + mPicker.itemWidth;
-            if (virtualViewId < mPicker.values.length || virtualViewId > 0) {
+            if (mPicker.values.length > 0) {
                 node.setContentDescription(mPicker.values[virtualViewId]);
                 node.setBoundsInParent(new Rect(left, 0, right, mPicker.getHeight()));
                 node.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
             }
-
         }
 
         @Override
