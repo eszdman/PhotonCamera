@@ -764,7 +764,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             e.printStackTrace();
             throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
         } finally {
-            mCameraOpenCloseLock.release();
+            try {
+                mCameraOpenCloseLock.release();
+            } catch (Exception ignored) {
+                showToast("Failed to release camera");
+            }
         }
 
         StreamConfigurationMap map = null;
@@ -1253,7 +1257,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
-                    
+
                     if (onUnlimited && mCaptureResult == null) {
                         mImageSaver.unlimitedStart(mCameraCharacteristics, result);
                     }
@@ -1354,7 +1358,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void callUnlimitedStart() {
         onUnlimited = true;
-        if (mCaptureResult != null) mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
+        if (mCaptureResult != null)
+            mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
         takePicture();
     }
 
