@@ -42,6 +42,8 @@ import androidx.customview.widget.ExploreByTouchHelper;
 
 import com.particlesdevs.photoncamera.R;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.lang.ref.WeakReference;
 import java.util.List;
 
@@ -1292,17 +1294,18 @@ public class HorizontalPicker extends View {
         }
 
         @Override
-        protected void onPopulateNodeForVirtualView(int virtualViewId, AccessibilityNodeInfoCompat node) {
+        protected void onPopulateNodeForVirtualView(int virtualViewId, @NotNull AccessibilityNodeInfoCompat node) {
 
             float itemWidth = mPicker.itemWidth + mPicker.dividerSize;
             float scrollOffset = mPicker.getScrollX() - itemWidth * mPicker.sideItems;
 
             int left = (int) (virtualViewId * itemWidth - scrollOffset);
             int right = left + mPicker.itemWidth;
-
-            node.setContentDescription(mPicker.values[virtualViewId]);
-            node.setBoundsInParent(new Rect(left, 0, right, mPicker.getHeight()));
-            node.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
+            if (virtualViewId < mPicker.values.length || virtualViewId > 0) {
+                node.setContentDescription(mPicker.values[virtualViewId]);
+                node.setBoundsInParent(new Rect(left, 0, right, mPicker.getHeight()));
+                node.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
+            }
 
         }
 
