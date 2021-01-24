@@ -76,6 +76,7 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewMod
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1003,7 +1004,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Camera2ApiAutoFix.Init();
         if (mMediaRecorder == null) {
             mMediaRecorder = new MediaRecorder();
-            setUpMediaRecorder();
+//            setUpMediaRecorder();
         }
         cameraEventsListener.onCharacteristicsUpdated(characteristics);
     }
@@ -1022,8 +1023,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // This is the output Surface we need to start preview.
             Surface surface = new Surface(texture);
             // We set up a CaptureRequest.Builder with the output Surface.
-            mPreviewRequestBuilder
-                    = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            mPreviewRequestBuilder = null;
+            if(mIsRecordingVideo)
+            mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+            else
+                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
 
             // Here, we create a CameraCaptureSession for camera preview.
@@ -1036,7 +1040,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (mTargetFormat == mPreviewTargetFormat) {
                 surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             }
-            if (CameraFragment.mSelectedMode == CameraMode.VIDEO) {
+            if (mIsRecordingVideo) {
+                setUpMediaRecorder();
                 surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
             }
             mCameraDevice.createCaptureSession(surfaces,
@@ -1085,6 +1090,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
+                            if(mIsRecordingVideo)
+                            activity.runOnUiThread(() -> {
+                                // Start recording
+
+                                mMediaRecorder.start();
+                            });
                         }
 
                         @Override
@@ -1363,26 +1374,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mIsRecordingVideo = false;
         stopRecordingVideo();
     }
-
     public void VideoStart() {
         mIsRecordingVideo = true;
-        mMediaRecorder.start();
+        createCameraPreviewSession();
     }
-
-
     private void setUpMediaRecorder() {
-        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+//        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-
-        Date currentDate = new Date();
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
-        String dateText = dateFormat.format(currentDate);
-        File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
-        vid = new File(dir.getAbsolutePath(), "VID_" + dateText + ".mp4");
-
-        mMediaRecorder.setOutputFile(vid.getAbsolutePath());
-        CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+        CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
         mMediaRecorder.setVideoFrameRate(profile.videoFrameRate);
         mMediaRecorder.setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
         mMediaRecorder.setVideoEncodingBitRate(profile.videoBitRate);
@@ -1390,7 +1390,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setAudioEncodingBitRate(profile.audioBitRate);
         mMediaRecorder.setAudioSamplingRate(profile.audioSampleRate);
-
+        Date currentDate = new Date();
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
+        String dateText = dateFormat.format(currentDate);
+        File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
+        vid = new File(dir.getAbsolutePath(), "VID_" + dateText + ".mp4");
+        try {
+            vid.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mMediaRecorder.setOutputFile(vid.getAbsolutePath());
         try {
             mMediaRecorder.prepare();
             Log.d(TAG, "video record start");
@@ -1421,10 +1431,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     private void stopRecordingVideo() {
-        // UI
         mIsRecordingVideo = false;
-        cameraEventsListener.onRequestTriggerMediaScanner(vid);
+
+//        mMediaRecorder.reset();
+        mMediaRecorder.stop();
         mMediaRecorder.reset();
+        cameraEventsListener.onRequestTriggerMediaScanner(vid);
+//        setUpMediaRecorder();
+        createCameraPreviewSession();
     }
 
     @Override
