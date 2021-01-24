@@ -38,6 +38,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.CamcorderProfile;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Environment;
@@ -75,7 +76,6 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewMod
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1003,11 +1003,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Camera2ApiAutoFix.Init();
         if (mMediaRecorder == null) {
             mMediaRecorder = new MediaRecorder();
-            try {
-                setUpMediaRecorder();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            setUpMediaRecorder();
         }
         cameraEventsListener.onCharacteristicsUpdated(characteristics);
     }
@@ -1370,37 +1366,58 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void VideoStart() {
         mIsRecordingVideo = true;
+        mMediaRecorder.start();
+    }
+
+
+    private void setUpMediaRecorder() {
+        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+
         Date currentDate = new Date();
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US);
         String dateText = dateFormat.format(currentDate);
         File dir = new File(Environment.getExternalStorageDirectory() + "//DCIM//Camera//");
         vid = new File(dir.getAbsolutePath(), "VID_" + dateText + ".mp4");
-        mMediaRecorder.setOutputFile(vid);
-        mMediaRecorder.start();
-    }
 
-    private void setUpMediaRecorder() throws IOException {
-
-        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mMediaRecorder.setVideoEncodingBitRate(2000000);
-        mMediaRecorder.setVideoFrameRate(30);
-        mMediaRecorder.setMaxDuration(10000);
-        mMediaRecorder.setVideoSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+        mMediaRecorder.setOutputFile(vid.getAbsolutePath());
+        CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+        mMediaRecorder.setVideoFrameRate(profile.videoFrameRate);
+        mMediaRecorder.setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
+        mMediaRecorder.setVideoEncodingBitRate(profile.videoBitRate);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        mMediaRecorder.setOnInfoListener(this);
-        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        switch (mSensorOrientation) {
-            case SENSOR_ORIENTATION_DEFAULT_DEGREES:
-                mMediaRecorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
-                break;
-            case SENSOR_ORIENTATION_INVERSE_DEGREES:
-                mMediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
-                break;
+        mMediaRecorder.setAudioEncodingBitRate(profile.audioBitRate);
+        mMediaRecorder.setAudioSamplingRate(profile.audioSampleRate);
+
+        try {
+            mMediaRecorder.prepare();
+            Log.d(TAG, "video record start");
+
+        } catch (Exception e) {
+            Log.d(TAG, "video record failed");
         }
-        mMediaRecorder.prepare();
+//        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+//        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+//        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+//        mMediaRecorder.setVideoEncodingBitRate(2000000);
+//        mMediaRecorder.setVideoFrameRate(30);
+//        mMediaRecorder.setMaxDuration(10000);
+//        mMediaRecorder.setVideoSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+//        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+//        mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+//        mMediaRecorder.setOnInfoListener(this);
+//        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+//        switch (mSensorOrientation) {
+//            case SENSOR_ORIENTATION_DEFAULT_DEGREES:
+//                mMediaRecorder.setOrientationHint(DEFAULT_ORIENTATIONS.get(rotation));
+//                break;
+//            case SENSOR_ORIENTATION_INVERSE_DEGREES:
+//                mMediaRecorder.setOrientationHint(INVERSE_ORIENTATIONS.get(rotation));
+//                break;
+//        }
+//        mMediaRecorder.prepare();
     }
 
     private void stopRecordingVideo() {
