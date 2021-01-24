@@ -1223,6 +1223,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
+                    
+                    if (onUnlimited && mCaptureResult == null) {
+                        mImageSaver.unlimitedStart(mCameraCharacteristics, result);
+                    }
                     mCaptureResult = result;
                 }
 
@@ -1320,7 +1324,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void callUnlimitedStart() {
         onUnlimited = true;
-        mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
+        if (mCaptureResult != null) mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
         takePicture();
     }
 
