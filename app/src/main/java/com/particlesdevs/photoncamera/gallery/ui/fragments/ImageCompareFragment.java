@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -38,16 +39,15 @@ import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
  * Created by Vibhor Srivastava on 09-Jan-2021
  */
 public class ImageCompareFragment extends Fragment {
-    private static final int SEND_URI = 1000;
     private static boolean toSync = true;
     private final SSIVListenerImpl ssivListener = new SSIVListenerImpl();
     private final ImageViewerFragment fragment1 = new ImageViewerFragment();
     private final ImageViewerFragment fragment2 = new ImageViewerFragment();
+    private File imagesDir;
     private FragmentGalleryImageCompareBinding binding;
+    private Context mContext;
     private final Handler shareHandler = new Handler(Looper.getMainLooper(), msg -> {
-        if (msg.what == SEND_URI) {
-            shareUri((Uri) msg.obj);
-        }
+        if (msg.obj instanceof Uri) shareUri((Uri) msg.obj);
         hideButtons(false);
         return true;
     });
@@ -56,6 +56,13 @@ public class ImageCompareFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        this.mContext = getContext();
+        createDir();
+    }
+
+    private void createDir() {
+        this.imagesDir = new File(mContext.getCacheDir(), "images");
+        this.imagesDir.mkdirs();
     }
 
     @Nullable
@@ -98,13 +105,9 @@ public class ImageCompareFragment extends Fragment {
 
     private void onShareClick(View view) {
         hideButtons(true);
-        HandlerThread bmpThread = new HandlerThread(ImageCompareFragment.class.getName(), Process.THREAD_PRIORITY_BACKGROUND);
+        HandlerThread bmpThread = new HandlerThread("ScreenshotThread", Process.THREAD_PRIORITY_BACKGROUND);
         bmpThread.start();
-        Handler bitmapHandler = new Handler(bmpThread.getLooper());
-        bitmapHandler.post(() -> {
-            Uri uri = saveBitmap(screenShot(binding.getRoot()));
-            shareHandler.obtainMessage(SEND_URI, uri).sendToTarget();
-        });
+        new Handler(bmpThread.getLooper()).post(() -> shareHandler.obtainMessage(0, saveBitmap(screenShot(binding.getRoot()))).sendToTarget());
         bmpThread.quitSafely();
     }
 
@@ -113,35 +116,26 @@ public class ImageCompareFragment extends Fragment {
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.setType(URLConnection.guessContentTypeFromName(uri.toString()));
-        intent.setClipData(ClipData.newUri(getContext().getContentResolver(), "", uri));
-        Intent chooser = Intent.createChooser(intent, null);
-        startActivity(chooser);
+        intent.setClipData(ClipData.newUri(mContext.getContentResolver(), "", uri));
+        startActivity(Intent.createChooser(intent, null));
     }
 
     private void hideButtons(boolean toHide) {
-        if (binding != null) {
-            binding.setHideButtons(toHide);
-        }
+        if (binding != null) binding.setHideButtons(toHide);
     }
 
     private Uri saveBitmap(Bitmap bitmap) {
-        File imagesFolder = new File(getContext().getCacheDir(), "images");
         Uri uri = null;
         try {
-            boolean result = imagesFolder.mkdirs();
-            if (!result){
-                Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
-                return uri;
-            }
-            File file = new File(imagesFolder, "compare_screenshot.jpg");
+            File file = new File(imagesDir, "compare_screenshot.jpg");
             OutputStream stream = Files.newOutputStream(file.toPath());
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
             stream.flush();
             stream.close();
-            uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
-        } catch (IOException e) {
+            uri = FileProvider.getUriForFile(mContext, mContext.getPackageName() + ".provider", file);
+        } catch (IOException | NullPointerException e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "Failed!", Toast.LENGTH_SHORT).show();
         }
         return uri;
     }
