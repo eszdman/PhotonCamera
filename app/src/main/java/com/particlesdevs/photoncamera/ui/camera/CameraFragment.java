@@ -39,6 +39,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.IdRes;
@@ -87,7 +91,9 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -128,6 +134,7 @@ public class CameraFragment extends Fragment {
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
     private AutoFitPreviewView textureView;
+    private FirebaseAnalytics mFirebaseAnalytics;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -149,8 +156,9 @@ public class CameraFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this.getContext());
         this.activity = getActivity();
+        if (activity == null) return;
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(activity);
     }
 
     @Override
