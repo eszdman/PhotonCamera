@@ -67,9 +67,10 @@ public class UnlimitedProcessor extends ProcessorBase {
         }
         if (!fillParams) {
             fillParams = true;
-            PhotonCamera.getParameters().FillConstParameters(
-                    characteristics, PhotonCamera.getParameters().rawSize);
+            PhotonCamera.getParameters().FillConstParameters(characteristics, PhotonCamera.getParameters().rawSize);
             PhotonCamera.getParameters().FillDynamicParameters(captureResult);
+
+            exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
         }
         averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
         averageRaw.Run();

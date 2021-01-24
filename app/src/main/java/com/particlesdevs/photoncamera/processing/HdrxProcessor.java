@@ -99,6 +99,9 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
         PhotonCamera.getParameters().FillDynamicParameters(captureResult);
+
+        exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
+
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ImageFrame> images = new ArrayList<>();

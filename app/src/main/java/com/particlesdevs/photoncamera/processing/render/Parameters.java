@@ -279,7 +279,8 @@ public class Parameters {
                 "\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
                 "\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
                 "\n DenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
-                "\n FocalL=" + FltFormat(focalLength);
+                "\n FocalL=" + FltFormat(focalLength) +
+                "\n Version=" + PhotonCamera.getVersion();
     }
     @SuppressLint("DefaultLocale")
     private String FltFormat(Object in) {

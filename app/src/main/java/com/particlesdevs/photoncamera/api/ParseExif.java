@@ -77,8 +77,7 @@ public class ParseExif {
         data.COMPRESSION = "97";
         data.COLOR_SPACE = "sRGB";
         data.EXIF_VERSION = "0231";
-        data.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString() +
-                "\n " + "Version=" + PhotonCamera.getVersion();
+        data.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString();
         /*
         //saving for later use
         float sensorWidth = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth();
