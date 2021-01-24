@@ -21,14 +21,35 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.*;
-import android.hardware.camera2.*;
+import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
-import android.os.*;
-import android.util.*;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.util.Log;
+import android.util.Range;
+import android.util.Rational;
+import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Toast;
@@ -37,7 +58,11 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.api.*;
+import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
+import com.particlesdevs.photoncamera.api.CameraEventsListener;
+import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.CameraReflectionApi;
+import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
@@ -53,14 +78,19 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER;
 import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 
 /**
@@ -1134,7 +1164,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
             if (stabilizationModes != null && stabilizationModes.length > 1) {
                 Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
-                captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
+//                captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
                 captureBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
             }
             for (int i = 0; i < 3; i++) {

@@ -43,6 +43,7 @@ public class Parameters {
     public float focalLength;
     public int cameraRotation;
     public ColorCorrectionTransform CCT;
+
     public void FillConstParameters(CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
@@ -53,11 +54,11 @@ public class Parameters {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-        if(flen == null || flen.length <= 0) {
+        if (flen == null || flen.length <= 0) {
             flen = new float[1];
             flen[0] = 4.75f;
         }
-        Log.d(TAG,"Focal Length:"+flen[0]);
+        Log.d(TAG, "Focal Length:" + flen[0]);
         focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (whiteLevel != null) this.whiteLevel = ((int) whiteLevel);
@@ -69,26 +70,29 @@ public class Parameters {
         gainMap[2] = 1.f;
         gainMap[3] = 1.f;
         sensorPix = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-        if(sensorPix==null){
-            sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
+        if (sensorPix == null) {
+            sensorPix = new Rect(0, 0, rawSize.x, rawSize.y);
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
     }
-    public void FillDynamicParameters(CaptureResult result){
+
+    public void FillDynamicParameters(CaptureResult result) {
         int[] blarr = new int[4];
         boolean isHuawei = Build.BRAND.equals("Huawei");
         BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
-        float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
-        if(dynbl != null){
-            System.arraycopy(dynbl, 0, blackLevel, 0, 4);
-            usedDynamic = true;
+        if (result != null) {
+            float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+            if (dynbl != null) {
+                System.arraycopy(dynbl, 0, blackLevel, 0, 4);
+                usedDynamic = true;
+            }
         }
-        if(!usedDynamic)
+        if (!usedDynamic)
             if (level != null) {
                 level.copyTo(blarr, 0);
                 for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
             }
-        if(result != null) {
+        if (result != null) {
             LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
             if (lensMap != null) {
                 gainMap = new float[lensMap.getGainFactorCount()];
@@ -118,14 +122,15 @@ public class Parameters {
 
 
     public float[] customNeutral;
-    public void ReCalcColor(boolean customNeutr){
+
+    public void ReCalcColor(boolean customNeutr) {
         CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
         CaptureResult result = CaptureController.mCaptureResult;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-        if(!customNeutr)
-        for(int i =0; i<neutralR.length;i++){
-            whitePoint[i] = neutralR[i].floatValue();
-        }
+        if (!customNeutr)
+            for (int i = 0; i < neutralR.length; i++) {
+                whitePoint[i] = neutralR[i].floatValue();
+            }
         else {
             whitePoint = customNeutral;
         }
@@ -177,12 +182,12 @@ public class Parameters {
         assert forwardt2 != null;
         CCT = new ColorCorrectionTransform();
         boolean wrongCalibration =
-                forwardt1.getElement(0,0).floatValue() == forwardt2.getElement(0,0).floatValue() &&
-                        forwardt1.getElement(1,1).floatValue() == forwardt2.getElement(1,1).floatValue() &&
-                        forwardt1.getElement(2,2).floatValue() == forwardt2.getElement(2,2).floatValue() &&
-                        forwardt1.getElement(1,2).floatValue() == forwardt2.getElement(1,2).floatValue();
+                forwardt1.getElement(0, 0).floatValue() == forwardt2.getElement(0, 0).floatValue() &&
+                        forwardt1.getElement(1, 1).floatValue() == forwardt2.getElement(1, 1).floatValue() &&
+                        forwardt1.getElement(2, 2).floatValue() == forwardt2.getElement(2, 2).floatValue() &&
+                        forwardt1.getElement(1, 2).floatValue() == forwardt2.getElement(1, 2).floatValue();
         Rational rat[] = new Rational[9];
-        if(CST != null) {
+        if (CST != null) {
             CST.copyElements(rat, 0);
             int cnt = 0;
             for (int i = 0; i < 9; i++) {
@@ -236,14 +241,16 @@ public class Parameters {
                 0f
         };
     }
-    private static void PrintMat(float[] mat){
+
+    private static void PrintMat(float[] mat) {
         String outp = "";
-        for(int i =0; i<mat.length;i++){
-            outp+=(mat[i])+" ";
-            if(i%3 == 2) outp+="\n";
+        for (int i = 0; i < mat.length; i++) {
+            outp += (mat[i]) + " ";
+            if (i % 3 == 2) outp += "\n";
         }
-        Log.d(TAG,"matrix:\n"+outp);
+        Log.d(TAG, "matrix:\n" + outp);
     }
+
     protected Parameters Build() {
         Parameters params = new Parameters();
         params.cfaPattern = cfaPattern;
@@ -266,6 +273,7 @@ public class Parameters {
         params.CCT = CCT;
         return params;
     }
+
     @androidx.annotation.NonNull
     @Override
     public String toString() {
@@ -276,8 +284,8 @@ public class Parameters {
                 ",\n Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
                 ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
                 ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
-                ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
-                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
+                ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue()) +
+                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR)) +
                 ",\n FocalL=" + FltFormat(focalLength);
     }
 
