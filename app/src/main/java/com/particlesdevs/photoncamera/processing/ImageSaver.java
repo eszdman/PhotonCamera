@@ -5,12 +5,11 @@ import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
+import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
-
 import androidx.exifinterface.media.ExifInterface;
-
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -156,7 +155,7 @@ public class ImageSaver {
         }
     }
 
-    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult) {
+    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<Float> burstShakiness) {
 
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();
@@ -190,13 +189,14 @@ public class ImageSaver {
         hdrxProcessor.start(
                 dngFile,
                 jpgFile,
+                ParseExif.parse(captureResult),
+                burstShakiness,
                 IMAGE_BUFFER,
                 imageReader.getImageFormat(),
                 characteristics,
                 captureResult,
                 processingCallback
         );
-        clearImageReader(imageReader);
         IMAGE_BUFFER.clear();
     }
 
@@ -225,6 +225,7 @@ public class ImageSaver {
         mUnlimitedProcessor.unlimitedStart(
                 dngFile,
                 jpgFile,
+                ParseExif.parse(captureResult),
                 characteristics,
                 captureResult,
                 processingCallback
@@ -236,14 +237,15 @@ public class ImageSaver {
     }
 
     public static class Util {
-        public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, CaptureResult captureResult) {
+        public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, ParseExif.ExifData exifData) {
+            exifData.COMPRESSION = String.valueOf(jpgQuality);
             try {
                 OutputStream outputStream = Files.newOutputStream(fileToSave);
                 img.compress(Bitmap.CompressFormat.JPEG, jpgQuality, outputStream);
                 outputStream.flush();
                 outputStream.close();
                 img.recycle();
-                ExifInterface inter = ParseExif.Parse(captureResult, fileToSave.toFile());
+                ExifInterface inter = ParseExif.setAllAttributes(fileToSave.toFile(), exifData);
                 inter.saveAttributes();
                 return true;
             } catch (IOException e) {

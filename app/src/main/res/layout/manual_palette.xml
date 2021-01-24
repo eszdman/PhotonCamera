@@ -24,7 +24,7 @@
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
-                bindChildsRotate="@{uimodel}"
+                bindKnobRotate="@{uimodel}"
                 />
 
         <LinearLayout
@@ -34,6 +34,7 @@
                 android:layout_below="@id/knobView"
                 android:orientation="horizontal"
                 android:background="@color/panel_transparency"
+                bindViewGroupChildrenRotate="@{uimodel}"
                 >
 
             <TextView
@@ -43,7 +44,6 @@
                     android:layout_gravity="center"
                     android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
-                    tools:textColor="@color/White"
                     android:paddingBottom="6dp"
                     android:paddingTop="5dp"
                     android:textSize="15sp"
@@ -52,7 +52,6 @@
                     tools:text="NULL"
                     android:textAlignment="center"
                     android:layout_weight="1"
-                    bindRotate="@{uimodel}"
                     />
 
             <TextView
@@ -64,13 +63,11 @@
                     android:paddingTop="5dp"
                     android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
-                    tools:textColor="@color/White"
                     android:textSize="15sp"
                     android:textAlignment="center"
                     app:drawableBottomCompat="@drawable/manual_control_icon_exposure"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
-                    bindRotate="@{uimodel}"
                     tools:text="NULL"/>
 
 
@@ -82,7 +79,6 @@
                     android:paddingTop="5dp"
                     android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
-                    tools:textColor="@color/White"
                     android:id="@+id/iso_option_tv"
                     android:layout_gravity="center"
                     android:textAlignment="center"
@@ -90,7 +86,6 @@
                     app:drawableBottomCompat="@drawable/manual_control_icon_iso"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
-                    bindRotate="@{uimodel}"
                     />
 
 
@@ -102,7 +97,6 @@
                     android:paddingTop="5dp"
                     android:textAppearance="@style/BoldTextWithShadow"
                     android:textColor="@color/manual_text_color"
-                    tools:textColor="@color/White"
                     android:id="@+id/ev_option_tv"
                     android:layout_gravity="center"
                     android:textAlignment="center"
@@ -110,7 +104,6 @@
                     app:drawableBottomCompat="@drawable/ic_exposure"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
-                    bindRotate="@{uimodel}"
                     />
         </LinearLayout>
     </RelativeLayout>

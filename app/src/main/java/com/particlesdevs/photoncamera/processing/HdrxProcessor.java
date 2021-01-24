@@ -10,10 +10,12 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.Wrapper;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 
@@ -29,6 +31,7 @@ public class HdrxProcessor extends ProcessorBase {
     private int alignAlgorithm;
     private boolean saveRAW;
     private CameraMode cameraMode;
+    private ArrayList<Float> BurstShakiness;
 
 
     protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
@@ -41,11 +44,16 @@ public class HdrxProcessor extends ProcessorBase {
         this.cameraMode = cameraMode;
     }
 
-    public void start(Path dngFile, Path jpgFile, ArrayList<Image> imageBuffer, int imageFormat,
+    public void start(Path dngFile, Path jpgFile,
+                      ParseExif.ExifData exifData,
+                      ArrayList<Float> BurstShakiness,
+                      ArrayList<Image> imageBuffer, int imageFormat,
                       CameraCharacteristics characteristics, CaptureResult captureResult,
                       ProcessingCallback callback) {
         this.jpgFile = jpgFile;
         this.dngFile = dngFile;
+        this.exifData = exifData;
+        this.BurstShakiness = new ArrayList<>(BurstShakiness);
         this.imageFormat = imageFormat;
         this.mImageFramesToProcess = imageBuffer;
         this.callback = callback;
@@ -91,12 +99,15 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
         PhotonCamera.getParameters().FillDynamicParameters(captureResult);
+
+        exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
+
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        float avr = PhotonCamera.getCaptureController().BurstShakiness.get(0);
+        float avr = BurstShakiness.get(0);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
@@ -112,7 +123,7 @@ public class HdrxProcessor extends ProcessorBase {
             }
             Log.d(TAG, "Sensivity:" + k);*/
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = PhotonCamera.getCaptureController().BurstShakiness.get(i);
+            frame.luckyParameter = BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
@@ -165,7 +176,10 @@ public class HdrxProcessor extends ProcessorBase {
                 Wrapper.loadFrame(images.get(i).buffer, (FAKE_WL / PhotonCamera.getParameters().whiteLevel) * mpy);
             }
         }
-
+        /*InterpolateGainMap interpolateGainMap = new InterpolateGainMap(new Point(width,height));
+        interpolateGainMap.parameters = PhotonCamera.getParameters();
+        interpolateGainMap.Run();
+        Log.d(TAG,"interpolator:"+interpolateGainMap.Output.asShortBuffer().get(6000000));*/
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "White Level:" + PhotonCamera.getParameters().whiteLevel);
@@ -246,7 +260,7 @@ public class HdrxProcessor extends ProcessorBase {
 
         //Saves the final bitmap
         boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(jpgFile, img,
-                ImageSaver.JPG_QUALITY, captureResult);
+                ImageSaver.JPG_QUALITY, exifData);
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 

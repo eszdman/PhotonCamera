@@ -58,12 +58,11 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-
+                bindViewGroupChildrenRotate="@{uimodel}"
                 >
 
             <ToggleButton
                     android:id="@+id/hdrx_toggle_button"
-                    bindRotate="@{uimodel}"
                     android:layout_width="@dimen/topbar_icon_size"
                     android:layout_height="0dp"
                     android:background="@drawable/raw_button"
@@ -95,7 +94,7 @@
                     app:layout_constraintEnd_toStartOf="@id/countdown_timer_button"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <com.particlesdevs.photoncamera.ui.camera.views.TimerButton
                     android:id="@+id/countdown_timer_button"
@@ -113,7 +112,7 @@
                     app:layout_constraintEnd_toStartOf="@id/quad_res_toggle_button"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <ToggleButton
                     android:id="@+id/quad_res_toggle_button"
@@ -130,7 +129,7 @@
                     app:layout_constraintEnd_toStartOf="@id/fps_toggle_button"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <ToggleButton
                     android:id="@+id/fps_toggle_button"
@@ -148,7 +147,7 @@
                     app:layout_constraintEnd_toStartOf="@id/grid_toggle_button"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <Button
                     android:id="@+id/grid_toggle_button"
@@ -166,7 +165,7 @@
                     app:layout_constraintEnd_toStartOf="@id/flash_button"
                     app:layout_constraintTop_toTopOf="parent"
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <com.particlesdevs.photoncamera.ui.camera.views.FlashButton
                     android:id="@+id/flash_button"
@@ -184,7 +183,7 @@
                     app:layout_constraintTop_toTopOf="parent"
                     android:visibility='@{flash_visible ? View.VISIBLE:View.GONE, default=visible}'
                     tools:visibility="visible"
-                    bindRotate="@{uimodel}"/>
+                    />
 
             <ImageButton
                     android:id="@+id/settings_button"

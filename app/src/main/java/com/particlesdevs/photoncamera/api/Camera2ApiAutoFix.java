@@ -17,10 +17,16 @@ import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 
 import java.lang.reflect.Field;
 
-import static android.hardware.camera2.CameraCharacteristics.*;
+import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
+import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
+import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE;
+import static android.hardware.camera2.CameraCharacteristics.TONEMAP_MAX_CURVE_POINTS;
+import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
-import static android.hardware.camera2.CaptureResult.LENS_OPTICAL_STABILIZATION_MODE_ON;
-import static android.hardware.camera2.CaptureResult.*;
+import static android.hardware.camera2.CaptureResult.COLOR_CORRECTION_GAINS;
+import static android.hardware.camera2.CaptureResult.COLOR_CORRECTION_TRANSFORM;
+import static android.hardware.camera2.CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL;
+import static android.hardware.camera2.CaptureResult.SENSOR_NEUTRAL_COLOR_POINT;
 
 @SuppressWarnings("ALL")
 public class Camera2ApiAutoFix {
@@ -238,7 +244,7 @@ public class Camera2ApiAutoFix {
         int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
         if (stabilizationModes != null && stabilizationModes.length > 1) {
             Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
-            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
+//            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
             captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
         }
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);

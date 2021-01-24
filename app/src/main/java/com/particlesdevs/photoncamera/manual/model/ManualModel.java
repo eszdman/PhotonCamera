@@ -4,11 +4,9 @@ import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.util.Range;
-import androidx.annotation.NonNull;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.manual.*;
 
@@ -38,7 +36,12 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         knobInfoList = new ArrayList<>();
         mBackgroundThread = new HandlerThread(ManualMode.class.getName());
         mBackgroundThread.start();
-        backgroundHandler = new ManualModelHandler(mBackgroundThread.getLooper());
+        backgroundHandler = new Handler(mBackgroundThread.getLooper(), msg -> {
+            if (msg.what == SET_TO_CAM) {
+                onSelectedKnobItemChanged((KnobItemInfo) msg.obj);
+            }
+            return false;
+        });
         fillKnobInfoList();
     }
 
@@ -109,10 +112,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         Log.d(ManualMode.class.getSimpleName(), "onSelectedKnobItemChanged");
         if (knobItemInfo == knobItemInfo2)
             return;
-        Message msg = new Message();
-        msg.arg1 = SET_TO_CAM;
-        msg.obj = knobItemInfo2;
-        backgroundHandler.sendMessage(msg);
+        backgroundHandler.obtainMessage(SET_TO_CAM, knobItemInfo2).sendToTarget();
         if (knobItemInfo != null) {
             knobItemInfo.drawable.setState(new int[]{-android.R.attr.state_selected});
         }
@@ -128,18 +128,5 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     public interface ValueChangedEvent {
         void onValueChanged(String value);
-    }
-
-    private class ManualModelHandler extends Handler {
-        public ManualModelHandler(@NonNull Looper looper) {
-            super(looper);
-        }
-
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            if (msg.arg1 == SET_TO_CAM) {
-                onSelectedKnobItemChanged((KnobItemInfo) msg.obj);
-            }
-        }
     }
 }

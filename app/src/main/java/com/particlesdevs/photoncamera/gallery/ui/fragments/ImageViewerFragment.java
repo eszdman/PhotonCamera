@@ -124,6 +124,11 @@ public class ImageViewerFragment extends Fragment {
             mode = bundle.getString(MODE_KEY);
             viewPager.setCurrentItem(bundle.getInt(IMAGE_POSITION_KEY, 0));
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         if (isCompareMode()) {
             fragmentGalleryImageViewerBinding.setMiniExifVisible(true);
         }
@@ -253,13 +258,15 @@ public class ImageViewerFragment extends Fragment {
 
     private void updateExif() {
         int position = viewPager.getCurrentItem();
-        File currentFile = allFiles.get(position);
-        if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-            //update values for exif dialog
-            exifDialogViewModel.updateModel(currentFile);
-            exifDialogViewModel.updateHistogramView(currentFile);
-        } else {
-            exifDialogViewModel.updateModel(currentFile);
+        if (allFiles.size() > 0) {
+            File currentFile = allFiles.get(position);
+            if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+                //update values for exif dialog
+                exifDialogViewModel.updateModel(currentFile);
+                exifDialogViewModel.updateHistogramView(currentFile);
+            } else {
+                exifDialogViewModel.updateModel(currentFile);
+            }
         }
     }
 
