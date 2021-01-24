@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Rational;
 
+import androidx.annotation.NonNull;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -54,11 +55,11 @@ public class Parameters {
             cfaPattern = (byte) PhotonCamera.getSettings().cfaPattern;
         }
         float[] flen = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-        if (flen == null || flen.length <= 0) {
+        if(flen == null || flen.length <= 0) {
             flen = new float[1];
             flen[0] = 4.75f;
         }
-        Log.d(TAG, "Focal Length:" + flen[0]);
+        Log.d(TAG,"Focal Length:"+flen[0]);
         focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         if (whiteLevel != null) this.whiteLevel = ((int) whiteLevel);
@@ -70,8 +71,8 @@ public class Parameters {
         gainMap[2] = 1.f;
         gainMap[3] = 1.f;
         sensorPix = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-        if (sensorPix == null) {
-            sensorPix = new Rect(0, 0, rawSize.x, rawSize.y);
+        if(sensorPix==null){
+            sensorPix = new Rect(0,0,rawSize.x,rawSize.y);
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
     }
@@ -87,12 +88,12 @@ public class Parameters {
                 usedDynamic = true;
             }
         }
-        if (!usedDynamic)
+        if(!usedDynamic)
             if (level != null) {
                 level.copyTo(blarr, 0);
                 for (int i = 0; i < 4; i++) blackLevel[i] = blarr[i];
             }
-        if (result != null) {
+        if(result != null) {
             LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
             if (lensMap != null) {
                 gainMap = new float[lensMap.getGainFactorCount()];
@@ -122,15 +123,14 @@ public class Parameters {
 
 
     public float[] customNeutral;
-
-    public void ReCalcColor(boolean customNeutr) {
+    public void ReCalcColor(boolean customNeutr){
         CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
         CaptureResult result = CaptureController.mCaptureResult;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-        if (!customNeutr)
-            for (int i = 0; i < neutralR.length; i++) {
-                whitePoint[i] = neutralR[i].floatValue();
-            }
+        if(!customNeutr)
+        for(int i =0; i<neutralR.length;i++){
+            whitePoint[i] = neutralR[i].floatValue();
+        }
         else {
             whitePoint = customNeutral;
         }
@@ -250,7 +250,6 @@ public class Parameters {
         }
         Log.d(TAG, "matrix:\n" + outp);
     }
-
     protected Parameters Build() {
         Parameters params = new Parameters();
         params.cfaPattern = cfaPattern;
@@ -273,20 +272,20 @@ public class Parameters {
         params.CCT = CCT;
         return params;
     }
-
-    @androidx.annotation.NonNull
+    @NonNull
     @Override
     public String toString() {
         return "parameters:\n" +
-                ",\n hasGainMap=" + hasGainMap +
-                ",\n framecount=" + FrameNumberSelector.frameCount +
-                ",\n CameraID=" + PhotonCamera.getSettings().mCameraID +
-                ",\n Satur=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                ",\n Gain=" + FltFormat(PhotonCamera.getSettings().gain) +
-                ",\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
-                ",\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue()) +
-                ",\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR)) +
-                ",\n FocalL=" + FltFormat(focalLength);
+                "\n hasGainMap=" + hasGainMap +
+                "\n FrameCount=" + FrameNumberSelector.frameCount +
+                "\n CameraID=" + PhotonCamera.getSettings().mCameraID +
+                "\n Sat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
+                "\n Shadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
+                "\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue())+
+                "\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR))+
+                "\n DenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
+                "\n FocalL=" + FltFormat(focalLength) +
+                "\n Version=" + PhotonCamera.getVersion();
     }
 
     @SuppressLint("DefaultLocale")

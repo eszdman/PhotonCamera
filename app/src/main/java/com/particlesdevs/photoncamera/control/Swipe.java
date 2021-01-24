@@ -13,6 +13,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.manual.model.ManualModel;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
 
@@ -106,7 +107,7 @@ public class Swipe {
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            if (PhotonCamera.getManualMode().getCurrentFocusValue() == -1.0)
+            if (PhotonCamera.getManualMode().getCurrentFocusValue() == ManualModel.FOCUS_AUTO)
                 cameraFragment.getTouchFocus().processTouchToFocus(translateX, translateY);
         }
     }

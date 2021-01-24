@@ -81,5 +81,7 @@ public interface CameraUIView {
         void onAuxButtonClicked(String id);
 
         void onCameraModeChanged(CameraMode cameraMode);
+
+        void onPause();
     }
 }

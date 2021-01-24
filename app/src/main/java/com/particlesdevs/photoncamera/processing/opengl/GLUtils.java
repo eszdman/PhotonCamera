@@ -9,6 +9,7 @@ import com.particlesdevs.photoncamera.R;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
 
@@ -831,6 +832,26 @@ public class GLUtils {
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
+        if(!namesuffix.equals("")) {
+            File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + namesuffix + ext);
+            FileOutputStream fOut = null;
+            try {
+                debug.createNewFile();
+                fOut = new FileOutputStream(debug);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            preview.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+        }
+        return preview;
+    }
+    public Bitmap Result(Point size, String namesuffix, ByteBuffer in){
+        return Result(size, namesuffix, 4,".jpg",in);
+    }
+    public Bitmap Result(Point size, String namesuffix, int channels,String ext,ByteBuffer in){
+        GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
+        Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
+        preview.copyPixelsFromBuffer(in);
         if(!namesuffix.equals("")) {
             File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + namesuffix + ext);
             FileOutputStream fOut = null;

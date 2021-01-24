@@ -1183,7 +1183,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             cameraEventsListener.onFrameCountSet(frameCount);
             IsoExpoSelector.HDR = !PhotonCamera.getManualMode().isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
             Log.d(TAG, "HDRFact1:" + PhotonCamera.getManualMode().isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
-            IsoExpoSelector.HDR = (PhotonCamera.getManualMode().isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
+            IsoExpoSelector.HDR = (!PhotonCamera.getManualMode().isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             if (focus != 0.0)
@@ -1253,6 +1253,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
+                    
+                    if (onUnlimited && mCaptureResult == null) {
+                        mImageSaver.unlimitedStart(mCameraCharacteristics, result);
+                    }
                     mCaptureResult = result;
                 }
 
@@ -1270,7 +1274,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult));
+                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness));
                     }
                 }
             };
@@ -1350,7 +1354,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void callUnlimitedStart() {
         onUnlimited = true;
-        mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
+        if (mCaptureResult != null) mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
         takePicture();
     }
 

@@ -38,7 +38,11 @@ public class PhotonCamera extends Application {
     private static PhotonCamera sPhotonCamera;
     //    private final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 //    private final ExecutorService executorService = Executors.newWorkStealingPool();
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r);
+        t.setPriority(Thread.MIN_PRIORITY);
+        return t;
+    });
     private final Handler mainThreadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private Settings mSettings;
     private Gravity mGravity;
@@ -142,6 +146,17 @@ public class PhotonCamera extends Application {
 
     public static PackageInfo getPackageInfo() throws PackageManager.NameNotFoundException {
         return sPhotonCamera.getPackageManager().getPackageInfo(sPhotonCamera.getPackageName(), 0);
+    }
+
+    public static String getVersion() {
+        String version = "";
+        try {
+            PackageInfo pInfo = PhotonCamera.getPackageInfo();
+            version = pInfo.versionName + '(' + pInfo.versionCode + ')';
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return version;
     }
 
     @Override
