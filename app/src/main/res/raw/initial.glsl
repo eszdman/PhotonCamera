@@ -188,6 +188,30 @@ vec3 brightnessContrast(vec3 value, float brightness, float contrast)
 {
     return (value - 0.5) * contrast + 0.5 + brightness;
 }
+// Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
+vec3 rgb2hsv(vec3 c) {
+    vec4 K = vec4(0.f, -1.f / 3.f, 2.f / 3.f, -1.f);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+    float d = q.x - min(q.w, q.y);
+    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
+}
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1., 2. / 3., 1. / 3., 3.);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
+}
+const float redcorr = 0.0;
+const float bluecorr = 0.0;
+vec3 saturate(vec3 rgb,float model) {
+    float r = rgb.r;
+    float g = rgb.g;
+    float b = rgb.b;
+    vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
+    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
+    rgb = hsv2rgb(hsv);
+    return rgb;
+}
 #define TONEMAPSWITCH (0.05)
 #define TONEMAPAMP (1.0)
 vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
@@ -217,9 +241,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     #endif
     pRGB = corr*sensorToIntermediate*pRGB;
     pRGB = clamp(pRGB,0.0,1.0);
-    pRGB = tonemap(pRGB);
     pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
     pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
+    pRGB = tonemap(pRGB);
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
@@ -248,7 +272,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
     br*=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
     //br*=4.0;
+
     br*=clamp(((tonemapGain)),1.00,50.0)*1.0;
+
+    //br=mix(sqrt(br),br,0.7);
     //}
     //br=pow(br,tonemapGain);
 
@@ -256,48 +283,14 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //float brmodel = clamp(br-0.8,0.0,0.2)*5.0;
     //brmodel*=brmodel;
     //pRGB=mix(pRGB*1.67,pRGB,brmodel);
-
-
-
-
     //pRGB*=tonemapGain;
     //pRGB*=exposing;
-
+    //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
     //pRGB = mix(pRGB,tonemap(pRGB),clamp(abs(1.0-tonemapGain)/2.0,0.0,1.0));
     //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
     //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
-}
-// Source: https://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
-vec3 rgb2hsv(vec3 c) {
-    vec4 K = vec4(0.f, -1.f / 3.f, 2.f / 3.f, -1.f);
-    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-    float d = q.x - min(q.w, q.y);
-    return vec3(abs(q.z + (q.w - q.y) / (6.f * d + 1.0e-10)), d / (q.x + 1.0e-10), q.x);
-}
-vec3 hsv2rgb(vec3 c) {
-    vec4 K = vec4(1., 2. / 3., 1. / 3., 3.);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
-}
-const float redcorr = 0.0;
-const float bluecorr = 0.0;
-vec3 saturate(vec3 rgb,float model) {
-    float r = rgb.r;
-    float g = rgb.g;
-    float b = rgb.b;
-    vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
-    //color wide filter
-    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
-    rgb = hsv2rgb(hsv);
-    //rgb.r+=r*redcorr*saturation;
-    //rgb.g=clamp(rgb.g,0.0,1.0);
-    //rgb.b-=b*bluecorr*saturation;
-    //rgb = clamp(rgb, 0.0,1.0);
-    //rgb*=(r+g+b)/(rgb.r+rgb.g+rgb.b);
-    return rgb;
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -310,7 +303,7 @@ void main() {
     sRGB = applyColorSpace(sRGB,tonemapGain);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
-    br = (clamp(br-0.0004,0.0,0.002)*(1.0/0.002));
+    br = (clamp(br,0.0,0.003)*(1.0/0.003));
     br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
     //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);

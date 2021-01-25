@@ -23,7 +23,13 @@ public class SmartNR extends Node {
 
     @Override
     public void Run() {
+        float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
+        denoiseLevel += 0.25;
+        float str = ((float)basePipeline.mSettings.noiseRstr)/16.f;
+        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        //glProg.useProgram(R.raw.nlmeans);
 
+        if (denoiseLevel > 2.0) {
         GLTexture inpdetect = glUtils.interpolate(previousNode.WorkingTexture,1.0/2.0);
         glProg.useProgram(R.raw.noisedetection44);
         glProg.setTexture("InputBuffer", inpdetect);
@@ -46,33 +52,6 @@ public class SmartNR extends Node {
         GLTexture detectblur2 = new GLTexture(detectblur,format);
         glProg.drawBlocks(detectblur2);
         detectblur.close();
-
-        /*GLTexture detectblur2 = new GLTexture(detectblur);
-        glProg.useProgram(R.raw.fastmedian2);
-        glProg.setTexture("InputBuffer",detectblur);
-        glProg.setVar("tpose",1,1);
-        glProg.drawBlocks(detectblur2);
-        detectblur.close();*/
-        //GLTexture detectblur3 = glUtils.blurfast(detectblur2,1.5);
-        //detectblur2.close();
-
-        float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
-        denoiseLevel += 0.25;
-        float str = ((float)basePipeline.mSettings.noiseRstr)/16.f;
-        //Chroma NR
-        /*glProg.useProgram(R.raw.bilateralcolor);
-
-        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CameraFragment.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
-        denoiseLevel = Math.min(5.0f, denoiseLevel);
-        glProg.setVar("sigma", denoiseLevel, denoiseLevel * 2.f);
-        glProg.setVar("mapsize", detectblur.mSize);
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
-        glProg.setTexture("NoiseMap", detectblur);
-        WorkingTexture = basePipeline.getMain();
-        glProg.drawBlocks(WorkingTexture);*/
-        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
-        //glProg.useProgram(R.raw.nlmeans);
-        if (denoiseLevel > 2.0) {
         GLTexture tonemapUpscale = null;
         boolean tonemaped = false;
         float isofactor = denoiseLevel/11.f;
@@ -86,7 +65,7 @@ public class SmartNR extends Node {
                 glUtils.interpolate(((PostPipeline) (basePipeline)).FusionMap, tonemapUpscale);
             }
         }
-        if(kernelsize >2) glProg.setDefine("MEDIAN",true);
+        if(kernelsize >3) glProg.setDefine("MEDIAN",true);
         glProg.setDefine("KERNEL","("+kernelsize+")");
         if(isofactor > 0.4){
             glProg.setDefine("TONEMAPED",false);
@@ -113,9 +92,9 @@ public class SmartNR extends Node {
         glProg.drawBlocks(WorkingTexture);
         if(tonemapUpscale != null) tonemapUpscale.close();
         } else{
+            Log.d(Name,"Skip");
             WorkingTexture = previousNode.WorkingTexture;
         }
-        detectblur.close();
         if(denoiseLevel>=7.0) {
             GLTexture outp = glUtils.interpolate(WorkingTexture, 1.0 / 3.0);
             for (int i = 0; i < 2; i++) {
@@ -146,7 +125,7 @@ public class SmartNR extends Node {
                 in.close();
             }
             WorkingTexture = glUtils.ops(outp, WorkingTexture, basePipeline.getMain(), "(in1.rgba/((in1.r+in1.g+in1.b)/3.0))*((in2.r+in2.g+in2.b)/3.0)", "", 1);
-        } else {
+        } else if(denoiseLevel >=3.5){
             for(int i =1;i<2;i++) {
                 glProg.setDefine("TRANSPOSE",1,i);
                 glProg.useProgram(R.raw.hybridmedianfiltercolor);

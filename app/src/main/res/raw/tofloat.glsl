@@ -12,14 +12,13 @@ uniform int patSize;
 uniform uint whitelevel;
 uniform float Regeneration;
 uniform int MinimalInd;
-uniform int yOffset;
 #import interpolation
 #import median
 out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    ivec2 fact = xy%2;
-    xy+=ivec2(CfaPattern%2,yOffset+CfaPattern/2);
+    ivec2 fact = (xy)%2;
+    xy+=ivec2(CfaPattern%2,CfaPattern/2);
     float balance;
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);

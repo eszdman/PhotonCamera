@@ -106,10 +106,12 @@ public class DynamicBL extends Node {
         return bl;
     }
     private float[] findPoint(int[] histr,int[] histg,int[] histb) {
-        float[] bl = new float[3];
+        float[] bl = new float[]{0.f,0.f,0.f};
         int start = 20;
         int min = 1000;
         int minind = 0;
+        int minind2 = 0;
+        int minind3 = 0;
 
         for(int i =start; i<200; i++){
             if(min > histr[i] && histr[i] != 0) {
@@ -117,23 +119,25 @@ public class DynamicBL extends Node {
                 min = histr[i];
             }
         }
+        min = 1000;
         for(int i =start; i<200; i++){
             if(min > histg[i] && histg[i] != 0) {
-                minind = i;
+                minind2 = i;
                 min = histg[i];
             }
         }
+        min = 1000;
         for(int i =start; i<200; i++){
             if(min > histb[i] && histb[i] != 0) {
-                minind = i;
+                minind3 = i;
                 min = histb[i];
             }
         }
-
-        float minf = ((float)minind)/((float)histr.length);
-        bl[0]=minf*0.85f;
-        bl[1]=minf*0.85f;
-        bl[2]=minf*0.85f;
+        if(minind != 0 && minind2 != 0 && minind3 != 0) {
+            bl[0] = ((float) minind) / ((float) histr.length) * 0.95f;
+            bl[1] = ((float) minind2) / ((float) histr.length) * 0.95f;
+            bl[2] = ((float) minind3) / ((float) histr.length) * 0.95f;
+        }
         Log.d(Name,"PointBL:"+Arrays.toString(bl));
         return bl;
     }

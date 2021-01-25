@@ -10,14 +10,19 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.Wrapper;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
+import com.particlesdevs.photoncamera.processing.opengl.scripts.NonIdealRaw;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
+import com.particlesdevs.photoncamera.processing.render.Parameters;
+
+import org.apache.bcel.verifier.GraphicalVerifier;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -168,7 +173,7 @@ public class HdrxProcessor extends ProcessorBase {
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
-                float mpy = 1.f / 5.f;
+                float mpy = 1.f / 4.f;
                 if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
                     mpy = 1.f;
                 //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
@@ -176,10 +181,8 @@ public class HdrxProcessor extends ProcessorBase {
                 Wrapper.loadFrame(images.get(i).buffer, (FAKE_WL / PhotonCamera.getParameters().whiteLevel) * mpy);
             }
         }
-        /*InterpolateGainMap interpolateGainMap = new InterpolateGainMap(new Point(width,height));
-        interpolateGainMap.parameters = PhotonCamera.getParameters();
-        interpolateGainMap.Run();
-        Log.d(TAG,"interpolator:"+interpolateGainMap.Output.asShortBuffer().get(6000000));*/
+        //interpolateGainMap.close();
+        //Log.d(TAG,"interpolator:"+interpolateGainMap.Output.asShortBuffer().get(6000000));
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "White Level:" + PhotonCamera.getParameters().whiteLevel);
@@ -196,21 +199,31 @@ public class HdrxProcessor extends ProcessorBase {
         deghostlevel = Math.min(0.25f, deghostlevel);
         Log.d(TAG, "Deghosting level:" + deghostlevel);
         ByteBuffer output;
-        float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0], PhotonCamera.getParameters().blackLevel[1]),
-                PhotonCamera.getParameters().blackLevel[2]), PhotonCamera.getParameters().blackLevel[3]);
+        Parameters parameters = PhotonCamera.getParameters();
+        //float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0], PhotonCamera.getParameters().blackLevel[1]),
+        //        PhotonCamera.getParameters().blackLevel[2]), PhotonCamera.getParameters().blackLevel[3]);
+        float bl = Math.max(parameters.blackLevel[1], parameters.blackLevel[2]);
         //float bl = PhotonCamera.getParameters().blackLevel[0]+PhotonCamera.getParameters().blackLevel[1]+
         //        PhotonCamera.getParameters().blackLevel[2]+PhotonCamera.getParameters().blackLevel[3];
         //bl/=4.0;
+        InterpolateGainMap interpolateGainMap = null;
         if (!debugAlignment) {
-            output = Wrapper.processFrame(200, 1200, 512, bl, PhotonCamera.getParameters().whiteLevel);
+            interpolateGainMap = new InterpolateGainMap(new Point(width,height));
+            interpolateGainMap.parameters = PhotonCamera.getParameters();
+            interpolateGainMap.Run();
+            interpolateGainMap.close();
+            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
+
+            output = Wrapper.processFrame(200, 1200, 512, parameters.blackLevel[0],bl,parameters.blackLevel[2], parameters.whiteLevel
+            ,parameters.whitePoint[0],parameters.whitePoint[1],parameters.whitePoint[2]);
         } else {
             output = rawPipeline.Run();
         }
-        float[] oldBL = PhotonCamera.getParameters().blackLevel.clone();
-        PhotonCamera.getParameters().blackLevel[0] -= bl;
-        PhotonCamera.getParameters().blackLevel[1] -= bl;
-        PhotonCamera.getParameters().blackLevel[2] -= bl;
-        PhotonCamera.getParameters().blackLevel[3] -= bl;
+        float[] oldBL = parameters.blackLevel.clone();
+        parameters.blackLevel[0] = 0.f;
+        parameters.blackLevel[1] -= bl;
+        parameters.blackLevel[2] -= bl;
+        parameters.blackLevel[3] = 0.f;;
         //Black shot fix
         images.get(0).image.getPlanes()[0].getBuffer().position(0);
         images.get(0).image.getPlanes()[0].getBuffer().put(output);
@@ -229,23 +242,35 @@ public class HdrxProcessor extends ProcessorBase {
             int patchWL = (int) FAKE_WL;
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
-
+            if(!debugAlignment && parameters.hasGainMap) {
+                NonIdealRaw nonIdealRaw = new NonIdealRaw(new Point(width,height));
+                nonIdealRaw.parameters = parameters;
+                nonIdealRaw.inp = images.get(0).image.getPlanes()[0].getBuffer();
+                nonIdealRaw.prevmap = interpolateGainMap.Output;
+                nonIdealRaw.Run();
+                nonIdealRaw.close();
+            }
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
                     characteristics, captureResult);
+
 
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, patchWL);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-
-            PhotonCamera.getParameters().blackLevel[0] += oldBL[0];
-            PhotonCamera.getParameters().blackLevel[1] += oldBL[1];
-            PhotonCamera.getParameters().blackLevel[2] += oldBL[2];
-            PhotonCamera.getParameters().blackLevel[3] += oldBL[3];
+            parameters.blackLevel[0] += oldBL[0];
+            parameters.blackLevel[1] += oldBL[1];
+            parameters.blackLevel[2] += oldBL[2];
+            parameters.blackLevel[3] += oldBL[3];
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) FAKE_WL);
-            PhotonCamera.getParameters().blackLevel[0] -= bl;
-            PhotonCamera.getParameters().blackLevel[1] -= bl;
-            PhotonCamera.getParameters().blackLevel[2] -= bl;
-            PhotonCamera.getParameters().blackLevel[3] -= bl;
+            parameters.blackLevel[0] = 0.f;
+            parameters.blackLevel[1] -= bl;
+            parameters.blackLevel[2] -= bl;
+            parameters.blackLevel[3] = 0.f;;
+        } else {
+            if(!debugAlignment) {
+                parameters.mapSize = new Point(1,1);
+                parameters.gainMap = new float[]{1.f,1.f,1.f,1.f};
+            }
         }
 
         IncreaseWLBL();

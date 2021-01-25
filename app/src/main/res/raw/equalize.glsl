@@ -23,12 +23,14 @@ void main() {
     float HistEq = texture(Histogram, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     HistEq = clamp(HistEq,0.0,5.0);
     float factor = 1.0;
-    factor*=1.0-abs(0.5-br)*0.75;
+    factor*=1.0-clamp(br-0.6,0.0,0.4)/0.4;
+    factor = clamp(factor,0.0,1.0);
     //factor*=clamp((br-EPS)*EPSAMP,0.0,1.0);
-    //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
     //if(br > EPS)
-    br = mix(br,br*sqrt(HistEq/br),factor);
-    br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    //br = mix(br,HistEq,factor);
+    //br = HistEq;
+    //br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //br = pow(br,Equalize);
     sRGB*=br;
     Output = clamp(sRGB,0.0,1.0);

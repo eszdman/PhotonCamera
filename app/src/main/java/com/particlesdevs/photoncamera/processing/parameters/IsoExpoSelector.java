@@ -95,7 +95,7 @@ public class IsoExpoSelector {
             pair.curlayer = ExpoPair.exposureLayer.Low;
         }*/
         if (step%patternSize == 1 && HDR) {
-            pair.layerMpy = 5.f;
+            pair.layerMpy = 4.f;
             pair.ExpoCompensateLower(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.High;
         } /*else {
@@ -268,6 +268,16 @@ public class IsoExpoSelector {
                 exposure /= k;
                 if (normalizeCheck()) {
                     exposure *= k;
+                }
+            }
+        }
+        public void ExpoCompensateLowerExpo(double k) {
+            exposure /= k;
+            if (normalizeCheck()) {
+                exposure *= k;
+                iso /= k;
+                if (normalizeCheck()) {
+                    iso *= k;
                 }
             }
         }

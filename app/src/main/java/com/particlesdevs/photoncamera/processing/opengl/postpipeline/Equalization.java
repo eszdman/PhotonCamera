@@ -61,11 +61,14 @@ public class Equalization extends Node {
         int brokeHist = 0;
         for(int i =0; i<histParser.hist.length;i++){
             float val = ((float)(i))/histParser.hist.length;
-            if(3.f < histParser.hist[i] || val*0.25 > histParser.hist[i]) {
-                wrongHist++;
-            }
-            if(histParser.hist[i] > 10.f){
+            //if(3.f < histParser.hist[i] || val*0.25 > histParser.hist[i]) {
+                //wrongHist++;
+            //}
+            if(histParser.hist[i] > 15.f){
                 brokeHist++;
+            }
+            if(Float.isNaN(histParser.hist[i])){
+                brokeHist+=2;
             }
         }
         if(brokeHist >= 10){
@@ -101,12 +104,20 @@ public class Equalization extends Node {
         eq = (float) Math.pow(eq, 0.6);
         histParser.hist[0] = 0.f;
         float prev = histParser.hist[0];
+        float normalization = 0.f;
         for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
             float move = ((float)(i))/histParser.hist.length;
-            float accel = 1.25f+Math.min(0.3f-move,0.3f)*1.4f;
-            histParser.hist[i] = prev+Math.min(Math.max(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
+            float accel = 1.25f+Math.min(0.3f-move,0.3f)*1.0f;
+            float diff = Math.min(Math.max(histParser.hist[i]-prev,0.0005f),accel/histParser.hist.length);
+            histParser.hist[i] = prev+diff;
+            normalization+=diff;
             prev = histParser.hist[i];
+        }
+        Log.d(Name,"normalization:"+normalization);
+        if(normalization < 1.f) normalization = 1.f;
+        for(int i =0; i<histParser.hist.length;i++){
+            histParser.hist[i]/=normalization;
         }
         Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),

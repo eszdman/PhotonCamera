@@ -94,7 +94,7 @@ public class GLProg implements AutoCloseable {
                 setDefine(DefineName,String.valueOf(vars[0]));
                 break;
             case 2:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+")");
+                setDefine(DefineName,vars[0]+","+vars[1]);
                 break;
             case 3:
                 setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");

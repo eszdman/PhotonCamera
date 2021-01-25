@@ -140,8 +140,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
         Date photoDate;
         try {
             photoDate = ParseExif.sFormatter.parse(savedDate); //parsing with the same formatter with which it was saved
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
             return "";
         }
         return displayedDateFormat.format(photoDate == null ? new Date() : photoDate);
