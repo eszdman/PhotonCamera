@@ -209,6 +209,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * Orientation of the camera sensor
      */
     public int mSensorOrientation;
+    public int cameraRotation;
     public boolean is30Fps = true;
     public boolean onUnlimited = false;
     public boolean mFlashed = false;
@@ -1161,7 +1162,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             else
                 captureBuilder.addTarget(mImageReaderPreview.getSurface());
             Camera2ApiAutoFix.applyEnergySaving();
-            PhotonCamera.getParameters().cameraRotation = PhotonCamera.getGravity().getCameraRotation();
+            cameraRotation = PhotonCamera.getGravity().getCameraRotation(mSensorOrientation);
 
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //setCaptureAEMode(captureBuilder);
@@ -1183,7 +1184,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "CaptureBuilderStarted!");
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation());
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation(mSensorOrientation));
 
             captures = new ArrayList<>();
             BurstShakiness = new ArrayList<>();
@@ -1266,7 +1267,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
 
                     if (onUnlimited && mCaptureResult == null) {
-                        mImageSaver.unlimitedStart(mCameraCharacteristics, result);
+                        mImageSaver.unlimitedStart(mCameraCharacteristics, result, cameraRotation);
                     }
                     mCaptureResult = result;
                 }
@@ -1286,7 +1287,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness));
+                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
                     }
                 }
             };
@@ -1367,7 +1368,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void callUnlimitedStart() {
         onUnlimited = true;
         if (mCaptureResult != null)
-            mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult);
+            mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult, cameraRotation);
         takePicture();
     }
 

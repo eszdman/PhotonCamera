@@ -38,12 +38,14 @@ public class UnlimitedProcessor extends ProcessorBase {
     public void unlimitedStart(Path dngFile, Path jpgFile, ParseExif.ExifData exifData,
                                CameraCharacteristics characteristics,
                                CaptureResult captureResult,
+                               int cameraRotation,
                                ProcessingCallback callback) {
         this.dngFile = dngFile;
         this.jpgFile = jpgFile;
         this.exifData = exifData;
         this.characteristics = characteristics;
         this.captureResult = captureResult;
+        this.cameraRotation = cameraRotation;
         unlimitedEnd = false;
         lock = false;
         fillParams = false;
@@ -108,7 +110,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, (int) FAKE_WL);
 
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, image,
-                    characteristics, captureResult);
+                    characteristics, captureResult,cameraRotation);
 
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) FAKE_WL);
 

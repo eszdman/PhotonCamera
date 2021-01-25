@@ -16,6 +16,7 @@ public abstract class ProcessorBase {
     protected CaptureResult captureResult;
     protected ProcessingCallback callback;
     protected ParseExif.ExifData exifData;
+    protected int cameraRotation;
 
     public ProcessorBase(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;

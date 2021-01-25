@@ -5,8 +5,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-import com.particlesdevs.photoncamera.app.PhotonCamera;
-
 public class Gravity {
     private static final String TAG = "Gravity";
     private final SensorManager mSensorManager;
@@ -62,7 +60,7 @@ public class Gravity {
         }
     }
 
-    public int getCameraRotation() {
-        return (PhotonCamera.getCaptureController().mSensorOrientation + PhotonCamera.getGravity().getRotation() + 270) % 360;
+    public int getCameraRotation(int sensorOrientation) {
+        return (sensorOrientation + getRotation() + 270) % 360;
     }
 }
