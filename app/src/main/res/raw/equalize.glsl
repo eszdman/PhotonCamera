@@ -30,7 +30,7 @@ void main() {
     //if(br > EPS)
     //br = mix(br,HistEq,factor);
     //br = HistEq;
-    //br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //br = pow(br,Equalize);
     sRGB*=br;
     Output = clamp(sRGB,0.0,1.0);

@@ -25,7 +25,7 @@ void main() {
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     if(fact.x+fact.y == 1){
         balance = whitePoint.g;
-        float[5] g;
+        /*float[5] g;
         g[0] = float(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).x);
         g[1] = float(texelFetch(InputBuffer, (xy+ivec2(-1,-1)), 0).x);
         g[2] = float(texelFetch(InputBuffer, (xy+ivec2(-1,1)), 0).x);
@@ -33,7 +33,8 @@ void main() {
         g[4] = float(texelFetch(InputBuffer, (xy+ivec2(1,1)), 0).x);
         float sum = (g[1]+g[2]+g[3]+g[4])/4.0;
         if(g[0] > sum*1.9) g[0] = median5(g);
-        Output = float(g[0])/float(whitelevel);
+        Output = float(g[0])/float(whitelevel);*/
+        Output = float(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).x)/float(whitelevel);
         Output = gains.g*(Output-level.g)/(1.0-level.g);
     } else {
         if(fact.x == 0){

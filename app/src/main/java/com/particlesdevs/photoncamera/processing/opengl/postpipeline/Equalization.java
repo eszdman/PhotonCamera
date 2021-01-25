@@ -98,6 +98,7 @@ public class Equalization extends Node {
         }
         */
         float eq = histParser.gamma;
+        eq = Math.min(eq,1.f);
         Log.d(Name,"Gamma:"+eq);
         float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
@@ -115,7 +116,7 @@ public class Equalization extends Node {
             prev = histParser.hist[i];
         }
         Log.d(Name,"normalization:"+normalization);
-        if(normalization < 1.f) normalization = 1.f;
+        //if(normalization < 1.f) normalization = 1.f;
         for(int i =0; i<histParser.hist.length;i++){
             histParser.hist[i]/=normalization;
         }

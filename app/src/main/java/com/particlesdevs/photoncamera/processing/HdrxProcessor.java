@@ -160,9 +160,16 @@ public class HdrxProcessor extends ProcessorBase {
             }
             Log.d(TAG, "Size after removal:" + images.size());
         }
-        if (images.get(0).pair.curlayer != IsoExpoSelector.ExpoPair.exposureLayer.Normal) {
+
+        float minMpy = 1000.f;
+        for(int i =0; i<IsoExpoSelector.patternSize;i++){
+            if(IsoExpoSelector.pairs.get(i).layerMpy < minMpy){
+                minMpy = IsoExpoSelector.pairs.get(i).layerMpy;
+            }
+        }
+        if (images.get(0).pair.layerMpy != minMpy) {
             for (int i = 1; i < images.size(); i++) {
-                if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal) {
+                if (images.get(i).pair.layerMpy == minMpy) {
                     ImageFrame frame = images.get(0);
                     images.set(0, images.get(i));
                     images.set(i, frame);
@@ -173,9 +180,9 @@ public class HdrxProcessor extends ProcessorBase {
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
-                float mpy = 1.f / 4.f;
-                if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
-                    mpy = 1.f;
+                float mpy = minMpy / images.get(i).pair.layerMpy;
+                //if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
+                //    mpy = 1.f;
                 //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
                 Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer + " mpy:" + mpy);
                 Wrapper.loadFrame(images.get(i).buffer, (FAKE_WL / PhotonCamera.getParameters().whiteLevel) * mpy);
@@ -242,14 +249,14 @@ public class HdrxProcessor extends ProcessorBase {
             int patchWL = (int) FAKE_WL;
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
-            if(!debugAlignment && parameters.hasGainMap) {
+            /*if(!debugAlignment && parameters.hasGainMap) {
                 NonIdealRaw nonIdealRaw = new NonIdealRaw(new Point(width,height));
                 nonIdealRaw.parameters = parameters;
                 nonIdealRaw.inp = images.get(0).image.getPlanes()[0].getBuffer();
                 nonIdealRaw.prevmap = interpolateGainMap.Output;
                 nonIdealRaw.Run();
                 nonIdealRaw.close();
-            }
+            }*/
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
                     characteristics, captureResult);
 
@@ -266,12 +273,12 @@ public class HdrxProcessor extends ProcessorBase {
             parameters.blackLevel[1] -= bl;
             parameters.blackLevel[2] -= bl;
             parameters.blackLevel[3] = 0.f;;
-        } else {
+        } /*else {
             if(!debugAlignment) {
                 parameters.mapSize = new Point(1,1);
                 parameters.gainMap = new float[]{1.f,1.f,1.f,1.f};
             }
-        }
+        }*/
 
         IncreaseWLBL();
 
