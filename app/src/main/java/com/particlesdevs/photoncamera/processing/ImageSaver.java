@@ -5,11 +5,12 @@ import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
-import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
+
 import androidx.exifinterface.media.ExifInterface;
+
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -155,12 +156,12 @@ public class ImageSaver {
         }
     }
 
-    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<Float> burstShakiness) {
+    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<Float> burstShakiness, int cameraRotation) {
 
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();
             boolean imageSaved = Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
-                    characteristics, captureResult);
+                    characteristics, captureResult, cameraRotation);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
             IMAGE_BUFFER.clear();
@@ -193,6 +194,7 @@ public class ImageSaver {
                 burstShakiness,
                 IMAGE_BUFFER,
                 imageReader.getImageFormat(),
+                cameraRotation,
                 characteristics,
                 captureResult,
                 processingCallback
@@ -201,7 +203,7 @@ public class ImageSaver {
     }
 
     private void clearImageReader(ImageReader reader) {
-        for (int i = 0; i < reader.getMaxImages(); i++) {
+/*        for (int i = 0; i < reader.getMaxImages(); i++) {
             try {
                 Image cur = reader.acquireNextImage();
                 if (cur == null) {
@@ -212,11 +214,12 @@ public class ImageSaver {
                 e.printStackTrace();
             }
         }
-        PhotonCamera.getCaptureController().BurstShakiness.clear();
-        //PhotonCamera.getCameraUI().unlockShutterButton();
+        PhotonCamera.getCaptureController().BurstShakiness.clear();*/
+
+        reader.close();
     }
 
-    public void unlimitedStart(CameraCharacteristics characteristics, CaptureResult captureResult) {
+    public void unlimitedStart(CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
 
         Path dngFile = Util.newDNGFilePath();
         Path jpgFile = Util.newJPGFilePath();
@@ -228,6 +231,7 @@ public class ImageSaver {
                 ParseExif.parse(captureResult),
                 characteristics,
                 captureResult,
+                cameraRotation,
                 processingCallback
         );
     }
@@ -258,14 +262,16 @@ public class ImageSaver {
         public static boolean saveStackedRaw(Path dngFilePath,
                                              Image image,
                                              CameraCharacteristics characteristics,
-                                             CaptureResult captureResult) {
-            return saveSingleRaw(dngFilePath, image, characteristics, captureResult);
+                                             CaptureResult captureResult,
+                                             int cameraRotation) {
+            return saveSingleRaw(dngFilePath, image, characteristics, captureResult, cameraRotation);
         }
 
         public static boolean saveSingleRaw(Path dngFilePath,
                                             Image image,
                                             CameraCharacteristics characteristics,
-                                            CaptureResult captureResult) {
+                                            CaptureResult captureResult,
+                                            int cameraRotation) {
 
             Log.d(TAG, "activearr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "precorr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
@@ -273,7 +279,7 @@ public class ImageSaver {
             DngCreator dngCreator =
                     new DngCreator(characteristics, captureResult)
                             .setDescription(PhotonCamera.getParameters().toString())
-                            .setOrientation(ParseExif.getOrientation());
+                            .setOrientation(ParseExif.getOrientation(cameraRotation));
             try {
                 OutputStream outputStream = Files.newOutputStream(dngFilePath);
                 dngCreator.writeImage(outputStream, image);

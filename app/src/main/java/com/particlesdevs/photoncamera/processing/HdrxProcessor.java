@@ -52,14 +52,18 @@ public class HdrxProcessor extends ProcessorBase {
     public void start(Path dngFile, Path jpgFile,
                       ParseExif.ExifData exifData,
                       ArrayList<Float> BurstShakiness,
-                      ArrayList<Image> imageBuffer, int imageFormat,
-                      CameraCharacteristics characteristics, CaptureResult captureResult,
+                      ArrayList<Image> imageBuffer,
+                      int imageFormat,
+                      int cameraRotation,
+                      CameraCharacteristics characteristics,
+                      CaptureResult captureResult,
                       ProcessingCallback callback) {
         this.jpgFile = jpgFile;
         this.dngFile = dngFile;
         this.exifData = exifData;
         this.BurstShakiness = new ArrayList<>(BurstShakiness);
         this.imageFormat = imageFormat;
+        this.cameraRotation = cameraRotation;
         this.mImageFramesToProcess = imageBuffer;
         this.callback = callback;
         this.characteristics = characteristics;
@@ -104,6 +108,7 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
         PhotonCamera.getParameters().FillDynamicParameters(captureResult);
+        PhotonCamera.getParameters().cameraRotation = this.cameraRotation;
 
         exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
 
@@ -258,7 +263,7 @@ public class HdrxProcessor extends ProcessorBase {
                 nonIdealRaw.close();
             }*/
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
-                    characteristics, captureResult);
+                    characteristics, captureResult,cameraRotation);
 
 
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, patchWL);
