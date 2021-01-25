@@ -524,7 +524,7 @@ public class CameraFragment extends Fragment {
         public void onProcessingStarted(Object obj) {
             logD("onProcessingStarted: " + obj);
             mCameraUIView.setProcessingProgressBarIndeterminate(true);
-            mCameraUIView.activateShutterButton(false);
+            mCameraUIView.activateShutterButton(true);
 
         }
 
@@ -1020,8 +1020,8 @@ public class CameraFragment extends Fragment {
 
         private void onTimerFinished() {
             this.shutterButton.setHovered(false);
-            this.shutterButton.setActivated(false);
-            this.shutterButton.setClickable(false);
+//            this.shutterButton.setActivated(false);
+//            this.shutterButton.setClickable(false);
             captureController.takePicture();
         }
     }

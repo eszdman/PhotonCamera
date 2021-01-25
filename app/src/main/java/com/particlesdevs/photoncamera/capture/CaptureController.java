@@ -594,7 +594,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewWidth = width;
             mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-            mImageSaver = new ImageSaver(cameraEventsListener);
             //Thread thr = new Thread(mImageSaver);
             //thr.start();
         } catch (CameraAccessException e) {
@@ -1228,6 +1227,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
             mMeasuredFrameCnt = 0;
+            mImageSaver = new ImageSaver(cameraEventsListener);
 
 
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
@@ -1283,6 +1283,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
                     //unlockFocus();
+                    activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     createCameraPreviewSession();
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
                         PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness));

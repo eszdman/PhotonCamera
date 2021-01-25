@@ -201,7 +201,7 @@ public class ImageSaver {
     }
 
     private void clearImageReader(ImageReader reader) {
-        for (int i = 0; i < reader.getMaxImages(); i++) {
+/*        for (int i = 0; i < reader.getMaxImages(); i++) {
             try {
                 Image cur = reader.acquireNextImage();
                 if (cur == null) {
@@ -212,8 +212,9 @@ public class ImageSaver {
                 e.printStackTrace();
             }
         }
-        PhotonCamera.getCaptureController().BurstShakiness.clear();
-        //PhotonCamera.getCameraUI().unlockShutterButton();
+        PhotonCamera.getCaptureController().BurstShakiness.clear();*/
+
+        reader.close();
     }
 
     public void unlimitedStart(CameraCharacteristics characteristics, CaptureResult captureResult) {
