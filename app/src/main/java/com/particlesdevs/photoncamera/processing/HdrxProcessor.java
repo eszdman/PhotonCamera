@@ -137,7 +137,8 @@ public class HdrxProcessor extends ProcessorBase {
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
-            frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
+            //frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
+            frame.pair = IsoExpoSelector.fullpairs.get(i);
             frame.number = i;
             images.add(frame);
         }
@@ -167,9 +168,9 @@ public class HdrxProcessor extends ProcessorBase {
         }
 
         float minMpy = 1000.f;
-        for(int i =0; i<IsoExpoSelector.patternSize;i++){
-            if(IsoExpoSelector.pairs.get(i).layerMpy < minMpy){
-                minMpy = IsoExpoSelector.pairs.get(i).layerMpy;
+        for(int i =0; i<IsoExpoSelector.fullpairs.size();i++){
+            if(IsoExpoSelector.fullpairs.get(i).layerMpy < minMpy){
+                minMpy = IsoExpoSelector.fullpairs.get(i).layerMpy;
             }
         }
         if (images.get(0).pair.layerMpy != minMpy) {
