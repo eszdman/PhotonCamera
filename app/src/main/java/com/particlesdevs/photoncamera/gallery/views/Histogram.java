@@ -9,7 +9,7 @@ import com.aparapi.Kernel;
 import com.aparapi.Range;
 
 public class Histogram extends View {
-    private static HistogramLoadingListener sHistogramLoadingListener;
+    private HistogramLoadingListener sHistogramLoadingListener;
     private final Paint wallPaint;
     private HistogramModel histogramModel;
 
@@ -19,9 +19,6 @@ public class Histogram extends View {
     }
 
     public static HistogramModel analyze(Bitmap bitmap) {
-        if (sHistogramLoadingListener != null) {
-            sHistogramLoadingListener.isLoading(true);
-        }
         int size = 256;
         int[][] colorsMap = new int[3][size];
         int maxY = 0;
@@ -58,7 +55,7 @@ public class Histogram extends View {
     }
 
     public void setHistogramLoadingListener(HistogramLoadingListener histogramLoadingListener) {
-        Histogram.sHistogramLoadingListener = histogramLoadingListener;
+        this.sHistogramLoadingListener = histogramLoadingListener;
     }
 
     public void setHistogramModel(HistogramModel histogramModel) {

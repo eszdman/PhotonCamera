@@ -108,10 +108,6 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(File imageFile) {
-        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
-            return true;
-        });
         executorService.execute(() -> {
             try {
                 Bitmap preview = Glide.with(getApplication())
@@ -125,9 +121,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
                         )
                         .submit()
                         .get();
-                Message msg = new Message();
-                msg.obj = Histogram.analyze(preview);
-                handler.sendMessage(msg);
+                exifDialogModel.setHistogramModel(Histogram.analyze(preview));
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
