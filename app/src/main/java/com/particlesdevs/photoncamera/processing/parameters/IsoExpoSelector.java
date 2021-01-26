@@ -97,6 +97,10 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLower(2.0 / 1.0);
             pair.curlayer = ExpoPair.exposureLayer.Low;
         }*/
+        if(HDR) {
+            pair.ExpoCompensateLowerExpo(2.f);
+            pair.ExpoCompensateLower(1.f/2.f);
+        }
         if (step%patternSize == 0 && HDR) {
             pair.layerMpy = 1.5f+(float)Math.abs(Math.random())*1.0f;
             pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
@@ -106,10 +110,7 @@ public class IsoExpoSelector {
             pair.layerMpy = 4.f+(float)Math.abs(Math.random());
             pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.High;
-        } /*else {
-            pair.layerMpy = 1.f/2.f;
-            pair.ExpoCompensateLower(1.0 / pair.layerMpy);
-        }*/
+        }
         if (step%patternSize == 2 && HDR) {
             pair.layerMpy = 1.f/1.5f;
             pair.ExpoCompensateLower(1.0 / pair.layerMpy);
