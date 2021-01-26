@@ -214,6 +214,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public int cameraRotation;
     public boolean is30Fps = true;
     public boolean onUnlimited = false;
+    public boolean unlimitedStarted = false;
     public boolean mFlashed = false;
     public ArrayList<Float> BurstShakiness;
     /**
@@ -1268,8 +1269,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
 
-                    if (onUnlimited && mCaptureResult == null) {
+                    if (onUnlimited && !unlimitedStarted) {
                         mImageSaver.unlimitedStart(mCameraCharacteristics, result, cameraRotation);
+                        unlimitedStarted = true;
                     }
                     mCaptureResult = result;
                 }
@@ -1367,12 +1369,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mImageSaver.unlimitedEnd();
         abortCaptures();
         createCameraPreviewSession();
+        unlimitedStarted = false;
     }
 
     public void callUnlimitedStart() {
         onUnlimited = true;
-        if (mCaptureResult != null)
-            mImageSaver.unlimitedStart(mCameraCharacteristics, mCaptureResult, cameraRotation);
         takePicture();
     }
 
