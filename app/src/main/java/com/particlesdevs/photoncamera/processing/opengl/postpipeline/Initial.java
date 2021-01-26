@@ -57,7 +57,7 @@ public class Initial extends Node {
         glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         float[][] cube = null;
         ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
             glProg.setDefine("CCT", 1);
             if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
             cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
@@ -67,7 +67,7 @@ public class Initial extends Node {
             cube = basePipeline.mParameters.CCT.cubes[0].cube;
         }
         glProg.useProgram(R.raw.initial);
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
             glProg.setVar("CUBE0",cube[0]);
             glProg.setVar("CUBE1",cube[1]);
             glProg.setVar("CUBE2",cube[2]);
