@@ -5,8 +5,8 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
+import android.os.HandlerThread;
+import android.os.Process;
 import android.util.Rational;
 
 import androidx.exifinterface.media.ExifInterface;
@@ -29,8 +29,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * The View Model class which updates the {@link ExifDialogModel}
@@ -38,11 +36,15 @@ import java.util.concurrent.Executors;
 public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final HandlerThread histoThread = new HandlerThread("HistoThread", Process.THREAD_PRIORITY_BACKGROUND);
+    private final Handler histoHandler;
+    private Runnable histoRunnable;
 
     public ExifDialogViewModel(Application application) {
         super(application);
         this.exifDialogModel = new ExifDialogModel();
+        histoThread.start();
+        histoHandler = new Handler(histoThread.getLooper());
     }
 
     public ExifDialogModel getExifDataModel() {
@@ -108,11 +110,10 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(File imageFile) {
-        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
-            return true;
-        });
-        executorService.execute(() -> {
+        if (histoRunnable != null) {
+            histoHandler.removeCallbacks(histoRunnable);
+        }
+        histoHandler.post(histoRunnable = () -> {
             try {
                 Bitmap preview = Glide.with(getApplication())
                         .asBitmap()
@@ -125,9 +126,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
                         )
                         .submit()
                         .get();
-                Message msg = new Message();
-                msg.obj = Histogram.analyze(preview);
-                handler.sendMessage(msg);
+                exifDialogModel.setHistogramModel(Histogram.analyze(preview));
             } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -144,5 +143,11 @@ public class ExifDialogViewModel extends AndroidViewModel {
             return "";
         }
         return displayedDateFormat.format(photoDate == null ? new Date() : photoDate);
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        histoThread.quitSafely();
+        super.finalize();
     }
 }
