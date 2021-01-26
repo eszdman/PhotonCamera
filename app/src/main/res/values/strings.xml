@@ -103,5 +103,6 @@
     <string name="mode_photo">Photo</string>
     <string name="mode_night">Night</string>
     <string name="mode_video">Video</string>
+    <string name="processing_processname">Processing %1$s</string>
 
 </resources>

@@ -95,7 +95,7 @@ public class UnlimitedProcessor extends ProcessorBase {
     private void processUnlimited(Image image) {
         callback.onStarted();
 //        PhotonCamera.getParameters().path = ImageSaver.jpgFilePathToSave.getAbsolutePath();
-        processingEventsListener.onProcessingStarted("Unlimited Processing Started");
+        processingEventsListener.onProcessingStarted("Unlimited");
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();

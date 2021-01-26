@@ -20,6 +20,8 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -32,6 +34,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
@@ -39,17 +42,25 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.*;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
@@ -83,7 +94,12 @@ import com.particlesdevs.photoncamera.util.log.Logger;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -98,6 +114,7 @@ public class CameraFragment extends Fragment {
     private static final String TAG = CameraFragment.class.getSimpleName();
     private static final String ACTIVE_BACKCAM_ID = "ACTIVE_BACKCAM_ID"; //key for savedInstanceState
     private static final String ACTIVE_FRONTCAM_ID = "ACTIVE_FRONTCAM_ID"; //key for savedInstanceState
+    private static final String NOTIFICATION_CHANNEL_ID = "NOTIFICATION_CHANNEL_ID";
     /**
      * sActiveBackCamId is either
      * = 0 or camera_id stored in SharedPreferences in case of fresh application Start; or
@@ -124,6 +141,9 @@ public class CameraFragment extends Fragment {
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
     private AutoFitPreviewView textureView;
+    private final int NOTIFICATION_ID = 1;
+    private NotificationManagerCompat notificationManager;
+    private NotificationCompat.Builder notificationBuilder;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -146,6 +166,8 @@ public class CameraFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         this.activity = getActivity();
+        notificationManager = NotificationManagerCompat.from(activity);
+        notificationBuilder = new NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID);
     }
 
     @Override
@@ -493,6 +515,26 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    private void showNotification(String processName) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel
+                    (NOTIFICATION_CHANNEL_ID, "NotificationChannel", NotificationManager.IMPORTANCE_LOW);
+            notificationManager.createNotificationChannel(channel);
+        }
+        notificationBuilder
+                .setSmallIcon(R.drawable.ic_round_photo_camera_24)
+                .setContentTitle(activity.getString(R.string.app_name))
+                .setContentText(activity.getString(R.string.processing_processname, processName))
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setProgress(0, 0, true);
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    private void stopNotification() {
+        notificationManager.cancel(NOTIFICATION_ID);
+    }
+
     //*****************************************************************************************************************
     //**************************************ErrorDialog****************************************************************
     //*****************************************************************************************************************
@@ -537,11 +579,11 @@ public class CameraFragment extends Fragment {
          * Implementation of {@link ProcessingEventsListener}
          */
         @Override
-        public void onProcessingStarted(Object obj) {
-            logD("onProcessingStarted: " + obj);
+        public void onProcessingStarted(String processName) {
+            logD("onProcessingStarted: " + processName +" Processing Started");
             mCameraUIView.setProcessingProgressBarIndeterminate(true);
             mCameraUIView.activateShutterButton(true);
-
+            showNotification(processName);
         }
 
         @Override
@@ -553,6 +595,7 @@ public class CameraFragment extends Fragment {
             logD("onProcessingFinished: " + obj);
             mCameraUIView.setProcessingProgressBarIndeterminate(false);
             mCameraUIView.activateShutterButton(true);
+            stopNotification();
         }
 
         @Override

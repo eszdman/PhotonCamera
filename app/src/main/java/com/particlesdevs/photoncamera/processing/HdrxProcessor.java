@@ -90,7 +90,7 @@ public class HdrxProcessor extends ProcessorBase {
 
     private void ApplyHdrX() {
         callback.onStarted();
-        processingEventsListener.onProcessingStarted("HdrX Processing Started");
+        processingEventsListener.onProcessingStarted("HDRX");
 
         boolean debugAlignment = (alignAlgorithm == 1);
 
