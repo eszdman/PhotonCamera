@@ -72,6 +72,8 @@ public interface CameraUIView {
 
     void showFlashButton(boolean flashAvailable);
 
+    void destroy();
+
     /**
      * Interface which listens to input events from User
      */

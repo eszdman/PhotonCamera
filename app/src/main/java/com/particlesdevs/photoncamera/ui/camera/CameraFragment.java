@@ -273,6 +273,12 @@ public class CameraFragment extends Fragment {
             e.printStackTrace();
         }
         getParentFragmentManager().beginTransaction().remove(CameraFragment.this).commitAllowingStateLoss();
+        cameraFragmentBinding = null;
+        mCameraUIView.destroy();
+        mCameraUIView = null;
+        mCameraUIEventsListener = null;
+        PhotonCamera.setCaptureController(captureController = null);
+        PhotonCamera.setManualMode(null);
     }
 
     @SuppressLint("DefaultLocale")
@@ -666,13 +672,13 @@ public class CameraFragment extends Fragment {
      */
     private final class CameraUIViewImpl implements CameraUIView {
         private static final String TAG = "CameraUIView";
-        private final LayoutMainTopbarBinding topbar;
-        private final LayoutBottombuttonsBinding bottombuttons;
         private final ProgressBar mCaptureProgressBar;
         private final ImageButton mShutterButton;
         private final ProgressBar mProcessingProgressBar;
         private final LinearLayout mAuxGroupContainer;
         private final HorizontalPicker mModePicker;
+        private LayoutMainTopbarBinding topbar;
+        private LayoutBottombuttonsBinding bottombuttons;
         private CameraUIEventsListener uiEventsListener;
         private HashMap<Integer, String> auxButtonsMap;
         private float baseF = 0.f;
@@ -853,6 +859,12 @@ public class CameraFragment extends Fragment {
         @Override
         public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
             this.uiEventsListener = cameraUIEventsListener;
+        }
+
+        @Override
+        public void destroy() {
+            topbar = null;
+            bottombuttons = null;
         }
     }
 

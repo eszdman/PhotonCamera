@@ -20,6 +20,7 @@ import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Sensors;
+import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
@@ -28,7 +29,6 @@ import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.SplashActivity;
 import com.particlesdevs.photoncamera.util.AssetLoader;
 import com.particlesdevs.photoncamera.util.log.ActivityLifecycleMonitor;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -197,6 +197,8 @@ public class PhotonCamera extends Application {
     public void onTerminate() {
         super.onTerminate();
         executorService.shutdownNow();
+        mCaptureController = null;
+        mManualMode = null;
         sPhotonCamera = null;
     }
 }

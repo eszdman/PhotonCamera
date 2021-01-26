@@ -4,10 +4,16 @@ package com.particlesdevs.photoncamera.manual;
 import android.app.Activity;
 import android.view.View;
 import android.widget.TextView;
+
 import androidx.annotation.Nullable;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
-import com.particlesdevs.photoncamera.manual.model.*;
+import com.particlesdevs.photoncamera.manual.model.EvModel;
+import com.particlesdevs.photoncamera.manual.model.FocusModel;
+import com.particlesdevs.photoncamera.manual.model.IsoModel;
+import com.particlesdevs.photoncamera.manual.model.ManualModel;
+import com.particlesdevs.photoncamera.manual.model.ShutterModel;
 import com.particlesdevs.photoncamera.util.Timer;
 
 import java.util.Arrays;
@@ -18,10 +24,10 @@ import java.util.Arrays;
 public final class ManualModeImpl implements ManualMode {
 
     private static final String TAG = "ManualModeImpl";
-    private final Activity activity;
-    private final TextView mfTextView, isoTextView, expoTextView, evTextView;
-    private final KnobView knobView;
-    private final View[] textViews;
+    private Activity activity;
+    private TextView mfTextView, isoTextView, expoTextView, evTextView;
+    private KnobView knobView;
+    private View[] textViews;
     private ManualModel mfModel, isoModel, expoTimeModel, evModel, selectedModel;
 
     ManualModeImpl(Activity activity) {
@@ -152,5 +158,17 @@ public final class ManualModeImpl implements ManualMode {
             if (v == null || !v.equals(view))
                 view.setSelected(false);
         });
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        knobView = null;
+        textViews = null;
+        activity = null;
+        mfTextView = null;
+        isoTextView = null;
+        expoTextView = null;
+        evTextView = null;
+        super.finalize();
     }
 }

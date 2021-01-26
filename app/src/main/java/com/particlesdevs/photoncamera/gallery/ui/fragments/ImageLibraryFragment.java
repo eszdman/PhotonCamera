@@ -178,4 +178,11 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
             closeFABMenu();
         }
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getParentFragmentManager().beginTransaction().remove(ImageLibraryFragment.this).commitAllowingStateLoss();
+        fragmentGalleryImageLibraryBinding = null;
+    }
 }

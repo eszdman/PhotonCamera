@@ -175,13 +175,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public final boolean mFlashEnabled = false;
-    private final CameraEventsListener cameraEventsListener;
+    private CameraEventsListener cameraEventsListener;
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
     private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
-    private final CameraManager mCameraManager;
-    private final Activity activity;
+    private CameraManager mCameraManager;
+    private Activity activity;
     public long mPreviewExposureTime;
     /**
      * ID of the current {@link CameraDevice}.
@@ -1456,6 +1456,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         in.left *= k;
         in.right *= k;
         in.top *= k;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        activity = null;
+        cameraEventsListener = null;
+        mCameraManager = null;
+        mTextureView = null;
+        super.finalize();
     }
 
     public void resumeCamera() {
