@@ -245,7 +245,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //            Message msg = new Message();
 //            msg.obj = reader;
 //            mImageSaver.processingHandler.sendMessage(msg);
-            PhotonCamera.getExecutorService().execute(() -> mImageSaver.initProcess(reader));
+            if (onUnlimited && !unlimitedStarted) {
+                return;
+            }
+            taskResults.removeIf(Future::isDone); //remove already completed results
+            Future<?> result = PhotonCamera.getExecutorService().submit(() -> mImageSaver.initProcess(reader));
+            taskResults.add(result);
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
 

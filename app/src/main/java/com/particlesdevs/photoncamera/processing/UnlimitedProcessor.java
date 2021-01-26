@@ -71,6 +71,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             fillParams = true;
             PhotonCamera.getParameters().FillConstParameters(characteristics, PhotonCamera.getParameters().rawSize);
             PhotonCamera.getParameters().FillDynamicParameters(captureResult);
+            PhotonCamera.getParameters().cameraRotation = this.cameraRotation;
 
             exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
         }
