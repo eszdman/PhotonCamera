@@ -12,6 +12,7 @@ public class Histogram extends View {
     private HistogramLoadingListener sHistogramLoadingListener;
     private final Paint wallPaint;
     private HistogramModel histogramModel;
+    private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
 
     public Histogram(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
@@ -97,7 +98,7 @@ public class Histogram extends View {
                 //wallpaint.setColor(0x00C90D);
                 wallPaint.setARGB(0xFF, 0x00, 0xC9, 0x0D);
             }
-            wallPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.ADD));
+            wallPaint.setXfermode(porterDuffXfermode);
             wallPaint.setStyle(Paint.Style.FILL);
             wallPath.reset();
             wallPath.moveTo(0, height);
