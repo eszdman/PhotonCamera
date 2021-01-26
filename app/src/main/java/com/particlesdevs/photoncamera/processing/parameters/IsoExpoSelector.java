@@ -113,7 +113,7 @@ public class IsoExpoSelector {
         }
         if (step%patternSize == 2 && HDR) {
             pair.layerMpy = 1.f/1.5f;
-            pair.ExpoCompensateLower(1.0 / pair.layerMpy);
+            pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.Low;
         }
 

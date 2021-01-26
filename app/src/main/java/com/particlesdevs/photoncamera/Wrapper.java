@@ -31,5 +31,5 @@ public class Wrapper {
     public static native void loadInterpolatedGainMap(ByteBuffer GainMap);
 
     public static native ByteBuffer processFrame(float DistMin, float DistMax, float ElFactor, float BLr,float BLg,float BLb, float WLFactor,
-    float wpR,float wpG, float wpB);
+    float wpR,float wpG, float wpB,int CfaPattern);
 }
