@@ -7,13 +7,16 @@ import androidx.databinding.DataBindingUtil;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
+import com.particlesdevs.photoncamera.databinding.ActivityGalleryBinding;
 
 public class GalleryActivity extends BaseActivity {
+    private ActivityGalleryBinding activityGalleryBinding;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        ActivityGalleryBinding activityGalleryBinding = DataBindingUtil.setContentView(this, R.layout.activity_gallery);
-        DataBindingUtil.setContentView(this, R.layout.activity_gallery);
+        activityGalleryBinding = DataBindingUtil.setContentView(this, R.layout.activity_gallery);
+//        DataBindingUtil.setContentView(this, R.layout.activity_gallery);
     }
 
     /*public void onBackArrowClicked(View view) {
@@ -21,4 +24,10 @@ public class GalleryActivity extends BaseActivity {
         NavController navController = navHostFragment.getNavController();
         navController.navigateUp();
     }*/
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        activityGalleryBinding = null;
+    }
 }

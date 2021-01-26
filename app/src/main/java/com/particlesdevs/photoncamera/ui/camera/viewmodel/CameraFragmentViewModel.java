@@ -32,11 +32,14 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     private final CameraFragmentModel cameraFragmentModel;
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
+    private HandlerThread thumbnailThread;
 
     public CameraFragmentViewModel(@NonNull Application application) {
         super(application);
         cameraFragmentModel = new CameraFragmentModel();
         initOrientationEventListener();
+        thumbnailThread = new HandlerThread("ThumbnailUpdater", Process.THREAD_PRIORITY_BACKGROUND);
+        thumbnailThread.start();
     }
 
     public CameraFragmentModel getCameraFragmentModel() {
@@ -89,17 +92,21 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         if (allFiles.isEmpty())
             return;
         File lastImage = allFiles.get(0);
-        HandlerThread t = new HandlerThread("ThumbnailUpdater", Process.THREAD_PRIORITY_BACKGROUND);
-        t.start();
         if (lastImage != null) {
-            new Handler(t.getLooper()).post(() -> {
+            new Handler(thumbnailThread.getLooper()).post(() -> {
                 Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
                         .quality(Quality.LOWEST_OPAQUE)
                         .scaleBy(0.1f)
                         .decode();
                 cameraFragmentModel.setBitmap(bitmap);
-                t.quitSafely();
             });
         }
+    }
+
+    @Override
+    protected void onCleared() {
+        thumbnailThread.quitSafely();
+        thumbnailThread = null;
+        super.onCleared();
     }
 }

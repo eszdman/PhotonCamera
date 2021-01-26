@@ -36,7 +36,7 @@ import java.util.concurrent.ExecutionException;
 public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
-    private final HandlerThread histoThread = new HandlerThread("HistoThread", Process.THREAD_PRIORITY_BACKGROUND);
+    private HandlerThread histoThread = new HandlerThread("HistoThread", Process.THREAD_PRIORITY_BACKGROUND);
     private final Handler histoHandler;
     private Runnable histoRunnable;
 
@@ -146,8 +146,9 @@ public class ExifDialogViewModel extends AndroidViewModel {
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected void onCleared() {
         histoThread.quitSafely();
-        super.finalize();
+        histoThread = null;
+        super.onCleared();
     }
 }
