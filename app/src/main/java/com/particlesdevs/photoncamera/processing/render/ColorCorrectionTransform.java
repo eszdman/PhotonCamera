@@ -55,6 +55,7 @@ public class ColorCorrectionTransform {
                 break;
             }
             case "MATRIXES":{
+                correctionMode = CorrectionMode.MATRIXES;
                 in.nextLine();
                 String[] inp = in.nextLine().split(",");
                 p1[0] = Float.parseFloat(inp[0]);

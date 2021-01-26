@@ -15,6 +15,7 @@ import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -56,7 +57,7 @@ public class Initial extends Node {
         glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         float[][] cube = null;
         ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        if(mode != ColorCorrectionTransform.CorrectionMode.MATRIX){
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE){
             glProg.setDefine("CCT", 1);
             if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
             cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
@@ -66,7 +67,7 @@ public class Initial extends Node {
             cube = basePipeline.mParameters.CCT.cubes[0].cube;
         }
         glProg.useProgram(R.raw.initial);
-        if(mode != ColorCorrectionTransform.CorrectionMode.MATRIX && mode != ColorCorrectionTransform.CorrectionMode.MATRIXES){
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE){
             glProg.setVar("CUBE0",cube[0]);
             glProg.setVar("CUBE1",cube[1]);
             glProg.setVar("CUBE2",cube[2]);
@@ -74,6 +75,7 @@ public class Initial extends Node {
         float[] cct = basePipeline.mParameters.CCT.matrix;
         if(mode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
             cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
+            Log.d(Name,"CCT:"+ Arrays.toString(cct));
         }
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
