@@ -602,6 +602,7 @@ public class CameraFragment extends Fragment {
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
             textureView.post(() -> textureView.setAlpha(1f));
+            mCameraUIView.activateShutterButton(true);
         }
 
         @Override
@@ -1020,8 +1021,8 @@ public class CameraFragment extends Fragment {
 
         private void onTimerFinished() {
             this.shutterButton.setHovered(false);
-//            this.shutterButton.setActivated(false);
-//            this.shutterButton.setClickable(false);
+            this.shutterButton.setActivated(false);
+            this.shutterButton.setClickable(false);
             captureController.takePicture();
         }
     }
