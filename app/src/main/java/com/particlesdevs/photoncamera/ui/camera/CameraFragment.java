@@ -84,6 +84,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
@@ -267,18 +269,26 @@ public class CameraFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+//        Log.d(TAG, "onDestroy() called");
         try {
             captureController.stopBackgroundThread();
         } catch (Exception e) {
             e.printStackTrace();
         }
         getParentFragmentManager().beginTransaction().remove(CameraFragment.this).commitAllowingStateLoss();
+        for (Future<?> taskResult : captureController.taskResults) {
+            try {
+                taskResult.get(); //wait for all tasks to complete
+            } catch (ExecutionException | InterruptedException ignored) {
+            }
+        }
         cameraFragmentBinding = null;
         mCameraUIView.destroy();
         mCameraUIView = null;
         mCameraUIEventsListener = null;
         PhotonCamera.setCaptureController(captureController = null);
         PhotonCamera.setManualMode(null);
+//        Log.d(TAG, "onDestroy() finished");
     }
 
     @SuppressLint("DefaultLocale")

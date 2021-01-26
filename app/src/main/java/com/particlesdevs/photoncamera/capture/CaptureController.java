@@ -86,6 +86,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -106,6 +107,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int YUV_FORMAT = ImageFormat.YUV_420_888;
     public static final int PREVIEW_FORMAT = ImageFormat.YUV_420_888;
     private static final String TAG = CaptureController.class.getSimpleName();
+    public List<Future<?>> taskResults = new ArrayList<>();
     /**
      * Camera state: Showing camera preview.
      */
@@ -1286,8 +1288,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     //unlockFocus();
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     createCameraPreviewSession();
+                    taskResults.removeIf(Future::isDone); //remove already completed results
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        PhotonCamera.getExecutorService().execute(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
+                        Future<?> result = PhotonCamera.getExecutorService().submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
+                        taskResults.add(result);
                     }
                 }
             };
