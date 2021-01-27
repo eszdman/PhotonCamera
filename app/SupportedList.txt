@@ -5,7 +5,8 @@ xiaomi:umi
 xiaomi:dipper
 xiaomi:apollo
 xiaomi:laurel_sprout
+redmi:galahad
 realme:rmx1931l1
 samsung:x1s
-motorola:sofia
+motorola:sofiar
 lge:flashlm
