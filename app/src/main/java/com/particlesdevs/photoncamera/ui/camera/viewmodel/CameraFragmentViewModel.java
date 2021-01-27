@@ -93,13 +93,15 @@ public class CameraFragmentViewModel extends AndroidViewModel {
             return;
         File lastImage = allFiles.get(0);
         if (lastImage != null) {
-            new Handler(thumbnailThread.getLooper()).post(() -> {
-                Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
-                        .quality(Quality.LOWEST_OPAQUE)
-                        .scaleBy(0.1f)
-                        .decode();
-                cameraFragmentModel.setBitmap(bitmap);
-            });
+            if (thumbnailThread != null && thumbnailThread.isAlive()) {
+                new Handler(thumbnailThread.getLooper()).post(() -> {
+                    Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
+                            .quality(Quality.LOWEST_OPAQUE)
+                            .scaleBy(0.1f)
+                            .decode();
+                    cameraFragmentModel.setBitmap(bitmap);
+                });
+            }
         }
     }
 

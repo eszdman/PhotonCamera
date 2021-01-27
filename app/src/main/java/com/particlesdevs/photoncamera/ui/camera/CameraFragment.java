@@ -143,7 +143,6 @@ public class CameraFragment extends Fragment {
     private AutoFitPreviewView textureView;
     private final int NOTIFICATION_ID = 1;
     private NotificationManagerCompat notificationManager;
-    private NotificationCompat.Builder notificationBuilder;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -167,7 +166,6 @@ public class CameraFragment extends Fragment {
         setRetainInstance(true);
         this.activity = getActivity();
         notificationManager = NotificationManagerCompat.from(activity);
-        notificationBuilder = new NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID);
     }
 
     @Override
@@ -516,6 +514,7 @@ public class CameraFragment extends Fragment {
     }
 
     private void showNotification(String processName) {
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel
                     (NOTIFICATION_CHANNEL_ID, "NotificationChannel", NotificationManager.IMPORTANCE_LOW);

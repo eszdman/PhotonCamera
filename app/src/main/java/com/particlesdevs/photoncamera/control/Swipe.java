@@ -120,12 +120,14 @@ public class Swipe {
     }
 
     public void SwipeDown() {
-        manualMode.post(this::hidePanel);
-        cameraFragment.getTouchFocus().resetFocusCircle();
-        cameraFragment.getCaptureController().setPreviewAEMode();
-        cameraFragment.getCaptureController().mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-        PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-        PhotonCamera.getManualMode().retractAllKnobs();
+        if (panelShowing) {
+            manualMode.post(this::hidePanel);
+            cameraFragment.getTouchFocus().resetFocusCircle();
+            cameraFragment.getCaptureController().setPreviewAEMode();
+            cameraFragment.getCaptureController().mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
+            PhotonCamera.getCaptureController().rebuildPreviewBuilder();
+            PhotonCamera.getManualMode().retractAllKnobs();
+        }
     }
 
     public void SwipeRight() {
