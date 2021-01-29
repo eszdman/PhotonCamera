@@ -8,14 +8,18 @@ import android.util.Range;
 import androidx.core.content.ContextCompat;
 
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.ShadowTextDrawable;
 
 import java.util.ArrayList;
 
 public class FocusModel extends ManualModel<Float> {
 
-    public FocusModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
-        super(context, range, valueChangedEvent);
+    public FocusModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, range, manualParamModel, valueChangedEvent);
     }
 
     @Override
@@ -28,7 +32,7 @@ public class FocusModel extends ManualModel<Float> {
             currentInfo = auto;
             return;
         }
-        auto = getNewAutoItem(FOCUS_AUTO, null);
+        auto = getNewAutoItem(ManualParamModel.FOCUS_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         float focusStep = (range.getUpper() - range.getLower()) / 20;
@@ -47,7 +51,7 @@ public class FocusModel extends ManualModel<Float> {
             } else {
                 drawable = new ShadowTextDrawable();
             }
-            String text = values.get(tick).toString();
+            String text = String.format("%.2f", values.get(tick));
 //            getKnobInfoList().add(new KnobItemInfo(drawable, text, tick - values.size(), (double) values.get(tick)));
             getKnobInfoList().add(new KnobItemInfo(drawable, text, tick + 1, (double) values.get(tick)));
         }
@@ -63,7 +67,7 @@ public class FocusModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        ParamController.setFocus((float) knobItemInfo.value);
+        manualParamModel.setCurrentFocusValue(knobItemInfo.value);
         Log.d("TAG", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 }

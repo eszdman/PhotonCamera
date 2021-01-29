@@ -2,62 +2,46 @@ package com.particlesdevs.photoncamera.manual.model;
 
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
 import android.util.Log;
 import android.util.Range;
+
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobViewChangedListener;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.ShadowTextDrawable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ManualModel<T extends Comparable<? super T>> implements KnobViewChangedListener, IModel {
-
-    public static final double SHUTTER_AUTO = 0;
-    public static final double EV_AUTO = 0;
-    public static final double ISO_AUTO = 0;
-    public static final double FOCUS_AUTO = -1.0d;
-    private final int SET_TO_CAM = 1;
-    private final HandlerThread mBackgroundThread;
+    protected final ManualParamModel manualParamModel;
     private final List<KnobItemInfo> knobInfoList;
     private final ValueChangedEvent valueChangedEvent;
-    private final Handler backgroundHandler;
     protected Range<T> range;
     protected KnobInfo knobInfo;
     protected KnobItemInfo currentInfo, autoModel;
     protected Context context;
 
-    public ManualModel(Context context, Range<T> range, ValueChangedEvent valueChangedEvent) {
+    public ManualModel(Context context, Range<T> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         this.context = context;
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
+        this.manualParamModel = manualParamModel;
         knobInfoList = new ArrayList<>();
-        mBackgroundThread = new HandlerThread(ManualMode.class.getName());
-        mBackgroundThread.start();
-        backgroundHandler = new Handler(mBackgroundThread.getLooper(), msg -> {
-            if (msg.what == SET_TO_CAM) {
-                onSelectedKnobItemChanged((KnobItemInfo) msg.obj);
-            }
-            return false;
-        });
         fillKnobInfoList();
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        mBackgroundThread.quitSafely();
-        super.finalize();
+    public void setAutoTxt() {
+        fireValueChangedEvent(autoModel.text);
     }
 
-    public void fireValueChangedEvent(final String txt) {
+    private void fireValueChangedEvent(final String txt) {
         if (valueChangedEvent != null)
             valueChangedEvent.onValueChanged(txt);
-    }
-
-    public KnobItemInfo getAutoModel() {
-        return autoModel;
     }
 
     protected KnobItemInfo getNewAutoItem(double defaultVal, String defaultText) {
@@ -112,7 +96,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         Log.d(ManualMode.class.getSimpleName(), "onSelectedKnobItemChanged");
         if (knobItemInfo == knobItemInfo2)
             return;
-        backgroundHandler.obtainMessage(SET_TO_CAM, knobItemInfo2).sendToTarget();
+        onSelectedKnobItemChanged(knobItemInfo2);
         if (knobItemInfo != null) {
             knobItemInfo.drawable.setState(new int[]{-android.R.attr.state_selected});
         }

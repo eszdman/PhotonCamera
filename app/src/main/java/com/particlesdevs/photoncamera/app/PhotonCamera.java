@@ -22,7 +22,6 @@ import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
@@ -52,7 +51,6 @@ public class PhotonCamera extends Application {
     private Parameters mParameters;
     private CaptureController mCaptureController;
     private SupportedDevice mSupportedDevice;
-    private ManualMode mManualMode;
     private SettingsManager mSettingsManager;
     private AssetLoader mAssetLoader;
 
@@ -97,14 +95,6 @@ public class PhotonCamera extends Application {
 
     public static AssetLoader getAssetLoader() {
         return sPhotonCamera.mAssetLoader;
-    }
-
-    public static ManualMode getManualMode() {
-        return sPhotonCamera.mManualMode;
-    }
-
-    public static void setManualMode(ManualMode manualMode) {
-        sPhotonCamera.mManualMode = manualMode;
     }
 
     public static void restartWithDelay(Context context, long delayMs) {
@@ -210,7 +200,6 @@ public class PhotonCamera extends Application {
         super.onTerminate();
         executorService.shutdownNow();
         mCaptureController = null;
-        mManualMode = null;
         sPhotonCamera = null;
     }
 }

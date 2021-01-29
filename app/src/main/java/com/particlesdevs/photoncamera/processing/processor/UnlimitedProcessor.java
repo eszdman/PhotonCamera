@@ -1,14 +1,16 @@
-package com.particlesdevs.photoncamera.processing;
-
+package com.particlesdevs.photoncamera.processing.processor;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
+
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.processing.ImageSaver;
+import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
@@ -73,7 +75,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             PhotonCamera.getParameters().FillDynamicParameters(captureResult);
             PhotonCamera.getParameters().cameraRotation = this.cameraRotation;
 
-            exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
+            exifData.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString();
         }
         averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer());
         averageRaw.Run();
@@ -111,7 +113,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, (int) FAKE_WL);
 
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, image,
-                    characteristics, captureResult,cameraRotation);
+                    characteristics, captureResult, cameraRotation);
 
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, (int) FAKE_WL);
 

@@ -6,15 +6,19 @@ import android.util.Log;
 import android.util.Range;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
-import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.ShadowTextDrawable;
 
 import java.util.ArrayList;
 
 public class ShutterModel extends ManualModel<Long> {
 
-    public ShutterModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
-        super(context, range, valueChangedEvent);
+    public ShutterModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, range, manualParamModel, valueChangedEvent);
     }
 
     @Override
@@ -26,7 +30,7 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getNewAutoItem(SHUTTER_AUTO, null);
+        KnobItemInfo auto = getNewAutoItem(ManualParamModel.EXPOSURE_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -88,7 +92,7 @@ public class ShutterModel extends ManualModel<Long> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        ParamController.setShutter((long) knobItemInfo.value);
+        manualParamModel.setCurrentExposureValue(knobItemInfo.value);
         Log.d("Shutter", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 

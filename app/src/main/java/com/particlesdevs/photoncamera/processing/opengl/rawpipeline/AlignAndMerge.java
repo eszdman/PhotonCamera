@@ -6,7 +6,7 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
-import com.particlesdevs.photoncamera.processing.ProcessorBase;
+import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;

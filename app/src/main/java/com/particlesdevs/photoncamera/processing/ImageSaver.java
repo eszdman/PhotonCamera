@@ -15,6 +15,9 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.processing.processor.HdrxProcessor;
+import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
+import com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor;
 import com.particlesdevs.photoncamera.util.FileManager;
 
 import java.io.File;

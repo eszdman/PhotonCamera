@@ -1,19 +1,23 @@
-package com.particlesdevs.photoncamera.manual;
+package com.particlesdevs.photoncamera.ui.camera.views.manualmode;
 
 
-import android.app.Activity;
+import android.content.Context;
+import android.util.AttributeSet;
 import android.view.View;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.manual.model.EvModel;
 import com.particlesdevs.photoncamera.manual.model.FocusModel;
 import com.particlesdevs.photoncamera.manual.model.IsoModel;
 import com.particlesdevs.photoncamera.manual.model.ManualModel;
 import com.particlesdevs.photoncamera.manual.model.ShutterModel;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
 import com.particlesdevs.photoncamera.util.Timer;
 
 import java.util.Arrays;
@@ -21,62 +25,40 @@ import java.util.Arrays;
 /**
  * Created by Vibhor on 10/08/2020
  */
-public final class ManualModeImpl implements ManualMode {
+public final class ManualMode extends RelativeLayout {
 
     private static final String TAG = "ManualModeImpl";
-    private Activity activity;
+    private final Context mContext;
+    private ManualParamModel manualParamModel;
     private TextView mfTextView, isoTextView, expoTextView, evTextView;
     private KnobView knobView;
     private View[] textViews;
     private ManualModel mfModel, isoModel, expoTimeModel, evModel, selectedModel;
 
-    ManualModeImpl(Activity activity) {
-        this.activity = activity;
-        this.knobView = activity.findViewById(R.id.knobView);
-        this.mfTextView = activity.findViewById(R.id.focus_option_tv);
-        this.evTextView = activity.findViewById(R.id.ev_option_tv);
-        this.expoTextView = activity.findViewById(R.id.exposure_option_tv);
-        this.isoTextView = activity.findViewById(R.id.iso_option_tv);
+
+    public ManualMode(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        this.mContext = context;
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        this.knobView = findViewById(R.id.knobView);
+        this.mfTextView = findViewById(R.id.focus_option_tv);
+        this.evTextView = findViewById(R.id.ev_option_tv);
+        this.expoTextView = findViewById(R.id.exposure_option_tv);
+        this.isoTextView = findViewById(R.id.iso_option_tv);
         this.textViews = new View[]{mfTextView, evTextView, expoTextView, isoTextView};
     }
 
-    @Override
-    public void init() {
-        if (activity == null)
-            return;
-        addKnobs();
-        setupOnClickListeners();
+    public void reInit() {
+        post(() -> {
+            addKnobs();
+            setupOnClickListeners();
+        });
     }
 
-    @Override
-    public boolean isManualMode() {
-        return !(getCurrentExposureValue() == ManualModel.SHUTTER_AUTO
-                && getCurrentFocusValue() == ManualModel.FOCUS_AUTO
-                && getCurrentISOValue() == ManualModel.ISO_AUTO
-                && getCurrentEvValue() == ManualModel.EV_AUTO);
-    }
-
-    @Override
-    public double getCurrentExposureValue() {
-        return expoTimeModel.getCurrentInfo().value;
-    }
-
-    @Override
-    public double getCurrentISOValue() {
-        return isoModel.getCurrentInfo().value;
-    }
-
-    @Override
-    public double getCurrentFocusValue() {
-        return mfModel.getCurrentInfo().value;
-    }
-
-    @Override
-    public double getCurrentEvValue() {
-        return evModel.getCurrentInfo().value;
-    }
-
-    @Override
     public void retractAllKnobs() {
         hideKnob();
         knobView.resetKnob();
@@ -91,12 +73,21 @@ public final class ManualModeImpl implements ManualMode {
     private void addKnobs() {
         Timer timer = Timer.InitTimer(TAG, "addKnobs");
         CaptureController.CameraProperties cameraProperties = new CaptureController.CameraProperties();
-        mfModel = new FocusModel(activity, cameraProperties.focusRange, value -> updateText(mfTextView, value));
-        evModel = new EvModel(activity, cameraProperties.evRange, value -> updateText(evTextView, value));
-        isoModel = new IsoModel(activity, cameraProperties.isoRange, value -> updateText(isoTextView, value));
-        expoTimeModel = new ShutterModel(activity, cameraProperties.expRange, value -> updateText(expoTextView, value));
-        hideKnob();
-        unSelectOthers(null);
+        if (manualParamModel != null) {
+            manualParamModel.reset();
+            mfModel = new FocusModel(mContext, cameraProperties.focusRange, manualParamModel, value -> updateText(mfTextView, value));
+            evModel = new EvModel(mContext, cameraProperties.evRange, manualParamModel, value -> updateText(evTextView, value));
+            isoModel = new IsoModel(mContext, cameraProperties.isoRange, manualParamModel, value -> updateText(isoTextView, value));
+            expoTimeModel = new ShutterModel(mContext, cameraProperties.expRange, manualParamModel, value -> updateText(expoTextView, value));
+            hideKnob();
+            unSelectOthers(null);
+        } else {
+            try {
+                throw new NullPointerException("manualParamModel is null, make sure to call setManualParamModel()");
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+        }
         timer.endTimer();
     }
 
@@ -119,7 +110,7 @@ public final class ManualModeImpl implements ManualMode {
             model.resetModel();
             return true;
         });
-        model.fireValueChangedEvent(model.getAutoModel().text);
+        model.setAutoTxt();
     }
 
     private void setModelToKnob(View view, ManualModel modelToKnob) {
@@ -151,6 +142,29 @@ public final class ManualModeImpl implements ManualMode {
     private void hideKnob() {
         knobView.animate().translationY(knobView.getHeight() / 2.5f)
                 .scaleY(.2f).scaleX(.2f).setDuration(200).alpha(0f).withEndAction(() -> knobView.setVisibility(View.GONE)).start();
+        manualParamModel.reset();
+    }
+
+    public boolean showPanel(boolean panelShowing) {
+        if (!panelShowing) {
+            post(() -> {
+                animate().translationY(0).setDuration(100).alpha(1f).start();
+                setVisibility(View.VISIBLE);
+            });
+        }
+        return true;
+    }
+
+    public boolean hidePanel(boolean panelShowing) {
+        if (panelShowing) {
+            post(() -> animate()
+                    .translationY(getResources().getDimension(R.dimen.standard_20))
+                    .alpha(0f)
+                    .setDuration(100)
+                    .withEndAction(() -> setVisibility(View.GONE))
+                    .start());
+        }
+        return false;
     }
 
     private void unSelectOthers(@Nullable View v) {
@@ -164,11 +178,14 @@ public final class ManualModeImpl implements ManualMode {
     protected void finalize() throws Throwable {
         knobView = null;
         textViews = null;
-        activity = null;
         mfTextView = null;
         isoTextView = null;
         expoTextView = null;
         evTextView = null;
         super.finalize();
+    }
+
+    public void setManualParamModel(ManualParamModel manualParamModel) {
+        this.manualParamModel = manualParamModel;
     }
 }

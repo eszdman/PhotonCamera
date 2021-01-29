@@ -9,9 +9,9 @@ import java.nio.ByteBuffer;
 public class ImageFrame {
     public ByteBuffer buffer;
     public Image image;
-    float luckyParameter;
-    int number;
-    IsoExpoSelector.ExpoPair pair;
+    public float luckyParameter;
+    public int number;
+    public IsoExpoSelector.ExpoPair pair;
 
     public ImageFrame(ByteBuffer in) {
         buffer = in;

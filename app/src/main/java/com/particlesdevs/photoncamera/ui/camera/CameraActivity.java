@@ -19,7 +19,6 @@ import com.particlesdevs.photoncamera.settings.MigrationManager;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 
 import java.util.Arrays;
 

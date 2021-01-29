@@ -9,6 +9,10 @@ import android.util.Range;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.ShadowTextDrawable;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -18,8 +22,8 @@ public class EvModel extends ManualModel<Float> {
     private final String TAG = EvModel.class.getSimpleName();
     private float evStep;
 
-    public EvModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
-        super(context, range, valueChangedEvent);
+    public EvModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, range, manualParamModel , valueChangedEvent);
     }
 
     @Override
@@ -29,7 +33,7 @@ public class EvModel extends ManualModel<Float> {
             Log.d(TAG, "onSetupIcons() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getNewAutoItem(EV_AUTO, null);
+        KnobItemInfo auto = getNewAutoItem(ManualParamModel.EV_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
         int positiveValueCount = 0;
@@ -89,7 +93,7 @@ public class EvModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        ParamController.setEV((int) (knobItemInfo.value / evStep));
+        manualParamModel.setCurrentEvValue((int)(knobItemInfo.value / evStep));
         Log.d(TAG, "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 

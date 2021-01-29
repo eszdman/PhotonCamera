@@ -1,4 +1,4 @@
-package com.particlesdevs.photoncamera.processing;
+package com.particlesdevs.photoncamera.processing.processor;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
@@ -10,19 +10,18 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.Wrapper;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
-import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.processing.ImageFrame;
+import com.particlesdevs.photoncamera.processing.ImageSaver;
+import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
-import com.particlesdevs.photoncamera.processing.opengl.scripts.NonIdealRaw;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
-
-import org.apache.bcel.verifier.GraphicalVerifier;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -39,7 +38,7 @@ public class HdrxProcessor extends ProcessorBase {
     private ArrayList<Float> BurstShakiness;
 
 
-    protected HdrxProcessor(ProcessingEventsListener processingEventsListener) {
+    public HdrxProcessor(ProcessingEventsListener processingEventsListener) {
         super(processingEventsListener);
     }
 
@@ -110,7 +109,7 @@ public class HdrxProcessor extends ProcessorBase {
         PhotonCamera.getParameters().FillDynamicParameters(captureResult);
         PhotonCamera.getParameters().cameraRotation = this.cameraRotation;
 
-        exifData.IMAGE_DESCRIPTION =  PhotonCamera.getParameters().toString();
+        exifData.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString();
 
         Log.d(TAG, "Wrapper.init");
         RawPipeline rawPipeline = new RawPipeline();
@@ -168,8 +167,8 @@ public class HdrxProcessor extends ProcessorBase {
         }
 
         float minMpy = 1000.f;
-        for(int i =0; i<IsoExpoSelector.fullpairs.size();i++){
-            if(IsoExpoSelector.fullpairs.get(i).layerMpy < minMpy){
+        for (int i = 0; i < IsoExpoSelector.fullpairs.size(); i++) {
+            if (IsoExpoSelector.fullpairs.get(i).layerMpy < minMpy) {
                 minMpy = IsoExpoSelector.fullpairs.get(i).layerMpy;
             }
         }
@@ -221,14 +220,14 @@ public class HdrxProcessor extends ProcessorBase {
         //bl/=4.0;
         InterpolateGainMap interpolateGainMap = null;
         if (!debugAlignment) {
-            interpolateGainMap = new InterpolateGainMap(new Point(width,height));
+            interpolateGainMap = new InterpolateGainMap(new Point(width, height));
             interpolateGainMap.parameters = PhotonCamera.getParameters();
             interpolateGainMap.Run();
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
 
-            output = Wrapper.processFrame(150, 800, 1024, parameters.blackLevel[0],bl,parameters.blackLevel[2], parameters.whiteLevel
-            ,parameters.whitePoint[0],parameters.whitePoint[1],parameters.whitePoint[2],parameters.cfaPattern);
+            output = Wrapper.processFrame(150, 800, 1024, parameters.blackLevel[0], bl, parameters.blackLevel[2], parameters.whiteLevel
+                    , parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
             output = rawPipeline.Run();
         }
@@ -236,7 +235,8 @@ public class HdrxProcessor extends ProcessorBase {
         parameters.blackLevel[0] = 0.f;
         parameters.blackLevel[1] -= bl;
         parameters.blackLevel[2] -= bl;
-        parameters.blackLevel[3] = 0.f;;
+        parameters.blackLevel[3] = 0.f;
+        ;
         //Black shot fix
         images.get(0).image.getPlanes()[0].getBuffer().position(0);
         images.get(0).image.getPlanes()[0].getBuffer().put(output);
@@ -264,7 +264,7 @@ public class HdrxProcessor extends ProcessorBase {
                 nonIdealRaw.close();
             }*/
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
-                    characteristics, captureResult,cameraRotation);
+                    characteristics, captureResult, cameraRotation);
 
 
             Camera2ApiAutoFix.resetWL(characteristics, captureResult, patchWL);
@@ -278,7 +278,8 @@ public class HdrxProcessor extends ProcessorBase {
             parameters.blackLevel[0] = 0.f;
             parameters.blackLevel[1] -= bl;
             parameters.blackLevel[2] -= bl;
-            parameters.blackLevel[3] = 0.f;;
+            parameters.blackLevel[3] = 0.f;
+            ;
         } /*else {
             if(!debugAlignment) {
                 parameters.mapSize = new Point(1,1);

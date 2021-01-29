@@ -77,7 +77,6 @@ import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
@@ -87,6 +86,7 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewMode
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
@@ -129,6 +129,12 @@ public class CameraFragment extends Fragment {
     public static String sActiveFrontCamId = "1";
     public static CameraMode mSelectedMode;
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+    private final int NOTIFICATION_ID = 1;
+    private final ExecutorService processExecutorService = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "ProcessingThread");
+        t.setPriority(Thread.MIN_PRIORITY);
+        return t;
+    });
     public SurfaceViewOverViewfinder surfaceView;
     public String[] mAllCameraIds;
     public Set<String> mFrontCameraIDs;
@@ -145,15 +151,10 @@ public class CameraFragment extends Fragment {
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
     private AutoFitPreviewView textureView;
-    private final int NOTIFICATION_ID = 1;
     private NotificationManagerCompat notificationManager;
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
-    private final ExecutorService processExecutorService = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "ProcessingThread");
-        t.setPriority(Thread.MIN_PRIORITY);
-        return t;
-    });
+    private ManualMode manualMode;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -171,14 +172,18 @@ public class CameraFragment extends Fragment {
         return captureController;
     }
 
+    public ManualMode getManualMode() {
+        return manualMode;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         this.activity = getActivity();
-        notificationManager = NotificationManagerCompat.from(activity);
-        settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
-        supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
+        this.notificationManager = NotificationManagerCompat.from(activity);
+        this.settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
+        this.supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
 
     }
 
@@ -222,10 +227,11 @@ public class CameraFragment extends Fragment {
         this.mCameraUIView = new CameraUIViewImpl();
         this.mCameraUIEventsListener = new CameraUIController();
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
-        this.mSwipe = new Swipe(this);
         this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
+        this.manualMode = cameraFragmentBinding.manualMode.manualMode;
+        this.manualMode.setManualParamModel(captureController.getManualParamModel());
         PhotonCamera.setCaptureController(captureController);
-        PhotonCamera.setManualMode(ManualMode.getInstance(activity));
+        this.mSwipe = new Swipe(this);
     }
 
     @Override
@@ -321,7 +327,7 @@ public class CameraFragment extends Fragment {
         mCameraUIView = null;
         mCameraUIEventsListener = null;
         PhotonCamera.setCaptureController(captureController = null);
-        PhotonCamera.setManualMode(null);
+        manualMode = null;
         processExecutorService.shutdown();
         Log.d(TAG, "onDestroy() finished");
     }
@@ -331,7 +337,7 @@ public class CameraFragment extends Fragment {
         surfaceView.post(() -> {
             mTouchFocus.setState(result.get(CaptureResult.CONTROL_AF_STATE));
             if (PreferenceKeys.isAfDataOn()) {
-                IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);
+                IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1, captureController);
                 LinkedHashMap<String, String> stringMap = new LinkedHashMap<>();
                 stringMap.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
                 stringMap.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
@@ -594,7 +600,7 @@ public class CameraFragment extends Fragment {
          */
         @Override
         public void onProcessingStarted(String processName) {
-            logD("onProcessingStarted: " + processName +" Processing Started");
+            logD("onProcessingStarted: " + processName + " Processing Started");
             mCameraUIView.setProcessingProgressBarIndeterminate(true);
             mCameraUIView.activateShutterButton(true);
             showNotification(processName);
@@ -703,7 +709,7 @@ public class CameraFragment extends Fragment {
             mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
-            PhotonCamera.getManualMode().init();
+            manualMode.reInit();
         }
 
         @Override

@@ -1,4 +1,4 @@
-package com.particlesdevs.photoncamera.manual;
+package com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview;
 
 import android.animation.ValueAnimator;
 import android.content.Context;

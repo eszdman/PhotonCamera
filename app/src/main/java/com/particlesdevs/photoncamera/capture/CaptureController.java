@@ -65,6 +65,8 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
+import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
@@ -157,6 +159,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static CaptureResult mCaptureResult;
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
     private static int mTargetFormat = RAW_FORMAT;
+    private final ManualParamModel manualParamModel;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -353,7 +356,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
-                    if (PhotonCamera.getManualMode().isManualMode())
+                    if (manualParamModel.isManualMode())
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     break;
                 }
@@ -492,6 +495,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         this.processExecutor = processExecutor;
+        this.manualParamModel = new ManualParamModel(new ParamController(this));
+    }
+
+    public ManualParamModel getManualParamModel() {
+        return manualParamModel;
     }
 
     public static int getTargetFormat() {
@@ -1204,9 +1212,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int frameCount = FrameNumberSelector.getFrames();
             if (frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
-            IsoExpoSelector.HDR = !PhotonCamera.getManualMode().isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
-            Log.d(TAG, "HDRFact1:" + PhotonCamera.getManualMode().isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
-            IsoExpoSelector.HDR = (!PhotonCamera.getManualMode().isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
+            IsoExpoSelector.HDR = !manualParamModel.isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
+            Log.d(TAG, "HDRFact1:" + manualParamModel.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
+            IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             if (focus != 0.0)
@@ -1220,16 +1228,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             IsoExpoSelector.useTripod = (PhotonCamera.getGyro().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
             for (int i = 0; i < frameCount; i++) {
-                IsoExpoSelector.setExpo(captureBuilder, i);
+                IsoExpoSelector.setExpo(captureBuilder, i,this);
                 captures.add(captureBuilder.build());
             }
             if (frameCount == -1) {
                 for (int i = 0; i < IsoExpoSelector.patternSize; i++) {
-                    IsoExpoSelector.setExpo(captureBuilder, i);
+                    IsoExpoSelector.setExpo(captureBuilder, i,this);
                     captures.add(captureBuilder.build());
                 }
             }
-            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(1).exposure);
+            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(1,this).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
 //            final int[] burstcount = {0, 0, frameCount};

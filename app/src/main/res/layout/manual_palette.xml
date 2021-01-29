@@ -12,7 +12,7 @@
                 type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
     </data>
 
-    <RelativeLayout
+    <com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode
             android:orientation="vertical"
             android:id="@+id/manual_mode"
             android:layout_width="match_parent"
@@ -20,7 +20,7 @@
             tools:visibility="visible"
             android:layout_height="wrap_content">
 
-        <com.particlesdevs.photoncamera.manual.KnobView
+        <com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
@@ -106,5 +106,5 @@
                     android:layout_weight="1"
                     />
         </LinearLayout>
-    </RelativeLayout>
+    </com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode>
 </layout>

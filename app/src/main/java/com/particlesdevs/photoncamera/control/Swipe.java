@@ -7,33 +7,37 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.manual.model.ManualModel;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
 
 public class Swipe {
     private static final String TAG = "Swipe";
     private static boolean panelShowing;
     private final CameraFragment cameraFragment;
     private GestureDetector gestureDetector;
-    private RelativeLayout manualMode;
+    private ManualMode manualMode;
     private ImageView ocManual;
+    private final CaptureController captureController;
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
+        this.captureController = cameraFragment.getCaptureController();
     }
 
     public void init() {
         Log.d(TAG, "SwipeDetection - ON");
-        manualMode = cameraFragment.findViewById(R.id.manual_mode);
+        manualMode = cameraFragment.getManualMode();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
-        manualMode.post(this::hidePanel);
+        panelShowing = manualMode.hidePanel(true);
+        ocManual.animate().rotation(0).setDuration(250).start();
         ocManual.setOnClickListener((v) -> {
             if (!panelShowing) {
                 SwipeUp();
@@ -107,26 +111,27 @@ public class Swipe {
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();
-            if (PhotonCamera.getManualMode().getCurrentFocusValue() == ManualModel.FOCUS_AUTO)
+            if (captureController.getManualParamModel().getCurrentFocusValue() == ManualParamModel.FOCUS_AUTO)
                 cameraFragment.getTouchFocus().processTouchToFocus(translateX, translateY);
         }
     }
 
     public void SwipeUp() {
-        manualMode.post(this::showPanel);
+        ocManual.animate().rotation(180).setDuration(250).start();
+        panelShowing = manualMode.showPanel(panelShowing);
 //        cameraFragment.getCaptureController().rebuildPreview();
-        manualMode.setVisibility(View.VISIBLE);
         cameraFragment.getTouchFocus().resetFocusCircle();
     }
 
     public void SwipeDown() {
         if (panelShowing) {
-            manualMode.post(this::hidePanel);
+            panelShowing = manualMode.hidePanel(true);
+            ocManual.animate().rotation(0).setDuration(250).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
-            cameraFragment.getCaptureController().setPreviewAEMode();
-            cameraFragment.getCaptureController().mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-            PhotonCamera.getCaptureController().rebuildPreviewBuilder();
-            PhotonCamera.getManualMode().retractAllKnobs();
+            captureController.setPreviewAEMode();
+            captureController.mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
+            captureController.rebuildPreviewBuilder();
+            cameraFragment.getManualMode().retractAllKnobs();
         }
     }
 
@@ -138,24 +143,4 @@ public class Swipe {
 
     }
 
-    private void hidePanel() {
-        if (panelShowing) {
-            manualMode.animate()
-                    .translationY(cameraFragment.getResources().getDimension(R.dimen.standard_20))
-                    .alpha(0f)
-                    .setDuration(100)
-                    .withEndAction(() -> manualMode.setVisibility(View.GONE))
-                    .start();
-            ocManual.animate().rotation(0).setDuration(250).start();
-            panelShowing = false;
-        }
-    }
-
-    private void showPanel() {
-        if (!panelShowing) {
-            manualMode.animate().translationY(0).setDuration(100).alpha(1f).start();
-            ocManual.animate().rotation(180).setDuration(250).start();
-            panelShowing = true;
-        }
-    }
 }

@@ -7,19 +7,23 @@ import android.util.Range;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.ShadowTextDrawable;
 
 import java.util.ArrayList;
 
 public class IsoModel extends ManualModel<Integer> {
 
     @SuppressWarnings("rawtypes")
-    public IsoModel(Context context, Range range, ValueChangedEvent valueChangedEvent) {
-        super(context, range, valueChangedEvent);
+    public IsoModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, range, manualParamModel, valueChangedEvent);
     }
 
     @Override
     protected void fillKnobInfoList() {
-        KnobItemInfo auto = getNewAutoItem(ISO_AUTO, null);
+        KnobItemInfo auto = getNewAutoItem(ManualParamModel.ISO_AUTO, null);
         getKnobInfoList().add(auto);
         currentInfo = auto;
 
@@ -80,7 +84,7 @@ public class IsoModel extends ManualModel<Integer> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        ParamController.setISO((int) knobItemInfo.value);
+        manualParamModel.setCurrentISOValue(knobItemInfo.value);
         Log.d("isoModel", "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 

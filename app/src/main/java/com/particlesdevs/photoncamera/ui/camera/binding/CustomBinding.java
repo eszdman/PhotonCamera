@@ -5,8 +5,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.databinding.BindingAdapter;
-import com.particlesdevs.photoncamera.manual.KnobView;
-import com.particlesdevs.photoncamera.manual.Rotation;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.Rotation;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 
 /**

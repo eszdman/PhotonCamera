@@ -20,12 +20,12 @@ public class IsoExpoSelector {
     public static ArrayList<ExpoPair> pairs = new ArrayList<>();
     public static ArrayList<ExpoPair> fullpairs = new ArrayList<>();
 
-    public static void setExpo(CaptureRequest.Builder builder, int step) {
+    public static void setExpo(CaptureRequest.Builder builder, int step, CaptureController captureController) {
         Log.v(TAG, "InputParams: " +
-                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(PhotonCamera.getCaptureController().mPreviewExposureTime)) +
-                " iso:" + PhotonCamera.getCaptureController().mPreviewIso+ " analog:"+getISOAnalog());
+                "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(captureController.mPreviewExposureTime)) +
+                " iso:" + captureController.mPreviewIso+ " analog:"+getISOAnalog());
         if(step == 0) fullpairs.clear();
-        ExpoPair pair = GenerateExpoPair(step);
+        ExpoPair pair = GenerateExpoPair(step,captureController);
         fullpairs.add(pair);
         Log.v(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR);
@@ -35,10 +35,10 @@ public class IsoExpoSelector {
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int)pair.iso);
     }
     private static double mpy1 = 1.0;
-    public static ExpoPair GenerateExpoPair(int step) {
+    public static ExpoPair GenerateExpoPair(int step, CaptureController captureController) {
         double mpy = 1.0;
-        ExpoPair pair = new ExpoPair(PhotonCamera.getCaptureController().mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
-                PhotonCamera.getCaptureController().mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
+        ExpoPair pair = new ExpoPair(captureController.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
+                captureController.mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
         pair.normalizeiso100();
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
         {
@@ -88,8 +88,8 @@ public class IsoExpoSelector {
             pair.MinIso();
         }
 
-        double currentManExp = PhotonCamera.getManualMode().getCurrentExposureValue();
-        double currentManISO = PhotonCamera.getManualMode().getCurrentISOValue();
+        double currentManExp = captureController.getManualParamModel().getCurrentExposureValue();
+        double currentManISO = captureController.getManualParamModel().getCurrentISOValue();
         pair.exposure = currentManExp != 0 ? (long) currentManExp : pair.exposure;
         pair.iso = currentManISO != 0 ? (int) currentManISO : pair.iso;
         pair.curlayer = ExpoPair.exposureLayer.Normal;

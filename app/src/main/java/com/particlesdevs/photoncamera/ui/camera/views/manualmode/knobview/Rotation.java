@@ -1,4 +1,4 @@
-package com.particlesdevs.photoncamera.manual;
+package com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview;
 
 
 public enum Rotation {

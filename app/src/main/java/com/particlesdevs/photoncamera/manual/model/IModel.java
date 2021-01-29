@@ -1,7 +1,7 @@
 package com.particlesdevs.photoncamera.manual.model;
 
-import com.particlesdevs.photoncamera.manual.KnobInfo;
-import com.particlesdevs.photoncamera.manual.KnobItemInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
+import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
 
 import java.util.List;
 
