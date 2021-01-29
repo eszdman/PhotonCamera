@@ -142,7 +142,6 @@ public final class ManualMode extends RelativeLayout {
     private void hideKnob() {
         knobView.animate().translationY(knobView.getHeight() / 2.5f)
                 .scaleY(.2f).scaleX(.2f).setDuration(200).alpha(0f).withEndAction(() -> knobView.setVisibility(View.GONE)).start();
-        manualParamModel.reset();
     }
 
     public boolean showPanel(boolean panelShowing) {
@@ -163,6 +162,7 @@ public final class ManualMode extends RelativeLayout {
                     .setDuration(100)
                     .withEndAction(() -> setVisibility(View.GONE))
                     .start());
+            manualParamModel.reset();
         }
         return false;
     }
