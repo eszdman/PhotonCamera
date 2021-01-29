@@ -10,12 +10,20 @@ public class Gravity {
     private final SensorManager mSensorManager;
     private final Sensor mGravitySensor;
     public float[] mGravity;
+    private final SensorEventListener mGravityTracker = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            mGravity = sensorEvent.values;
+        }
 
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+        }
+    };
 
     public Gravity(SensorManager sensorManager) {
         mSensorManager = sensorManager;
         mGravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-
     }
 
     public void register() {
@@ -27,17 +35,6 @@ public class Gravity {
             mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker, mGravitySensor);
     }
-
-    private final SensorEventListener mGravityTracker = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent sensorEvent) {
-            mGravity = sensorEvent.values;
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int i) {
-        }
-    };
 
     public int getRotation() {
 

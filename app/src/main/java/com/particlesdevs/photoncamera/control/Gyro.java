@@ -5,29 +5,15 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-public class Sensors {
+public class Gyro {
     private static final String TAG = "Gyroscope";
+    protected final float fk = 0.8f;
     private final SensorManager mSensorManager;
     private final Sensor mGyroSensor;
     public float[] mAngles;
-
-    public Sensors(SensorManager sensorManager) {
-        mSensorManager = sensorManager;
-        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-    }
-
-    public void register() {
-        mSensorManager.registerListener(mGravityTracker, mGyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
-    }
-
-    public void unregister() {
-        if (mAngles != null)
-            mAngles = mAngles.clone();
-        mSensorManager.unregisterListener(mGravityTracker, mGyroSensor);
-    }
-
     private boolean gyroburst = false;
     private float burstout = 0.f;
+    private int filter = -1;
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
@@ -44,8 +30,21 @@ public class Sensors {
         public void onAccuracyChanged(Sensor sensor, int i) {
         }
     };
-    private int filter = -1;
-    protected final float fk = 0.8f;
+
+    public Gyro(SensorManager sensorManager) {
+        mSensorManager = sensorManager;
+        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+    }
+
+    public void register() {
+        mSensorManager.registerListener(mGravityTracker, mGyroSensor, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    public void unregister() {
+        if (mAngles != null)
+            mAngles = mAngles.clone();
+        mSensorManager.unregisterListener(mGravityTracker, mGyroSensor);
+    }
 
     public void CaptureGyroBurst() {
         burstout = 0;
@@ -65,7 +64,9 @@ public class Sensors {
         for (float f : mAngles) {
             output += Math.abs((int) (f * 1000));
         }
-        if (filter == -1) filter = output;
+        if (filter == -1) {
+            filter = output;
+        }
         output = (int) (output * (1.0f - fk) + filter * (fk));
         filter = output;
         return output;

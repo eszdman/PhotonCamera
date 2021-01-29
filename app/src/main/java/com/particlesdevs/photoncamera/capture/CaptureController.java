@@ -86,6 +86,8 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -100,7 +102,7 @@ import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
  * <p>
  * All relevant events are notified to cameraEventsListener
  * <p>
- * Constructor {@link CaptureController#CaptureController(Activity, CameraEventsListener)}
+ * Constructor {@link CaptureController#CaptureController(Activity, ExecutorService, CameraEventsListener)}
  */
 public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int RAW_FORMAT = ImageFormat.RAW_SENSOR;
@@ -108,6 +110,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int PREVIEW_FORMAT = ImageFormat.YUV_420_888;
     private static final String TAG = CaptureController.class.getSimpleName();
     public List<Future<?>> taskResults = new ArrayList<>();
+    private final ExecutorService processExecutor;
     /**
      * Camera state: Showing camera preview.
      */
@@ -231,7 +234,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //            Message msg = new Message();
 //            msg.obj = reader;
 //            mImageSaver.processingHandler.sendMessage(msg);
-            PhotonCamera.getExecutorService().execute(() -> mImageSaver.initProcess(reader));
+            processExecutor.execute(() -> mImageSaver.initProcess(reader));
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
     };
@@ -249,7 +252,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 return;
             }
             taskResults.removeIf(Future::isDone); //remove already completed results
-            Future<?> result = PhotonCamera.getExecutorService().submit(() -> mImageSaver.initProcess(reader));
+            Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
             taskResults.add(result);
             //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
@@ -483,11 +486,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     };
 
-    public CaptureController(Activity activity, CameraEventsListener cameraEventsListener) {
+    public CaptureController(Activity activity, ExecutorService processExecutor, CameraEventsListener cameraEventsListener) {
         this.activity = activity;
         this.cameraEventsListener = cameraEventsListener;
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        this.processExecutor = processExecutor;
     }
 
     public static int getTargetFormat() {
@@ -1214,7 +1218,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();
 
-            IsoExpoSelector.useTripod = (PhotonCamera.getSensors().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+            IsoExpoSelector.useTripod = (PhotonCamera.getGyro().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i);
                 captures.add(captureBuilder.build());
@@ -1252,13 +1256,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         Log.v("BurstCounter", "CaptureStarted with FirstFrameNumber:" + frameNumber);
                     }
                     cameraEventsListener.onFrameCaptureStarted(null);
-                    PhotonCamera.getSensors().CaptureGyroBurst();
+                    PhotonCamera.getGyro().CaptureGyroBurst();
                 }
 
                 @Override
                 public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                                 @NonNull CaptureResult partialResult) {
-                    super.onCaptureProgressed(session, request, partialResult);
                 }
 
                 @Override
@@ -1270,7 +1273,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.v("BurstCounter", "CaptureCompleted! FrameCount:" + frameCount);
                     Log.v(TAG, "Completed!");
 
-                    BurstShakiness.add(PhotonCamera.getSensors().CompleteGyroBurst());
+                    BurstShakiness.add(PhotonCamera.getGyro().CompleteGyroBurst());
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
 
@@ -1297,7 +1300,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     createCameraPreviewSession();
                     taskResults.removeIf(Future::isDone); //remove already completed results
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        Future<?> result = PhotonCamera.getExecutorService().submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
+                        Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
                         taskResults.add(result);
                     }
                 }

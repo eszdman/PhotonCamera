@@ -78,9 +78,11 @@ import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
 import com.particlesdevs.photoncamera.manual.ManualMode;
+import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
@@ -101,6 +103,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
@@ -143,6 +147,13 @@ public class CameraFragment extends Fragment {
     private AutoFitPreviewView textureView;
     private final int NOTIFICATION_ID = 1;
     private NotificationManagerCompat notificationManager;
+    private SettingsManager settingsManager;
+    private SupportedDevice supportedDevice;
+    private final ExecutorService processExecutorService = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "ProcessingThread");
+        t.setPriority(Thread.MIN_PRIORITY);
+        return t;
+    });
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -166,6 +177,9 @@ public class CameraFragment extends Fragment {
         setRetainInstance(true);
         this.activity = getActivity();
         notificationManager = NotificationManagerCompat.from(activity);
+        settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
+        supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
+
     }
 
     @Override
@@ -209,7 +223,7 @@ public class CameraFragment extends Fragment {
         this.mCameraUIEventsListener = new CameraUIController();
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
         this.mSwipe = new Swipe(this);
-        this.captureController = new CaptureController(activity, new CameraEventsListenerImpl());
+        this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
         PhotonCamera.setCaptureController(captureController);
         PhotonCamera.setManualMode(ManualMode.getInstance(activity));
     }
@@ -248,7 +262,7 @@ public class CameraFragment extends Fragment {
     public void onResume() {
         super.onResume();
         mSwipe.init();
-        PhotonCamera.getSensors().register();
+        PhotonCamera.getGyro().register();
         PhotonCamera.getGravity().register();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
         burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
@@ -260,7 +274,7 @@ public class CameraFragment extends Fragment {
         captureController.resumeCamera();
         initTouchFocus();
 
-        PhotonCamera.getSupportedDevice().loadCheck();
+        supportedDevice.loadCheck();
     }
 
     private void initTouchFocus() {
@@ -276,7 +290,7 @@ public class CameraFragment extends Fragment {
     @Override
     public void onPause() {
         PhotonCamera.getGravity().unregister();
-        PhotonCamera.getSensors().unregister();
+        PhotonCamera.getGyro().unregister();
         PhotonCamera.getSettings().saveID();
         captureController.closeCamera();
 //        stopBackgroundThread();
@@ -308,7 +322,8 @@ public class CameraFragment extends Fragment {
         mCameraUIEventsListener = null;
         PhotonCamera.setCaptureController(captureController = null);
         PhotonCamera.setManualMode(null);
-//        Log.d(TAG, "onDestroy() finished");
+        processExecutorService.shutdown();
+        Log.d(TAG, "onDestroy() finished");
     }
 
     @SuppressLint("DefaultLocale")
@@ -328,12 +343,12 @@ public class CameraFragment extends Fragment {
 //            stringMap.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
                 stringMap.put("ISO", String.valueOf(expoPair.iso));
 //            stringMap.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-                stringMap.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
+                stringMap.put("Shakeness", String.valueOf(PhotonCamera.getGyro().getShakiness()));
                 stringMap.put("FrameNumber", String.valueOf(result.getFrameNumber()));
                 float[] temp = new float[3];
-                temp[0] = PhotonCamera.getCaptureController().mPreviewTemp[0].floatValue();
-                temp[1] = PhotonCamera.getCaptureController().mPreviewTemp[1].floatValue();
-                temp[2] = PhotonCamera.getCaptureController().mPreviewTemp[2].floatValue();
+                temp[0] = captureController.mPreviewTemp[0].floatValue();
+                temp[1] = captureController.mPreviewTemp[1].floatValue();
+                temp[2] = captureController.mPreviewTemp[2].floatValue();
                 stringMap.put("White Point", String.format("%.3f %.3f %.3f", temp[0], temp[1], temp[2]));
                 MeteringRectangle[] afRect = result.get(CaptureResult.CONTROL_AF_REGIONS);
                 stringMap.put("AF_RECT", Arrays.deepToString(afRect));
@@ -453,7 +468,7 @@ public class CameraFragment extends Fragment {
     }
 
     public void initCameraIDLists(CameraManager cameraManager) {
-        CameraManager2 manager2 = new CameraManager2(cameraManager, PhotonCamera.getSettingsManager());
+        CameraManager2 manager2 = new CameraManager2(cameraManager, settingsManager);
         this.mAllCameraIds = manager2.getCameraIdList();
         this.mBackCameraIDs = manager2.getBackIDsSet();
         this.mFrontCameraIDs = manager2.getFrontIDsSet();

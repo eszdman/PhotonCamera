@@ -80,7 +80,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     @Override
     public void onBackPressed() {
         if (toRestartApp) {
-            PhotonCamera.restartApp();
+            PhotonCamera.restartApp(this);
         }
         super.onBackPressed();
     }
@@ -91,6 +91,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private SettingsManager mSettingsManager;
         private Context mContext;
         private View mRootView;
+        private SupportedDevice supportedDevice;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -101,8 +102,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         public void onCreate(@Nullable Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             activity = getActivity();
-            mSettingsManager = new SettingsManager(getContext());
             mContext = getContext();
+            mSettingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
+            supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
             getPreferenceScreen().getSharedPreferences()
                     .registerOnSharedPreferenceChangeListener(this);
             showHideHdrxSettings();
@@ -204,7 +206,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
 
         private void setProTitle() {
             Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
-            if (preference != null && PhotonCamera.getSupportedDevice().isSupportedDevice()) {
+            if (preference != null && supportedDevice.isSupportedDevice()) {
                 preference.setTitle(R.string.device_support);
             }
         }

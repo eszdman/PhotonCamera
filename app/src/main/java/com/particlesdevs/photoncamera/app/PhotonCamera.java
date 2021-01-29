@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.app;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.os.HandlerCompat;
@@ -19,7 +21,7 @@ import androidx.core.os.HandlerCompat;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
-import com.particlesdevs.photoncamera.control.Sensors;
+import com.particlesdevs.photoncamera.control.Gyro;
 import com.particlesdevs.photoncamera.manual.ManualMode;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
@@ -46,7 +48,7 @@ public class PhotonCamera extends Application {
     private final Handler mainThreadHandler = HandlerCompat.createAsync(Looper.getMainLooper());
     private Settings mSettings;
     private Gravity mGravity;
-    private Sensors mSensors;
+    private Gyro mGyro;
     private Parameters mParameters;
     private CaptureController mCaptureController;
     private SupportedDevice mSupportedDevice;
@@ -54,12 +56,19 @@ public class PhotonCamera extends Application {
     private SettingsManager mSettingsManager;
     private AssetLoader mAssetLoader;
 
-    public static Handler getMainHandler() {
-        return sPhotonCamera.mainThreadHandler;
+    @Nullable
+    public static PhotonCamera getInstance(Context context) {
+        if (context instanceof Activity) {
+            Application application = ((Activity) context).getApplication();
+            if (application instanceof PhotonCamera) {
+                return (PhotonCamera) application;
+            }
+        }
+        return null;
     }
 
-    public static ExecutorService getExecutorService() {
-        return sPhotonCamera.executorService;
+    public static Handler getMainHandler() {
+        return sPhotonCamera.mainThreadHandler;
     }
 
     public static Settings getSettings() {
@@ -70,8 +79,8 @@ public class PhotonCamera extends Application {
         return sPhotonCamera.mGravity;
     }
 
-    public static Sensors getSensors() {
-        return sPhotonCamera.mSensors;
+    public static Gyro getGyro() {
+        return sPhotonCamera.mGyro;
     }
 
     public static Parameters getParameters() {
@@ -86,10 +95,6 @@ public class PhotonCamera extends Application {
         sPhotonCamera.mCaptureController = captureController;
     }
 
-    public static SupportedDevice getSupportedDevice() {
-        return sPhotonCamera.mSupportedDevice;
-    }
-
     public static AssetLoader getAssetLoader() {
         return sPhotonCamera.mAssetLoader;
     }
@@ -102,16 +107,11 @@ public class PhotonCamera extends Application {
         sPhotonCamera.mManualMode = manualMode;
     }
 
-    public static SettingsManager getSettingsManager() {
-        return sPhotonCamera.mSettingsManager;
+    public static void restartWithDelay(Context context, long delayMs) {
+        getMainHandler().postDelayed(() -> restartApp(context), delayMs);
     }
 
-    public static void restartWithDelay(long delayMs) {
-        getMainHandler().postDelayed(PhotonCamera::restartApp, delayMs);
-    }
-
-    public static void restartApp() {
-        Context context = sPhotonCamera;
+    public static void restartApp(Context context) {
         Intent intent = new Intent(context, SplashActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -159,6 +159,18 @@ public class PhotonCamera extends Application {
         return version;
     }
 
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
+    public SupportedDevice getSupportedDevice() {
+        return mSupportedDevice;
+    }
+
+    public SettingsManager getSettingsManager() {
+        return mSettingsManager;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -171,7 +183,7 @@ public class PhotonCamera extends Application {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mGravity = new Gravity(sensorManager);
-        mSensors = new Sensors(sensorManager);
+        mGyro = new Gyro(sensorManager);
 
         mSettingsManager = new SettingsManager(this);
 
