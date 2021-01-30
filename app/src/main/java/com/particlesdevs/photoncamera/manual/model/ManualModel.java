@@ -7,7 +7,6 @@ import android.util.Range;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
-import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
@@ -17,6 +16,16 @@ import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.Shadow
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The base model class for data model to be attached to {@link KnobView} instances
+ * <p>
+ * Also responsible for updating {@link ManualParamModel}
+ * <p>
+ * Created by KillerInk on 31/Aug/2020
+ * Modified by Vibhor
+ *
+ * @param <T> the type of data contained by the model
+ */
 public abstract class ManualModel<T extends Comparable<? super T>> implements KnobViewChangedListener, IModel {
     protected final ManualParamModel manualParamModel;
     private final List<KnobItemInfo> knobInfoList;
@@ -93,7 +102,7 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
 
     @Override
     public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, final KnobItemInfo knobItemInfo2) {
-        Log.d(ManualMode.class.getSimpleName(), "onSelectedKnobItemChanged");
+        Log.d(ManualModel.class.getSimpleName(), "onSelectedKnobItemChanged");
         if (knobItemInfo == knobItemInfo2)
             return;
         onSelectedKnobItemChanged(knobItemInfo2);

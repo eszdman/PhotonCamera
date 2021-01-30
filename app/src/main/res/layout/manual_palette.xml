@@ -10,24 +10,35 @@
         <variable
                 name="uimodel"
                 type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel"/>
+
+        <variable name="manual_mode_model"
+                  type="com.particlesdevs.photoncamera.ui.camera.model.ManualModeModel"/>
+
+        <variable name="knob_model"
+                  type="com.particlesdevs.photoncamera.ui.camera.model.KnobModel"/>
+
     </data>
 
-    <com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode
+    <RelativeLayout
             android:orientation="vertical"
             android:id="@+id/manual_mode"
             android:layout_width="match_parent"
             android:visibility="gone"
             tools:visibility="visible"
+            manualPanelVisibility="@{manual_mode_model.manualPanelVisible}"
             android:layout_height="wrap_content">
 
         <com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 android:layout_height="80dp"
+                knobVisibility="@{knob_model.knobVisible}"
+                setKnobModel="@{knob_model.manualModel}"
+                knobReset="@{knob_model.knobResetCalled}"
                 bindKnobRotate="@{uimodel}"
-                />
+        />
 
-        <LinearLayout
+        <RadioGroup
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/buttons_container"
@@ -35,9 +46,10 @@
                 android:orientation="horizontal"
                 android:background="@color/panel_transparency"
                 bindViewGroupChildrenRotate="@{uimodel}"
-                >
+                checkRadioTextView="@{manual_mode_model.checkedTextView}"
+        >
 
-            <TextView
+            <CheckedTextView
                     android:id="@+id/focus_option_tv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -50,11 +62,13 @@
                     app:drawableBottomCompat="@drawable/manual_control_icon_focus"
                     app:drawableTint="@color/manual_text_color"
                     tools:text="NULL"
+                    android:text="@{manual_mode_model.focusText}"
+                    android:onClick="@{manual_mode_model.focusTextClicked}"
                     android:textAlignment="center"
                     android:layout_weight="1"
-                    />
+            />
 
-            <TextView
+            <CheckedTextView
                     android:id="@+id/exposure_option_tv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -68,10 +82,12 @@
                     app:drawableBottomCompat="@drawable/manual_control_icon_exposure"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
+                    android:text="@{manual_mode_model.exposureText}"
+                    android:onClick="@{manual_mode_model.exposureTextClicked}"
                     tools:text="NULL"/>
 
 
-            <TextView
+            <CheckedTextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:text="NULL"
@@ -86,10 +102,12 @@
                     app:drawableBottomCompat="@drawable/manual_control_icon_iso"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
-                    />
+                    android:text="@{manual_mode_model.isoText}"
+                    android:onClick="@{manual_mode_model.isoTextClicked}"
+            />
 
 
-            <TextView
+            <CheckedTextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:text="NULL"
@@ -104,7 +122,9 @@
                     app:drawableBottomCompat="@drawable/ic_exposure"
                     app:drawableTint="@color/manual_text_color"
                     android:layout_weight="1"
-                    />
-        </LinearLayout>
-    </com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode>
+                    android:text="@{manual_mode_model.evText}"
+                    android:onClick="@{manual_mode_model.evTextClicked}"
+            />
+        </RadioGroup>
+    </RelativeLayout>
 </layout>

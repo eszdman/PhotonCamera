@@ -8,7 +8,7 @@ import android.util.Range;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
-import com.particlesdevs.photoncamera.manual.*;
+import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobInfo;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobItemInfo;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
@@ -23,7 +23,7 @@ public class EvModel extends ManualModel<Float> {
     private float evStep;
 
     public EvModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
-        super(context, range, manualParamModel , valueChangedEvent);
+        super(context, range, manualParamModel, valueChangedEvent);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class EvModel extends ManualModel<Float> {
     @Override
     public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
         currentInfo = knobItemInfo;
-        manualParamModel.setCurrentEvValue((int)(knobItemInfo.value / evStep));
+        manualParamModel.setCurrentEvValue((int) (knobItemInfo.value / evStep));
         Log.d(TAG, "onSelectedKnobItemChanged() called with: knobItemInfo = [" + knobItemInfo + "]");
     }
 

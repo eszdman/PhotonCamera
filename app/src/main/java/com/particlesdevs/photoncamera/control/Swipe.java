@@ -13,19 +13,18 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
-import com.particlesdevs.photoncamera.manual.model.ManualModel;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
-import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 
 public class Swipe {
     private static final String TAG = "Swipe";
     private static boolean panelShowing;
     private final CameraFragment cameraFragment;
-    private GestureDetector gestureDetector;
-    private ManualMode manualMode;
-    private ImageView ocManual;
     private final CaptureController captureController;
+    private GestureDetector gestureDetector;
+    private ManualModeViewModel manualModeViewModel;
+    private ImageView ocManual;
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -34,9 +33,9 @@ public class Swipe {
 
     public void init() {
         Log.d(TAG, "SwipeDetection - ON");
-        manualMode = cameraFragment.getManualMode();
+        manualModeViewModel = cameraFragment.getManualModeViewModel();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
-        panelShowing = manualMode.hidePanel(true);
+        panelShowing = manualModeViewModel.togglePanelVisibility(false);
         ocManual.animate().rotation(0).setDuration(250).start();
         ocManual.setOnClickListener((v) -> {
             if (!panelShowing) {
@@ -118,20 +117,20 @@ public class Swipe {
 
     public void SwipeUp() {
         ocManual.animate().rotation(180).setDuration(250).start();
-        panelShowing = manualMode.showPanel(panelShowing);
+        panelShowing = manualModeViewModel.togglePanelVisibility(true);
 //        cameraFragment.getCaptureController().rebuildPreview();
         cameraFragment.getTouchFocus().resetFocusCircle();
     }
 
     public void SwipeDown() {
         if (panelShowing) {
-            panelShowing = manualMode.hidePanel(true);
             ocManual.animate().rotation(0).setDuration(250).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
             captureController.setPreviewAEMode();
             captureController.mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
             captureController.rebuildPreviewBuilder();
-            cameraFragment.getManualMode().retractAllKnobs();
+            panelShowing = manualModeViewModel.togglePanelVisibility(false);
+            manualModeViewModel.retractAllKnobs();
         }
     }
 

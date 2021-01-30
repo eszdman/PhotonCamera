@@ -83,10 +83,10 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
-import com.particlesdevs.photoncamera.ui.camera.views.manualmode.ManualMode;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
@@ -154,7 +154,7 @@ public class CameraFragment extends Fragment {
     private NotificationManagerCompat notificationManager;
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
-    private ManualMode manualMode;
+    private ManualModeViewModel manualModeViewModel;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -172,9 +172,10 @@ public class CameraFragment extends Fragment {
         return captureController;
     }
 
-    public ManualMode getManualMode() {
-        return manualMode;
+    public ManualModeViewModel getManualModeViewModel() {
+        return manualModeViewModel;
     }
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -207,6 +208,7 @@ public class CameraFragment extends Fragment {
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
+        manualModeViewModel = new ViewModelProvider(this).get(ManualModeViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
     }
@@ -228,8 +230,7 @@ public class CameraFragment extends Fragment {
         this.mCameraUIEventsListener = new CameraUIController();
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
         this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
-        this.manualMode = cameraFragmentBinding.manualMode.manualMode;
-        this.manualMode.setManualParamModel(captureController.getManualParamModel());
+        this.manualModeViewModel.setManualParamModel(captureController.getManualParamModel());
         PhotonCamera.setCaptureController(captureController);
         this.mSwipe = new Swipe(this);
     }
@@ -327,7 +328,6 @@ public class CameraFragment extends Fragment {
         mCameraUIView = null;
         mCameraUIEventsListener = null;
         PhotonCamera.setCaptureController(captureController = null);
-        manualMode = null;
         processExecutorService.shutdown();
         Log.d(TAG, "onDestroy() finished");
     }
@@ -709,7 +709,9 @@ public class CameraFragment extends Fragment {
             mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
-            manualMode.reInit();
+            manualModeViewModel.init(activity);
+            cameraFragmentBinding.manualMode.setManualModeModel(manualModeViewModel.getManualModeModel());
+            cameraFragmentBinding.manualMode.setKnobModel(manualModeViewModel.getKnobModel());
         }
 
         @Override
