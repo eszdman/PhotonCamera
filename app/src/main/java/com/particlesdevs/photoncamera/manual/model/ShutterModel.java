@@ -17,7 +17,7 @@ import java.util.ArrayList;
 
 public class ShutterModel extends ManualModel<Long> {
 
-    public ShutterModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+    public ShutterModel(Context context, Range<Long> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         super(context, range, manualParamModel, valueChangedEvent);
     }
 

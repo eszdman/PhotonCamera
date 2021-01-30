@@ -19,14 +19,14 @@ import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobVi
 public class KnobModel extends BaseObservable {
     boolean knobResetCalled;
     private boolean knobVisible;
-    private ManualModel manualModel;
+    private ManualModel<?> manualModel;
 
     @Bindable
-    public ManualModel getManualModel() {
+    public ManualModel<?> getManualModel() {
         return manualModel;
     }
 
-    public void setManualModel(ManualModel manualModel) {
+    public void setManualModel(ManualModel<?> manualModel) {
         this.manualModel = manualModel;
         notifyPropertyChanged(BR.manualModel);
     }

@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.ui.camera.model;
 
 import android.view.View;
-import android.widget.CheckedTextView;
 
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
@@ -27,16 +26,16 @@ public class ManualModeModel extends BaseObservable {
     private View.OnClickListener evTextClicked;
     private View.OnClickListener isoTextClicked;
     private boolean manualPanelVisible;
-    private CheckedTextView checkedTextView;
+    private int selectedTextViewId;
 
     @Bindable
-    public CheckedTextView getCheckedTextView() {
-        return checkedTextView;
+    public int getSelectedTextViewId() {
+        return selectedTextViewId;
     }
 
-    public void setCheckedTextView(CheckedTextView checkedTextView) {
-        this.checkedTextView = checkedTextView;
-        notifyPropertyChanged(BR.checkedTextView);
+    public void setCheckedTextViewId(int selectedTextViewId) {
+        this.selectedTextViewId = selectedTextViewId;
+        notifyPropertyChanged(BR.selectedTextViewId);
     }
 
     @Bindable

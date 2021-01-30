@@ -18,7 +18,7 @@ import java.util.ArrayList;
 
 public class FocusModel extends ManualModel<Float> {
 
-    public FocusModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+    public FocusModel(Context context, Range<Float> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         super(context, range, manualParamModel, valueChangedEvent);
     }
 

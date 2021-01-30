@@ -30,7 +30,7 @@ public class ManualModeViewModel extends ViewModel {
     private static final String TAG = "ManualModeViewModel";
     private final ManualModeModel manualModeModel;
     private final KnobModel knobModel;
-    private ManualModel mfModel, isoModel, expoTimeModel, evModel, selectedModel;
+    private ManualModel<?> mfModel, isoModel, expoTimeModel, evModel, selectedModel;
     private ManualParamModel manualParamModel;
 
     public ManualModeViewModel() {
@@ -66,7 +66,7 @@ public class ManualModeViewModel extends ViewModel {
             isoModel = new IsoModel(context, cameraProperties.isoRange, manualParamModel, manualModeModel::setIsoText);
             expoTimeModel = new ShutterModel(context, cameraProperties.expRange, manualParamModel, manualModeModel::setExposureText);
             knobModel.setKnobVisible(false);
-            manualModeModel.setCheckedTextView(null);
+            manualModeModel.setCheckedTextViewId(-1);
         } else {
             try {
                 throw new NullPointerException("manualParamModel is null, make sure to call setManualParamModel()");
@@ -92,8 +92,8 @@ public class ManualModeViewModel extends ViewModel {
         manualModeModel.setIsoTextClicked(v -> setListeners(v, isoModel));
     }
 
-    private void setListeners(View view, ManualModel model) {
-        setModelToKnob(view, model);
+    private void setListeners(View view, ManualModel<?> model) {
+        setModelToKnob(view.getId(), model);
         view.setOnLongClickListener(v -> {
             if (selectedModel == model) {
                 knobModel.setKnobResetCalled(true);
@@ -118,20 +118,20 @@ public class ManualModeViewModel extends ViewModel {
         expoTimeModel.resetModel();
         isoModel.resetModel();
         evModel.resetModel();
-        manualModeModel.setCheckedTextView(null);
+        manualModeModel.setCheckedTextViewId(-1);
     }
 
-    private void setModelToKnob(View view, ManualModel modelToKnob) {
+    private void setModelToKnob(int viewId, ManualModel<?> modelToKnob) {
         if (modelToKnob == selectedModel) {
             knobModel.setManualModel(null);
             knobModel.setKnobVisible(false);
-            manualModeModel.setCheckedTextView(null);
+            manualModeModel.setCheckedTextViewId(-1);
             selectedModel = null;
         } else {
             if (modelToKnob.getKnobInfoList().size() > 1) {
                 knobModel.setManualModel(modelToKnob);
                 knobModel.setKnobVisible(true);
-                manualModeModel.setCheckedTextView((CheckedTextView) view);
+                manualModeModel.setCheckedTextViewId(viewId);
                 selectedModel = modelToKnob;
             }
         }

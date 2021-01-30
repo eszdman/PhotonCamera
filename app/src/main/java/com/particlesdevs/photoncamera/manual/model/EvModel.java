@@ -22,7 +22,7 @@ public class EvModel extends ManualModel<Float> {
     private final String TAG = EvModel.class.getSimpleName();
     private float evStep;
 
-    public EvModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+    public EvModel(Context context, Range<Float> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         super(context, range, manualParamModel, valueChangedEvent);
     }
 

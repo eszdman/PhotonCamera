@@ -1,17 +1,21 @@
 /*
- * Copyright 2020 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  PhotonCamera
+ *  CameraFragment.java
+ *  Copyright (C) 2020 - 2021  Eszdman
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 package com.particlesdevs.photoncamera.ui.camera;
@@ -1037,7 +1041,7 @@ public class CameraFragment extends Fragment {
                 case R.id.flash_button:
                     PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
                     ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
-                    captureController.setPreviewAEModeRebuild();
+                    captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
                     break;
 
                 case R.id.countdown_timer_button:
