@@ -126,9 +126,7 @@ public class Swipe {
         if (panelShowing) {
             ocManual.animate().rotation(0).setDuration(250).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
-            captureController.setPreviewAEMode();
-            captureController.mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-            captureController.rebuildPreviewBuilder();
+            captureController.reset3Aparams();
             panelShowing = manualModeViewModel.togglePanelVisibility(false);
             manualModeViewModel.retractAllKnobs();
         }

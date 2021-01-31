@@ -49,11 +49,7 @@ public class TouchFocus {
     public void processTouchToFocus(float fx, float fy) {
         focusCircleView.removeCallbacks(hideFocusCircleRunnable);
         focusCircleView.post(() -> showFocusCircle(fx, fy));
-        try {
-            setFocus((int) fy, (int) fx);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        setFocus((int) fy, (int) fx);
         focusCircleView.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
     }
 
@@ -76,12 +72,7 @@ public class TouchFocus {
     }
 
     private void setInitialAFAE() {
-        CaptureRequest.Builder previewRequestBuilder = captureController.mPreviewRequestBuilder;
-        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, previewRequestBuilder.get(CONTROL_AF_REGIONS));
-        previewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, previewRequestBuilder.get(CONTROL_AE_REGIONS));
-        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-        captureController.setPreviewAEMode();
-        captureController.rebuildPreviewBuilder();
+        captureController.reset3Aparams();
     }
 
     private void setFocus(int x, int y) {
@@ -127,29 +118,29 @@ public class TouchFocus {
     }
 
     private void triggerAutoFocus(MeteringRectangle[] rectaf) {
-        CaptureRequest.Builder build = captureController.mPreviewRequestBuilder;
-        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
-        build.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+        CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
+        if (builder == null) {
+            Log.w(TAG, "triggerAutoFocus(): mPreviewRequestBuilder is null");
+            return;
+        }
+        builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
         captureController.rebuildPreviewBuilderOneShot();
-
-        build.set(CaptureRequest.CONTROL_AF_REGIONS, rectaf);
-        build.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
-        build.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
-        build.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
-        build.set(CaptureRequest.CONTROL_AE_MODE, Math.max(PreferenceKeys.getAeMode(), 1));
+        builder.set(CaptureRequest.CONTROL_AF_REGIONS, rectaf);
+        builder.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
+        builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
+        builder.set(CaptureRequest.CONTROL_AF_MODE, PreferenceKeys.getAfMode());
+        builder.set(CaptureRequest.CONTROL_AE_MODE, Math.max(PreferenceKeys.getAeMode(), 1));
         //set focus area repeating,else cam forget after one frame where it should focus
-        //Interface.getCameraFragment().rebuildPreviewBuilder();
         //trigger af start only once. cam starts focusing till its focused or failed
-//        if (onConfigured) {
-        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
         captureController.rebuildPreviewBuilderOneShot();
         //set focus trigger back to idle to signal cam after focusing is done to do nothing
-        build.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
-        build.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+        builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
+        builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
         captureController.rebuildPreviewBuilderOneShot();
         captureController.rebuildPreviewBuilder();
-//        }
     }
 
     //Thread safe

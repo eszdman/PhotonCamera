@@ -76,6 +76,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
+import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,15 +89,17 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 
 /**
@@ -414,8 +417,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (!is30Fps) {
                         Log.d(TAG, "Changed preview target 30fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeDef);
-                        mPreviewRequest = mPreviewRequestBuilder.build();
-                        rebuildPreview();
+                        rebuildPreviewBuilder();
                         is30Fps = true;
                     }
                 }
@@ -423,8 +425,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (is30Fps && PhotonCamera.getSettings().fpsPreview && !mCameraDevice.getId().equals("1")) {
                         Log.d(TAG, "Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeHigh);
-                        mPreviewRequest = mPreviewRequestBuilder.build();
-                        rebuildPreview();
+                        rebuildPreviewBuilder();
                         is30Fps = false;
                     }
 
@@ -691,19 +692,21 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
-    public void rebuildPreview() {
-        try {
-//            mCaptureSession.stopRepeating();
-            mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
+//    public void rebuildPreview() {
+//        try {
+////            mCaptureSession.stopRepeating();
+//            mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback, mBackgroundHandler);
+//        } catch (CameraAccessException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     public void rebuildPreviewBuilder() {
         try {
 //            mCaptureSession.stopRepeating();
-            mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+            mCaptureSession.setRepeatingRequest(mPreviewRequest = mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        } catch (IllegalStateException | IllegalArgumentException | NullPointerException e) {
+            Logger.warnShort(TAG, "Cannot rebuildPreviewBuilder()!", e);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -712,6 +715,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void rebuildPreviewBuilderOneShot() {
         try {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        } catch (IllegalStateException | IllegalArgumentException | NullPointerException e) {
+            Logger.warnShort(TAG, "Cannot rebuildPreviewBuilderOneShot()!", e);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -1078,7 +1083,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 // Auto focus should be continuous for camera preview.
                                 //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
-                                setPreviewAEMode();
+                                resetPreviewAEMode();
                                 Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
                                 if (is30Fps) {
@@ -1106,7 +1111,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                             mCaptureCallback, mBackgroundHandler);
                                     unlockFocus();
                                 }
-                                // cameraFragment.getTouchFocus().resetFocusCircle();
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -1163,7 +1167,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         //        mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
         mState = STATE_PREVIEW;
-        rebuildPreview();
+        rebuildPreviewBuilder();
         //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
     }
@@ -1332,31 +1336,46 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
-    public void setPreviewAEModeRebuild() {
-        setPreviewAEMode();
+    public void reset3Aparams() {
+        setAEMode(mPreviewRequestBuilder, PreferenceKeys.getAeMode());
+//        setAFMode(mPreviewRequestBuilder, PreferenceKeys.getAfMode());
+        setAFMode(mPreviewRequestBuilder, CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         rebuildPreviewBuilder();
     }
 
-    public void setPreviewAEMode() {
-        setAEMode(mPreviewRequestBuilder);
+    public void setPreviewAEModeRebuild(int aeMode) {
+        setAEMode(mPreviewRequestBuilder, aeMode);
+        rebuildPreviewBuilder();
     }
 
-    private void setCaptureAEMode(CaptureRequest.Builder captureRequestBuilder) {
-        setAEMode(captureRequestBuilder);
+    public void resetPreviewAEMode() {
+        setAEMode(mPreviewRequestBuilder, PreferenceKeys.getAeMode());
+    }
+    /**
+     *
+     * @param requestBuilder CaptureRequest.Builder
+     * @param aeMode  possible values = 0, 1, 2, 3
+     */
+    private void setAEMode(CaptureRequest.Builder requestBuilder, int aeMode) {
+        if (requestBuilder != null) {
+            if (mFlashSupported) {
+                requestBuilder.set(CONTROL_AE_MODE, Math.max(aeMode, 1));//here AE_MODE will never be OFF(0)
+
+                //if PreferenceKeys.getAeMode() returns zero, we set the FLASH_MODE_TORCH instead of setting AE_MODE to OFF(0)
+                requestBuilder.set(CaptureRequest.FLASH_MODE,
+                        aeMode == 0 ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
+            } else {
+                requestBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
+                requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
+            }
+        }
     }
 
-    private void setAEMode(CaptureRequest.Builder requestBuilder) {
-        if (mFlashSupported) {
-            int aeMode = PreferenceKeys.getAeMode(); // possible values = 0, 1, 2, 3
-
-            requestBuilder.set(CONTROL_AE_MODE, Math.max(aeMode, 1));//here AE_MODE will never be OFF(0)
-
-            //if PreferenceKeys.getAeMode() returns zero, we set the FLASH_MODE_TORCH instead of setting AE_MODE to OFF(0)
-            requestBuilder.set(CaptureRequest.FLASH_MODE,
-                    aeMode == 0 ? CaptureRequest.FLASH_MODE_TORCH : CaptureRequest.FLASH_MODE_OFF);
-        } else {
-            requestBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
-            requestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
+    private void setAFMode(CaptureRequest.Builder builder,int afMode) {
+        if (builder != null) {
+            builder.set(CaptureRequest.CONTROL_AF_REGIONS, builder.get(CONTROL_AF_REGIONS));
+            builder.set(CaptureRequest.CONTROL_AE_REGIONS, builder.get(CONTROL_AE_REGIONS));
+            builder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
         }
     }
 

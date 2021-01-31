@@ -17,8 +17,7 @@ import java.util.ArrayList;
 
 public class IsoModel extends ManualModel<Integer> {
 
-    @SuppressWarnings("rawtypes")
-    public IsoModel(Context context, Range range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+    public IsoModel(Context context, Range<Integer> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         super(context, range, manualParamModel, valueChangedEvent);
     }
 

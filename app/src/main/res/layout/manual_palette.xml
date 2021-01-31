@@ -31,14 +31,14 @@
         <com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
-                android:layout_height="80dp"
+                android:layout_height="65dp"
                 knobVisibility="@{knob_model.knobVisible}"
                 setKnobModel="@{knob_model.manualModel}"
                 knobReset="@{knob_model.knobResetCalled}"
                 bindKnobRotate="@{uimodel}"
         />
 
-        <RadioGroup
+        <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/buttons_container"
@@ -46,10 +46,10 @@
                 android:orientation="horizontal"
                 android:background="@color/panel_transparency"
                 bindViewGroupChildrenRotate="@{uimodel}"
-                checkRadioTextView="@{manual_mode_model.checkedTextView}"
+                selectViewIdInViewGroup="@{manual_mode_model.selectedTextViewId}"
         >
 
-            <CheckedTextView
+            <TextView
                     android:id="@+id/focus_option_tv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -68,7 +68,7 @@
                     android:layout_weight="1"
             />
 
-            <CheckedTextView
+            <TextView
                     android:id="@+id/exposure_option_tv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -87,7 +87,7 @@
                     tools:text="NULL"/>
 
 
-            <CheckedTextView
+            <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:text="NULL"
@@ -107,7 +107,7 @@
             />
 
 
-            <CheckedTextView
+            <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:text="NULL"
@@ -125,6 +125,6 @@
                     android:text="@{manual_mode_model.evText}"
                     android:onClick="@{manual_mode_model.evTextClicked}"
             />
-        </RadioGroup>
+        </LinearLayout>
     </RelativeLayout>
 </layout>

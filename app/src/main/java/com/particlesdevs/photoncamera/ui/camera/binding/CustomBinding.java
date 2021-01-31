@@ -5,7 +5,6 @@ import android.view.ViewGroup;
 import android.widget.CheckedTextView;
 import android.widget.RadioGroup;
 
-import androidx.annotation.Nullable;
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
@@ -111,7 +110,7 @@ public class CustomBinding {
      * @param manualModel the ManualModel object
      */
     @BindingAdapter("setKnobModel")
-    public static void setModelToKnob(KnobView knobView, ManualModel manualModel) {
+    public static void setModelToKnob(KnobView knobView, ManualModel<?> manualModel) {
         if (manualModel != null && knobView != null) {
             knobView.setKnobViewChangedListener(manualModel);
             knobView.setKnobInfo(manualModel.getKnobInfo());
@@ -160,16 +159,17 @@ public class CustomBinding {
     }
 
     /**
-     * Checks/unchecks the children of the target {@link RadioGroup} here {@link R.id#buttons_container}
+     * Selects/unselects the children of the target {@link ViewGroup} here {@link R.id#buttons_container}.
+     * Only the child with given view id will be selected and rest of children will get unselected.
      *
-     * @param radioGroup      the target RadioGroup
-     * @param checkedTextView the child {@link CheckedTextView} to be checked
+     * @param viewGroup      the target ViewGroup
+     * @param viewID id of the {@link CheckedTextView} to be checked
      */
-    @BindingAdapter("checkRadioTextView")
-    public static void setCheckedState(RadioGroup radioGroup, @Nullable CheckedTextView checkedTextView) {
-        if (radioGroup != null) {
-            for (int i = 0; i < radioGroup.getChildCount(); i++) {
-                ((CheckedTextView) radioGroup.getChildAt(i)).setChecked(radioGroup.getChildAt(i).equals(checkedTextView));
+    @BindingAdapter("selectViewIdInViewGroup")
+    public static void selectViewIdInViewGroup(ViewGroup viewGroup, int viewID) {
+        if (viewGroup != null) {
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                viewGroup.getChildAt(i).setSelected(viewGroup.getChildAt(i).getId() == viewID);
             }
         }
     }
