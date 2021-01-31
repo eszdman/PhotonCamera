@@ -108,15 +108,15 @@ public class IsoExpoSelector {
             pair.curlayer = ExpoPair.exposureLayer.Normal;
         }
         if (step%patternSize == 1 && HDR) {
-            pair.layerMpy = 4.f+(float)Math.abs(Math.random());
+            pair.layerMpy = 4.f;
             pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.High;
         }
         if (step%patternSize == 2 && HDR) {
             //pair.layerMpy = 1.f/1.5f;
-            pair.layerMpy = 1.f+(float)Math.abs(Math.random())*0.5f;
+            pair.layerMpy = 4.f;
             pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
-            pair.curlayer = ExpoPair.exposureLayer.Low;
+            pair.curlayer = ExpoPair.exposureLayer.High;
         }
 
         if (pair.exposure < ExposureIndex.sec / 90 && PhotonCamera.getSettings().eisPhoto) {

@@ -190,7 +190,7 @@ public class HdrxProcessor extends ProcessorBase {
                 //    mpy = 1.f;
                 //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
                 Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer + " mpy:" + mpy);
-                Wrapper.loadFrame(images.get(i).buffer, (FAKE_WL / PhotonCamera.getParameters().whiteLevel) * mpy);
+                Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / PhotonCamera.getParameters().whiteLevel) * mpy);
             }
         }
         //interpolateGainMap.close();

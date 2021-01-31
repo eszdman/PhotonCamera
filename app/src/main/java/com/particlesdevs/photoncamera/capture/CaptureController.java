@@ -1212,9 +1212,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int frameCount = FrameNumberSelector.getFrames();
             if (frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
-            IsoExpoSelector.HDR = !manualParamModel.isManualMode() && PhotonCamera.getSettings().alignAlgorithm == 0;//Force HDR for tests
             Log.d(TAG, "HDRFact1:" + manualParamModel.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
-            IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
+            //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
+            IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             if (focus != 0.0)
