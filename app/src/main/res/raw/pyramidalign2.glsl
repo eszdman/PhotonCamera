@@ -23,7 +23,6 @@ out vec2 Output;
 #import coords
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
     ivec2 prevAlign = ivec2(0,0);
     if (prevLayerScale != 0) {
         prevAlign = ivec2((vec2(0.5)-texelFetch(AlignVectors, xy / prevLayerScale, 0).rg)*float(TILESIZE*8))*prevLayerScale;
@@ -44,16 +43,16 @@ void main() {
     }
     for(int h = -MAXY;h<MAXY;h++){
         for(int w = -MAXX;w<MAXX;w++){
-            float dist3 = 3.5+abs(float(w)/float(MAXX))+abs(float(h)/float(MAXY));
+            float dist3 = 2.5+abs(float(w)/float(MAXX))+abs(float(h)/float(MAXY));
             dist = vec2(0.0);
             shift = ivec2(w, h)+prevAlign-OFFSET;
             /*for(int h0= -SCANSIZE/2;h0<SCANSIZE/2;h0++){
                 for(int w0= -SCANSIZE/2;w0<SCANSIZE/2;w0++){
-                    dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(h0, w0)),inbounds), 0).rg,
-                    texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(h0, w0)),inbounds), 0).rg, 0.1);
+                        dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(h0, w0)), inbounds), 0).rg,
+                        texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(h0, w0)), inbounds), 0).rg, 0.1);
                 }
             }*/
-            in1 = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(-1, -1)),inbounds), 0).rg;
+            /*in1 = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(-1, -1)),inbounds), 0).rg;
             in2 = texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(-1, -1)),inbounds), 0).rg;
             dist+=distribute(in1,in2, 0.1);
             in1 = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(1, -1)),inbounds), 0).rg;
@@ -64,7 +63,7 @@ void main() {
             dist+=distribute(in1,in2, 0.1);
             in1 = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(1, 1)),inbounds), 0).rg;
             in2 = texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(1, 1)),inbounds), 0).rg;
-            dist+=distribute(in1,in2, 0.1);
+            dist+=distribute(in1,in2, 0.1);*/
 
             for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
                 float dist2 = 1.0+6.0*abs(float(t)/float(SCANSIZE));
@@ -73,6 +72,7 @@ void main() {
                 in2 = texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(t, 0)),inbounds), 0).rg;
                 dist+=dist2*distribute(cachex[t+SCANSIZE/2],in2, 0.1);
             }
+
             dist*=dist3;
             /*if (dist < 0.15){
                         outalign = shift;

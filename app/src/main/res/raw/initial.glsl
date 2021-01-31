@@ -303,7 +303,7 @@ void main() {
     sRGB = applyColorSpace(sRGB,tonemapGain);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
-    br = (clamp(br,0.0,0.003)*(1.0/0.003));
+    br = (clamp(br+0.001,0.0,0.004)*(1.0/0.004));
     br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
     //sRGB = lookup(sRGB);
     sRGB = saturate(sRGB,br);
