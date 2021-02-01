@@ -47,7 +47,7 @@ public class SettingsBarEntryProvider extends ViewModel {
     private final List<SettingsBarEntryModel> allEntries = new ArrayList<>(8);
 
     public SettingsBarEntryProvider() {
-        allEntries.add(hdrxEntry);
+//        allEntries.add(hdrxEntry);
         allEntries.add(flashEntry);
         allEntries.add(timerEntry);
         allEntries.add(saveRawEntry);
