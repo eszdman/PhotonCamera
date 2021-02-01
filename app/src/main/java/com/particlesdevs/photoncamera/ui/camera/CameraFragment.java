@@ -73,6 +73,7 @@ import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.app.base.BaseActivity;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
 import com.particlesdevs.photoncamera.control.CountdownTimer;
@@ -118,7 +119,7 @@ import java.util.concurrent.Future;
 import static androidx.constraintlayout.widget.ConstraintSet.GONE;
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
-public class CameraFragment extends Fragment {
+public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
     public static final String FRAGMENT_DIALOG = "dialog";
     /**
@@ -259,6 +260,7 @@ public class CameraFragment extends Fragment {
     private void updateSettingsBar(){
         settingsBarEntryProvider.updateAllEntries();
         settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+        this.mCameraUIView.refresh(CaptureController.isProcessing);
     }
 
     @Override
@@ -331,6 +333,15 @@ public class CameraFragment extends Fragment {
         mCameraUIEventsListener.onPause();
         burstPlayer.release();
         super.onPause();
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        if(cameraFragmentViewModel.isSettingsBarVisible()) {
+            cameraFragmentViewModel.setSettingsBarVisible(false);
+            return true;
+        }
+        return false;
     }
 
     @Override

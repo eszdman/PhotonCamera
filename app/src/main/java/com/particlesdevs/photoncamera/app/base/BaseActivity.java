@@ -13,4 +13,7 @@ public class BaseActivity extends AppCompatActivity {
         PreferenceKeys.setActivityTheme(BaseActivity.this);
         super.onCreate(savedInstanceState);
     }
+    public interface BackPressedListener{
+        boolean onBackPressed();
+    }
 }

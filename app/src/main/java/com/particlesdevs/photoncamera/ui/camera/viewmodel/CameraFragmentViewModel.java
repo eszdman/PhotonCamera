@@ -49,7 +49,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
 
     public void onResume() {
         mCustomOrientationEventListener.enable();
-        showSettingsBar(false);
+        cameraFragmentModel.setSettingsBarVisibility(false);
     }
 
     public void onPause() {
@@ -89,11 +89,6 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         };
     }
 
-    public boolean showSettingsBar(boolean show) {
-        cameraFragmentModel.setSettingsBarVisibility(show);
-        return show;
-    }
-
     public void updateGalleryThumb() {
         List<File> allFiles = FileManager.getAllImageFiles();
         if (allFiles.isEmpty())
@@ -110,6 +105,14 @@ public class CameraFragmentViewModel extends AndroidViewModel {
                 });
             }
         }
+    }
+
+    public boolean isSettingsBarVisible() {
+        return cameraFragmentModel.isSettingsBarVisibility();
+    }
+
+    public void setSettingsBarVisible(boolean visible) {
+        cameraFragmentModel.setSettingsBarVisibility(visible);
     }
 
     @Override

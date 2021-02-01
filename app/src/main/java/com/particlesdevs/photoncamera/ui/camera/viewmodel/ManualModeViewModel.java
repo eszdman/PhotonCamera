@@ -77,12 +77,15 @@ public class ManualModeViewModel extends ViewModel {
         timer.endTimer();
     }
 
-    public boolean togglePanelVisibility(boolean visible) {
+    public void setPanelVisibility(boolean visible) {
         manualModeModel.setManualPanelVisible(visible);
         if (!visible) {
             manualParamModel.reset();
         }
-        return visible;
+    }
+
+    public boolean isPanelVisible(){
+       return manualModeModel.isManualPanelVisible();
     }
 
     private void setupOnClickListeners() {

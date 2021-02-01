@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
 
 import com.particlesdevs.photoncamera.R;
@@ -80,7 +81,10 @@ public class CameraActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
+        if (!(fragment instanceof BackPressedListener) || !((BackPressedListener) fragment).onBackPressed()) {
+            super.onBackPressed();
+        }
     }
 
     @Override

@@ -13,17 +13,17 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 
 public class Swipe {
     private static final String TAG = "Swipe";
-    private static boolean panelShowing;
     private final CameraFragment cameraFragment;
     private final CaptureController captureController;
     private GestureDetector gestureDetector;
     private ManualModeViewModel manualModeViewModel;
+    private CameraFragmentViewModel cameraFragmentViewModel;
     private ImageView ocManual;
-    private static boolean settingsBarVisible;
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -33,11 +33,12 @@ public class Swipe {
     public void init() {
         Log.d(TAG, "SwipeDetection - ON");
         manualModeViewModel = cameraFragment.getManualModeViewModel();
+        cameraFragmentViewModel = cameraFragment.getCameraFragmentViewModel();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
-        panelShowing = manualModeViewModel.togglePanelVisibility(false);
+        manualModeViewModel.setPanelVisibility(false);
         ocManual.animate().rotation(0).setDuration(250).start();
         ocManual.setOnClickListener((v) -> {
-            if (!panelShowing) {
+            if (!manualModeViewModel.isPanelVisible()) {
                 SwipeUp();
                 Log.d(TAG, "Arrow Clicked:SwipeUp");
             } else {
@@ -56,6 +57,7 @@ public class Swipe {
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
+                cameraFragmentViewModel.setSettingsBarVisible(false);
                 startTouchToFocus(e);
                 return false;
             }
@@ -115,12 +117,11 @@ public class Swipe {
     }
 
     public void SwipeUp() {
-        if(settingsBarVisible){
-            settingsBarVisible = cameraFragment.getCameraFragmentViewModel().showSettingsBar(false);
-        }
-        else {
+        if (cameraFragmentViewModel.isSettingsBarVisible()) {
+            cameraFragmentViewModel.setSettingsBarVisible(false);
+        } else {
             ocManual.animate().rotation(180).setDuration(250).start();
-            panelShowing = manualModeViewModel.togglePanelVisibility(true);
+            manualModeViewModel.setPanelVisibility(true);
 //        cameraFragment.getCaptureController().rebuildPreview();
             cameraFragment.getTouchFocus().resetFocusCircle();
         }
@@ -128,14 +129,14 @@ public class Swipe {
     }
 
     public void SwipeDown() {
-        if (panelShowing) {
+        if (manualModeViewModel.isPanelVisible()) {
             ocManual.animate().rotation(0).setDuration(250).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
             captureController.reset3Aparams();
-            panelShowing = manualModeViewModel.togglePanelVisibility(false);
+            manualModeViewModel.setPanelVisibility(false);
             manualModeViewModel.retractAllKnobs();
         } else {
-            settingsBarVisible = cameraFragment.getCameraFragmentViewModel().showSettingsBar(true);
+            cameraFragmentViewModel.setSettingsBarVisible(true);
         }
     }
 
