@@ -43,6 +43,7 @@ public class SettingsBarEntryProvider extends ViewModel {
     private final SettingsBarEntryModel gridEntry = SettingsBarEntryModel.newEntry(R.id.grid_entry_layout, R.string.turn_on_grid, SettingType.GRID);
     private final SettingsBarEntryModel eisEntry = SettingsBarEntryModel.newEntry(R.id.eis_entry_layout, R.string.eis_toggle_text, SettingType.EIS);
     private final SettingsBarEntryModel saveRawEntry = SettingsBarEntryModel.newEntry(R.id.saveraw_entry_layout, R.string.raw_string, SettingType.RAW);
+    private final SettingsBarEntryModel batterySaverEntry = SettingsBarEntryModel.newEntry(R.id.batterysaver_entry_layout, R.string.energy_saving, SettingType.BATTERY_SAVER);
     private final List<SettingsBarEntryModel> allEntries = new ArrayList<>(8);
 
     public SettingsBarEntryProvider() {
@@ -54,6 +55,7 @@ public class SettingsBarEntryProvider extends ViewModel {
         allEntries.add(eisEntry);
         allEntries.add(fpsEntry);
         allEntries.add(gridEntry);
+        allEntries.add(batterySaverEntry);
     }
 
     public void createEntries() {
@@ -65,6 +67,7 @@ public class SettingsBarEntryProvider extends ViewModel {
         createTimerEntry();
         createSaveRawEntry();
         createGridEntry();
+        createBatterySaverEntry();
         updateAllEntries();
     }
 
@@ -77,6 +80,7 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(fpsEntry, PreferenceKeys.isFpsPreviewOn());
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
         updateEntry(saveRawEntry, PreferenceKeys.isSaveRawOn());
+        updateEntry(batterySaverEntry, PreferenceKeys.isBatterySaverOn());
     }
 
     public void addObserver(Observer<TopBarSettingsData<?, ?>> observer) {
@@ -112,10 +116,18 @@ public class SettingsBarEntryProvider extends ViewModel {
                 SettingsBarButtonModel.newButtonModel(R.id.eis_on_button, R.drawable.ic_eis_on, R.string.on, 1, eisEntry)
         );
     }
+
     private void  createSaveRawEntry() {
         saveRawEntry.addSettingsBarButtonModels(
                 SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, R.string.jpg_only, 0, saveRawEntry),
                 SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, R.string.raw_plus_jpg, 1, saveRawEntry)
+        );
+    }
+
+    private void createBatterySaverEntry() {
+        batterySaverEntry.addSettingsBarButtonModels(
+                SettingsBarButtonModel.newButtonModel(R.id.btsvr_off_button, R.drawable.ic_round_battery_alert_24, R.string.off, 0, batterySaverEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.btsvr_on_button, R.drawable.leaf_icon_15, R.string.on, 1, batterySaverEntry)
         );
     }
 

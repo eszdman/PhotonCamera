@@ -842,6 +842,7 @@ public class CameraFragment extends Fragment {
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     break;
                 case NIGHT:
@@ -1173,12 +1174,10 @@ public class CameraFragment extends Fragment {
                                 CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
                             else
                                 CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
-                            showSnackBar(getString(R.string.hdrx) + ':' + onOff(value.equals(1)));
                             this.restartCamera();
                             break;
                         case QUAD:
                             PreferenceKeys.setQuadBayer(value.equals(1));
-                            showSnackBar(getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
                             this.restartCamera();
                             break;
                         case GRID:
@@ -1187,7 +1186,6 @@ public class CameraFragment extends Fragment {
                             break;
                         case FPS_60:
                             PreferenceKeys.setFpsPreview(value.equals(1));
-                            showSnackBar(getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
                             break;
                         case TIMER:
                             PreferenceKeys.setCountdownTimerIndex((Integer) value);
@@ -1198,6 +1196,9 @@ public class CameraFragment extends Fragment {
                             break;
                         case RAW:
                             PreferenceKeys.setSaveRaw(value.equals(1));
+                            break;
+                        case BATTERY_SAVER:
+                            PreferenceKeys.setBatterySaver(value.equals(1));
                             break;
 
                     }

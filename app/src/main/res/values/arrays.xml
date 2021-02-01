@@ -79,8 +79,4 @@
         <item>3</item>
         <item>10</item>
     </integer-array>
-    <string name="off">Off</string>
-    <string name="golden_ratio">Golden Ratio</string>
-    <string name="three_x3">3x3</string>
-    <string name="four_x4">4x4</string>
 </resources>

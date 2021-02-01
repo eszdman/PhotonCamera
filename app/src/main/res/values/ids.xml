@@ -33,4 +33,7 @@
     <item name="saveraw_entry_layout" type="id"/>
     <item name="raw_off_button" type="id"/>
     <item name="raw_on_button" type="id"/>
+    <item name="btsvr_on_button" type="id"/>
+    <item name="btsvr_off_button" type="id"/>
+    <item name="batterysaver_entry_layout" type="id"/>
 </resources>

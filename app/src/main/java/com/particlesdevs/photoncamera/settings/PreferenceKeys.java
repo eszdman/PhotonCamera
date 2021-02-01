@@ -180,6 +180,13 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
     }
 
+    public static boolean isBatterySaverOn(){
+        return getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
+    }
+
+    public static void setBatterySaver(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ENERGY_SAVING,value);
+    }
     public static void setSaveRaw(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW,value);
     }
