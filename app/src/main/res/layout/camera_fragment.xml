@@ -14,6 +14,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
     <data>
+        <import type="android.view.View"/>
         <variable
             name="uimodel"
             type="com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel" />
@@ -24,6 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="?cameraFragmentBackground"
+        android:animateLayoutChanges="true"
         >
 
         <!--    Block 1-->
@@ -108,6 +110,21 @@
                 app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
+            <com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout
+                    android:layout_width="match_parent"
+                    android:id="@+id/settings_bar"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginStart="25dp"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintHeight_max="300dp"
+                    app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintVertical_bias="0.35"
+                    settingsBarVisibility="@{uimodel.settingsBarVisibility}"
+                    bindRotate="@{uimodel}"
+            />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!--    Block 2-->
@@ -119,6 +136,7 @@
                 android:layout_height="wrap_content"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
+                android:visibility="@{uimodel.settingsBarVisibility ? View.INVISIBLE : View.VISIBLE}"
                 app:layout_constraintTop_toTopOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

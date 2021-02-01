@@ -104,5 +104,15 @@
     <string name="mode_night">Night</string>
     <string name="mode_video">Video</string>
     <string name="processing_processname">Processing %1$s</string>
+    <string name="countdown_timer">Countdown Timer</string>
+    <string name="flash">Flash</string>
+    <string name="torch">Torch</string>
+    <string name="on">On</string>
+    <string name="auto">Auto</string>
+    <string name="t_3s">3s</string>
+    <string name="t_10s">10s</string>
+    <string name="raw_string">RAW</string>
+    <string name="raw_plus_jpg">RAW + JPG</string>
+    <string name="jpg_only">JPG Only</string>
 
 </resources>

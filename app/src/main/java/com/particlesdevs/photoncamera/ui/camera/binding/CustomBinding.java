@@ -3,7 +3,6 @@ package com.particlesdevs.photoncamera.ui.camera.binding;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckedTextView;
-import android.widget.RadioGroup;
 
 import androidx.databinding.BindingAdapter;
 
@@ -172,5 +171,22 @@ public class CustomBinding {
                 viewGroup.getChildAt(i).setSelected(viewGroup.getChildAt(i).getId() == viewID);
             }
         }
+    }
+
+    @BindingAdapter("settingsBarVisibility")
+    public static void toggleSettingsBarVisibility(ViewGroup viewGroup, boolean visible) {
+        if (viewGroup != null) {
+            if (visible) {
+                viewGroup.post(() -> {
+                    viewGroup.animate().setDuration(200).alpha(1).translationY(0).scaleX(1).scaleY(1).start();
+                    viewGroup.setVisibility(View.VISIBLE);
+                });
+            } else {
+                viewGroup.post(() -> viewGroup.animate().setDuration(200).alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
+                        .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.GONE))
+                        .start());
+            }
+        }
+
     }
 }

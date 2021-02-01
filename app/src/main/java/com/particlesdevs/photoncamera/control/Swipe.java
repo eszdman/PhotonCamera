@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.control;
 
 import android.graphics.RectF;
-import android.hardware.camera2.CaptureRequest;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -13,7 +12,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
-import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 
@@ -25,6 +23,7 @@ public class Swipe {
     private GestureDetector gestureDetector;
     private ManualModeViewModel manualModeViewModel;
     private ImageView ocManual;
+    private static boolean settingsBarVisible;
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -116,10 +115,16 @@ public class Swipe {
     }
 
     public void SwipeUp() {
-        ocManual.animate().rotation(180).setDuration(250).start();
-        panelShowing = manualModeViewModel.togglePanelVisibility(true);
+        if(settingsBarVisible){
+            settingsBarVisible = cameraFragment.getCameraFragmentViewModel().showSettingsBar(false);
+        }
+        else {
+            ocManual.animate().rotation(180).setDuration(250).start();
+            panelShowing = manualModeViewModel.togglePanelVisibility(true);
 //        cameraFragment.getCaptureController().rebuildPreview();
-        cameraFragment.getTouchFocus().resetFocusCircle();
+            cameraFragment.getTouchFocus().resetFocusCircle();
+        }
+
     }
 
     public void SwipeDown() {
@@ -129,6 +134,8 @@ public class Swipe {
             captureController.reset3Aparams();
             panelShowing = manualModeViewModel.togglePanelVisibility(false);
             manualModeViewModel.retractAllKnobs();
+        } else {
+            settingsBarVisible = cameraFragment.getCameraFragmentViewModel().showSettingsBar(true);
         }
     }
 

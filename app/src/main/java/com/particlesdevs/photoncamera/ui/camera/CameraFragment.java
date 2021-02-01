@@ -63,6 +63,7 @@ import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
@@ -85,9 +86,12 @@ import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
@@ -111,6 +115,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static androidx.constraintlayout.widget.ConstraintSet.GONE;
 import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
 public class CameraFragment extends Fragment {
@@ -147,7 +152,7 @@ public class CameraFragment extends Fragment {
     private Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
-    private CameraUIView.CameraUIEventsListener mCameraUIEventsListener;
+    private CameraUIController mCameraUIEventsListener;
     private CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
     private CameraFragmentBinding cameraFragmentBinding;
@@ -159,6 +164,7 @@ public class CameraFragment extends Fragment {
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
     private ManualModeViewModel manualModeViewModel;
+    private SettingsBarEntryProvider settingsBarEntryProvider;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -180,6 +186,9 @@ public class CameraFragment extends Fragment {
         return manualModeViewModel;
     }
 
+    public CameraFragmentViewModel getCameraFragmentViewModel() {
+        return cameraFragmentViewModel;
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -213,6 +222,7 @@ public class CameraFragment extends Fragment {
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeViewModel = new ViewModelProvider(this).get(ManualModeViewModel.class);
+        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
     }
@@ -237,6 +247,18 @@ public class CameraFragment extends Fragment {
         this.manualModeViewModel.setManualParamModel(captureController.getManualParamModel());
         PhotonCamera.setCaptureController(captureController);
         this.mSwipe = new Swipe(this);
+        initSettingsBar();
+    }
+
+    private void initSettingsBar() {
+        settingsBarEntryProvider.createEntries();
+        settingsBarEntryProvider.addObserver(mCameraUIEventsListener);
+        settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+    }
+
+    private void updateSettingsBar(){
+        settingsBarEntryProvider.updateAllEntries();
+        settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
     }
 
     @Override
@@ -275,6 +297,7 @@ public class CameraFragment extends Fragment {
         mSwipe.init();
         PhotonCamera.getGyro().register();
         PhotonCamera.getGravity().register();
+        updateSettingsBar();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
         burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
 
@@ -284,7 +307,6 @@ public class CameraFragment extends Fragment {
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();
-
         supportedDevice.loadCheck();
     }
 
@@ -327,6 +349,7 @@ public class CameraFragment extends Fragment {
             } catch (ExecutionException | InterruptedException ignored) {
             }
         }
+        settingsBarEntryProvider.removeObserver(mCameraUIEventsListener);
         cameraFragmentBinding = null;
         mCameraUIView.destroy();
         mCameraUIView = null;
@@ -784,7 +807,6 @@ public class CameraFragment extends Fragment {
             this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
             this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
             this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
-            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
         }
 
         @Override
@@ -808,6 +830,8 @@ public class CameraFragment extends Fragment {
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(false);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                     break;
                 case PHOTO:
@@ -815,12 +839,18 @@ public class CameraFragment extends Fragment {
                     this.topbar.setEisVisible(true);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     break;
                 case NIGHT:
                     this.topbar.setEisVisible(false);
                     this.topbar.setFpsVisible(false);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     break;
             }
@@ -829,6 +859,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void refresh(boolean processing) {
             cameraFragmentBinding.invalidateAll();
+            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
             this.resetCaptureProgressBar();
             if (!processing) {
                 this.activateShutterButton(true);
@@ -933,6 +964,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void showFlashButton(boolean flashAvailable) {
             this.topbar.setFlashVisible(flashAvailable);
+            cameraFragmentBinding.settingsBar.setChildVisibility(R.id.flash_entry_layout, flashAvailable ? View.VISIBLE : GONE);
         }
 
         @Override
@@ -956,7 +988,7 @@ public class CameraFragment extends Fragment {
      * <p>
      * Responsible for converting user inputs into actions
      */
-    private final class CameraUIController implements CameraUIView.CameraUIEventsListener {
+    private final class CameraUIController implements CameraUIView.CameraUIEventsListener, Observer<TopBarSettingsData<?, ?>> {
         private static final String TAG = "CameraUIController";
         private CountDownTimer countdownTimer;
         private View shutterButton;
@@ -1013,17 +1045,20 @@ public class CameraFragment extends Fragment {
                 case R.id.eis_toggle_button:
                     PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
                     showSnackBar(getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
+                    updateSettingsBar();
                     break;
 
                 case R.id.fps_toggle_button:
                     PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
                     showSnackBar(getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
+                    updateSettingsBar();
                     break;
 
                 case R.id.quad_res_toggle_button:
                     PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
                     showSnackBar(getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
                     this.restartCamera();
+                    updateSettingsBar();
                     break;
 
                 case R.id.flip_camera_button:
@@ -1036,17 +1071,20 @@ public class CameraFragment extends Fragment {
                     PreferenceKeys.setGridValue((PreferenceKeys.getGridValue() + 1) % view.getResources().getStringArray(R.array.vf_grid_entryvalues).length);
                     view.setSelected(PreferenceKeys.getGridValue() != 0);
                     invalidateSurfaceView();
+                    updateSettingsBar();
                     break;
 
                 case R.id.flash_button:
                     PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
                     ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
                     captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
+                    updateSettingsBar();
                     break;
 
                 case R.id.countdown_timer_button:
                     PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
                     ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
+                    updateSettingsBar();
                     break;
             }
         }
@@ -1115,6 +1153,58 @@ public class CameraFragment extends Fragment {
             this.shutterButton.setActivated(false);
             this.shutterButton.setClickable(false);
             captureController.takePicture();
+        }
+
+        @Override
+        public void onChanged(TopBarSettingsData<?, ?> topBarSettingsData) {
+            if (topBarSettingsData != null && topBarSettingsData.getType() != null && topBarSettingsData.getValue() != null) {
+                if (topBarSettingsData.getType() instanceof SettingType) {
+                    SettingType type = (SettingType) topBarSettingsData.getType();
+                    Object value = topBarSettingsData.getValue();
+                    switch (type) {
+                        case FLASH:
+                            PreferenceKeys.setAeMode((Integer) value); //cycles in 0,1,2,3
+                            captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
+                            cameraFragmentBinding.layoutTopbar.flashButton.setFlashValueState((Integer) value);
+                            break;
+                        case HDRX:
+                            PreferenceKeys.setHdrX(value.equals(1));
+                            if (value.equals(1))
+                                CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
+                            else
+                                CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
+                            showSnackBar(getString(R.string.hdrx) + ':' + onOff(value.equals(1)));
+                            this.restartCamera();
+                            break;
+                        case QUAD:
+                            PreferenceKeys.setQuadBayer(value.equals(1));
+                            showSnackBar(getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
+                            this.restartCamera();
+                            break;
+                        case GRID:
+                            PreferenceKeys.setGridValue((Integer) value);
+                            invalidateSurfaceView();
+                            break;
+                        case FPS_60:
+                            PreferenceKeys.setFpsPreview(value.equals(1));
+                            showSnackBar(getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
+                            break;
+                        case TIMER:
+                            PreferenceKeys.setCountdownTimerIndex((Integer) value);
+                            cameraFragmentBinding.layoutTopbar.countdownTimerButton.setTimerIconState((Integer) value);
+                            break;
+                        case EIS:
+                            PreferenceKeys.setEisPhoto(value.equals(1));
+                            break;
+                        case RAW:
+                            PreferenceKeys.setSaveRaw(value.equals(1));
+                            break;
+
+                    }
+                    cameraFragmentBinding.layoutTopbar.invalidateAll();
+                }
+            }
+
         }
     }
 }

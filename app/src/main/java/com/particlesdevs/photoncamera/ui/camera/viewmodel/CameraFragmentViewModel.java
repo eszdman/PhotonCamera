@@ -34,6 +34,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     private CustomOrientationEventListener mCustomOrientationEventListener;
     private HandlerThread thumbnailThread;
 
+
     public CameraFragmentViewModel(@NonNull Application application) {
         super(application);
         cameraFragmentModel = new CameraFragmentModel();
@@ -48,6 +49,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
 
     public void onResume() {
         mCustomOrientationEventListener.enable();
+        showSettingsBar(false);
     }
 
     public void onPause() {
@@ -85,6 +87,11 @@ public class CameraFragmentViewModel extends AndroidViewModel {
                 //PhotonCamera.getManualMode().rotate(rot, RotationDur);
             }
         };
+    }
+
+    public boolean showSettingsBar(boolean show) {
+        cameraFragmentModel.setSettingsBarVisibility(show);
+        return show;
     }
 
     public void updateGalleryThumb() {

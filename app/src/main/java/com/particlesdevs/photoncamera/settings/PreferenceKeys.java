@@ -180,6 +180,10 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
     }
 
+    public static void setSaveRaw(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW,value);
+    }
+
     public static boolean isRoundEdgeOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SHOW_ROUND_EDGE);
     }
