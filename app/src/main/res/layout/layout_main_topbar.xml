@@ -38,8 +38,6 @@
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-
-            android:background="@drawable/rectangle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="visible"
@@ -70,7 +68,7 @@
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
-                    android:visibility="@{hdrx_visible ? View.VISIBLE : View.GONE}"
+                    android:visibility="@{hdrx_visible ? View.GONE : View.GONE}"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintDimensionRatio="1:1"
                     app:layout_constraintEnd_toStartOf="@id/eis_toggle_button"
@@ -88,7 +86,7 @@
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
-                    android:visibility="@{eis_visible ? View.VISIBLE : View.GONE}"
+                    android:visibility="@{eis_visible ? View.GONE : View.GONE}"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@id/hdrx_toggle_button"
                     app:layout_constraintEnd_toStartOf="@id/countdown_timer_button"
@@ -141,7 +139,7 @@
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
-                    android:visibility="@{fps_visible ? View.VISIBLE : View.GONE}"
+                    android:visibility="@{fps_visible ? View.GONE : View.GONE}"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@id/quad_res_toggle_button"
                     app:layout_constraintEnd_toStartOf="@id/grid_toggle_button"
@@ -193,6 +191,7 @@
                     android:onClick="@{top_bar_click_listener}"
                     android:background="@drawable/ic_settings"
                     android:src="@drawable/ic_settings"
+                    android:visibility="gone"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintDimensionRatio="1:1"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -200,7 +199,6 @@
                     app:layout_constraintTop_toTopOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
