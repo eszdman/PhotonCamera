@@ -2,7 +2,7 @@
 <resources>
     <dimen name="SettingSize1">50dp</dimen>
     <dimen name="SettingSize2">45dp</dimen>
-    <dimen name="topbar_padding">10dp</dimen>
+    <dimen name="topbar_padding">0dp</dimen>
     <dimen name="topbar_icon_size">30dp</dimen>
     <dimen name="viewfinder_top_padding">0dp</dimen>
     <dimen name="mode_chip_height">30dp</dimen>
@@ -44,4 +44,5 @@
     <dimen name="standard_20">20dp</dimen>
     <dimen name="gallery_viewer_button_size">30dp</dimen>
     <dimen name="gallery_viewer_button_conainer_size">80dp</dimen>
+    <dimen name="topbar_button_inset">11dp</dimen>
 </resources>

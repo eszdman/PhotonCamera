@@ -70,6 +70,7 @@ public class SettingsBarEntryView extends LinearLayout {
         stateTextView.setId(android.R.id.summary);
         stateTextView.setGravity(CENTER_VERTICAL);
         stateTextView.setTextAlignment(END);
+        stateTextView.setTextColor(getResolvedAttrData(context, android.R.attr.colorControlActivated));
         LayoutParams textViewParam = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         textViewParam.setMargins(dp(2), dp(2), dp(2), dp(2));
 
@@ -112,5 +113,11 @@ public class SettingsBarEntryView extends LinearLayout {
 
     private int dp(float f) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, f, getContext().getResources().getDisplayMetrics());
+    }
+
+    private int getResolvedAttrData(Context context, int attrId) {
+        TypedValue outValue = new TypedValue();
+        context.getTheme().resolveAttribute(attrId, outValue, true);
+        return outValue.data;
     }
 }

@@ -61,8 +61,8 @@
 
             <ToggleButton
                     android:id="@+id/hdrx_toggle_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/raw_button"
                     android:checked="@{PreferenceKeys.isHdrXOn()}"
                     android:textOff=""
@@ -78,8 +78,8 @@
 
             <ToggleButton
                     android:id="@+id/eis_toggle_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/eis_button"
                     android:checked="@{PreferenceKeys.isEisPhotoOn()}"
@@ -96,8 +96,8 @@
 
             <com.particlesdevs.photoncamera.ui.camera.views.TimerButton
                     android:id="@+id/countdown_timer_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_timer"
                     android:backgroundTint="@android:color/white"
@@ -114,8 +114,8 @@
 
             <ToggleButton
                     android:id="@+id/quad_res_toggle_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:checked="@{PreferenceKeys.isQuadBayerOn()}"
                     android:background="@drawable/quad_button"
@@ -131,8 +131,8 @@
 
             <ToggleButton
                     android:id="@+id/fps_toggle_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/fps_button"
                     android:checked="@{PreferenceKeys.isFpsPreviewOn()}"
@@ -149,11 +149,11 @@
 
             <Button
                     android:id="@+id/grid_toggle_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_grid_toggle"
-                    selected="@{PreferenceKeys.getGridValue() != 0}"
+                    android:selected="@{PreferenceKeys.getGridValue() != 0}"
                     app:backgroundTint="@android:color/white"
                     android:textOff=""
                     android:textOn=""
@@ -167,8 +167,8 @@
 
             <com.particlesdevs.photoncamera.ui.camera.views.FlashButton
                     android:id="@+id/flash_button"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_flash"
                     android:backgroundTint="@android:color/white"
@@ -186,8 +186,8 @@
             <ImageButton
                     android:id="@+id/settings_button"
                     style="@style/Widget.AppCompat.ImageButton"
-                    android:layout_width="@dimen/topbar_icon_size"
-                    android:layout_height="0dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     android:onClick="@{top_bar_click_listener}"
                     android:background="@drawable/ic_settings"
                     android:src="@drawable/ic_settings"
