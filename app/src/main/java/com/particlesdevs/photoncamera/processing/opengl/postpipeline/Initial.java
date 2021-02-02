@@ -38,7 +38,6 @@ public class Initial extends Node {
     Bitmap lutbm;
     @Override
     public void Run() {
-        GLInterface glint = basePipeline.glint;
         lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap));
         /*GLTexture oldT = TonemapCoeffs;
@@ -64,7 +63,6 @@ public class Initial extends Node {
             else {
                 cube = basePipeline.mParameters.CCT.cubes[0].cube;
             }
-            cube = basePipeline.mParameters.CCT.cubes[0].cube;
         }
         glProg.useProgram(R.raw.initial);
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){

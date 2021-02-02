@@ -207,9 +207,8 @@ public class HdrxProcessor extends ProcessorBase {
         if (exposure == null) {
             exposure = (long) 100;
         }
-        float deghostlevel = (float) Math.sqrt(((int) sensitivity) * IsoExpoSelector.getMPY() - 50.) / 16.2f;
-        deghostlevel = Math.min(0.25f, deghostlevel);
-        Log.d(TAG, "Deghosting level:" + deghostlevel);
+        float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
+        Log.d(TAG, "Denoising level:" + denoiseLevel);
         ByteBuffer output;
         Parameters parameters = PhotonCamera.getParameters();
         //float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0], PhotonCamera.getParameters().blackLevel[1]),
@@ -226,7 +225,7 @@ public class HdrxProcessor extends ProcessorBase {
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
 
-            output = Wrapper.processFrame(150, 800, 1024, parameters.blackLevel[0], bl, parameters.blackLevel[2], parameters.whiteLevel
+            output = Wrapper.processFrame(180*(0.6f+denoiseLevel)/2.f, 600*denoiseLevel, 1024, parameters.blackLevel[0], bl, parameters.blackLevel[2], parameters.whiteLevel
                     , parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
             output = rawPipeline.Run();

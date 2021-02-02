@@ -16,6 +16,7 @@ out vec2 Output;
 #define MAXY (3*MAXMP)
 #define FLT_MAX 3.402823466e+38
 #define M_PI 3.1415926535897932384626433832795
+
 //#define distribute(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
 //#define distribute(x,dev,sigma) (abs(x-dev))
 #define distribute(x,dev,sigma) ((x-dev)*(x-dev))
@@ -64,6 +65,7 @@ void main() {
             in1 = texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(1, 1)),inbounds), 0).rg;
             in2 = texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(1, 1)),inbounds), 0).rg;
             dist+=distribute(in1,in2, 0.1);*/
+            //dist*=2.5;
 
             for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
                 float dist2 = 1.0+6.0*abs(float(t)/float(SCANSIZE));

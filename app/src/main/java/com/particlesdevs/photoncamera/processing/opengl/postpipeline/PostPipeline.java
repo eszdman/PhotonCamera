@@ -99,6 +99,7 @@ public class PostPipeline extends GLBasePipeline {
             add(new SmartNR());
         }
         add(new Sharpen(R.raw.sharpeningbilateral));
+        add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new RotateWatermark(getRotation()));
         return runAll();
     }

@@ -3,6 +3,8 @@ package com.particlesdevs.photoncamera.processing.opengl;
 import android.graphics.Bitmap;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
@@ -22,7 +24,7 @@ public class GLBasePipeline implements AutoCloseable {
     private long timeStart;
     private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
-    public GLTexture main1,main2,main3;
+    public GLTexture main1,main2,main3,main4;
     public Settings mSettings;
     public Parameters mParameters;
     private String currentProg;
@@ -67,6 +69,7 @@ public class GLBasePipeline implements AutoCloseable {
     public Bitmap runAll() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
+            Nodes.get(i).BeforeCompile();
             Nodes.get(i).Compile();
             Nodes.get(i).BeforeRun();
             if (i == Nodes.size() - 1) {
@@ -103,6 +106,7 @@ public class GLBasePipeline implements AutoCloseable {
     public ByteBuffer runAllRaw() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
+            Nodes.get(i).BeforeCompile();
             Nodes.get(i).Compile();
             Nodes.get(i).BeforeRun();
             if (i == Nodes.size() - 1) {

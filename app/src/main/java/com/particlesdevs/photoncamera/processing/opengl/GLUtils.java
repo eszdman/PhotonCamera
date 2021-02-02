@@ -488,9 +488,9 @@ public class GLUtils {
         return median(in,output,transposing);
     }
     public GLTexture median(GLTexture in,GLTexture out,Point transposing){
+        glProg.setDefine("TRANSPOSE",transposing);
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer", in);
-        glProg.setVar("transpose",transposing);
         glProg.drawBlocks(out);
         return out;
     }

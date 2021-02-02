@@ -15,10 +15,6 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;
 
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
-import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
-
 public class TouchFocus {
     private static final String TAG = "TouchFocus";
     private static final int AUTO_HIDE_DELAY_MS = 3000;
@@ -124,7 +120,7 @@ public class TouchFocus {
             return;
         }
         builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
-        builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+        //builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
         captureController.rebuildPreviewBuilderOneShot();
         builder.set(CaptureRequest.CONTROL_AF_REGIONS, rectaf);
         builder.set(CaptureRequest.CONTROL_AE_REGIONS, rectaf);
@@ -142,12 +138,39 @@ public class TouchFocus {
         captureController.rebuildPreviewBuilderOneShot();
         captureController.rebuildPreviewBuilder();
     }
+    private void resetAutoFocus() {
+        CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
+        if (builder == null) {
+            Log.w(TAG, "triggerAutoFocus(): mPreviewRequestBuilder is null");
+            return;
+        }
+        //builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        //builder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+        //captureController.rebuildPreviewBuilderOneShot();
+        builder.set(CaptureRequest.CONTROL_AF_REGIONS, captureController.mPreviewMeteringAF);
+        builder.set(CaptureRequest.CONTROL_AE_REGIONS, captureController.mPreviewMeteringAE);
+        builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
+        builder.set(CaptureRequest.CONTROL_AF_MODE, captureController.mPreviewAFMode);
+        builder.set(CaptureRequest.CONTROL_AE_MODE, captureController.mPreviewAEMode);
+        //set focus area repeating,else cam forget after one frame where it should focus
+        //trigger af start only once. cam starts focusing till its focused or failed
+        builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+        builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        captureController.rebuildPreviewBuilderOneShot();
+        //set focus trigger back to idle to signal cam after focusing is done to do nothing
+        builder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
+        builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+        captureController.rebuildPreviewBuilderOneShot();
+        captureController.rebuildPreviewBuilder();
+    }
+
 
     //Thread safe
     //call when focus circle needs to be hidden immediately
     public void resetFocusCircle() {
         focusCircleView.removeCallbacks(hideFocusCircleRunnable);
         focusCircleView.post(hideFocusCircleRunnable);
+        resetAutoFocus();
     }
 
     //Must be run on UI Thread

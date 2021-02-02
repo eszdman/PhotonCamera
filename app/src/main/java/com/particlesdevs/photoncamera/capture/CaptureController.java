@@ -37,6 +37,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
 import android.media.ImageReader;
@@ -99,6 +100,7 @@ import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
+import static android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS;
 import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 
@@ -292,6 +294,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public boolean mIsRecordingVideo;
     private Size target;
     private float mFocus;
+    public int mPreviewAFMode;
+    public int mPreviewAEMode;
+    public MeteringRectangle[] mPreviewMeteringAF;
+    public MeteringRectangle[] mPreviewMeteringAE;
     /**
      * The {@link Size} of camera preview.
      */
@@ -1034,7 +1040,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         cameraEventsListener.onCharacteristicsUpdated(characteristics);
     }
 
-    @SuppressLint("LongLogTag")
     public void createCameraPreviewSession() {
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
@@ -1054,6 +1059,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             else
                 mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
+            mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
+            mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
+            mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
+            mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
 
             // Here, we create a CameraCaptureSession for camera preview.
 

@@ -38,6 +38,7 @@ public class Node {
     public void BeforeRun(){}
     public void Run() {}
     public void AfterRun(){}
+    public void BeforeCompile(){}
     public void Compile() {
         basePipeline.glint.glProgram.useProgram(Rid);
     }

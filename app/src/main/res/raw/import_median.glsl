@@ -89,6 +89,12 @@ vec2 median5(vec2 v[5]) {
     mnmx3(v[1], v[2], v[4]);
     return v[2];
 }
+vec3 median5(vec3 v[5]) {
+    vec3 temp;
+    mnmx4(v[0], v[1], v[2], v[3]);
+    mnmx3(v[1], v[2], v[4]);
+    return v[2];
+}
 float median4(float v[4]) {
     float temp;
     mnmx4(v[0], v[1], v[2],v[3]);
