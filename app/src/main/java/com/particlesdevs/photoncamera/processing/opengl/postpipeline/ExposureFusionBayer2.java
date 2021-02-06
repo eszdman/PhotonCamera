@@ -141,7 +141,7 @@ public class ExposureFusionBayer2 extends Node {
                 fusionMap(wip,normalExpo.gauss[0], (float)((PostPipeline)basePipeline).AecCorr/2.f);
                 //wip;
         if(basePipeline.mSettings.DebugData) {
-            glUtils.convertVec4(((PostPipeline)basePipeline).FusionMap,"in1.r*5.0");
+            glUtils.convertVec4(((PostPipeline)basePipeline).FusionMap,"in1.r*15.0");
             glUtils.SaveProgResult(wip.mSize,"tonemap");
         }
         wip.close();

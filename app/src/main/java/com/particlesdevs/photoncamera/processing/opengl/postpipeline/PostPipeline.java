@@ -58,6 +58,8 @@ public class PostPipeline extends GLBasePipeline {
         /*if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;
             rotated.y/=2;
+
+
         }*/
         Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
 
@@ -71,7 +73,7 @@ public class PostPipeline extends GLBasePipeline {
         //if(!IsoExpoSelector.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
                 //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
-                    add(new Demosaic());
+                    add(new Demosaic2());
                 //} else {
                 //    add(new BinnedDemosaic());
                 //}
@@ -98,8 +100,8 @@ public class PostPipeline extends GLBasePipeline {
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new SmartNR());
         }
+        //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new Sharpen(R.raw.sharpeningbilateral));
-        add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new RotateWatermark(getRotation()));
         return runAll();
     }

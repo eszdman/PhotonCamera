@@ -2,7 +2,7 @@
 precision mediump float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
-//uniform sampler2D GainMap;
+uniform sampler2D GainMap;
 uniform int CfaPattern;
 uniform int yOffset;
 out vec4 Output;
@@ -23,10 +23,13 @@ void main() {
     } else {
         outp =vec4(firstdiag(xy).rg,(seconddiag(xy).r+seconddiag(xy).g)/2.0,1.0);
     }
-    outp.r = (outp.b+outp.r)/2.0;
+    float g = outp.g;
+    outp.g = (outp.r+g)/2.0;
+    outp.r = (outp.b+g)/2.0;
+
     outp.r +=0.0001;
     outp.g +=0.0001;
-    //outp*=texture(GainMap,vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).g;
+    outp*=texture(GainMap,vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).g;
     //outp.rgb/=outp.a;
 
     //outp.a-=outp.r+outp.g+outp.b;

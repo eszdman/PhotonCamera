@@ -21,17 +21,27 @@ void main() {
     float br = luminocity(sRGB);
     sRGB=sRGB/br;
     float HistEq = texture(Histogram, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    //Limit eq
     HistEq = clamp(HistEq,0.0,5.0);
+
+    //Equalization factor
     float factor = 1.0;
     factor*=1.0-clamp(br-0.6,0.0,0.4)/0.4;
     factor = clamp(factor,0.0,1.0);
-    //factor*=clamp((br-EPS)*EPSAMP,0.0,1.0);
+
+
     if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    //br=HistEq;
     //if(br > EPS)
     //br = mix(br,HistEq,factor);
-    //br = HistEq;
     br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //br = pow(br,Equalize);
+
+    //Undersaturate shadows
+    float undersat = max(0.12-br,0.0)*1.5/0.12;
+    sRGB += (sRGB.r+sRGB.g+sRGB.b)*undersat/3.0;
+    sRGB /= luminocity(sRGB);
+
     sRGB*=br;
     Output = clamp(sRGB,0.0,1.0);
 }

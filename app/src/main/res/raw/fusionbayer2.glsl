@@ -51,8 +51,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - 0.35, 0.50));
-    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - 0.35, 0.50));
+    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - 0.50, 0.50));
+    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - 0.50, 0.50));
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;

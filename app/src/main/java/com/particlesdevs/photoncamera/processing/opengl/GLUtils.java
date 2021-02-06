@@ -438,51 +438,37 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
-    public GLTexture downscale(GLTexture in, int k){
+    public void Convolve(GLTexture in, GLTexture out, float[] kernel, boolean centered){
+        String center = "";
+        if(centered) center = "Output += 0.5;\n";
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
-                "uniform int yOffset;\n" +
-                "uniform ivec2 size;" +
-                "uniform ivec2 sizein;" +
+                "uniform mat3 kernel;" +
                 "out tvar Output;\n" +
-                "#define resize ("+k+")\n" +
-                //"float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n
-                /*
-                "tvar interpolate(vec2 coords){\n" +
-                "vec2 fltin = coords*vec2(sizein);\n" +
-                "ivec2 coordsin = ivec2(fltin);\n" +
-                "fltin-=vec2(coordsin)" +
-                //"if(length(fltin) == 0.0{\n" +
-                //    "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+");\n" +
-                //    "}\n" +
-                "return tvar(texelFetch(InputBuffer, (coordsin), 0)"+in.mFormat.getTemExt()+")" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.x" +
-                "+(tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+")" +
-                "-tvar(texelFetch(InputBuffer, (coordsin+ivec2(0,0)), 0)"+in.mFormat.getTemExt()+"))*fltin.y;" +
-                "\n" +
-                "}\n" +
-                */
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                "    xy+=ivec2(0,yOffset+0);\n" +
-                "    xy*=resize;\n" +
-                "    Output = tvar(texelFetch(InputBuffer, (xy), 0)"+in.mFormat.getTemExt()+");\n" +
-                //"    Output = tvar(texture(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,-1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,0),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,-1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,0),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,-1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,0),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,1),0)"+in.mFormat.getTemExt()+");\n" +
+                        center+
+                //"    Output/=9.0;" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        //glProg.setVar("size",in.mSize.x*k,in.mSize.y*k);
-        //glProg.setVar("sizein",in.mSize.x*k,in.mSize.y*k);
-        GLTexture out = new GLTexture((in.mSize.x/k) + k-1,(in.mSize.y/k) + k-1,in.mFormat,null);
-        glProg.drawBlocks(out);
+        glProg.setVar("kernel",kernel);
+        glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
-        //return blur(out,k-1);
-        return out;
     }
+
     public GLTexture median(GLTexture in,Point transposing){
         GLTexture output = new GLTexture(in);
         return median(in,output,transposing);

@@ -243,54 +243,34 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = clamp(pRGB,0.0,1.0);
     pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
     pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
-    pRGB = tonemap(pRGB);
+
     float br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
     //ISO tint correction
     //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
 
-    //float tonebl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(-0.5)));
-    //float tonewl = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(0.5)));
-    //br = 1.0/(1.0+exp(-5.0*TONEMAP_CONTRAST*(br-0.5)));
-    //br-=tonebl;
-    //br/=(tonewl-tonebl);
-    //br = 0.8*(1.0-exp(-7.0*pow(br,1.26)))/(1.0-exp(-7.0));
-
-    /*if(tonemapGain-1.0 > 0.0){
-        tonemapGain=(tonemapGain-1.0)*1.5 + 1.0;
-    } else {
-        tonemapGain=(tonemapGain-1.0)*-0.5 + 1.0;
-    }*/
-
-    //br=mix(br,sqrt(br),tonemapGain-1.0);
-
     //if(br>EPS){
         float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
         //model*=model;
         //br=mix(br, pow(br,tonemapGain*br),model);
     //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
-    br*=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
+    br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
     //br*=4.0;
 
     br*=clamp(((tonemapGain)),1.00,50.0)*1.0;
+
+
 
     //br=mix(sqrt(br),br,0.7);
     //}
     //br=pow(br,tonemapGain);
 
     pRGB*=br;
-    //float brmodel = clamp(br-0.8,0.0,0.2)*5.0;
-    //brmodel*=brmodel;
-    //pRGB=mix(pRGB*1.67,pRGB,brmodel);
-    //pRGB*=tonemapGain;
-    //pRGB*=exposing;
+    pRGB = tonemap(pRGB);
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
-    //pRGB = mix(pRGB,tonemap(pRGB),clamp(abs(1.0-tonemapGain)/2.0,0.0,1.0));
-    //return brightnessContrast(pRGB,0.0,1.018);
     return pRGB;
-    //return gammaCorrectPixel2(brightnessContrast((clamp(intermediateToSRGB*pRGB,0.0,1.0)),0.0,1.018));
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
