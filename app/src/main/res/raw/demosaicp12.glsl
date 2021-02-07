@@ -48,15 +48,26 @@ void main() {
         /*
         Output = green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3];
         Output/=grad[0]+grad[1]+grad[2]+grad[3];*/
-        vec2 HV = initialGrad;
+        vec2 HV = initialGrad*1.15+demosw;
+        float weights = 1.15;
         for(int j =-2;j<=2;j++)
         for(int i =-2;i<=2;i++){
-            if(i == 0) continue;
-            HV += texelFetch(GradBuffer,ivec2(xy+ivec2(i,j)),0).rg;
+            if(i == 0 && j == 0) continue;
+            float cw = 1.0/((float(abs(i)+abs(j)))/(1.15));
+            vec2 div = texelFetch(GradBuffer,ivec2(xy+ivec2(i,j)),0).rg*cw;
+            //if((div.r+div.g) < (HV.r+HV.g)*0.2) break;
+            HV += div;
+            weights += cw;
+            //HV += texelFetch(GradBuffer,ivec2(xy+ivec2(i,j)),0).rg/((float(abs(i)+abs(j)))/(1.0));
+
+
             //H += ingrad.r;//*(1.0 - float(abs(i)+abs(j))/5.0);
             //V += ingrad.g;//*(1.0 - float(abs(i)+abs(j))/5.0);
         }
-        //if(abs(H-V) > (H+V)*0.1) {
+
+        //float badGR = (abs(HV.r-HV.g)*5.0)/((HV.r+HV.g));
+        HV/=weights;
+        //if((initialGrad.r+initialGrad.g) > (HV.r+HV.g)*0.4) {
             if (HV.g > HV.r){
                 Output = (green[1]*grad[1] + green[2]*grad[2])/(grad[1]+grad[2]);
                 //Output = (green[1] + green[2])/(2.0);

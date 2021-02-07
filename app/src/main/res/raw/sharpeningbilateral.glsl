@@ -21,7 +21,7 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     //xy+=ivec2(0,yOffset);
     vec2 insize = vec2(textureSize(InputBuffer, 0));
-    //Output = textureBicubic(InputBuffer, vec2(gl_FragCoord.xy)/vec2(insize)).rgb;
+    //Output = textureBicubicHardware(InputBuffer, (vec2(gl_FragCoord.xy)-vec2(0.5))/vec2(insize)).rgb;
     Output = texelFetch(InputBuffer, (xy), 0).rgb;
     /*Output = textureBicubic(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(-0.10,-0.10))/vec2(insize)).rgb;
     Output += textureBicubic(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(0.10,0.10))/vec2(insize)).rgb;
@@ -45,8 +45,8 @@ void main() {
     {
         for (int j=-kSize; j <= kSize; ++j)
         {
-            //cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)),0).rgb);
-            cc = textureBicubic(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(0.50*float(i),0.50*float(j))-vec2(0.5))/vec2(insize)).rgb;
+            cc = vec3(texelFetch(InputBuffer, (xy+ivec2(i,j)),0).rgb);
+            //cc = textureBicubicHardware(InputBuffer, (vec2(gl_FragCoord.xy)+vec2(0.50*float(i),0.50*float(j))-vec2(0.5))/vec2(insize)).rgb;
             factor = normpdf3(cc-Output, sigY)*bZ*kernel[kSize+j]*kernel[kSize+i];
             Z += factor;
             final_colour += factor*cc;

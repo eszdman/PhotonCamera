@@ -33,7 +33,8 @@ public class Equalization extends Node {
         int resize = 16;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
-        glProg.setDefine("BR","("+basePipeline.mSettings.shadows*0.6+")");
+        double shadowW = (basePipeline.mSettings.shadows);
+        glProg.setDefine("BR",(float)shadowW*0.4f);
         glProg.setDefine("SAMPLING",resize);
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
@@ -109,9 +110,9 @@ public class Equalization extends Node {
         for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
             float move = ((float)(i))/histParser.hist.length;
-            float accel = 0.5f+Math.max(move,0.2f)*2.0f/0.2f;
+            float accel = 0.5f+Math.max(move,0.2f)*1.8f/0.2f;
 
-            float softClipK = Math.min(move-0.8f,0.0f)/0.2f;
+            float softClipK = Math.min(move-0.70f,0.0f)/0.3f;
             float softClip = (accel/histParser.hist.length)*(1.0f-softClipK) + 0.1f*softClipK/histParser.hist.length;
 
             float diff = Math.min(Math.max(histParser.hist[i]-prev,0.0005f),softClip);

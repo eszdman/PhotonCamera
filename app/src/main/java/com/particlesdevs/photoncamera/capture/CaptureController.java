@@ -95,8 +95,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS;
@@ -1061,6 +1064,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewRequestBuilder.addTarget(surface);
             mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
             mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
+            //if(mPreviewAEMode == CONTROL_AE_MODE_OFF) mPreviewAFMode = CONTROL_AE_MODE_ON;
+            //if(mPreviewAFMode == CONTROL_AF_MODE_OFF) mPreviewAFMode = CONTROL_AF_MODE_AUTO;
             mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
             mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
 
@@ -1200,10 +1205,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
             //setCaptureAEMode(captureBuilder);
             if (mFlashed) captureBuilder.set(FLASH_MODE, FLASH_MODE_TORCH);
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             Log.d(TAG, "Focus:" + focus);
-            if (focus != 0.0)
-                captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
             int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
             if (stabilizationModes != null && stabilizationModes.length > 1) {
@@ -1229,15 +1231,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
             if (focus != 0.0)
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
-            //showToast("AF:"+mFocus);
 
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+
+            /*mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
             if (focus != 0.0)
                 mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
-            rebuildPreviewBuilder();
+            rebuildPreviewBuilder();*/
 
             IsoExpoSelector.useTripod = (PhotonCamera.getGyro().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
             for (int i = 0; i < frameCount; i++) {
@@ -1250,7 +1252,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     captures.add(captureBuilder.build());
                 }
             }
-            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(1,this).exposure);
+            double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1,this).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
 //            final int[] burstcount = {0, 0, frameCount};
