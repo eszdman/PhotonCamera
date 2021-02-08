@@ -77,6 +77,14 @@ float median9(float v[9]) {
     mnmx3(v[3], v[4], v[8]);
     return v[4];
 }
+vec4 median7(vec4 v[7]) {
+    vec4 temp;
+    // Starting with a subset of size 6, remove the min and max each time
+    mnmx5(v[0], v[1], v[2], v[3], v[4]);
+    mnmx4(v[2], v[3], v[4], v[5]);
+    mnmx3(v[3], v[4], v[6]);
+    return v[4];
+}
 float median5(float v[5]) {
     float temp;
     mnmx4(v[0], v[1], v[2], v[3]);

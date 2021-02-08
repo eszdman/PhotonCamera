@@ -8,13 +8,15 @@ uniform sampler2D ToneMap;
 #define TONEMAPED 0
 #define KERNEL 1
 #define ISOFACTOR (0.5)
+#define NOISEDISTR (0.8)
 #define SIZE (1.0,1.0)
 #define STR (1.0)
 #define SMOOTHING (1)
 #define MEDIAN 0
 #define sinc(x) (sin(x) / (x+0.0001))
 #import interpolation
-#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+//#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+#define luminocity(x) x.g
 #define distributegauss(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
 #define distributesinc(x,dev,sigma) (sin(M_PI*x/sigma)/(M_PI*x*sigma))
 #define distribute2(x,dev) (1.0-abs(x-dev)*STR)
@@ -26,7 +28,8 @@ uniform sampler2D ToneMap;
 #define distribute distributesinc
 #endif
 #import median
-float nlmeans(ivec2 coords) {
+#define USEGREEN 1
+float bilateral(ivec2 coords) {
     float processed = 0.0;
     float weights = 0.0;
     float noisefactor = clamp((textureBicubicHardware(NoiseMap, vec2(gl_FragCoord.xy)/vec2(SIZE)).r)*0.55*ISOFACTOR,0.0005,1.0);
@@ -67,9 +70,9 @@ float nlmeans(ivec2 coords) {
             float sigma = (0.01*0.5 + noisefactor*0.25);
             float w;
             #if TONEMAPED == 1
-            w = distribute(inp,(texelFetch(ToneMap,  patchCoord,0).r*2.0), sigma)*dist;
+            w = distribute(inp,(texelFetch(ToneMap,  patchCoord,0).r*2.0), NOISEDISTR)*dist;
             #else
-            w = distribute(inp, luminocity(texelFetch(InputBuffer, patchCoord,0).rgb), sigma)*dist;
+            w = distribute(inp, luminocity(texelFetch(InputBuffer, patchCoord,0).rgb), NOISEDISTR)*dist;
             #endif
             processed += w * luminocity(texelFetch(InputBuffer, patchCoord,0).rgb);
             weights += w;
@@ -86,9 +89,9 @@ float nlmeans(ivec2 coords) {
 out vec3 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    vec3 xyz = (texelFetch(InputBuffer, xy,0).rgb)+0.001;
-    float br = luminocity(xyz);
-    xyz/=br;
-    br = nlmeans(xy);
-    Output = clamp(xyz*br - 0.002,0.0,1.0);
+    vec3 rgbS = (texelFetch(InputBuffer, xy,0).rgb)+0.00001;
+    float br = luminocity(rgbS);
+    rgbS/=br;
+    br = bilateral(xy);
+    Output = clamp(rgbS*br - 0.00001,0.0,1.0);
 }

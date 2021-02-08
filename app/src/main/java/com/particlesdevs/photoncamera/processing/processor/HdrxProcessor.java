@@ -182,6 +182,7 @@ public class HdrxProcessor extends ProcessorBase {
                 }
             }
         }
+        FrameNumberSelector.frameCount = images.size();
         if (!debugAlignment) {
             Wrapper.init(width, height, images.size());
             for (int i = 0; i < images.size(); i++) {
@@ -225,8 +226,8 @@ public class HdrxProcessor extends ProcessorBase {
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
 
-            output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 200*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
-                    , parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
+            output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 150*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
+                    ,parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
             output = rawPipeline.Run();
         }

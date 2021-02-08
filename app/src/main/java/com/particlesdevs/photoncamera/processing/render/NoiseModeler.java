@@ -50,9 +50,9 @@ public class NoiseModeler {
         Log.d(TAG, "ComputedNoiseModel2->" + computeModel[2]);
     }
     public void computeStackingNoiseModel(){
-        computeModel[0] = new Pair<>(baseModel[0].first/getStackingNoiseRemoval(),baseModel[0].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
-        computeModel[1] = new Pair<>(baseModel[1].first/getStackingNoiseRemoval(),baseModel[1].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
-        computeModel[2] = new Pair<>(baseModel[2].first/getStackingNoiseRemoval(),baseModel[2].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
+        computeModel[0] = new Pair<>(baseModel[0].first/getStackingNoiseRemoval(),baseModel[0].second/(Math.pow(getStackingNoiseRemoval(),1.0)));
+        computeModel[1] = new Pair<>(baseModel[1].first/getStackingNoiseRemoval(),baseModel[1].second/(Math.pow(getStackingNoiseRemoval(),1.0)));
+        computeModel[2] = new Pair<>(baseModel[2].first/getStackingNoiseRemoval(),baseModel[2].second/(Math.pow(getStackingNoiseRemoval(),1.0)));
     }
 
     private static double getStackingNoiseRemoval()
@@ -60,7 +60,7 @@ public class NoiseModeler {
         //int Frames = FrameNumberSelector.frameCount;
 
         //return Math.sqrt(Frames-2);
-        return FrameNumberSelector.frameCount;
+        return Math.pow(FrameNumberSelector.frameCount,0.9);
     }
 
     private double computeNoiseModelS(double Sensitivity,Pair<Double,Double> sGenerator) {
