@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
+import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -83,6 +84,8 @@ public class UnlimitedProcessor extends ProcessorBase {
         if (unlimitedEnd) {
             unlimitedEnd = false;
             lock = true;
+            FrameNumberSelector.frameCount = unlimitedCounter;
+            PhotonCamera.getParameters().noiseModeler.computeStackingNoiseModel();
             unlimitedCounter = 0;
             try {
                 processUnlimited(image);

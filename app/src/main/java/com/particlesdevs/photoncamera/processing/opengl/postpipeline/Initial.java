@@ -52,6 +52,13 @@ public class Initial extends Node {
             glProg.setDefine("TINT",tcor);
             glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
         }
+        float[] BL = ((PostPipeline)basePipeline).analyzedBL;
+        float[] WP = basePipeline.mParameters.whitePoint;
+        //float minP = Math.min(Math.min(WP[0],WP[1]),WP[2]);
+        //BL[0]+=basePipeline.mParameters.noiseModeler.computeModel[0].second*(float)DynamicBL.precisionFactor/WP[0];
+        //BL[1]+=basePipeline.mParameters.noiseModeler.computeModel[1].second*(float)DynamicBL.precisionFactor/WP[1];
+        //BL[2]+=basePipeline.mParameters.noiseModeler.computeModel[2].second*(float)DynamicBL.precisionFactor/WP[2];
+
         glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
         glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         float[][] cube = null;
@@ -95,7 +102,7 @@ public class Initial extends Node {
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
         glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,
                 basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-4);
-        glProg.setVar("neutralPoint",basePipeline.mParameters.whitePoint);
+        glProg.setVar("neutralPoint",WP);
         Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
         float sat =(float) basePipeline.mSettings.saturation;
         if(basePipeline.mSettings.cfaPattern == 4) sat = 0.f;

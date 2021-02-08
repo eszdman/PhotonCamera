@@ -7,7 +7,7 @@ import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 
 public class NoiseModeler {
     private static String TAG = "NoiseModeler";
-    Pair<Double,Double>[] baseModel;
+    public Pair<Double,Double>[] baseModel;
     public Pair<Double,Double>[] computeModel;
     public int AnalogueISO;
     public int SensivityISO;
@@ -45,18 +45,22 @@ public class NoiseModeler {
         Log.d(TAG, "NoiseModel1->" + baseModel[1]);
         Log.d(TAG, "NoiseModel2->" + baseModel[2]);
         computeStackingNoiseModel();
+        Log.d(TAG, "ComputedNoiseModel0->" + computeModel[0]);
+        Log.d(TAG, "ComputedNoiseModel1->" + computeModel[1]);
+        Log.d(TAG, "ComputedNoiseModel2->" + computeModel[2]);
     }
     public void computeStackingNoiseModel(){
-        computeModel[0] = new Pair<>(baseModel[0].first/getStackingNoiseRemoval(),baseModel[0].second/(getStackingNoiseRemoval()*getStackingNoiseRemoval()));
-        computeModel[1] = new Pair<>(baseModel[1].first/getStackingNoiseRemoval(),baseModel[1].second/(getStackingNoiseRemoval()*getStackingNoiseRemoval()));
-        computeModel[2] = new Pair<>(baseModel[2].first/getStackingNoiseRemoval(),baseModel[2].second/(getStackingNoiseRemoval()*getStackingNoiseRemoval()));
+        computeModel[0] = new Pair<>(baseModel[0].first/getStackingNoiseRemoval(),baseModel[0].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
+        computeModel[1] = new Pair<>(baseModel[1].first/getStackingNoiseRemoval(),baseModel[1].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
+        computeModel[2] = new Pair<>(baseModel[2].first/getStackingNoiseRemoval(),baseModel[2].second/(Math.pow(getStackingNoiseRemoval(),0.7)));
     }
 
     private static double getStackingNoiseRemoval()
     {
-        int Frames = FrameNumberSelector.frameCount;
+        //int Frames = FrameNumberSelector.frameCount;
 
-        return Math.sqrt(Frames-2);
+        //return Math.sqrt(Frames-2);
+        return FrameNumberSelector.frameCount;
     }
 
     private double computeNoiseModelS(double Sensitivity,Pair<Double,Double> sGenerator) {

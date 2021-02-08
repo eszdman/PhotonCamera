@@ -12,6 +12,9 @@ uniform int patSize;
 uniform uint whitelevel;
 uniform float Regeneration;
 uniform int MinimalInd;
+#define BLR (0.0)
+#define BLG (0.0)
+#define BLB (0.0)
 #import interpolation
 #import median
 out float Output;
@@ -35,16 +38,16 @@ void main() {
         if(g[0] > sum*1.9) g[0] = median5(g);
         Output = float(g[0])/float(whitelevel);*/
         Output = float(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).x)/float(whitelevel);
-        Output = gains.g*(Output-level.g)/(1.0-level.g);
+        Output = gains.g*(Output-level.g-BLG)/(1.0-level.g);
     } else {
         if(fact.x == 0){
             balance = whitePoint.r;
             Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
-            Output = gains.r*(Output-level.r)/(1.0-level.r);
+            Output = gains.r*(Output-level.r-BLR)/(1.0-level.r);
         } else {
             balance = whitePoint.b;
             Output = float(texelFetch(InputBuffer, (xy), 0).x)/float(whitelevel);
-            Output = gains.b*(Output-level.b)/(1.0-level.b);
+            Output = gains.b*(Output-level.b-BLB)/(1.0-level.b);
         }
     }
     Output = clamp(Output,0.0,balance*Regeneration)/Regeneration;
