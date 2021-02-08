@@ -39,7 +39,7 @@ public class Initial extends Node {
     @Override
     public void Run() {
         lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap));
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();
@@ -75,8 +75,15 @@ public class Initial extends Node {
             cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
             Log.d(Name,"CCT:"+ Arrays.toString(cct));
         }
+        float[] gamma = new float[1024];
+        for(int i =0; i<gamma.length;i++){
+            double pos =((float)i)/gamma.length;
+            gamma[i] = (float)Math.pow(pos, 1./1.9);
+        }
+        GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
+        glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);

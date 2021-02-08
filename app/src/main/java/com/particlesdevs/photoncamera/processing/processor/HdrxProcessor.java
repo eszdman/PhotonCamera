@@ -225,7 +225,7 @@ public class HdrxProcessor extends ProcessorBase {
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
 
-            output = Wrapper.processFrame(25*(0.6f+denoiseLevel)/2.f, 300*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
+            output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 200*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
                     , parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
             output = rawPipeline.Run();

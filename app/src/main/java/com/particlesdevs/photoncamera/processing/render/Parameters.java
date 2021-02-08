@@ -11,6 +11,7 @@ import android.hardware.camera2.params.LensShadingMap;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
+import android.util.Pair;
 import android.util.Rational;
 
 import androidx.annotation.NonNull;
@@ -24,8 +25,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
+import scala.concurrent.impl.FutureConvertersImpl;
+
 public class Parameters {
     private static final String TAG = "Parameters";
+    private int analogIso;
     public byte cfaPattern;
     public Point rawSize;
     public boolean usedDynamic = false;
@@ -44,10 +48,16 @@ public class Parameters {
     public Point[] hotPixels;
     public float focalLength;
     public int cameraRotation;
+    public NoiseModeler noiseModeler;
     public ColorCorrectionTransform CCT;
+
 
     public void FillConstParameters(CameraCharacteristics characteristics, Point size) {
         rawSize = size;
+        Integer analogue = characteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
+        if(analogue != null){
+            analogIso = analogue;
+        } else analogIso = 100;
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
         tonemapStrength = (float) PhotonCamera.getSettings().compressor;
         Object ptr = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
@@ -79,6 +89,7 @@ public class Parameters {
     }
 
     public void FillDynamicParameters(CaptureResult result) {
+        noiseModeler = new NoiseModeler( result.get(CaptureResult.SENSOR_NOISE_PROFILE),analogIso,result.get(CaptureResult.SENSOR_SENSITIVITY));
         int[] blarr = new int[4];
         BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (result != null) {

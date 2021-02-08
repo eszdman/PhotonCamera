@@ -3,8 +3,10 @@ precision highp float;
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D TonemapTex;
+uniform sampler2D GammaCurve;
 uniform sampler2D LookupTable;
 uniform sampler2D FusionMap;
+
 uniform vec3 neutralPoint;
 uniform float gain;
 uniform float saturation;
@@ -45,7 +47,8 @@ out vec3 Output;
 #import coords
 #import interpolation
 float gammaEncode2(float x) {
-    return 1.055 * sqrt(x+EPS) - 0.055;
+    //return 1.055 * sqrt(x+EPS) - 0.055;
+    return texture(GammaCurve,vec2(x - 1.0/1024.0,0.5)).r;
 }
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
@@ -135,9 +138,9 @@ vec3 tonemap(vec3 rgb) {
     minmax * toneMapCoeffs.z +
     toneMapCoeffs.w;
 
-    //minmax.x*=texelFetch(TonemapTex,ivec2(int(minmax.x*255.0),0),0).x;
-    //minmax.y*=texelFetch(TonemapTex,ivec2(int(minmax.y*255.0),0),0).x;
-    minmax = mix(minmax, minmaxsin, 0.4f);
+    //minmax.x*=texture(TonemapTex,vec2(minmax.x,0.5)).x;
+    //minmax.y*=texture(TonemapTex,vec2(minmax.y,0.5)).x;
+    minmax = mix(minmax, minmaxsin, 0.8f);
 
     // Rescale middle value
     float newMid;
@@ -270,6 +273,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = tonemap(pRGB);
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
+
     return pRGB;
 }
 void main() {
