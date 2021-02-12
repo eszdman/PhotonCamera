@@ -8,8 +8,10 @@ import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.manual.model.ManualModel;
+import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.model.KnobModel;
+import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
 import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.Rotation;
 
@@ -138,7 +140,7 @@ public class CustomBinding {
      * Toggles the visibility with animation for {@link ViewGroup} containing manual controls, here {@link R.id#manual_mode}
      *
      * @param manualModeContainer parent ViewGroup
-     * @param visible    target visibility
+     * @param visible             target visibility
      */
     @BindingAdapter("manualPanelVisibility")
     public static void togglePanelVisibility(ViewGroup manualModeContainer, Boolean visible) {
@@ -161,8 +163,8 @@ public class CustomBinding {
      * Selects/unselects the children of the target {@link ViewGroup} here {@link R.id#buttons_container}.
      * Only the child with given view id will be selected and rest of children will get unselected.
      *
-     * @param viewGroup      the target ViewGroup
-     * @param viewID id of the {@link CheckedTextView} to be checked
+     * @param viewGroup the target ViewGroup
+     * @param viewID    id of the {@link CheckedTextView} to be checked
      */
     @BindingAdapter("selectViewIdInViewGroup")
     public static void selectViewIdInViewGroup(ViewGroup viewGroup, int viewID) {
@@ -183,10 +185,24 @@ public class CustomBinding {
                 });
             } else {
                 viewGroup.post(() -> viewGroup.animate().setDuration(200).alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
-                        .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.GONE))
+                        .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.INVISIBLE))
                         .start());
             }
         }
 
+    }
+
+    @BindingAdapter("setAuxButtonModel")
+    public static void setAuxButtonModel(AuxButtonsLayout layout, AuxButtonsModel auxButtonsModel) {
+        if (auxButtonsModel != null) {
+            layout.setAuxButtonsModel(auxButtonsModel);
+        }
+    }
+
+    @BindingAdapter("setActiveId")
+    public static void setActiveCameraId(AuxButtonsLayout layout, String cameraId) {
+        if (cameraId != null) {
+            layout.setActiveId(cameraId);
+        }
     }
 }

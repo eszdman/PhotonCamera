@@ -13,10 +13,10 @@ public enum CameraMode {
     NIGHT(R.string.mode_night),
     VIDEO(R.string.mode_video);
 
-    String mName;
+    int stringId;
 
     CameraMode(@StringRes int stringId) {
-        mName = PhotonCamera.getStringStatic(stringId);
+        this.stringId = stringId;
     }
 
     public static CameraMode valueOf(int modeOrdinal) {
@@ -28,8 +28,8 @@ public enum CameraMode {
         return PHOTO;
     }
 
-    public static String[] names() {
-        return Stream.of(values()).map(mode -> mode.mName).toArray(String[]::new);
+    public static Integer[] nameIds() {
+        return Stream.of(values()).map(mode -> mode.stringId).toArray(Integer[]::new);
     }
 
 }

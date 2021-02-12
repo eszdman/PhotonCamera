@@ -46,9 +46,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -59,7 +57,6 @@ import androidx.annotation.StringRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.core.util.Pair;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
@@ -89,11 +86,14 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.AuxButtonsViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
@@ -106,11 +106,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -146,16 +143,14 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         return t;
     });
     public SurfaceViewOverViewfinder surfaceView;
-    public String[] mAllCameraIds;
-    public Set<String> mFrontCameraIDs;
-    public Set<String> mBackCameraIDs;
-    public Map<String, Pair<Float, Float>> mFocalLengthAperturePairList;
+    public Map<String, CameraLensData> mCameraLensDataMap;
     private Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
     private CameraUIController mCameraUIEventsListener;
     private CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
+    private AuxButtonsViewModel auxButtonsViewModel;
     private CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
@@ -224,6 +219,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeViewModel = new ViewModelProvider(this).get(ManualModeViewModel.class);
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
+        auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
     }
@@ -237,6 +233,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         // associating timer model with layouts
         cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
         cameraFragmentBinding.layoutViewfinder.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
+        // associating AuxButtonsModel with layout
+        cameraFragmentBinding.setAuxmodel(auxButtonsViewModel.getAuxButtonsModel());
     }
 
     @Override
@@ -306,6 +304,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         cameraFragmentViewModel.updateGalleryThumb();
         cameraFragmentViewModel.onResume();
 
+        auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
+
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();
@@ -331,6 +331,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
         mCameraUIEventsListener.onPause();
+        auxButtonsViewModel.setAuxButtonListener(null);
         burstPlayer.release();
         super.onPause();
     }
@@ -513,20 +514,15 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
     public void initCameraIDLists(CameraManager cameraManager) {
         CameraManager2 manager2 = new CameraManager2(cameraManager, settingsManager);
-        this.mAllCameraIds = manager2.getCameraIdList();
-        this.mBackCameraIDs = manager2.getBackIDsSet();
-        this.mFrontCameraIDs = manager2.getFrontIDsSet();
-        this.mFocalLengthAperturePairList = manager2.mFocalLengthAperturePairList;
+        this.mCameraLensDataMap = manager2.getCameraLensDataMap();
     }
 
     public String cycler(String savedCameraID) {
-        if (mBackCameraIDs.contains(savedCameraID)) {
+        if (mCameraLensDataMap.get(savedCameraID).getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
             sActiveBackCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mFrontCameraIDs, mFocalLengthAperturePairList, sActiveFrontCamId);
             return sActiveFrontCamId;
         } else {
             sActiveFrontCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, sActiveBackCamId);
             return sActiveBackCamId;
         }
     }
@@ -734,6 +730,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
+            auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
         }
 
         @Override
@@ -744,7 +741,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         @Override
         public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
-            mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
+            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
             manualModeViewModel.init(activity);
@@ -788,13 +785,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         private final ProgressBar mCaptureProgressBar;
         private final ImageButton mShutterButton;
         private final ProgressBar mProcessingProgressBar;
-        private final LinearLayout mAuxGroupContainer;
         private final HorizontalPicker mModePicker;
         private LayoutMainTopbarBinding topbar;
         private LayoutBottombuttonsBinding bottombuttons;
         private CameraUIEventsListener uiEventsListener;
-        private HashMap<Integer, String> auxButtonsMap;
-        private float baseF = 0.f;
 
         private CameraUIViewImpl() {
             this.topbar = cameraFragmentBinding.layoutTopbar;
@@ -803,7 +797,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             this.mProcessingProgressBar = bottombuttons.processingProgressBar;
             this.mShutterButton = bottombuttons.shutterButton;
             this.mModePicker = cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
-            this.mAuxGroupContainer = cameraFragmentBinding.auxButtonsContainer;
             this.initListeners();
             this.initModeSwitcher();
         }
@@ -814,7 +807,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         }
 
         private void initModeSwitcher() {
-            this.mModePicker.setValues(CameraMode.names());
+            this.mModePicker.setValues(Arrays.stream(CameraMode.nameIds()).map(activity::getString).toArray(String[]::new));
             this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
             this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
             this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
@@ -880,74 +873,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         }
 
         @Override
-        public void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
-            String savedCameraID = PreferenceKeys.getCameraID();
-            for (String id : backCameraIdsList) {
-                if (this.baseF == 0.f) {
-                    this.baseF = Focals.get(id).first;
-                }
-            }
-            if (this.mAuxGroupContainer.getChildCount() == 0) {
-                if (backCameraIdsList.contains(savedCameraID)) {
-                    this.setAuxButtons(backCameraIdsList, Focals, savedCameraID);
-                } else if (frontCameraIdsList.contains(savedCameraID)) {
-                    this.setAuxButtons(frontCameraIdsList, Focals, savedCameraID);
-                }
-            }
-        }
-
-        @SuppressLint("DefaultLocale")
-        @Override
-        public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
-            this.mAuxGroupContainer.removeAllViews();
-            if (idsList.size() > 1) {
-                Locale.setDefault(Locale.US);
-                this.auxButtonsMap = new HashMap<>();
-                for (String id : idsList) {
-                    this.addToAuxGroupButtons(id, String.format("%.1fx",
-                            ((Focals.get(id).first / this.baseF) - 0.049)).replace(".0", ""));
-                }
-                View.OnClickListener auxButtonListener = this::onAuxButtonClick;
-                for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
-                    Button b = (Button) this.mAuxGroupContainer.getChildAt(i);
-                    b.setOnClickListener(auxButtonListener);
-                    if (active.equals(auxButtonsMap.get(b.getId()))) {
-                        b.setSelected(true);
-                    }
-                }
-                this.mAuxGroupContainer.setVisibility(View.VISIBLE);
-            } else {
-                this.mAuxGroupContainer.setVisibility(View.GONE);
-            }
-        }
-
-        private void onAuxButtonClick(View view) {
-            for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
-                this.mAuxGroupContainer.getChildAt(i).setSelected(false);
-            }
-            view.setSelected(true);
-            this.uiEventsListener.onAuxButtonClicked(this.auxButtonsMap.get(view.getId()));
-        }
-
-        private void addToAuxGroupButtons(String cameraId, String name) {
-            Button b = new Button(this.mAuxGroupContainer.getContext());
-            int m = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_internal_margin);
-            int s = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_size);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
-            lp.setMargins(m, m, m, m);
-            b.setLayoutParams(lp);
-            b.setText(name);
-            b.setTextAppearance(R.style.AuxButtonText);
-            b.setBackgroundResource(R.drawable.aux_button_background);
-            b.setStateListAnimator(null);
-            b.setTransformationMethod(null);
-            int buttonId = View.generateViewId();
-            b.setId(buttonId);
-            this.auxButtonsMap.put(buttonId, cameraId);
-            this.mAuxGroupContainer.addView(b);
-        }
-
-        @Override
         public void setProcessingProgressBarIndeterminate(boolean indeterminate) {
             this.mProcessingProgressBar.post(() -> this.mProcessingProgressBar.setIndeterminate(indeterminate));
         }
@@ -1000,7 +925,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
      * <p>
      * Responsible for converting user inputs into actions
      */
-    private final class CameraUIController implements CameraUIView.CameraUIEventsListener, Observer<TopBarSettingsData<?, ?>> {
+    private final class CameraUIController implements CameraUIView.CameraUIEventsListener,
+            Observer<TopBarSettingsData<?, ?>>, AuxButtonsLayout.AuxButtonListener {
         private static final String TAG = "CameraUIController";
         private CountDownTimer countdownTimer;
         private View shutterButton;

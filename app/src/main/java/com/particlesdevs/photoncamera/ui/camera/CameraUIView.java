@@ -30,22 +30,6 @@ public interface CameraUIView {
     void refresh(boolean processing);
 
     /**
-     * Initialise Multi camera switch buttons here
-     *
-     * @param backCameraIdsList  set of cameras on the back
-     * @param frontCameraIdsList set of cameras on the front
-     */
-    void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList);
-
-    /**
-     * Set Multi camera Buttons in an event of configuration change
-     *
-     * @param idsList set of camera ids
-     * @param active  currently active id
-     */
-    void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active);
-
-    /**
      * Processing ProgressBar methods
      * Control the Progress bar that displays image processing sequence
      */
@@ -79,8 +63,6 @@ public interface CameraUIView {
      */
     interface CameraUIEventsListener {
         void onClick(View v);
-
-        void onAuxButtonClicked(String id);
 
         void onCameraModeChanged(CameraMode cameraMode);
 

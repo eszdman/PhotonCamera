@@ -54,7 +54,7 @@
     <string name="all_camera_ids" translatable="false">all_camera_ids</string>
     <string name="front_camera_ids" translatable="false">front_camera_ids</string>
     <string name="back_camera_ids" translatable="false">back_camera_ids</string>
-    <string name="all_camera_focals" translatable="false">all_camera_focals</string>
+    <string name="all_camera_lens" translatable="false">all_camera_lens</string>
     <string name="all_camera_count" translatable="false">all_camera_count</string>
 
     <string name="_cameras" translatable="false">_cameras</string>

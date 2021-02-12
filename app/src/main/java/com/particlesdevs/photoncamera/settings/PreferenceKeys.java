@@ -392,7 +392,7 @@ public class PreferenceKeys {
         ALL_CAMERA_IDS_KEY(R.string.all_camera_ids),
         FRONT_IDS_KEY(R.string.front_camera_ids),
         BACK_IDS_KEY(R.string.back_camera_ids),
-        FOCAL_IDS_KEY(R.string.all_camera_focals),
+        ALL_CAMERA_LENS_KEY(R.string.all_camera_lens),
         CAMERA_COUNT_KEY(R.string.all_camera_count),
 
         /* SupportedDevice keys */
