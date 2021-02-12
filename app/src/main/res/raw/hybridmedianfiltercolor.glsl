@@ -10,7 +10,8 @@ uniform int yOffset;
 #define MSIZE 3
 #define kSize ((MSIZE-1)/2)
 //#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define luminocity(x) x.g
+//#define luminocity(x) x.g
+#define luminocity(x) dot(x.rgb, vec3(0.2, 0.8, 0.1))
 #define normalized(x) t=x;t/=luminocity(t)
 #import median
 float normpdf(in float x, in float sigma)

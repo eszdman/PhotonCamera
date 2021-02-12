@@ -33,18 +33,15 @@ public class Histogram {
                 logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
             }
         }.execute(Range.create(f.length/4));
-        /*for (int i = 0; i < f.length; i += 4) {
-            for (int j = 0; j < 3; j++) {
-                sigma[j] += f[i + j];
+
+        new Kernel() {
+            @Override
+            public void run() {
+                int w = getGlobalId(0);
+                if (w - 1 >= 0 && w + 1 < histv.length)
+                 histv[w] = (histv[w] + histv[w - 1] + histv[w + 1]) / 3;
             }
-
-            int bin = (int) (f[i + 3] * HIST_BINS);
-            if (bin < 0) bin = 0;
-            if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-            histv[bin]++;
-
-            logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
-        }*/
+        }.execute(Range.create(histv.length));
 
         logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / f.length);
         for (int j = 0; j < 3; j++) {

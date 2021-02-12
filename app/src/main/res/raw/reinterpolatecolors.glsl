@@ -4,7 +4,8 @@ precision highp sampler2D;
 uniform sampler2D InputBuffer;
 
 //#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define luminocity(x) x.g
+//#define luminocity(x) x.g
+#define luminocity(x) dot(x.rgb, vec3(0.2, 0.8, 0.1))
 //////////////////////////////////////////////////////////////////////////////////
 out vec3 Output;
 void main() {

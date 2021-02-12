@@ -16,7 +16,8 @@ uniform sampler2D ToneMap;
 #define sinc(x) (sin(x) / (x+0.0001))
 #import interpolation
 //#define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define luminocity(x) x.g
+#define luminocity(x) dot(x.rgb, vec3(0.2, 0.8, 0.1))
+//#define luminocity(x) (x.g+x.r*0.1+x.b*0.1)
 #define distributegauss(x,dev,sigma) ((exp(-(x-dev) * (x-dev) / (2.0 * sigma * sigma)) / (sqrt(2.0 * M_PI) * sigma)))
 #define distributesinc(x,dev,sigma) (sin(M_PI*x/sigma)/(M_PI*x*sigma))
 #define distribute2(x,dev) (1.0-abs(x-dev)*STR)

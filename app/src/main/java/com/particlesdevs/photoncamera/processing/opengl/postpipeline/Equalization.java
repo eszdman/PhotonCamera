@@ -110,7 +110,7 @@ public class Equalization extends Node {
         for(int i = 0; i<histParser.hist.length;i++){
             float prevh = histParser.hist[i];
             float move = ((float)(i))/histParser.hist.length;
-            float accel = 0.5f+Math.max(move,0.2f)*1.8f/0.2f;
+            float accel = 0.2f+Math.max(move,0.2f)*1.8f/0.2f;
 
             float softClipK = Math.min(move-0.70f,0.0f)/0.3f;
             float softClip = (accel/histParser.hist.length)*(1.0f-softClipK) + 0.1f*softClipK/histParser.hist.length;
