@@ -110,13 +110,11 @@ public final class CameraManager2 {
             CameraLensData cameraLensData = entry.getValue();
             if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_FRONT) {
                 if (mainFront == null) {
-                    cameraLensData.setZoomFactor(1);
                     mainFront = cameraLensData;
                 }
                 cameraLensData.setZoomFactor(cameraLensData.getCamera35mmFocalLength() / mainFront.getCamera35mmFocalLength());
             } else if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
                 if (mainBack == null) {
-                    cameraLensData.setZoomFactor(1);
                     mainBack = cameraLensData;
                 }
                 cameraLensData.setZoomFactor(cameraLensData.getCamera35mmFocalLength() / mainBack.getCamera35mmFocalLength());
@@ -153,6 +151,7 @@ public final class CameraManager2 {
      * @return the map of CameraLensData
      */
     public Map<String, CameraLensData> getCameraLensDataMap() {
+        Log.d(TAG,"LensData : \n" + mCameraLensDataMap);
         return mCameraLensDataMap;
     }
 

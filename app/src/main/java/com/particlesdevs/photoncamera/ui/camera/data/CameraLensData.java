@@ -20,6 +20,8 @@
 
 package com.particlesdevs.photoncamera.ui.camera.data;
 
+import androidx.annotation.NonNull;
+
 import java.util.Objects;
 
 /**
@@ -95,4 +97,16 @@ public class CameraLensData {
         return Objects.hash(cameraFocalLength, cameraAperture);
     }
 
+    @Override
+    @NonNull
+    public String toString() {
+        return "CameraLensData{" +
+                "cameraId='" + cameraId + '\'' +
+                ", facing=" + facing +
+                ", cameraFocalLength=" + cameraFocalLength +
+                ", cameraAperture=" + cameraAperture +
+                ", camera35mmFocalLength=" + camera35mmFocalLength +
+                ", zoomFactor=" + zoomFactor +
+                "}\n";
+    }
 }
