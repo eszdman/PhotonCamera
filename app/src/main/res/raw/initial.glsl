@@ -258,6 +258,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
         //model*=model;
         //br=mix(br, pow(br,tonemapGain*br),model);
     //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
+
     br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
     //br*=4.0;
 

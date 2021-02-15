@@ -17,6 +17,7 @@ import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
@@ -24,6 +25,7 @@ public class PostPipeline extends GLBasePipeline {
     public ByteBuffer highFrame;
     public GLTexture FusionMap;
     public GLTexture GainMap;
+    public ArrayList<Bitmap> debugData = new ArrayList<>();
     public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;

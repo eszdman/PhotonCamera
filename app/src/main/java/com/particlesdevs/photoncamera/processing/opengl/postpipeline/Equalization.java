@@ -2,6 +2,11 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
@@ -10,6 +15,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
+import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -27,6 +33,12 @@ public class Equalization extends Node {
         super(0,"Equalization");
     }
     private static final float MIN_GAMMA = 0.55f;
+    private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
+    private void GenerateCurveBitm(float[] curve){
+        Bitmap CurveEQ = Bitmap.createBitmap(512,512, Bitmap.Config.ARGB_8888);
+        ((PostPipeline)basePipeline).debugData.add(CurveEQ);
+        Utilities.drawArray(curve,CurveEQ);
+    }
     @Override
     public void Compile() {}
     private Histogram Analyze(){
@@ -125,13 +137,16 @@ public class Equalization extends Node {
         for(int i =0; i<histParser.hist.length;i++){
             histParser.hist[i]/=normalization;
         }
-        Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
+        //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
+
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         float[] equalizingCurve = new float[histParser.hist.length];
         for(int i =0; i<histParser.hist.length;i++){
             equalizingCurve[i] = (float)(Math.pow(((double)i)/histParser.hist.length,eq));
         }
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(equalizingCurve);
         GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));

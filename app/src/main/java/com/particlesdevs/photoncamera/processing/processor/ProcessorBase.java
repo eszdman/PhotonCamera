@@ -17,6 +17,9 @@ package com.particlesdevs.photoncamera.processing.processor;
  *         along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 
@@ -39,7 +42,31 @@ public abstract class ProcessorBase {
     protected ProcessingCallback callback;
     protected ParseExif.ExifData exifData;
     protected int cameraRotation;
-
+    public Bitmap overlay(Bitmap bmp1, Bitmap bmp2, int cnt) {
+        if(bmp2 == null) return bmp1;
+        Bitmap bmOverlay = Bitmap.createBitmap(bmp1.getWidth(), bmp1.getHeight(), bmp1.getConfig());
+        Canvas canvas = new Canvas(bmOverlay);
+        canvas.drawBitmap(bmp1, new Matrix(), null);
+        Matrix mat = new Matrix();
+        mat.setTranslate(bmp2.getWidth()*cnt,0);
+        canvas.drawBitmap(bmp2, mat, null);
+        return bmOverlay;
+    }
+    public Bitmap overlay(Bitmap bmp1, Bitmap[] bmp2) {
+        if(bmp2 == null || bmp2.length == 0) return bmp1;
+        int prevS = 0;
+        Bitmap bmOverlay = Bitmap.createBitmap(bmp1.getWidth(), bmp1.getHeight(), bmp1.getConfig());
+        Canvas canvas = new Canvas(bmOverlay);
+        canvas.drawBitmap(bmp1, new Matrix(), null);
+        for(Bitmap inb : bmp2) {
+            if(inb == null) continue;
+            Matrix mat = new Matrix();
+            mat.setTranslate(prevS, 0);
+            canvas.drawBitmap(inb, mat, null);
+            prevS+=inb.getWidth();
+        }
+        return bmOverlay;
+    }
     public ProcessorBase(ProcessingEventsListener processingEventsListener) {
         this.processingEventsListener = processingEventsListener;
     }
