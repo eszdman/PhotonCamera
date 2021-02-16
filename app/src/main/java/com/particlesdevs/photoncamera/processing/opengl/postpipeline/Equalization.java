@@ -72,7 +72,7 @@ public class Equalization extends Node {
         for(int i =-8;i<=8;i++){
             int cind = ind+i;
             float w = pdf(i,5.5f);
-            if(cind < 0) cind = -cind;
+            if(cind < 0) cind = 0;
             sum+=w*in[cind];
             pdf+=w;
         }
@@ -152,11 +152,8 @@ public class Equalization extends Node {
         for(int i =0; i<histParser.hist.length;i++){
             histParser.hist[i]/=normalization;
         }
-        for(int i =0; i<histParser.hist.length-8;i++){
-            histParser.hist[i] = gauss(histParser.hist,i);
-        }
         for(int j =0; j<2;j++)
-        for(int i =8; i<histParser.hist.length-8;i++){
+        for(int i =0; i<histParser.hist.length-8;i++){
             histParser.hist[i] = gauss(histParser.hist,i);
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
