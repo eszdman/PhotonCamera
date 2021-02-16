@@ -27,10 +27,12 @@ void main() {
     //Equalization factor
     float factor = 1.0;
     factor*=1.0-clamp(br-0.6,0.0,0.4)/0.4;
+    //factor*=1.0-clamp(br-0.4,0.0,0.4)/0.3;
     factor = clamp(factor,0.0,1.0);
 
 
     if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    //br = mix(HistEq,br*pow(HistEq/br,HistFactor),br);
     //br=HistEq;
     //if(br > EPS)
     //br = mix(br,HistEq,factor);

@@ -63,6 +63,21 @@ public class Equalization extends Node {
         r1.close();
         return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
     }
+    private float pdf(float x,float sigma){
+        return (float) (0.39894*Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
+    }
+    private float gauss(float[] in,int ind){
+        float sum = 0.f;
+        float pdf = 0.f;
+        for(int i =-8;i<=8;i++){
+            int cind = ind+i;
+            float w = pdf(i,5.5f);
+            if(cind < 0) cind = -cind;
+            sum+=w*in[cind];
+            pdf+=w;
+        }
+        return sum/pdf;
+    }
     private float EqualizePower = 0.9f;
     @Override
     public void Run() {
@@ -136,6 +151,13 @@ public class Equalization extends Node {
         //if(normalization < 1.f) normalization = 1.f;
         for(int i =0; i<histParser.hist.length;i++){
             histParser.hist[i]/=normalization;
+        }
+        for(int i =0; i<histParser.hist.length-8;i++){
+            histParser.hist[i] = gauss(histParser.hist,i);
+        }
+        for(int j =0; j<2;j++)
+        for(int i =8; i<histParser.hist.length-8;i++){
+            histParser.hist[i] = gauss(histParser.hist,i);
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
         //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
