@@ -133,14 +133,14 @@ vec3 tonemap(vec3 rgb) {
 
     // Apply tonemapping curve to min, max RGB channel values
     vec2 minmaxsin = tonemapSin(minmax);
-    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    /*minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
     pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
     minmax * toneMapCoeffs.z +
-    toneMapCoeffs.w;
+    toneMapCoeffs.w;*/
 
     //minmax.x*=texture(TonemapTex,vec2(minmax.x,0.5)).x;
     //minmax.y*=texture(TonemapTex,vec2(minmax.y,0.5)).x;
-    minmax = mix(minmax, minmaxsin, 0.8f);
+    minmax = mix(minmax, minmaxsin, 0.5f);
 
     // Rescale middle value
     float newMid;
@@ -272,6 +272,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
 
     pRGB*=br;
     pRGB = tonemap(pRGB);
+
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
 

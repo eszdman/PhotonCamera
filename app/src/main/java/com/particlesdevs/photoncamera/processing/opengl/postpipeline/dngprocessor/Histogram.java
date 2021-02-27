@@ -1,5 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor;
 
+import android.util.Log;
+
 import com.aparapi.Kernel;
 import com.aparapi.Range;
 
@@ -10,10 +12,16 @@ public class Histogram {
 
     public final float[] sigma = new float[3];
     public final float[] hist;
+    public final float[] histr;
+    public final float[] histg;
+    public final float[] histb;
     public float gamma;
     public final float logAvgLuminance;
     public Histogram(float[] f, int whPixels) {
         int[] histv = new int[HIST_BINS];
+        int[] histx = new int[HIST_BINS];
+        int[] histy = new int[HIST_BINS];
+        int[] histz = new int[HIST_BINS];
 
         final double[] logTotalLuminance = {0d};
         // Loop over all values
@@ -30,6 +38,19 @@ public class Histogram {
                 if (bin >= HIST_BINS) bin = HIST_BINS - 1;
                 histv[bin]++;
 
+                bin = (int) (f[i] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histx[bin]++;
+                bin = (int) (f[i + 1] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histy[bin]++;
+                bin = (int) (f[i + 2] * HIST_BINS);
+                if (bin < 0) bin = 0;
+                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
+                histz[bin]++;
+
                 logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
             }
         }.execute(Range.create(f.length/4));
@@ -39,7 +60,7 @@ public class Histogram {
             public void run() {
                 int w = getGlobalId(0);
                 if (w - 1 >= 0 && w + 1 < histv.length)
-                 histv[w] = (histv[w] + histv[w - 1] + histv[w + 1]) / 3;
+                 histv[w] = (histv[w]*2 + histv[w - 1] + histv[w + 1]) / 4;
             }
         }.execute(Range.create(histv.length));
 
@@ -48,19 +69,22 @@ public class Histogram {
             sigma[j] /= whPixels;
         }
 
-        float[] cumulativeHist = buildCumulativeHist(histv);
+        hist = buildCumulativeHist(histv);
+        histr = buildCumulativeHist(histx);
+        histg = buildCumulativeHist(histy);
+        histb = buildCumulativeHist(histz);
 
         // Find gamma: Inverse of the average exponent.
-        gamma = findGamma(cumulativeHist);
+        gamma = findGamma(hist);
 
         // Compensate for the gamma being applied first.
-        for (int i = 1; i <= HIST_BINS; i++) {
+        /*for (int i = 1; i <= HIST_BINS; i++) {
             double id = (double) i / HIST_BINS;
-            cumulativeHist[i] *= id / Math.pow(id, gamma);
-        }
+            hist[i] *= id / Math.pow(id, gamma);
+        }*/
 
         // Limit contrast and banding.
-        float[] tmp = new float[cumulativeHist.length];
+        /*float[] tmp = new float[cumulativeHist.length];
         for (int i = cumulativeHist.length - 1; i > 0; i--) {
             System.arraycopy(cumulativeHist, 0, tmp, 0, i);
             for (int j = i; j < cumulativeHist.length - 1; j++) {
@@ -71,14 +95,43 @@ public class Histogram {
             float[] swp = tmp;
             tmp = cumulativeHist;
             cumulativeHist = swp;
-        }
+        }*/
 
         // Crush shadows.
         //crushShadows(cumulativeHist);
 
-        hist = cumulativeHist;
-    }
 
+        //Generate equalizing curve
+        createCurve(hist);
+        createCurve(histr);
+        createCurve(histg);
+        createCurve(histb);
+
+    }
+    private void createCurve(float [] hist){
+        hist[0] = 0.f;
+        float prev = hist[0];
+        float normalization = 0.f;
+        for(int i = 0; i<hist.length;i++){
+            float prevh = hist[i];
+            float move = ((float)(i))/hist.length;
+            float accel = 0.2f+Math.max(move,0.2f)*1.8f/0.2f;
+            accel*=1.0-move;
+
+            float softClipK = Math.min(move-0.70f,0.0f)/0.3f;
+            float softClip = (accel/hist.length)*(1.0f-softClipK) + 0.1f*softClipK/hist.length;
+
+            float diff = Math.min(Math.max(hist[i]-prev,0.0005f),softClip);
+            hist[i] = prev+diff;
+            normalization+=diff;
+            prev = hist[i];
+        }
+        Log.d("Histogram","normalization:"+normalization);
+        //if(normalization < 1.f) normalization = 1.f;
+        for(int i =0; i<hist.length;i++){
+            hist[i]/=normalization;
+        }
+    }
     private static float[] findBL(int[] histr,int[] histg,int[] histb) {
         float[] bl = new float[3];
         int rmax = 25;

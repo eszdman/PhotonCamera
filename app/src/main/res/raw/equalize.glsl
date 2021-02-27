@@ -6,6 +6,7 @@ uniform float HistFactor;
 uniform sampler2D Histogram;
 uniform sampler2D Equalizing;
 uniform sampler2D InputBuffer;
+//uniform vec4 toneMapCoeffs;
 out vec3 Output;
 //#import interpolation
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
@@ -14,6 +15,7 @@ out vec3 Output;
 #define EPS (0.0008)
 #define EPS2 (0.0004)
 #define EPSAMP (3.0)
+#define BL2 (0.0)
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
@@ -36,7 +38,7 @@ void main() {
     //br=HistEq;
     //if(br > EPS)
     //br = mix(br,HistEq,factor);
-    br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    //br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //br = pow(br,Equalize);
 
     //Undersaturate shadows
@@ -45,5 +47,5 @@ void main() {
     sRGB /= luminocity(sRGB);
 
     sRGB*=br;
-    Output = clamp(sRGB,0.0,1.0);
+    Output = clamp(sRGB-vec3(BL2),0.0,1.0);
 }

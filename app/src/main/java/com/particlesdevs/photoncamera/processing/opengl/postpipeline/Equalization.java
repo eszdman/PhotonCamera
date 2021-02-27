@@ -125,54 +125,76 @@ public class Equalization extends Node {
             prev = prevh;
         }
         */
-        float eq = histParser.gamma;
+        /*float eq = histParser.gamma;
         eq = Math.min(eq,1.f);
         Log.d(Name,"Gamma:"+eq);
         float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
         eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
         eq = (float) Math.pow(eq, 0.6);
-        histParser.hist[0] = 0.f;
-        float prev = histParser.hist[0];
-        float normalization = 0.f;
-        for(int i = 0; i<histParser.hist.length;i++){
-            float prevh = histParser.hist[i];
-            float move = ((float)(i))/histParser.hist.length;
-            float accel = 0.2f+Math.max(move,0.2f)*1.8f/0.2f;
+        Log.d(Name,"Equalizek:"+eq);*/
 
-            float softClipK = Math.min(move-0.70f,0.0f)/0.3f;
-            float softClip = (accel/histParser.hist.length)*(1.0f-softClipK) + 0.1f*softClipK/histParser.hist.length;
 
-            float diff = Math.min(Math.max(histParser.hist[i]-prev,0.0005f),softClip);
-            histParser.hist[i] = prev+diff;
-            normalization+=diff;
-            prev = histParser.hist[i];
-        }
-        Log.d(Name,"normalization:"+normalization);
-        //if(normalization < 1.f) normalization = 1.f;
-        for(int i =0; i<histParser.hist.length;i++){
-            histParser.hist[i]/=normalization;
-        }
-        for(int j =0; j<2;j++)
-        for(int i =0; i<histParser.hist.length-8;i++){
-            histParser.hist[i] = gauss(histParser.hist,i);
+        for(int j =0; j<2;j++) {
+            histParser.hist[0] = 0.f;
+            for (int i = 0; i < histParser.hist.length - 8; i++) {
+                histParser.hist[i] = gauss(histParser.hist, i);
+                histParser.histr[i] = gauss(histParser.histr, i);
+                histParser.histg[i] = gauss(histParser.histg, i);
+                histParser.histb[i] = gauss(histParser.histb, i);
+            }
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
         //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
 
-        GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
-                FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        float[] equalizingCurve = new float[histParser.hist.length];
+        //Use kx+b prediction for curve start
+        float[] BLPredict = new float[3];
+        float[] BLPredictShift = new float[3];
+        int cnt = 0;
+        for(int i =5; i<30;i++){
+            float x = i/256.f;
+            BLPredict[0]+= histParser.histr[i]/x;
+            BLPredict[1]+= histParser.histg[i]/x;
+            BLPredict[2]+= histParser.histb[i]/x;
+            cnt++;
+        }
+        BLPredict[0]/=cnt;
+        BLPredict[1]/=cnt;
+        BLPredict[2]/=cnt;
+        cnt = 0;
+        for(int i =5; i<30;i++){
+            float x = i/256.f;
+            BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
+            BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
+            BLPredictShift[2]+=histParser.histb[i]-x*BLPredict[2];
+            cnt++;
+        }
+        BLPredictShift[0]/=cnt;
+        BLPredictShift[1]/=cnt;
+        BLPredictShift[2]/=cnt;
+        float mins = Math.min(BLPredictShift[0],Math.min(BLPredictShift[1],BLPredictShift[2]));
+        if(mins < 0.0) {
+            BLPredictShift[0]-=mins;
+            BLPredictShift[1]-=mins;
+            BLPredictShift[2]-=mins;
+        }
+        Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
+
+
+        /*float[] equalizingCurve = new float[histParser.hist.length];
         for(int i =0; i<histParser.hist.length;i++){
             equalizingCurve[i] = (float)(Math.pow(((double)i)/histParser.hist.length,eq));
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(equalizingCurve);
         GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));
-        Log.d(Name,"Equalizek:"+eq);
+        Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));*/
+
+        GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
+                FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        glProg.setDefine("BL2",BLPredictShift);
         glProg.useProgram(R.raw.equalize);
         //glProg.setVar("Equalize",eq);
-        glProg.setTexture("Equalizing",equalizing);
+        //glProg.setTexture("Equalizing",equalizing);
         glProg.setTexture("Histogram",histogram);
         float bilatHistFactor = Math.max(0.4f, 1f - histParser.gamma * EqualizePower
                 - 4f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));

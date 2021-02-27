@@ -231,6 +231,8 @@ public class Parameters {
             for (int i = 0; i < 9; i++) {
                 proPhotoToSRGB[i] = temp[i].floatValue();
             }
+            //Normalize CST result
+            normalize(proPhotoToSRGB);
         }
 
         Log.d(TAG, "customCCT exist:" + customCCT.exists());
@@ -258,7 +260,20 @@ public class Parameters {
                 0f
         };
     }
-
+    private void normalize(float [] in){
+        float avr = in[0]+in[1]+in[2];
+        in[0]/=avr;
+        in[1]/=avr;
+        in[2]/=avr;
+        avr = in[3]+in[4]+in[5];
+        in[3]/=avr;
+        in[4]/=avr;
+        in[5]/=avr;
+        avr = in[6]+in[7]+in[8];
+        in[6]/=avr;
+        in[7]/=avr;
+        in[8]/=avr;
+    }
     private static void PrintMat(float[] mat) {
         StringBuilder outp = new StringBuilder();
         for (int i = 0; i < mat.length; i++) {
