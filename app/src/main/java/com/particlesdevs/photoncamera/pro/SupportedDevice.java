@@ -7,6 +7,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.util.HttpLoader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -66,15 +67,13 @@ public class SupportedDevice {
     }
 
     private void loadSupportedDevicesList() throws IOException {
-        URL supportedList = new URL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
-        HttpURLConnection conn = (HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(200); // timing out in a 200 ms
-        BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
         String str;
         while ((str = in.readLine()) != null) {
             mSupportedDevicesSet.add(str);
             Log.d(TAG, "Loaded:" + str);
         }
+
         loaded = true;
         in.close();
         mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, mSupportedDevicesSet);

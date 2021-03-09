@@ -60,6 +60,7 @@
     <string name="_cameras" translatable="false">_cameras</string>
     <string name="_devices" translatable="false">_devices</string>
     <string name="all_devices_names" translatable="false">all_devices_names</string>
+    <string name="all_devices_specific" translatable="false">all_devices_specific</string>
     <string name="pref_this_device_key" translatable="false">pref_this_device_key</string>
     <string name="_per_lens" translatable="false">_per_lens</string>
 
