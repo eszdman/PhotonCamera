@@ -33,9 +33,9 @@ void main() {
     factor = clamp(factor,0.0,1.0);
 
 
-    if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
+    //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
     //br = mix(HistEq,br*pow(HistEq/br,HistFactor),br);
-    //br=HistEq;
+    br=HistEq;
     //if(br > EPS)
     //br = mix(br,HistEq,factor);
     //br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;

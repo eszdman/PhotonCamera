@@ -78,6 +78,22 @@ public class Equalization extends Node {
         }
         return sum/pdf;
     }
+    private float mix(float in1, float in2, float t){
+        return in1*(1.f-t) + in2*t;
+    }
+    private float[] bezier(float in1, float in2, float in3,float in4,int size){
+        float[] output = new float[size];
+        for(int i =0; i<size;i++){
+            float s = (float)(i)/size;
+            float p0 = mix(in1,in2,s);
+            float p1 = mix(in2,in3,s);
+            float p2 = mix(in3,in4,s);
+            float p3 = mix(p0,p1,s);
+            float p4 = mix(p1,p2,s);
+            output[i] = mix(p3,p4,s);
+        }
+        return output;
+    }
     private float EqualizePower = 0.9f;
     @Override
     public void Run() {
@@ -134,7 +150,7 @@ public class Equalization extends Node {
         Log.d(Name,"Equalizek:"+eq);*/
 
 
-        for(int j =0; j<2;j++) {
+        /*for(int j =0; j<2;j++) {
             histParser.hist[0] = 0.f;
             for (int i = 0; i < histParser.hist.length - 8; i++) {
                 histParser.hist[i] = gauss(histParser.hist, i);
@@ -142,8 +158,8 @@ public class Equalization extends Node {
                 histParser.histg[i] = gauss(histParser.histg, i);
                 histParser.histb[i] = gauss(histParser.histb, i);
             }
-        }
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
+        }*/
+
         //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
 
         //Use kx+b prediction for curve start
@@ -177,8 +193,10 @@ public class Equalization extends Node {
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
-        Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
 
+        histParser.hist = bezier(histParser.hist[0],histParser.hist[85],histParser.hist[168],histParser.hist[histParser.hist.length-1],histParser.hist.length);
+        Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
 
         /*float[] equalizingCurve = new float[histParser.hist.length];
         for(int i =0; i<histParser.hist.length;i++){

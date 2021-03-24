@@ -11,7 +11,7 @@ public class Histogram {
     private static final float LINEARIZE_PERCEPTION = 2.4f;
 
     public final float[] sigma = new float[3];
-    public final float[] hist;
+    public float[] hist;
     public final float[] histr;
     public final float[] histg;
     public final float[] histb;
