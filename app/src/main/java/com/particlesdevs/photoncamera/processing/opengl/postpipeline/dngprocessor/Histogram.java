@@ -103,9 +103,9 @@ public class Histogram {
 
         //Generate equalizing curve
         createCurve(hist);
-        createCurve(histr);
+        /*createCurve(histr);
         createCurve(histg);
-        createCurve(histb);
+        createCurve(histb);*/
 
     }
     private void createCurve(float [] hist){
@@ -115,7 +115,7 @@ public class Histogram {
         for(int i = 0; i<hist.length;i++){
             float prevh = hist[i];
             float move = ((float)(i))/hist.length;
-            float accel = 0.2f+Math.max(move,0.2f)*1.8f/0.2f;
+            float accel = 0.2f+Math.max(move,0.2f)*1.9f/0.2f;
             accel*=1.0-move;
 
             float softClipK = Math.min(move-0.70f,0.0f)/0.3f;

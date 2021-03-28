@@ -24,6 +24,7 @@ public class SupportedDevice {
     private static final String TAG = "SupportedDevice";
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevicesSet = new LinkedHashSet<>();
+    public Specific specific;
     private boolean loaded = false;
     private int checkedCount = 0;
 
@@ -32,10 +33,12 @@ public class SupportedDevice {
     }
 
     public void loadCheck() {
+        specific = new Specific(mSettingsManager);
         new Thread(() -> {
             try {
                 if (checkedCount < 1) {
                     loadSupportedDevicesList();
+                    specific.loadSpecific();
                     isSupported();
                 }
             } catch (IOException e) {

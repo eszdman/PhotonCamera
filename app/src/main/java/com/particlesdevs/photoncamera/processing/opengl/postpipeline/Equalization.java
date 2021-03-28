@@ -39,6 +39,11 @@ public class Equalization extends Node {
         ((PostPipeline)basePipeline).debugData.add(CurveEQ);
         Utilities.drawArray(curve,CurveEQ);
     }
+    private void GenerateCurveBitm(float[] r,float[] g,float[] b){
+        Bitmap CurveEQ = Bitmap.createBitmap(512,512, Bitmap.Config.ARGB_8888);
+        ((PostPipeline)basePipeline).debugData.add(CurveEQ);
+        Utilities.drawArray(r,g,b,CurveEQ);
+    }
     @Override
     public void Compile() {}
     private Histogram Analyze(){
@@ -94,6 +99,18 @@ public class Equalization extends Node {
         }
         return output;
     }
+    /*private float[] bezier(float[]in,int size){
+        float[] output = new float[size];
+        float[] reduct = new float[in.length];
+        for(int i =0; i<size;i++){
+            for(int reduction = 0;reduction<in.length;reduction++){
+                for(int j =0; j<reduction;j++){
+                    reduct[j] =
+                }
+            }
+        }
+        return output;
+    }*/
     private float EqualizePower = 0.9f;
     @Override
     public void Run() {
@@ -166,7 +183,7 @@ public class Equalization extends Node {
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         int cnt = 0;
-        for(int i =5; i<30;i++){
+        for(int i =5; i<60;i++){
             float x = i/256.f;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
@@ -177,7 +194,7 @@ public class Equalization extends Node {
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
         cnt = 0;
-        for(int i =5; i<30;i++){
+        for(int i =5; i<60;i++){
             float x = i/256.f;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
@@ -193,8 +210,16 @@ public class Equalization extends Node {
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
-
-        histParser.hist = bezier(histParser.hist[0],histParser.hist[85],histParser.hist[168],histParser.hist[histParser.hist.length-1],histParser.hist.length);
+        if(basePipeline.mSettings.DebugData) {
+            GenerateCurveBitm(histParser.histr,histParser.histg,histParser.histb);
+            GenerateCurveBitm(histParser.hist);
+        }
+        float[] bezierArr = bezier(histParser.hist[0],histParser.hist[85],histParser.hist[168],histParser.hist[histParser.hist.length-1],histParser.hist.length);
+        for(int i =0; i<bezierArr.length;i++){
+            float f = (float)i*4.f/bezierArr.length;
+            f = Math.min(f,1.f);
+            histParser.hist[i] = Math.min(mix(histParser.hist[i],bezierArr[i],f),bezierArr[i]);
+        }
         Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
 

@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
@@ -26,6 +27,7 @@ public class PostPipeline extends GLBasePipeline {
     public GLTexture FusionMap;
     public GLTexture GainMap;
     public ArrayList<Bitmap> debugData = new ArrayList<>();
+    public ArrayList<ImageFrame> SAGAIN;
     public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;

@@ -54,7 +54,7 @@ public class Specific {
             saveSpecific();
         }
     }
-    public void saveSpecific(){
+    private void saveSpecific(){
         mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", isDualSessionSupported);
     }
 }

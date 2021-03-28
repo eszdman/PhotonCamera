@@ -21,7 +21,7 @@
     <string-array name="alignset_entries">
         <item>PCam CPU</item>
         <item>PCam GPU</item>
-        <item>NightCam GPU(not working)</item>
+        <item>PCam Hybrid</item>
     </string-array>
     <string-array name="alignset_entryValues">
         <item>0</item>

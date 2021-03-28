@@ -190,11 +190,11 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        this.activity = getActivity();
-        this.notificationManager = NotificationManagerCompat.from(activity);
-        this.settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
-        this.supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
-
+        activity = getActivity();
+        notificationManager = NotificationManagerCompat.from(activity);
+        settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
+        supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
+        supportedDevice.loadCheck();
     }
 
     @Override
@@ -245,6 +245,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
         this.manualModeViewModel.setManualParamModel(captureController.getManualParamModel());
         PhotonCamera.setCaptureController(captureController);
+        captureController.isDualSession = supportedDevice.specific.isDualSessionSupported;
         this.mSwipe = new Swipe(this);
         initSettingsBar();
     }
@@ -309,7 +310,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();
-        supportedDevice.loadCheck();
     }
 
     private void initTouchFocus() {

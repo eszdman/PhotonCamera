@@ -97,7 +97,7 @@ public class HdrxProcessor extends ProcessorBase {
 
         long startTime = System.currentTimeMillis();
         int width = mImageFramesToProcess.get(0).getPlanes()[0].getRowStride() /
-                mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride(); //mImageFramesToProcess.get(0).getWidth()*mImageFramesToProcess.get(0).getHeight()/(mImageFramesToProcess.get(0).getPlanes()[0].getRowStride()/mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride());
+                mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride();
         int height = mImageFramesToProcess.get(0).getHeight();
         Log.d(TAG, "APPLY HDRX: buffer:" + mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
         Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
@@ -107,7 +107,7 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
         PhotonCamera.getParameters().FillDynamicParameters(captureResult);
-        PhotonCamera.getParameters().cameraRotation = this.cameraRotation;
+        PhotonCamera.getParameters().cameraRotation = cameraRotation;
 
         exifData.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString();
 
@@ -120,17 +120,6 @@ public class HdrxProcessor extends ProcessorBase {
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
-            /*if (i == 3 && IsoExpoSelector.HDR) {
-                //rawPipeline.sensivity = k*0.7f;
-                highexp = byteBuffer;
-                continue;
-            }
-            if (i == 2 && IsoExpoSelector.HDR) {
-                //rawPipeline.sensivity = k*6.0f;
-                lowexp = byteBuffer;
-                continue;
-            }
-            Log.d(TAG, "Sensivity:" + k);*/
             ImageFrame frame = new ImageFrame(byteBuffer);
             frame.luckyParameter = BurstShakiness.get(i);
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;

@@ -68,6 +68,7 @@ import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.manual.ParamController;
+import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
@@ -166,6 +167,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
+    public boolean isDualSession = true;
     private static int mTargetFormat = RAW_FORMAT;
     private final ManualParamModel manualParamModel;
 
@@ -1072,12 +1074,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // Here, we create a CameraCaptureSession for camera preview.
 
             List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-            if (burst) {
-
-                surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-            }
-            if (mTargetFormat == mPreviewTargetFormat) {
-                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+            if(isDualSession) {
+                if (burst) {
+                    surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+                }
+                if (mTargetFormat == mPreviewTargetFormat) {
+                    surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+                }
+            } else {
+                surfaces = Arrays.asList(surface,
+                        mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
             }
             if (mIsRecordingVideo) {
                 setUpMediaRecorder();
@@ -1108,7 +1114,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                             FpsRangeHigh);
                                 }
                                 mPreviewRequest = mPreviewRequestBuilder.build();
-                                if (burst) {
+                                if (burst  && isDualSession) {
                                     switch (CameraFragment.mSelectedMode) {
                                         case NIGHT:
                                         case PHOTO:
@@ -1318,9 +1324,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
+
                     //unlockFocus();
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
-                    createCameraPreviewSession();
+                    if(!isDualSession)
+                        unlockFocus();
+                    else
+                        createCameraPreviewSession();
+
                     taskResults.removeIf(Future::isDone); //remove already completed results
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
                         Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
@@ -1332,8 +1343,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
             burst = true;
             Camera2ApiAutoFix.ApplyBurst();
+            if(isDualSession)
             createCameraPreviewSession();
-            //mCaptureSession.captureBurst(captures, CaptureCallback, null);
+            else {
+                switch (PhotonCamera.getSettings().selectedMode){
+                    case NIGHT:
+                    case UNLIMITED:
+                        mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
+                        break;
+                    case PHOTO:
+                        mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                        break;
+                }
+            }
+
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }

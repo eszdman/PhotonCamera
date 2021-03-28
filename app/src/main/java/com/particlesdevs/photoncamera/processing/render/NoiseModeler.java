@@ -31,8 +31,8 @@ public class NoiseModeler {
             }
             if (inModel.length == 3) {
                 baseModel[0] = new Pair<>(inModel[0].first, inModel[0].second);
-                baseModel[1] = new Pair<>(inModel[0].first, inModel[1].second);
-                baseModel[2] = new Pair<>(inModel[0].first, inModel[2].second);
+                baseModel[1] = new Pair<>(inModel[1].first, inModel[1].second);
+                baseModel[2] = new Pair<>(inModel[2].first, inModel[2].second);
             }
             if (inModel.length == 4) {
                 baseModel[0] = new Pair<>(inModel[0].first, inModel[0].second);

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 public class RawPipeline extends GLBasePipeline {
     public float sensitivity = 1.f;
     public ArrayList<ImageFrame> images;
+    public ArrayList<ByteBuffer> alignments;
     public ArrayList<Image> imageObj;
 
     public ByteBuffer Run() {
