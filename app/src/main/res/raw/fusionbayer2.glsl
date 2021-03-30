@@ -13,11 +13,10 @@ uniform sampler2D highExpo;
 // Blending is done using these.
 uniform sampler2D normalExpoDiff;
 uniform sampler2D highExpoDiff;
-
+uniform int level;
 uniform ivec2 upscaleIn;
 
 out float result;
-
 #import gaussian
 #import interpolation
 float laplace(sampler2D tex, float mid, ivec2 xyCenter) {
@@ -26,7 +25,7 @@ float laplace(sampler2D tex, float mid, ivec2 xyCenter) {
     top = texelFetch(tex, xyCenter - ivec2(0, 1), 0).r,
     bottom = texelFetch(tex, xyCenter + ivec2(0, 1), 0).r;
 
-    return distance(4.f * mid, left + right + top + bottom);
+    return distance(4. * mid, left + right + top + bottom);
 }
 
 void main() {
@@ -72,5 +71,5 @@ void main() {
     highWeight *= sqrt(highStddev + 0.01);
 
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
-    result = base + mix(normal.r, high.r, blend);
+    result = base + mix(normal.r, high.r, blend*blend)*(1.2);
 }

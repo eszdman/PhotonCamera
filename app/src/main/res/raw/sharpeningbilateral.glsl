@@ -5,9 +5,9 @@ uniform sampler2D InputBuffer;
 uniform float size;
 uniform float strength;
 #import interpolation
-#define MSIZE 3
+#define MSIZE 5
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define MinDepth (0.0004)
+#define MinDepth (0.0020)
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
@@ -63,5 +63,10 @@ void main() {
     float dstrength = strength;
     //dstrength*=clamp(1.0 - abs(0.5-lum)*7.7+3.1 ,0.0,1.0);
     if(abs(mask) < MinDepth) mask =0.0;
+    else if(mask < MinDepth){
+        mask+=MinDepth;
+    } else if(mask > MinDepth) {
+        mask-=MinDepth;
+    }
     Output+=mask*((dstrength)*5.0 + 1.0)-(Output-clamp(final_colour/Z,0.0,1.0));
 }

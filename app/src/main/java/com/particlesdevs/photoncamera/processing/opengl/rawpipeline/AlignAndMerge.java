@@ -24,8 +24,8 @@ public class AlignAndMerge extends Node {
     Point rawSize;
     GLProg glProg;
 
-    public AlignAndMerge(int rid, String name) {
-        super(rid, name);
+    public AlignAndMerge() {
+        super(0, "AlignAndMerge");
     }
 
     @Override

@@ -95,11 +95,11 @@ public class Parameters {
         if (result != null) {
             boolean isHuawei = Build.BRAND.equals("Huawei");
 
-            float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
+            /*float[] dynbl = result.get(CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL);
             if (dynbl != null) {
                 System.arraycopy(dynbl, 0, blackLevel, 0, 4);
                 usedDynamic = true;
-            }
+            }*/
 
             LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
             if (lensMap != null) {

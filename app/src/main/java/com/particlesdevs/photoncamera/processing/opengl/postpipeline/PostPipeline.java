@@ -90,7 +90,9 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
-
+        if(PhotonCamera.getSettings().hdrxNR) {
+            add(new SmartNR());
+        }
 
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
@@ -101,9 +103,7 @@ public class PostPipeline extends GLBasePipeline {
 
         add(new Equalization());
 
-        if(PhotonCamera.getSettings().hdrxNR) {
-            add(new SmartNR());
-        }
+
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));

@@ -15,8 +15,8 @@ import java.util.ArrayList;
 
 public class HybridAlign extends Node {
 
-    public HybridAlign(int rid, String name) {
-        super(rid, name);
+    public HybridAlign() {
+        super(0, "HybridAlign");
     }
     ArrayList<ImageFrame> images;
     public ArrayList<ByteBuffer> alignments;
@@ -64,7 +64,6 @@ public class HybridAlign extends Node {
         for (int i = 1; i < images.size(); i++) {
             CorrectedRaw(inputraw,i);
             if(i!=0) images.get(i).image.close();
-
 
             Output = Merge(Output, inputraw, alignments.get(i),i);
         }

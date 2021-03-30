@@ -18,6 +18,7 @@ import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.scripts.BinnedRaw;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
@@ -91,7 +92,7 @@ public class HdrxProcessor extends ProcessorBase {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
 
-        boolean debugAlignment = (alignAlgorithm == 1);
+        boolean debugAlignment = (alignAlgorithm > 0);
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
@@ -218,6 +219,11 @@ public class HdrxProcessor extends ProcessorBase {
             output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 150*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
                     ,parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
+            rawPipeline.alignAlgorithm = alignAlgorithm;
+            BinnedRaw binnedRaw = new BinnedRaw(new Point(width/2,height/2));
+            if(alignAlgorithm == 2){
+
+            }
             output = rawPipeline.Run();
         }
         float[] oldBL = parameters.blackLevel.clone();

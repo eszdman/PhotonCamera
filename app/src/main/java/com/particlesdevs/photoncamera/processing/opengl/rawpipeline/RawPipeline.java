@@ -18,6 +18,7 @@ public class RawPipeline extends GLBasePipeline {
     public ArrayList<ImageFrame> images;
     public ArrayList<ByteBuffer> alignments;
     public ArrayList<Image> imageObj;
+    public int alignAlgorithm;
 
     public ByteBuffer Run() {
         mParameters = PhotonCamera.getParameters();
@@ -26,7 +27,10 @@ public class RawPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         glint.parameters = mParameters;
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
-        add(new AlignAndMerge(0, "AlignAndMerge"));
+        if(alignAlgorithm == 1)
+        add(new AlignAndMerge());
+        if(alignAlgorithm == 2)
+            add(new HybridAlign());
         return runAllRaw();
     }
 }
