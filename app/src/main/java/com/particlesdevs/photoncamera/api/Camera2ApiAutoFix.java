@@ -45,6 +45,7 @@ public class Camera2ApiAutoFix {
     public static void Init() {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CaptureController.mCameraCharacteristics);
         fix.ExposureTime();
+        fix.ExposureCompensation();
     }
 
     public static void Apply() {
@@ -102,6 +103,10 @@ public class Camera2ApiAutoFix {
             Range nrange = new Range(exprange.getLower(), (long) (ExposureIndex.sec * 5.2));
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE, nrange);
         }
+    }
+    private void ExposureCompensation(){
+        Range nrange = new Range(-24, 24);
+        CameraReflectionApi.set(CONTROL_AE_COMPENSATION_RANGE,nrange);
     }
 
     public static void patchWL(CameraCharacteristics characteristics,

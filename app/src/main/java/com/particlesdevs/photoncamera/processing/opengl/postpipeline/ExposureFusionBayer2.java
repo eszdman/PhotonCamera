@@ -73,7 +73,7 @@ public class ExposureFusionBayer2 extends Node {
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
         GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,4.f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(0.6f)));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(0.4f)));
         //in.close();
         glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);

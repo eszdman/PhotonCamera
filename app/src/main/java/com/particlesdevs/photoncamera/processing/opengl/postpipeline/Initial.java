@@ -85,7 +85,7 @@ public class Initial extends Node {
         float[] gamma = new float[1024];
         for(int i =0; i<gamma.length;i++){
             double pos =((float)i)/gamma.length;
-            gamma[i] = (float)Math.pow(pos, 1./2.1);
+            gamma[i] = (float)(Math.pow(pos, 1./2.1));
         }
         GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);

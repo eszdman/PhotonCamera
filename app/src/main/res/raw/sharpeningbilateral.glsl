@@ -7,7 +7,7 @@ uniform float strength;
 #import interpolation
 #define MSIZE 5
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
-#define MinDepth (0.0020)
+#define MinDepth (0.0014)
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
