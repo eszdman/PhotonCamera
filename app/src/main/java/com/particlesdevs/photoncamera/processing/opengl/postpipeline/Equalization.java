@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.util.Log;
@@ -15,6 +16,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
+import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.nio.ByteBuffer;
@@ -195,7 +197,7 @@ public class Equalization extends Node {
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         int cnt = 0;
-        for(int i =5; i<60;i++){
+        for(int i =5; i<30;i++){
             float x = i/256.f;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
@@ -206,7 +208,7 @@ public class Equalization extends Node {
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
         cnt = 0;
-        for(int i =5; i<60;i++){
+        for(int i =5; i<30;i++){
             float x = i/256.f;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
@@ -222,6 +224,9 @@ public class Equalization extends Node {
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
+        BLPredictShift[0]*=0.8;
+        BLPredictShift[1]*=0.8;
+        BLPredictShift[2]*=0.8;
         float[] averageCurve = new float[histParser.hist.length];
         for(int i =0; i<averageCurve.length;i++){
             averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
@@ -260,6 +265,9 @@ public class Equalization extends Node {
         //glProg.setVar("Equalize",eq);
         //glProg.setTexture("Equalizing",equalizing);
         glProg.setTexture("Histogram",histogram);
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        glProg.setTexture("TonemapTex",TonemapCoeffs);
+        glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         float bilatHistFactor = Math.max(0.4f, 1f - histParser.gamma * EqualizePower
                 - 4f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
         Log.d(Name,"HistFactor:"+bilatHistFactor*EqualizePower);
@@ -268,6 +276,7 @@ public class Equalization extends Node {
         glProg.drawBlocks(WorkingTexture);
         histogram.close();
         lutbm.recycle();
+        TonemapCoeffs.close();
         glProg.closed = true;
     }
 }

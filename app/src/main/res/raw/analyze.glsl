@@ -41,12 +41,13 @@ void main() {
             sigma += diff * diff;
         }
         float z = inp[4].z;
-        Output = vec4(sqrt(sigma / 9.f), mix(z, z*z, BR));
+        z = mix(mix(z, z*z, BR),z,z);
+        Output = vec4(sqrt(sigma / 9.f), z);
         #else
         vec3 inv = texelFetch(InputBuffer, xy, 0).rgb;
         float z = inp[4].z;
         Output = vec4(inv.r,inv.g,inv.b, z);
-        Output = mix(Output,Output*Output,BR);
+        Output = mix(mix(Output,Output*Output,BR),Output,z);
         #endif
 
     } else {

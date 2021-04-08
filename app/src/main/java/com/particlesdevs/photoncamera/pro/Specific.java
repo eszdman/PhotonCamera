@@ -15,6 +15,7 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEV
 public class Specific {
     private static final String TAG = "Specific";
     public boolean isDualSessionSupported = true;
+    public float[] blackLevel;
     private final SettingsManager mSettingsManager;
 
     public Specific(SettingsManager mSettingsManager) {
@@ -43,10 +44,14 @@ public class Specific {
                             case "isDualSessionSupported":
                                 isDualSessionSupported = Boolean.parseBoolean(caseS[1]);
                                 break;
+                            case "blackLevel":
+                                String[] bl = caseS[1].split(",");
+                                blackLevel = new float[]{Float.parseFloat(bl[0]),Float.parseFloat(bl[1]),Float.parseFloat(bl[2]),Float.parseFloat(bl[3])};
+                                break;
                         }
                     }
                     mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded", true);
-                } catch (IOException ignored) {
+                } catch (Exception ignored) {
                 }
             } else {
                 isDualSessionSupported = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", isDualSessionSupported);
