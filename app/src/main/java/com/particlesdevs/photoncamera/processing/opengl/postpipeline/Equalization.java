@@ -206,10 +206,11 @@ public class Equalization extends Node {
         //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
 
         //Use kx+b prediction for curve start
+        //Depurple Degreen
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         int cnt = 0;
-        for(int i =5; i<15;i++){
+        for(int i =5; i<20;i++){
             float x = i/256.f;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
@@ -220,7 +221,7 @@ public class Equalization extends Node {
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
         cnt = 0;
-        for(int i =5; i<15;i++){
+        for(int i =5; i<20;i++){
             float x = i/256.f;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
@@ -236,9 +237,11 @@ public class Equalization extends Node {
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
-        BLPredictShift[0]*=0.8;
-        BLPredictShift[1]*=0.8;
-        BLPredictShift[2]*=0.8;
+        //BLPredictShift[0]*=0.8;
+        //BLPredictShift[1]*=0.8;
+        //BLPredictShift[2]*=0.8;
+        BLPredictShift[2] = (BLPredictShift[0]+BLPredictShift[2])/2.f;
+        BLPredictShift[0] = BLPredictShift[2];
         float[] averageCurve = new float[histParser.hist.length];
         for(int i =0; i<averageCurve.length;i++){
             averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
