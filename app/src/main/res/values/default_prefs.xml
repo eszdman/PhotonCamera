@@ -57,9 +57,9 @@
     <string name="pref_framecount_default" translatable="false">30</string>
     <string name="pref_chroma_seekbar_default" translatable="false">12</string>
     <string name="pref_luma_seekbar_default" translatable="false">12</string>
-    <string name="pref_sharpness_seekbar_default" translatable="false">0.60</string>
+    <string name="pref_sharpness_seekbar_default" translatable="false">0.50</string>
     <string name="pref_saturation_seekbar_default" translatable="false">1.0</string>
-    <string name="pref_gain_seekbar_default" translatable="false">0.7</string>
+    <string name="pref_gain_seekbar_default" translatable="false">1.7</string>
     <string name="pref_noise_seekbar_default" translatable="false">1.0</string>
     <string name="pref_compressor_seekbar_default" translatable="false">1.0</string>
     <string name="pref_align_method_default" translatable="false">0</string>
