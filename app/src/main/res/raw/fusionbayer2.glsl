@@ -71,5 +71,8 @@ void main() {
     highWeight *= sqrt(highStddev + 0.01);
 
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
-    result = base + mix(normal.r, high.r, blend*blend)*(1.2);
+    result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.07*float(level)));
+    if(level == 0){
+        result = result*result;
+    }
 }

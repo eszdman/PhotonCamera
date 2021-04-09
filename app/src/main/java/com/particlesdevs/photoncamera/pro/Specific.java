@@ -15,6 +15,7 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEV
 public class Specific {
     private static final String TAG = "Specific";
     public boolean isDualSessionSupported = true;
+    public boolean isRawColorCorrection = false;
     public float[] blackLevel;
     private final SettingsManager mSettingsManager;
 
@@ -47,6 +48,9 @@ public class Specific {
                             case "blackLevel":
                                 String[] bl = caseS[1].split(",");
                                 blackLevel = new float[]{Float.parseFloat(bl[0]),Float.parseFloat(bl[1]),Float.parseFloat(bl[2]),Float.parseFloat(bl[3])};
+                                break;
+                            case "rawColorCorrection":
+                                isRawColorCorrection = Boolean.parseBoolean(caseS[1]);
                                 break;
                         }
                     }

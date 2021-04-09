@@ -211,6 +211,7 @@ public class Parameters {
             }
             if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
+        if(PhotonCamera.getSpecific().isRawColorCorrection) wrongCalibration = false;
         if (wrongCalibration && !customCCT.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;

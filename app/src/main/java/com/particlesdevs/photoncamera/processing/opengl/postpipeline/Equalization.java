@@ -113,6 +113,18 @@ public class Equalization extends Node {
         }
         return bezier;
     }
+    static class Point2D{
+        float x,y;
+    }
+    private Point2D mixp(Point2D in, Point2D in2, float t){
+        Point2D outp = new Point2D();
+        outp.x = in.x*(1.f-t) + in2.x*t;
+        outp.y = in.y*(1.f-t) + in2.y*t;
+        return outp;
+    }
+    private float[] bezier2(float[] input){
+        return input;
+    }
     /*private float[] bezier(float[]in,int size){
         float[] output = new float[size];
         float[] reduct = new float[in.length];
@@ -197,7 +209,7 @@ public class Equalization extends Node {
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         int cnt = 0;
-        for(int i =5; i<30;i++){
+        for(int i =5; i<15;i++){
             float x = i/256.f;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
@@ -208,7 +220,7 @@ public class Equalization extends Node {
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
         cnt = 0;
-        for(int i =5; i<30;i++){
+        for(int i =5; i<15;i++){
             float x = i/256.f;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
@@ -265,7 +277,7 @@ public class Equalization extends Node {
         //glProg.setVar("Equalize",eq);
         //glProg.setTexture("Equalizing",equalizing);
         glProg.setTexture("Histogram",histogram);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         float bilatHistFactor = Math.max(0.4f, 1f - histParser.gamma * EqualizePower

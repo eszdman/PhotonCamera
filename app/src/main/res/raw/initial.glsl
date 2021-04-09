@@ -206,12 +206,12 @@ vec3 hsv2rgb(vec3 c) {
 }
 const float redcorr = 0.0;
 const float bluecorr = 0.0;
-vec3 saturate(vec3 rgb,float model) {
+vec3 saturate(vec3 rgb) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
     vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
-    hsv.g = clamp(hsv.g*(saturation*model),0.,1.0);
+    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
     rgb = hsv2rgb(hsv);
     return rgb;
 }
@@ -259,10 +259,11 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
         //br=mix(br, pow(br,tonemapGain*br),model);
     //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
 
-    br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
+    //br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
     //br*=4.0;
 
-    br*=clamp(((tonemapGain)),1.00,50.0)*1.0;
+    //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
+    br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*1.0 + 1.0;
 
 
 
@@ -285,6 +286,7 @@ void main() {
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
+    //tonemapGain = 1.f;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
@@ -294,7 +296,7 @@ void main() {
     br = (clamp(br+0.001,0.0,0.004)*(1.0/0.004));
     br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
     //sRGB = lookup(sRGB);
-    //sRGB = saturate(sRGB,br);
-    sRGB = clamp(sRGB,0.0,1.0);
-    Output = sRGB;
+    sRGB = saturate(sRGB);
+    Output = clamp(sRGB,0.0,1.0);
+
 }
