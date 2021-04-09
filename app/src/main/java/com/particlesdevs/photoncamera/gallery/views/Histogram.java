@@ -90,13 +90,13 @@ public class Histogram extends View {
         for (int i = 0; i < 3; i++) {
             if (i == 0) {
                 //wallpaint.setColor(0xFF0700);
-                wallPaint.setARGB(0xFF, 0xFF, 0x07, 0x00);
+                wallPaint.setARGB(0xFF, 0x19, 0x24, 0xB1);
             } else if (i == 1) {
                 //wallpaint.setColor(0x1924B1);
-                wallPaint.setARGB(0xFF, 0x19, 0x24, 0xB1);
+                wallPaint.setARGB(0xFF, 0x00, 0xC9, 0x0D);
             } else {
                 //wallpaint.setColor(0x00C90D);
-                wallPaint.setARGB(0xFF, 0x00, 0xC9, 0x0D);
+                wallPaint.setARGB(0xFF, 0xFF, 0x07, 0x00);
             }
             wallPaint.setXfermode(porterDuffXfermode);
             wallPaint.setStyle(Paint.Style.FILL);
