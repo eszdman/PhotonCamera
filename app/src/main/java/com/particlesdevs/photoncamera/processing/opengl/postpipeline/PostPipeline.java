@@ -73,8 +73,8 @@ public class PostPipeline extends GLBasePipeline {
         glint.parameters = parameters;
         add(new Bayer2Float());
 
-        add(new ExposureFusionBayer2());
-        //if(!IsoExpoSelector.HDR) {
+        //add(new ExposureFusionBayer2());
+        //if(!IsoExpoSelez = mix(mix(z, z*z, BR),z,z);ctor.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
                 //if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
                     add(new Demosaic2());

@@ -148,5 +148,7 @@ void main() {
     sRGB*=br;
     sRGB = clamp(sRGB-vec3(BL2),0.0,1.0);
     //sRGB = (tonemap((sRGB)));
-    Output = mix(sRGB*sRGB*sRGB*-3.7101449 + sRGB*sRGB*5.4910145 - sRGB*0.7808696,sRGB,min(sRGB*1.4+0.2,1.0));
+    //Output = mix(sRGB*sRGB*sRGB*-3.7101449 + sRGB*sRGB*5.4910145 - sRGB*0.7808696,sRGB,min(sRGB*0.6+0.55,1.0));
+    Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
+    //Output = sRGB;
 }

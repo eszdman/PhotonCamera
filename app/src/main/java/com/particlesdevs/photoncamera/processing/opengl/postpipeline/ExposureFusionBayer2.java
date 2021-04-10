@@ -72,9 +72,10 @@ public class ExposureFusionBayer2 extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,3.f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(0.7f)));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,2.f));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(0.5f)));
         //in.close();
+        glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
         glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
@@ -92,6 +93,7 @@ public class ExposureFusionBayer2 extends Node {
             //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
             GLTexture upsampleWip = wip;
             Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
+            glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
             glProg.useProgram(R.raw.fusionbayer2);
 
             glProg.setTexture("upsampled", upsampleWip);

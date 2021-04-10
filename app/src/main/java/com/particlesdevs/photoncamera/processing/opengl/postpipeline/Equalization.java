@@ -86,10 +86,11 @@ public class Equalization extends Node {
         }
         return sum/pdf;
     }
-    private float[] bezier(float in1, float in2, float in3,float in4,int size){
+    private float[] bezier(float in1, float in2, float in3,float in4,int size,int size2){
         float[] output = new float[size];
+        float k = (float)(size)/size2;
         for(int i =0; i<size;i++){
-            float s = (float)(i)/size;
+            float s = (float)(i)*k/size;
             float p0 = mix(in1,in2,s);
             float p1 = mix(in2,in3,s);
             float p2 = mix(in3,in4,s);
@@ -99,14 +100,34 @@ public class Equalization extends Node {
         }
         return output;
     }
+    private float[] bezier1(float in1,float in3,float in4,int size){
+        float[] output = new float[size];
+        for(int i =0; i<size;i++){
+            float s = (float)(i)/size;
+            float p0 = mix(in1,in3,s);
+            float p2 = mix(in3,in4,s);
+            float p3 = mix(p0,p2,s);
+            float p4 = mix(p2,p3,s);
+            output[i] = mix(p3,p4,s);
+        }
+        return output;
+    }
     private float[] bezierIterate(float[] input, int iterations){
         float[] inchanging = input.clone();
-        float[] bezier = bezier(input[0],input[85],input[168],input[input.length-1],input.length);
+        float wlind = input.length-1;
+        for(int i =0; i<input.length;i++){
+            if(input[i] > 0.999) {
+                wlind = (i+wlind*2.0f)/(2.0f + 1.f);
+                break;
+            }
+        }
+        float[] bezier = bezier(input[0],input[(int)(wlind/3.f)],input[(int)(wlind/1.5f)],input[(int)wlind],input.length,(int)wlind);
+
         for(int j = 0; j<iterations;j++){
             for(int i =0; i<inchanging.length;i++){
                 inchanging[i] += (float)i/inchanging.length - bezier[i];
             }
-            float[] bezier2 = bezier(inchanging[0],inchanging[85],inchanging[168],inchanging[input.length-1],input.length);
+            float[] bezier2 = bezier(inchanging[0],inchanging[(int)(wlind/3.f)],inchanging[(int)(wlind/1.5f)],inchanging[(int)wlind],input.length,(int)wlind);
             for(int i =0; i<inchanging.length;i++){
                 bezier[i] -=(float)i/inchanging.length - bezier2[i];
             }
@@ -253,6 +274,7 @@ public class Equalization extends Node {
         }
         float[] bezierArr = bezierIterate(averageCurve,0);
         for(int i =0; i<bezierArr.length;i++){
+            float t = ((float)i)/bezierArr.length;
             float shadow = (float)i*4.f/bezierArr.length;
             shadow = Math.min(shadow,1.f);
             float high = (((float)i/bezierArr.length)-0.6f)*0.8f;
@@ -260,6 +282,7 @@ public class Equalization extends Node {
             float prev = histParser.hist[i];
             histParser.hist[i] = Math.min(mix(histParser.hist[i],bezierArr[i],shadow),bezierArr[i]);
             histParser.hist[i] = Math.max(mix(histParser.hist[i],prev,high),histParser.hist[i]);
+            histParser.hist[i] = mix(prev,histParser.hist[i],Math.min(t*1.3f,0.4f) + 0.6f);
         }
         Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);

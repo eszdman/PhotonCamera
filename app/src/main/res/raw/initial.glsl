@@ -263,7 +263,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=4.0;
 
     //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
-    br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*1.0 + 1.0;
+    br*=(clamp(((tonemapGain)),0.00,8.0) - 1.0)*0.25 + 1.0;
 
 
 
@@ -285,8 +285,8 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
-    //tonemapGain = 1.f;
+    //float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
+    float tonemapGain = 1.f;
     //tonemapGain = mix(1.f,tonemapGain,1.5);
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

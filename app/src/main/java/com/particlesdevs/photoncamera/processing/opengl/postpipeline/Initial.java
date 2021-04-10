@@ -97,7 +97,7 @@ public class Initial extends Node {
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         glProg.setVar("intermediateToSRGB",cct);
-        glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
+        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
         glProg.setVar("gain",1.f);
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
         glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,

@@ -15,7 +15,8 @@ uniform sampler2D normalExpoDiff;
 uniform sampler2D highExpoDiff;
 uniform int level;
 uniform ivec2 upscaleIn;
-
+#define TARGET (0.5)
+#define MAXLEVEL (1)
 out float result;
 #import gaussian
 #import interpolation
@@ -50,8 +51,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - 0.50, 0.50));
-    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - 0.50, 0.50));
+    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - TARGET, 0.50));
+    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - TARGET, 0.50));
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;
@@ -71,7 +72,9 @@ void main() {
     highWeight *= sqrt(highStddev + 0.01);
 
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
-    result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.07*float(level)));
+    result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.4*(float(level)/float(MAXLEVEL))));
+    //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.1 - 0.1*(float(level)/float(MAXLEVEL))));
+    //result = base + mix(normal.r, high.r, blend);
     if(level == 0){
         result = result*result;
     }
