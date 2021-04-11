@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 
@@ -105,6 +106,14 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
     }
+
+    public static Point downScale(Point in, int downScale){
+        return new Point(in.x/downScale,in.y/downScale);
+    }
+    public static Point addP(Point in, int add){
+        return new Point(in.x+add,in.y+add);
+    }
+
     public static String formatExposureTime(final double value) {
         String output;
 

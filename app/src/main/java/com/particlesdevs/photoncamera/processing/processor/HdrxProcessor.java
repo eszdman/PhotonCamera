@@ -23,6 +23,7 @@ import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainM
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.processing.rs.Align;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -101,9 +102,6 @@ public class HdrxProcessor extends ProcessorBase {
                 mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride();
         int height = mImageFramesToProcess.get(0).getHeight();
         Log.d(TAG, "APPLY HDRX: buffer:" + mImageFramesToProcess.get(0).getPlanes()[0].getBuffer().asShortBuffer().remaining());
-        Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
-
-        Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
         Log.d(TAG, "Api WhiteLevel:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL));
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         PhotonCamera.getParameters().FillConstParameters(characteristics, new Point(width, height));
@@ -184,56 +182,46 @@ public class HdrxProcessor extends ProcessorBase {
                 Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / PhotonCamera.getParameters().whiteLevel) * mpy);
             }
         }
-        //interpolateGainMap.close();
-        //Log.d(TAG,"interpolator:"+interpolateGainMap.Output.asShortBuffer().get(6000000));
         rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "White Level:" + PhotonCamera.getParameters().whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
-        Object sensitivity = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
-        if (sensitivity == null) {
-            sensitivity = (int) 100;
-        }
-        Object exposure = captureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-        if (exposure == null) {
-            exposure = (long) 100;
-        }
         float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 40.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
         Log.d(TAG, "Denoising level:" + denoiseLevel);
-        ByteBuffer output;
+
+        ByteBuffer output = null;
         Parameters parameters = PhotonCamera.getParameters();
-        //float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0], PhotonCamera.getParameters().blackLevel[1]),
-        //        PhotonCamera.getParameters().blackLevel[2]), PhotonCamera.getParameters().blackLevel[3]);
-        float bl = Math.max(parameters.blackLevel[1], parameters.blackLevel[2]);
-        //float bl = PhotonCamera.getParameters().blackLevel[0]+PhotonCamera.getParameters().blackLevel[1]+
-        //        PhotonCamera.getParameters().blackLevel[2]+PhotonCamera.getParameters().blackLevel[3];
-        //bl/=4.0;
-        InterpolateGainMap interpolateGainMap = null;
+        //InterpolateGainMap interpolateGainMap;
         if (!debugAlignment) {
-            interpolateGainMap = new InterpolateGainMap(new Point(width, height));
+            /*interpolateGainMap = new InterpolateGainMap(new Point(width, height));
             interpolateGainMap.parameters = PhotonCamera.getParameters();
             interpolateGainMap.Run();
             interpolateGainMap.close();
-            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
+            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);*/
 
             output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 150*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
                     ,parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
-            rawPipeline.alignAlgorithm = alignAlgorithm;
-            BinnedRaw binnedRaw = new BinnedRaw(new Point(width/2,height/2));
-            if(alignAlgorithm == 2){
+            switch (alignAlgorithm){
+                case 1:{
+                    rawPipeline.alignAlgorithm = alignAlgorithm;
+                    output = rawPipeline.Run();
+                    break;
+                }
+                case 2:{
+                    Log.d(TAG,"Entering hybrid alignment");
+                    Align alignrs = new Align(new Point(width,height),images.get(0).buffer);
+                    alignrs.AlignFrame(images.get(1).buffer);
 
+                    rawPipeline.alignAlgorithm = alignAlgorithm;
+                    output = rawPipeline.Run();
+                    break;
+                }
             }
-            output = rawPipeline.Run();
+
         }
         float[] oldBL = parameters.blackLevel.clone();
 
-        /*parameters.blackLevel[0] = 0.f;
-        parameters.blackLevel[1] -= bl;
-        parameters.blackLevel[2] -= bl;
-        parameters.blackLevel[3] = 0.f;*/
-
-        ;
         //Black shot fix
         images.get(0).image.getPlanes()[0].getBuffer().position(0);
         images.get(0).image.getPlanes()[0].getBuffer().put(output);

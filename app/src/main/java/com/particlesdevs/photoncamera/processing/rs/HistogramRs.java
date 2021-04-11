@@ -35,6 +35,7 @@ public class HistogramRs {
                 outputArr[2][i] = (outputArr[2][i]*2 + outputArr[2][i+1] + outputArr[2][i-1])/4;
             }
         }
+        //Convert to RGB
         int[] t;
         t = outputArr[2];
         outputArr[2] = outputArr[0];
