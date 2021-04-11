@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-import scala.concurrent.impl.FutureConvertersImpl;
 
 public class Parameters {
     private static final String TAG = "Parameters";

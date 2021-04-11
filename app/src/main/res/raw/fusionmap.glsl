@@ -16,10 +16,11 @@ void main() {
     xy+=ivec2(0,yOffset);
     float br = texelFetch(BrBuffer, xy, 0).r;
     float br2 = texelFetch(InputBuffer, xy, 0).r;
+    br2*=br2;
     //br2 = gammaInverse(br2);
     //br2+=DH;
     //br = gammaInverse(br);
     //br+=DH+0.003;
-    result=(factor*(br/br2))/50.0;
+    result=((br/br2))/50.0;
     result = clamp(result,0.0,1.0);
 }

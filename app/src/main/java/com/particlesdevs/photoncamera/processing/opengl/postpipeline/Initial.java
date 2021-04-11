@@ -59,8 +59,8 @@ public class Initial extends Node {
         //BL[1]+=basePipeline.mParameters.noiseModeler.computeModel[1].second*(float)DynamicBL.precisionFactor/WP[1];
         //BL[2]+=basePipeline.mParameters.noiseModeler.computeModel[2].second*(float)DynamicBL.precisionFactor/WP[2];
 
-        glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
-        glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
+        //glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
+        //glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         float[][] cube = null;
         ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){

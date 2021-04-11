@@ -1,9 +1,9 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor;
 
+import android.graphics.Bitmap;
 import android.util.Log;
 
-import com.aparapi.Kernel;
-import com.aparapi.Range;
+import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
 public class Histogram {
     private static final int HIST_BINS = 256;
@@ -17,54 +17,18 @@ public class Histogram {
     public final float[] histb;
     public float gamma;
     public final float logAvgLuminance;
-    public Histogram(float[] f, int whPixels) {
-        int[] histv = new int[HIST_BINS];
-        int[] histx = new int[HIST_BINS];
-        int[] histy = new int[HIST_BINS];
-        int[] histz = new int[HIST_BINS];
-
+    public Histogram(Bitmap bmp, int whPixels) {
+        int[] histv;
+        int[] histx;
+        int[] histy;
+        int[] histz;
+        int[][] histin = HistogramRs.getHistogram(bmp);
+        histx = histin[0];
+        histy = histin[1];
+        histz = histin[2];
+        histv = histin[3];
         final double[] logTotalLuminance = {0d};
-        // Loop over all values
-        new Kernel(){
-            @Override
-            public void run() {
-                int i = getGlobalId(0)*4;
-                for (int j = 0; j < 3; j++) {
-                    sigma[j] += f[i + j];
-                }
-
-                int bin = (int) (f[i + 3] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histv[bin]++;
-
-                bin = (int) (f[i] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histx[bin]++;
-                bin = (int) (f[i + 1] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histy[bin]++;
-                bin = (int) (f[i + 2] * HIST_BINS);
-                if (bin < 0) bin = 0;
-                if (bin >= HIST_BINS) bin = HIST_BINS - 1;
-                histz[bin]++;
-
-                logTotalLuminance[0] += Math.log(f[i + 3] + EPSILON);
-            }
-        }.execute(Range.create(f.length/4));
-
-        new Kernel() {
-            @Override
-            public void run() {
-                int w = getGlobalId(0);
-                if (w - 1 >= 0 && w + 1 < histv.length)
-                 histv[w] = (histv[w]*2 + histv[w - 1] + histv[w + 1]) / 4;
-            }
-        }.execute(Range.create(histv.length));
-
-        logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / f.length);
+        logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / (whPixels*4));
         for (int j = 0; j < 3; j++) {
             sigma[j] /= whPixels;
         }

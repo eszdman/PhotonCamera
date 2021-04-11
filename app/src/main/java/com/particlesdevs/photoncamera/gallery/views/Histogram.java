@@ -5,8 +5,8 @@ import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.view.View;
-import com.aparapi.Kernel;
-import com.aparapi.Range;
+
+import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
 public class Histogram extends View {
     private HistogramLoadingListener sHistogramLoadingListener;
@@ -21,37 +21,17 @@ public class Histogram extends View {
 
     public static HistogramModel analyze(Bitmap bitmap) {
         int size = 256;
-        int[][] colorsMap = new int[3][size];
+        int[][] colorsMap;
         int maxY = 0;
         int[] imgarr = new int[bitmap.getWidth() * bitmap.getHeight()];
         bitmap.getPixels(imgarr, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-        new Kernel() {
-            @Override
-            public void run() {
-                int w = getGlobalId(0);
-                int h = getGlobalId(1);
-                int rgba = imgarr[w + h * bitmap.getWidth()];
-                colorsMap[0][((rgba) & 0xff)]++;
-                colorsMap[1][((rgba >> 8) & 0xff)]++;
-                colorsMap[2][((rgba >> 16) & 0xff)]++;
-            }
-        }.execute(Range.create2D(bitmap.getWidth(), bitmap.getHeight()));
+        colorsMap = HistogramRs.getHistogram(bitmap);
         //Find max
         for (int i = 0; i < size; i++) {
             maxY = Math.max(maxY, colorsMap[0][i]);
             maxY = Math.max(maxY, colorsMap[1][i]);
             maxY = Math.max(maxY, colorsMap[2][i]);
         }
-        new Kernel() {
-            @Override
-            public void run() {
-                int w = getGlobalId(0);
-                int h = getGlobalId(1);
-                if (w - 1 >= 0 && w + 1 < size)
-                    colorsMap[h][w] = (colorsMap[h][w] + colorsMap[h][w - 1] + colorsMap[h][w + 1]) / 3;
-            }
-        }.execute(Range.create2D(size, 3));
-//        bitmap.recycle();
         return new HistogramModel(size, colorsMap, maxY);
     }
 

@@ -60,7 +60,8 @@ public class Equalization extends Node {
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("stp",0);
         glProg.drawBlocks(r1);
-        float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
+        Bitmap bmp = glUtils.SaveProgResult(r1.mSize);
+        /*float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
         FloatBuffer fb = ByteBuffer.allocateDirect(brArr.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
@@ -68,8 +69,8 @@ public class Equalization extends Node {
         glReadPixels(0, 0, r1.mSize.x, r1.mSize.y, GL_RGBA, GL_FLOAT, fb.reset());
         fb.get(brArr);
         fb.reset();
-        r1.close();
-        return new Histogram(brArr, r1.mSize.x*r1.mSize.y);
+        r1.close();*/
+        return new Histogram(bmp, r1.mSize.x*r1.mSize.y);
     }
     private float pdf(float x,float sigma){
         return (float) (0.39894*Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
@@ -231,7 +232,7 @@ public class Equalization extends Node {
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         int cnt = 0;
-        for(int i =5; i<20;i++){
+        for(int i =5; i<30;i++){
             float x = i/256.f;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
@@ -242,7 +243,7 @@ public class Equalization extends Node {
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
         cnt = 0;
-        for(int i =5; i<20;i++){
+        for(int i =5; i<30;i++){
             float x = i/256.f;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];

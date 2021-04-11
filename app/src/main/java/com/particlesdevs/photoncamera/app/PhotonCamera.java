@@ -11,6 +11,7 @@ import android.graphics.drawable.Drawable;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.renderscript.RenderScript;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -54,6 +55,7 @@ public class PhotonCamera extends Application {
     private SupportedDevice mSupportedDevice;
     private SettingsManager mSettingsManager;
     private AssetLoader mAssetLoader;
+    private RenderScript mRS;
 
     @Nullable
     public static PhotonCamera getInstance(Context context) {
@@ -88,6 +90,10 @@ public class PhotonCamera extends Application {
 
     public static Specific getSpecific(){
         return sPhotonCamera.mSupportedDevice.specific;
+    }
+
+    public static RenderScript getRenderScript() {
+        return sPhotonCamera.mRS;
     }
 
     public static CaptureController getCaptureController() {
@@ -191,6 +197,7 @@ public class PhotonCamera extends Application {
         mParameters = new Parameters();
         mSupportedDevice = new SupportedDevice(mSettingsManager);
         mAssetLoader = new AssetLoader(this);
+        mRS = RenderScript.create(this);
     }
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {

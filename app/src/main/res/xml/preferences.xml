@@ -199,7 +199,7 @@
                 android:title="@string/shadows"
                 android:summary=""
                 android:defaultValue="@string/pref_gain_seekbar_default"
-                app:maxValue="3.0"
+                app:maxValue="2.0"
                 app:minValue="0.1"
                 app:isFloat="true"
                 app:stepPerUnit="10"

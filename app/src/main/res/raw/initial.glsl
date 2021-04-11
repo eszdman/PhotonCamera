@@ -43,6 +43,7 @@ out vec3 Output;
 #define x2 -3.1643f
 #define x3 1.2899f
 #define EPS (0.0008)
+#define FUSION 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import coords
 #import interpolation
@@ -254,16 +255,16 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
 
     //if(br>EPS){
-        float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
-        //model*=model;
-        //br=mix(br, pow(br,tonemapGain*br),model);
+    //float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
+    //model*=model;
+    //br=mix(br, pow(br,tonemapGain*br),model);
     //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
 
     //br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
     //br*=4.0;
 
     //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
-    br*=(clamp(((tonemapGain)),0.00,8.0) - 1.0)*0.25 + 1.0;
+    br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0) + 1.0;
 
 
 
@@ -285,9 +286,22 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    vec3 t;
     //float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
+
     float tonemapGain = 1.f;
-    //tonemapGain = mix(1.f,tonemapGain,1.5);
+    #if FUSION == 1
+    tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r/(sRGB.r+sRGB.g+sRGB.b);
+    t=texelFetch(InputBuffer, xy+ivec2(0,2), 0).rgb;
+    tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(0,2))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(2,0), 0).rgb;
+    tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(2,0))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(0,-2), 0).rgb;
+    tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(0,-2))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(-2,0), 0).rgb;
+    tonemapGain += textureBicubic(FusionMap,vec2(xy+ivec2(-2,0))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
+    tonemapGain = (tonemapGain/5.f)*(sRGB.r+sRGB.g+sRGB.b);
+    #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB,tonemapGain);
