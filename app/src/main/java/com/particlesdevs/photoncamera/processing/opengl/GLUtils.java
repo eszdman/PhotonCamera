@@ -438,7 +438,7 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
-    public void Convolve(GLTexture in, GLTexture out, float[] kernel, boolean centered){
+    public void Convolve(GLTexture in, GLTexture out, float[] kernel, boolean centered,boolean abs){
         String center = "";
         if(centered) center = "Output += 0.5;\n";
         glProg.useProgram("#version 300 es\n" +
@@ -451,20 +451,49 @@ public class GLUtils {
                 "out tvar Output;\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,-1),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,0),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,1),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,-1),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,0),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,1),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,-1),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,0),0)"+in.mFormat.getTemExt()+");\n" +
-                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,1),0)"+in.mFormat.getTemExt()+");\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,-1),0)"+in.mFormat.getTemExt()+")*kernel[0][0];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,0),0)"+in.mFormat.getTemExt()+")*kernel[0][1];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(-1,1),0)"+in.mFormat.getTemExt()+")*kernel[0][2];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,-1),0)"+in.mFormat.getTemExt()+")*kernel[1][0];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,0),0)"+in.mFormat.getTemExt()+")*kernel[1][1];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(0,1),0)"+in.mFormat.getTemExt()+")*kernel[1][2];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,-1),0)"+in.mFormat.getTemExt()+")*kernel[2][0];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,0),0)"+in.mFormat.getTemExt()+")*kernel[2][1];\n" +
+                "    Output += tvar(texelFetch(InputBuffer, xy+ivec2(1,1),0)"+in.mFormat.getTemExt()+")*kernel[2][2];\n" +
                         center+
                 //"    Output/=9.0;" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("kernel",kernel);
+        glProg.drawBlocks(out,out.mSize);
+        glProg.closed = true;
+    }
+    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical){
+        String stepping = "#define stepping(i) (ivec2(-1,i))\n"+"#define stepping2(i) (ivec2(1,i))\n"+"#define stepping0(i) (ivec2(0,i))\n";
+        if(vertical) stepping = "#define stepping(i) (ivec2(i,-1))\n"+"#define stepping2(i) (ivec2(i,1))\n"+"#define stepping0(i) (ivec2(i,0))\n";
+        glProg.setDefine("INSIZE",in.mSize);
+        glProg.useProgram("#version 300 es\n" +
+                "precision highp "+in.mFormat.getTemSamp()+";\n" +
+                "precision highp float;\n" +
+                "#define tvar "+in.mFormat.getTemVar()+"\n" +
+                "#define tscal "+in.mFormat.getScalar()+"\n" +
+                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
+                "#define SIZE " +size+"\n"+
+                "#define INSIZE " +"1,1"+"\n"+
+                stepping+
+                "#import coords\n"+
+                "out tvar Output;\n" +
+                "void main() {\n" +
+                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
+                " for(int i =-SIZE; i<SIZE;i++){" +
+                "  float dist2 = 1.0+4.0*abs(float(i)/float(SIZE));\n" +
+                "  Output+=tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")-" +
+                "  tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")/dist2;\n" +
+                //" Output+=tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+");\n"+
+                " }\n"+
+                "    Output/=float(SIZE);" +
+                "}\n");
+        glProg.setTexture("InputBuffer",in);
         glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
     }

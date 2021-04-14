@@ -40,8 +40,7 @@ public class RUtils {
         return allocate;
     }
     public Allocation allocateO(Type type){
-        Allocation allocate = Allocation.createTyped(rs,type);
-        return allocate;
+        return Allocation.createTyped(rs,type);
     }
     public Type CreateRaw(Point size){
         return Type.createXY(rs,Element.U16(rs),size.x,size.y);

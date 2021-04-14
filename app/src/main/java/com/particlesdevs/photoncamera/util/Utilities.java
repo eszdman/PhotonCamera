@@ -107,8 +107,11 @@ public class Utilities {
 
     }
 
-    public static Point downScale(Point in, int downScale){
-        return new Point(in.x/downScale,in.y/downScale);
+    public static Point div(Point in, int divider){
+        return new Point(in.x/divider,in.y/divider);
+    }
+    public static Point mpy(Point in, int mpy){
+        return new Point(in.x*mpy,in.y*mpy);
     }
     public static Point addP(Point in, int add){
         return new Point(in.x+add,in.y+add);

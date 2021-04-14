@@ -1,32 +1,28 @@
 #version 300 es
 precision mediump float;
 precision mediump sampler2D;
-uniform sampler2D InputBuffer22;
-uniform sampler2D MainBuffer22;
-uniform sampler2D InputBuffer88;
-uniform sampler2D MainBuffer88;
-uniform sampler2D InputBuffer32;
-uniform sampler2D MainBuffer32;
-uniform sampler2D InputBuffer128;
-uniform sampler2D MainBuffer128;
-uniform sampler2D AlignVectors;
-uniform int yOffset;
+uniform sampler2D MainBuffer;
+uniform sampler2D InputBuffer;
+uniform usampler2D AlignVectors;
+#define distribute(x,dev,sigma) (abs(x-dev))
 #define MIN_NOISE 0.1f
 #define MAX_NOISE 0.7f
 #define TILESIZE (32)
+#define FRAMECOUNT 15
 out float Output;
-#import interpolation
-#import coords
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
-    vec2 outsize = vec2(textureSize(MainBuffer22, 0))/2.0;
-    ivec2 align = ivec2(texture(AlignVectors, vec2(gl_FragCoord.xy)/outsize).rg*float(TILESIZE)*256.0);
-    vec2 aligned = vec2(mirrorCoords(xy*2 + align,ivec4(0,0,ivec2(outsize*2.0))))/(outsize*2.0);
-    Output =
-    sqrt(abs(textureBicubicHardware(InputBuffer128,aligned).a-textureBicubicHardware(MainBuffer128,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer32,aligned).a-textureBicubicHardware(MainBuffer32,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer88,aligned).a-textureBicubicHardware(MainBuffer88,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer22,aligned).a-textureBicubicHardware(MainBuffer22,vec2(gl_FragCoord.xy)*2.0).a));
-    Output = texture(MainBuffer22,aligned).a*0.1;
+    ivec2 xyFrame = ivec2(gl_FragCoord.xy*float(TILESIZE/2));
+    vec2 dist = vec2(0.0);
+    ivec2 shift = ivec2(ivec2(texelFetch(AlignVectors,(xy), 0).rg)-ivec2(16384));
+    vec2 in2;
+    for (int i=-TILESIZE/3;i<TILESIZE/3;i++){
+        for (int j=-TILESIZE/3;j<TILESIZE/3;j++){
+            in2 = texelFetch(InputBuffer, ((xyFrame+shift+ivec2(i, j))), 0).rg;
+            dist+= distribute(texelFetch(MainBuffer, ((xyFrame+ivec2(i, j))), 0).rg, in2, 0.1);
+        }
+    }
+    dist += ((float(texelFetch(AlignVectors, xy, 0).b)/1024.0));
+    Output = ((dist.r+dist.g)/float(FRAMECOUNT))+0.25;
+    //Output = ((float(texelFetch(AlignVectors, xy, 0).b)/1024.0))/float(FRAMECOUNT) + 0.25;
 }

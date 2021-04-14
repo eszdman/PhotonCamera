@@ -4,21 +4,21 @@ import android.graphics.Point;
 import android.renderscript.Allocation;
 import android.renderscript.Int2;
 import android.renderscript.RenderScript;
-import android.renderscript.Script;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.ScriptC_align;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
+import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.BoxDown;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.GaussianResize;
-import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.Arrays;
 
 import static com.particlesdevs.photoncamera.util.Utilities.addP;
-import static com.particlesdevs.photoncamera.util.Utilities.downScale;
+import static com.particlesdevs.photoncamera.util.Utilities.div;
 
 public class Align {
     private RUtils rUtils;
@@ -32,42 +32,52 @@ public class Align {
     private Allocation refDown32;
     private Allocation refDown128;
 
+    private ByteBuffer refBuff2;
+
     private Allocation inputDown2;
     private Allocation inputDown8;
     private Allocation inputDown32;
     private Allocation inputDown128;
 
+
+
     private Allocation align128,align32,align8,align2;
 
     private Point rawSize;
     public static int TILESIZE = 256;
+    private static final String TAG = "AlignRS";
     public Align(Point rawSize,ByteBuffer referenceFrame){
         this.rawSize = rawSize;
         rs = PhotonCamera.getRenderScript();
+        GLCoreBlockProcessing glCoreBlockProcessing = new GLCoreBlockProcessing(new Point(1,1),new GLFormat(GLFormat.DataType.FLOAT_16), GLCoreBlockProcessing.Allocate.None);
         rUtils = new RUtils(rs);
-        gaussianResize = new GaussianResize();
-        boxDown = new BoxDown();
+        gaussianResize = new GaussianResize(glCoreBlockProcessing);
+        boxDown = new BoxDown(glCoreBlockProcessing);
         align = new ScriptC_align(rs);
+        Log.d(TAG,"InputBuffPointer->"+referenceFrame.position()+" capacity->"+referenceFrame.capacity()+ " remaining->"+referenceFrame.remaining());
+        refDown2 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,2)));
+        Log.d(TAG,"InputBuffPointer2->"+refDown2.getByteBuffer().position()+" capacity->"+refDown2.getByteBuffer().capacity()+ " remaining->"+refDown2.getByteBuffer().remaining());
+        ByteBuffer buffer = ByteBuffer.allocate(refDown2.getByteBuffer().remaining());
+        BoxDown(referenceFrame,buffer);
+        PrintVectors(buffer);
 
-        refDown2 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,2)));
-        BoxDown(referenceFrame,refDown2);
-        refDown8 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,8)));
+        refDown8 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,8)));
         GaussDown(refDown2,refDown8);
-        refDown32 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,32)));
+        refDown32 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,32)));
         GaussDown(refDown8,refDown32);
-        refDown128 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,128)));
+        refDown128 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,128)));
         GaussDown(refDown32,refDown128);
 
-        inputDown2 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,2)));
-        inputDown8 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,8)));
-        inputDown32 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,32)));
-        inputDown128 = rUtils.allocateO(rUtils.CreateF16(downScale(rawSize,128)));
+        inputDown2 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,2)));
+        inputDown8 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,8)));
+        inputDown32 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,32)));
+        inputDown128 = rUtils.allocateO(rUtils.CreateF16(div(rawSize,128)));
 
         int added = 1;
-        align2 = rUtils.allocateO(rUtils.CreateU16_2(addP(downScale(rawSize,2*TILESIZE),added)));
-        align8 = rUtils.allocateO(rUtils.CreateU16_2(addP(downScale(rawSize,8*TILESIZE),added)));
-        align32 = rUtils.allocateO(rUtils.CreateU16_2(addP(downScale(rawSize,32*TILESIZE),added)));
-        align128 = rUtils.allocateO(rUtils.CreateU16_2(addP(downScale(rawSize,128*TILESIZE),added)));
+        align2 = rUtils.allocateO(rUtils.CreateU16_2(addP(div(rawSize,2*TILESIZE),added)));
+        align8 = rUtils.allocateO(rUtils.CreateU16_2(addP(div(rawSize,8*TILESIZE),added)));
+        align32 = rUtils.allocateO(rUtils.CreateU16_2(addP(div(rawSize,32*TILESIZE),added)));
+        align128 = rUtils.allocateO(rUtils.CreateU16_2(addP(div(rawSize,128*TILESIZE),added)));
 
 
 
@@ -85,9 +95,12 @@ public class Align {
         gaussianResize.Run();
     }
     private void BoxDown(ByteBuffer inp, Allocation outp){
+        BoxDown(inp,outp.getByteBuffer());
+    }
+    private void BoxDown(ByteBuffer inp, ByteBuffer outp){
         boxDown.inputB = inp;
         boxDown.sizeIn = rawSize;
-        boxDown.Output = outp.getByteBuffer();
+        boxDown.Output = outp;
         boxDown.Run();
     }
     private void BoxDown(Allocation inp, Allocation outp){
@@ -138,7 +151,7 @@ public class Align {
         ShortBuffer shortBuffer = in.asShortBuffer();
         short[] sh= new short[shortBuffer.capacity()];
         shortBuffer.get(sh);
-        Log.d("AlignRS","Alignments->"+ Arrays.toString(sh));
+        Log.d(TAG,"PrintVectors->"+ Arrays.toString(sh));
     }
 
     public void EndAlign(){

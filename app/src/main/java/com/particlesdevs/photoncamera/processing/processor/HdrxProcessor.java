@@ -191,13 +191,13 @@ public class HdrxProcessor extends ProcessorBase {
 
         ByteBuffer output = null;
         Parameters parameters = PhotonCamera.getParameters();
-        //InterpolateGainMap interpolateGainMap;
+        InterpolateGainMap interpolateGainMap;
         if (!debugAlignment) {
-            /*interpolateGainMap = new InterpolateGainMap(new Point(width, height));
+            interpolateGainMap = new InterpolateGainMap(new Point(width, height));
             interpolateGainMap.parameters = PhotonCamera.getParameters();
             interpolateGainMap.Run();
             interpolateGainMap.close();
-            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);*/
+            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
 
             output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 150*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
                     ,parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);

@@ -1,7 +1,8 @@
 #version 300 es
 precision mediump float;
 precision mediump sampler2D;
-uniform sampler2D InputBuffer;
+precision mediump usampler2D;
+uniform usampler2D InputBuffer;
 uniform sampler2D GainMap;
 uniform int CfaPattern;
 uniform int yOffset;

@@ -16,8 +16,8 @@ import java.nio.ByteBuffer;
 public class GaussianResize extends GLOneScript {
     public ByteBuffer inputB;
     public Point sizeIn;
-    public GaussianResize() {
-        super(new Point(1,1), new GLCoreBlockProcessing(new Point(1,1),new GLFormat(GLFormat.DataType.FLOAT_16), GLCoreBlockProcessing.Allocate.None), R.raw.gaussdown44, "GaussianResize");
+    public GaussianResize(GLCoreBlockProcessing glCoreBlockProcessing) {
+        super(new Point(1,1), glCoreBlockProcessing, R.raw.gaussdown44, "GaussianResize");
     }
 
     @Override
@@ -30,8 +30,6 @@ public class GaussianResize extends GLOneScript {
 
     @Override
     public void Run() {
-        Point sizeo = new Point(size);
-        glOne = new GLOneParams(sizeo, null, new GLFormat(GLFormat.DataType.FLOAT_16));
         Compile();
         startT();
         StartScript();

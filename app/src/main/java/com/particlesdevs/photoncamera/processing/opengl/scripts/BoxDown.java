@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl.scripts;
 
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
@@ -16,8 +17,8 @@ import java.nio.ByteBuffer;
 public class BoxDown extends GLOneScript {
     public ByteBuffer inputB;
     public Point sizeIn;
-    public BoxDown() {
-        super(new Point(1,1), new GLCoreBlockProcessing(new Point(1,1),new GLFormat(GLFormat.DataType.FLOAT_16), GLCoreBlockProcessing.Allocate.None), R.raw.boxdown221, "BoxDown");
+    public BoxDown(GLCoreBlockProcessing glCoreBlockProcessing) {
+        super(new Point(1,1), glCoreBlockProcessing, R.raw.boxdown221, "BoxDown");
     }
 
     @Override
@@ -30,8 +31,6 @@ public class BoxDown extends GLOneScript {
 
     @Override
     public void Run() {
-        Point sizeo = new Point(size);
-        glOne = new GLOneParams(sizeo, null, new GLFormat(GLFormat.DataType.FLOAT_16));
         Compile();
         startT();
         StartScript();
