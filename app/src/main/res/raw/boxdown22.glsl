@@ -27,9 +27,9 @@ void main() {
     outp.g = (outp.r+g)/2.0;
     outp.r = (outp.b+g)/2.0;
 
+    outp*=texture(GainMap,vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).g;
     outp.r +=0.0001;
     outp.g +=0.0001;
-    outp*=texture(GainMap,vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).g;
     //outp.rgb/=outp.a;
 
     //outp.a-=outp.r+outp.g+outp.b;

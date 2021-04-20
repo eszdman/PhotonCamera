@@ -86,6 +86,15 @@ uvec2 median9(uvec2 v[9]) {
     mnmx3(v[3], v[4], v[8]);
     return v[4];
 }
+ivec2 median9(ivec2 v[9]) {
+    ivec2 temp;
+    // Starting with a subset of size 6, remove the min and max each time
+    mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
+    mnmx5(v[1], v[2], v[3], v[4], v[6]);
+    mnmx4(v[2], v[3], v[4], v[7]);
+    mnmx3(v[3], v[4], v[8]);
+    return v[4];
+}
 vec4 median7(vec4 v[7]) {
     vec4 temp;
     // Starting with a subset of size 6, remove the min and max each time

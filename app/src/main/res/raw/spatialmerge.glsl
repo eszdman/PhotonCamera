@@ -11,7 +11,7 @@ uniform sampler2D MainBuffer;
 
 uniform sampler2D SumWeights;
 uniform sampler2D Weight;
-uniform usampler2D AlignVectors;
+uniform isampler2D AlignVectors;
 uniform int yOffset;
 uniform float alignk;
 uniform uvec2 rawsize;
@@ -46,34 +46,54 @@ void main() {
     //float dist2 = alignf.x*alignf.x+alignf.y*alignf.y;
     //float dist2 = smoothstep(0.0,2.0,abs(alignf.x)+abs(alignf.y));
     //float windoww = 1.0 - (weight)*5.6 - 0.4;
-    float sumweights = texelFetch(SumWeights, (xy/(TILESIZE*2)), 0).r + 1.0;
+
     float windoww = 1.0;
-    windoww = texelFetch(Weight, (xy/(TILESIZE*2)), 0).r/sumweights;
-    windoww = clamp(windoww,0.0,1.0);
+    windoww = texelFetch(Weight, (xy/(TILESIZE*2)), 0).r;
     //windoww = clamp(windoww,0.00,1.0);
 
     //windoww = float(int(windoww*100.0))/100.0;
     //float outp = (((texelFetch(InputBuffer, aligned, 0).x))*float((windoww))+((texelFetch(OutputBuffer, (xy), 0).x))*float((1.0-windoww)));
     ivec2 outsize = ivec2(textureSize(OutputBuffer, 0));
     ivec2 state = xy%2;
-    //vec2 inp = (vec2(0.5)-textureBicubicHardware(AlignVectors, (vec2(gl_FragCoord.xy))/vec2(textureSize(OutputBuffer, 0))).rg)*float(TILESIZE*8);
-    /*vec2 inp = (texture(AlignVectors, (vec2(gl_FragCoord.xy))/vec2(textureSize(OutputBuffer, 0))).rg);
-    if(abs(inp.r) > 0.00001) {
-        inp.r = 1.0/inp.r;
+
+    ivec2 alignvecSize = ivec2(textureSize(AlignVectors, 0));
+    ivec2 shiftAl = ivec2(0,0);
+    ivec2 shiftK;
+    /*
+    shiftK = ivec2(0,-1);
+    float inpw = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftK,alignvecSize), 0).r;
+    if(windoww > inpw) {
+        windoww = inpw;
+        shiftAl = shiftK;
     }
-    if(abs(inp.g)  > 0.00001){
-        inp.g = 1.0/inp.g;
+    shiftK = ivec2(-1,0);
+    inpw = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftK,alignvecSize), 0).r;
+    if(windoww > inpw) {
+        windoww = inpw;
+        shiftAl = shiftK;
+    }
+    shiftK = ivec2(1,0);
+    inpw = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftK,alignvecSize), 0).r;
+    if(windoww > inpw) {
+        windoww = inpw;
+        shiftAl = shiftK;
+    }
+    shiftK = ivec2(0,1);
+    inpw = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftK,alignvecSize), 0).r;
+    if(windoww > inpw) {
+        windoww = inpw;
+        shiftAl = shiftK;
     }*/
-    //vec2 inp = (vec2(1.0)/(texture(AlignVectors, (vec2(gl_FragCoord.xy))/vec2(textureSize(OutputBuffer, 0))).rg));
-    //vec2 inp = vec2(1.0)/vec2(texelFetch(AlignVectors, (xy/(TILESIZE*2)), 0).rg);
-    ivec2 align = ivec2(texelFetch(AlignVectors, (xy/(TILESIZE*2)), 0).rg)-ivec2(16384);
-    align = mirrorCoords((xy/2)+align,ivec4(0,0,(outsize-1)/2))*2 + state;
-    //windoww/=float(number);
-    //windoww/=4.0;
-    //windoww*=alignk;
+    ivec2 align = ivec2(texelFetch(AlignVectors, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).rg);
+    align = mirrorCoords2((xy/2)+align,ivec2((outsize-1)/2))*2 + state;
+    float sumweights = texelFetch(SumWeights, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r + 1.0;
+    windoww = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r/sumweights;
+    windoww = 1.0-clamp(windoww-0.1,0.0,0.12)/0.12;
+
+
     //if(number == 1){
     //    Output = (texelFetch(OutputBuffer, xy, 0).x)/float(number)+((texelFetch(InputBuffer, (align), 0).x))*windoww;
     //} else
     //Output = (texelFetch(OutputBuffer, xy, 0).x)/sumweights+((texelFetch(InputBuffer, (align), 0).x))*windoww/sumweights;
-    Output = mix(((texelFetch(OutputBuffer, xy, 0).x)), ((texelFetch(InputBuffer, (align), 0).x)), windoww);
+    Output = mix(((texelFetch(OutputBuffer, xy, 0).x)),((texelFetch(InputBuffer, (align), 0).x)), windoww/float(number));
 }

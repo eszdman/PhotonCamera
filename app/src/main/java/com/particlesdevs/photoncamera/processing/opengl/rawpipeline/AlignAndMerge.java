@@ -14,8 +14,11 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -88,8 +91,8 @@ public class AlignAndMerge extends Node {
 
         //glUtils.median(basePipeline.main3, out,new Point(1,1));
 
-        glUtils.ConvDiff(out,outV,tileSize/4,true);
-        glUtils.ConvDiff(out,outH,tileSize/4,false);
+        glUtils.ConvDiff(out,outV,tileSize/3,true,false);
+        glUtils.ConvDiff(out,outH,tileSize/3,false,false);
 
         //glUtils.SaveProgResult(output.mSize,"aligninput");
         //GLTexture laplaced = glUtils.ops(blur,output,"-");
@@ -107,8 +110,8 @@ public class AlignAndMerge extends Node {
         } else{
             glUtils.interpolate(input, out, 1.0 / 4.0);
         }
-        glUtils.ConvDiff(out,outV,tileSize/4,true);
-        glUtils.ConvDiff(out,outH,tileSize/4,false);
+        glUtils.ConvDiff(out,outV,tileSize/3,true,false);
+        glUtils.ConvDiff(out,outH,tileSize/3,false,false);
         //glUtils.median(basePipeline.main3,out, new Point(1,1));
     }
 
@@ -189,6 +192,7 @@ public class AlignAndMerge extends Node {
         glProg.setTexture("InputBuffer",brTex2);
         glProg.setTexture("MainBuffer",BaseFrame2);
         glProg.drawBlocks(alignVectors[i-1],8);
+        alignVectorsTemporal[i-1] = alignVectors[i-1].textureBuffer(alignVectors[i-1].mFormat,true).asShortBuffer();
     }
 
     private void Weights() {
@@ -206,6 +210,32 @@ public class AlignAndMerge extends Node {
         }
         Weights = t;
     }
+    private int MirrorCoords(int in){
+        if(in < 0) {
+            in = -in;
+        } else {
+            if(in > alignVectorsTemporal.length-1)
+                in = -in+alignVectorsTemporal.length-1;
+        }
+        in = Math.min(Math.max(in,0),alignVectorsTemporal.length-1);
+        return in;
+    }
+    private void FilterTemporal() {
+        for(int i = 0; i<alignVectorsTemporal.length;i++){
+            for(int j =0; j<alignVectorsTemporal[i].remaining();j++){
+                float k0 = alignVectorsTemporal[MirrorCoords(i-2)].asReadOnlyBuffer().get(j);
+                float k1 = alignVectorsTemporal[MirrorCoords(i-1)].asReadOnlyBuffer().get(j);
+                float k2 = alignVectorsTemporal[MirrorCoords(i)].get(j);
+                float k3 = alignVectorsTemporal[MirrorCoords(i+1)].asReadOnlyBuffer().get(j);
+                float k4 = alignVectorsTemporal[MirrorCoords(i+2)].asReadOnlyBuffer().get(j);
+                float pred = (k0+(k1) + k3+(k4))/4.f;
+                if(Math.max(pred,k2)/Math.min(pred,k2) > 1.5f) {
+                    Log.d("AlignAndMerge","Pred:"+pred+" initial:"+k2);
+                    alignVectorsTemporal[MirrorCoords(i)].put(j,(short) pred);
+                }
+            }
+        }
+    }
     private void Weight(int num,GLTexture InputFrame) {
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("FRAMECOUNT",images.size());
@@ -220,6 +250,12 @@ public class AlignAndMerge extends Node {
         //startT();
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.useProgram(R.raw.spatialmerge);
+        /*short[] bufin = new short[alignVectorsTemporal[num-1].remaining()];
+        alignVectorsTemporal[num-1].get(bufin);
+        Log.d("AlignAndMerge","Vectors->"+Arrays.toString(bufin));
+        GLTexture temporalFilteredVector = new GLTexture(alignVectors[num-1].mSize,alignVectors[num-1].mFormat,ShortBuffer.wrap(bufin));
+         */
+        GLTexture temporalFilteredVector = new GLTexture(alignVectors[num-1].mSize,alignVectors[num-1].mFormat,alignVectorsTemporal[num-1]);
         glProg.setTexture("AlignVectors", alignVectors[num-1]);
         glProg.setTexture("SumWeights", Weights);
         glProg.setTexture("Weight", Weight[num-1]);
@@ -234,11 +270,12 @@ public class AlignAndMerge extends Node {
             glProg.setTexture("OutputBuffer", BaseFrame);
         } else glProg.setTexture("OutputBuffer", Output);
         glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
-        glProg.setVar("number",num);
+        glProg.setVar("number",num+1);
         glProg.setVarU("rawsize", rawSize);
         glProg.setVarU("alignsize", alignVectors[0].mSize);
         GLTexture output = basePipeline.getMain();
         glProg.drawBlocks(output);
+        temporalFilteredVector.close();
         //glProg.drawBlocks(Output,128,true);
         //Output.close();
         //endT("Merge");
@@ -264,10 +301,12 @@ public class AlignAndMerge extends Node {
     GLTexture brTex2H, brTex8H, brTex32H,brTex128H;
     GLTexture brTex2V, brTex8V, brTex32V,brTex128V;
     GLTexture[] alignVectors;
+    ShortBuffer[] alignVectorsTemporal;
+    GLTexture alignVector;
     GLTexture Weights,WeightsAlt;
     GLTexture[] Weight;
     GLTexture GainMap;
-    final int tileSize = 80;
+    final int tileSize = 64;
     @Override
     public void Run() {
         glProg = basePipeline.glint.glProgram;
@@ -282,7 +321,7 @@ public class AlignAndMerge extends Node {
         GainMap = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         Log.d("AlignAndMerge", "Corrected raw elapsed time:" + (System.currentTimeMillis() - time) + " ms");
-        BaseFrame2 = new GLTexture(BaseFrame.mSize.x/2,BaseFrame.mSize.y/2,new GLFormat(GLFormat.DataType.FLOAT_16,4),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        BaseFrame2 = new GLTexture(BaseFrame.mSize.x/2,BaseFrame.mSize.y/2,new GLFormat(GLFormat.DataType.FLOAT_16,2),GL_LINEAR,GL_CLAMP_TO_EDGE);
         BaseFrame8 = new GLTexture(BaseFrame2.mSize.x/4, BaseFrame2.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
         BaseFrame32 = new GLTexture(BaseFrame8.mSize.x/4, BaseFrame8.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
         BaseFrame128 = new GLTexture(BaseFrame32.mSize.x/4, BaseFrame32.mSize.y/4, BaseFrame2.mFormat,GL_LINEAR,GL_CLAMP_TO_EDGE);
@@ -328,10 +367,12 @@ public class AlignAndMerge extends Node {
         int added = 1;
         alignVectors = new GLTexture[images.size()-1];
         Weight = new GLTexture[images.size()-1];
+        alignVectorsTemporal = new ShortBuffer[images.size()-1];
         for(int i = 1; i<images.size();i++){
-            alignVectors[i-1] = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.UNSIGNED_16, 4));
+            alignVectors[i-1] = new GLTexture(new Point((brTex2.mSize.x / (tileSize))+added, (brTex2.mSize.y / (tileSize))+added), new GLFormat(GLFormat.DataType.SIGNED_16, 4));
             Weight[i-1] = new GLTexture(alignVectors[i-1].mSize,new GLFormat(GLFormat.DataType.FLOAT_16),GL_LINEAR,GL_CLAMP_TO_EDGE);
         }
+        alignVector = new GLTexture(alignVectors[0]);
         medium = new GLTexture(new Point((brTex8.mSize.x / (tileSize))+added, (brTex8.mSize.y / (tileSize))+added), alignVectors[0].mFormat);
         small = new GLTexture(new Point((brTex32.mSize.x / (tileSize))+added, (brTex32.mSize.y / (tileSize))+added),alignVectors[0].mFormat);
         vsmall = new GLTexture(new Point((brTex128.mSize.x / (tileSize))+added, (brTex128.mSize.y / (tileSize))+added), alignVectors[0].mFormat);
@@ -349,6 +390,7 @@ public class AlignAndMerge extends Node {
             Weight(i,inputraw);
         }
         Weights();
+        //FilterTemporal();
         for (int i = 1; i < images.size(); i++) {
             CorrectedRaw(inputraw,i);
             if(i!=0) images.get(i).image.close();

@@ -468,9 +468,12 @@ public class GLUtils {
         glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
     }
-    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical){
+    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring){
         String stepping = "#define stepping(i) (ivec2(-1,i))\n"+"#define stepping2(i) (ivec2(1,i))\n"+"#define stepping0(i) (ivec2(0,i))\n";
         if(vertical) stepping = "#define stepping(i) (ivec2(i,-1))\n"+"#define stepping2(i) (ivec2(i,1))\n"+"#define stepping0(i) (ivec2(i,0))\n";
+        String blurringS = "  Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")-" +
+                "  tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"))/dist2;\n";
+        if(blurring) blurringS = " Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"));\n";
         glProg.setDefine("INSIZE",in.mSize);
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
@@ -487,11 +490,9 @@ public class GLUtils {
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 " for(int i =-SIZE; i<SIZE;i++){" +
                 "  float dist2 = 1.0+4.0*abs(float(i)/float(SIZE));\n" +
-                "  Output+=tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")-" +
-                "  tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")/dist2;\n" +
-                //" Output+=tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+");\n"+
+                blurringS+
                 " }\n"+
-                "    Output/=float(SIZE);" +
+                "    Output=(Output-abs(tvar(0.5)-tvar(texelFetch(InputBuffer, xy,0))"+in.mFormat.getTemExt()+"))/float(SIZE+1);" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.drawBlocks(out,out.mSize);

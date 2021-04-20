@@ -118,10 +118,20 @@ public class GLTexture implements AutoCloseable {
         checkEglError("Tex bind");
     }
 
+    public ByteBuffer textureBuffer(GLFormat outputFormat,boolean direct) {
+        ByteBuffer buffer;
+        if(!direct) buffer = ByteBuffer.allocate(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
+        else buffer = ByteBuffer.allocateDirect(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
+        glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
+        return buffer;
+    }
     public ByteBuffer textureBuffer(GLFormat outputFormat) {
         ByteBuffer buffer = ByteBuffer.allocate(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
         glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
         return buffer;
+    }
+    public int getByteCount(){
+        return mSize.x * mSize.y * mFormat.mFormat.mSize * mFormat.mChannels;
     }
 
     @androidx.annotation.NonNull
