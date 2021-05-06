@@ -13,6 +13,7 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
@@ -37,7 +38,7 @@ public class HdrxProcessor extends ProcessorBase {
     private int alignAlgorithm;
     private boolean saveRAW;
     private CameraMode cameraMode;
-    private ArrayList<Float> BurstShakiness;
+    private ArrayList<GyroBurst> BurstShakiness;
 
 
     public HdrxProcessor(ProcessingEventsListener processingEventsListener) {
@@ -52,7 +53,7 @@ public class HdrxProcessor extends ProcessorBase {
 
     public void start(Path dngFile, Path jpgFile,
                       ParseExif.ExifData exifData,
-                      ArrayList<Float> BurstShakiness,
+                      ArrayList<GyroBurst> BurstShakiness,
                       ArrayList<Image> imageBuffer,
                       int imageFormat,
                       int cameraRotation,
@@ -115,12 +116,12 @@ public class HdrxProcessor extends ProcessorBase {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        float avr = BurstShakiness.get(0);
+        float avr = BurstShakiness.get(0).shakiness;
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = BurstShakiness.get(i);
+            frame.luckyParameter = BurstShakiness.get(i).shakiness;
             frame.luckyParameter = (frame.luckyParameter + avr) / 2;
             avr = frame.luckyParameter;
             frame.image = mImageFramesToProcess.get(i);
@@ -202,23 +203,8 @@ public class HdrxProcessor extends ProcessorBase {
             output = Wrapper.processFrame(35*(0.6f+denoiseLevel)/2.f, 150*denoiseLevel, 512,0.f, 0.f, 0.f, parameters.whiteLevel
                     ,parameters.whitePoint[0], parameters.whitePoint[1], parameters.whitePoint[2], parameters.cfaPattern);
         } else {
-            switch (alignAlgorithm){
-                case 1:{
-                    rawPipeline.alignAlgorithm = alignAlgorithm;
-                    output = rawPipeline.Run();
-                    break;
-                }
-                case 2:{
-                    Log.d(TAG,"Entering hybrid alignment");
-                    Align alignrs = new Align(new Point(width,height),images.get(0).buffer);
-                    alignrs.AlignFrame(images.get(1).buffer);
-
-                    rawPipeline.alignAlgorithm = alignAlgorithm;
-                    output = rawPipeline.Run();
-                    break;
-                }
-            }
-
+        rawPipeline.alignAlgorithm = alignAlgorithm;
+        output = rawPipeline.Run();
         }
         float[] oldBL = parameters.blackLevel.clone();
 

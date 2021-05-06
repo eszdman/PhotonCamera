@@ -30,9 +30,9 @@ public class Bayer2Float extends Node {
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         float[] BL = new float[3];
-        BL[0] = basePipeline.mParameters.noiseModeler.computeModel[0].second.floatValue();
+        /*BL[0] = basePipeline.mParameters.noiseModeler.computeModel[0].second.floatValue();
         BL[1] = basePipeline.mParameters.noiseModeler.computeModel[1].second.floatValue();
-        BL[2] = basePipeline.mParameters.noiseModeler.computeModel[2].second.floatValue();
+        BL[2] = basePipeline.mParameters.noiseModeler.computeModel[2].second.floatValue();*/
         glProg.setDefine("BLR",BL[0]);
         glProg.setDefine("BLG",BL[1]);
         glProg.setDefine("BLB",BL[2]);

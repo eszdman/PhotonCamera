@@ -6,8 +6,11 @@ uniform sampler2D InputBufferH;
 uniform sampler2D MainBufferH;
 uniform sampler2D InputBufferV;
 uniform sampler2D MainBufferV;
-uniform sampler2D MainBuffer;
-uniform sampler2D InputBuffer;
+
+uniform sampler2D LowPassV;
+uniform sampler2D LowPassH;
+//uniform sampler2D MainBuffer;
+//uniform sampler2D InputBuffer;
 uniform isampler2D AlignVectors;
 uniform int yOffset;
 out ivec4 Output;
@@ -17,10 +20,11 @@ out ivec4 Output;
 #define PREVSCALE (2)
 #define INPUTSIZE 1,1
 #define LUCKYINPUT 0
+#define LOWPASSCOMBINE 0
+#define LOWPASSK 4
 #define OFFSET (0)
-#define MAXMP (2)
 #define MAXMOVE (4)
-#define SHARPMOVE (9)
+#define SHARPMOVE (6)
 #define FLT_MAX 3.402823466e+38
 #define M_PI 3.1415926535897932384626433832795
 
@@ -68,7 +72,7 @@ void main() {
     vec2 dist;
     float mindist = 0.0;
     for(int w = -SHARPMOVE;w<SHARPMOVE;w++){
-        float dist3 = 1.0+abs(float(w)/float(SHARPMOVE));
+        float dist3 = 3.0+abs(float(w)/float(SHARPMOVE));
         dist = vec2(0,0);
         for(int sh = -SCANSIZE/2;sh<SCANSIZE/2; sh++){
             dist+=texelFetch(MainBufferV, mirrorCoords2((xyFrame+ivec2(w, sh)),inbounds), 0).rg;
@@ -82,7 +86,7 @@ void main() {
     xyFrame.x+=shiftFrame.x;
     mindist = 0.0;
     for(int h = -SHARPMOVE;h<SHARPMOVE;h++){
-        float dist3 = 1.0+abs(float(h)/float(SHARPMOVE));
+        float dist3 = 3.0+abs(float(h)/float(SHARPMOVE));
         dist = vec2(0,0);
         for(int sw = -SCANSIZE/2;sw<SCANSIZE/2; sw++){
             dist+=texelFetch(MainBufferH, mirrorCoords2((xyFrame+ivec2(sw, h)),inbounds), 0).rg;
@@ -102,53 +106,56 @@ void main() {
     ivec2 shift = ivec2(0,0);
     vec2 in1;
     vec2 in2;
-    vec2 cachex[SCANSIZE+1];
-    vec2 cachey[SCANSIZE+1];
+    vec2 cachex[SCANSIZE];
+    vec2 cachey[SCANSIZE];
     for (int i=-SCANSIZE/2;i<SCANSIZE/2;i++){
         cachex[i+SCANSIZE/2] = texelFetch(MainBufferH, mirrorCoords2((xyFrame+ivec2(i, 0)),inbounds), 0).rg;
         cachey[i+SCANSIZE/2] = texelFetch(MainBufferV, mirrorCoords2((xyFrame+ivec2(0, i)),inbounds), 0).rg;
+        #if LOWPASSCOMBINE == 1
+        cachex[i+SCANSIZE/2] *= texelFetch(LowPassH, mirrorCoords2((xyFrame+ivec2(i, 0)),inbounds)/LOWPASSK, 0).rg;
+        cachey[i+SCANSIZE/2] *= texelFetch(LowPassV, mirrorCoords2((xyFrame+ivec2(0, i)),inbounds)/LOWPASSK, 0).rg;
+        #endif
     }
     vec2 disth = vec2(0.0);
     for(int h = -MAXMOVE;h<MAXMOVE;h++){
         disth = vec2(0.0);
         shift = ivec2(0, h)+prevAlign-OFFSET;
-        float dist3 = 0.5+abs(float(h)/float(MAXMOVE));
+        float dist3 = 6.0+abs(float(h)/float(MAXMOVE));
         for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
             float dist2 = 1.0+2.0*abs(float(t)/float(SCANSIZE));
             in2 = texelFetch(InputBufferH, mirrorCoords2((xyFrame+shift+ivec2(t, 0)),inbounds), 0).rg;
+            #if LOWPASSCOMBINE == 1
+            in2 *= texelFetch(LowPassH, mirrorCoords2((xyFrame+shift+ivec2(t, 0)),inbounds)/LOWPASSK, 0).rg;
+            #endif
             disth+=
-            distribute(cachex[t+SCANSIZE/2],in2, 0.1)/dist2;
+            distribute(cachex[t+SCANSIZE/2],in2, 0.1);///dist2;
         }
         disth*=dist3;
-        if((disth.r*disth.g) < mindist){
-            mindist = (disth.r*disth.g);
+        if((disth.r+disth.g) < mindist){
+            mindist = (disth.r+disth.g);
             outalign.y = h;
         }
     }
     mindist = float(FLT_MAX);
     for(int w = -MAXMOVE;w<MAXMOVE;w++){
         dist = vec2(0.0);
-        float dist3 = 0.5+abs(float(w)/float(MAXMOVE));
+        float dist3 = 6.0+abs(float(w)/float(MAXMOVE));
         shift = ivec2(w, outalign.y)+prevAlign-OFFSET;
         for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
             float dist2 = 1.0+2.0*abs(float(t)/float(SCANSIZE));
             in2 = texelFetch(InputBufferV, mirrorCoords2((xyFrame+shift+ivec2(0, t)),inbounds), 0).rg;
+            #if LOWPASSCOMBINE == 1
+            in2 *= texelFetch(LowPassV, mirrorCoords2((xyFrame+shift+ivec2(0, t)),inbounds)/LOWPASSK, 0).rg;
+            #endif
             dist+=
-            distribute(cachey[t+SCANSIZE/2],in2, 0.1)/dist2;
+            distribute(cachey[t+SCANSIZE/2],in2, 0.1);///dist2;
         }
         dist*=dist3;
-        if((dist.r*dist.g) < mindist){
-            mindist = (dist.r*dist.g);
+        if((dist.r+dist.g) < mindist){
+            mindist = (dist.r+dist.g);
             outalign.x = w;
         }
     }
-    /*dist = vec2(0.0);
-    for(int h0= -SCANSIZE/2;h0<SCANSIZE/2;h0++){
-        for(int w0= -SCANSIZE/2;w0<SCANSIZE/2;w0++){
-            dist+=distribute(texelFetch(MainBuffer, mirrorCoords((xyFrame+ivec2(h0, w0)), inbounds), 0).rg,
-            texelFetch(InputBuffer, mirrorCoords((xyFrame+shift+ivec2(h0, w0)), inbounds), 0).rg, 0.1);
-        }
-    }*/
     Output.rg = ivec2(outalign.x+prevAlign.x,outalign.y+prevAlign.y);
 
     Output.ba = shiftFrame;

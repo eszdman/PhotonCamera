@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl.rawpipeline;
 
 import android.media.Image;
+import android.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
@@ -29,8 +30,10 @@ public class RawPipeline extends GLBasePipeline {
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
         if(alignAlgorithm == 1)
         add(new AlignAndMerge());
-        if(alignAlgorithm == 2)
-            add(new HybridAlign());
+        if(alignAlgorithm == 2) {
+            Log.d("RawPipeline","Entering hybrid alignment");
+            add(new AlignAndMergeHybrid());
+        }
         return runAllRaw();
     }
 }

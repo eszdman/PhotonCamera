@@ -388,7 +388,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 //            stringMap.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
                 stringMap.put("ISO", String.valueOf(expoPair.iso));
 //            stringMap.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-                stringMap.put("Shakeness", String.valueOf(PhotonCamera.getGyro().getShakiness()));
+                stringMap.put("Shakiness", String.valueOf(PhotonCamera.getGyro().getShakiness()));
+                stringMap.put("TripodShakiness", String.valueOf(PhotonCamera.getGyro().tripodShakiness));
+                stringMap.put("Tripod", String.valueOf(PhotonCamera.getGyro().getTripod()));
                 stringMap.put("FrameNumber", String.valueOf(result.getFrameNumber()));
                 float[] temp = new float[3];
                 temp[0] = captureController.mPreviewTemp[0].floatValue();

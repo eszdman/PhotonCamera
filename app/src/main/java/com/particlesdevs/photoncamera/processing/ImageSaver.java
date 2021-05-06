@@ -15,6 +15,7 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.processor.HdrxProcessor;
 import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 import com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor;
@@ -159,7 +160,7 @@ public class ImageSaver {
         }
     }
 
-    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<Float> burstShakiness, int cameraRotation) {
+    public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
 
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = Util.newDNGFilePath();

@@ -1,6 +1,8 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_NEAREST;
@@ -96,7 +98,37 @@ public class GLFormat {
         mFormat = format;
         mChannels = channels;
     }
-
+    public Element getElement(RenderScript rs){
+        switch (mFormat){
+            case FLOAT_16: {
+                switch (mChannels) {
+                    case 1:
+                        return Element.F16(rs);
+                    case 2:
+                        return Element.F16_2(rs);
+                    case 3:
+                        return Element.F16_3(rs);
+                    case 4:
+                        return Element.F16_4(rs);
+                }
+                break;
+            }
+            case SIGNED_16: {
+                switch (mChannels) {
+                    case 1:
+                        return Element.I16(rs);
+                    case 2:
+                        return Element.I16_2(rs);
+                    case 3:
+                        return Element.I16_3(rs);
+                    case 4:
+                        return Element.I16_4(rs);
+                }
+                break;
+            }
+        }
+        return null;
+    }
     public int getGLFormatInternal() {
         switch (mFormat) {
             case NONE:

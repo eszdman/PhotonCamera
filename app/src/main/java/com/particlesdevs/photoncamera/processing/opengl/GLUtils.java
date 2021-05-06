@@ -5,6 +5,9 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.util.AssetLoader;
+import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -98,6 +101,20 @@ public class GLUtils {
         out.close();
         glProg.closed = true;
         return out2;
+    }
+    public void bluxVH(GLTexture in,GLTexture out, double size,boolean horizontal){
+        glProg.setDefine("tvar",in.mFormat.getTemVar());
+        glProg.setDefine("tscal",in.mFormat.getScalar());
+        glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
+        glProg.setDefine("INSIZE", Utilities.addP(in.mSize,0));
+        glProg.setDefine("SIZE",(float)size*0.5f);
+        glProg.setDefine("KSIZE",((int)size - 1)/2);
+        if(horizontal) glProg.setDefine("INP","tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i,0)), 0)"+out.mFormat.getTemExt()+");");
+        else glProg.setDefine("INP","tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,i)), 0)"+out.mFormat.getTemExt()+");");
+        glProg.useProgram(PhotonCamera.getAssetLoader().getString("blurvh.glsl"));
+        glProg.setTexture("InputBuffer",in);
+        glProg.drawBlocks(out,out.mSize);
+        glProg.closed = true;
     }
     public GLTexture blursmall(GLTexture in, int kersize,double size){
         GLTexture out = new GLTexture(in);
@@ -469,33 +486,37 @@ public class GLUtils {
         glProg.closed = true;
     }
     public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring){
-        String stepping = "#define stepping(i) (ivec2(-1,i))\n"+"#define stepping2(i) (ivec2(1,i))\n"+"#define stepping0(i) (ivec2(0,i))\n";
-        if(vertical) stepping = "#define stepping(i) (ivec2(i,-1))\n"+"#define stepping2(i) (ivec2(i,1))\n"+"#define stepping0(i) (ivec2(i,0))\n";
-        String blurringS = "  Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")-" +
-                "  tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"))/dist2;\n";
+        String blurringS = "float dist2 = 1.0+4.0*abs(float(i)/float(SIZE))+4.0*abs(float(j)/float(SIZE));" +
+                "Output+=(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i,j),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")" +
+                 "+tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping3(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.25"+
+                 "-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+
+                 "-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping4(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.25" +
+                ")/dist2;\n";
         if(blurring) blurringS = " Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"));\n";
-        glProg.setDefine("INSIZE",in.mSize);
-        glProg.useProgram("#version 300 es\n" +
-                "precision highp "+in.mFormat.getTemSamp()+";\n" +
-                "precision highp float;\n" +
-                "#define tvar "+in.mFormat.getTemVar()+"\n" +
-                "#define tscal "+in.mFormat.getScalar()+"\n" +
-                "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
-                "#define SIZE " +size+"\n"+
-                "#define INSIZE " +"1,1"+"\n"+
-                stepping+
-                "#import coords\n"+
-                "out tvar Output;\n" +
-                "void main() {\n" +
-                "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
-                " for(int i =-SIZE; i<SIZE;i++){" +
-                "  float dist2 = 1.0+4.0*abs(float(i)/float(SIZE));\n" +
-                blurringS+
-                " }\n"+
-                "    Output=(Output-abs(tvar(0.5)-tvar(texelFetch(InputBuffer, xy,0))"+in.mFormat.getTemExt()+"))/float(SIZE+1);" +
-                "}\n");
+        if(vertical) glProg.setDefine("coordstp(x,y)","(ivec2(y,x))");
+        else glProg.setDefine("coordstp(x,y)","(ivec2(x,y))");
+        glProg.setDefine("tvar",in.mFormat.getTemVar());
+        glProg.setDefine("tscal",in.mFormat.getScalar());
+        glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
+        glProg.setDefine("BLURRING",blurringS);
+        glProg.setDefine("BLURRING",blurringS);
+        glProg.setDefine("INSIZE", Utilities.addP(in.mSize,-1));
+        glProg.setDefine("SIZE",size);
+        glProg.useProgram(PhotonCamera.getAssetLoader().getString("convdiff.glsl"));
         glProg.setTexture("InputBuffer",in);
-        glProg.drawBlocks(out,out.mSize);
+        glProg.drawBlocks(out,in.mSize);
+        glProg.closed = true;
+    }
+
+    public void Maximaze(GLTexture in,GLTexture in2, GLTexture out){
+        glProg.setDefine("tvar",in.mFormat.getTemVar());
+        glProg.setDefine("tscal",in.mFormat.getScalar());
+        glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
+        glProg.setDefine("INSIZE", Utilities.addP(in.mSize,-1));
+        glProg.useProgram(PhotonCamera.getAssetLoader().getString("maximaze.glsl"));
+        glProg.setTexture("InputBuffer",in);
+        glProg.setTexture("InputBuffer2",in2);
+        glProg.drawBlocks(out,in.mSize);
         glProg.closed = true;
     }
 

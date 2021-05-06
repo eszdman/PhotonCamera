@@ -66,6 +66,7 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.pro.Specific;
@@ -232,7 +233,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public boolean onUnlimited = false;
     public boolean unlimitedStarted = false;
     public boolean mFlashed = false;
-    public ArrayList<Float> BurstShakiness;
+    public ArrayList<GyroBurst> BurstShakiness;
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
@@ -1247,11 +1248,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mPreviewRequestBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             rebuildPreviewBuilder();*/
 
-            IsoExpoSelector.useTripod = (PhotonCamera.getGyro().getShakiness() < 2) && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+            IsoExpoSelector.useTripod = PhotonCamera.getGyro().getTripod();
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i,this);
                 captures.add(captureBuilder.build());
             }
+            long[] times = new long[frameCount];
+            for (int i = 0; i < frameCount; i++) {
+                times[i] = captures.get(i).get(CaptureRequest.SENSOR_EXPOSURE_TIME);
+            }
+            PhotonCamera.getGyro().PrepareGyroBurst(times,BurstShakiness);
             if (frameCount == -1) {
                 for (int i = 0; i < IsoExpoSelector.patternSize; i++) {
                     IsoExpoSelector.setExpo(captureBuilder, i,this);
@@ -1283,6 +1289,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (baseFrameNumber[0] == 0) {
                         baseFrameNumber[0] = frameNumber - 1L;
                         Log.v("BurstCounter", "CaptureStarted with FirstFrameNumber:" + frameNumber);
+                    } else {
+                        Log.v("BurstCounter", "CaptureStarted:" + frameNumber);
+
                     }
                     cameraEventsListener.onFrameCaptureStarted(null);
                     PhotonCamera.getGyro().CaptureGyroBurst();
@@ -1300,9 +1309,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
                     int frameCount = (int) (result.getFrameNumber() - baseFrameNumber[0]);
                     Log.v("BurstCounter", "CaptureCompleted! FrameCount:" + frameCount);
-                    Log.v(TAG, "Completed!");
-
-                    BurstShakiness.add(PhotonCamera.getGyro().CompleteGyroBurst());
                     cameraEventsListener.onFrameCaptureCompleted(
                             new TimerFrameCountViewModel.FrameCntTime(frameCount, maxFrameCount[0], frametime));
 
@@ -1324,7 +1330,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
-
+                    PhotonCamera.getGyro().CompleteGyroBurst();
                     //unlockFocus();
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     if(!isDualSession)
