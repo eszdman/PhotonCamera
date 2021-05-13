@@ -2,18 +2,65 @@ package com.particlesdevs.photoncamera.util;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
-
-import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
-
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Locale;
+
+import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
+import static java.lang.Math.min;
 
 public class Utilities {
     private static final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
+
+    public static Bitmap drawKernels(float[][][] inputKernels, Point kernelSize, Point kernelCount){
+        int width = kernelSize.x*kernelCount.x;
+        int height = kernelSize.y*kernelCount.y;
+        Bitmap output = Bitmap.createBitmap(width,height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+        canvas.drawColor(Color.BLACK);
+        Paint pointPaint = new Paint();
+        pointPaint.setAntiAlias(true);
+        pointPaint.setStyle(Paint.Style.FILL);
+        for(int i =0; i<inputKernels.length;i++){
+            for(int j =0; j<inputKernels[i].length;j++){
+                for(int k =0; k<inputKernels[i][j].length;k++){
+                    int x = k%kernelSize.x;
+                    int y = k/kernelSize.x;
+                    int br = min((int)(inputKernels[i][j][k]*255),255);
+                    pointPaint.setARGB(255,br,br,br);
+                    //canvas.drawPoint(i*kernelSize.x + kernelSize.x/2.f + x,j*kernelSize.y + kernelSize.y/2.f +y,pointPaint);
+                    canvas.drawCircle(i*kernelSize.x + x,j*kernelSize.y + y,5.f,pointPaint);
+                }
+            }
+        }
+        pointPaint.setARGB(100, 255, 255, 0);
+        for(int i =1; i<kernelCount.x;i++) {
+            canvas.drawLine(i*kernelSize.x,0,i*kernelSize.x+2,kernelSize.y*kernelCount.y,pointPaint);
+        }
+        for(int i =1; i<kernelCount.y;i++) {
+            canvas.drawLine(0,i*kernelSize.y,kernelSize.x*kernelCount.x,i*kernelSize.y+2,pointPaint);
+        }
+        return output;
+    }
+    public static void saveBitmap(Bitmap in, String name){
+        File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + name + ".png");
+        FileOutputStream fOut = null;
+        try {
+            debug.createNewFile();
+            fOut = new FileOutputStream(debug);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        in.compress(Bitmap.CompressFormat.PNG, 100, fOut);
+    }
+
     public static void drawArray(float[] input, Bitmap output){
         float max = 0.f;
         for(float ccur : input){

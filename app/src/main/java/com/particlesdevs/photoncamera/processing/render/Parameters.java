@@ -13,10 +13,13 @@ import android.os.Environment;
 import android.util.Log;
 import android.util.Pair;
 import android.util.Rational;
+import android.util.Size;
+import android.util.SizeF;
 
 import androidx.annotation.NonNull;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
@@ -49,6 +52,12 @@ public class Parameters {
     public int cameraRotation;
     public NoiseModeler noiseModeler;
     public ColorCorrectionTransform CCT;
+    public SizeF sensorSize;
+    public double angleX;
+    public double angleY;
+    public double perXAngle;
+    public double perYAngle;
+
 
 
     public void FillConstParameters(CameraCharacteristics characteristics, Point size) {
@@ -69,6 +78,12 @@ public class Parameters {
             flen = new float[1];
             flen[0] = 4.75f;
         }
+        sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+
+        angleX = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
+        angleY = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
+        perXAngle = rawSize.x/angleX;
+        perYAngle = rawSize.y/angleY;
         Log.d(TAG, "Focal Length:" + flen[0]);
         focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);

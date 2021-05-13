@@ -11,6 +11,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import static android.renderscript.Allocation.USAGE_GRAPHICS_RENDER_TARGET;
 
@@ -42,7 +43,9 @@ public class GlAllocation implements AutoCloseable {
     }
     public void pushToTexture(){
         GLTexture prev =  glTexture;
-        glTexture = new GLTexture(prev.mSize,prev.mFormat,allocation.getByteBuffer());
+        byte[] arr = new byte[allocation.getBytesSize()];
+        allocation.getByteBuffer().asReadOnlyBuffer().get(arr);
+        glTexture = new GLTexture(prev.mSize,prev.mFormat,ByteBuffer.wrap(arr));
         prev.close();
     }
     public void getAllocation(){

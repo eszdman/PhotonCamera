@@ -6,22 +6,24 @@ import java.util.ArrayList;
 
 public class GyroBurst {
     public float shakiness;
-    public ArrayList<Float>[] movements;
-    public ArrayList<Long> timestamps;
-    public GyroBurst(){
-        movements = new ArrayList[3];
-        movements[0] = new ArrayList<>();
-        movements[1] = new ArrayList<>();
-        movements[2] = new ArrayList<>();
-        timestamps = new ArrayList<>();
+    public float[][] movementss;
+    public float[] timestampss;
+    public float[] integrated;
+    private final int maxSamples;
+    public GyroBurst(int maxSamples){
+        this.maxSamples = maxSamples;
+        movementss = new float[3][maxSamples];
+        timestampss = new float[maxSamples];
+        integrated = new float[3];
     }
 
     @NonNull
     @Override
-    protected GyroBurst clone() {
-        GyroBurst out = new GyroBurst();
-        out.movements = movements.clone();
-        out.timestamps = (ArrayList<Long>) timestamps.clone();
+    public GyroBurst clone() {
+        GyroBurst out = new GyroBurst(maxSamples);
+        out.movementss = movementss.clone();
+        out.timestampss = timestampss.clone();
+        out.integrated = integrated.clone();
         out.shakiness = shakiness;
         return out;
     }

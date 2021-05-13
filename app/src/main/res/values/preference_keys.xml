@@ -31,6 +31,7 @@
     <string name="pref_contrast_seekbar_key" translatable="false">pref_contrast_seekbar_key</string>
     <string name="pref_sharpness_seekbar_key" translatable="false">pref_sharpness_seekbar_key</string>
     <string name="pref_saturation_seekbar_key" translatable="false">pref_saturation_seekbar_key</string>
+    <string name="pref_saturation2_seekbar_key" translatable="false">pref_saturation2_seekbar_key</string>
     <string name="pref_align_method_key" translatable="false">pref_align_method_key</string>
     <string name="pref_cfa_key" translatable="false">pref_cfa_key</string>
     <string name="pref_remosaic_key" translatable="false">pref_remosaic_key</string>

@@ -23,27 +23,41 @@ public class Gyro {
     private GyroBurst gyroBurst;
     private int filter = -1;
     public int tripodShakiness = 1000;
-    public static final int delayUs = 1000;
+    public static final int delayUs = 500;
     int tripodDetectCount = 600;
     int tripodCounter = 0;
     long temp = 0;
+    public static final float NS2S = 1.0f / 1000000000.0f;
+    private long prevStamp;
+    private int counter = 0;
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
             mAngles = sensorEvent.values;
+            float anglex,angley,anglez;
+            anglex = mAngles[0]*(sensorEvent.timestamp-prevStamp)*NS2S;
+            angley = mAngles[1]*(sensorEvent.timestamp-prevStamp)*NS2S;
+            anglez = mAngles[2]*(sensorEvent.timestamp-prevStamp)*NS2S;
+            if(integrate){
+                x+=anglex;
+                y+=angley;
+                z+=anglez;
+            }
             if (timeCount-System.nanoTime() > 0) {
-                for (float f : mAngles) {
-                    burstout += Math.abs((f));
+                burstout +=anglex;
+                burstout +=angley;
+                burstout +=anglez;
+                if(counter < gyroBurst.movementss[0].length) {
+                    gyroBurst.movementss[0][counter] = anglex;
+                    gyroBurst.movementss[1][counter] = angley;
+                    gyroBurst.movementss[2][counter] = anglez;
                 }
-                gyroBurst.movements[0].add(mAngles[0]);
-                gyroBurst.movements[1].add(mAngles[1]);
-                gyroBurst.movements[2].add(mAngles[2]);
-                //gyroBurst.timestamps.add(sensorEvent.timestamp);
+                counter++;
             } else {
                 getShakiness();//For filtering
                 if(gyroburst) CompleteGyroBurst();
             }
-
+            prevStamp = sensorEvent.timestamp;
         }
 
         @Override
@@ -57,7 +71,6 @@ public class Gyro {
     }
 
     public void register() {
-        gyroBurst = new GyroBurst();
         mSensorManager.registerListener(mGravityTracker, mGyroSensor, delayUs);
     }
 
@@ -69,11 +82,22 @@ public class Gyro {
 
     long[] capturingTimes;
     int capturingNumber = 0;
+    boolean integrate = false;
+    float x,y,z;
     private ArrayList<GyroBurst> BurstShakiness;
     public void PrepareGyroBurst(long[] capturingTimes,ArrayList<GyroBurst> burstShakiness) {
         capturingNumber = 0;
+        x = 0.f;
+        y = 0.f;
+        z = 0.f;
         this.capturingTimes = new long[capturingTimes.length];
+        long maxTime = Long.MIN_VALUE;
+        for(long time : capturingTimes){
+            if(time > maxTime) maxTime = time;
+        }
+        gyroBurst = new GyroBurst((int) (maxTime/(10*delayUs)));
         System.arraycopy(capturingTimes, 0, this.capturingTimes, 0, capturingTimes.length);
+
         BurstShakiness = burstShakiness;
     }
 
@@ -82,11 +106,10 @@ public class Gyro {
         if(gyroburst){
             CompleteGyroBurst();
         }
+        counter = 0;
+        integrate = true;
         timeCount = capturingTimes[capturingNumber]+System.nanoTime();
-        gyroBurst.movements[0].clear();
-        gyroBurst.movements[1].clear();
-        gyroBurst.movements[2].clear();
-        gyroBurst.timestamps.clear();
+        //gyroBurst.timestamps.add(System.nanoTime());
         burstout = 0;
         gyroburst = true;
         capturingNumber++;
@@ -97,8 +120,14 @@ public class Gyro {
             gyroburst = false;
             Log.d(TAG, "GyroBurst counter:" + BurstShakiness.size());
             gyroBurst.shakiness = Math.min(burstout * burstout, Float.MAX_VALUE);
+            gyroBurst.integrated[0] = -x;
+            gyroBurst.integrated[1] = y;
+            gyroBurst.integrated[2] = z;
             BurstShakiness.add(gyroBurst.clone());
         }
+    }
+    public void CompleteSequence() {
+        integrate = false;
     }
 
     public int getShakiness() {

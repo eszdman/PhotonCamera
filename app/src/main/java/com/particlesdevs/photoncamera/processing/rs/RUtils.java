@@ -54,6 +54,9 @@ public class RUtils {
     public Type CreateF16(Point size){
         return Type.createXY(rs,Element.F16(rs),size.x,size.y);
     }
+    public Type CreateF16(int size){
+        return Type.createX(rs,Element.F16(rs),size);
+    }
     public ScriptIntrinsic.LaunchOptions Range(Point from, Point to){
         return new Script.LaunchOptions().setX(from.x, to.x).setY(from.y, to.y);
     }
@@ -69,6 +72,8 @@ public class RUtils {
     public Type CreateBgr16(Point size){ return Type.createXY(rs,Element.U16_3(rs),size.x,size.y); }
     public Type CreateRGBA8888(Point size) { return Type.createXY(rs,Element.U8_4(rs),size.x,size.y);}
     public Type CreateU16(Point size) { return Type.createXY(rs,Element.U16(rs),size.x,size.y);}
+    public Type CreateU16(Point size, int temporal) { return Type.createXYZ(rs,Element.U16(rs),size.x,size.y,temporal);}
+
     public Type CreateU16_2(Point size) { return Type.createXY(rs,Element.U16_2(rs),size.x,size.y);}
 
     public Type CreateRGBA8888(int size) { return Type.createX(rs,Element.U8_4(rs),size);}

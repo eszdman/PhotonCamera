@@ -1,7 +1,9 @@
 package com.particlesdevs.photoncamera.processing;
 
+import android.graphics.Point;
 import android.media.Image;
 
+import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 
 import java.nio.ByteBuffer;
@@ -9,7 +11,10 @@ import java.nio.ByteBuffer;
 public class ImageFrame {
     public ByteBuffer buffer;
     public Image image;
-    public float luckyParameter;
+    public GyroBurst frameGyro;
+    public float[][][] BlurKernels;
+    public double posx,posy;
+    public double rotation;
     public int number;
     public IsoExpoSelector.ExpoPair pair;
 

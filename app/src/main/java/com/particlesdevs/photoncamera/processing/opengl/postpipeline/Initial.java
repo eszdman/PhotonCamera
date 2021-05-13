@@ -71,6 +71,7 @@ public class Initial extends Node {
                 cube = basePipeline.mParameters.CCT.cubes[0].cube;
             }
         }
+        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
         glProg.useProgram(R.raw.initial);
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
             glProg.setVar("CUBE0",cube[0]);
@@ -105,7 +106,12 @@ public class Initial extends Node {
         glProg.setVar("neutralPoint",WP);
         Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
         float sat =(float) basePipeline.mSettings.saturation;
-        if(basePipeline.mSettings.cfaPattern == 4) sat = 0.f;
+        float sat0 =(float) basePipeline.mSettings.saturation0;
+        if(basePipeline.mSettings.cfaPattern == 4) {
+            sat = 0.f;
+            sat0 = 0.f;
+        }
+        glProg.setVar("saturation0",sat0);
         glProg.setVar("saturation",sat);
         //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
         WorkingTexture = basePipeline.getMain();

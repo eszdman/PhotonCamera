@@ -122,6 +122,7 @@ void main() {
     sRGB = clamp(sRGB,0.0,1.0);
     float br = luminocity(sRGB);
     sRGB=sRGB/br;
+    float pbr = br;
     float HistEq = texture(Histogram, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //Limit eq
     HistEq = clamp(HistEq,0.0,5.0);
@@ -145,7 +146,8 @@ void main() {
     float undersat = max(0.12-br,0.0)*1.5/0.12;
     sRGB += (sRGB.r+sRGB.g+sRGB.b)*undersat/3.0;
     sRGB /= luminocity(sRGB);
-    sRGB*=br;
+    sRGB*=pbr;
+    sRGB*=br/pbr;
     sRGB = clamp(sRGB-vec3(BL2),0.0,1.0);
     //sRGB = (tonemap((sRGB)));
     //Output = mix(sRGB*sRGB*sRGB*-3.7101449 + sRGB*sRGB*5.4910145 - sRGB*0.7808696,sRGB,min(sRGB*0.6+0.55,1.0));

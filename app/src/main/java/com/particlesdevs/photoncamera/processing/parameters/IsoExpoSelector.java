@@ -285,12 +285,12 @@ public class IsoExpoSelector {
             }
         }
         public void ExpoCompensateLowerExpo(double k) {
-            exposure /= k;
+            iso /= k;
             if (normalizeCheck()) {
-                exposure *= k;
-                iso /= k;
+                iso *= k;
+                exposure /= k;
                 if (normalizeCheck()) {
-                    iso *= k;
+                    exposure *= k;
                 }
             }
         }

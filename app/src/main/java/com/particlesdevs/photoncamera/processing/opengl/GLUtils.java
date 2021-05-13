@@ -434,6 +434,9 @@ public class GLUtils {
         return out;
     }
     public GLTexture interpolate(GLTexture in,GLTexture out, double k){
+        return interpolate(in,out,out.mSize,k);
+    }
+    public GLTexture interpolate(GLTexture in,GLTexture out,Point outSize, double k){
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
@@ -451,7 +454,7 @@ public class GLUtils {
                 "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",(int)(in.mSize.x*k),(int)(in.mSize.y*k));
-        glProg.drawBlocks(out,out.mSize);
+        glProg.drawBlocks(out,outSize);
         glProg.closed = true;
         return out;
     }
@@ -485,12 +488,27 @@ public class GLUtils {
         glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
     }
+    public void Corners(GLTexture dx, GLTexture dy,GLTexture out){
+        glProg.setDefine("tvar",dx.mFormat.getTemVar());
+        glProg.setDefine("tscal",dx.mFormat.getScalar());
+        glProg.setDefine("TSAMP",dx.mFormat.getTemSamp());
+        glProg.setDefine("INSIZE", Utilities.addP(dx.mSize,0));
+        //glProg.setDefine("SIZE",size);
+        glProg.useProgram(PhotonCamera.getAssetLoader().getString("corners.glsl"));
+        glProg.setTexture("InputBufferdx",dx);
+        glProg.setTexture("InputBufferdy",dy);
+        glProg.drawBlocks(out,dx.mSize);
+        glProg.closed = true;
+    }
     public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring){
+        ConvDiff(in,out,size,vertical,blurring,0.f);
+    }
+    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring, float rotation){
         String blurringS = "float dist2 = 1.0+4.0*abs(float(i)/float(SIZE))+4.0*abs(float(j)/float(SIZE));" +
-                "Output+=(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i,j),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")" +
-                 "+tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping3(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.25"+
+                "Output+=(-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i,j),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")*0.0" +
+                 "+tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*1.0"+
                  "-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+
-                 "-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping4(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.25" +
+                 //"-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping4(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.0" +
                 ")/dist2;\n";
         if(blurring) blurringS = " Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"));\n";
         if(vertical) glProg.setDefine("coordstp(x,y)","(ivec2(y,x))");
@@ -503,6 +521,7 @@ public class GLUtils {
         glProg.setDefine("INSIZE", Utilities.addP(in.mSize,-1));
         glProg.setDefine("SIZE",size);
         glProg.useProgram(PhotonCamera.getAssetLoader().getString("convdiff.glsl"));
+        glProg.setVar("rotation",rotation);
         glProg.setTexture("InputBuffer",in);
         glProg.drawBlocks(out,in.mSize);
         glProg.closed = true;
@@ -516,7 +535,7 @@ public class GLUtils {
         glProg.useProgram(PhotonCamera.getAssetLoader().getString("maximaze.glsl"));
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("InputBuffer2",in2);
-        glProg.drawBlocks(out,in.mSize);
+        glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
     }
 
@@ -528,7 +547,7 @@ public class GLUtils {
         glProg.setDefine("TRANSPOSE",transposing);
         glProg.useProgram(R.raw.medianfilter);
         glProg.setTexture("InputBuffer", in);
-        glProg.drawBlocks(out);
+        glProg.drawBlocks(out,out.mSize);
         return out;
     }
     public GLTexture mpy(GLTexture in, float[] vecmat){

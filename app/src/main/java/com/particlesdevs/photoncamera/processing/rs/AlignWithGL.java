@@ -41,10 +41,8 @@ public class AlignWithGL {
     public GlAllocation align128,align32,align8,align2;
     public static RenderScript rs;
 
-    private Point rawSize;
     private static final String TAG = "AlignRS";
-    public AlignWithGL(Point rawSize){
-        this.rawSize = rawSize;
+    public AlignWithGL(){
         rs = PhotonCamera.getRenderScript();
         rUtils = new RUtils(rs);
         align = new ScriptC_align(rs);
@@ -81,11 +79,13 @@ public class AlignWithGL {
 
 
         Log.d("AlignRs","RunningAlign32");
-        align.set_prevScale(4);
+
+        align.set_prevScale(0);
         align.set_alignVectors(align128.allocation);
         align.set_inputBuffer(inputDown32.allocation);
         align.set_referenceBuffer(refDown32.allocation);
         align.set_inputSize(new Int2(inputDown32.allocation.getType().getX(),inputDown32.allocation.getType().getY()));
+        align.set_prevSize(new Int2(align128.allocation.getType().getX(),align128.allocation.getType().getY()));
         align.set_alignOutput(align32.allocation);
         align.forEach_align(rUtils.Range(align32.allocation));
 
@@ -95,6 +95,7 @@ public class AlignWithGL {
         align.set_inputBuffer(inputDown8.allocation);
         align.set_referenceBuffer(refDown8.allocation);
         align.set_inputSize(new Int2(inputDown8.allocation.getType().getX(),inputDown8.allocation.getType().getY()));
+        align.set_prevSize(new Int2(align32.allocation.getType().getX(),align32.allocation.getType().getY()));
         align.set_alignOutput(align8.allocation);
         align.forEach_align(rUtils.Range(align8.allocation));
 
@@ -104,6 +105,7 @@ public class AlignWithGL {
         align.set_inputBuffer(inputDown2.allocation);
         align.set_referenceBuffer(refDown2.allocation);
         align.set_inputSize(new Int2(inputDown2.allocation.getType().getX(),inputDown2.allocation.getType().getY()));
+        align.set_prevSize(new Int2(align8.allocation.getType().getX(),align8.allocation.getType().getY()));
         align.set_alignOutput(align2.allocation);
         align.forEach_align(rUtils.Range(align2.allocation));
 

@@ -15,16 +15,15 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
+import com.particlesdevs.photoncamera.processing.ImageFrameDeblur;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
-import com.particlesdevs.photoncamera.processing.opengl.scripts.BinnedRaw;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
-import com.particlesdevs.photoncamera.processing.rs.Align;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -116,27 +115,28 @@ public class HdrxProcessor extends ProcessorBase {
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
-        float avr = BurstShakiness.get(0).shakiness;
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ByteBuffer byteBuffer;
             byteBuffer = mImageFramesToProcess.get(i).getPlanes()[0].getBuffer();
             ImageFrame frame = new ImageFrame(byteBuffer);
-            frame.luckyParameter = BurstShakiness.get(i).shakiness;
-            frame.luckyParameter = (frame.luckyParameter + avr) / 2;
-            avr = frame.luckyParameter;
+            frame.frameGyro = BurstShakiness.get(i);
             frame.image = mImageFramesToProcess.get(i);
             //frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
             frame.pair = IsoExpoSelector.fullpairs.get(i);
             frame.number = i;
             images.add(frame);
         }
+        ImageFrameDeblur imageFrameDeblur = new ImageFrameDeblur();
+        imageFrameDeblur.firstFrameGyro = images.get(0).frameGyro.clone();
+        for(int i = 0; i< images.size();i++)
+        imageFrameDeblur.processDeblurPosition(images.get(i));
         if (mImageFramesToProcess.size() >= 3)
-            images.sort((img1, img2) -> Float.compare(img1.luckyParameter, img2.luckyParameter));
+            images.sort((img1, img2) -> Float.compare(img1.frameGyro.shakiness, img2.frameGyro.shakiness));
         double unluckypickiness = 1.05;
         float unluckyavr = 0;
         for (ImageFrame image : images) {
-            unluckyavr += image.luckyParameter;
-            Log.d(TAG, "unlucky map:" + image.luckyParameter + "n:" + image.number);
+            unluckyavr += image.frameGyro.shakiness;
+            Log.d(TAG, "unlucky map:" + image.frameGyro.shakiness + "n:" + image.number);
         }
         unluckyavr /= images.size();
         if (images.size() >= 4) {
@@ -145,7 +145,7 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "Image Count:" + images.size());
             if (size == images.size()) size = (int) (images.size() * 0.75);
             for (int i = images.size(); i > size; i--) {
-                float curunlucky = images.get(images.size() - 1).luckyParameter;
+                float curunlucky = images.get(images.size() - 1).frameGyro.shakiness;
                 if (curunlucky > unluckyavr * unluckypickiness) {
                     Log.d(TAG, "Removing unlucky:" + curunlucky + " number:" + images.get(images.size() - 1).number);
                     images.get(images.size() - 1).image.close();

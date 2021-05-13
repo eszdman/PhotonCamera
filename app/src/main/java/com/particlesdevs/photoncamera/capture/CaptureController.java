@@ -42,6 +42,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -1236,10 +1237,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             cameraEventsListener.onFrameCountSet(frameCount);
             Log.d(TAG, "HDRFact1:" + manualParamModel.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
             //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
-            IsoExpoSelector.HDR = false;
+            IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
+            //IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
-            if (focus != 0.0)
+            if (!(focus == 0.0 && Build.DEVICE.toLowerCase().equals("samsung")))
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
 
 
@@ -1253,16 +1255,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 IsoExpoSelector.setExpo(captureBuilder, i,this);
                 captures.add(captureBuilder.build());
             }
-            long[] times = new long[frameCount];
-            for (int i = 0; i < frameCount; i++) {
-                times[i] = captures.get(i).get(CaptureRequest.SENSOR_EXPOSURE_TIME);
-            }
-            PhotonCamera.getGyro().PrepareGyroBurst(times,BurstShakiness);
             if (frameCount == -1) {
                 for (int i = 0; i < IsoExpoSelector.patternSize; i++) {
                     IsoExpoSelector.setExpo(captureBuilder, i,this);
                     captures.add(captureBuilder.build());
                 }
+            } else {
+                long[] times = new long[frameCount];
+                for (int i = 0; i < frameCount; i++) {
+                    times[i] = captures.get(i).get(CaptureRequest.SENSOR_EXPOSURE_TIME);
+                }
+                PhotonCamera.getGyro().PrepareGyroBurst(times,BurstShakiness);
             }
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1,this).exposure);
             //img
@@ -1294,7 +1297,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
                     }
                     cameraEventsListener.onFrameCaptureStarted(null);
-                    PhotonCamera.getGyro().CaptureGyroBurst();
+                    if(maxFrameCount[0] != -1) PhotonCamera.getGyro().CaptureGyroBurst();
                 }
 
                 @Override
@@ -1330,13 +1333,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
-                    PhotonCamera.getGyro().CompleteGyroBurst();
+                    if(maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
                     //unlockFocus();
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     if(!isDualSession)
                         unlockFocus();
                     else
                         createCameraPreviewSession();
+                    PhotonCamera.getGyro().CompleteSequence();
 
                     taskResults.removeIf(Future::isDone); //remove already completed results
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {

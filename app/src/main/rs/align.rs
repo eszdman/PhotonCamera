@@ -1,13 +1,14 @@
 #pragma version(1)
 #pragma rs java_package_name(com.particlesdevs.photoncamera)
-#pragma rs_fp_relaxed
 
+#pragma rs_fp_relaxed
 rs_allocation referenceBuffer;
 rs_allocation inputBuffer;
 rs_allocation alignVectors;
 ushort prevScale;
 ushort TILESIZE;
 ushort2 inputSize;
+ushort2 prevSize;
 rs_allocation alignOutput;
 
 #define RS_KERNEL __attribute__((kernel))
@@ -38,11 +39,14 @@ rs_allocation alignOutput;
 
 static short2 mirrorCoords3(int x,int y, short boundsx,short boundsy);
 static short2 mirrorCoords4(int x,int y, short boundsx,short boundsy);
+static int2 mirrorCoords6(int x,int y, ushort2 bounds);
+static short2 mirrorCoords5(int x,int y, short boundsx,short boundsy);
 
 void RS_KERNEL align(int x, int y) {
-short4 prevAlign;
+short4 prevAlign = (0,0,0,0);
 if(prevScale != 0){
-prevAlign = gets4(x/prevScale,y/prevScale,alignVectors)*prevScale;
+int2 prevcoords = (x/prevScale,y/prevScale);
+prevAlign = gets4(prevcoords.x,prevcoords.y,alignVectors)*prevScale;
 }
 ushort2 frame;
 frame.x = x*TILESCALE;
@@ -53,7 +57,7 @@ float mindist = HIGHFLOAT;
 float dist = 0.f;
  for(int h = -4;h<4;h++){
    for(int w = -4;w<4;w++){
-   float dist3 = 6.0+fabs((float)(h)/(float)(4))+fabs((float)(w)/(float)(4));
+   float dist3 = 12.0+fabs((float)(h)/(float)(4))+fabs((float)(w)/(float)(4));
    shift.x = w;
    shift.y = h;
    shift+=prevAlign.xy;
@@ -143,6 +147,17 @@ static short2 mirrorCoords4(int x,int y, short boundsx,short boundsy){
     x%=boundsx*2;
     y%=boundsy*2;
     if(x < 0 || x >= boundsx) x = (boundsx*2-x)%boundsx;
-    if(y < 0 || y >= boundsx) y = (boundsy*2-y)%boundsy;
+    if(y < 0 || y >= boundsy) y = (boundsy*2-y)%boundsy;
+    if(x< 0 || !(x < boundsx)) rsDebug("x is:",x);
+    if(y< 0 || !(y < boundsy)) rsDebug("y is:",y);
+    return (x,y);
+}
+static int2 mirrorCoords6(int x,int y, ushort2 bounds){
+    x%=bounds.x*2;
+    y%=bounds.y*2;
+    if(x < 0 || x >= bounds.x) x = (bounds.x*2-x)%bounds.x;
+    if(y < 0 || y >= bounds.y) y = (bounds.y*2-y)%bounds.y;
+    if(x < 0 || !(x < bounds.x)) rsDebug("x is:",x);
+    if(y < 0 || !(y < bounds.y)) rsDebug("y is:",y);
     return (x,y);
 }

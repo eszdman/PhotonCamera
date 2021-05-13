@@ -9,6 +9,7 @@ uniform sampler2D MainBufferV;
 
 uniform sampler2D LowPassV;
 uniform sampler2D LowPassH;
+uniform sampler2D CornersRef;
 //uniform sampler2D MainBuffer;
 //uniform sampler2D InputBuffer;
 uniform isampler2D AlignVectors;
@@ -23,8 +24,9 @@ out ivec4 Output;
 #define LOWPASSCOMBINE 0
 #define LOWPASSK 4
 #define OFFSET (0)
+#define INITIALMOVE 0,0
 #define MAXMOVE (4)
-#define SHARPMOVE (6)
+#define SHARPMOVE (16)
 #define FLT_MAX 3.402823466e+38
 #define M_PI 3.1415926535897932384626433832795
 
@@ -62,6 +64,8 @@ void main() {
     #endif
 
     prevAlign = ivec2(bestAlign.xy)*PREVSCALE;
+    #else
+    prevAlign = ivec2(INITIALMOVE);
     #endif
 
     ivec2 inbounds = ivec2(INPUTSIZE);
@@ -71,10 +75,11 @@ void main() {
     //Shift frame coords to most sharp region
     vec2 dist;
     float mindist = 0.0;
-    for(int w = -SHARPMOVE;w<SHARPMOVE;w++){
+    /*
+    for(int w = -SHARPMOVE;w<=SHARPMOVE;w++){
         float dist3 = 3.0+abs(float(w)/float(SHARPMOVE));
         dist = vec2(0,0);
-        for(int sh = -SCANSIZE/2;sh<SCANSIZE/2; sh++){
+        for(int sh = -SCANSIZE/2;sh<=SCANSIZE/2; sh++){
             dist+=texelFetch(MainBufferV, mirrorCoords2((xyFrame+ivec2(w, sh)),inbounds), 0).rg;
         }
         dist*=dist3;
@@ -85,10 +90,10 @@ void main() {
     }
     xyFrame.x+=shiftFrame.x;
     mindist = 0.0;
-    for(int h = -SHARPMOVE;h<SHARPMOVE;h++){
+    for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
         float dist3 = 3.0+abs(float(h)/float(SHARPMOVE));
         dist = vec2(0,0);
-        for(int sw = -SCANSIZE/2;sw<SCANSIZE/2; sw++){
+        for(int sw = -SCANSIZE/2;sw<=SCANSIZE/2; sw++){
             dist+=texelFetch(MainBufferH, mirrorCoords2((xyFrame+ivec2(sw, h)),inbounds), 0).rg;
         }
         dist*=dist3;
@@ -96,19 +101,32 @@ void main() {
             mindist = dist.r + dist.g;
             shiftFrame.y = h+prevShift.y;
         }
+    }*/
+    mindist = 0.0;
+    for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
+        for(int w = -SHARPMOVE;w<=SHARPMOVE;w++){
+            float dist3 = 6.0+abs(float(h)/float(SHARPMOVE))+abs(float(w)/float(SHARPMOVE));
+            dist=texelFetch(CornersRef, mirrorCoords2((xyFrame+ivec2(w, h)),inbounds), 0).rg*dist3;
+            if(dist.r+dist.g > mindist){
+                shiftFrame.x = w+prevShift.x;
+                shiftFrame.y = h+prevShift.y;
+                mindist = dist.r+dist.g;
+            }
+        }
     }
-    dist = vec2(0,0);
-    mindist = float(FLT_MAX);
-
-
+    xyFrame.x+=shiftFrame.x;
     xyFrame.y+=shiftFrame.y;
+
+    dist = vec2(0,0);
+
+
     ivec2 outalign = ivec2(0,0);
     ivec2 shift = ivec2(0,0);
     vec2 in1;
     vec2 in2;
-    vec2 cachex[SCANSIZE];
-    vec2 cachey[SCANSIZE];
-    for (int i=-SCANSIZE/2;i<SCANSIZE/2;i++){
+    vec2 cachex[SCANSIZE+2];
+    vec2 cachey[SCANSIZE+2];
+    for (int i=-SCANSIZE/2;i<=SCANSIZE/2;i++){
         cachex[i+SCANSIZE/2] = texelFetch(MainBufferH, mirrorCoords2((xyFrame+ivec2(i, 0)),inbounds), 0).rg;
         cachey[i+SCANSIZE/2] = texelFetch(MainBufferV, mirrorCoords2((xyFrame+ivec2(0, i)),inbounds), 0).rg;
         #if LOWPASSCOMBINE == 1
@@ -116,19 +134,21 @@ void main() {
         cachey[i+SCANSIZE/2] *= texelFetch(LowPassV, mirrorCoords2((xyFrame+ivec2(0, i)),inbounds)/LOWPASSK, 0).rg;
         #endif
     }
-    vec2 disth = vec2(0.0);
-    for(int h = -MAXMOVE;h<MAXMOVE;h++){
+    mindist = float(FLT_MAX);
+    vec2 disth;
+    for(int h = -MAXMOVE;h<=MAXMOVE;h++){
         disth = vec2(0.0);
         shift = ivec2(0, h)+prevAlign-OFFSET;
-        float dist3 = 6.0+abs(float(h)/float(MAXMOVE));
-        for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
-            float dist2 = 1.0+2.0*abs(float(t)/float(SCANSIZE));
-            in2 = texelFetch(InputBufferH, mirrorCoords2((xyFrame+shift+ivec2(t, 0)),inbounds), 0).rg;
+        float dist3 = 3.0+abs(float(h)/float(MAXMOVE));
+        for(int j = -2;j<=2;j++)
+        for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
+            float dist2 = 1.0+5.0*abs(float(t)/float(SCANSIZE))+15.0*abs(float(j)/float(2));
+            in2 = texelFetch(InputBufferH, mirrorCoords2((xyFrame+shift+ivec2(t, j)),inbounds), 0).rg;
             #if LOWPASSCOMBINE == 1
             in2 *= texelFetch(LowPassH, mirrorCoords2((xyFrame+shift+ivec2(t, 0)),inbounds)/LOWPASSK, 0).rg;
             #endif
             disth+=
-            distribute(cachex[t+SCANSIZE/2],in2, 0.1);///dist2;
+            distribute(texelFetch(MainBufferH, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg,in2, 0.1)/dist2;
         }
         disth*=dist3;
         if((disth.r+disth.g) < mindist){
@@ -137,18 +157,19 @@ void main() {
         }
     }
     mindist = float(FLT_MAX);
-    for(int w = -MAXMOVE;w<MAXMOVE;w++){
+    for(int w = -MAXMOVE;w<=MAXMOVE;w++){
         dist = vec2(0.0);
-        float dist3 = 6.0+abs(float(w)/float(MAXMOVE));
+        float dist3 = 3.0+abs(float(w)/float(MAXMOVE));
         shift = ivec2(w, outalign.y)+prevAlign-OFFSET;
-        for (int t=-SCANSIZE/2;t<SCANSIZE/2;t++){
-            float dist2 = 1.0+2.0*abs(float(t)/float(SCANSIZE));
-            in2 = texelFetch(InputBufferV, mirrorCoords2((xyFrame+shift+ivec2(0, t)),inbounds), 0).rg;
+        for(int j = -2;j<=2;j++)
+        for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
+            float dist2 = 1.0+5.0*abs(float(t)/float(SCANSIZE))+15.0*abs(float(j)/float(2));
+            in2 = texelFetch(InputBufferV, mirrorCoords2((xyFrame+shift+ivec2(j, t)),inbounds), 0).rg;
             #if LOWPASSCOMBINE == 1
             in2 *= texelFetch(LowPassV, mirrorCoords2((xyFrame+shift+ivec2(0, t)),inbounds)/LOWPASSK, 0).rg;
             #endif
             dist+=
-            distribute(cachey[t+SCANSIZE/2],in2, 0.1);///dist2;
+            distribute(texelFetch(MainBufferV, mirrorCoords2((xyFrame+ivec2(j, t)),inbounds), 0).rg,in2, 0.1)/dist2;
         }
         dist*=dist3;
         if((dist.r+dist.g) < mindist){
@@ -156,9 +177,9 @@ void main() {
             outalign.x = w;
         }
     }
-    Output.rg = ivec2(outalign.x+prevAlign.x,outalign.y+prevAlign.y);
 
-    Output.ba = shiftFrame;
+    Output = ivec4(outalign.x+prevAlign.x,outalign.y+prevAlign.y,shiftFrame.x,shiftFrame.y);
+
     #if PREVSCALE != 0
     //Output.b += bestAlign.b;
     #endif

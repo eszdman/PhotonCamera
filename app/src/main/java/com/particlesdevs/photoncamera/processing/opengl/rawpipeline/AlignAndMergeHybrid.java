@@ -10,6 +10,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 import com.particlesdevs.photoncamera.processing.rs.AlignWithGL;
 import com.particlesdevs.photoncamera.processing.rs.GlAllocation;
@@ -45,22 +46,16 @@ public class AlignAndMergeHybrid extends Node {
               0.f,   0.f, 0.f,
              -0.3f,-0.1f,-0.3f
         };
-    /*float[] DV = new float[]
-            {
-                    -0.1f,0.f,0.1f,
-                   -0.7f,  0.0f,0.7f,
-                    -0.1f,0.f,0.1f
-            };
-    float[] DH = new float[]
-            {
-                    0.1f, 0.7f, 0.1f,
-                    0.f,  0.0f, 0.f,
-                    -0.1f,-0.7f,-0.1f
-            };*/
 
     private void CorrectedRaw(GLTexture out, int number) {
         float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0],PhotonCamera.getParameters().blackLevel[1]),
                 PhotonCamera.getParameters().blackLevel[2]),PhotonCamera.getParameters().blackLevel[3]);
+        float mpy = minMpy / images.get(number).pair.layerMpy;
+        glProg.setDefine("BL",PhotonCamera.getParameters().blackLevel);
+        glProg.setDefine("WP",PhotonCamera.getParameters().whitePoint);
+        glProg.setDefine("MPY",mpy);
+        glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
+        Log.d("Align","mpy:"+mpy);
         glProg.useProgram(R.raw.precorrection);
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
@@ -74,7 +69,8 @@ public class AlignAndMergeHybrid extends Node {
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
-        glProg.drawBlocks(out.glTexture);
+        glProg.drawBlocks(basePipeline.main3,out.glTexture.mSize);
+        glUtils.median(basePipeline.main3,out.glTexture,new Point(1,1));
         out.pushToAllocation();
     }
     private int logged = 0;
@@ -207,6 +203,7 @@ public class AlignAndMergeHybrid extends Node {
     private void Weight(int num,GLTexture InputFrame) {
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("FRAMECOUNT",images.size());
+        glProg.setDefine("INPUTSIZE",BaseFrame2.glTexture.mSize);
         glProg.useProgram(R.raw.spatialweights);
         glProg.setTexture("MainBuffer", BaseFrame2.glTexture);
         glProg.setTexture("InputBuffer", brTex2.glTexture);
@@ -217,6 +214,11 @@ public class AlignAndMergeHybrid extends Node {
     private GLTexture Merge(GLTexture Output, GLTexture inputRaw,int num) {
         //startT();
         glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MIN",minMpy);
+        glProg.setDefine("MPY",minMpy / images.get(num).pair.layerMpy);
+        glProg.setDefine("WP",PhotonCamera.getParameters().whitePoint);
+        glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
+        glProg.setDefine("HDR",true);
         glProg.useProgram(R.raw.spatialmerge);
         /*short[] bufin = new short[alignVectors[0].glTexture.mSize.x*alignVectors[0].glTexture.mSize.y*4];
         for(int k =0; k<alignVectors[0].glTexture.mSize.x*alignVectors[0].glTexture.mSize.y*4; k+=4){
@@ -230,6 +232,9 @@ public class AlignAndMergeHybrid extends Node {
         GLTexture temporalFilteredVector = new GLTexture(alignVectors[num-1].glTexture.mSize,alignVectors[num-1].glTexture.mFormat,ShortBuffer.wrap(bufin));
          */
         //GLTexture temporalFilteredVector = new GLTexture(alignVectors[num-1].mSize,alignVectors[num-1].mFormat,alignVectorsTemporal[num-1]);
+        short[] bufin = new short[alignVectors[0].glTexture.mSize.x*alignVectors[0].glTexture.mSize.y*4];
+        alignVectors[num-1].allocation.copyTo(bufin);
+        Log.d("AlignAndMerge","Vectors->"+Arrays.toString(bufin));
         glProg.setTexture("AlignVectors", alignVectors[num-1].glTexture);
         glProg.setTexture("SumWeights", Weights);
         glProg.setTexture("Weight", Weight[num-1]);
@@ -258,6 +263,10 @@ public class AlignAndMergeHybrid extends Node {
 
     private GLTexture RawOutput(GLTexture input) {
         //startT();
+        float[] outBL = new float[4];
+        for(int i=0;i<outBL.length;i++) outBL[i] = PhotonCamera.getParameters().blackLevel[i]*(ProcessorBase.FAKE_WL/((float)PhotonCamera.getParameters().whiteLevel));
+        glProg.setDefine("BL",outBL);
+        glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
         glProg.useProgram(R.raw.toraw);
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("whitelevel", ProcessorBase.FAKE_WL);
@@ -279,14 +288,30 @@ public class AlignAndMergeHybrid extends Node {
     GLTexture GainMap;
     AlignWithGL alignRs;
     GlAllocation align8,align32,align128;
-    public static final int tileSize = 64;
+    public static final int tileSize = 128;
+    float minMpy = 1000.f;
     @Override
     public void Run() {
         glProg = basePipeline.glint.glProgram;
-        alignRs = new AlignWithGL(rawSize);
+        alignRs = new AlignWithGL();
         RawPipeline rawPipeline = (RawPipeline) basePipeline;
         rawSize = rawPipeline.glint.parameters.rawSize;
         images = rawPipeline.images;
+        for (int i = 0; i < IsoExpoSelector.fullpairs.size(); i++) {
+            if (IsoExpoSelector.fullpairs.get(i).layerMpy < minMpy) {
+                minMpy = IsoExpoSelector.fullpairs.get(i).layerMpy;
+            }
+        }
+        if (images.get(0).pair.layerMpy != minMpy) {
+            for (int i = 1; i < images.size(); i++) {
+                if (images.get(i).pair.layerMpy == minMpy) {
+                    ImageFrame frame = images.get(0);
+                    images.set(0, images.get(i));
+                    images.set(i, frame);
+                    break;
+                }
+            }
+        }
         long time = System.currentTimeMillis();
         BaseFrame = new GLTexture(rawSize,new GLFormat(GLFormat.DataType.FLOAT_16));
         CorrectedRaw(BaseFrame,0);
@@ -339,7 +364,7 @@ public class AlignAndMergeHybrid extends Node {
         for (int i = 1; i < images.size(); i++) {
             CorrectedRaw(inputraw,i);
             BoxDown22(inputraw, brTex2);
-            GaussDown44(brTex2, brTex8, false);
+            GaussDown44(brTex2, brTex8, true);
             GaussDown44(brTex8, brTex32, false);
             GaussDown44(brTex32, brTex128, false);
             Align(i);

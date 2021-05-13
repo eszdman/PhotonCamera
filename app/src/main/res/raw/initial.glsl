@@ -9,6 +9,7 @@ uniform sampler2D FusionMap;
 
 uniform vec3 neutralPoint;
 uniform float gain;
+uniform float saturation0;
 uniform float saturation;
 #define CCT 0
 //Color mat's
@@ -47,6 +48,7 @@ out vec3 Output;
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import coords
 #import interpolation
+#import gaussian
 float gammaEncode2(float x) {
     //return 1.055 * sqrt(x+EPS) - 0.055;
     return texture(GammaCurve,vec2(x - 1.0/1024.0,0.5)).r;
@@ -133,14 +135,11 @@ vec3 tonemap(vec3 rgb) {
     minmax.y = sorted.z;
 
     // Apply tonemapping curve to min, max RGB channel values
-    vec2 minmaxsin = tonemapSin(minmax);
-    /*minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
     pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
     minmax * toneMapCoeffs.z +
-    toneMapCoeffs.w;*/
+    toneMapCoeffs.w;
 
-    minmax.x=mix(minmax.x*texture(TonemapTex,vec2(minmax.x,0.5)).x,minmax.x,0.5);
-    minmax.y=mix(minmax.y*texture(TonemapTex,vec2(minmax.y,0.5)).x,minmax.y,0.5);
     //minmax = mix(minmax, minmaxsin, 0.9f);
 
     // Rescale middle value
@@ -148,8 +147,8 @@ vec3 tonemap(vec3 rgb) {
     if (sorted.z == sorted.x) {
         newMid = minmax.y;
     } else {
-        float yprog = (sorted.y - sorted.x) / (sorted.z - sorted.x);
-        newMid = minmax.x + (minmax.y - minmax.x) * yprog;
+        newMid = minmax.x + ((minmax.y - minmax.x) * (sorted.y - sorted.x) /
+        (sorted.z - sorted.x));
     }
 
     vec3 finalRGB;
@@ -205,15 +204,27 @@ vec3 hsv2rgb(vec3 c) {
     vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
 }
-const float redcorr = 0.0;
-const float bluecorr = 0.0;
+#define REDCORR 0.0
+#define BLUECORR 0.0
 vec3 saturate(vec3 rgb) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
-    vec3 hsv = rgb2hsv(vec3(rgb.r-r*redcorr,rgb.g,rgb.b+b*bluecorr));
-    hsv.g = clamp(hsv.g*(saturation),0.,1.0);
+    float br = (r+g+b)/3.0;
+    float dfsat = mix(saturation0,saturation,br*br);
+    vec3 hsv = rgb2hsv(vec3(rgb.r-r*REDCORR,rgb.g,rgb.b+b*BLUECORR));
+    /*if(hsv.g < 0.5-0.0){
+        hsv.g *= mix(1.0,dfsat,hsv.g/(0.5-0.0));
+    } else
+    if(hsv.g > 0.5+0.0){
+        hsv.g *= mix(dfsat,1.0,(0.7-hsv.g)/(0.5-0.0));
+    }
+    else
+    //hsv.g *= mix(dfsat,1.0,abs(hsv.g-0.5)/0.1);
+    hsv.g *= dfsat;*/
+    hsv.g *= 1.0+unscaledGaussian(abs(hsv.g),1.50)*(dfsat*1.07-1.0);
     rgb = hsv2rgb(hsv);
+    rgb.r = mix((rgb.r+br)/2.0,rgb.r,0.7);
     return rgb;
 }
 #define TONEMAPSWITCH (0.05)
@@ -264,7 +275,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=4.0;
 
     //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
-    br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0) + 1.0;
+    if(br < 0.99) br*=1.0 + (tonemapGain-1.0)*1.0;
 
 
 
@@ -275,7 +286,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
-    //pRGB = tonemap(pRGB);
+    pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
@@ -291,7 +302,7 @@ void main() {
 
     float tonemapGain = 1.f;
     #if FUSION == 1
-    tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r/(sRGB.r+sRGB.g+sRGB.b);
+    /*tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r/(sRGB.r+sRGB.g+sRGB.b);
     t=texelFetch(InputBuffer, xy+ivec2(0,2), 0).rgb;
     tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(0,2))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
     t=texelFetch(InputBuffer, xy+ivec2(2,0), 0).rgb;
@@ -300,7 +311,14 @@ void main() {
     tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(0,-2))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
     t=texelFetch(InputBuffer, xy+ivec2(-2,0), 0).rgb;
     tonemapGain += textureBicubic(FusionMap,vec2(xy+ivec2(-2,0))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
-    tonemapGain = (tonemapGain/5.f)*(sRGB.r+sRGB.g+sRGB.b);
+    tonemapGain = (tonemapGain/5.f)*(sRGB.r+sRGB.g+sRGB.b);*/
+    t = sRGB;
+    tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r;
+    t+=texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb;
+    t+=texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb;
+    t+=texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb;
+    t+=texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb;
+    tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
