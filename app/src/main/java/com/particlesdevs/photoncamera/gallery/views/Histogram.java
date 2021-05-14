@@ -1,18 +1,23 @@
 package com.particlesdevs.photoncamera.gallery.views;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
 import android.view.View;
 
 import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
 public class Histogram extends View {
-    private HistogramLoadingListener sHistogramLoadingListener;
     private final Paint wallPaint;
-    private HistogramModel histogramModel;
     private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
+    private HistogramLoadingListener sHistogramLoadingListener;
+    private HistogramModel histogramModel;
+    private final Path wallPath = new Path();
 
     public Histogram(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
@@ -23,8 +28,6 @@ public class Histogram extends View {
         int size = 256;
         int[][] colorsMap;
         int maxY = 0;
-        int[] imgarr = new int[bitmap.getWidth() * bitmap.getHeight()];
-        bitmap.getPixels(imgarr, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
         colorsMap = HistogramRs.getHistogram(bitmap);
         //Find max
         for (int i = 0; i < size; i++) {
@@ -44,7 +47,6 @@ public class Histogram extends View {
         invalidate();
     }
 
-    @SuppressLint("DrawAllocation")
     @Override
     protected void onDraw(Canvas canvas) {
         //super.onDraw(canvas);
@@ -66,7 +68,6 @@ public class Histogram extends View {
         }
 
         float xInterval = ((float) getWidth() / ((float) histogramModel.getSize() + 1));
-        Path wallPath = new Path();
         for (int i = 0; i < 3; i++) {
             if (i == 0) {
                 //wallpaint.setColor(0xFF0700);
