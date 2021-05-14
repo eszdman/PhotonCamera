@@ -22,6 +22,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.overwhelmer.circularbarlib.control.ManualParamModel;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 
@@ -37,6 +38,7 @@ import java.util.Observer;
 public class ParamController implements Observer {
     private static final String TAG = "ParamController";
     private final CaptureController captureController;
+    private ManualParamModel manualParamModel;
 
     public ParamController(@NonNull CaptureController captureController) {
         this.captureController = captureController;
@@ -105,10 +107,17 @@ public class ParamController implements Observer {
         captureController.rebuildPreviewBuilder();
     }
 
+    public boolean isManualMode() {
+        if (manualParamModel != null)
+            return manualParamModel.isManualMode();
+        return false;
+    }
+
     @Override
     public void update(Observable o, Object arg) {
         if (o != null && arg != null) {
             ManualParamModel model = (ManualParamModel) o;
+            manualParamModel = model;
             if (arg.equals(ManualParamModel.ID_ISO)) {
                 setISO((int) model.getCurrentISOValue(), model.getCurrentExposureValue());
             }
@@ -122,5 +131,17 @@ public class ParamController implements Observer {
                 setFocus((float) model.getCurrentFocusValue());
             }
         }
+    }
+
+    public double getCurrentExposureValue() {
+        if (manualParamModel != null)
+            return manualParamModel.getCurrentExposureValue();
+        return ManualParamModel.EXPOSURE_AUTO;
+    }
+
+    public double getCurrentISOValue() {
+        if (manualParamModel != null)
+            return manualParamModel.getCurrentISOValue();
+        return ManualParamModel.ISO_AUTO;
     }
 }

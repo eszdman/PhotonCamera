@@ -111,4 +111,6 @@ dependencies {
     //Leak Canary
     //Use this lib to detect memory leaks when debugging
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+    //CircularBarLib
+    implementation 'com.github.overwhelmer:CircularBarLib:0.1.1'
 }

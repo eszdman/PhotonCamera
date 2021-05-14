@@ -88,8 +88,8 @@ public class IsoExpoSelector {
             pair.MinIso();
         }
 
-        double currentManExp = captureController.getManualParamModel().getCurrentExposureValue();
-        double currentManISO = captureController.getManualParamModel().getCurrentISOValue();
+        double currentManExp = captureController.getParamController().getCurrentExposureValue();
+        double currentManISO = captureController.getParamController().getCurrentISOValue();
         pair.exposure = currentManExp != 0 ? (long) currentManExp : pair.exposure;
         pair.iso = currentManISO != 0 ? (int) currentManISO : pair.iso;
         pair.curlayer = ExpoPair.exposureLayer.Normal;

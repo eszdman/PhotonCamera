@@ -1,8 +1,5 @@
 <resources>
     <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
-    <string name="manual_mode_auto" translatable="false">Auto</string>
-    <string name="manual_mode_manual" translatable="false">Manual</string>
-    <string name="manual_mode_fixed" translatable="false">Fixed</string>
     <string name="iso" translatable="false">"ISO: "</string>
     <string name="icon_string" translatable="false">Icon</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>

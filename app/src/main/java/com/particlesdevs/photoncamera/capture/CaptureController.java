@@ -68,9 +68,7 @@ import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
-import com.particlesdevs.photoncamera.manual.ManualParamModel;
 import com.particlesdevs.photoncamera.manual.ParamController;
-import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
@@ -98,9 +96,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
@@ -171,7 +167,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
     public boolean isDualSession = true;
     private static int mTargetFormat = RAW_FORMAT;
-    private final ManualParamModel manualParamModel;
+    private final ParamController paramController;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -372,7 +368,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     }
-                    if (manualParamModel.isManualMode())
+                    if (paramController.isManualMode())
                         mState = STATE_WAITING_NON_PRECAPTURE;
                     break;
                 }
@@ -509,11 +505,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         this.processExecutor = processExecutor;
-        this.manualParamModel = new ManualParamModel(new ParamController(this));
+        this.paramController = new ParamController(this);
     }
 
-    public ManualParamModel getManualParamModel() {
-        return manualParamModel;
+    public ParamController getParamController() {
+        return paramController;
     }
 
     public static int getTargetFormat() {
@@ -1235,7 +1231,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int frameCount = FrameNumberSelector.getFrames();
             if (frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
-            Log.d(TAG, "HDRFact1:" + manualParamModel.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
+            Log.d(TAG, "HDRFact1:" + paramController.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
             //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
             IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
             //IsoExpoSelector.HDR = false;
