@@ -10,6 +10,8 @@ import com.particlesdevs.photoncamera.ScriptC_align;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLInterface;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.AlignAndMergeHybrid;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.BoxDown;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.GaussianResize;
@@ -25,18 +27,34 @@ public class AlignWithGL {
     private RUtils rUtils;
     private ScriptC_align align;
 
-    public GlAllocation refDown2;
-    public GlAllocation refDown8;
-    public GlAllocation refDown32;
-    public GlAllocation refDown128;
+    public GLTexture refDown2;
+    public GLTexture refDown8;
+    public GLTexture refDown32;
+    public GLTexture refDown128;
 
 
-    public GlAllocation inputDown2;
-    public GlAllocation inputDown8;
-    public GlAllocation inputDown32;
-    public GlAllocation inputDown128;
+    public GLTexture inputDown2;
+    public GLTexture inputDown8;
+    public GLTexture inputDown32;
+    public GLTexture inputDown128;
 
+    public GlAllocation DiffHVIn;
+    public GlAllocation DiffHVRef;
 
+    public GlAllocation CornersRef;
+    public GlAllocation CornersIn;
+
+    private GLInterface glInterface;
+
+    public int[] alignments;
+    private void PrepareDiffs(GLTexture in, GLTexture ref, int i){
+        glInterface.glUtils.ConvDiff(in, DiffHVIn.glTexture,0,false,false);
+        glInterface.glUtils.ConvDiff(ref, DiffHVRef.glTexture,0,false,false);
+        glInterface.glUtils.Corners(DiffHVRef.glTexture,CornersRef.glTexture);
+        CornersRef.pushToAllocation();
+        glInterface.glUtils.Corners(DiffHVIn.glTexture,CornersIn.glTexture);
+        CornersIn.pushToAllocation();
+    }
 
     public GlAllocation align128,align32,align8,align2;
     public static RenderScript rs;
@@ -47,10 +65,10 @@ public class AlignWithGL {
         rUtils = new RUtils(rs);
         align = new ScriptC_align(rs);
     }
-    public void AlignFrame(){
-
+    public void AlignFrame(GLInterface glInterface,int i){
+        this.glInterface = glInterface;
         Log.d("AlignRs","RunningAlign128");
-        Log.d("AlignRs","inputDown128"+inputDown128.glTexture.mSize);
+        Log.d("AlignRs","inputDown128"+inputDown128.mSize);
         Log.d("AlignRs","align128"+align128.glTexture.mSize);
 
         align128.createAllocation();
@@ -58,57 +76,53 @@ public class AlignWithGL {
         align8.createAllocation();
         align2.createAllocation();
 
-        inputDown128.getAllocation();
-        inputDown32.getAllocation();
-        inputDown8.getAllocation();
-        inputDown2.getAllocation();
-
-        refDown128.getAllocation();
-        refDown32.getAllocation();
-        refDown8.getAllocation();
-        refDown2.getAllocation();
 
         align.set_TILESIZE(AlignAndMergeHybrid.tileSize);
 
+        PrepareDiffs(inputDown128,refDown128,i);
         align.set_prevScale(0);
-        align.set_inputBuffer(inputDown128.allocation);
-        align.set_referenceBuffer(refDown128.allocation);
-        align.set_inputSize(new Int2(inputDown128.allocation.getType().getX(),inputDown128.allocation.getType().getY()));
+        align.set_inputBuffer(CornersIn.allocation);
+        align.set_referenceBuffer(CornersRef.allocation);
+        align.set_inputSize(new Int2(inputDown128.mSize.x,inputDown128.mSize.y));
         align.set_alignOutput(align128.allocation);
         align.forEach_align(rUtils.Range(align128.allocation));
 
 
         Log.d("AlignRs","RunningAlign32");
 
+        PrepareDiffs(inputDown128,refDown128,i);
         align.set_prevScale(0);
         align.set_alignVectors(align128.allocation);
-        align.set_inputBuffer(inputDown32.allocation);
-        align.set_referenceBuffer(refDown32.allocation);
-        align.set_inputSize(new Int2(inputDown32.allocation.getType().getX(),inputDown32.allocation.getType().getY()));
+        align.set_inputBuffer(CornersIn.allocation);
+        align.set_referenceBuffer(CornersRef.allocation);
+        align.set_inputSize(new Int2(inputDown32.mSize.x,inputDown32.mSize.y));
         align.set_prevSize(new Int2(align128.allocation.getType().getX(),align128.allocation.getType().getY()));
         align.set_alignOutput(align32.allocation);
         align.forEach_align(rUtils.Range(align32.allocation));
 
         Log.d("AlignRs","RunningAlign8");
+        PrepareDiffs(inputDown128,refDown128,i);
         align.set_prevScale(4);
         align.set_alignVectors(align32.allocation);
-        align.set_inputBuffer(inputDown8.allocation);
-        align.set_referenceBuffer(refDown8.allocation);
-        align.set_inputSize(new Int2(inputDown8.allocation.getType().getX(),inputDown8.allocation.getType().getY()));
+        align.set_inputBuffer(CornersIn.allocation);
+        align.set_referenceBuffer(CornersRef.allocation);
+        align.set_inputSize(new Int2(inputDown8.mSize.x,inputDown8.mSize.y));
         align.set_prevSize(new Int2(align32.allocation.getType().getX(),align32.allocation.getType().getY()));
         align.set_alignOutput(align8.allocation);
         align.forEach_align(rUtils.Range(align8.allocation));
 
         Log.d("AlignRs","RunningAlign2");
+        PrepareDiffs(inputDown128,refDown128,i);
         align.set_prevScale(4);
         align.set_alignVectors(align8.allocation);
-        align.set_inputBuffer(inputDown2.allocation);
-        align.set_referenceBuffer(refDown2.allocation);
-        align.set_inputSize(new Int2(inputDown2.allocation.getType().getX(),inputDown2.allocation.getType().getY()));
+        align.set_inputBuffer(CornersIn.allocation);
+        align.set_referenceBuffer(CornersRef.allocation);
+        align.set_inputSize(new Int2(inputDown2.mSize.x,inputDown2.mSize.y));
         align.set_prevSize(new Int2(align8.allocation.getType().getX(),align8.allocation.getType().getY()));
         align.set_alignOutput(align2.allocation);
         align.forEach_align(rUtils.Range(align2.allocation));
 
-        align2.pushToTexture();
+        ByteBuffer buffer = align2.allocationBuffer();
+        buffer.asReadOnlyBuffer().asIntBuffer().get(alignments);
     }
 }

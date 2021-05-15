@@ -14,6 +14,8 @@ public class ImageFrame {
     public GyroBurst frameGyro;
     public float[][][] BlurKernels;
     public double posx,posy;
+    public double rX,rY,rZ;
+    public double[] HomographyMatrix;
     public double rotation;
     public int number;
     public IsoExpoSelector.ExpoPair pair;

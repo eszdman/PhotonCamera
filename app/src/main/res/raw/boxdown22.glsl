@@ -24,8 +24,9 @@ void main() {
         outp =vec4(firstdiag(xy).rg,(seconddiag(xy).r+seconddiag(xy).g)/2.0,1.0);
     }
     float g = outp.g;
-    outp.g = (outp.r+g)/2.0;
-    outp.r = (outp.b+g)/2.0;
+    outp.g = (outp.r)/1.0;
+    outp.r = (outp.b)/1.0;
+    outp.b = g;
 
     outp*=texture(GainMap,vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).g;
     outp.r +=0.0001;

@@ -111,15 +111,16 @@ public class GLCoreBlockProcessing extends GLContext {
             mOutBuffer = ByteBuffer.allocate(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
         return drawBlocksToOutput(size,glFormat,mOutBuffer);
     }
+    ByteBuffer mBlockBuffert = null;
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,ByteBuffer mOutBuffer) {
         glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
         checkEglError("glBindFramebuffer");
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(size.y, GLDrawParams.TileSize);
         int[] row = new int[2];
-        ByteBuffer mBlockBuffer = ByteBuffer.allocate(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels);
+        if(mBlockBuffert == null || mBlockBuffert.position(0).remaining() < size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels) mBlockBuffert = ByteBuffer.allocate(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels);
         mOutBuffer.position(0);
-        mBlockBuffer.position(0);
+        mBlockBuffert.position(0);
         while (divider.nextBlock(row)) {
             int y = row[0];
             int height = row[1];
@@ -128,20 +129,20 @@ public class GLCoreBlockProcessing extends GLContext {
             program.setVar("yOffset", y);
             program.draw();
             checkEglError("program");
-            mBlockBuffer.position(0);
-            glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffer);
+            mBlockBuffert.position(0);
+            glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffert);
             checkEglError("glReadPixels");
             if (height < GLDrawParams.TileSize) {
                 // This can only happen 2 times at edges
                 byte[] data = new byte[size.x * height * glFormat.mFormat.mSize * glFormat.mChannels];
-                mBlockBuffer.get(data);
+                mBlockBuffert.get(data);
                 mOutBuffer.put(data);
             } else {
-                mOutBuffer.put(mBlockBuffer);
+                mOutBuffer.put(mBlockBuffert);
             }
         }
         mOutBuffer.position(0);
-        mBlockBuffer = null;
+        //mBlockBuffer = null;
         return mOutBuffer;
     }
 }

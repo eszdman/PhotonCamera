@@ -371,7 +371,7 @@ public class GLProg implements AutoCloseable {
         setVar(name, in.x, in.y);
     }
 
-    public void setVar(String name, float... vars) {
+    public void setVar(String name, boolean transpose, float... vars) {
         int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
             case 1:
@@ -387,11 +387,14 @@ public class GLProg implements AutoCloseable {
                 glUniform4f(address, vars[0], vars[1], vars[2], vars[3]);
                 break;
             case 9:
-                glUniformMatrix3fv(address, 1, true, vars, 0);
+                glUniformMatrix3fv(address, 1, transpose, vars, 0);
                 break;
             default:
                 throw new RuntimeException("Wrong var size " + name);
         }
+    }
+    public void setVar(String name, float... vars) {
+        setVar(name,true,vars);
     }
 
     public void setVarU(String name, Point var) {

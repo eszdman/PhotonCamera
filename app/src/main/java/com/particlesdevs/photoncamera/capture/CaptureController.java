@@ -1237,8 +1237,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             cameraEventsListener.onFrameCountSet(frameCount);
             Log.d(TAG, "HDRFact1:" + manualParamModel.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
             //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
-            IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
-            //IsoExpoSelector.HDR = false;
+            //IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
+            IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
             if (!(focus == 0.0 && Build.DEVICE.toLowerCase().equals("samsung")))

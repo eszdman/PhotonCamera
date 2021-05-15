@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+
 import static android.opengl.GLES30.*;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
 import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_2D;

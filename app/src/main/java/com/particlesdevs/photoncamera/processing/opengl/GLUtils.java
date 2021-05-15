@@ -488,16 +488,15 @@ public class GLUtils {
         glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
     }
-    public void Corners(GLTexture dx, GLTexture dy,GLTexture out){
-        glProg.setDefine("tvar",dx.mFormat.getTemVar());
-        glProg.setDefine("tscal",dx.mFormat.getScalar());
-        glProg.setDefine("TSAMP",dx.mFormat.getTemSamp());
-        glProg.setDefine("INSIZE", Utilities.addP(dx.mSize,0));
+    public void Corners(GLTexture dxy,GLTexture out){
+        glProg.setDefine("tvar",dxy.mFormat.getTemVar());
+        glProg.setDefine("tscal",dxy.mFormat.getScalar());
+        glProg.setDefine("TSAMP",dxy.mFormat.getTemSamp());
+        glProg.setDefine("INSIZE", Utilities.addP(dxy.mSize,0));
         //glProg.setDefine("SIZE",size);
         glProg.useProgram(PhotonCamera.getAssetLoader().getString("corners.glsl"));
-        glProg.setTexture("InputBufferdx",dx);
-        glProg.setTexture("InputBufferdy",dy);
-        glProg.drawBlocks(out,dx.mSize);
+        glProg.setTexture("InputBufferdxy",dxy);
+        glProg.drawBlocks(out,dxy.mSize);
         glProg.closed = true;
     }
     public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring){
