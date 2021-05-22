@@ -46,6 +46,7 @@ out vec3 Output;
 #define EPS (0.0008)
 #define FUSION 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
+#define MINP 1.0
 #import coords
 #import interpolation
 #import gaussian
@@ -236,8 +237,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     br/=3.0;
     br = mix(br,min(pRGB.r,pRGB.b),grmodel);
     pRGB*=br;*/
-
-    pRGB = clamp(pRGB+vec3(EPS), vec3(EPS), neutralPoint);
+    //pRGB*=2.0;
+    pRGB+=vec3(EPS);
+    float br = pRGB.r+pRGB.g+pRGB.b;
+    pRGB = clamp(pRGB, vec3(EPS), neutralPoint);
     #if CCT == 0
     mat3 corr = intermediateToSRGB;
     #endif
@@ -259,7 +262,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
     pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
 
-    float br = pRGB.r+pRGB.g+pRGB.b;
+    //pRGB/=pRGB.r+pRGB.g+pRGB.b;
+    //pRGB*=br*MINP;
+    br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
     //ISO tint correction
@@ -286,7 +291,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
-    pRGB = tonemap(pRGB);
+    pRGB = tonemap(pRGB*0.9)*1.1;
 
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
@@ -312,13 +317,15 @@ void main() {
     t=texelFetch(InputBuffer, xy+ivec2(-2,0), 0).rgb;
     tonemapGain += textureBicubic(FusionMap,vec2(xy+ivec2(-2,0))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
     tonemapGain = (tonemapGain/5.f)*(sRGB.r+sRGB.g+sRGB.b);*/
+    /*
     t = sRGB;
     tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r;
     t+=texelFetch(InputBuffer, xy+ivec2(0,1), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb;
-    tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;
+    tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
+    tonemapGain = texelFetch(FusionMap, ivec2(gl_FragCoord.xy/2.0), 0).r*50.0;
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

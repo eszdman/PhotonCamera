@@ -105,7 +105,7 @@ public class PostPipeline extends GLBasePipeline {
 
 
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
-        add(new Sharpen(R.raw.sharpeningbilateral));
+        add(new SharpenDual());
         add(new RotateWatermark(getRotation()));
         return runAll();
     }

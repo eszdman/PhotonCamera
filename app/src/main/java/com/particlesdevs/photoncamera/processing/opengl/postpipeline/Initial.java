@@ -54,7 +54,8 @@ public class Initial extends Node {
         }
         float[] BL = ((PostPipeline)basePipeline).analyzedBL;
         float[] WP = basePipeline.mParameters.whitePoint;
-        //float minP = Math.min(Math.min(WP[0],WP[1]),WP[2]);
+        float minP = (WP[0]+WP[1]+WP[2])/3.f;
+        glProg.setDefine("MINP",minP);
         //BL[0]+=basePipeline.mParameters.noiseModeler.computeModel[0].second*(float)DynamicBL.precisionFactor/WP[0];
         //BL[1]+=basePipeline.mParameters.noiseModeler.computeModel[1].second*(float)DynamicBL.precisionFactor/WP[1];
         //BL[2]+=basePipeline.mParameters.noiseModeler.computeModel[2].second*(float)DynamicBL.precisionFactor/WP[2];

@@ -177,6 +177,19 @@ public class AlignAndMergeCV extends Node {
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
         glProg.setDefine("HDR",IsoExpoSelector.HDR);
         glProg.setDefine("ROTATION", (float) images.get(num).rotation);
+
+
+        /*Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
+        double[] hfloats = new double[9];
+        hm.get(0,0,hfloats);
+        float[] hfloats2 = new float[9];
+        for(int i =0; i<9;i++){
+            Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
+            hfloats2[i] = (float)hfloats[i];
+        }
+        glProg.setDefine("HMatrix",false,hfloats2);*/
+
+
         glProg.useProgram(R.raw.cvmerge);
 
 

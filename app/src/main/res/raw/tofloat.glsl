@@ -50,5 +50,6 @@ void main() {
             Output = gains.b*(Output-level.b-BLB)/(1.0-level.b);
         }
     }
-    Output = clamp(Output,0.0,balance*Regeneration)/Regeneration;
+    Output = clamp(Output,0.0,balance)/Regeneration;
+    //Output = clamp(Output/2.0,0.0,1.0);
 }

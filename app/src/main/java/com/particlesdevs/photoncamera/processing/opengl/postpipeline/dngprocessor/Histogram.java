@@ -5,6 +5,8 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
+import static com.particlesdevs.photoncamera.util.Math.mix;
+
 public class Histogram {
     private static final int HIST_BINS = 256;
     private static final double EPSILON = 0.01;
@@ -17,6 +19,14 @@ public class Histogram {
     public final float[] histb;
     public float gamma;
     public final float logAvgLuminance;
+    private static float getInterpolated(float[] in, float ind){
+        int indi = (int)ind;
+        if(ind > indi){
+            return mix(in[indi],in[Math.min(indi+1,in.length-1)],ind-indi);
+        } else if(ind < indi){
+            return mix(in[indi],in[Math.max(indi-1,0)],indi-ind);
+        } else return in[indi];
+    }
     public Histogram(Bitmap bmp, int whPixels) {
         int[] histv;
         int[] histx;
@@ -90,6 +100,7 @@ public class Histogram {
             normalization+=diff;
             prev = hist[i];
         }
+
         Log.d("Histogram","normalization:"+normalization);
         //if(normalization < 1.f) normalization = 1.f;
         for(int i =0; i<hist.length;i++){
@@ -128,6 +139,11 @@ public class Histogram {
         float max = cumulativeHist[HIST_BINS];
         for (int i = 0; i < cumulativeHist.length; i++) {
             cumulativeHist[i] /= max;
+        }
+        float[] prevH = cumulativeHist.clone();
+        cumulativeHist = new float[4096];
+        for(int i =0; i<cumulativeHist.length;i++){
+            cumulativeHist[i] = getInterpolated(prevH,i*((float)prevH.length/(cumulativeHist.length)));
         }
         return cumulativeHist;
     }

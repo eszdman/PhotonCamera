@@ -20,6 +20,7 @@ uniform mat3 HMatrix;
 #define BAYER 0
 #define ROTATION 0.0
 #define HDR 0
+#define HMAT 0.0
 
 #import coords
 out float Output;
@@ -29,6 +30,7 @@ void main() {
     ivec2 state = xy%2;
 
     vec2 align = vec2(xy/2);
+    //mat3 HMatrix = mat3(HMAT);
     //Perspective Warp
     align.x = (align.x*HMatrix[0][0] + align.y*HMatrix[0][1] + HMatrix[0][2])/
               (align.x*HMatrix[2][0] + align.y*HMatrix[2][1] + HMatrix[2][2]);
