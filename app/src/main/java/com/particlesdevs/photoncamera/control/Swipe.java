@@ -9,8 +9,8 @@ import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 
-import com.overwhelmer.circularbarlib.api.ManualModeConsole;
-import com.overwhelmer.circularbarlib.control.ManualParamModel;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;

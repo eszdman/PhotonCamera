@@ -22,7 +22,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.overwhelmer.circularbarlib.control.ManualParamModel;
+import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 

@@ -64,8 +64,8 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.overwhelmer.circularbarlib.api.ManualInstanceProvider;
-import com.overwhelmer.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;

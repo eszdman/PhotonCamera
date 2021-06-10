@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="@dimen/manual_knob_icon_size"
+    android:height="@dimen/manual_knob_icon_size"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <group
+        android:translateX="-642"
+        android:translateY="-1194">
+        <group android:translateY="1143">
+            <group
+                android:translateX="641.1385"
+                android:translateY="50.1385">
+                <path
+                    android:pathData="M 1 1 L 49 1 L 49 49 L 1 49 Z"
+                    android:strokeWidth="1" />
+                <path
+                    android:fillColor="@color/white"
+                    android:pathData="M24.8615317,4.86153171 C35.9015317,4.86153171 44.8615317,13.8215317 44.8615317,24.8615317 C44.8615317,35.9015317 35.9015317,44.8615317 24.8615317,44.8615317 C13.8215317,44.8615317 4.86153171,35.9015317 4.86153171,24.8615317 C4.86153171,13.8215317 13.8215317,4.86153171 24.8615317,4.86153171 Z M17.8615317,20.8615317 L10.8615317,29.8615317 L38.8615317,29.8615317 L29.8615317,17.8615317 L22.8615317,26.8815317 L17.8615317,20.8615317 Z"
+                    android:strokeWidth="1" />
+            </group>
+        </group>
+    </group>
+</vector>
