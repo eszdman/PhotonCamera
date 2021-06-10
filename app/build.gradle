@@ -94,7 +94,7 @@ dependencies {
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
-    implementation 'org.bytedeco:opencv:4.4.0-1.5.4'
+    implementation 'com.mytechia:opencv:4.1.0-my'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'

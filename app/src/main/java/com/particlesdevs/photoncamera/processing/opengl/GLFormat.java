@@ -55,7 +55,7 @@ import static android.opengl.GLES30.GL_UNSIGNED_INT;
 import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 
 public class GLFormat {
-    final int mChannels;
+    public final int mChannels;
     final DataType mFormat;
     public int filter = GL_NEAREST;
     public int wrap = GL_CLAMP_TO_EDGE;
@@ -74,7 +74,7 @@ public class GLFormat {
         UNSIGNED_64(11, 8),
         BOOLEAN(12, 1);
         final int mID;
-        final int mSize;
+        public final int mSize;
 
         DataType(int id, int size) {
             mID = id;

@@ -23,7 +23,7 @@ public class Gyro {
     private GyroBurst gyroBurst;
     private int filter = -1;
     public int tripodShakiness = 1000;
-    public static final int delayUs = 500;
+    public static int delayUs = 1;
     int tripodDetectCount = 600;
     int tripodCounter = 0;
     long temp = 0;
@@ -95,7 +95,9 @@ public class Gyro {
         for(long time : capturingTimes){
             if(time > maxTime) maxTime = time;
         }
-        gyroBurst = new GyroBurst((int) (maxTime/(10*delayUs)));
+        int requiredSamples = 700;
+        delayUs = (int) (maxTime/requiredSamples)/10;
+                gyroBurst = new GyroBurst(700);
         System.arraycopy(capturingTimes, 0, this.capturingTimes, 0, capturingTimes.length);
 
         BurstShakiness = burstShakiness;

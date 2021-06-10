@@ -48,6 +48,9 @@ public class GlAllocation implements AutoCloseable {
         glTexture = new GLTexture(prev.mSize,prev.mFormat,ByteBuffer.wrap(arr));
         prev.close();
     }
+    public ByteBuffer allocationBuffer(){
+        return allocation.getByteBuffer();
+    }
     public void getAllocation(){
         allocation = Allocation.createTyped(rs,Type.createXY(rs,glTexture.mFormat.getElement(rs),glTexture.mSize.x,glTexture.mSize.y),USAGE_GRAPHICS_RENDER_TARGET);
         byte[] input = new byte[byteBuffer.remaining()];

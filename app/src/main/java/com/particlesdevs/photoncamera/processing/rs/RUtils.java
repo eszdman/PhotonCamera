@@ -80,6 +80,7 @@ public class RUtils {
     public Type CreateU16(int size) { return Type.createX(rs,Element.U16(rs),size);}
 
     public Type CreateU32(int size) { return Type.createX(rs,Element.U32(rs),size);}
+    public Type CreateU32_2(Point size) { return Type.createXY(rs,Element.U32(rs),size.x,size.y);}
     public Type CreateU32_3(int size) { return Type.createX(rs,Element.U32_3(rs),size);}
     public Type CreateU32_4(int size) { return Type.createX(rs,Element.U32_4(rs),size);}
     public Bitmap SameBit(Bitmap original){

@@ -57,6 +57,9 @@ public class Parameters {
     public double angleY;
     public double perXAngle;
     public double perYAngle;
+    public double XPerMm;
+    public double YPerMm;
+    public double[] cameraIntrinsic = new double[9];
 
 
 
@@ -79,7 +82,14 @@ public class Parameters {
             flen[0] = 4.75f;
         }
         sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+        XPerMm = rawSize.x/sensorSize.getWidth();
+        YPerMm = rawSize.y/sensorSize.getHeight();
 
+
+        double[] mi = cameraIntrinsic;
+        mi[0]=flen[0]*XPerMm;mi[1]=0.0;    mi[2]=rawSize.x/2.0;
+        mi[3]=0.0;    mi[4]=flen[0]*YPerMm;mi[5]=rawSize.y/2.0;
+        mi[6]=0.0;    mi[7]=0.0;    mi[8]=1.0;
         angleX = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
         angleY = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
         perXAngle = rawSize.x/angleX;

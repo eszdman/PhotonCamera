@@ -10,6 +10,9 @@ import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.rs.GyroMap;
 import com.particlesdevs.photoncamera.util.Utilities;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+
 import static com.particlesdevs.photoncamera.control.Gyro.NS2S;
 
 public class ImageFrameDeblur {
@@ -54,6 +57,10 @@ public class ImageFrameDeblur {
         xf = in.frameGyro.integrated[0];
         yf = in.frameGyro.integrated[1];
         zf = in.frameGyro.integrated[2];
+
+        in.rX = xf;
+        in.rY = yf;
+        in.rZ = zf;
         in.posx = xf*parameters.perXAngle;
         in.posy = yf*parameters.perYAngle;
         in.rotation = zf;

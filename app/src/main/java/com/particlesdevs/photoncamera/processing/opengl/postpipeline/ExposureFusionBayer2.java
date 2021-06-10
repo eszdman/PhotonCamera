@@ -72,26 +72,26 @@ public class ExposureFusionBayer2 extends Node {
         int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,0.5f));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,1.0f));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(3.0f)));
         //in.close();
         glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
         glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
-        GLTexture wip = new GLTexture(normalExpo.gauss[ind]);
+        GLTexture binnedFuse = new GLTexture(normalExpo.gauss[ind]);
         glProg.setTexture("normalExpo",normalExpo.gauss[ind]);
         glProg.setTexture("highExpo",highExpo.gauss[ind]);
         glProg.setTexture("normalExpoDiff",normalExpo.gauss[ind]);
         glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
-        glProg.setVar("upscaleIn",wip.mSize);
+        glProg.setVar("upscaleIn",binnedFuse.mSize);
         //normalExpo.gauss[ind].close();
         //highExpo.gauss[ind].close();
-        glProg.drawBlocks(wip,wip.mSize);
+        glProg.drawBlocks(binnedFuse,binnedFuse.mSize);
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
-            //GLTexture upsampleWip = (glUtils.interpolate(wip,normalExpo.sizes[i]));
+            //GLTexture upsampleWip = (glUtils.interpolate(binnedFuse,normalExpo.sizes[i]));
             //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
-            GLTexture upsampleWip = wip;
+            GLTexture upsampleWip = binnedFuse;
             Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
             glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
             glProg.useProgram(R.raw.fusionbayer2);
@@ -101,14 +101,14 @@ public class ExposureFusionBayer2 extends Node {
             glProg.setVar("level",i);
             glProg.setVar("upscaleIn",normalExpo.sizes[i]);
             // We can discard the previous work in progress merge.
-            //wip.close();
+            //binnedFuse.close();
             Point wsize;
             if(normalExpo.laplace[i].mSize.equals(WorkSize)){
-                wip = new GLTexture(normalExpo.laplace[i]);
-                wsize = wip.mSize;
+                binnedFuse = new GLTexture(normalExpo.laplace[i]);
+                wsize = binnedFuse.mSize;
             } else {
-                wip = new GLTexture(normalExpo.laplace[i]);
-                wsize = wip.mSize;
+                binnedFuse = new GLTexture(normalExpo.laplace[i]);
+                wsize = binnedFuse.mSize;
             }
 
             // Weigh full image.
@@ -119,8 +119,8 @@ public class ExposureFusionBayer2 extends Node {
             glProg.setTexture("normalExpoDiff", normalExpo.laplace[i]);
             glProg.setTexture("highExpoDiff", highExpo.laplace[i]);
 
-            glProg.drawBlocks(wip,wsize);
-            //glUtils.SaveProgResult(wip.mSize,"ExposureFusion"+i);
+            glProg.drawBlocks(binnedFuse,wsize);
+            //glUtils.SaveProgResult(binnedFuse.mSize,"ExposureFusion"+i);
 
             upsampleWip.close();
             if(!normalExpo.gauss[i].mSize.equals(WorkSize)) {
@@ -140,16 +140,16 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
         ((PostPipeline)basePipeline).FusionMap =
-                fusionMap(wip,normalExpo.gauss[0], (float)((PostPipeline)basePipeline).AecCorr/2.f);
-                //wip;
+                fusionMap(binnedFuse,normalExpo.gauss[0], (float)((PostPipeline)basePipeline).AecCorr/2.f);
+                //binnedFuse;
         /*if(basePipeline.mSettings.DebugData) {
             glUtils.convertVec4(((PostPipeline)basePipeline).FusionMap,"in1.r*15.0");
-            glUtils.SaveProgResult(wip.mSize,"tonemap");
+            glUtils.SaveProgResult(binnedFuse.mSize,"tonemap");
         }*/
-        wip.close();
-        //WorkingTexture = unexpose(wip,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
+        binnedFuse.close();
+        //WorkingTexture = unexpose(binnedFuse,normalExpo.gauss[0], (float)basePipeline.mSettings.gain*((PostPipeline)basePipeline).AecCorr/2.f);
         WorkingTexture = previousNode.WorkingTexture;
-        Log.d(Name,"Output Size:"+wip.mSize);
+        Log.d(Name,"Output Size:"+binnedFuse.mSize);
         glProg.closed = true;
     }
 }

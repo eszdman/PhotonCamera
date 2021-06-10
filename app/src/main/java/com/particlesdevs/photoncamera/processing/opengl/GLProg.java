@@ -89,6 +89,9 @@ public class GLProg implements AutoCloseable {
         }
     }
     public void setDefine(String DefineName, float... vars){
+        setDefine(DefineName,true,vars);
+    }
+    public void setDefine(String DefineName,boolean transposed, float... vars){
         switch (vars.length) {
             case 1:
                 setDefine(DefineName,String.valueOf(vars[0]));
@@ -103,13 +106,16 @@ public class GLProg implements AutoCloseable {
                 setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
                 break;
             case 9:
-                float[] transpose = new float[9];
-                for(int i =0; i<3;i++){
-                    for(int j =0; j<3;j++){
-                        transpose[j + i*3] = vars[i + j*3];
+                if(transposed) {
+                    float[] transpose = new float[9];
+                    for (int i = 0; i < 3; i++) {
+                        for (int j = 0; j < 3; j++) {
+                            transpose[j + i * 3] = vars[i + j * 3];
+                        }
                     }
-                }
                 setDefine(DefineName,"("+ Arrays.toString(transpose).replace("]","").replace("[","")+")");
+                } else setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
+
                 break;
             default:
                 setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
@@ -371,7 +377,7 @@ public class GLProg implements AutoCloseable {
         setVar(name, in.x, in.y);
     }
 
-    public void setVar(String name, float... vars) {
+    public void setVar(String name, boolean transpose, float... vars) {
         int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
             case 1:
@@ -387,11 +393,14 @@ public class GLProg implements AutoCloseable {
                 glUniform4f(address, vars[0], vars[1], vars[2], vars[3]);
                 break;
             case 9:
-                glUniformMatrix3fv(address, 1, true, vars, 0);
+                glUniformMatrix3fv(address, 1, transpose, vars, 0);
                 break;
             default:
                 throw new RuntimeException("Wrong var size " + name);
         }
+    }
+    public void setVar(String name, float... vars) {
+        setVar(name,true,vars);
     }
 
     public void setVarU(String name, Point var) {

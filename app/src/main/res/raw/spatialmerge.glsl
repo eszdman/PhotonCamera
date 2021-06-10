@@ -78,7 +78,7 @@ void main() {
     align = mirrorCoords2((xy/2)+align,ivec2((outsize-1)/2))*2 + state;
     float sumweights = texelFetch(SumWeights, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r;
     windoww = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r/sumweights;
-    windoww = 1.0-clamp((windoww-1.0/20.0)*20.0,0.0,1.0);
+    windoww = 1.0-clamp((windoww-1.0/4.7)*15.0,0.0,1.0);
 
 
     //if(number == 1){
