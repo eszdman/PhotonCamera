@@ -99,9 +99,11 @@ public class PostPipeline extends GLBasePipeline {
 
         add(new Initial());
 
+        add(new Equalization());
+
         //add(new AWB());
 
-        add(new Equalization());
+        
 
 
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));

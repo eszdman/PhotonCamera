@@ -116,7 +116,8 @@
     <string name="raw_plus_jpg">RAW + JPG</string>
     <string name="jpg_only">JPG Only</string>
     <string name="off">Off</string>
-    <string name="golden_ratio">Golden Ratio</string>
+    <string name="golden_ratio">GoldenR</string>
+    <string name="diag_triangle">DTriangles</string>
     <string name="three_x3">3x3</string>
     <string name="four_x4">4x4</string>
 

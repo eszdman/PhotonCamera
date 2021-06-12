@@ -25,6 +25,7 @@
     <item name="grid_33_button" type="id"/>
     <item name="grid_44_button" type="id"/>
     <item name="grid_gr_button" type="id"/>
+    <item name="grid_dt_button" type="id"/>
     <item name="settings_bar_scroll_view" type="id"/>
     <item name="settings_bar_settings_button_container" type="id"/>
     <item name="eis_entry_layout" type="id"/>

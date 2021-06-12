@@ -11,7 +11,7 @@ out vec3 Output;
 #define depthMax (0.890)
 #define colour (0.2)
 #define size1 (1.1)
-#define MSIZE1 5
+#define MSIZE1 3
 #define kSize ((MSIZE1-1)/2)
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {

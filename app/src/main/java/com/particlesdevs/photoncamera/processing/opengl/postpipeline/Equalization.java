@@ -56,8 +56,7 @@ public class Equalization extends Node {
         int resize = 8;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
-        double shadowW = (basePipeline.mSettings.shadows);
-        glProg.setDefine("BR",(float)shadowW*0.4f);
+        //glProg.setDefine("BR",(float)shadowW*0.4f);
         glProg.setDefine("SAMPLING",resize);
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
@@ -138,10 +137,22 @@ public class Equalization extends Node {
         int count = 5;
         float aggressiveness = 1.5f;
         float k = (wlind-1.f)/(count-1.f);
+
         for(int xi = 0; xi<count; xi++){
             int x = (int)(xi*k);
             mx.add((float)xi/(float)(count-1));
             mY.add(input[x]);
+        }
+        float k2 = (mY.get(mY.size()-1))/(mY.size()-1);
+        if(wlind <= input.length-16){
+            float wl = mY.get(mY.size()-1);
+            for(int i =0; i<mY.size();i++){
+                float ik = i*k2;
+                if(mY.get(i) < ik){
+                    mY.set(i,ik);
+                }
+            }
+            mY.set(mY.size()-1,wl);
         }
         for(int xi = 1; xi<count-1; xi++){
             mY.set(xi,(mY.get(xi-1)+mY.get(xi)*aggressiveness+mY.get(xi+1))/(aggressiveness+2.f));
@@ -326,6 +337,7 @@ public class Equalization extends Node {
         }
         float max = 0.f;
         float[] bezierArr = bSpline(averageCurve);
+
         for(int i =0; i<bezierArr.length;i++){
             float t = ((float)i)/bezierArr.length;
             float shadow = (float)i*4.f/bezierArr.length;
@@ -357,10 +369,11 @@ public class Equalization extends Node {
         GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));*/
-
+        double shadowW = (basePipeline.mSettings.shadows);
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         //glProg.setDefine("BL2",BLPredictShift);
+        glProg.setDefine("BR",(float)(shadowW)*0.6f);
         glProg.useProgram(R.raw.equalize);
         //glProg.setVar("Equalize",eq);
         //glProg.setTexture("Equalizing",equalizing);

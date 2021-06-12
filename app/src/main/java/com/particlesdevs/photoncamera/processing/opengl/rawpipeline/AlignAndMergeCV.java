@@ -10,6 +10,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
+import com.particlesdevs.photoncamera.util.Utilities;
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
@@ -36,6 +37,7 @@ import static org.opencv.features2d.Features2d.drawMatches;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -167,32 +169,8 @@ public class AlignAndMergeCV extends Node {
         if(h == null) return OneMatrix();
         return h;
     }
-
-    private GLTexture Merge(GLTexture Output, GLTexture inputRaw,int num) {
-        //startT();
-        glProg.setDefine("TILESIZE","("+1+")");
-        glProg.setDefine("MIN",minMpy);
-        glProg.setDefine("MPY",minMpy / images.get(num).pair.layerMpy);
-        glProg.setDefine("WP",PhotonCamera.getParameters().whitePoint);
-        glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
-        glProg.setDefine("HDR",IsoExpoSelector.HDR);
-        glProg.setDefine("ROTATION", (float) images.get(num).rotation);
-
-
-        /*Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
-        double[] hfloats = new double[9];
-        hm.get(0,0,hfloats);
-        float[] hfloats2 = new float[9];
-        for(int i =0; i<9;i++){
-            Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
-            hfloats2[i] = (float)hfloats[i];
-        }
-        glProg.setDefine("HMatrix",false,hfloats2);*/
-
-
-        glProg.useProgram(R.raw.cvmerge);
-
-
+    float[][] alignmentsH;
+    private void Align(int num){
         Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
         double[] hfloats = new double[9];
         hm.get(0,0,hfloats);
@@ -201,8 +179,6 @@ public class AlignAndMergeCV extends Node {
             Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
             hfloats2[i] = (float)hfloats[i];
         }
-        glProg.setVar("HMatrix",false,hfloats2);
-
         /*Mat hm = new Mat(3,3,CvType.CV_64F);
         Mat intr = new Mat(3,3,CvType.CV_64F);
         intr.put(0,0,basePipeline.mParameters.cameraIntrinsic);
@@ -219,13 +195,65 @@ public class AlignAndMergeCV extends Node {
             Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
             hfloats2[i] = (float)hfloats[i];
         }
-        glProg.setVar("HMatrix",false,hfloats2);
-
          */
+        /*Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
+        double[] hfloats = new double[9];
+        hm.get(0,0,hfloats);
+        float[] hfloats2 = new float[9];
+        for(int i =0; i<9;i++){
+            Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
+            hfloats2[i] = (float)hfloats[i];
+        }
+         */
+
+        alignmentsH[num-1] = hfloats2.clone();
+    }
+    private void Weight(int num){
+        glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("FRAMECOUNT",images.size());
+        glProg.useProgram(R.raw.weightscv);
+        glProg.setVar("HMatrix",false,alignmentsH[num-1]);
+        glProg.setTexture("BaseFrame", BaseFrame2);
+        glProg.setTexture("InputFrame", brTex2);
+        glProg.drawBlocks(Weight[num-1]);
+    }
+    private void Weights() {
+        GLTexture out = Weights;
+        GLTexture alt = WeightsAlt;
+        GLTexture t = Weights;
+        glProg.useProgram(R.raw.sumweights);
+        for(int i =1; i<images.size();i++){
+            glProg.setTexture("WeightsIn", Weight[i-1]);
+            glProg.setTexture("WeightsOut", out);
+            glProg.drawBlocks(alt);
+            t = alt;
+            alt = out;
+            out = t;
+        }
+        Weights = t;
+    }
+
+    private GLTexture Merge(GLTexture Output, GLTexture inputRaw,int num) {
+        //startT();
+        glProg.setDefine("TILESIZE","("+tileSize+")");
+        glProg.setDefine("MIN",minMpy);
+        glProg.setDefine("MPY",minMpy / images.get(num).pair.layerMpy);
+        glProg.setDefine("WP",PhotonCamera.getParameters().whitePoint);
+        glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
+        glProg.setDefine("HDR",IsoExpoSelector.HDR);
+        glProg.setDefine("ROTATION", (float) images.get(num).rotation);
+        glProg.setDefine("FRAMECOUNT",images.size());
+
+
+        glProg.useProgram(R.raw.cvmerge);
+
+        glProg.setVar("HMatrix",false,alignmentsH[num-1]);
         glProg.setTexture("InputBuffer", inputRaw);
         glProg.setTexture("OutputBuffer", Output);
+        glProg.setTexture("Weights",Weights);
+        glProg.setTexture("Weight",Weight[num-1]);
         glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
-        glProg.setVar("number",num+1);
+        glProg.setVar("number",num);
         glProg.setVarU("rawsize", rawSize);
         GLTexture output = basePipeline.getMain();
         glProg.drawBlocks(output);
@@ -254,7 +282,11 @@ public class AlignAndMergeCV extends Node {
     Mat BaseFrame2m;
     Mat brTex2m;
     GLTexture GainMap;
+    GLTexture Weights;
+    GLTexture WeightsAlt;
+    GLTexture[] Weight;
     GLTexture brTex2;
+    final int tileSize = 32;
     float minMpy = 1000.f;
     void equalize(Mat in){
         ArrayList<Mat> mats = new ArrayList<>();
@@ -297,12 +329,20 @@ public class AlignAndMergeCV extends Node {
                 }
             }
         }
+        alignmentsH = new float[images.size()-1][9];
 
         GainMap = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         basePipeline.main1 = new GLTexture(rawSize,new GLFormat(GLFormat.DataType.FLOAT_16));
         basePipeline.main2 = new GLTexture(basePipeline.main1);
-        BaseFrame2 = new GLTexture(rawSize.x/2,rawSize.y/2,new GLFormat(GLFormat.DataType.FLOAT_16,3),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        BaseFrame2 = new GLTexture(Utilities.div(rawSize,2),new GLFormat(GLFormat.DataType.FLOAT_16,3),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        brTex2 = new GLTexture(BaseFrame2);
+        Weights = new GLTexture(new android.graphics.Point(brTex2.mSize.x/tileSize + 0,brTex2.mSize.y/tileSize + 0),new GLFormat(GLFormat.DataType.FLOAT_16),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        WeightsAlt = new GLTexture(Weights);
+        Weight = new GLTexture[images.size()-1];
+        for(int i = 1; i<images.size();i++){
+            Weight[i-1] = new GLTexture(new android.graphics.Point(brTex2.mSize.x/tileSize + 0,brTex2.mSize.y/tileSize + 0),new GLFormat(GLFormat.DataType.FLOAT_16),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        }
         BaseFrame2b = new byte[BaseFrame2.mSize.x*BaseFrame2.mSize.y*4];
         brTex2b = new byte[BaseFrame2.mSize.x*BaseFrame2.mSize.y*4];
         basePipeline.main3 = new GLTexture(BaseFrame2);
@@ -329,22 +369,37 @@ public class AlignAndMergeCV extends Node {
         Log.d("AlignAndMerge","Initialized");
         for (int i = 1; i < images.size(); i++) {
             CorrectedRaw(inputraw,i);
-            BoxDown22(inputraw,BaseFrame2);
+            BoxDown22(inputraw,brTex2);
             //ByteBuffer buffer1 = glInt.glProcessing.drawBlocksToOutput(BaseFrame2.mSize, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
-            glInt.glProcessing.drawBlocksToOutput(BaseFrame2.mSize, new GLFormat(GLFormat.DataType.UNSIGNED_8,4),inbuff);
+            glInt.glProcessing.drawBlocksToOutput(brTex2.mSize, new GLFormat(GLFormat.DataType.UNSIGNED_8,4),inbuff);
             //equalize(brTex2m);
             //buffer1.get(brTex2b);
             //brTex2m.put(0,0,brTex2b);
+
+            Log.d("AlignAndMerge","Align");
+            Align(i);
+            Weight(i);
+            //Output = Merge(Output, inputraw,i);
+            Log.d("AlignAndMerge","Weight");
+        }
+        Log.d("AlignAndMerge","Weights");
+        Weights();
+        for (int i = 1; i < images.size(); i++) {
+            Log.d("AlignAndMerge","CorrectedRaw");
+            CorrectedRaw(inputraw,i);
             images.get(i).image.close();
             Log.d("AlignAndMerge","Merging");
             Output = Merge(Output, inputraw,i);
-            Log.d("AlignAndMerge","Merged");
         }
         WorkingTexture = RawOutput(Output);
         //Output.close();
+        Weights.close();
+        for(GLTexture tex : Weight){
+            tex.close();
+        }
         BaseFrame2m.release();
         brTex2m.release();
-        //brTex2.close();
+        brTex2.close();
         BaseFrame2.close();
         GainMap.close();
         inputraw.close();
