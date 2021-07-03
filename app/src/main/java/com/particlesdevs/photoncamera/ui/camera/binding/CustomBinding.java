@@ -7,13 +7,9 @@ import android.widget.CheckedTextView;
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.manual.model.ManualModel;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
-import com.particlesdevs.photoncamera.ui.camera.model.KnobModel;
 import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
-import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.KnobView;
-import com.particlesdevs.photoncamera.ui.camera.views.manualmode.knobview.Rotation;
 
 /**
  * Class to handle custom bindings that should get applied when a model change
@@ -34,21 +30,6 @@ public class CustomBinding {
     public static void rotateView(View view, CameraFragmentModel model) {
         if (model != null)
             view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
-    }
-
-    /**
-     * Handle the rotation that should get applied to "@+id/knobView" when the CameraFragmentModel's rotation changes
-     * the ui item must add attribute 'bindKnobRotate="@{uimodel}"'
-     *
-     * @param view  the target KnobView
-     * @param model the cameraFragmentModel
-     */
-    @BindingAdapter("bindKnobRotate")
-    public static void rotateKnobView(KnobView view, CameraFragmentModel model) {
-        if (model != null) {
-            int orientation = model.getOrientation();
-            view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
-        }
     }
 
     /**
@@ -79,83 +60,6 @@ public class CustomBinding {
     public static void setSelected(View view, Boolean selected) {
         if (selected != null && view != null) {
             view.setSelected(selected);
-        }
-    }
-
-    /**
-     * Toggles the visibility of {@link KnobView} with custom animation.
-     * The attribute 'knobVisibility="@{knob_model.knobVisible}"' should be added to the KnobView instance in xml layout
-     *
-     * @param knobView    the target KnobView instance
-     * @param knobVisible the target visibility
-     */
-    @BindingAdapter("knobVisibility")
-    public static void setKnobVisibility(KnobView knobView, Boolean knobVisible) {
-        if (knobView != null && knobVisible != null) {
-            if (knobVisible) {
-                knobView.animate().translationY(0).scaleY(1).scaleX(1).setDuration(200).alpha(1f).start();
-                knobView.setVisibility(View.VISIBLE);
-            } else {
-                knobView.animate().translationY(knobView.getHeight() / 2.5f)
-                        .scaleY(.2f).scaleX(.2f).setDuration(200).alpha(0f)
-                        .withEndAction(() -> knobView.setVisibility(View.GONE)).start();
-            }
-        }
-    }
-
-    /**
-     * Sets the {@link KnobModel} to the KnobView instance
-     * The attribute 'setKnobModel="@{knob_model}"' should be added to the KnobView instance in xml layout
-     *
-     * @param knobView    the target KnobView instance
-     * @param manualModel the ManualModel object
-     */
-    @BindingAdapter("setKnobModel")
-    public static void setModelToKnob(KnobView knobView, ManualModel<?> manualModel) {
-        if (manualModel != null && knobView != null) {
-            knobView.setKnobViewChangedListener(manualModel);
-            knobView.setKnobInfo(manualModel.getKnobInfo());
-            knobView.setKnobItems(manualModel.getKnobInfoList());
-            knobView.setTickByValue(manualModel.getCurrentInfo().value);
-        } else if (manualModel == null) {
-            knobView.setKnobViewChangedListener(null);
-        }
-    }
-
-    /**
-     * Calls {@link KnobView#resetKnob()} if boolean value is true
-     * Usage 'knobReset="@{knob_model.toReset}"'
-     *
-     * @param knobView the target KnobView instance
-     * @param toReset  whether to reset
-     */
-    @BindingAdapter("knobReset")
-    public static void resetKnob(KnobView knobView, boolean toReset) {
-        if (toReset) {
-            knobView.resetKnob();
-        }
-    }
-
-    /**
-     * Toggles the visibility with animation for {@link ViewGroup} containing manual controls, here {@link R.id#manual_mode}
-     *
-     * @param manualModeContainer parent ViewGroup
-     * @param visible             target visibility
-     */
-    @BindingAdapter("manualPanelVisibility")
-    public static void togglePanelVisibility(ViewGroup manualModeContainer, Boolean visible) {
-        if (visible) {
-            manualModeContainer.post(() -> {
-                manualModeContainer.animate().translationY(0).setDuration(100).alpha(1f).start();
-                manualModeContainer.setVisibility(View.VISIBLE);
-            });
-        } else {
-            manualModeContainer.post(() -> manualModeContainer.animate()
-                    .translationY(manualModeContainer.getResources().getDimension(R.dimen.standard_20))
-                    .alpha(0f)
-                    .setDuration(100)
-                    .withEndAction(() -> manualModeContainer.setVisibility(View.GONE))
-                    .start());
         }
     }
 

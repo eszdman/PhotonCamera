@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="manual_knob_dash_length">8dp</dimen>
+    <dimen name="manual_knob_dash_padding">11dp</dimen>
+    <dimen name="manual_knob_icon_padding">10dp</dimen>
+    <dimen name="manual_knob_text_size">13sp</dimen>
+    <dimen name="manual_knob_icon_size">17dp</dimen>
+    <dimen name="standard_20">20dp</dimen>
+    <dimen name="icon_size">35dp</dimen>
+
+</resources>

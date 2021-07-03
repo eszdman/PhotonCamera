@@ -64,6 +64,8 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
@@ -90,7 +92,6 @@ import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.AuxButtonsViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.ManualModeViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
@@ -159,8 +160,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private NotificationManagerCompat notificationManager;
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
-    private ManualModeViewModel manualModeViewModel;
     private SettingsBarEntryProvider settingsBarEntryProvider;
+    private ManualModeConsole manualModeConsole;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -178,8 +179,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         return captureController;
     }
 
-    public ManualModeViewModel getManualModeViewModel() {
-        return manualModeViewModel;
+    public ManualModeConsole getManualModeConsole() {
+        return manualModeConsole;
     }
 
     public CameraFragmentViewModel getCameraFragmentViewModel() {
@@ -202,7 +203,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                              Bundle savedInstanceState) {
         //create the ui binding
         this.cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
-
+        Log.d(TAG, "onCreateView: ");
         initMembers();
         setModelsToLayout();
 
@@ -217,7 +218,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
-        manualModeViewModel = new ViewModelProvider(this).get(ManualModeViewModel.class);
+        manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
@@ -228,7 +229,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
-        cameraFragmentBinding.manualMode.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         // associating timer model with layouts
         cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
@@ -243,7 +243,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         this.mCameraUIEventsListener = new CameraUIController();
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
         this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
-        this.manualModeViewModel.setManualParamModel(captureController.getManualParamModel());
+        this.manualModeConsole.addParamObserver(captureController.getParamController());
         PhotonCamera.setCaptureController(captureController);
         captureController.isDualSession = supportedDevice.specific.isDualSessionSupported;
         this.mSwipe = new Swipe(this);
@@ -310,6 +310,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();
+        manualModeConsole.onResume();
     }
 
     private void initTouchFocus() {
@@ -333,16 +334,22 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         mCameraUIEventsListener.onPause();
         auxButtonsViewModel.setAuxButtonListener(null);
         burstPlayer.release();
+        manualModeConsole.onPause();
         super.onPause();
     }
 
     @Override
     public boolean onBackPressed() {
-        if(cameraFragmentViewModel.isSettingsBarVisible()) {
+        boolean handleBack = false;
+        if (cameraFragmentViewModel.isSettingsBarVisible()) {
             cameraFragmentViewModel.setSettingsBarVisible(false);
-            return true;
+            handleBack = true;
         }
-        return false;
+        if (manualModeConsole.isPanelVisible()) {
+            mSwipe.SwipeDown();
+            handleBack = true;
+        }
+        return handleBack;
     }
 
     @Override
@@ -366,6 +373,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         mCameraUIView.destroy();
         mCameraUIView = null;
         mCameraUIEventsListener = null;
+        manualModeConsole.onDestroy();
         PhotonCamera.setCaptureController(captureController = null);
         processExecutorService.shutdown();
         Log.d(TAG, "onDestroy() finished");
@@ -746,9 +754,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
-            manualModeViewModel.init(activity);
-            cameraFragmentBinding.manualMode.setManualModeModel(manualModeViewModel.getManualModeModel());
-            cameraFragmentBinding.manualMode.setKnobModel(manualModeViewModel.getKnobModel());
+            manualModeConsole.init(activity, characteristics);
+            manualModeConsole.onResume();
         }
 
         @Override
@@ -1068,7 +1075,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 default:
                     break;
                 case VIDEO:
-                    PreferenceKeys.setCameraModeOrdinal(CameraMode.PHOTO.ordinal()); //since Video Mode is broken at the moment
+                    PreferenceKeys.setCameraModeOrdinal(CameraMode.VIDEO.ordinal());
                     break;
             }
             this.restartCamera();

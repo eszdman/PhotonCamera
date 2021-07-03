@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
+    <string name="manual_mode_auto" translatable="false">Auto</string>
+    <string name="manual_mode_manual" translatable="false">Manual</string>
+    <string name="manual_mode_fixed" translatable="false">Fixed</string>
+</resources>
