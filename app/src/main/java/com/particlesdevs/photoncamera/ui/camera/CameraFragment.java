@@ -1075,7 +1075,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 default:
                     break;
                 case VIDEO:
-                    PreferenceKeys.setCameraModeOrdinal(CameraMode.PHOTO.ordinal()); //since Video Mode is broken at the moment
+                    PreferenceKeys.setCameraModeOrdinal(CameraMode.VIDEO.ordinal());
                     break;
             }
             this.restartCamera();
