@@ -30,20 +30,20 @@
                 android:paddingTop="@dimen/viewfinder_top_padding">
 
         <!--Viewfinder TextureView-->   <!--Aspect ratio of viewfinder = 3:4 -->
-        <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView
-                android:id="@+id/texture"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                app:layout_constraintDimensionRatio="H,3:4"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-        />
 
             <!--FocusCircleView-->
             <!--        putting focus circle here will make it
              not visible outside viewfinder container-->
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView
+                    android:id="@+id/texture"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    app:layout_constraintDimensionRatio="H,"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintTop_toTopOf="parent" />
+
             <com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView
                     android:id="@+id/touchFocus"
                     android:layout_width="@dimen/focus_circle_size"
