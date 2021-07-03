@@ -2,15 +2,13 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -20,18 +18,13 @@ import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
 import com.particlesdevs.photoncamera.util.Utilities;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_FLOAT;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_RGBA;
-import static android.opengl.GLES20.glGetAttribLocation;
-import static android.opengl.GLES20.glReadPixels;
+import static com.particlesdevs.photoncamera.util.Math.MirrorCoords;
 import static com.particlesdevs.photoncamera.util.Math.mix;
 
 public class Equalization extends Node {
@@ -58,6 +51,7 @@ public class Equalization extends Node {
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
         //glProg.setDefine("BR",(float)shadowW*0.4f);
         glProg.setDefine("SAMPLING",resize);
+        glProg.setDefine("ANALYZEINTENSE", analyzeIntensity);
         glProg.useProgram(R.raw.analyze);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("stp",0);
@@ -116,28 +110,46 @@ public class Equalization extends Node {
         return output;
     }
     private float findWL(float[] input){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         float wlind = input.length-1;
         for(int i =0; i<input.length;i++){
             if(input[i] > 0.999) {
-                //wlind = i;
-                wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                wlind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
                 break;
             }
+        }
+        if(!nightMode){
+            wlind = (wlind + (input.length-1.f))/(1.f + 1.f);
+        } else {
+            wlind = (wlind*8.f+(input.length-1.f))/(8.0f + 1.f);
         }
         wlind = Math.min(wlind+64,input.length-1);
         return wlind;
     }
-    private float[] bSpline(float[] input){
+    private float contrastLevel(float[] input, int wlind){
+        double integin = 0.0;
+        double intege = 0.0;
+        for(int i =0; i<wlind;i++){
+            intege +=(double)(i)/(wlind-1.0);
+            integin +=(double)input[i];
+        }
+        return (float)(intege/integin);
+    }
+    private float[] bSpline(float[] input,float WL){
         ArrayList<Float> mY,mx;
         mY = new ArrayList<>();
         mx = new ArrayList<>();
-        float WL = findWL(input);
         int wlind = (int)WL;
         float[] output = new float[wlind];
-        int count = 5;
-        float aggressiveness = 1.5f;
-        float k = (wlind-1.f)/(count-1.f);
+        float clevel = contrastLevel(input,wlind);
+        Log.d(Name,"ContrastLevel:"+clevel);
 
+        int count = Math.min((int)(13 - Math.max(clevel,1.0/clevel)*3),10);
+        count = Math.max(count,2);
+        Log.d(Name,"Count:"+count);
+        float aggressiveness = 1.2f;
+        float k = (wlind-1.f)/(count-1.f);
         for(int xi = 0; xi<count; xi++){
             int x = (int)(xi*k);
             mx.add((float)xi/(float)(count-1));
@@ -157,6 +169,7 @@ public class Equalization extends Node {
         for(int xi = 1; xi<count-1; xi++){
             mY.set(xi,(mY.get(xi-1)+mY.get(xi)*aggressiveness+mY.get(xi+1))/(aggressiveness+2.f));
         }
+        mY.set(0,0.0f);
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,mY);
         for(int i =0; i<output.length;i++){
             output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
@@ -201,6 +214,28 @@ public class Equalization extends Node {
         outp.y = in.y*(1.f-t) + in2.y*t;
         return outp;
     }
+    private void ApplyLaplace(float[] currentCurve, float[] eqCurve){
+        float laplacianAMP = 1.5f;
+        int laplaceSize = 128;
+        float[] laplaceArr = new float[eqCurve.length];
+        for(int i =0; i<laplaceArr.length;i++){
+            float blur = 0.f;
+            float pdf = 0.f;
+            for(int j = -laplaceSize/2; j<=laplaceSize/2;j++){
+                float mp = pdf((float)j/(laplaceSize/2.f),1.5f);
+                blur+=eqCurve[MirrorCoords(i+j,eqCurve.length)]*mp;
+                pdf+=mp;
+            }
+            blur/=pdf;
+            laplaceArr[i] = eqCurve[i]-blur;
+        }
+        for(int i =0; i<currentCurve.length-1;i++){
+            float mp1 = Math.min(1.f,i*10.f/(currentCurve.length-1.f));
+            float nc = currentCurve[i]+laplaceArr[i]*laplacianAMP*(Math.min(i,400)/400.f)*mp1;
+            //if(nc > currentCurve[i+1]) nc = currentCurve[i];
+            currentCurve[i] = nc;
+        }
+    }
     private float[] bezier2(float[] input){
         return input;
     }
@@ -217,8 +252,14 @@ public class Equalization extends Node {
         return output;
     }*/
     private float EqualizePower = 0.9f;
+    float analyzeIntensity = 0.f;
+    float shadowsSensitivity = 0.6f;
+    float blackLevelSensitivity = 1.35f;
     @Override
     public void Run() {
+        analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
+        shadowsSensitivity = getTuning("ShadowsSensitivity", shadowsSensitivity);
+        blackLevelSensitivity = getTuning("BlackLevelSensitivity", blackLevelSensitivity);
         WorkingTexture = basePipeline.getMain();
         float rmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].first));
         float gmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].first));
@@ -291,8 +332,7 @@ public class Equalization extends Node {
         //Depurple Degreen
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
-        int maxshift = (int)(4096.f*Math.max(Math.max(rmax,gmax),bmax));
-        maxshift = Math.min(480,maxshift);
+        int maxshift = 384;
         int cnt = 0;
         for(int i =5; i<maxshift;i++){
             float x = i/4096.f;
@@ -315,17 +355,32 @@ public class Equalization extends Node {
         BLPredictShift[0]/=cnt;
         BLPredictShift[1]/=cnt;
         BLPredictShift[2]/=cnt;
+
+        //Saturate shift
+        float avr = (BLPredictShift[0]+BLPredictShift[1]+BLPredictShift[2])/3.f;
+        float saturation = 0.0f;
+        BLPredictShift[0] = (BLPredictShift[0]-avr*saturation) / (1.f-avr*saturation);
+        BLPredictShift[1] = (BLPredictShift[1]-avr*saturation) / (1.f-avr*saturation);
+        BLPredictShift[2] = (BLPredictShift[2]-avr*saturation) / (1.f-avr*saturation);
+
         float mins = Math.min(BLPredictShift[0],Math.min(BLPredictShift[1],BLPredictShift[2]));
         if(mins < 0.0) {
             BLPredictShift[0]-=mins;
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
-        //BLPredictShift[0]*=0.8;
-        //BLPredictShift[1]*=0.8;
-        //BLPredictShift[2]*=0.8;
-        BLPredictShift[2] = (BLPredictShift[0]+BLPredictShift[2])/2.f;
-        BLPredictShift[0] = BLPredictShift[2];
+        BLPredictShift[0]*=blackLevelSensitivity;
+        BLPredictShift[1]*=blackLevelSensitivity;
+        BLPredictShift[2]*=blackLevelSensitivity;
+
+
+        //float t = BLPredictShift[0];
+        //BLPredictShift[0] = BLPredictShift[2];
+        //BLPredictShift[2] = t;
+        if(PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
+            BLPredictShift[2] = (BLPredictShift[0] + BLPredictShift[2]) / 2.f;
+            BLPredictShift[0] = BLPredictShift[2];
+        }
         float[] averageCurve = new float[histParser.hist.length];
         for(int i =0; i<averageCurve.length;i++){
             averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
@@ -336,8 +391,13 @@ public class Equalization extends Node {
             //GenerateCurveBitm(histParser.hist);
         }
         float max = 0.f;
-        float[] bezierArr = bSpline(averageCurve);
-
+        float WL = findWL(averageCurve);
+        double compensation = averageCurve.length/WL;
+        float[] bezierArr = bSpline(averageCurve,WL);
+        /*if(PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT){
+            bezierArr = Utilities.interpolateArr(bezierArr,averageCurve.length);
+        }*/
+        //ApplyLaplace(bezierArr,averageCurve);
         for(int i =0; i<bezierArr.length;i++){
             float t = ((float)i)/bezierArr.length;
             float shadow = (float)i*4.f/bezierArr.length;
@@ -351,9 +411,9 @@ public class Equalization extends Node {
             averageCurve[i] = Math.min(averageCurve[i],1.f);
             if(max < averageCurve[i]) max = averageCurve[i];
         }
-
         for(int i =0; i<histParser.hist.length;i++){
             if(i<bezierArr.length){
+                //histParser.hist[i] = bezierArr[i];
                 histParser.hist[i] = averageCurve[i]*(1.f/max);
             } else
             histParser.hist[i] = 1.f;
@@ -369,15 +429,24 @@ public class Equalization extends Node {
         GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));*/
+        /*float[] shadowCurve = new float[histParser.histr.length*3];
+        for(int i =0; i<shadowCurve.length;i+=3){
+            shadowCurve[i] = (histParser.histr[i/3]);
+            shadowCurve[i+1] = (histParser.histg[i/3]);
+            shadowCurve[i+2] = (histParser.histb[i/3]);
+        }*/
         double shadowW = (basePipeline.mSettings.shadows);
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        //glProg.setDefine("BL2",BLPredictShift);
-        glProg.setDefine("BR",(float)(shadowW)*0.6f);
+        //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),
+        //        FloatBuffer.wrap(shadowCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        glProg.setDefine("BL2",BLPredictShift);
+        glProg.setDefine("BR",(float)(shadowW)*shadowsSensitivity);
         glProg.useProgram(R.raw.equalize);
         //glProg.setVar("Equalize",eq);
         //glProg.setTexture("Equalizing",equalizing);
         glProg.setTexture("Histogram",histogram);
+        //glProg.setTexture("Shadows",shadows);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);

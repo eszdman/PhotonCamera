@@ -46,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
+        COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -363,7 +364,7 @@ public class PreferenceKeys {
         KEY_FRAME_COUNT(R.string.pref_frame_count_key),
         KEY_CONTRAST_SEEKBAR(R.string.pref_contrast_seekbar_key),
         KEY_SHARPNESS_SEEKBAR(R.string.pref_sharpness_seekbar_key),
-        KEY_SATURATION0_SEEKBAR(R.string.pref_saturation2_seekbar_key),
+        KEY_EXPOCOMPENSATE_SEEKBAR(R.string.pref_expocompensation_seekbar_key),
         KEY_SATURATION_SEEKBAR(R.string.pref_saturation_seekbar_key),
         KEY_ALIGN_METHOD(R.string.pref_align_method_key),
         KEY_CFA(R.string.pref_cfa_key),

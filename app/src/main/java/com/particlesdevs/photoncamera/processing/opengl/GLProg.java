@@ -100,10 +100,10 @@ public class GLProg implements AutoCloseable {
                 setDefine(DefineName,vars[0]+","+vars[1]);
                 break;
             case 3:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");
+                setDefine(DefineName,vars[0]+","+vars[1]+","+vars[2]);
                 break;
             case 4:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
+                setDefine(DefineName,vars[0]+","+vars[1]+","+vars[2]+","+vars[3]);
                 break;
             case 9:
                 if(transposed) {
@@ -113,12 +113,12 @@ public class GLProg implements AutoCloseable {
                             transpose[j + i * 3] = vars[i + j * 3];
                         }
                     }
-                setDefine(DefineName,"("+ Arrays.toString(transpose).replace("]","").replace("[","")+")");
-                } else setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
+                setDefine(DefineName,Arrays.toString(transpose).replace("]","").replace("[",""));
+                } else setDefine(DefineName,Arrays.toString(vars).replace("]","").replace("[",""));
 
                 break;
             default:
-                setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
+                setDefine(DefineName,Arrays.toString(vars).replace("]","").replace("[",""));
                 break;
         }
     }

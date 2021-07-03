@@ -97,9 +97,11 @@ public class PostPipeline extends GLBasePipeline {
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
 
+
         add(new Initial());
 
         add(new Equalization());
+
 
         //add(new AWB());
 
@@ -108,6 +110,7 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new SharpenDual());
+        //add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));
         return runAll();
     }

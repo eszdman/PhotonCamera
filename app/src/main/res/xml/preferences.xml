@@ -182,13 +182,13 @@
                 android:icon="@drawable/ic_saturation"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
-                android:key="@string/pref_saturation2_seekbar_key"
+                android:key="@string/pref_expocompensation_seekbar_key"
                 android:layout="@layout/preference_seekbar"
-                android:title="@string/saturationdark"
+                android:title="@string/expocompensation"
                 android:summary=""
-                android:defaultValue="@string/pref_saturation2_seekbar_default"
-                app:maxValue="3"
-                app:minValue="0"
+                android:defaultValue="@string/pref_expocompensation_seekbar_default"
+                app:maxValue="4"
+                app:minValue="-4"
                 app:isFloat="true"
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_saturation"

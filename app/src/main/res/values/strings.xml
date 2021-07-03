@@ -24,7 +24,7 @@
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
     <string name="saturation">Saturation</string>
-    <string name="saturationdark">Saturation Shadows</string>
+    <string name="expocompensation">Exposure Compensation</string>
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
