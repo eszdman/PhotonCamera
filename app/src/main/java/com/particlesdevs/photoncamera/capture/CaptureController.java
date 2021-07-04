@@ -1179,11 +1179,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 resetPreviewAEMode();
                                 Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
-                                if (mIsRecordingVideo) {
-                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                            new Range<>(30, 30));
-                                }
-                                else if (is30Fps) {
+                                if (is30Fps) {
                                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                             FpsRangeDef);
                                 } else {
