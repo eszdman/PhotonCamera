@@ -162,6 +162,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private SupportedDevice supportedDevice;
     private SettingsBarEntryProvider settingsBarEntryProvider;
     private ManualModeConsole manualModeConsole;
+    private float displayAspectRatio;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -209,9 +210,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
-        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
 
-        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+        return getAdjustedLayout(displayAspectRatio, cameraFragmentBinding.textureHolder);
     }
 
     private void initMembers() {
@@ -501,6 +502,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
             layout_topbarLP.topMargin = (int) dpmargin;
             camera_containerLP.bottomMargin = (int) dpmargin;
+            camera_containerLP.topToTop = -1;
+            camera_containerLP.topToBottom = R.id.layout_topbar;
         }
         return activity_layout;
     }
@@ -873,8 +876,30 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     break;
             }
+            toggleConstraints(mode);
         }
 
+        private void toggleConstraints(CameraMode mode) {
+            if (displayAspectRatio <= 16f / 9f) {
+                ConstraintLayout.LayoutParams camera_containerLP =
+                        (ConstraintLayout.LayoutParams) cameraFragmentBinding
+                                .textureHolder
+                                .findViewById(R.id.camera_container)
+                                .getLayoutParams();
+                switch (mode){
+                    case VIDEO:
+                        camera_containerLP.topToTop = R.id.textureHolder;
+                        camera_containerLP.topToBottom = -1;
+                        break;
+                    case UNLIMITED:
+                    case PHOTO:
+                    case NIGHT:
+                        camera_containerLP.topToTop = -1;
+                        camera_containerLP.topToBottom = R.id.layout_topbar;
+                }
+
+            }
+        }
         @Override
         public void refresh(boolean processing) {
             cameraFragmentBinding.invalidateAll();
