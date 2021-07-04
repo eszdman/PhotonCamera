@@ -24,12 +24,11 @@
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/textureHolder"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="?cameraFragmentBackground"
-        android:animateLayoutChanges="true"
-        >
+            android:id="@+id/textureHolder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?cameraFragmentBackground"
+            android:animateLayoutChanges="true">
 
         <!--    Block 1-->
         <!--    Contains viewfinder,bottombar and manualbar-->
@@ -41,7 +40,8 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/layout_topbar">
+                app:layout_constraintTop_toBottomOf="@+id/layout_topbar"
+                android:animateLayoutChanges="true">
 
             <!--    Block 1.1-->
             <!--    includes the Layout resource of ViewFinder-->
@@ -140,6 +140,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 android:visibility="@{uimodel.settingsBarVisibility ? View.INVISIBLE : View.VISIBLE}"
                 app:layout_constraintTop_toTopOf="parent" />
+
         <ImageButton
                 android:layout_width="60dp"
                 android:layout_height="wrap_content"
@@ -156,8 +157,7 @@
                 app:layout_constraintTop_toBottomOf="@+id/layout_topbar"
                 android:visibility="@{uimodel.settingsBarVisibility ? View.INVISIBLE : View.VISIBLE}"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintVertical_bias="0"
-                />
+                app:layout_constraintVertical_bias="0" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
