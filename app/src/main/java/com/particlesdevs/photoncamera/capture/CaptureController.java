@@ -93,8 +93,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
@@ -169,6 +171,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
 
+    private Map<String, CameraCharacteristics> mCameraCharacteristicsMap = new HashMap<>();
     public static CameraCharacteristics mCameraCharacteristics;
     public static CaptureResult mCaptureResult;
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
@@ -486,14 +489,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         @Override
         public void onSurfaceTextureAvailable(@NonNull SurfaceTexture texture, int width, int height) {
-            try {
-                mCameraCharacteristics = mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
-                CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
-                Size optimal = getPreviewOutputSize(mTextureView.getDisplay(), mCameraCharacteristics, CameraFragment.mSelectedMode);
-                openCamera(optimal.getWidth(), optimal.getHeight());
-            }catch (Throwable t) {
-
-            }
+            Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
+                    mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
+                    PhotonCamera.getSettings().selectedMode);
+            openCamera(optimal.getWidth(), optimal.getHeight());
         }
 
         @Override
@@ -521,6 +520,27 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         this.processExecutor = processExecutor;
         this.paramController = new ParamController(this);
+
+        this.fillInCameraCharateristics();
+    }
+
+    /**
+     * Fills in {@link CaptureController#mCameraCharacteristicsMap} that is used in
+     * {@link CaptureController#UpdateCameraCharacteristics}.
+     */
+    private void fillInCameraCharateristics() {
+        try {
+            String[] cameraIds = mCameraManager.getCameraIdList();
+            for (String cameraId: cameraIds) {
+                mCameraCharacteristicsMap.put(cameraId, mCameraManager.getCameraCharacteristics(cameraId));
+            }
+        }
+        catch (CameraAccessException cameraAccessException) {
+            // Should not be possible to get here but anyway
+            cameraAccessException.printStackTrace();
+            showToast("Failed to fetch camera characteristics: " + cameraAccessException.getLocalizedMessage());
+        }
+
     }
 
     public ParamController getParamController() {
@@ -636,14 +656,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      */
     private void setUpCameraOutputs(int width, int height) {
         try {
-            mCameraCharacteristics = mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
             mPreviewWidth = width;
             mPreviewHeight = height;
             UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID);
             //Thread thr = new Thread(mImageSaver);
             //thr.start();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
         } catch (NullPointerException e) {
             // Currently an NPE is thrown when the Camera2API is used but not supported on the
             // device this code runs.
@@ -824,13 +841,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
 
-        StreamConfigurationMap map = null;
-        try {
-            map = this.mCameraManager.getCameraCharacteristics(PhotonCamera.getSettings().mCameraID).get(
+        StreamConfigurationMap map = this.mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID).get(
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+
         if (map == null) return;
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
         Size target = getCameraOutputSize(map.getOutputSizes(mTargetFormat), preview);
@@ -966,12 +979,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
-        CameraCharacteristics characteristics = null;
-        try {
-            characteristics = this.mCameraManager.getCameraCharacteristics(cameraId);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+        CameraCharacteristics characteristics = this.mCameraCharacteristicsMap.get(cameraId);
         mCameraCharacteristics = characteristics;
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
@@ -1171,7 +1179,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 resetPreviewAEMode();
                                 Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                                 // Finally, we start displaying the camera preview.
-                                if (is30Fps) {
+                                if (mIsRecordingVideo) {
+                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                            new Range<>(30, 30));
+                                }
+                                else if (is30Fps) {
                                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                             FpsRangeDef);
                                 } else {
