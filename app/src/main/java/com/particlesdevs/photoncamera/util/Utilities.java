@@ -11,6 +11,7 @@ import android.graphics.PorterDuffXfermode;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Locale;
 
 import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
@@ -153,7 +154,21 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
     }
-
+    public static float[] interpolateArr(float[] in, int requiredSize){
+        float[] output = new float[requiredSize];
+        ArrayList<Float> mY,mx;
+        mY = new ArrayList<>();
+        mx = new ArrayList<>();
+        for(int xi = 0; xi<in.length; xi++){
+            mx.add((float)xi/(float)(in.length-1));
+            mY.add(in[xi]);
+        }
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,mY);
+        for(int i =0; i<output.length;i++){
+            output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
+        }
+        return output;
+    }
     public static Point div(Point in, int divider){
         return new Point(in.x/divider,in.y/divider);
     }

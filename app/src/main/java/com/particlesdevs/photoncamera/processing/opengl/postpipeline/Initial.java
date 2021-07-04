@@ -36,8 +36,46 @@ public class Initial extends Node {
 
     GLTexture lut;
     Bitmap lutbm;
+    float highersatmpy = 0.f;
+    float gammax1 = 2.8586f;
+    float gammax2 = -3.1643f;
+    float gammax3 = 1.2899f;
+    float tonemapx1 =-0.15f;
+    float tonemapx2 = 2.55f;
+    float tonemapx3 = -1.6f;
+    float saturationConst = 1.f;
+    float saturationGauss = 1.5f;
+    float saturationRed = 0.7f;
+    float eps = 0.0008f;
     @Override
     public void Run() {
+        gammax1 =   getTuning("GammaModelX1",gammax1    );
+        gammax2 =   getTuning("GammaModelX2",gammax2    );
+        gammax3 =   getTuning("GammaModelX3",gammax3    );
+        tonemapx1 = getTuning("TonemapModelX1",tonemapx1);
+        tonemapx2 = getTuning("TonemapModelX2",tonemapx2);
+        tonemapx3 = getTuning("TonemapModelX3",tonemapx3);
+        saturationConst = getTuning("SaturationConst",saturationConst);
+        saturationGauss = getTuning("SaturationGauss",saturationGauss);
+        saturationRed =   getTuning("SaturationRed",  saturationRed);
+        eps =             getTuning("Epsilon",        eps      );
+        glProg.setDefine("GAMMAX1",  gammax1  );
+        glProg.setDefine("GAMMAX2",  gammax2  );
+        glProg.setDefine("GAMMAX3",  gammax3  );
+        glProg.setDefine("TONEMAPX1",tonemapx1);
+        glProg.setDefine("TONEMAPX2",tonemapx2);
+        glProg.setDefine("TONEMAPX3",tonemapx3);
+        glProg.setDefine("SATURATIONCONST",saturationConst);
+        glProg.setDefine("SATURATIONGAUSS",saturationGauss);
+        glProg.setDefine("SATURATIONRED",  saturationRed);
+        glProg.setDefine("EPS",            eps      );
+
+        float sat =(float) basePipeline.mSettings.saturation;
+        if(basePipeline.mSettings.cfaPattern == 4) {
+            sat = 0.f;
+        }
+        glProg.setDefine("SATURATION2",sat);
+        glProg.setDefine("SATURATION",sat*highersatmpy);
         lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         /*GLTexture oldT = TonemapCoeffs;
@@ -52,16 +90,12 @@ public class Initial extends Node {
             glProg.setDefine("TINT",tcor);
             glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
         }
-        float[] BL = ((PostPipeline)basePipeline).analyzedBL;
+        //float[] BL = ((PostPipeline)basePipeline).analyzedBL;
         float[] WP = basePipeline.mParameters.whitePoint;
         float minP = (WP[0]+WP[1]+WP[2])/3.f;
         glProg.setDefine("MINP",minP);
-        //BL[0]+=basePipeline.mParameters.noiseModeler.computeModel[0].second*(float)DynamicBL.precisionFactor/WP[0];
-        //BL[1]+=basePipeline.mParameters.noiseModeler.computeModel[1].second*(float)DynamicBL.precisionFactor/WP[1];
-        //BL[2]+=basePipeline.mParameters.noiseModeler.computeModel[2].second*(float)DynamicBL.precisionFactor/WP[2];
+        glProg.setDefine("NEUTRALPOINT",WP);
 
-        //glProg.setDefine("DYNAMICBL",((PostPipeline)basePipeline).analyzedBL);
-        //glProg.setDefine("PRECISION",(float)DynamicBL.precisionFactor);
         float[][] cube = null;
         ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
@@ -100,20 +134,13 @@ public class Initial extends Node {
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         glProg.setVar("intermediateToSRGB",cct);
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
-        glProg.setVar("gain",1.f);
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
         glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,
                 basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-4);
-        glProg.setVar("neutralPoint",WP);
+        //glProg.setVar("neutralPoint",WP);
         Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
-        float sat =(float) basePipeline.mSettings.saturation;
-        float sat0 =(float) basePipeline.mSettings.saturation0;
-        if(basePipeline.mSettings.cfaPattern == 4) {
-            sat = 0.f;
-            sat0 = 0.f;
-        }
-        glProg.setVar("saturation0",sat0);
-        glProg.setVar("saturation",sat);
+        //glProg.setVar("saturation0",sat);
+        //glProg.setVar("saturation",0.f);
         //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
         WorkingTexture = basePipeline.getMain();
     }

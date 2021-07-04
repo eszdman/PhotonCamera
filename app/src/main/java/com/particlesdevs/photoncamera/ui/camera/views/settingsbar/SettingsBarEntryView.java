@@ -62,14 +62,14 @@ public class SettingsBarEntryView extends LinearLayout {
         titleTextView = new TextView(context);
         titleTextView.setId(android.R.id.title);
         titleTextView.setGravity(CENTER_VERTICAL);
-        titleTextView.setTextAlignment(END);
+        titleTextView.setTextAlignment(TEXT_ALIGNMENT_VIEW_END);
         titleTextView.setTextAppearance(R.style.BoldTextWithShadow);
         titleTextView.setTextSize(13);
 
         stateTextView = new TextView(context);
         stateTextView.setId(android.R.id.summary);
         stateTextView.setGravity(CENTER_VERTICAL);
-        stateTextView.setTextAlignment(END);
+        stateTextView.setTextAlignment(TEXT_ALIGNMENT_VIEW_END);
         stateTextView.setTextColor(getResolvedAttrData(context, android.R.attr.colorControlActivated));
         LayoutParams textViewParam = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         textViewParam.setMargins(dp(2), dp(2), dp(2), dp(2));

@@ -1,16 +1,26 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import com.particlesdevs.photoncamera.api.Settings;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.util.FileManager;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
@@ -27,9 +37,32 @@ public class GLBasePipeline implements AutoCloseable {
     public GLTexture main1,main2,main3,main4;
     public Settings mSettings;
     public Parameters mParameters;
+    public Properties mProp;
     private String currentProg;
+
     public int texnum = 0;
 
+    public GLBasePipeline(){
+        Properties properties = new Properties();
+        try {
+            new File(FileManager.sPHOTON_DIR+"/tuning/").mkdir();
+            File init = new File(FileManager.sPHOTON_DIR+"/tuning/PhotonCameraTuning.ini");
+            if(!init.exists()) {
+                init.createNewFile();
+                InputStream inputStream = PhotonCamera.getAssetLoader().getInputStream("tuning/PhotonCameraTuning.ini");
+                byte[] buffer = new byte[inputStream.available()];
+                inputStream.read(buffer);
+                OutputStream outputStream = new FileOutputStream(init);
+                outputStream.write(buffer);
+                outputStream.close();
+            }
+            properties.load(new FileInputStream(init));
+        } catch (IOException e) {
+            Log.e("PostPipeline","Error at loading properties");
+            e.printStackTrace();
+        }
+        mProp = properties;
+    }
     public GLTexture getMain(){
         if(texnum == 1) {
             texnum = 2;
@@ -69,6 +102,7 @@ public class GLBasePipeline implements AutoCloseable {
     public Bitmap runAll() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
+            Nodes.get(i).mProp = mProp;
             Nodes.get(i).BeforeCompile();
             Nodes.get(i).Compile();
             Nodes.get(i).BeforeRun();
@@ -106,6 +140,7 @@ public class GLBasePipeline implements AutoCloseable {
     public ByteBuffer runAllRaw() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
+            Nodes.get(i).mProp = mProp;
             Nodes.get(i).BeforeCompile();
             Nodes.get(i).Compile();
             Nodes.get(i).BeforeRun();

@@ -1031,7 +1031,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 break;
             }
         }
-        if (FpsRangeHigh == null) FpsRangeHigh = FpsRangeDef;
+        if (FpsRangeHigh == null) FpsRangeHigh = new Range<>(60, 60);
         boolean swappedDimensions = false;
         switch (displayRotation) {
             case 0:

@@ -4,6 +4,7 @@ precision highp float;
 uniform float Equalize;
 uniform float HistFactor;
 uniform sampler2D Histogram;
+uniform sampler2D Shadows;
 uniform sampler2D Equalizing;
 uniform sampler2D InputBuffer;
 //uniform vec4 toneMapCoeffs;
@@ -12,6 +13,7 @@ out vec3 Output;
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyytoxyz
 #import xyztoxyy
+#define BR (0.5)
 #define EPS (0.0008)
 #define EPS2 (0.0004)
 #define EPSAMP (3.0)
@@ -133,7 +135,7 @@ vec3 tonemap(vec3 rgb) {
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-    sRGB = clamp(sRGB-vec3(BL2),0.0,1.0);
+
     sRGB = clamp(sRGB,0.0,1.0);
     //float br = luminocity(sRGB);
     //sRGB=sRGB/br;
@@ -143,34 +145,37 @@ void main() {
     float pbr = br;
     float HistEq = texture(Histogram, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //Limit eq
-    HistEq = clamp(HistEq,0.0,5.0);
+    HistEq = clamp(HistEq, 0.0, 5.0);
 
     //Equalization factor
     float factor = 1.0;
-    factor*=1.0-clamp(br-0.6,0.0,0.4)/0.4;
+    factor*=1.0-clamp(br-0.6, 0.0, 0.4)/0.4;
     //factor*=1.0-clamp(br-0.4,0.0,0.4)/0.3;
-    factor = clamp(factor,0.0,1.0);
+    factor = clamp(factor, 0.0, 1.0);
 
 
     //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);
-    //br = mix(HistEq,br*pow(HistEq/br,HistFactor),br);
-    br=HistEq;
+    br = mix(mix(HistEq, sqrt(HistEq), BR),br,0.2);
+    //br=HistEq;
     //if(br > EPS)
     //br = mix(br,HistEq,factor);
     //br = texture(Equalizing, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //br = pow(br,Equalize);
 
     //Undersaturate shadows
-    float undersat = max(0.12-br,0.0)*1.5/0.12;
+    float undersat = max(0.12-br, 0.0)*1.5/0.12;
     sRGB.b = br;
     sRGB = hsv2rgb(sRGB);
     sRGB += (sRGB.r+sRGB.g+sRGB.b)*undersat/3.0;
+    sRGB = clamp((sRGB-vec3(BL2))/(vec3(1.0)-vec3(BL2)),0.0,1.0);
     //sRGB /= luminocity(sRGB);
     //sRGB*=pbr;
     //sRGB*=br;
     //sRGB = clamp(sRGB-vec3(BL2),0.0,1.0);
     //sRGB = (tonemap((sRGB)));
     //Output = mix(sRGB*sRGB*sRGB*-3.7101449 + sRGB*sRGB*5.4910145 - sRGB*0.7808696,sRGB,min(sRGB*0.6+0.55,1.0));
-    Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
-    //Output = sRGB;
+
+    //Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
+
+    Output = clamp(sRGB,0.0,1.0);
 }

@@ -7,7 +7,7 @@ out vec4 Output;
 #define SAMPLING (1)
 #define SIGMA 0
 #define WP (1.0,1.0,1.0)
-#define BR (0.6)
+#define ANALYZEINTENSE 0.0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
 void main() {
@@ -41,13 +41,13 @@ void main() {
             sigma += diff * diff;
         }
         float z = inp[4].z;
-        z = mix(mix(z, z*z, BR),z,z);
+        z = mix(mix(z, z*z, ANALYZEINTENSE),z,z);
         Output = vec4(sqrt(sigma / 9.f), z);
         #else
         vec3 inv = texelFetch(InputBuffer, xy, 0).rgb;
         float z = inp[4].z;
         Output = vec4(inv.r,inv.g,inv.b, z);
-        Output = mix(mix(Output,Output*Output,BR),Output,z);
+        Output = mix(mix(Output,Output*Output,ANALYZEINTENSE),Output,z);
         #endif
 
     } else {

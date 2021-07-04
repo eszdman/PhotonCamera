@@ -7,10 +7,9 @@ uniform sampler2D GammaCurve;
 uniform sampler2D LookupTable;
 uniform sampler2D FusionMap;
 
-uniform vec3 neutralPoint;
-uniform float gain;
-uniform float saturation0;
-uniform float saturation;
+//uniform vec3 neutralPoint;
+//uniform float saturation0;
+//uniform float saturation;
 #define CCT 0
 //Color mat's
 uniform mat3 sensorToIntermediate; // Color transform from XYZ to a wide-gamut colorspace
@@ -28,11 +27,6 @@ uniform mat3 CUBE0;
 uniform mat3 CUBE1;
 uniform mat3 CUBE2;
 #endif
-#define PI (3.1415926535)
-#define DYNAMICBL (0.0, 0.0, 0.0)
-#define PRECISION (64.0)
-#define TINT (1.35)
-#define TINT2 (1.0)
 out vec3 Output;
 //#define x1 2.8114
 //#define x2 -3.5701
@@ -40,9 +34,23 @@ out vec3 Output;
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
-#define x1 2.8586f
-#define x2 -3.1643f
-#define x3 1.2899f
+#define NEUTRALPOINT 0.0,0.0,0.0
+#define SATURATION 0.0
+#define SATURATION2 1.0
+#define PI (3.1415926535)
+#define DYNAMICBL (0.0, 0.0, 0.0)
+#define PRECISION (64.0)
+#define TINT (1.35)
+#define TINT2 (1.0)
+#define GAMMAX1 2.8586f
+#define GAMMAX2 -3.1643f
+#define GAMMAX3 1.2899f
+#define TONEMAPX1 -0.15
+#define TONEMAPX2 2.55
+#define TONEMAPX3 -1.6
+#define SATURATIONC 1.0
+#define SATURATIONGAUSS 1.50
+#define SATURATIONRED 0.7
 #define EPS (0.0008)
 #define FUSION 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
@@ -58,7 +66,7 @@ float gammaEncode2(float x) {
 vec3 gammaCorrectPixel(vec3 x) {
     float br = (x.r+x.g+x.b)/3.0;
     x/=br;
-    return x*(x1*br+x2*br*br+x3*br*br*br);
+    return x*(GAMMAX1*br+GAMMAX2*br*br+GAMMAX3*br*br*br);
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
@@ -205,15 +213,13 @@ vec3 hsv2rgb(vec3 c) {
     vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
 }
-#define REDCORR 0.0
-#define BLUECORR 0.0
 vec3 saturate(vec3 rgb) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
     float br = (r+g+b)/3.0;
-    float dfsat = mix(saturation0,saturation,br*br);
-    vec3 hsv = rgb2hsv(vec3(rgb.r-r*REDCORR,rgb.g,rgb.b+b*BLUECORR));
+    float dfsat = mix(SATURATION2,SATURATION,br*br);
+    vec3 hsv = rgb2hsv(vec3(rgb.r,rgb.g,rgb.b));
     /*if(hsv.g < 0.5-0.0){
         hsv.g *= mix(1.0,dfsat,hsv.g/(0.5-0.0));
     } else
@@ -223,9 +229,9 @@ vec3 saturate(vec3 rgb) {
     else
     //hsv.g *= mix(dfsat,1.0,abs(hsv.g-0.5)/0.1);
     hsv.g *= dfsat;*/
-    hsv.g *= 1.0+unscaledGaussian(abs(hsv.g),1.50)*(dfsat*1.07-1.0);
+    hsv.g *= SATURATIONC+unscaledGaussian(abs(hsv.g),SATURATIONGAUSS)*(dfsat*1.07-1.0);
     rgb = hsv2rgb(hsv);
-    rgb.r = mix((rgb.r+br)/2.0,rgb.r,0.7);
+    rgb.r = mix((rgb.r+br)/2.0,rgb.r,SATURATIONRED);
     return rgb;
 }
 #define TONEMAPSWITCH (0.05)
@@ -240,6 +246,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB*=2.0;
     pRGB+=vec3(EPS);
     float br = pRGB.r+pRGB.g+pRGB.b;
+    vec3 neutralPoint = vec3(NEUTRALPOINT);
     pRGB = clamp(pRGB, vec3(EPS), neutralPoint);
     #if CCT == 0
     mat3 corr = intermediateToSRGB;
@@ -295,6 +302,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
 
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
+    pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.5+0.4,1.0));
 
     return pRGB;
 }
