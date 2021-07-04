@@ -492,6 +492,13 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         ConstraintLayout camera_container = activity_layout.findViewById(R.id.camera_container);
         ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
         if (aspectRatio > 16f / 9f) {
+            DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+            float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
+            float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+
+            float dpmargin = (dpHeight - (dpWidth / 9f * 16f)) / 2f;
+        }
+        if (false && aspectRatio > 16f / 9f) {
             camera_containerLP.height = WRAP_CONTENT;
 //            showToast(String.valueOf(aspectRatio));
             ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
