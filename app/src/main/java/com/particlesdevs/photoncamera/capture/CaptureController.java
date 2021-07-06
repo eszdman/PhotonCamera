@@ -66,6 +66,7 @@ import androidx.core.content.ContextCompat;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
+import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
@@ -207,6 +208,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      */
     private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
     private CameraManager mCameraManager;
+    private CameraManager2 mCameraManager2;
     private Activity activity;
     public long mPreviewExposureTime;
     /**
@@ -518,6 +520,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.cameraEventsListener = cameraEventsListener;
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        this.mCameraManager2 = new CameraManager2(mCameraManager,PhotonCamera.getInstance(activity).getSettingsManager());
         this.processExecutor = processExecutor;
         this.paramController = new ParamController(this);
 
@@ -530,7 +533,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      */
     private void fillInCameraCharateristics() {
         try {
-            String[] cameraIds = mCameraManager.getCameraIdList();
+            String[] cameraIds = mCameraManager2.getCameraIdList();
             for (String cameraId: cameraIds) {
                 mCameraCharacteristicsMap.put(cameraId, mCameraManager.getCameraCharacteristics(cameraId));
             }
