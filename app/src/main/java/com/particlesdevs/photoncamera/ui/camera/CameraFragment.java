@@ -162,6 +162,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private SupportedDevice supportedDevice;
     private SettingsBarEntryProvider settingsBarEntryProvider;
     private ManualModeConsole manualModeConsole;
+    private float displayAspectRatio;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -209,9 +210,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
-        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
 
-        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+        return getAdjustedLayout(displayAspectRatio, cameraFragmentBinding.textureHolder);
     }
 
     private void initMembers() {
@@ -492,20 +493,17 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         ConstraintLayout camera_container = activity_layout.findViewById(R.id.camera_container);
         ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
         if (aspectRatio > 16f / 9f) {
-            camera_containerLP.height = WRAP_CONTENT;
-//            showToast(String.valueOf(aspectRatio));
+            DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+            float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
+            float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+
+            float dpmargin = (dpHeight - (dpWidth / 9f * 16f));
             ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
-            layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
-            if (aspectRatio > 2) {                  //for ratios even greater than 18:9
-                layout_topbarLP.topToTop = -1;      //resets/removes the top constraint of topbar
-            } else if (aspectRatio == 2) {          //for ratio 18:9
-                camera_containerLP.topToTop = -1;   //resets/removes the top constraint of camera_container
-                camera_containerLP.topToBottom = R.id.layout_topbar;    //constraints the top of cameracontainer to bottom of layout_topbar
-            }
-            if (((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.texture).getLayoutParams()).dimensionRatio.equals("H,3:4")) {  //if viewfinder ratio is 3:4
-                ConstraintLayout.LayoutParams layout_viewfinderLP = (ConstraintLayout.LayoutParams) camera_container.findViewById(R.id.layout_viewfinder).getLayoutParams();
-                layout_viewfinderLP.bottomToTop = R.id.layout_bottombar;    //set the bottom of layout_viewfinder to top of layout_bottombar
-            }
+
+            layout_topbarLP.topMargin = (int) dpmargin;
+            camera_containerLP.bottomMargin = (int) dpmargin;
+            camera_containerLP.topToTop = -1;
+            camera_containerLP.topToBottom = R.id.layout_topbar;
         }
         return activity_layout;
     }
@@ -840,9 +838,17 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             switch (mode) {
                 case VIDEO:
                     this.topbar.setEisVisible(true);
+                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
+                    this.topbar.setFpsVisible(true);
+                    this.topbar.setTimerVisible(false);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
+                    this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    break;
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(false);
+                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
@@ -852,6 +858,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     this.topbar.setEisVisible(true);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
@@ -862,14 +869,37 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     this.topbar.setEisVisible(false);
                     this.topbar.setFpsVisible(false);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     break;
             }
+            toggleConstraints(mode);
         }
 
+        private void toggleConstraints(CameraMode mode) {
+            if (displayAspectRatio <= 16f / 9f) {
+                ConstraintLayout.LayoutParams camera_containerLP =
+                        (ConstraintLayout.LayoutParams) cameraFragmentBinding
+                                .textureHolder
+                                .findViewById(R.id.camera_container)
+                                .getLayoutParams();
+                switch (mode){
+                    case VIDEO:
+                        camera_containerLP.topToTop = R.id.textureHolder;
+                        camera_containerLP.topToBottom = -1;
+                        break;
+                    case UNLIMITED:
+                    case PHOTO:
+                    case NIGHT:
+                        camera_containerLP.topToTop = -1;
+                        camera_containerLP.topToBottom = R.id.layout_topbar;
+                }
+
+            }
+        }
         @Override
         public void refresh(boolean processing) {
             cameraFragmentBinding.invalidateAll();
