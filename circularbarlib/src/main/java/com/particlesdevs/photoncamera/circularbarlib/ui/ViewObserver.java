@@ -1,7 +1,9 @@
 package com.particlesdevs.photoncamera.circularbarlib.ui;
 
 import android.app.Activity;
+import android.provider.Settings;
 import android.view.OrientationEventListener;
+import android.view.Surface;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -45,22 +47,37 @@ public class ViewObserver implements Observer {
         focusOption = findViewById(R.id.focus_option_tv);
         textViews = Arrays.asList(isoOption, evOption, expOption, focusOption);
         orientationEventListener = new OrientationEventListener(activity.getBaseContext()) {
+            private static final int ROT_DUR = 350;
+            private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
+
             @Override
             public void onOrientationChanged(int orientation) {
+                if (android.provider.Settings.System.getInt(activity.getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, 0) == 0) // 0 = Auto Rotate Disabled
+                    return;
+                int currentOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
                 if (orientation >= 340 || orientation < 20 && rotation != 0) {
+                    currentOrientation = Surface.ROTATION_0;
                     rotation = 0;
 
                 } else if (orientation >= 70 && orientation < 110 && rotation != 90) {
+                    currentOrientation = Surface.ROTATION_270;
                     rotation = -90;
 
                 } else if (orientation >= 160 && orientation < 200 && rotation != 180) {
+                    currentOrientation = Surface.ROTATION_180;
                     rotation = 180;
 
                 } else if (orientation >= 250 && orientation < 290 && rotation != 270) {
+                    currentOrientation = Surface.ROTATION_90;
                     rotation = 90;
                 }
-                Binding.rotateKnobView(knobView, rotation);
-                Binding.rotateViewGroupChild(buttonsContainer, rotation, 0);
+                if (prevOrientation != currentOrientation && orientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
+                    prevOrientation = currentOrientation;
+                    if (currentOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
+                        Binding.rotateKnobView(knobView, rotation);
+                        Binding.rotateViewGroupChild(buttonsContainer, rotation, ROT_DUR);
+                    }
+                }
             }
         };
     }

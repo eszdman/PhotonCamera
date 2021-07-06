@@ -335,6 +335,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         mCameraUIEventsListener.onPause();
         auxButtonsViewModel.setAuxButtonListener(null);
         burstPlayer.release();
+        mSwipe.SwipeDown();
         manualModeConsole.onPause();
         super.onPause();
     }
