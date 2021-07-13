@@ -455,7 +455,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 try {
                     if (f.getInt(f) == value)
                         return f.getName().replace(prefix, "").concat("(" + value + ")");
-                } catch (IllegalAccessException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

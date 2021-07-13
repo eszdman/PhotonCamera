@@ -37,7 +37,9 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
+import android.hardware.camera2.params.InputConfiguration;
 import android.hardware.camera2.params.MeteringRectangle;
+import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
@@ -1165,65 +1167,73 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
                 mPreviewRequestBuilder.addTarget(mMediaRecorder.getSurface());
             }
-            mCameraDevice.createCaptureSession(surfaces,
-                    new CameraCaptureSession.StateCallback() {
-                        @Override
-                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            // The camera is already closed
-                            if (null == mCameraDevice) {
-                                return;
-                            }
-                            // When the session is ready, we start displaying the preview.
-                            mCaptureSession = cameraCaptureSession;
-                            try {
-                                // Auto focus should be continuous for camera preview.
-                                //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-                                // Flash is automatically enabled when necessary.
-                                resetPreviewAEMode();
-                                Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
-                                // Finally, we start displaying the camera preview.
-                                if (is30Fps) {
-                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                            FpsRangeDef);
-                                } else {
-                                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                            FpsRangeHigh);
-                                }
-                                mPreviewRequest = mPreviewRequestBuilder.build();
-                                if (burst  && isDualSession) {
-                                    switch (CameraFragment.mSelectedMode) {
-                                        case NIGHT:
-                                        case PHOTO:
-                                            mCaptureSession.captureBurst(captures, CaptureCallback, null);
-                                            break;
-                                        case UNLIMITED:
-                                            mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
-                                            break;
-                                    }
-                                    burst = false;
-                                } else {
-                                    //if(mSelectedMode != CameraMode.VIDEO)
-                                    mCaptureSession.setRepeatingRequest(mPreviewRequest,
-                                            mCaptureCallback, mBackgroundHandler);
-                                    unlockFocus();
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                            if(mIsRecordingVideo)
-                            activity.runOnUiThread(() -> {
-                                // Start recording
-
-                                mMediaRecorder.start();
-                            });
+            CameraCaptureSession.StateCallback stateCallback = new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    // The camera is already closed
+                    if (null == mCameraDevice) {
+                        return;
+                    }
+                    // When the session is ready, we start displaying the preview.
+                    mCaptureSession = cameraCaptureSession;
+                    try {
+                        // Auto focus should be continuous for camera preview.
+                        //mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+                        // Flash is automatically enabled when necessary.
+                        resetPreviewAEMode();
+                        Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
+                        // Finally, we start displaying the camera preview.
+                        if (is30Fps) {
+                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                    FpsRangeDef);
+                        } else {
+                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                                    FpsRangeHigh);
                         }
-
-                        @Override
-                        public void onConfigureFailed(
-                                @NonNull CameraCaptureSession cameraCaptureSession) {
-                            showToast("Failed");
+                        mPreviewRequest = mPreviewRequestBuilder.build();
+                        if (burst  && isDualSession) {
+                            switch (CameraFragment.mSelectedMode) {
+                                case NIGHT:
+                                case PHOTO:
+                                    mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                                    break;
+                                case UNLIMITED:
+                                    mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
+                                    break;
+                            }
+                            burst = false;
+                        } else {
+                            //if(mSelectedMode != CameraMode.VIDEO)
+                            mCaptureSession.setRepeatingRequest(mPreviewRequest,
+                                    mCaptureCallback, mBackgroundHandler);
+                            unlockFocus();
                         }
-                    }, null);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if(mIsRecordingVideo)
+                        activity.runOnUiThread(() -> {
+                            // Start recording
+                            mMediaRecorder.start();
+                        });
+                }
+
+                @Override
+                public void onConfigureFailed(
+                        @NonNull CameraCaptureSession cameraCaptureSession) {
+                    showToast("Failed");
+                }
+            };
+            ArrayList<OutputConfiguration> outputConfigurations = new ArrayList<>();
+            for(Surface surfacei : surfaces){
+                outputConfigurations.add(new OutputConfiguration(surfacei));
+            }
+            if(mIsRecordingVideo){
+                //InputConfiguration inputConfiguration = new InputConfiguration(mImageReaderPreview.getWidth(),mImageReaderPreview.getHeight(),ImageFormat.YUV_420_888);
+                //CameraReflectionApi.createCustomCaptureSession(mCameraDevice,inputConfiguration,outputConfigurations,61444,stateCallback,null);
+                mCameraDevice.createCaptureSession(surfaces,stateCallback, null);
+            } else
+            mCameraDevice.createCaptureSession(surfaces,stateCallback, null);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1544,7 +1554,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_1080P);
+        CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_2160P);
         mMediaRecorder.setVideoFrameRate(profile.videoFrameRate);
         mMediaRecorder.setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
         mMediaRecorder.setVideoEncodingBitRate(profile.videoBitRate);
