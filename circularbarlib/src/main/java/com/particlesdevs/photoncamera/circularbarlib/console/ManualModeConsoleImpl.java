@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.circularbarlib.console;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
+import android.os.Vibrator;
 import android.view.View;
 
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
@@ -122,11 +123,12 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     private void addKnobs(Context context, CameraCharacteristics cameraCharacteristics) {
         CameraProperties cameraProperties = new CameraProperties(cameraCharacteristics);
         manualParamModel.reset();
-        mfModel = new FocusModel(context, cameraCharacteristics, cameraProperties.focusRange, manualParamModel, manualModeModel::setFocusText);
-        evModel = new EvModel(context, cameraCharacteristics, cameraProperties.evRange, manualParamModel, manualModeModel::setEvText);
+        Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        mfModel = new FocusModel(context, cameraCharacteristics, cameraProperties.focusRange, manualParamModel, manualModeModel::setFocusText,v);
+        evModel = new EvModel(context, cameraCharacteristics, cameraProperties.evRange, manualParamModel, manualModeModel::setEvText,v);
         ((EvModel) evModel).setEvStep((cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue()));
-        isoModel = new IsoModel(context, cameraCharacteristics, cameraProperties.isoRange, manualParamModel, manualModeModel::setIsoText);
-        expoTimeModel = new ShutterModel(context, cameraCharacteristics, cameraProperties.expRange, manualParamModel, manualModeModel::setExposureText);
+        isoModel = new IsoModel(context, cameraCharacteristics, cameraProperties.isoRange, manualParamModel, manualModeModel::setIsoText,v);
+        expoTimeModel = new ShutterModel(context, cameraCharacteristics, cameraProperties.expRange, manualParamModel, manualModeModel::setExposureText,v);
         knobModel.setKnobVisible(false);
         manualModeModel.setCheckedTextViewId(-1);
     }

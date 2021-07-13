@@ -119,13 +119,31 @@ public class Equalization extends Node {
                 break;
             }
         }
-        if(!nightMode){
+        /*if(!nightMode){
             wlind = (wlind + (input.length-1.f))/(1.f + 1.f);
         } else {
             wlind = (wlind*8.f+(input.length-1.f))/(8.0f + 1.f);
-        }
+        }*/
         wlind = Math.min(wlind+64,input.length-1);
         return wlind;
+    }
+    private float findBL(float[] input){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+        float blind = 0;
+        for(int i =input.length-1; i>=0;i--){
+            if(input[i] > 0.001) {
+                blind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                break;
+            }
+        }
+        /*if(!nightMode){
+            blind = (blind + (input.length-1.f))/(1.f + 1.f);
+        } else {
+            blind = (blind*8.f+(input.length-1.f))/(8.0f + 1.f);
+        }*/
+        blind = Math.max(blind-16,0);
+        return blind;
     }
     private float contrastLevel(float[] input, int wlind){
         double integin = 0.0;
@@ -137,8 +155,8 @@ public class Equalization extends Node {
         return (float)(intege/integin);
     }
     private float[] bSpline(float[] input,float WL){
-        ArrayList<Float> mY,mx;
-        mY = new ArrayList<>();
+        ArrayList<Float> my,mx;
+        my = new ArrayList<>();
         mx = new ArrayList<>();
         int wlind = (int)WL;
         float[] output = new float[wlind];
@@ -153,26 +171,65 @@ public class Equalization extends Node {
         for(int xi = 0; xi<count; xi++){
             int x = (int)(xi*k);
             mx.add((float)xi/(float)(count-1));
-            mY.add(input[x]);
+            my.add(input[x]);
         }
-        float k2 = (mY.get(mY.size()-1))/(mY.size()-1);
+        float k2 = (my.get(my.size()-1))/(my.size()-1);
         if(wlind <= input.length-16){
-            float wl = mY.get(mY.size()-1);
-            for(int i =0; i<mY.size();i++){
+            float wl = my.get(my.size()-1);
+            for(int i =0; i<my.size();i++){
                 float ik = i*k2;
-                if(mY.get(i) < ik){
-                    mY.set(i,ik);
+                if(my.get(i) < ik){
+                    my.set(i,ik);
                 }
             }
-            mY.set(mY.size()-1,wl);
+            my.set(my.size()-1,wl);
         }
         for(int xi = 1; xi<count-1; xi++){
-            mY.set(xi,(mY.get(xi-1)+mY.get(xi)*aggressiveness+mY.get(xi+1))/(aggressiveness+2.f));
+            my.set(xi,(my.get(xi-1)+my.get(xi)*aggressiveness+my.get(xi+1))/(aggressiveness+2.f));
         }
-        mY.set(0,0.0f);
-        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,mY);
+        my.set(0,0.0f);
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,my);
         for(int i =0; i<output.length;i++){
             output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
+        }
+        return output;
+    }
+    private float[] bilateralSmoothCurve(float[]input, float BL,float WL){
+        ArrayList<Float> my,mx;
+        my = new ArrayList<>();
+        mx = new ArrayList<>();
+        BL = pdf(BL/ input.length,30.f)*BL;
+        WL = input.length - pdf(input.length - WL/input.length,30.f)*WL;
+        WL = Math.min(WL,input.length-1);
+        float centerY = 0.f;
+        float msum = 0.f;
+        for(int i =(int)BL; i<(int)WL;i++){
+            float k = pdf(i/WL,1.f);
+            centerY+=k*input[i];
+            msum+=k;
+        }
+        centerY = (centerY+0.0001f)/(msum+0.0001f);
+        float centerX = (WL+BL)/2.f;
+        mx.add(BL);
+        mx.add(BL+0.01f);
+        mx.add(centerX);
+        mx.add((float)WL);
+        mx.add(WL+0.01f);
+
+
+        my.add(0.f);
+        my.add(0.f);
+        my.add(centerY);
+        my.add(1.f);
+        my.add(1.f);
+        Log.d(Name,"BL:"+BL);
+        Log.d(Name,"WL:"+WL);
+        Log.d(Name,"Mx:"+mx.toString());
+        Log.d(Name,"My:"+my.toString());
+        float[]output = new float[input.length];
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,my);
+        for(int i =0; i<output.length;i++){
+            output[i] = splineInterpolator.interpolate(i);
         }
         return output;
     }
@@ -392,32 +449,30 @@ public class Equalization extends Node {
         }
         float max = 0.f;
         float WL = findWL(averageCurve);
+        float BL = findBL(averageCurve);
         double compensation = averageCurve.length/WL;
-        float[] bezierArr = bSpline(averageCurve,WL);
-        /*if(PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT){
-            bezierArr = Utilities.interpolateArr(bezierArr,averageCurve.length);
-        }*/
-        //ApplyLaplace(bezierArr,averageCurve);
-        for(int i =0; i<bezierArr.length;i++){
-            float t = ((float)i)/bezierArr.length;
-            float shadow = (float)i*4.f/bezierArr.length;
+        /*float[] smoothArr = bilateralSmoothCurve(averageCurve,BL,WL);
+        for(int i =0; i<smoothArr.length;i++){
+            float t = ((float)i)/smoothArr.length;
+            float shadow = (float)i*4.f/smoothArr.length;
             shadow = Math.min(shadow,1.f);
-            float high = (((float)i/bezierArr.length)-0.6f)*0.8f;
+            float high = (((float)i/smoothArr.length)-0.6f)*0.8f;
             high = Math.max(high,0.f);
             float prev = histParser.hist[i];
-            averageCurve[i] = Math.min(mix(averageCurve[i],bezierArr[i],shadow),bezierArr[i]);
+            averageCurve[i] = Math.min(mix(averageCurve[i],smoothArr[i],shadow),smoothArr[i]);
             averageCurve[i] = Math.max(mix(averageCurve[i],prev,high),averageCurve[i]);
             averageCurve[i] = mix(prev,averageCurve[i],Math.min(t*1.3f,0.4f) + 0.6f);
             averageCurve[i] = Math.min(averageCurve[i],1.f);
             if(max < averageCurve[i]) max = averageCurve[i];
         }
         for(int i =0; i<histParser.hist.length;i++){
-            if(i<bezierArr.length){
+            if(i<smoothArr.length){
                 //histParser.hist[i] = bezierArr[i];
                 histParser.hist[i] = averageCurve[i]*(1.f/max);
             } else
             histParser.hist[i] = 1.f;
-        }
+        }*/
+        histParser.hist = bilateralSmoothCurve(averageCurve,BL,WL);
         Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
 

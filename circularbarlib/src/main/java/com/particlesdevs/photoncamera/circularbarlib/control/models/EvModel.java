@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.circularbarlib.control.models;
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
@@ -24,8 +25,9 @@ public class EvModel extends ManualModel<Float> {
     private final String TAG = EvModel.class.getSimpleName();
     private float evStep;
 
-    public EvModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Float> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
-        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent);
+    public EvModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Float> range,
+                   ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
+        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent,v);
     }
 
     public void setEvStep(float evStep) {

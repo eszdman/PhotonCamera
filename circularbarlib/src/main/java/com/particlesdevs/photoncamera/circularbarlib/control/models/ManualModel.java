@@ -3,6 +3,9 @@ package com.particlesdevs.photoncamera.circularbarlib.control.models;
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
@@ -32,18 +35,24 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     protected final ManualParamModel manualParamModel;
     private final List<KnobItemInfo> knobInfoList;
     private final ValueChangedEvent valueChangedEvent;
+    private final Vibrator vibrator;
+    private final VibrationEffect tick;
     protected CameraCharacteristics cameraCharacteristics;
     protected Range<T> range;
     protected KnobInfo knobInfo;
     protected KnobItemInfo currentInfo, autoModel;
     protected Context context;
 
-    public ManualModel(Context context,CameraCharacteristics cameraCharacteristics, Range<T> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+    public ManualModel(Context context, CameraCharacteristics cameraCharacteristics, Range<T> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
         this.context = context;
         this.cameraCharacteristics = cameraCharacteristics;
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
         this.manualParamModel = manualParamModel;
+        this.vibrator = v;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            this.tick = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK);
+        } else this.tick = VibrationEffect.createOneShot(9,255);
         knobInfoList = new ArrayList<>();
         fillKnobInfoList();
     }
@@ -107,6 +116,8 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
     @Override
     public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, final KnobItemInfo knobItemInfo2) {
         Log.d(ManualModel.class.getSimpleName(), "onSelectedKnobItemChanged");
+        vibrator.vibrate(tick);
+        //vibrator.cancel();
         if (knobItemInfo == knobItemInfo2)
             return;
         onSelectedKnobItemChanged(knobItemInfo2);

@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.circularbarlib.control.models;
 import android.content.Context;
 import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
@@ -21,8 +22,9 @@ import java.util.ArrayList;
  */
 public class ShutterModel extends ManualModel<Long> {
 
-    public ShutterModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Long> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
-        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent);
+    public ShutterModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Long> range,
+                        ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
+        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent,v);
     }
 
     @Override

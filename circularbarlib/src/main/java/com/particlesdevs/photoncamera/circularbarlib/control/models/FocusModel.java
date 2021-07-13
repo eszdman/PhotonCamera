@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.circularbarlib.control.models;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraCharacteristics;
+import android.os.Vibrator;
 import android.util.Range;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
@@ -20,8 +21,9 @@ import java.util.Locale;
  */
 public class FocusModel extends ManualModel<Float> {
 
-    public FocusModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Float> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
-        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent);
+    public FocusModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Float> range,
+                      ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
+        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent,v);
     }
 
     @Override
