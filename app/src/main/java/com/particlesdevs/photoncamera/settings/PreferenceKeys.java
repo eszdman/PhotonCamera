@@ -93,7 +93,7 @@ public class PreferenceKeys {
                 }
             }
             PhotonCamera.getSettings().loadCache();
-            Log.d(TAG, key + " : changed!");
+            //Log.d(TAG, key + " : changed!");
         });
     }
 

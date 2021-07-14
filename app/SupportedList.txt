@@ -1,4 +1,5 @@
 xiaomi:cepheus
+xiaomi:cas
 xiaomi:raphael
 xiaomi:davinci
 xiaomi:umi

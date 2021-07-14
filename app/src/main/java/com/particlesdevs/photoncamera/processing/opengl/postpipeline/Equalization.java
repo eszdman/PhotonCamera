@@ -131,7 +131,7 @@ public class Equalization extends Node {
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         float blind = 0;
         for(int i =input.length-1; i>=0;i--){
-            if(input[i] > 0.001) {
+            if(input[i] < 0.001) {
                 blind = i;
                 //wlind = (i*8.f+wlind)/(8.0f + 1.f);
                 break;
@@ -195,11 +195,16 @@ public class Equalization extends Node {
         return output;
     }
     private float[] bilateralSmoothCurve(float[]input, float BL,float WL){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+        float bilateralk = 30.f;
+        if(nightMode) bilateralk = 1.f;
         ArrayList<Float> my,mx;
         my = new ArrayList<>();
         mx = new ArrayList<>();
-        BL = pdf(BL/ input.length,30.f)*BL;
-        WL = input.length - pdf(input.length - WL/input.length,30.f)*WL;
+        Log.d(Name,"BL0:"+BL);
+        Log.d(Name,"WL0:"+WL);
+        BL = pdf(BL/input.length,bilateralk)*BL;
+        WL = input.length - pdf(1.f - WL/input.length,bilateralk)*(input.length - WL);
         WL = Math.min(WL,input.length-1);
         float centerY = 0.f;
         float msum = 0.f;

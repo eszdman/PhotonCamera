@@ -38,16 +38,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 
 public class SettingsBarLayout extends RelativeLayout implements SettingsBarListener {
     private final LinearLayout optionsContainer;
+    private final Vibration vibration;
 
     public SettingsBarLayout(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-
+        vibration = PhotonCamera.getVibration();
         setBackgroundResource(R.drawable.exif_background);
 
         ScrollView scrollView = new ScrollView(context);
@@ -98,6 +101,7 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
 
     @Override
     public void onEntryUpdated(SettingsBarEntryModel entryModel, SettingsBarButtonModel buttonModel) {
+        vibration.Click();
         for (SettingsBarButtonModel model : entryModel.getSettingsBarButtonModels()) {
             findViewById(entryModel.getId()).findViewById(model.getId()).setSelected(model.isSelected());
         }

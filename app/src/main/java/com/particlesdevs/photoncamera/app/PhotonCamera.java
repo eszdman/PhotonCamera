@@ -23,6 +23,7 @@ import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
@@ -50,6 +51,7 @@ public class PhotonCamera extends Application {
     private Settings mSettings;
     private Gravity mGravity;
     private Gyro mGyro;
+    private Vibration mVibration;
     private Parameters mParameters;
     private CaptureController mCaptureController;
     private SupportedDevice mSupportedDevice;
@@ -82,6 +84,10 @@ public class PhotonCamera extends Application {
 
     public static Gyro getGyro() {
         return sPhotonCamera.mGyro;
+    }
+
+    public static Vibration getVibration() {
+        return sPhotonCamera.mVibration;
     }
 
     public static Parameters getParameters() {
@@ -184,7 +190,10 @@ public class PhotonCamera extends Application {
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mGravity = new Gravity(sensorManager);
+
         mGyro = new Gyro(sensorManager);
+
+        mVibration = new Vibration(this);
 
         mSettingsManager = new SettingsManager(this);
 
