@@ -196,15 +196,16 @@ public class Equalization extends Node {
     }
     private float[] bilateralSmoothCurve(float[]input, float BL,float WL){
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
-        float bilateralk = 30.f;
-        if(nightMode) bilateralk = 1.f;
+        float ampl = 1.35f;
+        float bilateralk = 10.f;
+        if(nightMode) bilateralk = 0.7f;
         ArrayList<Float> my,mx;
         my = new ArrayList<>();
         mx = new ArrayList<>();
         Log.d(Name,"BL0:"+BL);
         Log.d(Name,"WL0:"+WL);
-        BL = pdf(BL/input.length,bilateralk)*BL;
-        WL = input.length - pdf(1.f - WL/input.length,bilateralk)*(input.length - WL);
+        BL = pdf(BL/input.length,bilateralk)*BL*ampl;
+        WL = input.length - pdf(1.f - WL/input.length,bilateralk*2)*(input.length - WL)*ampl;
         WL = Math.min(WL,input.length-1);
         float centerY = 0.f;
         float msum = 0.f;
@@ -216,14 +217,14 @@ public class Equalization extends Node {
         centerY = (centerY+0.0001f)/(msum+0.0001f);
         float centerX = (WL+BL)/2.f;
         mx.add(BL);
-        mx.add(BL+0.01f);
+        //mx.add(BL+0.01f);
         mx.add(centerX);
         mx.add((float)WL);
         mx.add(WL+0.01f);
 
 
         my.add(0.f);
-        my.add(0.f);
+        // my.add(0.f);
         my.add(centerY);
         my.add(1.f);
         my.add(1.f);
@@ -235,6 +236,7 @@ public class Equalization extends Node {
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,my);
         for(int i =0; i<output.length;i++){
             output[i] = splineInterpolator.interpolate(i);
+            if(i < BL) output[i] = 0.f;
         }
         return output;
     }
@@ -479,7 +481,7 @@ public class Equalization extends Node {
         }*/
         histParser.hist = bilateralSmoothCurve(averageCurve,BL,WL);
         Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
+
 
         /*float[] equalizingCurve = new float[histParser.hist.length];
         for(int i =0; i<histParser.hist.length;i++){
@@ -496,6 +498,10 @@ public class Equalization extends Node {
             shadowCurve[i+2] = (histParser.histb[i/3]);
         }*/
         double shadowW = (basePipeline.mSettings.shadows);
+        for(int i =0; i<histParser.hist.length;i++){
+            histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
+        }
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),
