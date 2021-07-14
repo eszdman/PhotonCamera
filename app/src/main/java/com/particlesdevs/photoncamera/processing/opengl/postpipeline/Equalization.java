@@ -423,9 +423,9 @@ public class Equalization extends Node {
         //Saturate shift
         float avr = (BLPredictShift[0]+BLPredictShift[1]+BLPredictShift[2])/3.f;
         float saturation = 0.0f;
-        BLPredictShift[0] = (BLPredictShift[0]-avr*saturation) / (1.f-avr*saturation);
-        BLPredictShift[1] = (BLPredictShift[1]-avr*saturation) / (1.f-avr*saturation);
-        BLPredictShift[2] = (BLPredictShift[2]-avr*saturation) / (1.f-avr*saturation);
+        BLPredictShift[0] = -(BLPredictShift[0]-avr*saturation) / (1.f-avr*saturation);
+        BLPredictShift[1] = -(BLPredictShift[1]-avr*saturation) / (1.f-avr*saturation);
+        BLPredictShift[2] = -(BLPredictShift[2]-avr*saturation) / (1.f-avr*saturation);
 
         float mins = Math.min(BLPredictShift[0],Math.min(BLPredictShift[1],BLPredictShift[2]));
         if(mins < 0.0) {
