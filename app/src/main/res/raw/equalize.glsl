@@ -2,7 +2,6 @@
 precision highp sampler2D;
 precision highp float;
 uniform float Equalize;
-uniform float HistFactor;
 uniform sampler2D Histogram;
 uniform sampler2D Shadows;
 uniform sampler2D Equalizing;
@@ -143,15 +142,15 @@ void main() {
     //sRGB = rgb2hsv(sRGB);
     //br = sRGB.b;
     float pbr = br;
-    float HistEq = texture(Histogram, vec2(1.0/512.0 + br*(1.0-1.0/256.0), 0.5f)).r;
+    float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     //Limit eq
-    HistEq = clamp(HistEq, 0.0, 5.0);
+    //HistEq = clamp(HistEq, 0.0, 5.0);
 
     //Equalization factor
-    float factor = 1.0;
-    factor*=1.0-clamp(br-0.6, 0.0, 0.4)/0.4;
+    //float factor = 1.0;
+    //factor*=1.0-clamp(br-0.6, 0.0, 0.4)/0.4;
     //factor*=1.0-clamp(br-0.4,0.0,0.4)/0.3;
-    factor = clamp(factor, 0.0, 1.0);
+    //factor = clamp(factor, 0.0, 1.0);
 
 
     //if(br > EPS) br = mix(br,br*pow(HistEq/br,HistFactor),factor);

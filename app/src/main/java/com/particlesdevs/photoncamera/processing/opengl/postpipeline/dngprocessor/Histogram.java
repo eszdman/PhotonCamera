@@ -19,6 +19,7 @@ public class Histogram {
     public final float[] histb;
     public float gamma;
     public final float logAvgLuminance;
+    public final int histSize;
     private static float getInterpolated(float[] in, float ind){
         int indi = (int)ind;
         if(ind > indi){
@@ -27,7 +28,8 @@ public class Histogram {
             return mix(in[indi],in[Math.max(indi-1,0)],indi-ind);
         } else return in[indi];
     }
-    public Histogram(Bitmap bmp, int whPixels) {
+    public Histogram(Bitmap bmp, int whPixels,int histSize) {
+        this.histSize = histSize;
         int[] histv;
         int[] histx;
         int[] histy;
@@ -131,7 +133,7 @@ public class Histogram {
         }
         return bl;
     }
-    private static float[] buildCumulativeHist(int[] hist) {
+    private float[] buildCumulativeHist(int[] hist) {
         float[] cumulativeHist = new float[HIST_BINS + 1];
         for (int i = 1; i < cumulativeHist.length; i++) {
             cumulativeHist[i] = cumulativeHist[i - 1] + hist[i - 1];
@@ -141,7 +143,7 @@ public class Histogram {
             cumulativeHist[i] /= max;
         }
         float[] prevH = cumulativeHist.clone();
-        cumulativeHist = new float[4096];
+        cumulativeHist = new float[histSize];
         for(int i =0; i<cumulativeHist.length;i++){
             cumulativeHist[i] = getInterpolated(prevH,i*((float)prevH.length/(cumulativeHist.length)));
         }

@@ -1,4 +1,4 @@
-package com.particlesdevs.photoncamera.ui.camera.views.viewfinder;
+package com.particlesdevs.photoncamera.processing.opengl.preview;
 
 import android.content.Context;
 import android.graphics.Matrix;

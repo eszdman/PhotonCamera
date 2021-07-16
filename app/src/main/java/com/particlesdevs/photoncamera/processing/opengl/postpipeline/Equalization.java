@@ -66,7 +66,7 @@ public class Equalization extends Node {
         fb.get(brArr);
         fb.reset();
         r1.close();*/
-        return new Histogram(bmp, r1.mSize.x*r1.mSize.y);
+        return new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
     }
     private float pdf(float x,float sigma){
         return (float) (0.39894*Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
@@ -150,7 +150,7 @@ public class Equalization extends Node {
         double intege = 0.0;
         for(int i =0; i<wlind;i++){
             intege +=(double)(i)/(wlind-1.0);
-            integin +=(double)input[i];
+            integin += input[i];
         }
         return (float)(intege/integin);
     }
@@ -196,30 +196,30 @@ public class Equalization extends Node {
     }
     private float[] bilateralSmoothCurve(float[]input, float BL,float WL){
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
-        float ampl = 1.35f;
-        float bilateralk = 10.f;
-        if(nightMode) bilateralk = 0.7f;
+        float bilateralk = edgesBilateralSmooth;
+        if(nightMode) bilateralk = edgesBilateralSmoothNight;
         ArrayList<Float> my,mx;
         my = new ArrayList<>();
         mx = new ArrayList<>();
         Log.d(Name,"BL0:"+BL);
         Log.d(Name,"WL0:"+WL);
-        BL = pdf(BL/input.length,bilateralk)*BL*ampl;
-        WL = input.length - pdf(1.f - WL/input.length,bilateralk*2)*(input.length - WL)*ampl;
+        BL = pdf(BL/input.length,bilateralk)*BL*edgesStretchShadows;
+        WL = input.length - pdf(1.f - WL/input.length,bilateralk*highLightSmoothAmplify)*(input.length - WL)*edgesStretchHighLight;
         WL = Math.min(WL,input.length-1);
         float centerY = 0.f;
         float msum = 0.f;
+        float centerX = mix(BL,WL,curveCenter);
         for(int i =(int)BL; i<(int)WL;i++){
-            float k = pdf(i/WL,1.f);
+            float k = pdf((i-mix(BL,WL,analyzeCenter))/WL,1.f);
             centerY+=k*input[i];
             msum+=k;
         }
         centerY = (centerY+0.0001f)/(msum+0.0001f);
-        float centerX = (WL+BL)/2.f;
+
         mx.add(BL);
         //mx.add(BL+0.01f);
         mx.add(centerX);
-        mx.add((float)WL);
+        mx.add(WL);
         mx.add(WL+0.01f);
 
 
@@ -237,6 +237,38 @@ public class Equalization extends Node {
         for(int i =0; i<output.length;i++){
             output[i] = splineInterpolator.interpolate(i);
             if(i < BL) output[i] = 0.f;
+        }
+        return output;
+    }
+    private float[] SmoothCurve(float[]input, float BL,float WL){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+        float bilateralk = edgesBilateralSmooth;
+        if(nightMode) bilateralk = edgesBilateralSmoothNight;
+        Log.d(Name,"BL0:"+BL);
+        Log.d(Name,"WL0:"+WL);
+        BL = pdf(BL/input.length,bilateralk)*BL*edgesStretchShadows;
+        WL = input.length - pdf(1.f - WL/input.length,bilateralk*highLightSmoothAmplify)*(input.length - WL)*edgesStretchHighLight;
+        WL = Math.min(WL,input.length-1);
+        int size;
+        float[]output = input.clone();
+        for(int k = 0; k<1;k++) {
+            input = output.clone();
+            for (int i = 0; i < output.length; i++) {
+                if (i >= (int) BL && i < (int) WL) {
+                    size = Math.min(i-(int)BL,(int)WL - i);
+                    float temp = 0.f;
+                    float pdf = 0.f;
+                    for (int j = -size; j < size; j++) {
+                        if (j + i >= (int) BL && j + i < (int) WL) {
+                            float ker = pdf(j / 512.f, 1.f);
+                            temp += ker * input[i + j];
+                            pdf += ker;
+                        }
+                    }
+                    output[i] = (temp + 0.001f) / (pdf + 0.001f);
+                } else if (i <= BL) output[i] = 0.f;
+                else output[i] = 1.f;
+            }
         }
         return output;
     }
@@ -315,14 +347,31 @@ public class Equalization extends Node {
         }
         return output;
     }*/
-    private float EqualizePower = 0.9f;
-    float analyzeIntensity = 0.f;
+    float analyzeIntensity = -0.35f;
+    float analyzeCenter = 0.5f;
+    float curveCenter = 0.5f;
+    float edgesStretchShadows = 1.35f;
+    float edgesStretchHighLight = 1.35f;
+    int histSize = 4096;
+    int blackLevelSearch = 384;
+    float edgesBilateralSmooth = 3.f;
+    float edgesBilateralSmoothNight = 0.7f;
+    float highLightSmoothAmplify = 2.f;
     float shadowsSensitivity = 0.6f;
     float blackLevelSensitivity = 1.35f;
     @Override
     public void Run() {
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
+        edgesStretchShadows = getTuning("EdgesStretchShadows", edgesStretchShadows);
+        edgesStretchHighLight = getTuning("EdgesStretchHighLight", edgesStretchHighLight);
+        edgesBilateralSmooth = getTuning("EdgesBilateralSmooth", edgesBilateralSmooth);
+        edgesBilateralSmoothNight = getTuning("EdgesBilateralSmoothNight", edgesBilateralSmoothNight);
+        highLightSmoothAmplify = getTuning("HighLightSmoothAmplify", highLightSmoothAmplify);
+        analyzeCenter = getTuning("AnalyzeCenter", analyzeCenter);
+        curveCenter = getTuning("CurveCenter", curveCenter);
         shadowsSensitivity = getTuning("ShadowsSensitivity", shadowsSensitivity);
+        histSize = getTuning("HistSize", histSize);
+        blackLevelSearch = getTuning("BlackLevelSearch", blackLevelSearch);
         blackLevelSensitivity = getTuning("BlackLevelSensitivity", blackLevelSensitivity);
         WorkingTexture = basePipeline.getMain();
         float rmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].first));
@@ -396,10 +445,10 @@ public class Equalization extends Node {
         //Depurple Degreen
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
-        int maxshift = 384;
+        int maxshift = blackLevelSearch;
         int cnt = 0;
         for(int i =5; i<maxshift;i++){
-            float x = i/4096.f;
+            float x = (float)(i)/histSize;
             BLPredict[0]+= histParser.histr[i]/x;
             BLPredict[1]+= histParser.histg[i]/x;
             BLPredict[2]+= histParser.histb[i]/x;
@@ -410,7 +459,7 @@ public class Equalization extends Node {
         BLPredict[2]/=cnt;
         cnt = 0;
         for(int i =5; i<maxshift;i++){
-            float x = i/4096.f;
+            float x = (float)(i)/histSize;
             BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
             BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
             BLPredictShift[2]+=histParser.histb[i]-x*BLPredict[2];
@@ -433,18 +482,19 @@ public class Equalization extends Node {
             BLPredictShift[1]-=mins;
             BLPredictShift[2]-=mins;
         }
+        if(PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
+            float oldr = BLPredictShift[0];
+            float oldb = BLPredictShift[2];
+            BLPredictShift[2] = Math.min(BLPredictShift[0],BLPredictShift[2]);
+            BLPredictShift[0] = BLPredictShift[2];
+            BLPredictShift[0] += oldr*0.15f;
+            BLPredictShift[2] += oldb*0.15f;
+        }
         BLPredictShift[0]*=blackLevelSensitivity;
         BLPredictShift[1]*=blackLevelSensitivity;
         BLPredictShift[2]*=blackLevelSensitivity;
 
 
-        //float t = BLPredictShift[0];
-        //BLPredictShift[0] = BLPredictShift[2];
-        //BLPredictShift[2] = t;
-        if(PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
-            BLPredictShift[2] = (BLPredictShift[0] + BLPredictShift[2]) / 2.f;
-            BLPredictShift[0] = BLPredictShift[2];
-        }
         float[] averageCurve = new float[histParser.hist.length];
         for(int i =0; i<averageCurve.length;i++){
             averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
@@ -452,7 +502,6 @@ public class Equalization extends Node {
         if(basePipeline.mSettings.DebugData) {
             GenerateCurveBitm(histParser.histr,histParser.histg,histParser.histb);
             GenerateCurveBitm(averageCurve);
-            //GenerateCurveBitm(histParser.hist);
         }
         float max = 0.f;
         float WL = findWL(averageCurve);
@@ -499,7 +548,13 @@ public class Equalization extends Node {
         }*/
         double shadowW = (basePipeline.mSettings.shadows);
         for(int i =0; i<histParser.hist.length;i++){
-            histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
+            float line = i/(histParser.hist.length-1.f);
+            if(shadowW != 0.f) {
+                if(shadowW > 0.f)
+                histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
+                else histParser.hist[i] = (float)mix(histParser.hist[i],(histParser.hist[i])*(histParser.hist[i]),-(shadowW)*shadowsSensitivity);
+            }
+            //histParser.hist[i] = mix(histParser.hist[i],line,line*0.35f);
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist);
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
@@ -516,10 +571,6 @@ public class Equalization extends Node {
         GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
-        float bilatHistFactor = Math.max(0.4f, 1f - histParser.gamma * EqualizePower
-                - 4f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
-        Log.d(Name,"HistFactor:"+bilatHistFactor*EqualizePower);
-        glProg.setVar("HistFactor",bilatHistFactor*EqualizePower);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture);
         histogram.close();

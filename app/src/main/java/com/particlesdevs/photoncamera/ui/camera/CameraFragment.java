@@ -99,6 +99,7 @@ import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.log.Logger;
@@ -868,7 +869,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     break;
                 case NIGHT:
                     this.topbar.setEisVisible(false);
-                    this.topbar.setFpsVisible(false);
+                    this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
                     cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);

@@ -84,6 +84,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.io.File;
@@ -847,7 +848,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
 
         StreamConfigurationMap map = this.mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID).get(
-                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
         if (map == null) return;
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
@@ -1141,9 +1142,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (mIsRecordingVideo) {
                 mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
                 mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-                 if (PreferenceKeys.isEisPhotoOn()) {
-                     mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
-                 }
+                if (PreferenceKeys.isEisPhotoOn()) {
+                    mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
+                }
             }
             mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
             mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
@@ -1233,7 +1234,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 //CameraReflectionApi.createCustomCaptureSession(mCameraDevice,inputConfiguration,outputConfigurations,61444,stateCallback,null);
                 mCameraDevice.createCaptureSession(surfaces,stateCallback, null);
             } else
-            mCameraDevice.createCaptureSession(surfaces,stateCallback, null);
+                mCameraDevice.createCaptureSession(surfaces,stateCallback, null);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1439,7 +1440,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             burst = true;
             Camera2ApiAutoFix.ApplyBurst();
             if(isDualSession)
-            createCameraPreviewSession();
+                createCameraPreviewSession();
             else {
                 switch (PhotonCamera.getSettings().selectedMode){
                     case NIGHT:

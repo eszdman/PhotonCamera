@@ -22,6 +22,7 @@ public class Node {
     public GLProg glProg;
     public boolean LastNode = false;
     public Properties mProp;
+    private final boolean loggedTuning = false;
 
     private Node() {
     }
@@ -32,7 +33,7 @@ public class Node {
     }
 
     private void tuningLog(String name, String value){
-        Log.d("Tuning",name+" = "+ value);
+        if(loggedTuning) Log.d("Tuning",name+" = "+ value);
     }
     public float getTuning(String name,float Default){
         tuningLog(Name+"_"+name,String.valueOf(Default));
