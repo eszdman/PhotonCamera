@@ -73,6 +73,7 @@ vec3 gammaCorrectPixel2(vec3 rgb) {
     rgb.x = gammaEncode2(rgb.x);
     rgb.y = gammaEncode2(rgb.y);
     rgb.z = gammaEncode2(rgb.z);
+    rgb = gammaCorrectPixel(rgb);
     return rgb;
 }
 vec3 lookup(in vec3 textureColor) {

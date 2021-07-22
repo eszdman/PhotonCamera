@@ -7,10 +7,8 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
-import com.particlesdevs.photoncamera.processing.opengl.GLInterface;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.processing.render.ColorCorrectionCube;
 import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -37,9 +35,10 @@ public class Initial extends Node {
     GLTexture lut;
     Bitmap lutbm;
     float highersatmpy = 0.f;
-    float gammax1 = 2.8586f;
-    float gammax2 = -3.1643f;
-    float gammax3 = 1.2899f;
+    float gammaKoefficientGenerator = 2.0f;
+    float gammax1 = 1.f;
+    float gammax2 = 0.f;
+    float gammax3 = 0.f;
     float tonemapx1 =-0.15f;
     float tonemapx2 = 2.55f;
     float tonemapx3 = -1.6f;
@@ -49,6 +48,7 @@ public class Initial extends Node {
     float eps = 0.0008f;
     @Override
     public void Run() {
+        gammaKoefficientGenerator =getTuning("GammaKoefficientGenerator", gammaKoefficientGenerator);
         gammax1 =   getTuning("GammaModelX1",gammax1    );
         gammax2 =   getTuning("GammaModelX2",gammax2    );
         gammax3 =   getTuning("GammaModelX3",gammax3    );
@@ -121,14 +121,14 @@ public class Initial extends Node {
         float[] gamma = new float[1024];
         for(int i =0; i<gamma.length;i++){
             double pos =((float)i)/gamma.length;
-            gamma[i] = (float)(Math.pow(pos, 1./2.0));
+            gamma[i] = (float)(Math.pow(pos, 1./ gammaKoefficientGenerator));
         }
         GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+        //lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
-        glProg.setTexture("LookupTable",lut);
+        //glProg.setTexture("LookupTable",lut);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);

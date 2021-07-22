@@ -25,10 +25,13 @@ public class RotateWatermark extends Node {
 
     @Override
     public void Compile() {}
-
+    GLTexture lut;
+    Bitmap lutbm;
     @Override
     public void AfterRun() {
         if(watermark != null) watermark.recycle();
+        lutbm.recycle();
+        lut.close();
     }
 
     @Override
@@ -40,6 +43,9 @@ public class RotateWatermark extends Node {
         } else {
             glProg.useProgram(R.raw.rotate);
         }
+        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
+        lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+        glProg.setTexture("LookupTable",lut);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         int rot = -1;
         Log.d(Name,"Rotation:"+rotate);
