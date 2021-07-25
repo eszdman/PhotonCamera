@@ -9,6 +9,9 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.util.FileManager;
+
+import java.io.File;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -43,8 +46,10 @@ public class RotateWatermark extends Node {
         } else {
             glProg.useProgram(R.raw.rotate);
         }
-        BitmapFactory.decodeFile()
-        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
+        File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"lut.png");
+        if(customlut.exists())
+            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
+        else lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("LookupTable",lut);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
