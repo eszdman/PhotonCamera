@@ -33,23 +33,23 @@ public class RotateWatermark extends Node {
     @Override
     public void AfterRun() {
         if(watermark != null) watermark.recycle();
-        lutbm.recycle();
-        lut.close();
+        //lutbm.recycle();
+        //lut.close();
     }
 
     @Override
     public void Run() {
-        if(watermarkNeeded) {
+        File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"lut.png");
+        if(customlut.exists()){
+            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
+            glProg.setDefine("LUT",true);
+        }
+        //else lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
+        glProg.setDefine("WATERMARK",watermarkNeeded);
         glProg.useProgram(R.raw.addwatermark_rotate);
         watermark = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.photoncamera_watermark);
         glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
-        } else {
-            glProg.useProgram(R.raw.rotate);
-        }
-        File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"lut.png");
-        if(customlut.exists())
-            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
-        else lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
+
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("LookupTable",lut);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);

@@ -25,15 +25,15 @@ public class Initial extends Node {
 
     @Override
     public void AfterRun() {
-        lutbm.recycle();
-        lut.close();
+        //lutbm.recycle();
+        //lut.close();
     }
 
     @Override
     public void Compile() {}
 
-    GLTexture lut;
-    Bitmap lutbm;
+    //GLTexture lut;
+    //Bitmap lutbm;
     float highersatmpy = 0.f;
     float gammaKoefficientGenerator = 2.0f;
     float gammax1 = 1.f;
@@ -76,7 +76,6 @@ public class Initial extends Node {
         }
         glProg.setDefine("SATURATION2",sat);
         glProg.setDefine("SATURATION",sat*highersatmpy);
-        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
