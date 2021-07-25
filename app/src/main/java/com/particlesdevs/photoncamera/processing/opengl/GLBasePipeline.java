@@ -27,6 +27,7 @@ import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
+import static com.particlesdevs.photoncamera.util.FileManager.sPHOTON_TUNING_DIR;
 
 public class GLBasePipeline implements AutoCloseable {
     public final ArrayList<Node> Nodes = new ArrayList<>();
@@ -45,16 +46,15 @@ public class GLBasePipeline implements AutoCloseable {
     public GLBasePipeline(){
         Properties properties = new Properties();
         try {
-            new File(FileManager.sPHOTON_DIR+"/tuning/").mkdir();
-            File init = new File(FileManager.sPHOTON_DIR+"/tuning/PhotonCameraTuning.ini");
+            File init = new File(sPHOTON_TUNING_DIR, "PhotonCameraTuning.ini");
             if(!init.exists()) {
                 init.createNewFile();
-                InputStream inputStream = PhotonCamera.getAssetLoader().getInputStream("tuning/PhotonCameraTuning.ini");
+                /*InputStream inputStream = PhotonCamera.getAssetLoader().getInputStream("tuning/PhotonCameraTuning.ini");
                 byte[] buffer = new byte[inputStream.available()];
                 inputStream.read(buffer);
                 OutputStream outputStream = new FileOutputStream(init);
                 outputStream.write(buffer);
-                outputStream.close();
+                outputStream.close();*/
             }
             properties.load(new FileInputStream(init));
         } catch (IOException e) {

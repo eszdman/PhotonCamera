@@ -43,7 +43,8 @@ public class RotateWatermark extends Node {
         } else {
             glProg.useProgram(R.raw.rotate);
         }
-        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut);
+        BitmapFactory.decodeFile()
+        lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("LookupTable",lut);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
