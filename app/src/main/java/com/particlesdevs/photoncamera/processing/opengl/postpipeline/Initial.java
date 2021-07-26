@@ -36,9 +36,9 @@ public class Initial extends Node {
     //Bitmap lutbm;
     float highersatmpy = 0.f;
     float gammaKoefficientGenerator = 2.0f;
-    float gammax1 = 1.f;
-    float gammax2 = 0.f;
-    float gammax3 = 0.f;
+    float gammax1 = 7.1896f;
+    float gammax2 = -50.8195f;
+    float gammax3 = 129.3564f;
     float tonemapx1 =-0.15f;
     float tonemapx2 = 2.55f;
     float tonemapx3 = -1.6f;

@@ -35,20 +35,19 @@ public class Histogram {
         int[] histy;
         int[] histz;
         int[][] histin = HistogramRs.getHistogram(bmp);
-        histx = histin[0];
-        histy = histin[1];
-        histz = histin[2];
-        histv = histin[3];
+        histx = histin[3];
+        histy = histin[2];
+        histz = histin[1];
+        histv = histin[0];
         final double[] logTotalLuminance = {0d};
         logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / (whPixels*4));
         for (int j = 0; j < 3; j++) {
             sigma[j] /= whPixels;
         }
-
-        hist = buildCumulativeHist(histv);
-        histr = buildCumulativeHist(histx);
-        histg = buildCumulativeHist(histy);
-        histb = buildCumulativeHist(histz);
+        hist = buildCumulativeHist(histx);
+        histr = buildCumulativeHist(histy);
+        histg = buildCumulativeHist(histz);
+        histb = buildCumulativeHist(histv);
 
         // Find gamma: Inverse of the average exponent.
         gamma = findGamma(hist);
@@ -78,7 +77,7 @@ public class Histogram {
 
 
         //Generate equalizing curve
-        createCurve(hist);
+        //createCurve(hist);
         /*createCurve(histr);
         createCurve(histg);
         createCurve(histb);*/

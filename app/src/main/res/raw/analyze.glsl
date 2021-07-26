@@ -2,20 +2,52 @@
 precision highp sampler2D;
 precision highp float;
 uniform sampler2D InputBuffer;
+uniform sampler2D LookupTable;
 uniform int stp;
 out vec4 Output;
 #define SAMPLING (1)
 #define SIGMA 0
 #define WP (1.0,1.0,1.0)
 #define ANALYZEINTENSE 0.0
+#define LUT 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
+
+vec3 lookup(in vec3 textureColor) {
+    textureColor = clamp(textureColor, 0.0, 1.0);
+
+    highp float blueColor = textureColor.b * 63.0;
+
+    highp vec2 quad1;
+    quad1.y = floor(floor(blueColor) / 8.0);
+    quad1.x = floor(blueColor) - (quad1.y * 8.0);
+
+    highp vec2 quad2;
+    quad2.y = floor(ceil(blueColor) / 8.0);
+    quad2.x = ceil(blueColor) - (quad2.y * 8.0);
+
+    highp vec2 texPos1;
+    texPos1.x = (quad1.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
+    texPos1.y = (quad1.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
+
+    highp vec2 texPos2;
+    texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
+    texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
+
+    highp vec3 newColor1 = texture(LookupTable, texPos1).rgb;
+    highp vec3 newColor2 = texture(LookupTable, texPos2).rgb;
+
+    highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
+    return newColor;
+}
 void main() {
     ivec2 xy = ivec2(vec2(SAMPLING) * vec2(gl_FragCoord.xy));
     vec3[9]inp;
     if(stp == 0){
         for (int i = 0; i < 9; i++) {
-            inp[i] = XYZtoxyY(texelFetch(InputBuffer, xy + 2*ivec2((i % 3) - 1, (i / 3) - 1), 0).rgb);
+            vec3 rgbin = texelFetch(InputBuffer, xy + 2*ivec2((i % 3) - 1, (i / 3) - 1), 0).rgb;
+            rgbin = (rgbin);
+            inp[i] = XYZtoxyY(rgbin);
         }
 
 
@@ -44,10 +76,11 @@ void main() {
         z = mix(mix(z, z*z, ANALYZEINTENSE),z,z);
         Output = vec4(sqrt(sigma / 9.f), z);
         #else
-        vec3 inv = texelFetch(InputBuffer, xy, 0).rgb;
+        vec3 inv = (texelFetch(InputBuffer, xy, 0).rgb);
         float z = inp[4].z;
         Output = vec4(inv.r,inv.g,inv.b, z);
         Output = mix(mix(Output,Output*Output,ANALYZEINTENSE),Output,z);
+        Output.rgb = lookup(Output.rgb);
         #endif
 
     } else {

@@ -58,22 +58,28 @@ out vec3 Output;
 #import coords
 #import interpolation
 #import gaussian
+float gammaEncode(float x) {
+    //return 1.055 * sqrt(x+EPS) - 0.055;
+    return (GAMMAX1*x+GAMMAX2*x*x+GAMMAX3*x*x*x);
+}
 float gammaEncode2(float x) {
     //return 1.055 * sqrt(x+EPS) - 0.055;
     return texture(GammaCurve,vec2(x - 1.0/1024.0,0.5)).r;
 }
+
 //Apply Gamma correction
 vec3 gammaCorrectPixel(vec3 x) {
-    float br = (x.r+x.g+x.b)/3.0;
-    x/=br;
-    return x*(GAMMAX1*br+GAMMAX2*br*br+GAMMAX3*br*br*br);
+    //float br = (x.r+x.g+x.b)/3.0;
+    //x/=br;
+    //return x*(GAMMAX1*br+GAMMAX2*br*br+GAMMAX3*br*br*br);
+    return (GAMMAX1*x+GAMMAX2*x*x+GAMMAX3*x*x*x);
 }
 
 vec3 gammaCorrectPixel2(vec3 rgb) {
-    rgb.x = gammaEncode2(rgb.x);
-    rgb.y = gammaEncode2(rgb.y);
-    rgb.z = gammaEncode2(rgb.z);
-    rgb = gammaCorrectPixel(rgb);
+    rgb.r = mix(gammaEncode(rgb.r),gammaEncode2(rgb.r),min(rgb.r*9.0,1.0));
+    rgb.g = mix(gammaEncode(rgb.g),gammaEncode2(rgb.g),min(rgb.g*9.0,1.0));
+    rgb.b = mix(gammaEncode(rgb.b),gammaEncode2(rgb.b),min(rgb.b*9.0,1.0));
+    //rgb = gammaCorrectPixel(rgb);
     return rgb;
 }
 vec3 lookup(in vec3 textureColor) {
@@ -214,12 +220,12 @@ vec3 hsv2rgb(vec3 c) {
     vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
 }
-vec3 saturate(vec3 rgb) {
+vec3 saturate(vec3 rgb, float sat2, float sat) {
     float r = rgb.r;
     float g = rgb.g;
     float b = rgb.b;
     float br = (r+g+b)/3.0;
-    float dfsat = mix(SATURATION2,SATURATION,br*br);
+    float dfsat = mix(sat2,sat,br*br);
     vec3 hsv = rgb2hsv(vec3(rgb.r,rgb.g,rgb.b));
     /*if(hsv.g < 0.5-0.0){
         hsv.g *= mix(1.0,dfsat,hsv.g/(0.5-0.0));
@@ -275,6 +281,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     br = pRGB.r+pRGB.g+pRGB.b;
     br/=3.0;
     pRGB/=br;
+
+
     //ISO tint correction
     //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
 
@@ -299,7 +307,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
-    pRGB = tonemap(pRGB*0.9)*1.1;
+    pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);
@@ -341,10 +349,13 @@ void main() {
     sRGB = applyColorSpace(sRGB,tonemapGain);
     sRGB = clamp(sRGB,0.0,1.0);
     //Rip Shadowing applied
-    br = (clamp(br+0.001,0.0,0.004)*(1.0/0.004));
-    br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
+    br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));
+    //br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
+
     //sRGB = lookup(sRGB);
-    sRGB = saturate(sRGB);
+    float sat2 = SATURATION2;
+    sat2*=br;
+    sRGB = saturate(sRGB,sat2,SATURATION);
     Output = clamp(sRGB,0.0,1.0);
 
 }
