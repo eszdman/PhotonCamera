@@ -17,6 +17,10 @@ public class Histogram {
     public final float[] histr;
     public final float[] histg;
     public final float[] histb;
+    public final int[] histIn;
+    public final int[] histInr;
+    public final int[] histIng;
+    public final int[] histInb;
     public float gamma;
     public final float logAvgLuminance;
     public final int histSize;
@@ -30,24 +34,24 @@ public class Histogram {
     }
     public Histogram(Bitmap bmp, int whPixels,int histSize) {
         this.histSize = histSize;
-        int[] histv;
+        /*int[] histv;
         int[] histx;
         int[] histy;
-        int[] histz;
+        int[] histz;*/
         int[][] histin = HistogramRs.getHistogram(bmp);
-        histx = histin[3];
-        histy = histin[2];
-        histz = histin[1];
-        histv = histin[0];
+        histIn = histin[3];
+        histInr = histin[2];
+        histIng = histin[1];
+        histInb = histin[0];
         final double[] logTotalLuminance = {0d};
         logAvgLuminance = (float) Math.exp(logTotalLuminance[0] * 4 / (whPixels*4));
         for (int j = 0; j < 3; j++) {
             sigma[j] /= whPixels;
         }
-        hist = buildCumulativeHist(histx);
-        histr = buildCumulativeHist(histy);
-        histg = buildCumulativeHist(histz);
-        histb = buildCumulativeHist(histv);
+        hist = buildCumulativeHist(histIn);
+        histr = buildCumulativeHist(histInr);
+        histg = buildCumulativeHist(histIng);
+        histb = buildCumulativeHist(histInb);
 
         // Find gamma: Inverse of the average exponent.
         gamma = findGamma(hist);

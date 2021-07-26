@@ -12,7 +12,8 @@ out vec4 Output;
 #define LUT 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyztoxyy
-
+#import xyytoxyz
+#import xyztolab
 vec3 lookup(in vec3 textureColor) {
     textureColor = clamp(textureColor, 0.0, 1.0);
 
@@ -78,9 +79,10 @@ void main() {
         #else
         vec3 inv = (texelFetch(InputBuffer, xy, 0).rgb);
         float z = inp[4].z;
-        Output = vec4(inv.r,inv.g,inv.b, z);
+        Output = vec4(xyYtoXYZ(inp[4].rgb), z);
         Output = mix(mix(Output,Output*Output,ANALYZEINTENSE),Output,z);
         Output.rgb = lookup(Output.rgb);
+        Output.a = XYZtoxyY(Output.rgb).z;
         #endif
 
     } else {
