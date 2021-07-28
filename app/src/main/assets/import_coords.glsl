@@ -31,6 +31,7 @@ ivec2 mirrorCoords2(ivec2 xy, ivec2 bounds){
             xy.y = 2*bounds.g-(xy.y%(bounds.g*2));
         }
     }*/
+    bounds-=ivec2(1);
     xy%=bounds*2;
     if(xy.x < 0 || xy.x > bounds.x) xy.x = (bounds.x*2-xy.x)%bounds.x;
     if(xy.y < 0 || xy.y > bounds.y) xy.y = (bounds.y*2-xy.y)%bounds.y;

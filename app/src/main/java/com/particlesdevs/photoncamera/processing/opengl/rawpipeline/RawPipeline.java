@@ -29,10 +29,10 @@ public class RawPipeline extends GLBasePipeline {
         glint.parameters = mParameters;
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
         if(alignAlgorithm == 1)
-        add(new AlignAndMergeCV());
+        add(new AlignAndMerge());
         if(alignAlgorithm == 2) {
             Log.d("RawPipeline","Entering hybrid alignment");
-            add(new AlignAndMergeHybrid());
+            add(new AlignAndMergeCV());
         }
         return runAllRaw();
     }

@@ -12,6 +12,9 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.util.FileManager;
+
+import java.io.File;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
 
@@ -25,15 +28,15 @@ public class Initial extends Node {
 
     @Override
     public void AfterRun() {
-        //lutbm.recycle();
-        //lut.close();
+        lutbm.recycle();
+        lut.close();
     }
 
     @Override
     public void Compile() {}
 
-    //GLTexture lut;
-    //Bitmap lutbm;
+    GLTexture lut;
+    Bitmap lutbm;
     float highersatmpy = 0.f;
     float gammaKoefficientGenerator = 2.0f;
     float gammax1 = 7.1896f;
@@ -123,11 +126,18 @@ public class Initial extends Node {
             gamma[i] = (float)(Math.pow(pos, 1./ gammaKoefficientGenerator));
         }
         GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        //lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+        File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
+        if(customlut.exists()){
+            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
+            glProg.setDefine("LUT",true);
+        } else {
+            lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(),R.drawable.initial_lut);
+        }
+        lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
-        //glProg.setTexture("LookupTable",lut);
+        glProg.setTexture("LookupTable",lut);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);

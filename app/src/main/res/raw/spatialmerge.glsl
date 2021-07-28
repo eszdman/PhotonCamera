@@ -74,7 +74,7 @@ void main() {
 
     ivec2 alignvecSize = ivec2(textureSize(AlignVectors, 0));
     ivec2 shiftAl = ivec2(0,0);
-    ivec2 align = ivec2(texelFetch(AlignVectors, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).rg);
+    ivec2 align = ivec2(texelFetch(AlignVectors, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).rg/8);
     align = mirrorCoords2((xy/2)+align,ivec2((outsize-1)/2))*2 + state;
     float sumweights = texelFetch(SumWeights, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r;
     windoww = texelFetch(Weight, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0).r/sumweights;
@@ -98,7 +98,9 @@ void main() {
 
 
     #endif
+    //align = ivec2(xy);
     float br1 = ((texelFetch(OutputBuffer, xy, 0).x));
     float br2 = ((texelFetch(InputBuffer, (align), 0).x));
     Output = mix(br1,br2, windoww/float(number));
+    //Output = float(ivec2(texelFetch(AlignVectors, mirrorCoords2(xy/(TILESIZE*2)+shiftAl,alignvecSize), 0)).r)/256.0;
 }

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
+import static java.lang.Math.floor;
 import static java.lang.Math.min;
 
 public class Utilities {
@@ -50,6 +51,16 @@ public class Utilities {
         }
         return output;
     }
+    public static void drawPoints(Point[] inputPoints, float pointSize,Bitmap io){
+        Canvas canvas = new Canvas(io);
+        Paint wallPaint = new Paint();
+        wallPaint.setAntiAlias(true);
+        wallPaint.setStyle(Paint.Style.FILL);
+        wallPaint.setARGB(255, 0, 255, 0);
+        for(Point p : inputPoints){
+            canvas.drawCircle(p.x,p.y,pointSize,wallPaint);
+        }
+    }
     public static void saveBitmap(Bitmap in, String name){
         File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + name + ".png");
         FileOutputStream fOut = null;
@@ -72,15 +83,15 @@ public class Utilities {
         wallPaint.setARGB(255, (int)(rgb[0]*255.f), (int)(rgb[1]*255.f), (int)(rgb[2]*255.f));
         canvas.drawRect(width*0.50f, height, width*0.50f+32.f, height-32, wallPaint);
     }
-    public static void drawWL(float rgb[], Bitmap io){
-        float max = 0.f;
+    public static void drawWB(float rgb[], Bitmap io){
+        float max = java.lang.Math.max(java.lang.Math.max(rgb[0],rgb[1]),rgb[2]);
         int width = io.getWidth();
         int height = io.getHeight();
         Canvas canvas = new Canvas(io);
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.FILL);
-        wallPaint.setARGB(255, (int)(rgb[0]*255.f), (int)(rgb[1]*255.f), (int)(rgb[2]*255.f));
+        wallPaint.setARGB(255, (int)(rgb[0]*255.f/max), (int)(rgb[1]*255.f/max), (int)(rgb[2]*255.f/max));
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
     public static void drawArray(float[] input, Bitmap output){
@@ -210,6 +221,36 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
     }
+    public static float linearRegressionK(float[] input){
+        float k = 0.f;
+        float cnt = 0.f;
+        for(int i = 1; i<input.length;i++){
+            float x = (float)(i)/input.length;
+            k+=input[i]/x;
+            cnt+=1.f;
+        }
+        k/=cnt;
+        return k;
+    }
+    public static float linearRegressionC(float[] input){
+        float k = 0.f;
+        float cnt = 0.f;
+        for(int i = 1; i<input.length;i++){
+            float x = (float)(i)/input.length;
+            k+=input[i]/x;
+            cnt+=1.f;
+        }
+        k/=cnt;
+        float c = 0.f;
+        cnt = 0.f;
+        for(int i = 1; i<input.length;i++){
+            float x = (float)(i)/input.length;
+            c+=input[i] - x*k;
+            cnt+=1.f;
+        }
+        c/=cnt;
+        return c;
+    }
     public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
         int width = output.getWidth();
         int height = output.getHeight();
@@ -293,6 +334,24 @@ public class Utilities {
             output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
         }
         return output;
+    }
+    public static float luminocity(float[] in){
+        return (in[0]*0.299f+in[1]*0.587f+in[2]*0.114f);
+    }
+    public static float[] saturate(float[] in, float saturation){
+        float br = luminocity(in);
+        float[] vec = new float[]{in[0],in[1],in[2]};
+        vec[0]=br*(-saturation) + vec[0]*(1.f+saturation);
+        vec[1]=br*(-saturation) + vec[1]*(1.f+saturation);
+        vec[2]=br*(-saturation) + vec[2]*(1.f+saturation);
+        float min = min(min(vec[0],vec[1]),vec[2]);
+        /*if(min < 0.f) {
+            vec[0] -= min;
+            vec[1] -= min;
+            vec[2] -= min;
+        }*/
+        float br2 = luminocity(vec);
+        return vec;
     }
     public static Point div(Point in, int divider){
         return new Point(in.x/divider,in.y/divider);

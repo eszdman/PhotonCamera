@@ -48,8 +48,8 @@ public class AlignWithGL {
 
     public int[] alignments;
     private void PrepareDiffs(GLTexture in, GLTexture ref, int i){
-        glInterface.glUtils.ConvDiff(in, DiffHVIn.glTexture,0,false,false);
-        glInterface.glUtils.ConvDiff(ref, DiffHVRef.glTexture,0,false,false);
+        glInterface.glUtils.ConvDiff(in, DiffHVIn.glTexture,0.f);
+        glInterface.glUtils.ConvDiff(ref, DiffHVRef.glTexture,0.f);
         glInterface.glUtils.Corners(DiffHVRef.glTexture,CornersRef.glTexture);
         CornersRef.pushToAllocation();
         glInterface.glUtils.Corners(DiffHVIn.glTexture,CornersIn.glTexture);

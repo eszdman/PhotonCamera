@@ -103,8 +103,8 @@ vec3 lookup(in vec3 textureColor) {
     texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
     texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
 
-    highp vec3 newColor1 = textureBicubicHardware(LookupTable, texPos1).rgb;
-    highp vec3 newColor2 = textureBicubicHardware(LookupTable, texPos2).rgb;
+    highp vec3 newColor1 = texture(LookupTable, texPos1).rgb;
+    highp vec3 newColor2 = texture(LookupTable, texPos2).rgb;
 
     highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
     return newColor;
@@ -347,15 +347,15 @@ void main() {
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB,tonemapGain);
-    sRGB = clamp(sRGB,0.0,1.0);
+    //sRGB = clamp(sRGB,0.0,1.0);
+    sRGB = lookup(sRGB);
     //Rip Shadowing applied
     br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));
     //br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
 
-    //sRGB = lookup(sRGB);
+
     float sat2 = SATURATION2;
     sat2*=br;
     sRGB = saturate(sRGB,sat2,SATURATION);
     Output = clamp(sRGB,0.0,1.0);
-
 }

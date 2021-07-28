@@ -35,6 +35,10 @@ public class Node {
     private void tuningLog(String name, String value){
         if(loggedTuning) Log.d("Tuning",name+" = "+ value);
     }
+    public boolean getTuning(String name, boolean Default){
+        tuningLog(Name+"_"+name,String.valueOf(Default));
+        return Boolean.parseBoolean(mProp.getProperty(Name+"_"+name,String.valueOf(Default)));
+    }
     public float getTuning(String name,float Default){
         tuningLog(Name+"_"+name,String.valueOf(Default));
         return Float.parseFloat(mProp.getProperty(Name+"_"+name,String.valueOf(Default)));

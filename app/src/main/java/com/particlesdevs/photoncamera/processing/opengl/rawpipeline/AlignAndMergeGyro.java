@@ -113,9 +113,9 @@ public class AlignAndMergeGyro extends Node {
     private void PrepareDiffs(GLTexture in,GLTexture ref,int i){
         float rotation = (float) images.get(i).rotation;
         //glUtils.ConvDiff(in,DiffVIn,tileSize/3,true,false);
-        glUtils.ConvDiff(in, DiffHVIn,tileSize/3,false,false);
+        glUtils.ConvDiff(in, DiffHVIn,0.f);
         //glUtils.ConvDiff(ref,DiffVRef,tileSize/3,true,false);
-        glUtils.ConvDiff(ref, DiffHVRef,tileSize/3,false,false);
+        glUtils.ConvDiff(ref, DiffHVRef,0.f);
         glUtils.Corners(DiffHVRef,CornersRef);
         glUtils.Corners(DiffHVIn,CornersIn);
         if(logged>0){

@@ -35,12 +35,12 @@ public class Equalization extends Node {
     }
     private static final float MIN_GAMMA = 0.55f;
     private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
-    private void GenerateCurveBitm(float[] curve,float[] BL){
+    private void GenerateCurveBitmWB(float[] curve, float[] BL, float[] WB){
         Bitmap CurveEQ = Bitmap.createBitmap(256,256, Bitmap.Config.ARGB_8888);
         ((PostPipeline)basePipeline).debugData.add(CurveEQ);
         Utilities.drawArray(curve,CurveEQ);
         Utilities.drawBL(BL,CurveEQ);
-        Utilities.drawWL(new float[]{0.9f,0.9f,0.9f},CurveEQ);//Test WL draw
+        Utilities.drawWB(new float[]{0.9f,0.9f,0.9f},CurveEQ);//Test WL draw
     }
     private void GenerateCurveBitm(int[] curve){
         Bitmap CurveEQ = Bitmap.createBitmap(256,256, Bitmap.Config.ARGB_8888);
@@ -375,6 +375,61 @@ public class Equalization extends Node {
         }
         return output;
     }*/
+    class Minindexes implements Comparable<Minindexes>{
+        public float r,g,b;
+        public int ind;
+        private float dist(){
+            float r2,g2,b2;
+            r2 = r/(r+g+b);
+            g2 = g/(r+g+b);
+            b2 = b/(r+g+b);
+            return (float)Math.sqrt(r2*r2 + g2*g2 + b2*b2);
+        }
+        public Minindexes(float r, float g, float b, int ind){
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.ind = ind;
+        }
+        @Override
+        public int compareTo(Minindexes o) {
+            int out = (int)((dist()-o.dist())*1000.f);
+            if(out ==0) out = 1;
+            return out;
+        }
+    }
+    private float[] getWB(float[] histr, float[] histg, float[] histb, float[] blwl){
+        int searchMax = (int) mix(blwl[0],blwl[1],whiteBalanceSearch/((float)histSize));
+        float rk = 0.f;
+        float gk = 0.f;
+        float bk = 0.f;
+        float cnt = 0.f;
+        float mindist = 1000.f;
+        Minindexes[] minindexes = new Minindexes[histSize];
+        for(int i =0; i<histSize;i++){
+            minindexes[i] = new Minindexes(histr[i],histg[i],histb[i],i);
+        }
+        Arrays.sort(minindexes);
+        for(int i = 0; i<searchMax;i++){
+            rk+=
+            cnt+=1.f;
+        }
+        //float rk = Utilities.linearRegressionK(Arrays.copyOfRange(histr,histr.length-1-searchMax,histr.length))+0.0001f;
+        //float gk = Utilities.linearRegressionK(Arrays.copyOfRange(histg,histg.length-1-searchMax,histg.length))+0.0001f;
+        //float bk = Utilities.linearRegressionK(Arrays.copyOfRange(histb,histb.length-1-searchMax,histb.length))+0.0001f;
+        float[] outp = new float[]{rk,gk,bk};
+        float mink = Math.min(Math.min(outp[0],outp[1]),outp[2]);
+        outp[0]/=mink;
+        outp[1]/=mink;
+        outp[2]/=mink;
+        outp = Utilities.saturate(outp,whiteBalanceSaturation);
+        Log.d(Name,"WBK:"+Arrays.toString(outp));
+        mink = Math.min(Math.min(outp[0],outp[1]),outp[2]);
+        outp[0]/=mink;
+        outp[1]/=mink;
+        outp[2]/=mink;
+        return new float[]{outp[0],outp[1],outp[2]};
+    }
     GLTexture lut;
     Bitmap lutbm;
     float analyzeIntensity = -0.35f;
@@ -389,6 +444,9 @@ public class Equalization extends Node {
     float highLightSmoothAmplify = 2.f;
     float shadowsSensitivity = 0.6f;
     float blackLevelSensitivity = 1.1f;
+
+    int whiteBalanceSearch = 400;
+    float whiteBalanceSaturation = 1.35f;
     @Override
     public void Run() {
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
@@ -403,6 +461,7 @@ public class Equalization extends Node {
         histSize = getTuning("HistSize", histSize);
         blackLevelSearch = getTuning("BlackLevelSearch", blackLevelSearch);
         blackLevelSensitivity = getTuning("BlackLevelSensitivity", blackLevelSensitivity);
+        whiteBalanceSearch = getTuning("WhiteBalanceSearch", whiteBalanceSearch);
         WorkingTexture = basePipeline.getMain();
         float rmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].first));
         float gmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].first));
@@ -488,11 +547,14 @@ public class Equalization extends Node {
         double compensation = averageCurve.length/WL;
         histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);
 
+        float[] WB = getWB(histParser.histr,histParser.histg,histParser.hist,blwl);
+
         //Use kx+b prediction for curve start
         //Depurple Degreen
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
-        int maxshift = (int) (blwl[0] + blwl[1]*blackLevelSearch/4096.f);
+        //int maxshift = (int) (blwl[0] + blwl[1]*blackLevelSearch/4096.f);
+        int maxshift = (int) mix(blwl[0],blwl[1],blackLevelSearch/((float)histSize));
         maxshift = Math.max(maxshift,10);
         Log.d(Name,"BlSearch:"+maxshift);
         int cnt = 0;
@@ -564,7 +626,8 @@ public class Equalization extends Node {
             } else
             histParser.hist[i] = 1.f;
         }*/
-        Log.d(Name,"PredictedShift:"+Arrays.toString(BLPredictShift));
+        Log.d(Name,"PredictedBLShift:"+Arrays.toString(BLPredictShift));
+        Log.d(Name,"PredictedWBKoeff:"+Arrays.toString(WB));
         if(basePipeline.mSettings.DebugData)GenerateCurveBitm(histParser.histInr,histParser.histIng,histParser.histInb);
 
 
@@ -592,7 +655,7 @@ public class Equalization extends Node {
             }
             //histParser.hist[i] = mix(histParser.hist[i],line,line*0.35f);
         }
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(histParser.hist,BLPredictShift);
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,WB);
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),

@@ -15,7 +15,7 @@ uniform int yOffset;
 out ivec4 Output;
 #define TILESIZE (48)
 #define SCANSIZE (48)
-#define TILESCALE (TILESIZE/2)
+#define TILESCALE (TILESIZE/1)
 #define PREVSCALE (2)
 #define INPUTSIZE 1,1
 #define LUCKYINPUT 0
@@ -24,7 +24,8 @@ out ivec4 Output;
 #define OFFSET (0)
 #define INITIALMOVE 0,0
 #define MAXMOVE (4)
-#define SHARPMOVE (16)
+#define SHARPMOVE (3)
+#define FLOWACT -2.0
 #define FLT_MAX 3.402823466e+38
 #define M_PI 3.1415926535897932384626433832795
 
@@ -41,7 +42,7 @@ void main() {
     ivec2 alignvecSize = ivec2(textureSize(AlignVectors, 0));
     #if PREVSCALE != 0
 
-    bestAlign = texelFetch(AlignVectors, (xy) / PREVSCALE, 0).rgba;
+    bestAlign = texelFetch(AlignVectors, mirrorCoords2((xy)/PREVSCALE,alignvecSize), 0).rgba;
 
     #if LUCKYINPUT == 1
 
@@ -61,12 +62,12 @@ void main() {
 
     #endif
 
-    prevAlign = ivec2(bestAlign.xy)*PREVSCALE;
+    prevAlign = ivec2(bestAlign.xy)*(PREVSCALE)/8;
     #else
     prevAlign = ivec2(INITIALMOVE);
     #endif
 
-    ivec2 inbounds = ivec2(INPUTSIZE);
+    ivec2 inbounds = ivec2(textureSize(DiffHVRef, 0));//ivec2(INPUTSIZE)-ivec2(1);
     ivec2 xyFrame = ivec2(gl_FragCoord.xy*float(TILESCALE));
     ivec2 prevShift = ivec2(bestAlign.ba*PREVSCALE);
     ivec2 shiftFrame = ivec2(0,0);
@@ -74,45 +75,45 @@ void main() {
     vec2 dist;
     float mindist = 0.0;
     /*
-    for(int w = -SHARPMOVE;w<=SHARPMOVE;w++){
-        float dist3 = 3.0+abs(float(w)/float(SHARPMOVE));
-        dist = vec2(0,0);
-        for(int sh = -SCANSIZE/5;sh<=SCANSIZE/5; sh++){
-            dist.g+=texelFetch(CornersIn, mirrorCoords2((xyFrame+ivec2(w, sh)),inbounds), 0).g;
-        }
-        dist*=dist3;
-        if(dist.r + dist.g > mindist){
-            mindist = dist.r + dist.g;
-            shiftFrame.x = w;
-        }
-    }
-    shiftFrame.x+=prevShift.x;
-    xyFrame.x+=shiftFrame.x;
-    mindist = 0.0;
-    for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
-        float dist3 = 3.0+abs(float(h)/float(SHARPMOVE));
-        dist = vec2(0,0);
-        for(int sw = -SCANSIZE/5;sw<=SCANSIZE/5; sw++){
-            dist.r+=texelFetch(CornersIn, mirrorCoords2((xyFrame+ivec2(sw, h)),inbounds), 0).r;
-        }
-        dist*=dist3;
-        if(dist.r + dist.g > mindist){
-            mindist = dist.r + dist.g;
-            shiftFrame.y = h;
-        }
-    }*/
-    for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
         for(int w = -SHARPMOVE;w<=SHARPMOVE;w++){
-            float dist3 = 3.0+abs(float(h)/float(SHARPMOVE))+abs(float(w)/float(SHARPMOVE));
-            dist = texelFetch(CornersRef, mirrorCoords2((xyFrame+ivec2(w, h)), inbounds), 0).rg;
-            dist/=dist3;
-            if (dist.r + dist.g > mindist){
+            float dist3 = 3.0+abs(float(w)/float(SHARPMOVE));
+            dist = vec2(0,0);
+            //for(int sh = -SCANSIZE/5;sh<=SCANSIZE/5; sh++){
+                dist.g+=abs(texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(w, 0)),inbounds), 0).g);
+            //}
+            dist*=dist3;
+            if(dist.r + dist.g > mindist){
                 mindist = dist.r + dist.g;
-                shiftFrame.y = h;
                 shiftFrame.x = w;
             }
         }
-    }
+        shiftFrame.x+=prevShift.x;
+        xyFrame.x+=shiftFrame.x;
+        mindist = 0.0;
+        for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
+            float dist3 = 3.0+abs(float(h)/float(SHARPMOVE));
+            dist = vec2(0,0);
+            //for(int sw = -SCANSIZE/5;sw<=SCANSIZE/5; sw++){
+                dist.r+=abs(texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(0, h)),inbounds), 0).r);
+            //}
+            dist*=dist3;
+            if(dist.r + dist.g > mindist){
+                mindist = dist.r + dist.g;
+                shiftFrame.y = h;
+            }
+        }
+        /*for(int h = -SHARPMOVE;h<=SHARPMOVE;h++){
+            for(int w = -SHARPMOVE;w<=SHARPMOVE;w++){
+                float dist3 = 3.0+abs(float(h)/float(SHARPMOVE))+abs(float(w)/float(SHARPMOVE));
+                dist = texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(w, h)), inbounds), 0).rg;
+                dist/=dist3;
+                if (dist.r + dist.g > mindist){
+                    mindist = dist.r + dist.g;
+                    shiftFrame.y = h;
+                    shiftFrame.x = w;
+                }
+            }
+        }*/
     mindist = 0.0;
     vec2 in2;
     shiftFrame.x+=prevShift.x;
@@ -124,8 +125,8 @@ void main() {
     dist = vec2(0,0);
 
 
-    int outx = 0;
-    int outy = 0;
+
+    vec2 outV;
     ivec2 shift = ivec2(0,0);
     ivec2 shift2 = ivec2(0,0);
 
@@ -168,7 +169,7 @@ void main() {
     prevAlign.y+=int(dist.r+0.5);
     prevAlign.x+=int(dist.g+0.5);*/
 
-    for(int h = -MAXMOVE;h<=MAXMOVE;h++){
+    /*for(int h = -MAXMOVE;h<=MAXMOVE;h++){
         dist = vec2(0.0);
         shift = ivec2(0, h)+prevAlign-OFFSET;
         shift2 = ivec2(h, 0)+prevAlign-OFFSET;
@@ -200,7 +201,61 @@ void main() {
             mindist = dist.y;
             outy = h;
         }
+    }*/
+
+    /*vec4 M = vec4(0.0,0.0,0.0,0.0);
+    vec2 b = vec2(0.0,0.0);
+    shift = ivec2(0, 0)+prevAlign-OFFSET;
+    float cnt = 0.f;
+    for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
+        for (int j=-SCANSIZE/2;j<=SCANSIZE/2;j++){
+            dist2 = 1.0+5.0*abs(float(t)/float(SCANSIZE))+5.0*abs(float(j)/float(SCANSIZE));
+            in2 = texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg;
+            vec2 dref = in2;
+            M.r += (dref.r*dref.r)/dist2;
+            M.g += (dref.r*dref.g)/dist2;
+            M.b += (dref.r*dref.g)/dist2;
+            M.a += (dref.g*dref.g)/dist2;
+
+            in2 = texelFetch(MainBuffer, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg-texelFetch(InputBuffer, mirrorCoords2((xyFrame+ivec2(t, j)+shift),inbounds), 0).rg;
+            b.r +=(in2.r+in2.g)*dref.r/(2.f*dist2);
+            b.g +=(in2.r+in2.g)*dref.g/(2.f*dist2);
+            cnt+=1.f;
+        }
     }
+    //M+=vec4(0.001);
+    vec4 O = vec4(0.0,0.0,0.0,0.0);
+    float det = M.r*M.a - M.g*M.b;
+    O.r = M.a/det;
+    O.g = -M.g/det;
+    O.b = -M.b/det;
+    O.a = M.r/det;
+    outx = int((O.r*b.r + O.g*b.g));
+    outy = int((O.b*b.r + O.a*b.g));*/
+
+
+    vec3 M = vec3(0.0,0.0,0.0);
+    vec2 b = vec2(0.0,0.0);
+    shift = ivec2(0, 0)+prevAlign-OFFSET;
+    for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
+        for (int j=-SCANSIZE/2;j<=SCANSIZE/2;j++){
+            dist2 = 1.0+5.0*abs(float(t)/float(SCANSIZE))+5.0*abs(float(j)/float(SCANSIZE));
+            in2 = texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg;
+            vec2 dref = in2;
+            M.r += (dref.r*dref.r)/dist2;
+            M.g += (dref.r*dref.g)/dist2;
+            M.b += (dref.g*dref.g)/dist2;
+
+            in2 = texelFetch(MainBuffer, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg-texelFetch(InputBuffer, mirrorCoords2((xyFrame+ivec2(t, j)+shift),inbounds), 0).rg;
+            b.r +=(in2.r+in2.g)*dref.r/(2.f*dist2);
+            b.g +=(in2.r+in2.g)*dref.g/(2.f*dist2);
+        }
+    }
+    outV.x = ((M.b * b.r - M.g * b.g) / (M.g * M.g - M.r * M.b)*FLOWACT);
+    outV.y = ((M.r * b.g - M.g * b.r) / (M.g * M.g - M.r * M.b)*FLOWACT);
+    //outV = clamp(outV,-2.0,2.0);
+
+
 
     //mindist = float(FLT_MAX);
 
@@ -221,7 +276,17 @@ void main() {
         }
     }*/
 
-    Output = ivec4(outx+prevAlign.x,outy+prevAlign.y,shiftFrame.x,shiftFrame.y);
+    //Output = ivec4(outx+prevAlign.x,outy+prevAlign.y,shiftFrame.x,shiftFrame.y);
+    /*vec2 inputimg = texelFetch(MainBuffer, mirrorCoords2((xyFrame), inbounds), 0).rg;
+    for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
+        for (int j=-SCANSIZE/2;j<=SCANSIZE/2;j++){
+            inputimg = min(texelFetch(MainBuffer, mirrorCoords2((xyFrame+ivec2(t,j)), inbounds), 0).rg,inputimg);
+        }
+    }
+    //vec2 inputimg = texelFetch(MainBuffer, ivec2(gl_FragCoord.xy), 0).rg;
+    Output = ivec4(inputimg.r*256.0,inputimg.g*256.0,0.0,0.0);*/
+
+    Output = ivec4((outV.x+float(prevAlign.x))*1.0,(outV.y+float(prevAlign.y))*8.0,0.0,0.0);
 
     #if PREVSCALE != 0
     //Output.b += bestAlign.b;

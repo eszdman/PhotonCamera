@@ -499,26 +499,15 @@ public class GLUtils {
         glProg.drawBlocks(out,dxy.mSize);
         glProg.closed = true;
     }
-    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring){
-        ConvDiff(in,out,size,vertical,blurring,0.f);
+    public void ConvDiff(GLTexture in, GLTexture out, float gradientShift){
+        ConvDiff(in,out,gradientShift,0);
     }
-    public void ConvDiff(GLTexture in, GLTexture out, int size,boolean vertical,boolean blurring, float rotation){
-        String blurringS = "float dist2 = 1.0+4.0*abs(float(i)/float(SIZE))+4.0*abs(float(j)/float(SIZE));" +
-                "Output+=(-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping(i,j),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+")*0.0" +
-                 "+tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*1.0"+
-                 "-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping2(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+
-                 //"-tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping4(i,j),ivec2(INSIZE)),0))"+in.mFormat.getTemExt()+"*0.0" +
-                ")/dist2;\n";
-        if(blurring) blurringS = " Output+=abs(tvar(texelFetch(InputBuffer, mirrorCoords2(xy+stepping0(i),ivec2(INSIZE)),0)"+in.mFormat.getTemExt()+"));\n";
-        if(vertical) glProg.setDefine("coordstp(x,y)","(ivec2(y,x))");
-        else glProg.setDefine("coordstp(x,y)","(ivec2(x,y))");
+    public void ConvDiff(GLTexture in, GLTexture out, float gradientShift, float rotation){
         glProg.setDefine("tvar",in.mFormat.getTemVar());
         glProg.setDefine("tscal",in.mFormat.getScalar());
         glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
-        glProg.setDefine("BLURRING",blurringS);
-        glProg.setDefine("BLURRING",blurringS);
-        glProg.setDefine("INSIZE", Utilities.addP(in.mSize,-1));
-        glProg.setDefine("SIZE",size);
+        glProg.setDefine("INSIZE", in.mSize);
+        glProg.setDefine("GRADSHIFT",gradientShift);
         glProg.useProgram(PhotonCamera.getAssetLoader().getString("convdiff.glsl"));
         glProg.setVar("rotation",rotation);
         glProg.setTexture("InputBuffer",in);
@@ -877,6 +866,15 @@ public class GLUtils {
         pyramid.laplace = diff;
         return pyramid;
     }
+    public Bitmap GenerateBitmap(Point size){
+        return GenerateBitmap(size,4);
+    }
+    public Bitmap GenerateBitmap(Point size, int channels){
+        GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
+        Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
+        preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
+        return preview;
+    }
     public Bitmap SaveProgResult(Point size){
         return SaveProgResult(size, "");
     }
@@ -884,9 +882,7 @@ public class GLUtils {
         return SaveProgResult(size, namesuffix, 4,".jpg");
     }
     public Bitmap SaveProgResult(Point size, String namesuffix, int channels,String ext){
-        GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
-        Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
-        preview.copyPixelsFromBuffer(glProcessing.drawBlocksToOutput(size, bitmapF));
+        Bitmap preview = GenerateBitmap(size,channels);
         if(!namesuffix.equals("")) {
             File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + namesuffix + ext);
             FileOutputStream fOut = null;
