@@ -11,18 +11,13 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.util.Utilities;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class AlignAndMerge extends Node {
     Point rawSize;
@@ -109,7 +104,7 @@ public class AlignAndMerge extends Node {
     GLTexture vsmall;
     private void Align(int i) {
         //startT();
-        glProg.setDefine("SCANSIZE",tileSize*overscan);
+        glProg.setDefine("SCANSIZE",tileSize* overScan);
         glProg.setDefine("TILESIZE",tileSize);
         glProg.setDefine("PREVSCALE",0);
         glProg.setDefine("INPUTSIZE",brTex128.mSize);
@@ -125,7 +120,7 @@ public class AlignAndMerge extends Node {
 
         glProg.drawBlocks(vsmall);
 
-        glProg.setDefine("SCANSIZE",tileSize*overscan);
+        glProg.setDefine("SCANSIZE",tileSize* overScan);
         glProg.setDefine("TILESIZE",tileSize);
         glProg.setDefine("PREVSCALE",4);
         glProg.setDefine("INPUTSIZE",brTex32.mSize);
@@ -143,7 +138,7 @@ public class AlignAndMerge extends Node {
 
 
         glProg.drawBlocks(small);
-        glProg.setDefine("SCANSIZE",tileSize*overscan);
+        glProg.setDefine("SCANSIZE",tileSize* overScan);
         glProg.setDefine("TILESIZE",tileSize);
         glProg.setDefine("PREVSCALE",4);
         glProg.setDefine("INPUTSIZE",brTex8.mSize);
@@ -163,7 +158,7 @@ public class AlignAndMerge extends Node {
 
         glProg.drawBlocks(medium);
         //small.close();
-        glProg.setDefine("SCANSIZE",tileSize*overscan);
+        glProg.setDefine("SCANSIZE",tileSize* overScan);
         glProg.setDefine("TILESIZE",tileSize);
         glProg.setDefine("PREVSCALE",4);
         glProg.setDefine("INPUTSIZE",brTex2.mSize);
@@ -316,16 +311,16 @@ public class AlignAndMerge extends Node {
     GLTexture Weights,WeightsAlt;
     GLTexture[] Weight;
     GLTexture GainMap;
-    GLTexture debug2;
     int tileSize = 32;
-    int overscan = 1;
+    int overScan = 2;
     boolean useLuckyLayers = false;
-    boolean medianFilterPyramid = false;
+    boolean medianFilterPyramid = true;
     float opticalFlowActivity = -2.0f;
-    float gradientMapShift =  0.5f;
+    float gradientMapShift =  0.2f;
     @Override
     public void Run() {
         tileSize = getTuning("TileSize",tileSize);
+        overScan = getTuning("OverScan", overScan);
         useLuckyLayers = getTuning("UseLuckyLayers",useLuckyLayers);
         medianFilterPyramid = getTuning("MedianFilterPyramid",medianFilterPyramid);
         opticalFlowActivity = getTuning("OpticalFlowActivity",opticalFlowActivity);
