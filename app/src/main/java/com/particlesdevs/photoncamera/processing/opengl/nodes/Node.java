@@ -8,6 +8,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.GLUtils;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 public class Node {
@@ -43,6 +44,17 @@ public class Node {
         tuningLog(Name+"_"+name,String.valueOf(Default));
         return Float.parseFloat(mProp.getProperty(Name+"_"+name,String.valueOf(Default)));
     }
+    public float[] getTuning(String name,float[] Default){
+        String ins = Arrays.toString(Default).replace("[","").replace("]","");
+        tuningLog(Name+"_"+name,ins);
+        String inp = mProp.getProperty(Name+"_"+name, ins);
+        String[] divided = inp.split(",");
+        float[] output = new float[Default.length];
+        for(int i = 0; i<divided.length;i++){
+            output[i] = Float.parseFloat(divided[i]);
+        }
+        return output;
+    }
     public double getTuning(String name,double Default){
         tuningLog(Name+"_"+name,String.valueOf(Default));
         return Double.parseDouble(mProp.getProperty(Name+"_"+name,String.valueOf(Default)));
@@ -55,6 +67,7 @@ public class Node {
         tuningLog(Name+"_"+name,String.valueOf(Default));
         return Integer.parseInt(mProp.getProperty(Name+"_"+name,String.valueOf(Default)));
     }
+
     public void startT() {
         timeStart = System.currentTimeMillis();
     }

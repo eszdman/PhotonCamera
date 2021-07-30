@@ -378,12 +378,12 @@ public class Equalization extends Node {
     class Minindexes implements Comparable<Minindexes>{
         public float r,g,b;
         public int ind;
-        private float dist(){
+        private double dist(){
             float r2,g2,b2;
             r2 = r/(r+g+b);
             g2 = g/(r+g+b);
             b2 = b/(r+g+b);
-            return (float)Math.sqrt(r2*r2 + g2*g2 + b2*b2);
+            return Math.sqrt(r2*r2 + g2*g2 + b2*b2);
         }
         public Minindexes(float r, float g, float b, int ind){
             this.r = r;
@@ -393,9 +393,8 @@ public class Equalization extends Node {
         }
         @Override
         public int compareTo(Minindexes o) {
-            int out = (int)((dist()-o.dist())*1000.f);
-            if(out ==0) out = 1;
-            return out;
+            double out = ((dist()-o.dist())*1000.);
+            return Double.compare(out, 0.0);
         }
     }
     private float[] getWB(float[] histr, float[] histg, float[] histb, float[] blwl){
@@ -447,6 +446,7 @@ public class Equalization extends Node {
 
     int whiteBalanceSearch = 400;
     float whiteBalanceSaturation = 1.35f;
+    float[] tonemapCoeffs = new float[]{-0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f};
     @Override
     public void Run() {
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
@@ -462,6 +462,7 @@ public class Equalization extends Node {
         blackLevelSearch = getTuning("BlackLevelSearch", blackLevelSearch);
         blackLevelSensitivity = getTuning("BlackLevelSensitivity", blackLevelSensitivity);
         whiteBalanceSearch = getTuning("WhiteBalanceSearch", whiteBalanceSearch);
+        tonemapCoeffs = getTuning("TonemapCoeffs", tonemapCoeffs);
         WorkingTexture = basePipeline.getMain();
         float rmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[0].first));
         float gmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].first));
@@ -674,7 +675,7 @@ public class Equalization extends Node {
         //glProg.setTexture("Shadows",shadows);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
-        glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
+        glProg.setVar("toneMapCoeffs", tonemapCoeffs);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture);
         histogram.close();

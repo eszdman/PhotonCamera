@@ -236,6 +236,7 @@ void main() {
 
     vec3 M = vec3(0.0,0.0,0.0);
     vec2 b = vec2(0.0,0.0);
+    float br = 0.0;
     shift = ivec2(0, 0)+prevAlign-OFFSET;
     for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
         for (int j=-SCANSIZE/2;j<=SCANSIZE/2;j++){
@@ -245,7 +246,6 @@ void main() {
             M.r += (dref.r*dref.r)/dist2;
             M.g += (dref.r*dref.g)/dist2;
             M.b += (dref.g*dref.g)/dist2;
-
             in2 = texelFetch(MainBuffer, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg-texelFetch(InputBuffer, mirrorCoords2((xyFrame+ivec2(t, j)+shift),inbounds), 0).rg;
             b.r +=(in2.r+in2.g)*dref.r/(2.f*dist2);
             b.g +=(in2.r+in2.g)*dref.g/(2.f*dist2);

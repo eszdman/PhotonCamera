@@ -139,7 +139,7 @@ public class Initial extends Node {
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
-        glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
+        //glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         glProg.setVar("intermediateToSRGB",cct);
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);

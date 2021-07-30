@@ -307,7 +307,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
-    pRGB = tonemap(pRGB);
+    //pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
     pRGB = gammaCorrectPixel2(pRGB);

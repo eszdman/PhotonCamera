@@ -81,8 +81,8 @@ void main() {
         float z = inp[4].z;
         Output = vec4(xyYtoXYZ(inp[4].rgb), z);
         Output = mix(mix(Output,Output*Output,ANALYZEINTENSE),Output,z);
-        Output.rgb = lookup(Output.rgb);
-        Output.a = XYZtoxyY(Output.rgb).z;
+        //Output.rgb = lookup(Output.rgb);
+        Output.a = XYZtoxyY(lookup(Output.rgb)).z;
         #endif
 
     } else {

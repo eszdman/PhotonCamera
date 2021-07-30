@@ -12,19 +12,20 @@ uniform mat3 HMatrix;
 #define WEIGHTSIZE 128
 #define FRAMECOUNT 15
 #define INPUTSIZE 1,1
+#define MATMUL 1000.0
 #import coords
 out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     ivec2 xyFrame = ivec2(gl_FragCoord.xy*float(TILESIZE/2));
     vec3 dist = vec3(0.0);
-    vec2 align = vec2(xy);
+    highp vec2 align = vec2(xy);
 
     vec3 in2;
     for (int i=-WEIGHTSIZE/2;i<WEIGHTSIZE/2;i++){
         for (int j=-WEIGHTSIZE/2;j<WEIGHTSIZE/2;j++){
 
-            vec2 inx = vec2(xyFrame+ivec2(i, j));
+            highp vec2 inx = vec2(xyFrame+ivec2(i, j));
             //Perspective Warp
             align.x = (inx.x*HMatrix[0][0] + inx.y*HMatrix[0][1] + HMatrix[0][2])/
             (inx.x*HMatrix[2][0] + inx.y*HMatrix[2][1] + HMatrix[2][2]);

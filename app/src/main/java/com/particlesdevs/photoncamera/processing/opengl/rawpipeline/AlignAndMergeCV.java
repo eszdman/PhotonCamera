@@ -211,6 +211,7 @@ public class AlignAndMergeCV extends Node {
     private void Weight(int num){
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("FRAMECOUNT",images.size());
+        glProg.setDefine("MATMUL",((float)Math.min(rawSize.x,rawSize.y)));
         glProg.useProgram(R.raw.weightscv);
         glProg.setVar("HMatrix",false,alignmentsH[num-1]);
         glProg.setTexture("BaseFrame", BaseFrame2);
@@ -243,6 +244,7 @@ public class AlignAndMergeCV extends Node {
         glProg.setDefine("HDR",IsoExpoSelector.HDR);
         glProg.setDefine("ROTATION", (float) images.get(num).rotation);
         glProg.setDefine("FRAMECOUNT",images.size());
+        glProg.setDefine("MATMUL",((float)Math.min(rawSize.x,rawSize.y)));
 
 
         glProg.useProgram(R.raw.cvmerge);

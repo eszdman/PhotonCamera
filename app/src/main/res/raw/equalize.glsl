@@ -64,6 +64,99 @@ vec3 lookup(in vec3 textureColor) {
     highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
     return newColor;
 }
+    #define TONEMAP_GAMMA (1.5)
+float tonemapSin(float ch) {
+    return ch < 0.0001f
+    ? ch
+    : 0.5f - 0.5f * cos(pow(ch, 1.0/TONEMAP_GAMMA) * PI);
+}
+
+vec2 tonemapSin(vec2 ch) {
+    return vec2(tonemapSin(ch.x), tonemapSin(ch.y));
+}
+
+vec3 tonemap(vec3 rgb) {
+    vec3 sorted = rgb;
+
+    float tmp;
+    int permutation = 0;
+
+    // Sort the RGB channels by value
+    if (sorted.z < sorted.y) {
+        tmp = sorted.z;
+        sorted.z = sorted.y;
+        sorted.y = tmp;
+        permutation |= 1;
+    }
+    if (sorted.y < sorted.x) {
+        tmp = sorted.y;
+        sorted.y = sorted.x;
+        sorted.x = tmp;
+        permutation |= 2;
+    }
+    if (sorted.z < sorted.y) {
+        tmp = sorted.z;
+        sorted.z = sorted.y;
+        sorted.y = tmp;
+        permutation |= 4;
+    }
+
+    vec2 minmax;
+    minmax.x = sorted.x;
+    minmax.y = sorted.z;
+
+    // Apply tonemapping curve to min, max RGB channel values
+    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
+    minmax * toneMapCoeffs.z +
+    toneMapCoeffs.w;
+
+    //minmax = mix(minmax, minmaxsin, 0.9f);
+
+    // Rescale middle value
+    float newMid;
+    if (sorted.z == sorted.x) {
+        newMid = minmax.y;
+    } else {
+        newMid = minmax.x + ((minmax.y - minmax.x) * (sorted.y - sorted.x) /
+        (sorted.z - sorted.x));
+    }
+
+    vec3 finalRGB;
+    switch (permutation) {
+        case 0: // b >= g >= r
+        finalRGB.r = minmax.x;
+        finalRGB.g = newMid;
+        finalRGB.b = minmax.y;
+        break;
+        case 1: // g >= b >= r
+        finalRGB.r = minmax.x;
+        finalRGB.b = newMid;
+        finalRGB.g = minmax.y;
+        break;
+        case 2: // b >= r >= g
+        finalRGB.g = minmax.x;
+        finalRGB.r = newMid;
+        finalRGB.b = minmax.y;
+        break;
+        case 3: // g >= r >= b
+        finalRGB.b = minmax.x;
+        finalRGB.r = newMid;
+        finalRGB.g = minmax.y;
+        break;
+        case 6: // r >= b >= g
+        finalRGB.g = minmax.x;
+        finalRGB.b = newMid;
+        finalRGB.r = minmax.y;
+        break;
+        case 7: // r >= g >= b
+        finalRGB.b = minmax.x;
+        finalRGB.g = newMid;
+        finalRGB.r = minmax.y;
+        break;
+    }
+    return finalRGB;
+}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
@@ -111,7 +204,8 @@ void main() {
 
     //Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
 
-    Output = clamp(sRGB,0.0,1.0);
+    Output.rgb = clamp(sRGB,0.0,1.0);
+    Output.rgb = tonemap(Output.rgb);
     #if LUT == 1
     Output.rgb = lookup(Output.rgb);
     #endif

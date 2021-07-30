@@ -10,7 +10,7 @@ uniform sampler2D Weight;
 uniform float alignk;
 uniform uvec2 rawsize;
 uniform int number;
-uniform mat3 HMatrix;
+uniform highp mat3 HMatrix;
 
 #define MIN_NOISE 0.1f
 #define MAX_NOISE 1.0f
@@ -23,6 +23,7 @@ uniform mat3 HMatrix;
 #define HDR 0
 #define HMAT 0.0
 #define FRAMECOUNT 1
+#define MATMUL 1000.0
 
 #import coords
 #import interpolation
@@ -32,8 +33,8 @@ void main() {
     ivec2 workSize = ivec2(textureSize(OutputBuffer, 0));
     ivec2 state = xy%2;
 
-    vec2 align = vec2(xy/2);
-    vec2 inx = vec2(xy/2);
+    highp vec2 align = vec2(xy/2);
+    highp vec2 inx = vec2(xy/2);
     //mat3 HMatrix = mat3(HMAT);
     //Perspective Warp
     align.x = (inx.x*HMatrix[0][0] + inx.y*HMatrix[0][1] + HMatrix[0][2])/
