@@ -22,9 +22,13 @@ import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.features2d.AKAZE;
 import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.GFTTDetector;
+import org.opencv.features2d.KAZE;
 import org.opencv.features2d.ORB;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.CLAHE;
 import org.opencv.imgproc.Imgproc;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -77,7 +81,9 @@ public class AlignAndMergeCV extends Node {
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
-        glProg.drawBlocks(out,out.mSize);
+        glProg.drawBlocks(basePipeline.main3,out.mSize);
+
+        glUtils.median(basePipeline.main3,out,new android.graphics.Point(1,1));
         //glUtils.SaveProgResult(output.mSize,"boxdown");
         //glProg.close();
         //GLTexture median = glUtils.blur(output,5.0);
@@ -116,6 +122,8 @@ public class AlignAndMergeCV extends Node {
         return h2;
     }
     ORB orb;
+    GFTTDetector gfft;
+    AKAZE akaze;
     DescriptorMatcher matcher;
     List<KeyPoint> keypointsRef = null;
     Mat descriptors1=new Mat();
@@ -123,8 +131,12 @@ public class AlignAndMergeCV extends Node {
     Mat findFrameHomography(Mat need, Mat from){
         Mat descriptors2=new Mat();
         MatOfKeyPoint keyPoints2 = new MatOfKeyPoint();
-        if(keypointsRef == null) orb.detectAndCompute(need,new Mat(),keyPoints1,descriptors1);
-        orb.detectAndCompute(from,new Mat(),keyPoints2,descriptors2);
+        if(keypointsRef == null) {
+            akaze.detectAndCompute(need,new Mat(),keyPoints1,descriptors1);
+            descriptors1.convertTo(descriptors1,CvType.CV_8UC1);
+        }
+        akaze.detectAndCompute(from,new Mat(),keyPoints2,descriptors2);
+        descriptors2.convertTo(descriptors2,CvType.CV_8UC1);
         MatOfDMatch matches = new MatOfDMatch();
         Log.d("AlignAndMergeCV","src1:"+descriptors1.type()+":"+descriptors1.cols()+":"+descriptors1.rows());
         Log.d("AlignAndMergeCV","src2:"+descriptors2.type()+":"+descriptors2.cols()+":"+descriptors2.rows());
@@ -133,6 +145,7 @@ public class AlignAndMergeCV extends Node {
         if(keypointsRef.size() < 10){
             return OneMatrix();
         }
+        Log.d(Name,"Descr:"+descriptors1.toString());
         matcher.match(descriptors1, descriptors2, matches, new Mat());
         MatOfPoint2f points1=new MatOfPoint2f(), points2=new MatOfPoint2f();
         DMatch[]arr = matches.toArray();
@@ -150,29 +163,37 @@ public class AlignAndMergeCV extends Node {
         }
         ArrayList<Point> keypoints1f = new ArrayList<>();
         ArrayList<Point> keypoints2f = new ArrayList<>();
-        for (DMatch dMatch : arr) {
+        int step = arr.length/3500 + 1;
+        for(int i =0; i<arr.length;i+=step){
+            DMatch dMatch = arr[i];
             Point on1 = keypointsRef.get(dMatch.queryIdx).pt;
             Point on2 = keypoints2.get(dMatch.trainIdx).pt;
-
-                keypoints1f.add(on1);
-                keypoints2f.add(on2);
+            keypoints1f.add(on1);
+            keypoints2f.add(on2);
         }
+        Log.d(Name,"After filtering:"+keypoints1f.size());
         if(arr.length < 5){
             return OneMatrix();
         }
         points1.fromArray(keypoints1f.toArray(new Point[keypoints1f.size()]));
         points2.fromArray(keypoints2f.toArray(new Point[keypoints2f.size()]));
         Mat h = null;
-        if(!points1.empty() && !points2.empty()) h = findHomography(points1,points2,RANSAC,7.0,new Mat(),7000);
+        if(!points1.empty() && !points2.empty()){
+            Log.d(Name,"points1:"+points1.toString());
+            int iters = 7000/(arr.length/3000 + 1);
+            h = findHomography(points1,points2,RANSAC,3.0,new Mat(),iters);
+        }
         //keyPoints1.release();
         keyPoints2.release();
-        if(h == null) return OneMatrix();
+        if(h == null || h.size().height == 0) return OneMatrix();
         return h;
     }
     float[][] alignmentsH;
     private void Align(int num){
         Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
+        hm.convertTo(hm,CvType.CV_64F);
         double[] hfloats = new double[9];
+        Log.d(Name,"HM"+hm.toString());
         hm.get(0,0,hfloats);
         float[] hfloats2 = new float[9];
         for(int i =0; i<9;i++){
@@ -290,11 +311,13 @@ public class AlignAndMergeCV extends Node {
     GLTexture brTex2;
     final int tileSize = 32;
     float minMpy = 1000.f;
+    CLAHE clahe;
     void equalize(Mat in){
         ArrayList<Mat> mats = new ArrayList<>();
         Core.split(in,mats);
         for(int i =0; i<3;i++){
-            Imgproc.equalizeHist(mats.get(i),mats.get(i));
+            //Imgproc.equalizeHist(mats.get(i),mats.get(i));
+            clahe.apply(mats.get(i),mats.get(i));
         }
         Core.merge(mats,in);
         mats.get(0).release();
@@ -313,7 +336,11 @@ public class AlignAndMergeCV extends Node {
         images = rawPipeline.images;
         float perlevel = 2.5f;
         int levelcount = (int)(Math.log10(rawSize.y)/Math.log10(perlevel))+1;
-        orb = ORB.create(500,perlevel,levelcount);
+        orb = ORB.create(1500,perlevel,levelcount);
+        gfft = GFTTDetector.create();
+        akaze = AKAZE.create();
+        akaze.setDescriptorChannels(3);
+        clahe = Imgproc.createCLAHE(2);
         //orb = ORB.create();
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
         for (int i = 0; i < IsoExpoSelector.fullpairs.size(); i++) {
@@ -360,12 +387,11 @@ public class AlignAndMergeCV extends Node {
         Log.d("AlignAndMerge","Initialized01");
         BaseFrame2m = new Mat(BaseFrame2.mSize.y,BaseFrame2.mSize.x, CvType.CV_8UC(4),baseBuff);
         //BaseFrame2m.put(0,0,BaseFrame2b);
-        //equalize(BaseFrame2m);
+        equalize(BaseFrame2m);
         Log.d("AlignAndMerge","Initialized03");
         ByteBuffer inbuff = ByteBuffer.allocateDirect(BaseFrame2.mSize.x*BaseFrame2.mSize.y*4);
 
         brTex2m = new Mat(BaseFrame2.mSize.y,BaseFrame2.mSize.x, CvType.CV_8UC(4),inbuff);
-        //brTex2m.create(BaseFrame2.mSize.y,BaseFrame2.mSize.x, CvType.CV_8UC(4));
 
         GLTexture inputraw = new GLTexture(Output);
         Log.d("AlignAndMerge","Initialized");
@@ -374,7 +400,7 @@ public class AlignAndMergeCV extends Node {
             BoxDown22(inputraw,brTex2);
             //ByteBuffer buffer1 = glInt.glProcessing.drawBlocksToOutput(BaseFrame2.mSize, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
             glInt.glProcessing.drawBlocksToOutput(brTex2.mSize, new GLFormat(GLFormat.DataType.UNSIGNED_8,4),inbuff);
-            //equalize(brTex2m);
+            equalize(brTex2m);
             //buffer1.get(brTex2b);
             //brTex2m.put(0,0,brTex2b);
 

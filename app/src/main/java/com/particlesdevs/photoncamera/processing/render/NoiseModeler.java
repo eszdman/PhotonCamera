@@ -11,7 +11,7 @@ public class NoiseModeler {
     public Pair<Double,Double>[] computeModel;
     public int AnalogueISO;
     public int SensivityISO;
-    public NoiseModeler(Pair<Double,Double>[] inModel,Integer analogISO,Integer ISO) {
+    public NoiseModeler(Pair<Double,Double>[] inModel,Integer analogISO,Integer ISO, int bayer) {
         AnalogueISO = analogISO;
         SensivityISO = ISO;
         baseModel = new Pair[3];

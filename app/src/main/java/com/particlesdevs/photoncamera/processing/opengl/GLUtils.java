@@ -399,6 +399,17 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
+    public GLTexture medianDown(GLTexture in,int k){
+        GLTexture out = new GLTexture(new Point(in.mSize.x/k,in.mSize.y/k),in.mFormat);
+        return medianDown(in,out,k);
+    }
+    public GLTexture medianDown(GLTexture in,GLTexture out, int k){
+        glProg.setDefine("RESIZE",k);
+        glProg.useProgram(R.raw.mediandown);
+        glProg.setTexture("InputBuffer",in);
+        glProg.drawBlocks(out);
+        return out;
+    }
     public GLTexture interpolate(GLTexture in, int k){
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);

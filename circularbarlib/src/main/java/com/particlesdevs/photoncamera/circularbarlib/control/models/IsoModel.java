@@ -40,18 +40,13 @@ public class IsoModel extends ManualModel<Integer> {
         int maxiso = (int) isohigh;
         Log.v("IsoModel", "Max iso:" + maxiso);
         Log.v("IsoModel", "Max iso cnt:" + Math.log10((double) maxiso / miniso) / Math.log10(2));
-        for (double isoCnt = Math.log10(1) / Math.log10(2); isoCnt <= Math.log10((double) maxiso / miniso) / Math.log10(2); isoCnt += 1.0 / 4.0) {
+        for (double isoCnt = Math.log10(1) / Math.log10(2); isoCnt < Math.log10((double) maxiso / miniso) / Math.log10(2); isoCnt += 1.0 / 4.0) {
             int val = (int) (Math.pow(2.0, isoCnt) * miniso);
             candidates.add(String.valueOf(val));
             values.add((int) (val / IsoExpoSelector.getMPY(cameraCharacteristics)));
         }
-        /*for (String isoCandidate : ISO_CANDIDATES) {
-            int isoValue = Integer.parseInt(isoCandidate);
-            if (isoValue >= range.getLower() && isoValue - 50 <= range.getUpper()) {
-                candidates.add(isoCandidate);
-                values.add(isoValue);
-            }
-        }*/
+        candidates.add(String.valueOf(isohigh));
+        values.add((int)isohigh);
         int indicatorCount = 0;
         int tick = 0;
         int preferredIntervalCount = 4;

@@ -251,10 +251,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     br = mix(br,min(pRGB.r,pRGB.b),grmodel);
     pRGB*=br;*/
     //pRGB*=2.0;
-    pRGB+=vec3(EPS);
+    //pRGB+=vec3(EPS);
     float br = pRGB.r+pRGB.g+pRGB.b;
     vec3 neutralPoint = vec3(NEUTRALPOINT);
-    pRGB = clamp(pRGB, vec3(EPS), neutralPoint);
+    pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     #if CCT == 0
     mat3 corr = intermediateToSRGB;
     #endif
@@ -354,8 +354,8 @@ void main() {
     //br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
 
 
-    float sat2 = SATURATION2;
-    sat2*=br;
-    sRGB = saturate(sRGB,sat2,SATURATION);
+    //float sat2 = SATURATION2;
+    //sat2*=br;
+    sRGB = saturate(sRGB,SATURATION2,SATURATION);
     Output = clamp(sRGB,0.0,1.0);
 }
