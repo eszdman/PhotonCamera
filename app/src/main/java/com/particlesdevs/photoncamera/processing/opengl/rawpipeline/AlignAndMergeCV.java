@@ -35,6 +35,7 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
 import static org.opencv.calib3d.Calib3d.RANSAC;
+import static org.opencv.calib3d.Calib3d.RHO;
 import static org.opencv.calib3d.Calib3d.findHomography;
 import static org.opencv.features2d.Features2d.drawKeypoints;
 import static org.opencv.features2d.Features2d.drawMatches;
@@ -189,6 +190,8 @@ public class AlignAndMergeCV extends Node {
         return h;
     }
     float[][] alignmentsH;
+    int[][][] vectorMaps;
+    int vectorsize = 4;
     private void Align(int num){
         Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
         hm.convertTo(hm,CvType.CV_64F);
@@ -200,23 +203,32 @@ public class AlignAndMergeCV extends Node {
             Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
             hfloats2[i] = (float)hfloats[i];
         }
-        /*Mat hm = new Mat(3,3,CvType.CV_64F);
-        Mat intr = new Mat(3,3,CvType.CV_64F);
-        intr.put(0,0,basePipeline.mParameters.cameraIntrinsic);
-        hm.put(0,0,basePipeline.mParameters.cameraIntrinsic);
 
-        Core.multiply(hm,Rotation(images.get(num).rY,images.get(num).rX,images.get(num).rZ),hm);
-        Core.invert(intr,intr);
-        Core.multiply(hm,intr,hm);
+        /*Mat X = new Mat(3,3,CvType.CV_64F);
+        Mat K = new Mat(3,3,CvType.CV_64F);
+        Mat KNeg = new Mat(3,3,CvType.CV_64F);
+        Mat outp = new Mat(3,3,CvType.CV_64F);
+        Log.d(Name,"ROT:"+"X:"+images.get(num).rX*180.0/Math.PI+",Y:"+images.get(num).rY*180.0/Math.PI+",Z:"+images.get(num).rZ*180.0/Math.PI);
+        //Mat R = Rotation(images.get(num).rY,images.get(num).rX,images.get(num).rZ);
+        Mat R = Rotation(images.get(num).rX,images.get(num).rY,0.0);
+        K.put(0,0,basePipeline.mParameters.cameraIntrinsic);
+        Core.invert(K,KNeg);
+
+        X = OneMatrix();
+        Core.multiply(X,KNeg,X);
+        Core.multiply(K,R,outp);
+        Core.multiply(outp,X,outp);
 
         double[] hfloats = new double[9];
-        hm.get(0,0,hfloats);
+        outp  = outp.t();
+        outp.get(0,0,hfloats);
+
         float[] hfloats2 = new float[9];
         for(int i =0; i<9;i++){
             Log.d("AlignAndMerge","HMatrix:"+hfloats[i]);
             hfloats2[i] = (float)hfloats[i];
-        }
-         */
+        }*/
+
         /*Mat hm = findFrameHomography(BaseFrame2m,brTex2m);
         double[] hfloats = new double[9];
         hm.get(0,0,hfloats);
@@ -227,6 +239,16 @@ public class AlignAndMergeCV extends Node {
         }
          */
 
+        /*
+        for(int i =0; i<rawSize.x/2;i+=vectorsize){
+            for(int j =0; j<rawSize.y/2;j+=vectorsize){
+                double x = (((double)i)*hfloats2[0] + ((double)j)*hfloats2[1] + hfloats2[2])/
+                           (((double)i)*hfloats2[6] + ((double)j)*hfloats2[7] + hfloats2[8]);
+                double y = (((double)i)*hfloats2[3] + ((double)j)*hfloats2[4] + hfloats2[5])/
+                           (((double)i)*hfloats2[6] + ((double)j)*hfloats2[7] + hfloats2[8]);
+
+            }
+        }*/
         alignmentsH[num-1] = hfloats2.clone();
     }
     private void Weight(int num){
@@ -359,6 +381,7 @@ public class AlignAndMergeCV extends Node {
             }
         }
         alignmentsH = new float[images.size()-1][9];
+        vectorMaps = new int[images.size()-1][][];
 
         GainMap = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);

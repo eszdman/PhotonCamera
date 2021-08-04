@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.util.Log;
+import android.view.TextureView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 
@@ -19,7 +20,7 @@ public class TouchFocus {
     private static final String TAG = "TouchFocus";
     private static final int AUTO_HIDE_DELAY_MS = 3000;
     private final CaptureController captureController;
-    private final Point previewMaxSize;
+    private final TextureView textureView;
     private final View focusCircleView;
     private final Runnable hideFocusCircleRunnable = this::hideFocusCircleView;
     private final OnTouchListener focusListener = (v, event) -> {
@@ -30,16 +31,12 @@ public class TouchFocus {
     };
 
 
-    private TouchFocus(CaptureController captureController, View focusCircle, Point previewMaxSize) {
+    public TouchFocus(CaptureController captureController, View focusCircle, TextureView textureView) {
         this.captureController = captureController;
         this.focusCircleView = focusCircle;
-        this.previewMaxSize = previewMaxSize;
+        this.textureView = textureView;
         focusCircleView.setOnTouchListener(focusListener);
         resetFocusCircle();
-    }
-
-    public static TouchFocus initialise(CaptureController captureController, View focusCircle, Point previewSize) {
-        return new TouchFocus(captureController, focusCircle, previewSize);
     }
 
     public void processTouchToFocus(float fx, float fy) {
@@ -73,7 +70,7 @@ public class TouchFocus {
 
     private void setFocus(int x, int y) {
         Point size = new Point(captureController.mImageReaderPreview.getWidth(), captureController.mImageReaderPreview.getHeight());
-        Point CurUi = previewMaxSize;
+        Point CurUi = new Point(textureView.getWidth(),textureView.getHeight());
         Rect sizee = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
         if (sizee == null) {
             sizee = new Rect(0, 0, size.x, size.y);
@@ -86,7 +83,7 @@ public class TouchFocus {
             y = CurUi.y;
         if (x > CurUi.x)
             x  =CurUi.x;*/
-        //use 1/8 from the the sensor size for the focus rect
+        //use 1/6 from the the sensor size for the focus rect
         int width_to_set = sizee.width() / 6;
         float kProp = (float) CurUi.x / (float) (CurUi.y);
         int height_to_set = (int) (width_to_set * kProp);
@@ -179,8 +176,8 @@ public class TouchFocus {
             focusCircleView.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
                     .withEndAction(() -> {
                         focusCircleView.setVisibility(View.GONE);
-                        focusCircleView.setX((float) previewMaxSize.x / 2.f);
-                        focusCircleView.setY((float) previewMaxSize.y / 2.f);
+                        focusCircleView.setX((float) textureView.getWidth() / 2.f);
+                        focusCircleView.setY((float) textureView.getHeight() / 2.f);
                         focusCircleView.setScaleY(1f);
                         focusCircleView.setScaleX(1f);
                         focusCircleView.setAlpha(1f);

@@ -56,14 +56,14 @@ public class AlignAndMergeHybrid extends Node {
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
-        glProg.drawBlocks(basePipeline.main3,out.mSize);
+        glProg.drawBlocks(out,out.mSize);
         //glUtils.SaveProgResult(output.mSize,"boxdown");
         //glProg.close();
         //GLTexture median = glUtils.blur(output,5.0);
         //GLTexture laplaced = glUtils.ops(median,output,"in2.rgb,3.0*(in1.a-in2.a)");
         //median.close();
 
-        glUtils.median(basePipeline.main3,out,new Point(1,1));
+        //glUtils.median(basePipeline.main3,out,new Point(1,1));
 
         //GLTexture median = glUtils.blur(output,1.5);
     }

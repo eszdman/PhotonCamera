@@ -319,7 +319,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * The {@link Size} of camera preview.
      */
-    private Size mPreviewSize;
+    public Size mPreviewSize;
     /*An additional thread for running tasks that shouldn't block the UI.*/
     private HandlerThread mBackgroundThread;
     /**
@@ -502,7 +502,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         @Override
         public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture texture, int width, int height) {
-            Log.d(TAG, " CHANGED SIZE" + width + ' ' + height);
+            Log.d(TAG, " CHANGED SIZE:" + width + ' ' + height);
             configureTransform(width, height);
         }
 
@@ -614,7 +614,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Arrays.sort(in, new CompareSizesByArea());
         List<Size> sizes = new ArrayList<>(Arrays.asList(in));
         int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= 40 * 1000000) {
+        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= ResolutionSolution.highRes) {
             target = sizes.get(s);
             return target;
         } else {
@@ -787,6 +787,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
         float centerX = viewRect.centerX();
         float centerY = viewRect.centerY();
+        /*
         if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
             bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
             matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
@@ -797,7 +798,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             matrix.postRotate(90 * (rotation - 2), centerX, centerY);
         } else if (Surface.ROTATION_180 == rotation) {
             matrix.postRotate(180, centerX, centerY);
-        }
+        }*/
         mTextureView.setTransform(matrix);
     }
 
@@ -884,6 +885,23 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         setUpCameraOutputs(optimal.getWidth(), optimal.getHeight());
         configureTransform(optimal.getWidth(), optimal.getHeight());
     }
+    private static Size getTextureOutputSize(
+            Display display,
+            CameraMode targetMode
+    ) {
+        Size aspectRatio;
+        if (targetMode == CameraMode.VIDEO) {
+            aspectRatio = new Size(9, 16);
+        } else {
+            aspectRatio = new Size(3, 4);
+        }
+        Point displayPoint = new Point();
+        display.getRealSize(displayPoint);
+        int shortSide = Math.min(displayPoint.x, displayPoint.y);
+        int longSide = shortSide * aspectRatio.getHeight() / aspectRatio.getWidth();
+
+        return new Size(longSide,shortSide);
+    }
 
     private static Size getPreviewOutputSize(
             Display display,
@@ -912,13 +930,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         for (Size size: allSizes) {
             int sizeShort = Math.min(size.getHeight(), size.getWidth());
             int sizeLong = Math.max(size.getHeight(), size.getWidth());
-            if (sizeShort <= shortSide && sizeLong <= longSide) {
+            if(     sizeLong % aspectRatio.getHeight() == 0 &&
+                    sizeShort == aspectRatio.getWidth()*sizeLong/aspectRatio.getHeight() &&
+                    sizeShort*sizeLong <= ResolutionSolution.previewRes){
                 retsize = new Size(sizeShort, sizeLong);
                 break;
             }
+            /*if (sizeShort <= shortSide && sizeLong <= longSide) {
+                retsize = new Size(sizeShort, sizeLong);
+                break;
+            }*/
         }
-
-
+        if(retsize == null) {
+            retsize = new Size(800,600);
+        }
         return retsize;
     }
     /**
@@ -1057,44 +1082,36 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
-        Point displaySize = new Point();
+
+        /*Point displaySize = new Point();
         activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = mPreviewWidth;
         int rotatedPreviewHeight = mPreviewHeight;
-        int maxPreviewWidth = displaySize.x;
-        int maxPreviewHeight = displaySize.y;
+
         mPreviewWidth = Math.max(rotatedPreviewHeight, rotatedPreviewWidth);
-        mPreviewHeight = Math.min(rotatedPreviewHeight, rotatedPreviewWidth);
-        if (swappedDimensions) {
-            rotatedPreviewWidth = mPreviewHeight;
-            rotatedPreviewHeight = mPreviewWidth;
-            //noinspection SuspiciousNameCombination
-            maxPreviewWidth = displaySize.y;
-            //noinspection SuspiciousNameCombination
-            maxPreviewHeight = displaySize.x;
-        }
+        mPreviewHeight = Math.min(rotatedPreviewHeight, rotatedPreviewWidth);*/
 
-        if (maxPreviewWidth > MAX_PREVIEW_WIDTH) {
-            maxPreviewWidth = MAX_PREVIEW_WIDTH;
-        }
 
-        if (maxPreviewHeight > MAX_PREVIEW_HEIGHT) {
-            maxPreviewHeight = MAX_PREVIEW_HEIGHT;
-        }
 
-        // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-        // garbage capture data.
 
         /*mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth*2,
                 maxPreviewHeight*2, target);*/
-        mPreviewSize = new Size(mPreviewWidth, mPreviewHeight);
+        //mPreviewSize = new Size(mPreviewWidth, mPreviewHeight);
+
+
+        // Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
+        //        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
+        //        // garbage capture data.
+        mPreviewSize = getTextureOutputSize(mTextureView.getDisplay(),PhotonCamera.getSettings().selectedMode);
+        //if(swappedDimensions) mPreviewSize = new Size(mPreviewSize.getHeight(),mPreviewSize.getWidth());
+
         if (PhotonCamera.getSettings().DebugData)
             showToast("preview:" + new Point(mPreviewWidth, mPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         int orientation = activity.getResources().getConfiguration().orientation;
+
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             mTextureView.setAspectRatio(
                     mPreviewSize.getWidth(), mPreviewSize.getHeight());
@@ -1641,7 +1658,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (mTextureView == null)
             mTextureView = new AutoFitPreviewView(activity);
         if (mTextureView.isAvailable()) {
-            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+            Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
+                    mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
+                    PhotonCamera.getSettings().selectedMode);
+            openCamera(optimal.getWidth(), optimal.getHeight());
         } else {
             mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         }
