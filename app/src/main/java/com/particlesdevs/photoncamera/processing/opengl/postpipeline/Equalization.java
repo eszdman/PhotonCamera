@@ -488,9 +488,9 @@ public class Equalization extends Node {
     float edgesStretchHighLight = 1.25f;
     int histSize = 4096;
     int blackLevelSearch = 384;
-    float edgesBilateralSmooth = 4.5f;
+    float edgesBilateralSmooth = 3.5f;
     float edgesBilateralSmoothNight = 1.0f;
-    float highLightSmoothAmplify = 2.f;
+    float highLightSmoothAmplify = 2.5f;
     float shadowsSensitivity = 0.6f;
     float blackLevelSensitivity = 1.1f;
 
@@ -598,7 +598,7 @@ public class Equalization extends Node {
         double compensation = averageCurve.length/WL;
         histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);
 
-        float[] WB = getWB(histParser.histr,histParser.histg,histParser.hist,blwl);
+        float[] WB = new float[]{1.0f,1.0f,1.0f};// = getWB(histParser.histr,histParser.histg,histParser.hist,blwl);
 
         //Use kx+b prediction for curve start
         //Depurple Degreen

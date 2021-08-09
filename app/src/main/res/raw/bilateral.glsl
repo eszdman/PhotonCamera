@@ -21,6 +21,7 @@ out vec4 Output;
 #define NOISES 0.0
 #define NOISEO 0.0
 #define INTENSE 1.0
+#define VALUETOSPATIAL 30.5
 float normpdf(in float x, in float sigma)
 {
     return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
@@ -46,7 +47,7 @@ void main() {
         vec3 final_colour = vec3(0.0);
         //float sigX = sigma.x;
         //float sigY = sigma.y;
-        float sigX = 3.5;
+
         vec3 brp =
          vec3(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb)+
          vec3(texelFetch(InputBuffer, xy+ivec2(1,0), 0).rgb)+
@@ -61,6 +62,7 @@ void main() {
         //sigX =clamp(sigX+NRshift,minNR,maxNR);
 
         float sigY = sqrt(noisefactor*NOISES*(INTENSE*2.2 + 1.0)/2.0 + NOISEO*INTENSE*2.2);
+        float sigX = 2.5;
         //sigY = max(0.01,sigY);
         //create the 1-D kernel
         float Z = 0.0;
@@ -80,7 +82,6 @@ void main() {
                 factor = normpdf3(cc-c, sigY)*bZ*kernel[KSIZE+j]*kernel[KSIZE+i];
                 Z += factor;
                 final_colour += factor*cc;
-
             }
         }
         if (Z < 0.0001f) {

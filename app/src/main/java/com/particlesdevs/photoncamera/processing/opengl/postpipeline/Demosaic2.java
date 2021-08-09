@@ -44,6 +44,9 @@ public class Demosaic2 extends Node {
         if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
         GLTexture prev = previousNode.WorkingTexture;
         outp = basePipeline.main1;
+        if(basePipeline.main1 == previousNode.WorkingTexture){
+            outp = basePipeline.main2;
+        }
         glProg.drawBlocks(outp);
 
         //Colour channels
