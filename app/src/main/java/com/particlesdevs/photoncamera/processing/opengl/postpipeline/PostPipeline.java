@@ -72,7 +72,9 @@ public class PostPipeline extends GLBasePipeline {
         stackFrame = inBuffer;
         glint.parameters = parameters;
         add(new Bayer2Float());
-
+        if(PhotonCamera.getSettings().hdrxNR) {
+            add(new BayerBilateralChroma());
+        }
         //add(new ExposureFusionBayer2());
         //if(!IsoExpoSelez = mix(mix(z, z*z, BR),z,z);ctor.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {

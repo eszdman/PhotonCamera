@@ -45,8 +45,7 @@ void main() {
         float kernel[MSIZE];
         vec3 final_colour = vec3(0.0);
         float sigX = 3.5;
-
-        float sigY = sqrt(noisefactor*NOISES*(INTENSE*2.2 + 1.0)/2.0 + NOISEO*INTENSE*2.2);
+        float sigY = sqrt(noisefactor*NOISES*(INTENSE*1.0 + 1.0)/2.0 + NOISEO*INTENSE*1.0);
         //sigY = max(0.01,sigY);
         //create the 1-D kernel
         float Z = 0.0;

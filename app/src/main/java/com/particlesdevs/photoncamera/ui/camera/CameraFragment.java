@@ -839,7 +839,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             switch (mode) {
                 case VIDEO:
                     this.topbar.setEisVisible(true);
-                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
+                    //cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(false);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
@@ -849,7 +849,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(false);
-                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
@@ -859,7 +858,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     this.topbar.setEisVisible(true);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
-                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
@@ -870,7 +868,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     this.topbar.setEisVisible(false);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
-                    cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
