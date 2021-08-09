@@ -95,7 +95,7 @@ public class PostPipeline extends GLBasePipeline {
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new SmartNR());
+            add(new ESD3D());
         }
 
         add(new Initial());
