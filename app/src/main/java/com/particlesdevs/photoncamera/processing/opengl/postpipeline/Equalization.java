@@ -16,6 +16,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.util.FileManager;
+import com.particlesdevs.photoncamera.util.RANSAC;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
 import com.particlesdevs.photoncamera.util.Utilities;
 
@@ -23,6 +24,7 @@ import java.io.File;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -137,11 +139,25 @@ public class Equalization extends Node {
         }
         return output;
     }
-    private float findWL(float[] input){
+    private float findWL(float[] inputR,float[] inputG, float[] inputB){
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
-        float wlind = input.length-1;
-        for(int i =0; i<input.length;i++){
-            if(input[i] > 0.999) {
+        float wlind = inputG.length-1;
+        for(int i =0; i<inputR.length;i++){
+            if(inputR[i] > 0.99) {
+                wlind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                break;
+            }
+        }
+        for(int i =0; i<inputG.length;i++){
+            if(inputG[i] > 0.99) {
+                wlind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                break;
+            }
+        }
+        for(int i =0; i<inputB.length;i++){
+            if(inputB[i] > 0.99) {
                 wlind = i;
                 //wlind = (i*8.f+wlind)/(8.0f + 1.f);
                 break;
@@ -152,14 +168,28 @@ public class Equalization extends Node {
         } else {
             wlind = (wlind*8.f+(input.length-1.f))/(8.0f + 1.f);
         }*/
-        wlind = Math.min(wlind+64,input.length-1);
+        wlind = Math.min(wlind+128,inputG.length-1);
         return wlind;
     }
-    private float findBL(float[] input){
+    private float findBL(float[] inputR,float[] inputG, float[] inputB){
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         float blind = 0;
-        for(int i =input.length-1; i>=0;i--){
-            if(input[i] < 0.001) {
+        for(int i =inputR.length-1; i>=0;i--){
+            if(inputR[i] < 0.01) {
+                blind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                break;
+            }
+        }
+        for(int i =inputG.length-1; i>=0;i--){
+            if(inputG[i] < 0.01) {
+                blind = i;
+                //wlind = (i*8.f+wlind)/(8.0f + 1.f);
+                break;
+            }
+        }
+        for(int i =inputB.length-1; i>=0;i--){
+            if(inputB[i] < 0.01) {
                 blind = i;
                 //wlind = (i*8.f+wlind)/(8.0f + 1.f);
                 break;
@@ -248,14 +278,14 @@ public class Equalization extends Node {
         //mx.add(blwl[0]+0.01f);
         mx.add(centerX);
         mx.add(blwl[1]);
-        mx.add(blwl[1]+0.01f);
+        //mx.add(blwl[1]+0.01f);
 
 
         my.add(0.f);
-        // my.add(0.f);
+        //my.add(0.f);
         my.add(centerY);
         my.add(1.f);
-        my.add(1.f);
+        //my.add(1.f);
         Log.d(Name,"blwl[0]:"+blwl[0]);
         Log.d(Name,"blwl[1]:"+blwl[1]);
         Log.d(Name,"Mx:"+mx.toString());
@@ -302,7 +332,7 @@ public class Equalization extends Node {
     }
     private float[] bezierIterate(float[] input, int iterations){
         float[] inchanging = input.clone();
-        float wlind = findWL(input);
+        float wlind = findWL(input,input,input);
         float[] params = new float[]{input[0],input[(int)(wlind/3.f)],input[(int)(wlind/1.5f)],input[(int)wlind]};
         float k = (params[3])/(params.length-1);
 
@@ -378,7 +408,7 @@ public class Equalization extends Node {
     class Minindexes implements Comparable<Minindexes>{
         public float r,g,b;
         public int ind;
-        private double dist(){
+        public double dist(){
             float r2,g2,b2;
             r2 = r/(r+g+b);
             g2 = g/(r+g+b);
@@ -386,9 +416,9 @@ public class Equalization extends Node {
             return Math.sqrt(r2*r2 + g2*g2 + b2*b2);
         }
         public Minindexes(float r, float g, float b, int ind){
-            this.r = r;
-            this.g = g;
-            this.b = b;
+            this.r = r+0.0001f;
+            this.g = g+0.0001f;
+            this.b = b+0.0001f;
             this.ind = ind;
         }
         @Override
@@ -404,24 +434,44 @@ public class Equalization extends Node {
         float bk = 0.f;
         float cnt = 0.f;
         float mindist = 1000.f;
-        Minindexes[] minindexes = new Minindexes[histSize];
+        /*Minindexes[] minindexes = new Minindexes[histSize];
         for(int i =0; i<histSize;i++){
             minindexes[i] = new Minindexes(histr[i],histg[i],histb[i],i);
         }
         Arrays.sort(minindexes);
+        Log.d(Name,"0:"+minindexes[0].dist()+",1:"+minindexes[histSize-1].dist());
+         */
+        List<Double> dataR = new ArrayList<>();
+        List<Double> dataG = new ArrayList<>();
+        List<Double> dataB = new ArrayList<>();
+        for(int i = (int)mix(blwl[0],blwl[1],0.05); i<(int)mix(blwl[0],blwl[1],0.9);i++){
+            //Minindexes minindexes1 = minindexes[i];
+
+            dataR.add((histr[i]+0.0001)/(histr[i]+histb[i]+histr[i]+0.0001));
+            dataG.add((histg[i]+0.0001)/(histr[i]+histb[i]+histr[i]+0.0001));
+            dataB.add((histb[i]+0.0001)/(histr[i]+histb[i]+histr[i]+0.0001));
+            //cnt+=1.f;
+        }
+        List<Double> res = RANSAC.perform(dataR, 2, 1500, 1, 0.2);
+        rk = res.get(1).floatValue();
+        res = RANSAC.perform(dataG, 2, 1500, 1, 0.2);
+        gk = res.get(1).floatValue();
+        res = RANSAC.perform(dataB, 2, 1500, 1, 0.2);
+        bk = res.get(1).floatValue();
+        /*
         for(int i = 0; i<searchMax;i++){
             rk+=
             cnt+=1.f;
-        }
+        }*/
         //float rk = Utilities.linearRegressionK(Arrays.copyOfRange(histr,histr.length-1-searchMax,histr.length))+0.0001f;
         //float gk = Utilities.linearRegressionK(Arrays.copyOfRange(histg,histg.length-1-searchMax,histg.length))+0.0001f;
         //float bk = Utilities.linearRegressionK(Arrays.copyOfRange(histb,histb.length-1-searchMax,histb.length))+0.0001f;
-        float[] outp = new float[]{rk,gk,bk};
+        float[] outp = new float[]{rk+0.0001f,gk+0.0001f,bk+0.0001f};
         float mink = Math.min(Math.min(outp[0],outp[1]),outp[2]);
         outp[0]/=mink;
         outp[1]/=mink;
         outp[2]/=mink;
-        outp = Utilities.saturate(outp,whiteBalanceSaturation);
+        //outp = Utilities.saturate(outp,whiteBalanceSaturation);
         Log.d(Name,"WBK:"+Arrays.toString(outp));
         mink = Math.min(Math.min(outp[0],outp[1]),outp[2]);
         outp[0]/=mink;
@@ -434,12 +484,12 @@ public class Equalization extends Node {
     float analyzeIntensity = -0.35f;
     float analyzeCenter = 0.5f;
     float curveCenter = 0.5f;
-    float edgesStretchShadows = 1.35f;
-    float edgesStretchHighLight = 1.35f;
+    float edgesStretchShadows = 1.25f;
+    float edgesStretchHighLight = 1.25f;
     int histSize = 4096;
     int blackLevelSearch = 384;
-    float edgesBilateralSmooth = 3.f;
-    float edgesBilateralSmoothNight = 0.7f;
+    float edgesBilateralSmooth = 4.5f;
+    float edgesBilateralSmoothNight = 1.0f;
     float highLightSmoothAmplify = 2.f;
     float shadowsSensitivity = 0.6f;
     float blackLevelSensitivity = 1.1f;
@@ -542,8 +592,8 @@ public class Equalization extends Node {
             GenerateCurveBitm(histParser.histr,histParser.histg,histParser.histb);
         }
         float max = 0.f;
-        float WL = findWL(histParser.hist);
-        float BL = findBL(histParser.hist);
+        float WL = findWL(histParser.histr,histParser.histg,histParser.histb);
+        float BL = findBL(histParser.histr,histParser.histg,histParser.histb);
         float[] blwl = new float[]{BL,WL};
         double compensation = averageCurve.length/WL;
         histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);

@@ -118,7 +118,9 @@ public class GLCoreBlockProcessing extends GLContext {
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(size.y, GLDrawParams.TileSize);
         int[] row = new int[2];
-        if(mBlockBuffert == null || mBlockBuffert.position(0).remaining() < size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels) mBlockBuffert = ByteBuffer.allocate(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels);
+        if(mBlockBuffert == null ||
+                mBlockBuffert.position(0).remaining() < size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels)
+            mBlockBuffert = ByteBuffer.allocate(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels);
         mOutBuffer.position(0);
         mBlockBuffert.position(0);
         while (divider.nextBlock(row)) {

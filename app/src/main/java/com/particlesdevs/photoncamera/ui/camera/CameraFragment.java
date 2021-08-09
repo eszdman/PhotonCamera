@@ -157,7 +157,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
-    private AutoFitPreviewView textureView;
+    public AutoFitPreviewView textureView;
     private NotificationManagerCompat notificationManager;
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
@@ -319,8 +319,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
             textureView.post(() -> {
-                Point size = new Point(textureView.getWidth(), textureView.getHeight());
-                mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
+                mTouchFocus = new TouchFocus(captureController,focusCircle,textureView);
             });
         }
     }
@@ -438,10 +437,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
         if (captureController.mImageReaderPreview == null) return new RectF();
-        float left = (((float) meteringRectangle.getY() / captureController.mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
-        float top = (((float) meteringRectangle.getX() / captureController.mImageReaderPreview.getWidth()) * (surfaceView.getHeight()));
-        float width = (((float) meteringRectangle.getHeight() / captureController.mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
-        float height = (((float) meteringRectangle.getWidth() / captureController.mImageReaderPreview.getWidth()) * (surfaceView.getHeight()));
+        float left = (((float) meteringRectangle.getY() / captureController.mImageReaderPreview.getHeight()) * (textureView.getWidth()));
+        float top = (((float) meteringRectangle.getX() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
+        float width = (((float) meteringRectangle.getHeight() / captureController.mImageReaderPreview.getHeight()) * (textureView.getWidth()));
+        float height = (((float) meteringRectangle.getWidth() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
         return new RectF(
                 left, //Left
                 top,  //Top
