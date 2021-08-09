@@ -519,6 +519,7 @@ public class GLUtils {
         glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
         glProg.setDefine("INSIZE", in.mSize);
         glProg.setDefine("GRADSHIFT",gradientShift);
+        if(out.mFormat.mChannels >= 3) glProg.setDefine("TEXSIZE", 3);
         glProg.useProgram(PhotonCamera.getAssetLoader().getString("convdiff.glsl"));
         glProg.setVar("rotation",rotation);
         glProg.setTexture("InputBuffer",in);

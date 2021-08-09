@@ -84,21 +84,29 @@ public class PostPipeline extends GLBasePipeline {
             } else {
                 add(new MonoDemosaic());
             }
+        //} else {
+        //    add(new LFHDR());
+        //}
         /*
          * * * All filters after demosaicing * * *
          */
 
+
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new Bilateral());
+            add(new ESD3D());
         }
 
         add(new Initial());
 
         add(new Equalization());
 
+
         //add(new AWB());
+
+        
+
 
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new SharpenDual());
