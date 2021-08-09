@@ -13,14 +13,16 @@ public class Demosaic2 extends Node {
 
     @Override
     public void Compile() {}
-    float gradSize = 1.25f;
+    float gradSize = 1.75f;
     float fuseMin = 0.f;
     float fuseMax = 1.f;
+    float fuseShift = -0.12f;
     @Override
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);
         fuseMin = getTuning("FuseMin",fuseMin);
         fuseMax = getTuning("FuseMax",fuseMax);
+        fuseShift = getTuning("FuseShift",fuseShift);
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         //Gradients
@@ -37,6 +39,7 @@ public class Demosaic2 extends Node {
         glProg.setDefine("GRADSIZE",gradSize);
         glProg.setDefine("FUSEMIN",fuseMin);
         glProg.setDefine("FUSEMAX",fuseMax);
+        glProg.setDefine("FUSESHIFT",fuseShift);
         glProg.useProgram(R.raw.demosaicp12);
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GradBuffer",basePipeline.main3);

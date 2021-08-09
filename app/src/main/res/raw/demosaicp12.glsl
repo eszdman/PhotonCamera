@@ -5,13 +5,14 @@ uniform sampler2D RawBuffer;
 uniform sampler2D GradBuffer;
 #define QUAD 0
 #define demosw (1.0/10000.0)
-
+#define EPS (0.01)
 #define size1 (1.2)
 #define MSIZE1 3
 #define KSIZE ((MSIZE1-1)/2)
 #define GRADSIZE 1.5
 #define FUSEMIN 0.0
 #define FUSEMAX 1.0
+#define FUSESHIFT -0.1
 out float Output;
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {
@@ -78,7 +79,8 @@ void main() {
         } else {
             W = MIN/MAX;
         }
-        W=sqrt(W);
+        //W=W*W;
+        //W=sqrt(W);
         //float badGR = (abs(HV.r-HV.g)*5.0)/((HV.r+HV.g));
         HV/=weights;
         //if((initialGrad.r+initialGrad.g) > (HV.r+HV.g)*0.4) {
@@ -89,7 +91,7 @@ void main() {
                 Output = (green[0]*grad[0] + green[3]*grad[3])/(grad[0]+grad[3]);
                 //Output = (green[0] + green[3])/(2.0);
             }
-        W = mix(FUSEMIN,FUSEMAX,W);
+        W = mix(FUSEMIN,FUSEMAX,W+FUSESHIFT);
         /*
         float output2;
         if (abs(green[0] - green[3]) > abs(green[1] - green[2])){
@@ -100,6 +102,7 @@ void main() {
         Output = mix(Output,output2,W);
         */
         Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
+
 
         /*} else {
             Output = green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3];

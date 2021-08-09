@@ -18,7 +18,7 @@ void main() {
         Output = float(texelFetch(InputBuffer, xy, 0).r);
         return;
     }
-    float center = outp[4].r;
+    float center = float(texelFetch(InputBuffer, xy, 0).r);
     float minV = 1.0;
     float maxV = 0.0;
     float br = 0.0;
@@ -30,7 +30,7 @@ void main() {
         }
     }
     br/=sum0;
-    float N = sqrt(br*NOISES*(INTENSE*2.2 + 1.0)/2.0 + NOISEO*INTENSE*2.2);
+    float N = sqrt(br*NOISES*(INTENSE*1.5 + 1.0)/2.0 + NOISEO*INTENSE*1.5);
     float sigmaV = N;
     float sigmaS = 3.5;
     float sum = 0.0;
@@ -38,7 +38,7 @@ void main() {
     for(int i =-KSIZE;i<=KSIZE;i++){
         float k0 = unscaledGaussian(float(i),sigmaS);
         for(int j =-KSIZE;j<=KSIZE;j++){
-            float val = float(texelFetch(InputBuffer, xy+2*ivec2(i,j), 0).r);;
+            float val = float(texelFetch(InputBuffer, xy+2*ivec2(i,j), 0).r);
             float k = k0*unscaledGaussian(float(j),sigmaS)*unscaledGaussian(center-val,sigmaV);
             outSum+=val*k;
             sum+=k;

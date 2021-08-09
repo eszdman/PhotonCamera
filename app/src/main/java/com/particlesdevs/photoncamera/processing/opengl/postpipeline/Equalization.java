@@ -598,6 +598,7 @@ public class Equalization extends Node {
         double compensation = averageCurve.length/WL;
         histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);
 
+
         float[] WB = new float[]{1.0f,1.0f,1.0f};// = getWB(histParser.histr,histParser.histg,histParser.hist,blwl);
 
         //Use kx+b prediction for curve start
