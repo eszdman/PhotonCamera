@@ -42,7 +42,7 @@ public class Equalization extends Node {
         ((PostPipeline)basePipeline).debugData.add(CurveEQ);
         Utilities.drawArray(curve,CurveEQ);
         Utilities.drawBL(BL,CurveEQ);
-        Utilities.drawWB(new float[]{0.9f,0.9f,0.9f},CurveEQ);//Test WL draw
+        Utilities.drawWB(WB,CurveEQ);//Test WL draw
     }
     private void GenerateCurveBitm(int[] curve){
         Bitmap CurveEQ = Bitmap.createBitmap(256,256, Bitmap.Config.ARGB_8888);
@@ -606,7 +606,7 @@ public class Equalization extends Node {
         float[] BLPredict = new float[3];
         float[] BLPredictShift = new float[3];
         //int maxshift = (int) (blwl[0] + blwl[1]*blackLevelSearch/4096.f);
-        int maxshift = (int) mix(blwl[0],blwl[1],blackLevelSearch/((float)histSize));
+        int maxshift = (int) mix(blwl[0],WL,blackLevelSearch/((float)histSize));
         maxshift = Math.max(maxshift,10);
         Log.d(Name,"BlSearch:"+maxshift);
         int cnt = 0;
@@ -653,9 +653,15 @@ public class Equalization extends Node {
             BLPredictShift[0] += oldr*0.15f;
             BLPredictShift[2] += oldb*0.15f;
         }
-        BLPredictShift[0]*=blackLevelSensitivity;
-        BLPredictShift[1]*=blackLevelSensitivity;
-        BLPredictShift[2]*=blackLevelSensitivity;
+
+        //Limit blacklevel to 10% of detected range
+        float length  = (float) Math.sqrt(BLPredictShift[0]*BLPredictShift[0] + BLPredictShift[1]*BLPredictShift[1] + BLPredictShift[2]*BLPredictShift[2]);
+        float length2 = Math.min(length,WL-blwl[0])/length;
+        BLPredictShift[0]*=blackLevelSensitivity*length2;
+        BLPredictShift[1]*=blackLevelSensitivity*length2;
+        BLPredictShift[2]*=blackLevelSensitivity*length2;
+
+
 
         /*float[] smoothArr = bilateralSmoothCurve(averageCurve,BL,WL);
         for(int i =0; i<smoothArr.length;i++){
@@ -707,7 +713,7 @@ public class Equalization extends Node {
             }
             //histParser.hist[i] = mix(histParser.hist[i],line,line*0.35f);
         }
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,WB);
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,new float[]{WL,WL,WL});
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),

@@ -85,6 +85,7 @@ public class Utilities {
     }
     public static void drawWB(float rgb[], Bitmap io){
         float max = java.lang.Math.max(java.lang.Math.max(rgb[0],rgb[1]),rgb[2]);
+        max = 1.f;
         int width = io.getWidth();
         int height = io.getHeight();
         Canvas canvas = new Canvas(io);

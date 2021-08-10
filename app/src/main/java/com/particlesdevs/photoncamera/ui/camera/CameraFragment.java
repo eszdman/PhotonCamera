@@ -247,7 +247,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
         this.manualModeConsole.addParamObserver(captureController.getParamController());
         PhotonCamera.setCaptureController(captureController);
-        captureController.isDualSession = supportedDevice.specific.isDualSessionSupported;
+        captureController.isDualSession = supportedDevice.specific.specificSetting.isDualSessionSupported;
         this.mSwipe = new Swipe(this);
         initSettingsBar();
     }

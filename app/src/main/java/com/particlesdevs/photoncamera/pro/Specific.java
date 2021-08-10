@@ -14,8 +14,8 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEV
 
 public class Specific {
     private static final String TAG = "Specific";
-    public boolean isDualSessionSupported = true;
     public boolean isRawColorCorrection = false;
+    public SpecificSetting specificSetting;
     public float[] blackLevel;
     private final SettingsManager mSettingsManager;
 
@@ -24,6 +24,7 @@ public class Specific {
     }
 
     public void loadSpecific(){
+        specificSetting = new SpecificSetting();
         boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded",false);
         boolean exists = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_exists",true);
         if(exists) {
@@ -43,7 +44,7 @@ public class Specific {
                         String[] caseS = str.split("=");
                         switch (caseS[0]) {
                             case "isDualSessionSupported":
-                                isDualSessionSupported = Boolean.parseBoolean(caseS[1]);
+                                specificSetting.isDualSessionSupported = Boolean.parseBoolean(caseS[1]);
                                 break;
                             case "blackLevel":
                                 String[] bl = caseS[1].split(",");
@@ -55,15 +56,14 @@ public class Specific {
                         }
                     }
                     mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded", true);
-                } catch (Exception ignored) {
-                }
+                } catch (Exception ignored) {}
             } else {
-                isDualSessionSupported = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", isDualSessionSupported);
+                specificSetting.isDualSessionSupported = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", specificSetting.isDualSessionSupported);
             }
             saveSpecific();
         }
     }
     private void saveSpecific(){
-        mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", isDualSessionSupported);
+        mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", specificSetting.isDualSessionSupported);
     }
 }

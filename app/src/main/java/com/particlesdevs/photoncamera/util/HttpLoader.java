@@ -11,7 +11,7 @@ public class HttpLoader {
     public static BufferedReader readURL(String addr) throws IOException {
         URL supportedList = new URL(addr);
         HttpURLConnection conn = (HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(200); // timing out in a 200 ms
+        conn.setConnectTimeout(120); // timing out in a 120 ms
         return new BufferedReader(new InputStreamReader(conn.getInputStream()));
     }
 }

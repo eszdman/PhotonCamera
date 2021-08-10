@@ -25,6 +25,7 @@ public class SupportedDevice {
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevicesSet = new LinkedHashSet<>();
     public Specific specific;
+    public SensorSpecifics sensorSpecifics;
     private boolean loaded = false;
     private int checkedCount = 0;
 
@@ -34,11 +35,11 @@ public class SupportedDevice {
 
     public void loadCheck() {
         specific = new Specific(mSettingsManager);
+        sensorSpecifics = new SensorSpecifics(mSettingsManager);
         new Thread(() -> {
             try {
                 if (checkedCount < 1) {
                     loadSupportedDevicesList();
-                    specific.loadSpecific();
                     isSupported();
                 }
             } catch (IOException e) {
@@ -47,10 +48,22 @@ public class SupportedDevice {
             if (!loaded && mSettingsManager.isSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
                 mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
+        Thread thread = new Thread(() -> {
+                if (checkedCount < 2) {
+                    specific.loadSpecific();
+                }
+        });
+        thread.start();
+        while(thread.isAlive()){
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void isSupported() {
-        Log.d(TAG, "isSupported(): checkedCount = " + checkedCount);
         checkedCount++;
         if (mSupportedDevicesSet == null) {
             return;
@@ -74,7 +87,6 @@ public class SupportedDevice {
         String str;
         while ((str = in.readLine()) != null) {
             mSupportedDevicesSet.add(str);
-            Log.d(TAG, "Loaded:" + str);
         }
 
         loaded = true;

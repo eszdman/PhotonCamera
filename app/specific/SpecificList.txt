@@ -1,1 +1,2 @@
 xiaomi:dipper
+oneplus:guacamole
