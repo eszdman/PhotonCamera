@@ -15,7 +15,8 @@ uniform sampler2D normalExpoDiff;
 uniform sampler2D highExpoDiff;
 uniform int level;
 uniform ivec2 upscaleIn;
-#define TARGET (0.2)
+#define TARGET 0.5
+#define GAUSS 0.5
 #define MAXLEVEL (1)
 out float result;
 #import gaussian
@@ -37,7 +38,7 @@ void main() {
     float base = (useUpsampled)
     //? texelFetch(upsampled, xyCenter, 0).xyz
     ? textureBicubic(upsampled, vec2(gl_FragCoord.xy)/vec2(upscaleIn)).r
-    : float(0.);
+    : float(0.0);
     // How are we going to blend these two?
     vec2 normal = texelFetch(normalExpoDiff, xyCenter, 0).rg;
     vec2 high = texelFetch(highExpoDiff, xyCenter, 0).rg;
@@ -51,8 +52,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - TARGET, 0.50));
-    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - TARGET, 0.50));
+    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - TARGET, GAUSS));
+    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - TARGET, GAUSS));
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;
@@ -74,7 +75,7 @@ void main() {
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.4*(float(level)/float(MAXLEVEL))));
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.1 - 0.1*(float(level)/float(MAXLEVEL))));
-    result = base + mix(normal.r, high.r, blend*blend);
+    result = base + mix(normal.r, high.r, blend);
     //if(level == 0){
     //    result = result*result;
     //}

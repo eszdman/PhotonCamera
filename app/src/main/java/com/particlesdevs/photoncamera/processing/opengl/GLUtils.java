@@ -399,11 +399,11 @@ public class GLUtils {
         glProg.closed = true;
         return out;
     }
-    public GLTexture medianDown(GLTexture in,int k){
-        GLTexture out = new GLTexture(new Point(in.mSize.x/k,in.mSize.y/k),in.mFormat);
+    public GLTexture medianDown(GLTexture in,float k){
+        GLTexture out = new GLTexture(new Point((int)(in.mSize.x/k),(int)(in.mSize.y/k)),in.mFormat);
         return medianDown(in,out,k);
     }
-    public GLTexture medianDown(GLTexture in,GLTexture out, int k){
+    public GLTexture medianDown(GLTexture in,GLTexture out, float k){
         glProg.setDefine("RESIZE",k);
         glProg.useProgram(R.raw.mediandown);
         glProg.setTexture("InputBuffer",in);
@@ -725,23 +725,6 @@ public class GLUtils {
         private GLUtils glUtils;
         public int levels;
         public double step;
-        private final String diffProg = "" +
-                "#version 300 es\n" +
-                "precision highp float;\n" +
-                "precision highp sampler2D;\n" +
-                "uniform sampler2D target;\n" +
-                "uniform sampler2D base;\n" +
-                "uniform ivec2 size;\n" +
-                "out vec4 result;\n" +
-                //"uniform int yOffset;\n" +
-                "#import interpolation\n"+
-                "void main() {\n" +
-                "    ivec2 xyCenter = ivec2(gl_FragCoord.xy);\n" +
-                //"    xyCenter+=ivec2(0,yOffset);\n" +
-                //"    result = texelFetch(target, xyCenter, 0).xyz - texelFetch(base, xyCenter, 0).xyz;\n" +
-                "    result = texelFetch(target, xyCenter, 0) - textureBicubic(base, vec2(gl_FragCoord.xy)/vec2(size));\n" +
-                //"    result = textureBicubic(target, vec2(gl_FragCoord.xy)/vec2(size)).xyz - textureBicubic(base, vec2(gl_FragCoord.xy)/vec2(size)).xyz;\n" +
-                "}\n";
         public void releasePyramid(){
             for (GLTexture tex : gauss) {
                 tex.close();
@@ -761,7 +744,7 @@ public class GLUtils {
                 glUtils.interpolate(gauss[i - 1],gauss[i]);
             }
             System.arraycopy(gauss, 1, upscale, 0, upscale.length);
-            glProg.useProgram(diffProg);
+            glProg.useProgram(PhotonCamera.getAssetLoader().getString("pyramiddiff.glsl"));
             for (int i = 0; i < laplace.length; i++) {
                 glProg.setTexture("target", gauss[i]);
                 glProg.setTexture("base", upscale[i]);
@@ -780,7 +763,7 @@ public class GLUtils {
         }
         public GLTexture getLaplace(int number){
             if(number > sizes.length || number < 0) return null;
-            glProg.useProgram(diffProg);
+            glProg.useProgram(PhotonCamera.getAssetLoader().getString("pyramiddiff.glsl"));
             GLTexture downscaled = getGauss(number);
             glProg.setTexture("target", downscaled);
             glProg.setTexture("base", getGauss(number+1));
@@ -845,11 +828,19 @@ public class GLUtils {
         pyramid.sizes[0] = new Point(input.mSize);
         boolean autostep = step == 0;
         for (int i = 1; i < downscaled.length; i++) {
-            if(autostep && i < 2) step = 2; else step = 4;
+            //if(autostep && i < 2) step = 2; else step = 4;
             //downscaled[i] = gaussdown(downscaled[i - 1],step);
             Point insize = downscaled[i-1].mSize;
             if(autostep && (insize.x <= step+2 || insize.y <= step+2)) step = 2;
-            downscaled[i] = interpolate(downscaled[i - 1],new Point((int)(insize.x/step),(int)(insize.y/step)));
+            int sizex = (int)(insize.x/step);
+            int sizey = (int)(insize.y/step);
+            sizex = Math.max(1,sizex);
+            sizey = Math.max(1,sizey);
+            downscaled[i] = interpolate(downscaled[i - 1],new Point(sizex,sizey));
+            GLTexture old = downscaled[i];
+            downscaled[i] = blursmall(downscaled[i],3,1.4);
+            old.close();
+            //downscaled[i] = medianDown(downscaled[i-1],new GLTexture(new Point(sizex,sizey),downscaled[i-1].mFormat), (float) step);
             pyramid.sizes[i] = new Point((int)(pyramid.sizes[i-1].x/step),(int)(pyramid.sizes[i-1].y/step));
             Log.d("Pyramid","downscale:"+pyramid.sizes[i]);
         }
@@ -860,7 +851,7 @@ public class GLUtils {
             //Log.d("Pyramid","point:"+pyramid.sizes[i]+" after:"+upscale[i].mSize);
         }
 
-        glProg.useProgram(pyramid.diffProg);
+        glProg.useProgram(PhotonCamera.getAssetLoader().getString("pyramiddiff.glsl"));
         GLTexture[] diff = new GLTexture[upscale.length];
         for (int i = 0; i < diff.length; i++) {
             glProg.setTexture("target", downscaled[i]);

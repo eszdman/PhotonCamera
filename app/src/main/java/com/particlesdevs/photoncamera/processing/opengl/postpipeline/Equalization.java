@@ -655,7 +655,7 @@ public class Equalization extends Node {
         }
 
         //Limit blacklevel to 10% of detected range
-        float length  = (float) Math.sqrt(BLPredictShift[0]*BLPredictShift[0] + BLPredictShift[1]*BLPredictShift[1] + BLPredictShift[2]*BLPredictShift[2]);
+        float length  = (float) Math.sqrt(BLPredictShift[0]*BLPredictShift[0] + BLPredictShift[1]*BLPredictShift[1] + BLPredictShift[2]*BLPredictShift[2])+0.0001f;
         float length2 = Math.min(length,WL-blwl[0])/length;
         BLPredictShift[0]*=blackLevelSensitivity*length2;
         BLPredictShift[1]*=blackLevelSensitivity*length2;

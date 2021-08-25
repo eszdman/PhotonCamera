@@ -3,12 +3,12 @@ precision mediump float;
 precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
-#define RESIZE 4
+#define RESIZE 4.0
 #define SIZE 9
 out vec3 Output;
 #import median
 void main() {
-    ivec2 xy = ivec2(gl_FragCoord.xy)*RESIZE;
+    ivec2 xy = ivec2(gl_FragCoord.xy*RESIZE);
     #if SIZE == 9
     vec3 v[9];
     for(int dX = -1; dX <= 1; ++dX) {
