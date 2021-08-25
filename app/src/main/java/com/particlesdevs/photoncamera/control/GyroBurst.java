@@ -7,13 +7,13 @@ import java.util.ArrayList;
 public class GyroBurst {
     public float shakiness;
     public float[][] movementss;
-    public float[] timestampss;
+    public long[] timestampss;
     public float[] integrated;
     private final int maxSamples;
     public GyroBurst(int maxSamples){
         this.maxSamples = maxSamples;
         movementss = new float[3][maxSamples];
-        timestampss = new float[maxSamples];
+        timestampss = new long[maxSamples];
         integrated = new float[3];
     }
 

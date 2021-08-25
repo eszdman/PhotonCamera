@@ -23,13 +23,17 @@ public class Gyro {
     private GyroBurst gyroBurst;
     private int filter = -1;
     public int tripodShakiness = 1000;
-    public static int delayUs = 1;
+    public static int delayUs = 500;
     int tripodDetectCount = 600;
     int tripodCounter = 0;
+    public int gyroCircle = 1024;
+    public GyroBurst circleBurst = new GyroBurst(gyroCircle);
+    public int circleCount = 0;
     long temp = 0;
     public static final float NS2S = 1.0f / 1000000000.0f;
     private long prevStamp;
     private int counter = 0;
+
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
@@ -54,8 +58,14 @@ public class Gyro {
                 }
                 counter++;
             } else {
+                circleCount%=gyroCircle;
+                circleBurst.movementss[0][circleCount] = anglex;
+                circleBurst.movementss[1][circleCount] = angley;
+                circleBurst.movementss[2][circleCount] = anglez;
+                circleBurst.timestampss[circleCount] = sensorEvent.timestamp;
                 getShakiness();//For filtering
                 if(gyroburst) CompleteGyroBurst();
+                circleCount++;
             }
             prevStamp = sensorEvent.timestamp;
         }
@@ -101,7 +111,10 @@ public class Gyro {
         System.arraycopy(capturingTimes, 0, this.capturingTimes, 0, capturingTimes.length);
 
         BurstShakiness = burstShakiness;
+        unregister();
+        register();
     }
+
 
     public void CaptureGyroBurst() {
         //Save previous
@@ -127,6 +140,9 @@ public class Gyro {
             gyroBurst.integrated[2] = z;
             BurstShakiness.add(gyroBurst.clone());
         }
+        delayUs = 500;
+        unregister();
+        register();
     }
     public void CompleteSequence() {
         integrate = false;

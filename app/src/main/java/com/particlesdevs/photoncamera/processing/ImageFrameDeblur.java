@@ -29,8 +29,11 @@ public class ImageFrameDeblur {
         gyroMap = new GyroMap(kernelSize,kernelCount,nsize);
     }
     public void processDeblurPosition(ImageFrame in){
-        //gyroMap.FillKernels(in);
         /*
+        if(PhotonCamera.getSettings().DebugData){
+        gyroMap.FillKernels(in);
+        double xzoom = (Math.PI*2)/(parameters.angleX);
+        double yzoom = (Math.PI*2)/(parameters.angleY);
         for(int xk = 0; xk<kernelCount.x;xk++) {
             for (int yk = 0; yk < kernelCount.y; yk++) {
                 int x0 = xk * kernelSize.x + kernelSize.x / 2 - nsize.x / 2;
@@ -40,8 +43,14 @@ public class ImageFrameDeblur {
                     xf += in.frameGyro.movementss[0][t];
                     yf += in.frameGyro.movementss[1][t];
                     zf += in.frameGyro.movementss[2][t];
-                    int x = (int) (x0 * Math.cos(zf) - y0 * Math.sin(zf) + xf * parameters.perXAngle);
-                    int y = (int) (x0 * Math.sin(zf) + y0 * Math.cos(zf) + yf * parameters.perYAngle);
+                    int x = (int) (x0 * Math.cos(zf) - y0 * Math.sin(zf)
+                            //+ xf * parameters.perXAngle
+                            + nsize.x*Math.sin(xf)*xzoom
+                    );
+                    int y = (int) (x0 * Math.sin(zf) + y0 * Math.cos(zf)
+                            //+ yf * parameters.perYAngle
+                            + nsize.y*Math.sin(yf)*yzoom
+                    );
                     x %= kernelSize.x;
                     y %= kernelSize.y;
                     if (x < 0) x += kernelSize.x;
@@ -51,8 +60,13 @@ public class ImageFrameDeblur {
                     //Log.d("ImageFrameDeblur","Added: x:"+x+" y:"+y+" xf: "+zf);
                 }
             }
-        }*/
+        }
 
+        Log.d("ImageFrameDeblur","posxy:"+in.posx+","+in.posy);
+            Bitmap kernels = Utilities.drawKernels(in.BlurKernels,kernelSize,kernelCount);
+            Utilities.saveBitmap(kernels,"kernels");
+        }
+         */
         double xf,yf,zf;
         xf = in.frameGyro.integrated[0];
         yf = in.frameGyro.integrated[1];
@@ -64,11 +78,5 @@ public class ImageFrameDeblur {
         in.posx = xf*parameters.perXAngle;
         in.posy = yf*parameters.perYAngle;
         in.rotation = zf;
-        Log.d("ImageFrameDeblur","posxy:"+in.posx+","+in.posy);
-
-
-        //Bitmap kernels = Utilities.drawKernels(in.BlurKernels,kernelSize,kernelCount);
-        //Utilities.saveBitmap(kernels,"kernels");
-        //int crash = 0/0;
     }
 }
