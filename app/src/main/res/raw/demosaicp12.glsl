@@ -13,6 +13,7 @@ uniform sampler2D GradBuffer;
 #define FUSEMIN 0.0
 #define FUSEMAX 1.0
 #define FUSESHIFT -0.1
+#define FUSEMPY 1.4
 out float Output;
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {

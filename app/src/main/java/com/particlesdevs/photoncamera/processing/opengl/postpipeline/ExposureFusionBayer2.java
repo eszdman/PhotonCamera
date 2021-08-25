@@ -40,6 +40,16 @@ public class ExposureFusionBayer2 extends Node {
         glProg.drawBlocks(outp);
         return outp;
     }
+    GLTexture expose3(GLTexture in, float str){
+        glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);
+        glProg.useProgram(R.raw.exposebayer2);
+        glProg.setTexture("InputBuffer",in);
+        glProg.setVar("factor", str);
+        GLTexture tex = basePipeline.getMain();
+        glProg.drawBlocks(tex);
+        return tex;
+    }
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
         glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.fusionmap);
@@ -55,8 +65,20 @@ public class ExposureFusionBayer2 extends Node {
     }
     Point initialSize;
     Point WorkSize;
+    float overExpose = 3.0f;
+    float underExpose = 1.f/3.f;
+    float baseExpose = 1.0f;
+    float gaussSize = 0.1f;
+    float targetLuma = 0.5f;
+    float downScalePerLevel = 2.f;
     @Override
     public void Run() {
+        overExpose = getTuning("OverExpose",overExpose);
+        underExpose = getTuning("UnderExpose",underExpose);
+        baseExpose = getTuning("BaseExposure",baseExpose);
+        gaussSize = getTuning("GaussSize",gaussSize);
+        targetLuma = getTuning("TargetLuma",targetLuma);
+        downScalePerLevel = getTuning("DownScalePerLevel",downScalePerLevel);
         GLTexture in = previousNode.WorkingTexture;
         initialSize = new Point(previousNode.WorkingTexture.mSize);
         WorkSize = new Point(initialSize.x/2,initialSize.y/2);
@@ -68,14 +90,16 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main3.mSize.x = WorkSize.x;
         basePipeline.main3.mSize.y = WorkSize.y;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
-        int perlevel = 4;
-        int levelcount = (int)(Math.log10(previousNode.WorkingTexture.mSize.x)/Math.log10(perlevel))+1;
+        float perlevel = downScalePerLevel;
+        int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel))-1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,1.0f));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(3.0f)));
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose(in,overExpose));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose2(in,underExpose));
         //in.close();
         glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
+        glProg.setDefine("GAUSS",gaussSize);
+        glProg.setDefine("TARGET",targetLuma);
         glProg.useProgram(R.raw.fusionbayer2);
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
@@ -94,6 +118,8 @@ public class ExposureFusionBayer2 extends Node {
             GLTexture upsampleWip = binnedFuse;
             Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
             glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
+            glProg.setDefine("GAUSS",gaussSize);
+            glProg.setDefine("TARGET",targetLuma);
             glProg.useProgram(R.raw.fusionbayer2);
 
             glProg.setTexture("upsampled", upsampleWip);
@@ -132,15 +158,19 @@ public class ExposureFusionBayer2 extends Node {
 
         }
         //previousNode.WorkingTexture.close();
-
         basePipeline.main1.mSize.x = initialSize.x;
         basePipeline.main1.mSize.y = initialSize.y;
         basePipeline.main2.mSize.x = initialSize.x;
         basePipeline.main2.mSize.y = initialSize.y;
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
+        GLTexture exposureBase = expose3(in,baseExpose);
         ((PostPipeline)basePipeline).FusionMap =
-                fusionMap(binnedFuse,normalExpo.gauss[0], (float)((PostPipeline)basePipeline).AecCorr/2.f);
+                fusionMap(binnedFuse,exposureBase, (float)((PostPipeline)basePipeline).AecCorr/2.f);
+        //Use EDI to interpolate fusionmap
+
+
+        basePipeline.getMain();
                 //binnedFuse;
         /*if(basePipeline.mSettings.DebugData) {
             glUtils.convertVec4(((PostPipeline)basePipeline).FusionMap,"in1.r*15.0");

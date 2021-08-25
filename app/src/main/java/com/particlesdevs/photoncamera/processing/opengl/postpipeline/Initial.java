@@ -37,7 +37,7 @@ public class Initial extends Node {
 
     GLTexture lut;
     Bitmap lutbm;
-    float highersatmpy = 0.f;
+    float highersatmpy = 1.0f;
     float gammaKoefficientGenerator = 2.0f;
     float gammax1 = 7.1896f;
     float gammax2 = -50.8195f;

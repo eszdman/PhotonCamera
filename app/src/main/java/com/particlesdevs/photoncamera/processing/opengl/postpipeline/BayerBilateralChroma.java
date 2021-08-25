@@ -9,7 +9,7 @@ import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 public class BayerBilateralChroma extends Node {
 
     public BayerBilateralChroma() {
-        super(R.raw.bilateral, "Denoise");
+        super(0, "Denoise");
     }
 
     @Override

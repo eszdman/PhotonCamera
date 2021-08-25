@@ -272,9 +272,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     }
     #endif
     pRGB = corr*sensorToIntermediate*pRGB;
+
     pRGB = clamp(pRGB,0.0,1.0);
-    pRGB = max(pRGB-vec3(DYNAMICBL)/PRECISION,0.0);
-    pRGB*=vec3(1.0)-vec3(DYNAMICBL)/PRECISION;
 
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
@@ -296,7 +295,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=4.0;
 
     //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
-    if(br < 0.99) br*=1.0 + (tonemapGain-1.0)*1.0;
+    //if(br < 0.99)
+    //br*=1.0 + (tonemapGain-1.0)*-5.0;
+    br*=tonemapGain;
 
 
 
@@ -310,6 +311,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
+
     pRGB = gammaCorrectPixel2(pRGB);
     pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.5+0.4,1.0));
 
@@ -342,13 +344,17 @@ void main() {
     t+=texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb;
     tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
-    tonemapGain = texelFetch(FusionMap, ivec2(gl_FragCoord.xy/2.0), 0).r*50.0;
+    tonemapGain = textureBicubic(FusionMap, gl_FragCoord.xy/vec2(textureSize(InputBuffer, 0))).r*50.0;
+
+
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB,tonemapGain);
     //sRGB = clamp(sRGB,0.0,1.0);
+
     sRGB = lookup(sRGB);
+
     //Rip Shadowing applied
     br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));
     //br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));
