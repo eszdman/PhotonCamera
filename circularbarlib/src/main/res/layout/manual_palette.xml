@@ -14,9 +14,9 @@
         android:layout_height="wrap_content">
 
         <com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView
-            android:id="@+id/knobView"
-            android:layout_width="match_parent"
-            android:layout_height="112dp" />
+                android:id="@+id/knobView"
+                android:layout_width="match_parent"
+                android:layout_height="128dp" />
     </FrameLayout>
 
 
