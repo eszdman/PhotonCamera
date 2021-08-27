@@ -34,6 +34,7 @@ out vec3 Output;
 //CSEUS Gamma
 //1.0 0.86 0.76 0.57 0.48 0.0 0.09 0.3
 //0.999134635 0.97580 0.94892548 0.8547916 0.798550103 0.0000000 0.29694557 0.625511972
+#define INSIZE 1,1
 #define NEUTRALPOINT 0.0,0.0,0.0
 #define SATURATION 0.0
 #define SATURATION2 1.0
@@ -344,7 +345,7 @@ void main() {
     t+=texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb;
     tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
-    tonemapGain = textureBicubic(FusionMap, gl_FragCoord.xy/vec2(textureSize(InputBuffer, 0))).r*50.0;
+    tonemapGain = textureBicubic(FusionMap, gl_FragCoord.xy/vec2(INSIZE)).r*50.0;
 
 
     #endif

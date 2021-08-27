@@ -31,10 +31,10 @@ public class ESD3D extends Node {
         GLTexture map = glUtils.medianDown(previousNode.WorkingTexture,4);
         GLTexture grad;
 
-        if(previousNode.WorkingTexture != basePipeline.main3){
+        //if(previousNode.WorkingTexture != basePipeline.main3){
             grad = basePipeline.main3;
-        }
-        else grad = basePipeline.getMain();
+        //}
+        //else grad = basePipeline.getMain();
         glUtils.ConvDiff(previousNode.WorkingTexture, grad, 0.f);
 
 

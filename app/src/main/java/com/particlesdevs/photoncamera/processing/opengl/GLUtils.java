@@ -416,13 +416,16 @@ public class GLUtils {
     }
     public GLTexture interpolate(GLTexture in, Point nsize){
         GLTexture out = new GLTexture(nsize,in.mFormat);
-        return interpolate(in,out);
+        return interpolate(in,out,1.0,out.mSize);
     }
     public GLTexture interpolate(GLTexture in, double k){
         GLTexture out = new GLTexture((int)(in.mSize.x*k),(int)(in.mSize.y*k),in.mFormat);
         return interpolate(in,out,k);
     }
     public GLTexture interpolate(GLTexture in,GLTexture out){
+        return interpolate(in,out,1.0,out.mSize);
+    }
+    public GLTexture interpolate(GLTexture in,GLTexture out,double zoom, Point size){
         glProg.useProgram("#version 300 es\n" +
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
@@ -436,10 +439,10 @@ public class GLUtils {
                 "void main() {\n" +
                 "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
                 "    xy+=vec2(0,yOffset);\n" +
-                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                "    Output = tvar(textureBicubic(InputBuffer, (vec2(xy)*"+1.0/zoom+"/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                 "}\n");
         glProg.setTexture("InputBuffer",in);
-        glProg.setVar("size",(int)(out.mSize.x),(int)(out.mSize.y));
+        glProg.setVar("size",size);
         glProg.drawBlocks(out,out.mSize);
         glProg.closed = true;
         return out;

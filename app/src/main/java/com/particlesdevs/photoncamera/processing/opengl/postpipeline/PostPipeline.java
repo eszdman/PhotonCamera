@@ -5,6 +5,7 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
@@ -13,7 +14,6 @@ import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLInterface;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
-import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 
@@ -53,6 +53,8 @@ public class PostPipeline extends GLBasePipeline {
     public Bitmap Run(ByteBuffer inBuffer, Parameters parameters){
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
+        workSize = new Point(mParameters.rawSize.x,mParameters.rawSize.y);
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         Point rotated = getRotatedCoords(parameters.rawSize);
         if(PhotonCamera.getSettings().energySaving || mParameters.rawSize.x*mParameters.rawSize.y < ResolutionSolution.smallRes){
             GLDrawParams.TileSize = 8;
@@ -93,7 +95,6 @@ public class PostPipeline extends GLBasePipeline {
          * * * All filters after demosaicing * * *
          */
 
-
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
@@ -116,6 +117,10 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
         add(new SharpenDual());
+
+
+
+
         //add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));
         return runAll();

@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -39,6 +40,7 @@ public class GLBasePipeline implements AutoCloseable {
     public Settings mSettings;
     public Parameters mParameters;
     public Properties mProp;
+    public Point workSize;
     private String currentProg;
 
     public int texnum = 0;

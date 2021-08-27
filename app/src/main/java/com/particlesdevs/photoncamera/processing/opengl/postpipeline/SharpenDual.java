@@ -8,6 +8,7 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
+import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class SharpenDual extends Node {
@@ -24,6 +25,15 @@ public class SharpenDual extends Node {
     float sharpMax = 1.f;
     @Override
     public void Run() {
+        NoiseModeler modeler = basePipeline.mParameters.noiseModeler;
+        float noiseS = modeler.computeModel[0].first.floatValue()+
+                modeler.computeModel[1].first.floatValue()+
+                modeler.computeModel[2].first.floatValue();
+        float noiseO = modeler.computeModel[0].second.floatValue()+
+                modeler.computeModel[1].second.floatValue()+
+                modeler.computeModel[2].second.floatValue();
+        noiseS/=3.f;
+        noiseO/=3.f;
         blurSize = getTuning("BlurSize", blurSize);
         sharpSize = getTuning("SharpSize", sharpSize);
         sharpMin = getTuning("SharpMin",sharpMin);
@@ -42,6 +52,8 @@ public class SharpenDual extends Node {
         glProg.setDefine("SHARPSIZE",sharpSize);
         glProg.setDefine("SHARPMIN",sharpMin);
         glProg.setDefine("SHARPMAX",sharpMax);
+        glProg.setDefine("NOISES",noiseS);
+        glProg.setDefine("NOISEO",noiseO);
         glProg.useProgram(R.raw.lsharpening);
         Log.d("PostNode:" + Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setVar("size", sharpSize);

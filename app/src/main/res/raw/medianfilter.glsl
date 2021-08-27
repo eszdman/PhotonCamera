@@ -3,6 +3,7 @@ precision mediump float;
 precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
+uniform sampler2D GradBuffer;
 #define TRANSPOSE (1,1)
 #define SIZE 9
 out vec3 Output;

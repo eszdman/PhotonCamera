@@ -16,10 +16,17 @@ public class NoiseModeler {
         SensivityISO = ISO;
         baseModel = new Pair[3];
         computeModel = new Pair[3];
+        inModel = null;
         if (inModel == null || inModel.length == 0) {
+            /*
             Pair<Double, Double> Imx363sGenerator = new Pair<>(0.0000025720647, 0.000028855721);
             Pair<Double, Double> Imx363oGenerator = new Pair<>(0.000000000039798506, 0.000000046578279);
             Pair<Double,Double> computedModel = new Pair<>(computeNoiseModelS(ISO,Imx363sGenerator),computeNoiseModelO(ISO,Imx363oGenerator));
+             */
+            //Test
+            Pair<Double, Double> TestsGenerator = new Pair<>(1.0798706869238175e-06, -8.618818353621416e-06);
+            Pair<Double, Double> TestoGenerator = new Pair<>(5.790989178667454e-12, 3.7009550769043865e-07);
+            Pair<Double,Double> computedModel = new Pair<>(computeNoiseModelS(ISO,TestsGenerator),computeNoiseModelO(ISO,TestoGenerator));
             baseModel[0] = new Pair<>(computedModel.first, computedModel.second);
             baseModel[1] = new Pair<>(computedModel.first, computedModel.second);
             baseModel[2] = new Pair<>(computedModel.first, computedModel.second);
@@ -68,8 +75,7 @@ public class NoiseModeler {
     }
 
     private double computeNoiseModelO(double Sensitivity,Pair<Double,Double> oGenerator) {
-        double dGain = Sensitivity/AnalogueISO;
-        dGain = Math.max(dGain, 1.0);
+        double dGain = Math.max(Sensitivity/AnalogueISO,1.0);
         return (oGenerator.first * Sensitivity*Sensitivity) + (oGenerator.second*dGain*dGain);
     }
 

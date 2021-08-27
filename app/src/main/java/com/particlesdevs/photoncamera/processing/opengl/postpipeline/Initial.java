@@ -97,7 +97,7 @@ public class Initial extends Node {
         float minP = (WP[0]+WP[1]+WP[2])/3.f;
         glProg.setDefine("MINP",minP);
         glProg.setDefine("NEUTRALPOINT",WP);
-
+        glProg.setDefine("INSIZE",basePipeline.workSize);
         float[][] cube = null;
         ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
