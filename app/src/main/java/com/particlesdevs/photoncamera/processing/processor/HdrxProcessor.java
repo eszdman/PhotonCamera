@@ -124,6 +124,10 @@ public class HdrxProcessor extends ProcessorBase {
             //frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
             frame.pair = IsoExpoSelector.fullpairs.get(i);
             frame.number = i;
+            /*if(i == mImageFramesToProcess.size()-1){
+                int ind = Math.max(0,mImageFramesToProcess.size()-2);
+                frame.frameGyro = BurstShakiness.get(ind);
+            }*/
             images.add(frame);
         }
         ImageFrameDeblur imageFrameDeblur = new ImageFrameDeblur();

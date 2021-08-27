@@ -54,7 +54,7 @@ public class Histogram {
         histb = buildCumulativeHist(histInb);
 
         // Find gamma: Inverse of the average exponent.
-        gamma = findGamma(hist);
+        //gamma = findGamma(hist);
 
         // Compensate for the gamma being applied first.
         /*for (int i = 1; i <= HIST_BINS; i++) {

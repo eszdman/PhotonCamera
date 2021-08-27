@@ -30,10 +30,9 @@ public class ImageFrameDeblur {
     }
     public void processDeblurPosition(ImageFrame in){
         /*
-        if(PhotonCamera.getSettings().DebugData){
-        gyroMap.FillKernels(in);
         double xzoom = (Math.PI*2)/(parameters.angleX);
         double yzoom = (Math.PI*2)/(parameters.angleY);
+        in.BlurKernels = new float[kernelCount.x][kernelCount.y][kernelSize.x*kernelSize.y];
         for(int xk = 0; xk<kernelCount.x;xk++) {
             for (int yk = 0; yk < kernelCount.y; yk++) {
                 int x0 = xk * kernelSize.x + kernelSize.x / 2 - nsize.x / 2;
@@ -65,7 +64,7 @@ public class ImageFrameDeblur {
         Log.d("ImageFrameDeblur","posxy:"+in.posx+","+in.posy);
             Bitmap kernels = Utilities.drawKernels(in.BlurKernels,kernelSize,kernelCount);
             Utilities.saveBitmap(kernels,"kernels");
-        }
+
          */
         double xf,yf,zf;
         xf = in.frameGyro.integrated[0];

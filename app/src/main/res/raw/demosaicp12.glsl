@@ -92,7 +92,7 @@ void main() {
                 Output = (green[0]*grad[0] + green[3]*grad[3])/(grad[0]+grad[3]);
                 //Output = (green[0] + green[3])/(2.0);
             }
-        W = mix(FUSEMIN,FUSEMAX,W+FUSESHIFT);
+
         /*
         float output2;
         if (abs(green[0] - green[3]) > abs(green[1] - green[2])){
@@ -102,6 +102,7 @@ void main() {
         }
         Output = mix(Output,output2,W);
         */
+        W = mix(FUSEMIN,FUSEMAX,W*FUSEMPY+FUSESHIFT);
         Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
 
 

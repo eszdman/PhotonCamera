@@ -36,6 +36,7 @@ public class Median extends Node {
         //glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         WorkingTexture = basePipeline.getMain();
-        glProg.closed = false;
+        glProg.drawBlocks(WorkingTexture);
+        glProg.closed = true;
     }
 }

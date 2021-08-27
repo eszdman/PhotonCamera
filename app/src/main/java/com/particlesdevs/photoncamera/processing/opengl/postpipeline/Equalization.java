@@ -84,7 +84,7 @@ public class Equalization extends Node {
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("stp",0);
         glProg.drawBlocks(r1);
-        Bitmap bmp = glUtils.SaveProgResult(r1.mSize);
+        Bitmap bmp = glUtils.GenerateBitmap(r1.mSize);
         analyze_lut.close();
         analyze_lutbm.recycle();
         /*float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
@@ -96,7 +96,9 @@ public class Equalization extends Node {
         fb.get(brArr);
         fb.reset();
         r1.close();*/
-        return new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
+        Histogram histogram = new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
+        bmp.recycle();
+        return histogram;
     }
     private float pdf(float x,float sigma){
         return (float) (0.39894*Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
@@ -481,24 +483,34 @@ public class Equalization extends Node {
     }
     GLTexture lut;
     Bitmap lutbm;
-    float analyzeIntensity = -0.35f;
-    float analyzeCenter = 0.5f;
-    float curveCenter = 0.5f;
-    float edgesStretchShadows = 1.25f;
-    float edgesStretchHighLight = 1.25f;
+    float analyzeIntensity = -2.5f;
+    float analyzeCenter = 0.0f;
+    float curveCenter = 0.44f;
+    float edgesStretchShadows = 2.25f;
+    float edgesStretchHighLight = 0.0f;
     int histSize = 4096;
     int blackLevelSearch = 384;
     float edgesBilateralSmooth = 3.5f;
     float edgesBilateralSmoothNight = 1.0f;
     float highLightSmoothAmplify = 2.5f;
-    float shadowsSensitivity = 0.6f;
+    float shadowsSensitivity = 0.5f;
     float blackLevelSensitivity = 1.1f;
-
     int whiteBalanceSearch = 400;
     float whiteBalanceSaturation = 1.35f;
     float[] tonemapCoeffs = new float[]{-0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f};
+    boolean disableEqualization = false;
+    boolean enableTonemap = false;
+    float highlightCompress = 1.0f;
     @Override
     public void Run() {
+        disableEqualization = getTuning("DisableEqualization",disableEqualization);
+        if(disableEqualization){
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
+        highlightCompress = getTuning("HighlightCompress",highlightCompress);
+        enableTonemap = getTuning("EnableTonemap",enableTonemap);
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
         edgesStretchShadows = getTuning("EdgesStretchShadows", edgesStretchShadows);
         edgesStretchHighLight = getTuning("EdgesStretchHighLight", edgesStretchHighLight);
@@ -711,7 +723,7 @@ public class Equalization extends Node {
                 histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
                 else histParser.hist[i] = (float)mix(histParser.hist[i],(histParser.hist[i])*(histParser.hist[i]),-(shadowW)*shadowsSensitivity);
             }
-            //histParser.hist[i] = mix(histParser.hist[i],line,line*0.35f);
+            histParser.hist[i] = mix(histParser.hist[i],line,line*line*highlightCompress);
         }
         if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,new float[]{WL,WL,WL});
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
@@ -721,6 +733,7 @@ public class Equalization extends Node {
         glProg.setDefine("BL2",BLPredictShift);
         glProg.setDefine("BR",(float)(shadowW)*shadowsSensitivity);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"lut.png");
+        glProg.setDefine("TONEMAP",enableTonemap);
         if(customlut.exists()){
             lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
             lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);

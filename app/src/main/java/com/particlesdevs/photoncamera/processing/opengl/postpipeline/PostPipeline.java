@@ -72,9 +72,9 @@ public class PostPipeline extends GLBasePipeline {
         stackFrame = inBuffer;
         glint.parameters = parameters;
         add(new Bayer2Float());
-        if(PhotonCamera.getSettings().hdrxNR) {
+        /*if(PhotonCamera.getSettings().hdrxNR) {
             add(new BayerBilateralChroma());
-        }
+        }*/
         add(new ExposureFusionBayer2());
         //if(!IsoExpoSelez = mix(mix(z, z*z, BR),z,z);ctor.HDR) {
             if (PhotonCamera.getSettings().cfaPattern != 4) {
@@ -97,12 +97,16 @@ public class PostPipeline extends GLBasePipeline {
         //add(new DynamicBL());
         //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
+            add(new Median(new Point(1,1),3,"MedianColor",R.raw.mediancolor));
+            add(new Median(new Point(1,1),3,"MedianColor",R.raw.mediancolor));
             add(new ESD3D());
         }
 
         add(new Initial());
 
         add(new Equalization());
+
+        //add(new GlobalToneMapping());
 
 
         //add(new AWB());

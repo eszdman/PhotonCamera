@@ -33,3 +33,26 @@ vec2[9] bayer9(ivec2 xy, sampler2D inTex){
     }
     return v;
 }
+float[9] bayer9ND(ivec2 xy, sampler2D inTex){
+    float v[9];
+    ivec2 fact = (xy)%2;
+    if(fact.x+fact.y == 1){
+        v[4] = float(texelFetch(inTex, xy + ivec2(0, 0), 0).r);
+        v[1] = float(texelFetch(inTex, xy + ivec2(1, 1), 0).r);
+        v[2] = float(texelFetch(inTex, xy + ivec2(-1, -1), 0).r);
+        v[3] = float(texelFetch(inTex, xy + ivec2(1, -1), 0).r);
+        v[0] = float(texelFetch(inTex, xy + ivec2(-1, 1), 0).r);
+        v[5] = float(texelFetch(inTex, xy + ivec2(0, 2), 0).r);
+        v[6] = float(texelFetch(inTex, xy + ivec2(2, 0), 0).r);
+        v[7] = float(texelFetch(inTex, xy + ivec2(0, -2), 0).r);
+        v[8] = float(texelFetch(inTex, xy + ivec2(-2, 0), 0).r);
+    } else {
+        for (int dX = -1; dX <= 1; ++dX) {
+            for (int dY = -1; dY <= 1; ++dY) {
+                ivec2 offset = ivec2((dX), (dY));
+                v[(dX + 1) * 3 + (dY + 1)] = float(texelFetch(inTex, xy + offset*2, 0).r);
+            }
+        }
+    }
+    return v;
+}

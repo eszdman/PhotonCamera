@@ -23,6 +23,7 @@ out vec3 Output;
 #define EPSAMP (3.0)
 #define BL2 (0.0)
 #define LUT 0
+#define TONEMAP 1
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform sampler2D TonemapTex;
 #define PI (3.1415926535)
@@ -228,7 +229,9 @@ void main() {
     //Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
 
     Output.rgb = clamp(sRGB,0.0,1.0);
+    #if TONEMAP == 1
     Output.rgb = tonemap(Output.rgb);
+    #endif
     #if LUT == 1
     Output.rgb = lookup(Output.rgb);
     #endif

@@ -30,22 +30,29 @@ public class ESD3D extends Node {
         noiseO/=3.f;
         GLTexture map = glUtils.medianDown(previousNode.WorkingTexture,4);
         GLTexture grad;
+
         if(previousNode.WorkingTexture != basePipeline.main3){
             grad = basePipeline.main3;
         }
         else grad = basePipeline.getMain();
         glUtils.ConvDiff(previousNode.WorkingTexture, grad, 0.f);
-        Log.d(Name,"NoiseS:"+noiseS+", NoiseO:"+noiseO);
-        glProg.setDefine("NOISES",noiseS);
-        glProg.setDefine("NOISEO",noiseO);
-        glProg.setDefine("INTENSE", (float) basePipeline.mSettings.noiseRstr);
-        glProg.setDefine("INSIZE",previousNode.WorkingTexture.mSize);
-        glProg.useProgram(R.raw.esd3d);
-        glProg.setTexture("NoiseMap",map);
-        glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("GradBuffer",grad);
-        WorkingTexture = basePipeline.getMain();
-        glProg.drawBlocks(WorkingTexture);
+
+
+
+
+        {
+            Log.d(Name, "NoiseS:" + noiseS + ", NoiseO:" + noiseO);
+            glProg.setDefine("NOISES", noiseS);
+            glProg.setDefine("NOISEO", noiseO);
+            glProg.setDefine("INTENSE", (float) basePipeline.mSettings.noiseRstr);
+            glProg.setDefine("INSIZE", previousNode.WorkingTexture.mSize);
+            glProg.useProgram(R.raw.esd3d);
+            glProg.setTexture("NoiseMap", map);
+            glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
+            glProg.setTexture("GradBuffer", grad);
+            WorkingTexture = basePipeline.getMain();
+            glProg.drawBlocks(WorkingTexture);
+        }
         glProg.closed = true;
         map.close();
     }

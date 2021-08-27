@@ -21,18 +21,19 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            >
 
         <FrameLayout
                 android:id="@+id/camera_switch_container"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                app:layout_constraintStart_toEndOf="@+id/shutter_button_container"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
+                android:layout_width="@dimen/camera_switch_button_size"
+                android:layout_height="0dp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginEnd="16dp"
-                android:layout_marginStart="16dp">
+                app:layout_constraintDimensionRatio="1.0"
+                app:layout_constraintEnd_toStartOf="@id/shutter_button_container"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
             <ImageButton
                     android:layout_gravity="center"
@@ -47,20 +48,20 @@
                     android:visibility="visible"
                     tools:ignore="HardcodedText"
                     android:layout_height="match_parent"
-                    android:layout_width="match_parent" />
+                    android:layout_width="match_parent"/>
 
         </FrameLayout>
 
         <FrameLayout
-                android:layout_width="86dp"
-                android:layout_height="86dp"
+                android:layout_width="@dimen/shutter_button_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1.0"
                 android:id="@+id/shutter_button_container"
                 app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/camera_switch_container"
+                app:layout_constraintEnd_toStartOf="@id/galery_button_container"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginStart="16dp"
-                app:layout_constraintStart_toEndOf="@+id/galery_button_container"
-                app:layout_constraintEnd_toStartOf="@+id/camera_switch_container"
-                android:layout_marginEnd="16dp">
+                >
 
             <ImageButton
                     android:id="@+id/shutter_button"
@@ -75,7 +76,7 @@
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
                     tools:ignore="HardcodedText"
-                    tools:text="Shot" />
+                    tools:text="Shot"/>
 
             <ProgressBar
                     android:id="@+id/processing_progress_bar"
@@ -91,7 +92,8 @@
                     android:indeterminateDrawable="@drawable/circular_progress_bar2"
                     android:interpolator="@android:anim/accelerate_decelerate_interpolator"
                     android:scaleX="1.35"
-                    android:scaleY="1.35" />
+                    android:scaleY="1.35"
+                    />
 
             <TextView
                     android:id="@+id/frameCount"
@@ -104,20 +106,20 @@
                     android:textAlignment="center"
                     android:typeface="normal"
                     android:visibility="visible"
-                    android:layout_gravity="center" />
+                    android:layout_gravity="center"/>
         </FrameLayout>
 
         <FrameLayout
-                android:layout_width="64dp"
-                android:layout_height="64dp"
+                android:layout_width="@dimen/gallery_button_size"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="1.0"
                 android:id="@+id/galery_button_container"
-
-                app:layout_constraintEnd_toStartOf="@+id/shutter_button_container"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp">
+                app:layout_constraintStart_toEndOf="@id/shutter_button_container"
+
+                >
 
             <de.hdodenhof.circleimageview.CircleImageView
                     android:id="@+id/gallery_image_button"
@@ -130,7 +132,8 @@
                     app:civ_border_width="3dp"
                     android:onClick="@{bottom_bar_click_listener}"
                     imageFromBitmap="@{uimodel.bitmap}"
-                    bindRotate="@{uimodel}" />
+                    bindRotate="@{uimodel}"
+                    />
         </FrameLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

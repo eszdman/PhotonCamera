@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 
@@ -8,6 +9,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.GLUtils;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -50,6 +52,31 @@ public class ExposureFusionBayer2 extends Node {
         glProg.drawBlocks(tex);
         return tex;
     }
+    void getHistogram(GLTexture lowGauss){
+        glUtils.convertVec4(lowGauss,"in1.r");
+        Bitmap sourceh = glUtils.GenerateBitmap(lowGauss.mSize);
+        histogram = new Histogram(sourceh,lowGauss.mSize.x*lowGauss.mSize.y,256);
+        sourceh.recycle();
+    }
+    float autoExposureHigh(){
+        float max = 0.f;
+        for(int i = 15; i<240;i++){
+            float ind = (float)(Math.pow(i/255.f, 1./ gammaKSearch));
+            float mpy = histogram.histr[i]/(ind);
+            max = Math.max(max,mpy);
+        }
+        return max;
+    }
+    float autoExposureLow(){
+        float min = 1.f;
+        for(int i = 15; i<240;i++){
+            float ind = (float)(Math.pow(i/255.f, 1./ gammaKSearch));
+            float mpy = histogram.histr[i]/(ind);
+            min = Math.min(min,mpy);
+        }
+        return min;
+    }
+
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
         glProg.setDefine("DH","("+dehaze+")");
         glProg.useProgram(R.raw.fusionmap);
@@ -63,18 +90,20 @@ public class ExposureFusionBayer2 extends Node {
         glProg.drawBlocks(out);
         return out;
     }
+    Histogram histogram;
     Point initialSize;
     Point WorkSize;
-    float overExpose = 3.0f;
-    float underExpose = 1.f/3.f;
+    float overExposeMpy = 2.0f;
+    float underExposeMpy = 0.6f;
+    float gammaKSearch = 1.0f;
     float baseExpose = 1.0f;
-    float gaussSize = 0.1f;
-    float targetLuma = 0.5f;
-    float downScalePerLevel = 2.f;
+    float gaussSize = 0.5f;
+    float targetLuma = 0.8f;
+    float downScalePerLevel = 2.0f;
     @Override
     public void Run() {
-        overExpose = getTuning("OverExpose",overExpose);
-        underExpose = getTuning("UnderExpose",underExpose);
+        overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
+        underExposeMpy = getTuning("UnderExposeMpy", underExposeMpy);
         baseExpose = getTuning("BaseExposure",baseExpose);
         gaussSize = getTuning("GaussSize",gaussSize);
         targetLuma = getTuning("TargetLuma",targetLuma);
@@ -94,8 +123,22 @@ public class ExposureFusionBayer2 extends Node {
         int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel))-1;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose(in,overExpose));
-        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose2(in,underExpose));
+
+
+        GLTexture exposureBase = expose3(in,baseExpose);
+        GLTexture downscaled = glUtils.interpolate(exposureBase,1.0/4.0);
+        getHistogram(downscaled);
+        downscaled.close();
+        float overexpose = autoExposureHigh()*overExposeMpy;
+        float underexposure = autoExposureLow()*underExposeMpy;
+        //overexpose = Math.min(10.f,overexpose);
+        //underexposure = Math.max(underexposure,0.0008f);
+        Log.d(Name,"Overexp:"+overexpose+" , Underexp:"+underexposure);
+
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose(in,overexpose));
+        GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose2(in,underexposure));
+
+
         //in.close();
         glProg.setDefine("MAXLEVEL",normalExpo.laplace.length - 1);
         glProg.setDefine("GAUSS",gaussSize);
@@ -164,7 +207,6 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main2.mSize.y = initialSize.y;
         basePipeline.main3.mSize.x = initialSize.x;
         basePipeline.main3.mSize.y = initialSize.y;
-        GLTexture exposureBase = expose3(in,baseExpose);
         ((PostPipeline)basePipeline).FusionMap =
                 fusionMap(binnedFuse,exposureBase, (float)((PostPipeline)basePipeline).AecCorr/2.f);
         //Use EDI to interpolate fusionmap

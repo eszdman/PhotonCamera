@@ -27,6 +27,7 @@ import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.processing.render.PreviewParameters;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
@@ -53,6 +54,7 @@ public class PhotonCamera extends Application {
     private Gyro mGyro;
     private Vibration mVibration;
     private Parameters mParameters;
+    private PreviewParameters mPreviewParameters;
     private CaptureController mCaptureController;
     private SupportedDevice mSupportedDevice;
     private SettingsManager mSettingsManager;
@@ -92,6 +94,10 @@ public class PhotonCamera extends Application {
 
     public static Parameters getParameters() {
         return sPhotonCamera.mParameters;
+    }
+
+    public static PreviewParameters getPreviewParameters() {
+        return sPhotonCamera.mPreviewParameters;
     }
 
     public static Specific getSpecific(){
@@ -204,6 +210,7 @@ public class PhotonCamera extends Application {
         mSettings = new Settings();
 
         mParameters = new Parameters();
+        mPreviewParameters = new PreviewParameters();
         mSupportedDevice = new SupportedDevice(mSettingsManager);
         mAssetLoader = new AssetLoader(this);
         mRS = RenderScript.create(this);

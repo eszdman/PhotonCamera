@@ -16,8 +16,8 @@ public class Demosaic2 extends Node {
     float gradSize = 1.75f;
     float fuseMin = 0.f;
     float fuseMax = 1.f;
-    float fuseShift = -0.15f;
-    float fuseMpy = 1.15f;
+    float fuseShift = -0.3f;
+    float fuseMpy = 0.0f;
     @Override
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);

@@ -4,7 +4,6 @@ precision mediump sampler2D;
 // Input texture
 uniform sampler2D InputBuffer;
 out vec3 Output;
-uniform int yOffset;
 #define TRANSPOSE (1,1)
 #define MEDSIZE 3
 #define MSIZE 3
@@ -23,7 +22,6 @@ void main() {
     //Get center pixel
     Output = vec3(texelFetch(InputBuffer, xy, 0).rgb);
     if(xy.x%2 == 0 && xy.y%2 == 0){
-        xy+=ivec2(0, yOffset);
         // Add the pixels which make up our window to the pixel array.
         float pdfsize = 0.0;
         #if MEDSIZE == 3
