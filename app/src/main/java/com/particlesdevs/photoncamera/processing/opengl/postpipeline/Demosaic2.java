@@ -13,7 +13,7 @@ public class Demosaic2 extends Node {
 
     @Override
     public void Compile() {}
-    float gradSize = 1.0f;
+    float gradSize = 1.5f;
     float fuseMin = 0.f;
     float fuseMax = 1.f;
     float fuseShift = -0.5f;

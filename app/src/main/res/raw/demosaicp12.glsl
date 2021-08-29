@@ -52,26 +52,18 @@ void main() {
         grad[1] = 1.0/sqrt(grad[1]+demosw);
         grad[2] = 1.0/sqrt(grad[2]+demosw);
         grad[3] = 1.0/sqrt(grad[3]+demosw);
-        /*
-        Output = green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3];
-        Output/=grad[0]+grad[1]+grad[2]+grad[3];*/
-        vec2 HV = initialGrad*1.15+demosw;
+
+        vec2 HV = vec2(demosw);
         float weights = 0.00001;
         for (int j =-2;j<=2;j++)
         {
             float k0 = normpdf(float(j), GRADSIZE);
             for (int i =-2;i<=2;i++){
-                if (i == 0 && j == 0) continue;
+                if((i%2) + (j%2) != 1) continue;
                 float k = normpdf(float(i), GRADSIZE)*k0;
-                //float cw = 1.0/((float(abs(i)+abs(j)))/(1.15));
                 vec2 div = texelFetch(GradBuffer, ivec2(xy+ivec2(i, j)), 0).rg;
-                //if((div.r+div.g) < (HV.r+HV.g)*0.2) break;
                 HV += div*k;
                 weights+=k;
-                //weights += cw;
-                //HV += texelFetch(GradBuffer,ivec2(xy+ivec2(i,j)),0).rg/((float(abs(i)+abs(j)))/(1.0));
-                //H += ingrad.r;//*(1.0 - float(abs(i)+abs(j))/5.0);
-                //V += ingrad.g;//*(1.0 - float(abs(i)+abs(j))/5.0);
             }
         }
         float MIN = min(min(green[0],green[1]),min(green[2],green[3]));

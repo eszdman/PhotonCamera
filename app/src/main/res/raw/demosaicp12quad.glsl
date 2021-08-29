@@ -28,12 +28,12 @@ void main() {
         float outp = 0.0;
         float weight = 0.0;
         float green[4];
-        green[0] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, -1-shift.y)), 0).r;
-        green[1] = texelFetch(RawBuffer, ivec2(xy+ivec2(-1-shift.x, 0)), 0).r;
-        green[2] = texelFetch(RawBuffer, ivec2(xy+ivec2(2-shift.x, 0)), 0).r;
-        green[3] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, 2-shift.y)), 0).r;
+        green[0] = texelFetch(RawBuffer, xy+ivec2(0, -1-shift.y), 0).r;
+        green[1] = texelFetch(RawBuffer, xy+ivec2(-1-shift.x, 0), 0).r;
+        green[2] = texelFetch(RawBuffer, xy+ivec2(2-shift.x, 0), 0).r;
+        green[3] = texelFetch(RawBuffer, xy+ivec2(0, 2-shift.y), 0).r;
         float grad[4];
-        vec2 initialGrad = texelFetch(GradBuffer, ivec2(xy), 0).rg;
+        vec2 initialGrad = texelFetch(GradBuffer, ivec2(xy), 0).rg-0.5;
         grad[0] = initialGrad.g*initialGrad.g;
         grad[1] = initialGrad.r*initialGrad.r;
         grad[2] = initialGrad.r*initialGrad.r;
@@ -56,23 +56,17 @@ void main() {
         /*
         Output = green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3];
         Output/=grad[0]+grad[1]+grad[2]+grad[3];*/
-        vec2 HV = initialGrad*1.15+demosw;
+        vec2 HV = vec2(demosw);
         float weights = 0.00001;
         for (int j =-2;j<=2;j++)
         {
             float k0 = normpdf(float(j), GRADSIZE);
             for (int i =-2;i<=2;i++){
-                if (i == 0 && j == 0) continue;
+                //if((i%2) + (j%2) != 1) continue;
                 float k = normpdf(float(i), GRADSIZE)*k0;
-                //float cw = 1.0/((float(abs(i)+abs(j)))/(1.15));
-                vec2 div = texelFetch(GradBuffer, ivec2(xy+ivec2(i, j)), 0).rg;
-                //if((div.r+div.g) < (HV.r+HV.g)*0.2) break;
-                HV += div*k;
+                vec2 div = texelFetch(GradBuffer, ivec2(xy+ivec2(i, j)), 0).rg-0.5;
+                HV += abs(div)*k;
                 weights+=k;
-                //weights += cw;
-                //HV += texelFetch(GradBuffer,ivec2(xy+ivec2(i,j)),0).rg/((float(abs(i)+abs(j)))/(1.0));
-                //H += ingrad.r;//*(1.0 - float(abs(i)+abs(j))/5.0);
-                //V += ingrad.g;//*(1.0 - float(abs(i)+abs(j))/5.0);
             }
         }
         float MIN = min(min(green[0],green[1]),min(green[2],green[3]));
@@ -90,28 +84,26 @@ void main() {
         //W=sqrt(W);
         //float badGR = (abs(HV.r-HV.g)*5.0)/((HV.r+HV.g));
         HV/=weights;
-        if(abs(HV.r) > N || abs(HV.g) > N){
-            if (HV.g > HV.r){
+        //if(abs(HV.r) > N || abs(HV.g) > N){
+            if (HV.y > HV.x){
+                float distsp = float(shift.x);
+                float grad1 = texelFetch(GradBuffer, xy+ivec2(-1-shift.x, 0), 0).x-0.5;
+                float grad2 = texelFetch(GradBuffer, xy+ivec2(2-shift.x, 0), 0).x-0.5;
+                grad1 = mix(grad1,grad2,distsp);
                 Output = (green[1]*grad[1] + green[2]*grad[2])/(grad[1]+grad[2]);
                 //Output = (green[1] + green[2])/(2.0);
             } else {
+                float distsp = float(shift.y);
+                float grad0 = texelFetch(GradBuffer, xy+ivec2(0, -1-shift.y), 0).y-0.5;
+                float grad3 = texelFetch(GradBuffer, xy+ivec2(0, 2-shift.y), 0).y-0.5;
+                grad0 = mix(grad0,grad3,distsp);
                 Output = (green[0]*grad[0] + green[3]*grad[3])/(grad[0]+grad[3]);
                 //Output = (green[0] + green[3])/(2.0);
             }
-        } else {
+        /*} else {
             Output = avr;
-        }
+        }*/
 
-        float output2;
-        if (abs(green[0] - green[3]) > abs(green[1] - green[2])){
-            output2 = (green[1] + green[2])/(2.0);
-        } else {
-            output2 = (green[0] + green[3])/(2.0);
-        }
-        Output = mix(Output,output2,W);
-
-        W = mix(FUSEMIN,FUSEMAX,W*FUSEMPY+FUSESHIFT);
-        Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
 
 
         /*} else {

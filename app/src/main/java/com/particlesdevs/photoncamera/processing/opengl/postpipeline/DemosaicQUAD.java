@@ -11,7 +11,7 @@ public class DemosaicQUAD extends Node {
 
     @Override
     public void Compile() {}
-    float gradSize = 1.75f;
+    float gradSize = 1.5f;
     float fuseMin = 0.f;
     float fuseMax = 1.f;
     float fuseShift = -0.3f;

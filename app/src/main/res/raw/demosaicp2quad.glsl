@@ -16,23 +16,23 @@ out vec3 Output;
 float interpolateColor(in ivec2 coords, in ivec2 shift){
     bool usegreen = true;
     float green[5];
-    ivec2 cent = ivec2((shift.x*2 - 1)*2 -1,(shift.y*2 - 1)*2 -1);
-    green[0] = float(texelFetch(GreenBuffer, (coords+ivec2(-1,-1)+cent), 0).x);
-    green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(1,-1)+cent),  0).x);
-    green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(-1,1)+cent),  0).x);
-    green[3] = float(texelFetch(GreenBuffer, (coords+ivec2(1,1)+cent),   0).x);
+    ivec2 cent = ivec2(-1-shift.x,-1-shift.y);
+    green[0] = float(texelFetch(GreenBuffer, (coords+ivec2(0,0)+cent), 0).x);
+    green[1] = float(texelFetch(GreenBuffer, (coords+ivec2(3,0)+cent),  0).x);
+    green[2] = float(texelFetch(GreenBuffer, (coords+ivec2(0,3)+cent),  0).x);
+    green[3] = float(texelFetch(GreenBuffer, (coords+ivec2(3,3)+cent),   0).x);
     green[4] = float(texelFetch(GreenBuffer, (coords),              0).x);
     for(int i = 0; i<5; i++)if(green[i] < greenmin || green[i] > greenmax) usegreen = false;
     if(usegreen){
         float coeff[4];
-        coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)+cent), 0).x)/(green[0]);
-        coeff[1] = float(texelFetch(RawBuffer, (coords+ivec2(1,-1)+cent),  0).x)/(green[1]);
-        coeff[2] = float(texelFetch(RawBuffer, (coords+ivec2(-1,1)+cent),  0).x)/(green[2]);
-        coeff[3] = float(texelFetch(RawBuffer, (coords+ivec2(1,1)+cent),   0).x)/(green[3]);
+        coeff[0] = float(texelFetch(RawBuffer, (coords+ivec2(0,0)+cent), 0).x)/(green[0]);
+        coeff[1] = float(texelFetch(RawBuffer, (coords+ivec2(3,0)+cent),  0).x)/(green[1]);
+        coeff[2] = float(texelFetch(RawBuffer, (coords+ivec2(0,3)+cent),  0).x)/(green[2]);
+        coeff[3] = float(texelFetch(RawBuffer, (coords+ivec2(3,3)+cent),   0).x)/(green[3]);
         return (green[4]*(coeff[0]+coeff[1]+coeff[2]+coeff[3])/4.);
     } else {
-        return ((float(texelFetch(RawBuffer, (coords+ivec2(-1,-1)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,-1)), 0).x)
-        +float(texelFetch(RawBuffer, (coords+ivec2(-1,1)), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(1,1)), 0).x))/(4.));
+        return ((float(texelFetch(RawBuffer, (coords+ivec2(0,0)+cent), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(3,0)+cent), 0).x)
+        +float(texelFetch(RawBuffer, (coords+ivec2(0,3)+cent), 0).x)+float(texelFetch(RawBuffer, (coords+ivec2(3,3)+cent), 0).x))/(4.));
         }
 }
 float interpolateColorx(in ivec2 coords, in ivec2 shift){

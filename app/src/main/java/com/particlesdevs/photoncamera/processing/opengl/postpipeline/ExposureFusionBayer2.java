@@ -101,8 +101,15 @@ public class ExposureFusionBayer2 extends Node {
     float targetLuma = 0.8f;
     float downScalePerLevel = 2.0f;
     float dehazing = 0.f;
+    boolean disableFusion = false;
     @Override
     public void Run() {
+        disableFusion = getTuning("DisableFusion",disableFusion);
+        if(disableFusion){
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
         overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
         underExposeMpy = getTuning("UnderExposeMpy", underExposeMpy);
         baseExpose = getTuning("BaseExposure",baseExpose);

@@ -501,6 +501,7 @@ public class Equalization extends Node {
     boolean disableEqualization = false;
     boolean enableTonemap = false;
     float highlightCompress = 1.0f;
+    float contrast = 0.2f;
     @Override
     public void Run() {
         disableEqualization = getTuning("DisableEqualization",disableEqualization);
@@ -510,6 +511,7 @@ public class Equalization extends Node {
             return;
         }
         highlightCompress = getTuning("HighlightCompress",highlightCompress);
+        contrast = getTuning("Contrast",contrast);
         enableTonemap = getTuning("EnableTonemap",enableTonemap);
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
         edgesStretchShadows = getTuning("EdgesStretchShadows", edgesStretchShadows);
@@ -717,14 +719,18 @@ public class Equalization extends Node {
         }*/
         double shadowW = (basePipeline.mSettings.shadows);
         double avrbr = 0.0;
+
         for(int i =0; i<histParser.hist.length;i++){
             float line = i/(histParser.hist.length-1.f);
+            double linepi = line*Math.PI - Math.PI/2.0;
+            double contrastCurve = (Math.sin(linepi) + 1.0)/2.0;
             if(shadowW != 0.f) {
                 if(shadowW > 0.f)
                 histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
                 else histParser.hist[i] = (float)mix(histParser.hist[i],(histParser.hist[i])*(histParser.hist[i]),-(shadowW)*shadowsSensitivity);
             }
             histParser.hist[i] = mix(histParser.hist[i],line,line*line*highlightCompress);
+            histParser.hist[i] = (float) mix(histParser.hist[i],histParser.hist[i]*contrastCurve,contrast);
             avrbr+=histParser.hist[i];
         }
         avrbr/=histParser.hist.length;
