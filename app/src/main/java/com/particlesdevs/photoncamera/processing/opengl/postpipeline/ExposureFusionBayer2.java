@@ -93,13 +93,14 @@ public class ExposureFusionBayer2 extends Node {
     Histogram histogram;
     Point initialSize;
     Point WorkSize;
-    float overExposeMpy = 2.0f;
+    float overExposeMpy = 1.35f;
     float underExposeMpy = 0.6f;
     float gammaKSearch = 1.0f;
     float baseExpose = 1.0f;
     float gaussSize = 0.5f;
     float targetLuma = 0.8f;
     float downScalePerLevel = 2.0f;
+    float dehazing = 0.f;
     @Override
     public void Run() {
         overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
@@ -107,6 +108,7 @@ public class ExposureFusionBayer2 extends Node {
         baseExpose = getTuning("BaseExposure",baseExpose);
         gaussSize = getTuning("GaussSize",gaussSize);
         targetLuma = getTuning("TargetLuma",targetLuma);
+        dehazing = getTuning("Dehazing",dehazing);
         downScalePerLevel = getTuning("DownScalePerLevel",downScalePerLevel);
         GLTexture in = previousNode.WorkingTexture;
         initialSize = new Point(previousNode.WorkingTexture.mSize);
@@ -152,6 +154,7 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("normalExpoDiff",normalExpo.gauss[ind]);
         glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
         glProg.setVar("upscaleIn",binnedFuse.mSize);
+        glProg.setVar("blendMpy",1.f);
         //normalExpo.gauss[ind].close();
         //highExpo.gauss[ind].close();
         glProg.drawBlocks(binnedFuse,binnedFuse.mSize);
@@ -167,6 +170,7 @@ public class ExposureFusionBayer2 extends Node {
 
             glProg.setTexture("upsampled", upsampleWip);
             glProg.setVar("useUpsampled", 1);
+            glProg.setVar("blendMpy",1.0f+dehazing-dehazing*((float)i)/(normalExpo.laplace.length-1.f));
             glProg.setVar("level",i);
             glProg.setVar("upscaleIn",normalExpo.sizes[i]);
             // We can discard the previous work in progress merge.

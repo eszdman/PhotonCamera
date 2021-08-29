@@ -15,6 +15,7 @@ uniform int MinimalInd;
 #define BLR (0.0)
 #define BLG (0.0)
 #define BLB (0.0)
+#define QUAD 0
 #import interpolation
 #import median
 out float Output;
@@ -22,6 +23,10 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     ivec2 fact = (xy)%2;
     xy+=ivec2(CfaPattern%2,CfaPattern/2);
+    #if QUAD == 1
+    fact = (xy/2)%2;
+    xy+=ivec2(CfaPattern%2,CfaPattern/2);
+    #endif
     float balance;
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);

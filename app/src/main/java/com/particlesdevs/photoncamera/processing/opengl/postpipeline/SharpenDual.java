@@ -23,17 +23,10 @@ public class SharpenDual extends Node {
     float sharpSize = 1.5f;
     float sharpMin = 0.5f;
     float sharpMax = 1.f;
+    float denoiseActivity = 1.f;
     @Override
     public void Run() {
-        NoiseModeler modeler = basePipeline.mParameters.noiseModeler;
-        float noiseS = modeler.computeModel[0].first.floatValue()+
-                modeler.computeModel[1].first.floatValue()+
-                modeler.computeModel[2].first.floatValue();
-        float noiseO = modeler.computeModel[0].second.floatValue()+
-                modeler.computeModel[1].second.floatValue()+
-                modeler.computeModel[2].second.floatValue();
-        noiseS/=3.f;
-        noiseO/=3.f;
+        denoiseActivity = getTuning("DenoiseActivity",denoiseActivity);
         blurSize = getTuning("BlurSize", blurSize);
         sharpSize = getTuning("SharpSize", sharpSize);
         sharpMin = getTuning("SharpMin",sharpMin);
@@ -48,12 +41,13 @@ public class SharpenDual extends Node {
         //glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(basePipeline.main3);
+        glProg.setDefine("INTENSE",denoiseActivity);
         glProg.setDefine("INSIZE",basePipeline.mParameters.rawSize);
         glProg.setDefine("SHARPSIZE",sharpSize);
         glProg.setDefine("SHARPMIN",sharpMin);
         glProg.setDefine("SHARPMAX",sharpMax);
-        glProg.setDefine("NOISES",noiseS);
-        glProg.setDefine("NOISEO",noiseO);
+        glProg.setDefine("NOISES",basePipeline.noiseS);
+        glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.useProgram(R.raw.lsharpening);
         Log.d("PostNode:" + Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setVar("size", sharpSize);

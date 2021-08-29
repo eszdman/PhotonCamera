@@ -24,6 +24,7 @@ out vec3 Output;
 #define BL2 (0.0)
 #define LUT 0
 #define TONEMAP 1
+#define DESAT 1.0
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform sampler2D TonemapTex;
 #define PI (3.1415926535)
@@ -180,6 +181,7 @@ void main() {
     sRGB.r = texture(Histogram, vec2(1.0/8192.0 + sRGB.r*(1.0-1.0/256.0), 0.5f)).r;
     sRGB.g = texture(Histogram, vec2(1.0/8192.0 + sRGB.g*(1.0-1.0/256.0), 0.5f)).r;
     sRGB.b = texture(Histogram, vec2(1.0/8192.0 + sRGB.b*(1.0-1.0/256.0), 0.5f)).r;
+    sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
 
     /*sRGB = rgbtohsl(sRGB);

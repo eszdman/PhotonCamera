@@ -41,6 +41,8 @@ public class GLBasePipeline implements AutoCloseable {
     public Parameters mParameters;
     public Properties mProp;
     public Point workSize;
+    public float noiseS;
+    public float noiseO;
     private String currentProg;
 
     public int texnum = 0;

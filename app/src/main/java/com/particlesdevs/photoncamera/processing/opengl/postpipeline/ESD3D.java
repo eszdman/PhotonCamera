@@ -19,15 +19,6 @@ public class ESD3D extends Node {
 
     @Override
     public void Run() {
-        NoiseModeler modeler = basePipeline.mParameters.noiseModeler;
-        float noiseS = modeler.computeModel[0].first.floatValue()+
-                modeler.computeModel[1].first.floatValue()+
-                modeler.computeModel[2].first.floatValue();
-        float noiseO = modeler.computeModel[0].second.floatValue()+
-                modeler.computeModel[1].second.floatValue()+
-                modeler.computeModel[2].second.floatValue();
-        noiseS/=3.f;
-        noiseO/=3.f;
         GLTexture map = glUtils.medianDown(previousNode.WorkingTexture,4);
         GLTexture grad;
 
@@ -41,9 +32,9 @@ public class ESD3D extends Node {
 
 
         {
-            Log.d(Name, "NoiseS:" + noiseS + ", NoiseO:" + noiseO);
-            glProg.setDefine("NOISES", noiseS);
-            glProg.setDefine("NOISEO", noiseO);
+            Log.d(Name, "NoiseS:" + basePipeline.noiseS + ", NoiseO:" + basePipeline.noiseO);
+            glProg.setDefine("NOISES", basePipeline.noiseS);
+            glProg.setDefine("NOISEO", basePipeline.noiseO);
             glProg.setDefine("INTENSE", (float) basePipeline.mSettings.noiseRstr);
             glProg.setDefine("INSIZE", previousNode.WorkingTexture.mSize);
             glProg.useProgram(R.raw.esd3d);

@@ -13,6 +13,7 @@ out vec3 Output;
 #define SHARPMIN 0.5
 #define NOISEO 0.0
 #define NOISES 0.0
+#define INTENSE 1.0
 #import coords
 float normpdf(in float x, in float sigma){return exp(-0.5*x*x/(sigma*sigma));}
 void main() {
@@ -40,7 +41,7 @@ void main() {
         W = MIN/MAX;
     }
     float ksum = 0.0;
-    float N = sqrt(avr*NOISES + NOISEO)*1.0 + 0.00001;
+    float N = sqrt(avr*NOISES*INTENSE + NOISEO*INTENSE); + 0.00001;
     vec3 center = texelFetch(InputBuffer, (xy), 0).rgb;
     for(int i = -2; i<=2;i++){
         float k0 = normpdf(float(i), SHARPSIZE);

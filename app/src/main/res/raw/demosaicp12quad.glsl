@@ -20,17 +20,18 @@ out float Output;
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    int fact1 = xy.x%2;
-    int fact2 = xy.y%2;
+    int fact1 = (xy.x/2)%2;
+    int fact2 = (xy.y/2)%2;
+    ivec2 shift = xy%2;
     float outp = 0.0;
     if(fact1+fact2 != 1){
         float outp = 0.0;
         float weight = 0.0;
         float green[4];
-        green[0] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, -1)), 0).r;
-        green[1] = texelFetch(RawBuffer, ivec2(xy+ivec2(-1, 0)), 0).r;
-        green[2] = texelFetch(RawBuffer, ivec2(xy+ivec2(1, 0)), 0).r;
-        green[3] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, 1)), 0).r;
+        green[0] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, -1-shift.y)), 0).r;
+        green[1] = texelFetch(RawBuffer, ivec2(xy+ivec2(-1-shift.x, 0)), 0).r;
+        green[2] = texelFetch(RawBuffer, ivec2(xy+ivec2(2-shift.x, 0)), 0).r;
+        green[3] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, 2-shift.y)), 0).r;
         float grad[4];
         vec2 initialGrad = texelFetch(GradBuffer, ivec2(xy), 0).rg;
         grad[0] = initialGrad.g*initialGrad.g;
@@ -101,9 +102,16 @@ void main() {
             Output = avr;
         }
 
+        float output2;
+        if (abs(green[0] - green[3]) > abs(green[1] - green[2])){
+            output2 = (green[1] + green[2])/(2.0);
+        } else {
+            output2 = (green[0] + green[3])/(2.0);
+        }
+        Output = mix(Output,output2,W);
 
-        W = mix(FUSEMIN,FUSEMAX,clamp((W+FUSESHIFT)*FUSEMPY,0.0,1.0));
-        //Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
+        W = mix(FUSEMIN,FUSEMAX,W*FUSEMPY+FUSESHIFT);
+        Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
 
 
         /*} else {

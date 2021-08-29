@@ -33,25 +33,6 @@ void main() {
         green[3] = texelFetch(RawBuffer, ivec2(xy+ivec2(0, 1)), 0).r;
         float grad[4];
         vec2 initialGrad = texelFetch(GradBuffer, ivec2(xy), 0).rg;
-        grad[0] = initialGrad.g*initialGrad.g;
-        grad[1] = initialGrad.r*initialGrad.r;
-        grad[2] = initialGrad.r*initialGrad.r;
-        grad[3] = initialGrad.g*initialGrad.g;
-        for (int i =1;i<=2;i++){
-            if (i == 0) continue;
-            float t = texelFetch(GradBuffer, ivec2(xy+ivec2(0, -i)), 0).g;
-            grad[0] += t*t;
-            t = texelFetch(GradBuffer, ivec2(xy+ivec2(-i, 0)), 0).r;
-            grad[1] += t*t;
-            t = texelFetch(GradBuffer, ivec2(xy+ivec2(i, 0)), 0).r;
-            grad[2] += t*t;
-            t = texelFetch(GradBuffer, ivec2(xy+ivec2(0, i)), 0).g;
-            grad[3] += t*t;
-        }
-        grad[0] = 1.0/sqrt(grad[0]+demosw);
-        grad[1] = 1.0/sqrt(grad[1]+demosw);
-        grad[2] = 1.0/sqrt(grad[2]+demosw);
-        grad[3] = 1.0/sqrt(grad[3]+demosw);
         /*
         Output = green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3];
         Output/=grad[0]+grad[1]+grad[2]+grad[3];*/
@@ -101,9 +82,8 @@ void main() {
             Output = avr;
         }
 
-
-        W = mix(FUSEMIN,FUSEMAX,clamp((W+FUSESHIFT)*FUSEMPY,0.0,1.0));
-        //Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
+        W = mix(FUSEMIN,FUSEMAX,W*FUSEMPY+FUSESHIFT);
+        Output = mix(Output,(green[0]*grad[0] + green[1]*grad[1]+ green[2]*grad[2] + green[3]*grad[3])/(grad[0]+grad[1]+grad[2]+grad[3]),W);
 
 
         /*} else {

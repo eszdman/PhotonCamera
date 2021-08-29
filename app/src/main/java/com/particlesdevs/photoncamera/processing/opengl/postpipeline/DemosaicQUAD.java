@@ -1,23 +1,21 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
-import android.graphics.Point;
-
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
-public class Demosaic2 extends Node {
-    public Demosaic2() {
+public class DemosaicQUAD extends Node {
+    public DemosaicQUAD() {
         super(0, "Demosaic");
     }
 
     @Override
     public void Compile() {}
-    float gradSize = 1.0f;
+    float gradSize = 1.75f;
     float fuseMin = 0.f;
     float fuseMax = 1.f;
-    float fuseShift = -0.5f;
-    float fuseMpy = 6.0f;
+    float fuseShift = -0.3f;
+    float fuseMpy = 0.0f;
     @Override
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);
@@ -28,7 +26,7 @@ public class Demosaic2 extends Node {
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         //Gradients
-        glProg.useProgram(R.raw.demosaicp0);
+        glProg.useProgram(R.raw.demosaicp0quad);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         glProg.drawBlocks(basePipeline.main3);
@@ -45,11 +43,10 @@ public class Demosaic2 extends Node {
         glProg.setDefine("FUSEMPY",fuseMpy);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
-        glProg.useProgram(R.raw.demosaicp12);
+        glProg.useProgram(R.raw.demosaicp12quad);
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GradBuffer",basePipeline.main3);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
-        if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
         GLTexture prev = previousNode.WorkingTexture;
         outp = basePipeline.main1;
         if(basePipeline.main1 == previousNode.WorkingTexture){
@@ -58,7 +55,8 @@ public class Demosaic2 extends Node {
         glProg.drawBlocks(outp);
 
         //Colour channels
-        glProg.useProgram(R.raw.demosaicp2);
+
+        glProg.useProgram(R.raw.demosaicp2quad);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setTexture("GreenBuffer", outp);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);

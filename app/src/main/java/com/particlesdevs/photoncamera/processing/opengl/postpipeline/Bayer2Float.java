@@ -4,6 +4,7 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -36,6 +37,7 @@ public class Bayer2Float extends Node {
         glProg.setDefine("BLR",BL[0]);
         glProg.setDefine("BLG",BL[1]);
         glProg.setDefine("BLB",BL[2]);
+        glProg.setDefine("QUAD", basePipeline.mSettings.cfaPattern == -2);
         glProg.useProgram(R.raw.tofloat);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);

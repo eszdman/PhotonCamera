@@ -64,10 +64,8 @@ void main() {
         }
         dxy/=sum;
         dxyabs/=sum;
-        float length = sqrt(dxy.x*dxy.x + dxy.y*dxy.y);
-        float length2 = sqrt(dxyabs.x*dxyabs.x + dxyabs.y*dxyabs.y);
+
         float angle = atan(dxy.y,dxy.x)+PI;
-        float width = 1.0/3.0 + normpdf(length,sigX);
         vec3 cc;
         float factor;
         float sino = sin(angle);
@@ -76,11 +74,9 @@ void main() {
         coso*=coso;
         float sin2o = sin(angle*2.0);
         vec2 sigo = vec2(3.5*1.5,3.5/2.35);
-        //sigo*=2.0;
-        //sigo = mix(vec2(3.5,3.5),sigo,
-        //min(length2,1.0)
-        //1.0
-        //);
+
+        //Improve energy
+        sigo*=min(sigY*300.1,1.0);
         sigo*=sigo;
 
         float a = (coso)/(2.0*sigo.x) + (sino)/(2.0*sigo.y);

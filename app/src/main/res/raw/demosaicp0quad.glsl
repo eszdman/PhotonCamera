@@ -7,22 +7,22 @@ uniform sampler2D RawBuffer;
 out vec2 Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
+    ivec2 shift = xy%2;
     //if(fact1+fact2 != 1){
     //    Output = float(texelFetch(RawBuffer, (xy), 0).x);
     //}
     //else {
         //Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
     //float center = float(texelFetch(RawBuffer, (xy), 0).x);
-    ivec2 shift = xy%2;
-    if(shift.x+shift.y !=  1) return;
+    float center = texelFetch(RawBuffer, (xy), 0).x;
     Output.r = abs(
-    float(texelFetch(RawBuffer, (xy+ivec2(-1,0)), 0).x) -
-    float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x))
+    float(texelFetch(RawBuffer, (xy+ivec2(1-shift.x*2,0)), 0).x) -
+    center)
     //+abs(2.0*center-float(texelFetch(RawBuffer, (xy+ivec2(-2,0)), 0).x)-float(texelFetch(RawBuffer, (xy+ivec2(2,0)), 0).x))
     ;
     Output.g = abs(
-    float(texelFetch(RawBuffer, (xy+ivec2(0,-1)), 0).x) -
-    float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x))
+    float(texelFetch(RawBuffer, (xy+ivec2(0,1-shift.y*2)), 0).x) -
+    center)
     //+abs(2.0*center-float(texelFetch(RawBuffer, (xy+ivec2(0,-2)), 0).x)-float(texelFetch(RawBuffer, (xy+ivec2(0,2)), 0).x))
     ;
     Output/=2.0;

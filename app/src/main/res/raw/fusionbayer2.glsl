@@ -5,7 +5,7 @@ precision highp sampler2D;
 
 uniform sampler2D upsampled;
 uniform bool useUpsampled;
-
+uniform float blendMpy;
 // Weighting is done using these.
 uniform sampler2D normalExpo;
 uniform sampler2D highExpo;
@@ -75,7 +75,7 @@ void main() {
     float blend = highWeight / (normalWeight + highWeight); // [0, 1]
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.4*(float(level)/float(MAXLEVEL))));
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.1 - 0.1*(float(level)/float(MAXLEVEL))));
-    result = base + mix(normal.r, high.r, blend);
+    result = base + mix(normal.r, high.r, blend)*blendMpy;
     //if(level == 0){
     //    result = result*result;
     //}

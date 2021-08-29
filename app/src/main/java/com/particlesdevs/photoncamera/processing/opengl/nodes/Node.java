@@ -24,7 +24,7 @@ public class Node {
     public GLProg glProg;
     public boolean LastNode = false;
     public Properties mProp;
-    private final boolean loggedTuning = true;
+    private final boolean loggedTuning = false;
 
     private Node() {
     }
