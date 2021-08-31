@@ -94,7 +94,7 @@ public class ExposureFusionBayer2 extends Node {
     Point initialSize;
     Point WorkSize;
     float overExposeMpy = 1.35f;
-    float underExposeMpy = 0.6f;
+    float underExposeMpy = 1.0f;
     float gammaKSearch = 1.0f;
     float baseExpose = 1.0f;
     float gaussSize = 0.5f;
@@ -129,7 +129,7 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main3.mSize.y = WorkSize.y;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         float perlevel = downScalePerLevel;
-        int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel))-1;
+        int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel))-2;
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
 

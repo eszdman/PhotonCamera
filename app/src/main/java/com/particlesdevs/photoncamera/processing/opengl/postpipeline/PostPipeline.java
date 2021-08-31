@@ -117,6 +117,8 @@ public class PostPipeline extends GLBasePipeline {
             add(new ESD3D());
         }
 
+        add(new AWB());
+
         add(new Initial());
 
         add(new Equalization());
@@ -124,7 +126,7 @@ public class PostPipeline extends GLBasePipeline {
         //add(new GlobalToneMapping());
 
 
-        //add(new AWB());
+
 
         
 

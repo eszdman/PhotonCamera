@@ -175,22 +175,23 @@ void main() {
     float pbr = br;
     vec3 sRGB2 = sRGB;
     float maxrgb = max(sRGB2.r,max(sRGB2.g,sRGB2.b));
-    sRGB2/=br;
+
+    /*sRGB2/=br;
     br = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     sRGB2*=br;
     sRGB.r = texture(Histogram, vec2(1.0/8192.0 + sRGB.r*(1.0-1.0/256.0), 0.5f)).r;
     sRGB.g = texture(Histogram, vec2(1.0/8192.0 + sRGB.g*(1.0-1.0/256.0), 0.5f)).r;
     sRGB.b = texture(Histogram, vec2(1.0/8192.0 + sRGB.b*(1.0-1.0/256.0), 0.5f)).r;
-    sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);
+    sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);*/
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
 
-    /*sRGB = rgbtohsl(sRGB);
+    sRGB = rgbtohsl(sRGB);
     br = sRGB.z;
     float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);
     sRGB.z = HistEq;
     sRGB.y*=bsat;
-    sRGB = hsltorgb(sRGB);*/
+    sRGB = hsltorgb(sRGB);
 
     //Limit eq
     //HistEq = clamp(HistEq, 0.0, 5.0);

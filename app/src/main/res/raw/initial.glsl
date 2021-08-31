@@ -327,6 +327,8 @@ void main() {
 
     float tonemapGain = 1.f;
     #if FUSION == 1
+    vec2 grad = vec2(texelFetch(InputBuffer, xy+ivec2(-1,0), 0).g-texelFetch(InputBuffer, xy+ivec2(1,0), 0).g,
+    texelFetch(InputBuffer, xy+ivec2(0,-1), 0).g-texelFetch(InputBuffer, xy+ivec2(0,1), 0).g);
     /*tonemapGain = textureBicubic(FusionMap, vec2(xy+ivec2(0,0))/vec2(textureSize(InputBuffer, 0))).r/(sRGB.r+sRGB.g+sRGB.b);
     t=texelFetch(InputBuffer, xy+ivec2(0,2), 0).rgb;
     tonemapGain += textureBicubic(FusionMap, vec2(xy+ivec2(0,2))/vec2(textureSize(InputBuffer, 0))).r/(t.r+t.g+t.b);
@@ -345,8 +347,24 @@ void main() {
     t+=texelFetch(InputBuffer, xy+ivec2(0,-1), 0).rgb;
     t+=texelFetch(InputBuffer, xy+ivec2(-1,0), 0).rgb;
     tonemapGain = ((tonemapGain)/((t.r+t.g+t.b)/(5.0)))*(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
-    tonemapGain = textureBicubic(FusionMap, gl_FragCoord.xy/vec2(INSIZE)).r*50.0;
+    //ivec2 xy2 = xy/2;
+    //vec2 xy2 = 2.0*vec2(xy/2)/vec2(textureSize(InputBuffer, 0));
+    //vec2 oneStep = vec2(1.0)/vec2(textureSize(InputBuffer, 0));
+    /*tonemapGain = texelFetch(FusionMap, xy2, 0).r/sqrt(sRGB.r+sRGB.g+sRGB.b);
+    t=texelFetch(InputBuffer, xy+ivec2(0,2), 0).rgb;
+    tonemapGain += texelFetch(FusionMap, xy2+ivec2(0,1), 0).r/sqrt(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(2,0), 0).rgb;
+    tonemapGain += texelFetch(FusionMap, xy2+ivec2(1,0), 0).r/sqrt(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(0,-2), 0).rgb;
+    tonemapGain += texelFetch(FusionMap, xy2+ivec2(0,-1), 0).r/sqrt(t.r+t.g+t.b);
+    t=texelFetch(InputBuffer, xy+ivec2(-2,0), 0).rgb;
+    tonemapGain += texelFetch(FusionMap, xy2+ivec2(-1,0), 0).r/sqrt(t.r+t.g+t.b);
+    tonemapGain = (tonemapGain/5.f)*sqrt(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
+    grad = abs(grad);
+    float[2] grads;
 
+    tonemapGain = textureLinear(FusionMap, gl_FragCoord.xy/vec2(INSIZE)).r*50.0;
+    //tonemapGain = 1.f;
 
     #endif
 
