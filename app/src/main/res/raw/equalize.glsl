@@ -13,8 +13,7 @@ out vec3 Output;
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyytoxyz
 #import xyztoxyy
-#import xyztoluv
-#import luvtoxyz
+#import hsluv
 #import rgbtohsl
 #import hsltorgb
 #define BR (0.5)
@@ -25,6 +24,7 @@ out vec3 Output;
 #define LUT 0
 #define TONEMAP 1
 #define DESAT 1.0
+#define LUVEPS 0.04
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform sampler2D TonemapTex;
 #define PI (3.1415926535)
@@ -185,13 +185,15 @@ void main() {
     sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);*/
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
 
-    sRGB = rgbtohsl(sRGB);
-    br = sRGB.z;
+    sRGB = rgbToHsluv(sRGB);
+    br = sRGB.z/100.0;
     float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);
-    sRGB.z = HistEq;
-    sRGB.y*=bsat;
-    sRGB = hsltorgb(sRGB);
+    sRGB.z = HistEq*100.0;
+
+
+    //sRGB.y*=bsat;
+    sRGB = hsluvToRgb(sRGB);
 
     //Limit eq
     //HistEq = clamp(HistEq, 0.0, 5.0);

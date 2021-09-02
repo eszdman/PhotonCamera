@@ -345,6 +345,7 @@ public class AWB extends Node {
     int endR = 255;
     int endG = 255;
     int endB = 255;
+    int blur = 1;
     boolean enableAWB = false;
     @Override
     public void Run() {
@@ -383,19 +384,31 @@ public class AWB extends Node {
         glProg.drawBlocks(basePipeline.main3,r1.mSize);
         Bitmap preview = glUtils.GenerateBitmap(r1.mSize);
         //r0.close();
-        r1.close();
         int[][] ChromaHist = ChromaHistogram(preview);
-        int[][] temp = new int[3][];
-        temp[0] = ChromaHist[1];
-        temp[1] = ChromaHist[2];
-        temp[2] = ChromaHist[3];
+        r1.close();
+        /*int[][] temp = new int[3][];
+        temp[0] = ChromaHist[2];
+        temp[1] = ChromaHist[1];
+        temp[2] = ChromaHist[0];
         ChromaHist[0] = temp[0];
         ChromaHist[1] = temp[1];
-        ChromaHist[2] = temp[2];
+        ChromaHist[2] = temp[2];*/
+        //Remove clip
+        /*
+        ChromaHist[0][255] = 0;
+        ChromaHist[1][255] = 0;
+        ChromaHist[2][255] = 0;
+        ChromaHist[0][0] = 0;
+        ChromaHist[1][0] = 0;
+        ChromaHist[2][0] = 0;*/
+        /*for(int j = 0;j<3;j++)
+        for(int i =blur; i<255-blur;i++){
+            ChromaHist[j][i] = (int)((ChromaHist[j][i-1]*0.5f+ChromaHist[j][i]*1.2f+ChromaHist[j][i+1]*0.5f)/(0.5f+1.2f+0.5f));
+        }*/
         if(basePipeline.mSettings.DebugData) {
             GenerateCurveBitm(ChromaHist[0],ChromaHist[1],ChromaHist[2]);
         }
-        float[] CCV = CCV(ChromaHistogram(preview));
+        float[] CCV = CCV(ChromaHist);
 
         //CCV = CCVAEC(Histogram(preview),CCV);
         //preview.recycle();

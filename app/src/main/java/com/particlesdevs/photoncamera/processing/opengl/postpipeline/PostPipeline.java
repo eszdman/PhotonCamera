@@ -64,6 +64,9 @@ public class PostPipeline extends GLBasePipeline {
                 modeler.computeModel[2].second.floatValue();
         noiseS/=3.f;
         noiseO/=3.f;
+        double noisempy = Math.pow(2.0,mSettings.noiseRstr);
+        noiseS*=noisempy;
+        noiseO*=noisempy;
         if(!PhotonCamera.getSettings().hdrxNR){
             noiseO = 0.f;
             noiseS = 0.f;
@@ -78,8 +81,6 @@ public class PostPipeline extends GLBasePipeline {
         /*if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
             rotated.x/=2;
             rotated.y/=2;
-
-
         }*/
         Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
 
@@ -125,17 +126,9 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new GlobalToneMapping());
 
-
-
-
-        
-
-
         //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
-        add(new SharpenDual());
 
-
-
+        add(new Sharpen2());
 
         //add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));

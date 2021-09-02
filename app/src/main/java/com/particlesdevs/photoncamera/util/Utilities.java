@@ -162,12 +162,6 @@ public class Utilities {
         for(float ccur : r){
             if(ccur > max) max = ccur;
         }
-        for(float ccur : g){
-            if(ccur > max) max = ccur;
-        }
-        for(float ccur : b){
-            if(ccur > max) max = ccur;
-        }
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
@@ -222,6 +216,7 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
     }
+
     public static float linearRegressionK(float[] input){
         float k = 0.f;
         float cnt = 0.f;
