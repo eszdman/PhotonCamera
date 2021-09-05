@@ -35,7 +35,6 @@ public class Equalization extends Node {
     public Equalization() {
         super(0,"Equalization");
     }
-    private static final float MIN_GAMMA = 0.55f;
     private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
     private void GenerateCurveBitmWB(float[] curve, float[] BL, float[] WB){
         Bitmap CurveEQ = Bitmap.createBitmap(256,256, Bitmap.Config.ARGB_8888);
@@ -483,9 +482,9 @@ public class Equalization extends Node {
     }
     GLTexture lut;
     Bitmap lutbm;
-    float analyzeIntensity = -2.5f;
-    float analyzeCenter = 0.0f;
-    float curveCenter = 0.44f;
+    float analyzeIntensity = -2.0f;
+    float analyzeCenter = 0.5f;
+    float curveCenter = 0.5f;
     float edgesStretchShadows = 2.25f;
     float edgesStretchHighLight = 0.0f;
     int histSize = 4096;
@@ -494,14 +493,15 @@ public class Equalization extends Node {
     float edgesBilateralSmoothNight = 3.0f;
     float highLightSmoothAmplify = 2.5f;
     float shadowsSensitivity = 0.5f;
-    float blackLevelSensitivity = 1.1f;
+    float blackLevelSensitivity = 1.0f;
     int whiteBalanceSearch = 400;
     float whiteBalanceSaturation = 1.35f;
     float[] tonemapCoeffs = new float[]{-0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f};
     boolean disableEqualization = false;
-    boolean enableTonemap = false;
-    float highlightCompress = 1.0f;
+    boolean enableTonemap = true;
+    float highlightCompress = 0.4f;
     float contrast = 0.2f;
+    boolean removeUnderexpose = true;
     @Override
     public void Run() {
         disableEqualization = getTuning("DisableEqualization",disableEqualization);
@@ -513,6 +513,7 @@ public class Equalization extends Node {
         highlightCompress = getTuning("HighlightCompress",highlightCompress);
         contrast = getTuning("Contrast",contrast);
         enableTonemap = getTuning("EnableTonemap",enableTonemap);
+        removeUnderexpose = getTuning("RemoveUnderexpose",removeUnderexpose);
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
         edgesStretchShadows = getTuning("EdgesStretchShadows", edgesStretchShadows);
         edgesStretchHighLight = getTuning("EdgesStretchHighLight", edgesStretchHighLight);
@@ -724,11 +725,13 @@ public class Equalization extends Node {
             float line = i/(histParser.hist.length-1.f);
             double linepi = line*Math.PI - Math.PI/2.0;
             double contrastCurve = (Math.sin(linepi) + 1.0)/2.0;
+            if(removeUnderexpose) histParser.hist[i] = Math.max(histParser.hist[i],line);
             if(shadowW != 0.f) {
                 if(shadowW > 0.f)
                 histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
                 else histParser.hist[i] = (float)mix(histParser.hist[i],(histParser.hist[i])*(histParser.hist[i]),-(shadowW)*shadowsSensitivity);
             }
+
             histParser.hist[i] = mix(histParser.hist[i],line,line*line*highlightCompress);
             histParser.hist[i] = (float) mix(histParser.hist[i],histParser.hist[i]*contrastCurve,contrast);
             avrbr+=histParser.hist[i];
@@ -757,7 +760,8 @@ public class Equalization extends Node {
         if(lut != null) glProg.setTexture("LookupTable",lut);
         glProg.setTexture("Histogram",histogram);
         //glProg.setTexture("Shadows",shadows);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),
+                new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setVar("toneMapCoeffs", tonemapCoeffs);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);

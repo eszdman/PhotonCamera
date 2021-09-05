@@ -42,10 +42,16 @@ void main() {
     // How are we going to blend these two?
     vec2 normal = texelFetch(normalExpoDiff, xyCenter, 0).rg;
     vec2 high = texelFetch(highExpoDiff, xyCenter, 0).rg;
+    //vec2 normal = textureBicubic(normalExpoDiff, gl_FragCoord.xy).rg;
+    //vec2 high = textureBicubic(highExpoDiff, gl_FragCoord.xy).rg;
 
     // To know that, look at multiple factors.
     vec2 midNormal = texelFetch(normalExpo, xyCenter, 0).rg;
     vec2 midHigh = texelFetch(highExpo, xyCenter, 0).rg;
+    //vec2 midNormal = textureBicubic(normalExpo, gl_FragCoord.xy).rg;
+    //vec2 midHigh = textureBicubic(highExpo, gl_FragCoord.xy).rg;
+
+
 
     float normalWeight = 1000.;
     float highWeight = 1000.;

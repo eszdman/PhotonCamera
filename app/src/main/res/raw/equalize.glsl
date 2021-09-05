@@ -184,8 +184,10 @@ void main() {
     sRGB.b = texture(Histogram, vec2(1.0/8192.0 + sRGB.b*(1.0-1.0/256.0), 0.5f)).r;
     sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);*/
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
-
+    vec3 BlVec = vec3(BL2);
+    vec3 BLluv = rgbToHsluv(BlVec);
     sRGB = rgbToHsluv(sRGB);
+    sRGB.z = clamp(sRGB.z-BLluv.z,0.0,100.0);
     br = sRGB.z/100.0;
     float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);
@@ -223,7 +225,10 @@ void main() {
     //sRGB += (sRGB.r+sRGB.g+sRGB.b)*undersat/3.0;
 
     //sRGB*=br;
-    sRGB = clamp((sRGB-vec3(BL2))/(vec3(1.0)-vec3(BL2)),0.0,1.0);
+    float minbl = min(BlVec.r,min(BlVec.g,BlVec.b));
+    BlVec-=minbl;
+    sRGB = clamp((sRGB-BlVec)/(vec3(1.0)-BlVec),0.0,1.0);
+
     //sRGB /= luminocity(sRGB);
     //sRGB*=pbr;
     //sRGB*=br;

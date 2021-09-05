@@ -1066,7 +1066,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
         if (FpsRangeHigh == null) FpsRangeHigh = new Range<>(60, 60);
-        boolean swappedDimensions = false;
+
+        /*boolean swappedDimensions = false;
         switch (displayRotation) {
             case 0:
             case 180:
@@ -1082,7 +1083,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 break;
             default:
                 Log.e(TAG, "Display rotation is invalid: " + displayRotation);
-        }
+        }*/
 
         mCameraAfModes = characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
 
@@ -1107,12 +1108,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         //        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
         //        // garbage capture data.
         mPreviewSize = getTextureOutputSize(mTextureView.getDisplay(), PhotonCamera.getSettings().selectedMode);
-        //if(swappedDimensions) mPreviewSize = new Size(mPreviewSize.getHeight(),mPreviewSize.getWidth());
-
+        mTextureView.setAspectRatio(
+                mPreviewSize.getHeight(), mPreviewSize.getWidth());
+        mTextureView.cameraSize = new Point(mPreviewSize.getHeight(), mPreviewSize.getWidth());
         if (PhotonCamera.getSettings().DebugData)
             showToast("preview:" + new Point(mPreviewWidth, mPreviewHeight));
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
+        /*
         int orientation = activity.getResources().getConfiguration().orientation;
 
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -1123,7 +1126,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mTextureView.setAspectRatio(
                     mPreviewSize.getHeight(), mPreviewSize.getWidth());
             mTextureView.cameraSize = new Point(mPreviewSize.getHeight(), mPreviewSize.getWidth());
-        }
+        }*/
+
 
         // Check if the flash is supported.
         Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
@@ -1252,9 +1256,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 //InputConfiguration inputConfiguration = new InputConfiguration(mImageReaderPreview.getWidth(),mImageReaderPreview.getHeight(),ImageFormat.YUV_420_888);
                 //CameraReflectionApi.createCustomCaptureSession(mCameraDevice,inputConfiguration,outputConfigurations,61444,stateCallback,null);
                 mCameraDevice.createCaptureSession(surfaces, stateCallback, null);
-            } else
+            } else {
                 mCameraDevice.createCaptureSession(surfaces, stateCallback, null);
-
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
