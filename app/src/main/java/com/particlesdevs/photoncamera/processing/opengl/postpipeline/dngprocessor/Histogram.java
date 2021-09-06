@@ -5,7 +5,7 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
-import static com.particlesdevs.photoncamera.util.Math.mix;
+import static com.particlesdevs.photoncamera.util.Math2.mix;
 
 public class Histogram {
     private static final int HIST_BINS = 256;
@@ -15,6 +15,7 @@ public class Histogram {
     public final float[] sigma = new float[3];
     public float[] hist;
     public final float[] histr;
+    public final float[] histInvr;
     public final float[] histg;
     public final float[] histb;
     public final int[] histIn;
@@ -50,6 +51,7 @@ public class Histogram {
         }
         hist = buildCumulativeHist(histIn);
         histr = buildCumulativeHist(histInr);
+        histInvr = buildCumulativeHistInv(histInr);
         histg = buildCumulativeHist(histIng);
         histb = buildCumulativeHist(histInb);
 
@@ -140,6 +142,22 @@ public class Histogram {
         float[] cumulativeHist = new float[HIST_BINS + 1];
         for (int i = 1; i < cumulativeHist.length; i++) {
             cumulativeHist[i] = cumulativeHist[i - 1] + hist[i - 1];
+        }
+        float max = cumulativeHist[HIST_BINS];
+        for (int i = 0; i < cumulativeHist.length; i++) {
+            cumulativeHist[i] /= max;
+        }
+        float[] prevH = cumulativeHist.clone();
+        cumulativeHist = new float[histSize];
+        for(int i =0; i<cumulativeHist.length;i++){
+            cumulativeHist[i] = getInterpolated(prevH,i*((float)prevH.length/(cumulativeHist.length)));
+        }
+        return cumulativeHist;
+    }
+    private float[] buildCumulativeHistInv(int[] hist) {
+        float[] cumulativeHist = new float[HIST_BINS + 1];
+        for (int i = 1; i < cumulativeHist.length; i++) {
+            cumulativeHist[i] = cumulativeHist[i - 1] + hist[hist.length - (i - 1) - 1];
         }
         float max = cumulativeHist[HIST_BINS];
         for (int i = 0; i < cumulativeHist.length; i++) {

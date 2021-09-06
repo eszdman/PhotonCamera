@@ -12,12 +12,12 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
 
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static com.particlesdevs.photoncamera.util.Math2.mix;
 
 public class ExposureFusionBayer2 extends Node {
 
@@ -70,21 +70,39 @@ public class ExposureFusionBayer2 extends Node {
     }
     float autoExposureHigh(){
         float max = 0.f;
+        float avr = 0.f;
+        float w = 0.f;
         for(int i = 15; i<240;i++){
-            float ind = (float)(Math.pow(i/255.f, 1./ gammaKSearch));
+            float line = i/255.f;
+            float ind = (float)(Math.pow(line, 1./ gammaKSearch));
             float mpy = histogram.histr[i]/(ind);
             max = Math.max(max,mpy);
+            avr+=mpy;
+            w+=1.0f;
         }
-        return max;
+        return mix(avr/w,max, overExposeMaxFusion);
     }
     float autoExposureLow(){
-        float min = 1.f;
+        /*float min = 1.f;
         for(int i = 15; i<240;i++){
             float ind = (float)(Math.pow(i/255.f, 1./ gammaKSearch));
             float mpy = histogram.histr[i]/(ind);
             min = Math.min(min,mpy);
         }
-        return min;
+        return max;
+        */
+        float min = 0.f;
+        float avr = 0.f;
+        float w = 0.f;
+        for(int i = 15; i<240;i++){
+            float line = i/255.f;
+            float ind = (float)(Math.pow(line, 1./ gammaKSearch));
+            float mpy = histogram.histInvr[i]/(ind);
+            min = Math.min(min,mpy);
+            avr+=mpy;
+            w+=1.0f;
+        }
+        return mix(avr/w,min,underExposeMinFusion);
     }
 
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
@@ -104,7 +122,9 @@ public class ExposureFusionBayer2 extends Node {
     Point initialSize;
     Point WorkSize;
     float overExposeMpy = 1.0f;
-    float underExposeMpy = 0.5f;
+    float overExposeMaxFusion = 0.85f;
+    float underExposeMpy = 1.0f;
+    float underExposeMinFusion = 0.0f;
     float gammaKSearch = 1.0f;
     float baseExpose = 1.0f;
     float gaussSize = 0.5f;
@@ -125,6 +145,8 @@ public class ExposureFusionBayer2 extends Node {
             return;
         }
         overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
+        overExposeMaxFusion = getTuning("OverExposeMaxFusion", overExposeMaxFusion);
+        underExposeMinFusion = getTuning("UnderExposeMinFusion", underExposeMinFusion);
         underExposeMpy = getTuning("UnderExposeMpy", underExposeMpy);
         baseExpose = getTuning("BaseExposure",baseExpose);
         gaussSize = getTuning("GaussSize",gaussSize);
@@ -139,11 +161,14 @@ public class ExposureFusionBayer2 extends Node {
             intenseCurveX[i] = line;
             intenseCurveY[i] = 1.0f;
         }
-        intenseCurveX[0] = 0.0f;
-        intenseCurveY[0] = 1.0f;
+        if(curvePointsCount == 5) {
+            intenseCurveY[0] = 0.8f;
+            intenseCurveY[1] = 1.0f;
+            intenseCurveY[2] = 0.7f;
+            intenseCurveY[3] = 0.2f;
+            intenseCurveY[4] = 0.3f;
+        }
 
-        intenseCurveX[curvePointsCount-1] = 1.0f;
-        intenseCurveY[curvePointsCount-1] = 0.0f;
         intenseCurveX = getTuning("IntenseCurveX", intenseCurveX);
         intenseCurveY = getTuning("IntenseCurveY", intenseCurveY);
         ArrayList<Float> curveX = new ArrayList<>();

@@ -14,7 +14,6 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
-import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.RANSAC;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
@@ -28,8 +27,9 @@ import java.util.List;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
-import static com.particlesdevs.photoncamera.util.Math.MirrorCoords;
-import static com.particlesdevs.photoncamera.util.Math.mix;
+import static com.particlesdevs.photoncamera.util.Math2.MirrorCoords;
+import static com.particlesdevs.photoncamera.util.Math2.mix;
+import static com.particlesdevs.photoncamera.util.Math2.pdf;
 
 public class Equalization extends Node {
     public Equalization() {
@@ -98,9 +98,6 @@ public class Equalization extends Node {
         Histogram histogram = new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
         bmp.recycle();
         return histogram;
-    }
-    private float pdf(float x,float sigma){
-        return (float) (0.39894*Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
     }
     private float gauss(float[] in,int ind){
         float sum = 0.f;

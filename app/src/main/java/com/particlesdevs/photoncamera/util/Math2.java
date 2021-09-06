@@ -1,6 +1,6 @@
 package com.particlesdevs.photoncamera.util;
 
-public class Math {
+public class Math2 {
     public static double mix(double in, double in2, double t){
         return in*(1.-t)+in2*(t);
     }
@@ -15,5 +15,8 @@ public class Math {
             }
         }
         return i;
+    }
+    public static float pdf(float x,float sigma){
+        return (float) (0.39894* java.lang.Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
     }
 }

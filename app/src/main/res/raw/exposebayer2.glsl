@@ -40,7 +40,8 @@ void main() {
     #endif
     factor2=mix(1.0,factor2,texinput);
     #endif
-        inp=clamp(inp*factor2,0.0,1.0);
+
+    inp=clamp(inp*factor2,0.0,1.0);
     //}
     vec3 v3 = vec3(inp.r,(inp.g+inp.b)/2.0,inp.a);
     float br = luminocity(v3);

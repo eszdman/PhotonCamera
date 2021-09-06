@@ -69,21 +69,29 @@ public final class CameraManager2 {
     }
 
     private void scanAllCameras(CameraManager cameraManager) {
-        for (int num = 0; num < 121; num++) {
-            CameraCharacteristics cameraCharacteristics;
-            try {
-                cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+        try {
+            for (int num = 0; num < 121; num++) {
+                CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
                 log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
                 CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
                 if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
                     mAllCameraIDsSet.add(String.valueOf(num));
                     mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
                 }
-            } catch (IllegalArgumentException ignored) {
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+            if(mAllCameraIDsSet.size() == 0) {
+                for(int i = 0; i<2;i++){
+                    CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(i));
+                    CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(i), cameraCharacteristics);
+                    mAllCameraIDsSet.add(String.valueOf(i));
+                    mCameraLensDataMap.put(String.valueOf(i), cameraLensData);
+                }
+            }
+        } catch (IllegalArgumentException ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
         findLensZoomFactor(mCameraLensDataMap);
     }
 
