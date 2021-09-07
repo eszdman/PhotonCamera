@@ -278,9 +278,10 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
 
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
-    br = pRGB.r+pRGB.g+pRGB.b;
-    br/=3.0;
-    pRGB/=br;
+    //pRGB = rgbToHsluv(pRGB);
+    //br = pRGB.r+pRGB.g+pRGB.b;
+    //br/=3.0;
+    //pRGB/=br;
 
 
     //ISO tint correction
@@ -299,7 +300,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //if(br < 0.993)
     //br*=1.0 + (tonemapGain-1.0)*-5.0;
     //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
-    br*=tonemapGain;
+
+    pRGB*=tonemapGain;
 
 
 
@@ -307,7 +309,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //}
     //br=pow(br,tonemapGain);
 
-    pRGB*=br;
+    //pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
     //pRGB = tonemap(pRGB);

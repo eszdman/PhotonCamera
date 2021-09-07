@@ -121,8 +121,8 @@ public class ExposureFusionBayer2 extends Node {
     Histogram histogram;
     Point initialSize;
     Point WorkSize;
-    float overExposeMpy = 1.0f;
-    float overExposeMaxFusion = 0.85f;
+    float overExposeMpy = 1.8f;
+    float overExposeMaxFusion = 0.9f;
     float underExposeMpy = 1.0f;
     float underExposeMinFusion = 0.0f;
     float gammaKSearch = 1.0f;
@@ -130,7 +130,7 @@ public class ExposureFusionBayer2 extends Node {
     float gaussSize = 0.5f;
     float targetLuma = 0.5f;
     float downScalePerLevel = 1.9f;
-    float dehazing = 0.0f;
+    float dehazing = 0.5f;
     int curvePointsCount = 5;
     float[] intenseCurveX;
     float[] intenseCurveY;
@@ -161,11 +161,18 @@ public class ExposureFusionBayer2 extends Node {
             intenseCurveX[i] = line;
             intenseCurveY[i] = 1.0f;
         }
+
         if(curvePointsCount == 5) {
-            intenseCurveY[0] = 0.8f;
-            intenseCurveY[1] = 1.0f;
-            intenseCurveY[2] = 0.7f;
-            intenseCurveY[3] = 0.2f;
+            intenseCurveX[0] = 0.0f;
+            intenseCurveX[1] = 0.07f;
+            intenseCurveX[2] = 0.25f;
+            intenseCurveX[3] = 0.95f;
+            intenseCurveX[4] = 1.0f;
+
+            intenseCurveY[0] = 0.4f;
+            intenseCurveY[1] = 0.7f;
+            intenseCurveY[2] = 1.0f;
+            intenseCurveY[3] = 1.0f;
             intenseCurveY[4] = 0.3f;
         }
 
