@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Vibrator;
+import android.util.Log;
 import android.util.Range;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;

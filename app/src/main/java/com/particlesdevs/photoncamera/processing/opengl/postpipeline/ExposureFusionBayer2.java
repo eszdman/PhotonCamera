@@ -136,6 +136,7 @@ public class ExposureFusionBayer2 extends Node {
     float[] intenseCurveY;
     GLTexture interpolatedCurve;
     boolean disableFusion = false;
+    boolean useSymmetricExposureFork = true;
     @Override
     public void Run() {
         disableFusion = getTuning("DisableFusion",disableFusion);
@@ -144,6 +145,7 @@ public class ExposureFusionBayer2 extends Node {
             glProg.closed = true;
             return;
         }
+        useSymmetricExposureFork = getTuning("UseSymmetricExposureFork",useSymmetricExposureFork);
         overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
         overExposeMaxFusion = getTuning("OverExposeMaxFusion", overExposeMaxFusion);
         underExposeMinFusion = getTuning("UnderExposeMinFusion", underExposeMinFusion);
@@ -169,11 +171,11 @@ public class ExposureFusionBayer2 extends Node {
             intenseCurveX[3] = 0.95f;
             intenseCurveX[4] = 1.0f;
 
-            intenseCurveY[0] = 0.4f;
-            intenseCurveY[1] = 0.7f;
+            intenseCurveY[0] = 0.7f;
+            intenseCurveY[1] = 1.0f;
             intenseCurveY[2] = 1.0f;
-            intenseCurveY[3] = 1.0f;
-            intenseCurveY[4] = 0.3f;
+            intenseCurveY[3] = 0.85f;
+            intenseCurveY[4] = 0.45f;
         }
 
         intenseCurveX = getTuning("IntenseCurveX", intenseCurveX);
@@ -214,13 +216,21 @@ public class ExposureFusionBayer2 extends Node {
         GLTexture downscaled = glUtils.interpolate(exposureBase,1.0/4.0);
         getHistogram(downscaled);
         downscaled.close();
-        float overexpose = autoExposureHigh()*overExposeMpy;
+        float overexposure = autoExposureHigh()*overExposeMpy;
         float underexposure = autoExposureLow()*underExposeMpy;
-        //overexpose = Math.min(10.f,overexpose);
-        //underexposure = Math.max(underexposure,0.0008f);
-        Log.d(Name,"Overexp:"+overexpose+" , Underexp:"+underexposure);
+        overexposure = Math.min(1024.f,overexposure);
+        underexposure = Math.max(1.f/1024.f,underexposure);
 
-        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose(in,overexpose));
+        if(useSymmetricExposureFork){
+            float mpy = overexposure*underexposure;
+            overexposure/=mpy;
+            underexposure/=mpy;
+        }
+        //overexposure = Math.min(10.f,overexposure);
+        //underexposure = Math.max(underexposure,0.0008f);
+        Log.d(Name,"Overexp:"+overexposure+" , Underexp:"+underexposure);
+
+        GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose(in,overexposure));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,downScalePerLevel, expose2(in,underexposure));
 
         //glUtils.convertVec4(highExpo.laplace[2],"in1.r");

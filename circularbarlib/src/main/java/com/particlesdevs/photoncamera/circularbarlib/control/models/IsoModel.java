@@ -46,7 +46,7 @@ public class IsoModel extends ManualModel<Integer> {
             values.add((int) (val / IsoExpoSelector.getMPY(cameraCharacteristics)));
         }
         candidates.add(String.valueOf(isohigh));
-        values.add((int)isohigh);
+        values.add((int)((int)isohigh / IsoExpoSelector.getMPY(cameraCharacteristics)));
         int indicatorCount = 0;
         int tick = 0;
         int preferredIntervalCount = 4;
