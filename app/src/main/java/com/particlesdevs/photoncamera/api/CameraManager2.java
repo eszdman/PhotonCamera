@@ -69,28 +69,30 @@ public final class CameraManager2 {
     }
 
     private void scanAllCameras(CameraManager cameraManager) {
-        try {
+
             for (int num = 0; num < 121; num++) {
-                CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
-                log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
-                CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
-                if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
-                    mAllCameraIDsSet.add(String.valueOf(num));
-                    mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
+                try {
+                    CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+                    log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
+                    CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
+                    if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
+                        mAllCameraIDsSet.add(String.valueOf(num));
+                        mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
+                    }
+                } catch (Exception ignored) {
                 }
             }
             if(mAllCameraIDsSet.size() == 0) {
                 for(int i = 0; i<2;i++){
+                    try {
                     CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(i));
                     CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(i), cameraCharacteristics);
                     mAllCameraIDsSet.add(String.valueOf(i));
                     mCameraLensDataMap.put(String.valueOf(i), cameraLensData);
+                    } catch (Exception ignored) {
+                    }
                 }
             }
-        } catch (IllegalArgumentException ignored) {
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         findLensZoomFactor(mCameraLensDataMap);
     }

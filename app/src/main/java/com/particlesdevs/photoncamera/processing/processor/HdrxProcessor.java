@@ -205,8 +205,13 @@ public class HdrxProcessor extends ProcessorBase {
             interpolateGainMap.Run();
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
-
-            float noiseLevel = (processingParameters.noiseModeler.computeModel[0].first.floatValue()+
+            float NoiseS = processingParameters.noiseModeler.computeModel[0].first.floatValue()+
+                    processingParameters.noiseModeler.computeModel[1].first.floatValue()+
+                    processingParameters.noiseModeler.computeModel[2].first.floatValue();
+            float NoiseO = processingParameters.noiseModeler.computeModel[0].second.floatValue()+
+                    processingParameters.noiseModeler.computeModel[1].second.floatValue()+
+                    processingParameters.noiseModeler.computeModel[2].second.floatValue();
+            /*float noiseLevel = (processingParameters.noiseModeler.computeModel[0].first.floatValue()+
                     processingParameters.noiseModeler.computeModel[1].first.floatValue()+
                     processingParameters.noiseModeler.computeModel[2].first.floatValue())*0.7f;
             noiseLevel += processingParameters.noiseModeler.computeModel[0].second.floatValue()+
@@ -214,9 +219,15 @@ public class HdrxProcessor extends ProcessorBase {
                     processingParameters.noiseModeler.computeModel[2].second.floatValue();
             noiseLevel*=Math.pow(2.0,19.0+PhotonCamera.getSettings().noiseRstr);
             noiseLevel = Math.max(1.f,noiseLevel);
-            Log.d(TAG, "Denoising level:" + noiseLevel);
-            //TODO Write into java-created byteBuffer instead of jni
-            output = Wrapper.processFrame(1.0f*noiseLevel, 6.0f*noiseLevel, 1,0.f, 0.f, 0.f, processingParameters.whiteLevel
+            Log.d(TAG, "Denoising level:" + noiseLevel);*/
+            NoiseS/=3.f;
+            NoiseO/=3.f;
+            double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.7);
+            NoiseS*=noisempy;
+            NoiseO*=noisempy*16384;
+            output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
+            Wrapper.outputBuffer(output);
+            Wrapper.processFrame(NoiseS, NoiseO, 6.f,1,0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         } else {
         rawPipeline.alignAlgorithm = alignAlgorithm;
