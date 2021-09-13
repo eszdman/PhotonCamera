@@ -9,6 +9,9 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.util.FileManager;
+
+import java.io.File;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -25,7 +28,6 @@ public class RotateWatermark extends Node {
 
     @Override
     public void Compile() {}
-
     @Override
     public void AfterRun() {
         if(watermark != null) watermark.recycle();
@@ -33,13 +35,12 @@ public class RotateWatermark extends Node {
 
     @Override
     public void Run() {
-        if(watermarkNeeded) {
+
+        //else lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
+        glProg.setDefine("WATERMARK",watermarkNeeded);
         glProg.useProgram(R.raw.addwatermark_rotate);
         watermark = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.photoncamera_watermark);
         glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
-        } else {
-            glProg.useProgram(R.raw.rotate);
-        }
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         int rot = -1;
         Log.d(Name,"Rotation:"+rotate);

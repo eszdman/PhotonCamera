@@ -4,7 +4,7 @@ android {
     def versionPropsFile = file('version.properties')
     def versionBuild
     compileSdkVersion 30
-    buildToolsVersion '30.0.2'
+    buildToolsVersion '30.0.3'
     lintOptions {
         abortOnError false
     }
@@ -38,11 +38,11 @@ android {
         minSdkVersion 26
         targetSdkVersion 30
         versionCode versionBuild
-        versionName '0.71'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
         }
+        versionName '0.8'
     }
 
     gradle.taskGraph.whenReady { taskGraph ->
@@ -84,17 +84,18 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(path: ':circularbarlib')
     implementation 'de.hdodenhof:circleimageview:3.1.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.preference:preference:1.1.1'
     implementation 'org.jetbrains:annotations:16.0.1'
     implementation 'androidx.exifinterface:exifinterface:1.3.2'
-    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
-    implementation 'com.aparapi:aparapi:2.0.0'
+    implementation 'com.mytechia:opencv:4.1.0-my'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
@@ -102,12 +103,12 @@ dependencies {
     implementation 'rapid.decoder:png-decoder:0.3.0'
     implementation 'com.google.code.gson:gson:2.8.6'
     // Navigation Component
-    implementation "androidx.navigation:navigation-fragment:2.3.2"
-    implementation "androidx.navigation:navigation-ui:2.3.2"
+    implementation "androidx.navigation:navigation-fragment:2.3.5"
+    implementation "androidx.navigation:navigation-ui:2.3.5"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'com.google.android.material:material:1.3.0'
     //Leak Canary
     //Use this lib to detect memory leaks when debugging
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'

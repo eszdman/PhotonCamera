@@ -14,10 +14,11 @@
         android:name="android.hardware.camera"
         android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
+    <uses-feature android:name="android.hardware.camera.capability.raw" />
 
     <application
-        android:name=".app.PhotonCamera"
-        android:allowBackup="true"
+        android:name="com.particlesdevs.photoncamera.app.PhotonCamera"
+        android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:isGame="true"
@@ -26,12 +27,13 @@
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:theme="@style/Theme.Photon.BaseApp"
-        tools:targetApi="q">
+        tools:targetApi="q"
+        android:fullBackupContent="@xml/backup_descriptor">
         <activity
-            android:name=".ui.settings.SettingsActivity"
+            android:name="com.particlesdevs.photoncamera.ui.settings.SettingsActivity"
             android:theme="@style/Theme.Photon.SettingsActivity" />
         <activity
-            android:name=".ui.SplashActivity"
+            android:name="com.particlesdevs.photoncamera.ui.SplashActivity"
             android:theme="@style/Theme.Photon.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,9 +53,9 @@
         </activity>
 
         <activity
-            android:name=".ui.camera.CameraActivity"
+            android:name="com.particlesdevs.photoncamera.ui.camera.CameraActivity"
             android:configChanges="orientation|keyboardHidden|screenSize" />
-        <activity android:name=".gallery.ui.GalleryActivity" />
+        <activity android:name="com.particlesdevs.photoncamera.gallery.ui.GalleryActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

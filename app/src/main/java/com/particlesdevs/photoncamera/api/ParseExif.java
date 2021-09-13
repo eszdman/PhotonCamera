@@ -1,7 +1,5 @@
 package com.particlesdevs.photoncamera.api;
 
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
 import android.util.Log;
@@ -20,9 +18,15 @@ import static android.hardware.camera2.CaptureResult.*;
 import static androidx.exifinterface.media.ExifInterface.*;
 
 public class ParseExif {
-    private static final String TAG = "ParseExif" ;
+    public static final SimpleDateFormat sFormatter;
+    private static final String TAG = "ParseExif";
 
-    static String getTime(long exposureTime) {
+    static {
+        sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
+        sFormatter.setTimeZone(TimeZone.getDefault());
+    }
+
+    public static String getTime(long exposureTime) {
         String out;
         long sec = 1000000000;
         double time = (double) (exposureTime) / sec;
@@ -30,21 +34,16 @@ public class ParseExif {
         return out;
     }
 
-    static public String resultget(CaptureResult res, Key<?> key) {
+    public static String resultget(CaptureResult res, Key<?> key) {
         Object out = res.get(key);
         if (out != null) return out.toString();
         else return "";
     }
 
-    public static ExifInterface Parse(CaptureResult result, File file) {
-        ExifInterface inter = null;
-        try {
-            inter = new ExifInterface(file);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return inter;
-        }
-        int rotation = PhotonCamera.getParameters().cameraRotation;
+    public static ExifData parse(CaptureResult result) {
+        ExifData data = new ExifData();
+
+        int rotation = PhotonCamera.getCaptureController().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
@@ -62,56 +61,63 @@ public class ParseExif {
         }
         Log.d(TAG, "rotation:" + rotation);
         Log.d(TAG, "orientation:" + orientation);
-        inter.setAttribute(TAG_SENSITIVITY_TYPE, String.valueOf(SENSITIVITY_TYPE_ISO_SPEED));
-        Object iso = result.get(SENSOR_SENSITIVITY);
-        int isonum = 100;
-        if (iso != null) isonum = (int) ((int) (iso) * IsoExpoSelector.getMPY());
-        Log.d(TAG, "sensivity:" + isonum);
-        inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, String.valueOf(isonum));
-        inter.setAttribute(TAG_F_NUMBER, resultget(result, LENS_APERTURE));
-        inter.setAttribute(TAG_FOCAL_LENGTH, ((int) (100 * Double.parseDouble(resultget(result, LENS_FOCAL_LENGTH)))) + "/100");
 
-/*      //saving for later use
+        Integer iso = result.get(SENSOR_SENSITIVITY);
+        int isonum = 100;
+        if (iso != null) isonum = (int) (iso * IsoExpoSelector.getMPY());
+        Log.d(TAG, "sensivity:" + isonum);
+
+        data.SENSITIVITY_TYPE = String.valueOf(ExifInterface.SENSITIVITY_TYPE_ISO_SPEED);
+        data.PHOTOGRAPHIC_SENSITIVITY = String.valueOf(isonum);
+        data.F_NUMBER = resultget(result, LENS_APERTURE);
+        data.FOCAL_LENGTH = ((int) (100 * Double.parseDouble(resultget(result, LENS_FOCAL_LENGTH)))) + "/100";
+        data.APERTURE_VALUE = String.valueOf(result.get(LENS_APERTURE));
+        data.EXPOSURE_TIME = getTime(Long.parseLong(resultget(result, SENSOR_EXPOSURE_TIME)));
+        data.DATETIME = sFormatter.format(new Date(System.currentTimeMillis()));
+        data.COMPRESSION = "97";
+        data.COLOR_SPACE = "sRGB";
+        data.EXIF_VERSION = "0231";
+        data.IMAGE_DESCRIPTION = PhotonCamera.getParameters().toString();
+        /*
+        //saving for later use
         float sensorWidth = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth();
         String mm35 = String.valueOf((short) (36 * (result.get(LENS_FOCAL_LENGTH) / sensorWidth)));
         inter.setAttribute(TAG_FOCAL_LENGTH_IN_35MM_FILM, mm35);
         Log.d(TAG, "Saving 35mm FocalLength = " + mm35);
-*/
+        */
+        return data;
+    }
 
-        inter.setAttribute(TAG_COPYRIGHT, "PhotonCamera");
-        inter.setAttribute(TAG_APERTURE_VALUE, String.valueOf(result.get(LENS_APERTURE)));
-        inter.setAttribute(TAG_EXPOSURE_TIME, getTime(Long.parseLong(resultget(result, SENSOR_EXPOSURE_TIME))));
-        inter.setAttribute(ExifInterface.TAG_DATETIME, sFormatter.format(new Date(System.currentTimeMillis())));
-        inter.setAttribute(TAG_MODEL, Build.MODEL);
-        inter.setAttribute(TAG_MAKE, Build.BRAND);
-        inter.setAttribute(TAG_COMPRESSION,"97");
-        inter.setAttribute(TAG_COLOR_SPACE,"sRGB");
-        inter.setAttribute(TAG_EXIF_VERSION, "0231");
-        String version = "";
+    public static ExifInterface setAllAttributes(File file, ExifData data) {
+        ExifInterface inter = null;
         try {
-            PackageInfo pInfo = PhotonCamera.getPackageInfo();
-            version = pInfo.versionName;
-            version += pInfo.versionCode;
-        } catch (PackageManager.NameNotFoundException e) {
+            inter = new ExifInterface(file);
+        } catch (IOException e) {
             e.printStackTrace();
+            return inter;
         }
-        inter.setAttribute(TAG_IMAGE_DESCRIPTION, PhotonCamera.getParameters().toString() +
-                "\n" + "Version:" + version);
+        inter.setAttribute(TAG_SENSITIVITY_TYPE, data.SENSITIVITY_TYPE);
+        inter.setAttribute(TAG_PHOTOGRAPHIC_SENSITIVITY, data.PHOTOGRAPHIC_SENSITIVITY);
+        inter.setAttribute(TAG_F_NUMBER, data.F_NUMBER);
+        inter.setAttribute(TAG_FOCAL_LENGTH, data.FOCAL_LENGTH);
+        inter.setAttribute(TAG_COPYRIGHT, data.COPYRIGHT);
+        inter.setAttribute(TAG_APERTURE_VALUE, data.APERTURE_VALUE);
+        inter.setAttribute(TAG_EXPOSURE_TIME, data.EXPOSURE_TIME);
+        inter.setAttribute(ExifInterface.TAG_DATETIME, data.DATETIME);
+        inter.setAttribute(TAG_MODEL, data.MODEL);
+        inter.setAttribute(TAG_MAKE, data.MAKE);
+        inter.setAttribute(TAG_COMPRESSION, data.COMPRESSION);
+        inter.setAttribute(TAG_COLOR_SPACE, data.COLOR_SPACE);
+        inter.setAttribute(TAG_EXIF_VERSION, data.EXIF_VERSION);
+        inter.setAttribute(TAG_IMAGE_DESCRIPTION, data.IMAGE_DESCRIPTION);
         return inter;
     }
 
-    public static final SimpleDateFormat sFormatter;
-
-    static {
-        sFormatter = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
-        sFormatter.setTimeZone(TimeZone.getDefault());
-    }
-    public static int getOrientation(){
-        int rotation = PhotonCamera.getGravity().getCameraRotation();
+    public static int getOrientation(int cameraRotation) {
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
-        switch (rotation) {
+        switch (cameraRotation) {
             case 90:
                 orientation = ExifInterface.ORIENTATION_ROTATE_90;
                 break;
@@ -123,5 +129,22 @@ public class ParseExif {
                 break;
         }
         return orientation;
+    }
+
+    public static class ExifData {
+        public final String MODEL = Build.MODEL;
+        public final String MAKE = Build.BRAND;
+        public final String COPYRIGHT = "PhotonCamera";
+        public String SENSITIVITY_TYPE;
+        public String PHOTOGRAPHIC_SENSITIVITY;
+        public String APERTURE_VALUE;
+        public String COMPRESSION;
+        public String COLOR_SPACE;
+        public String EXIF_VERSION;
+        public String IMAGE_DESCRIPTION;
+        public String DATETIME;
+        public String EXPOSURE_TIME;
+        public String F_NUMBER;
+        public String FOCAL_LENGTH;
     }
 }

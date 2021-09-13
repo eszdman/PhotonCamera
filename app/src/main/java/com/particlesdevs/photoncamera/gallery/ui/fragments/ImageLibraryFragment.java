@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -103,7 +105,10 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
                     filesToDelete.forEach(file -> {
-                        file.delete();
+                        boolean result = file.delete();
+                        if (!result){
+                            Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
+                        }
                         MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);
                     });
                     onImageSelectionStopped();
@@ -172,5 +177,12 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
         if (isFABOpen) {
             closeFABMenu();
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getParentFragmentManager().beginTransaction().remove(ImageLibraryFragment.this).commitAllowingStateLoss();
+        fragmentGalleryImageLibraryBinding = null;
     }
 }

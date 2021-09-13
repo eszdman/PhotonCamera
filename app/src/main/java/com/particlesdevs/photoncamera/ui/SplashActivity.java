@@ -1,19 +1,17 @@
 package com.particlesdevs.photoncamera.ui;
 
-import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.particlesdevs.photoncamera.ui.camera.CameraActivity;
+import com.particlesdevs.photoncamera.AiPhoto;
 
 public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        startActivity(new Intent(SplashActivity.this, CameraActivity.class));
-
+        AiPhoto.initAi(this);
         finish();
     }
 }

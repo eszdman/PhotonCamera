@@ -48,21 +48,31 @@ public class ManagedSwitchPreference extends SwitchPreferenceCompat {
 
     @Override
     public boolean getPersistedBoolean(boolean defaultReturnValue) {
-        if (PhotonCamera.getSettingsManager() != null)
-            return PhotonCamera.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,getKey(), defaultReturnValue);
-        else
+        PhotonCamera photonCamera = PhotonCamera.getInstance(getContext());
+        if (photonCamera == null)
             return defaultReturnValue;
-
+        else {
+            SettingsManager settingsManager = photonCamera.getSettingsManager();
+            if (settingsManager != null)
+                return settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, getKey(), defaultReturnValue);
+            else
+                return defaultReturnValue;
+        }
     }
 
     @Override
     public boolean persistBoolean(boolean value) {
-        if (PhotonCamera.getSettingsManager() != null) {
-            PhotonCamera.getSettingsManager().set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
-            return true;
-        } else
+        PhotonCamera photonCamera = PhotonCamera.getInstance(getContext());
+        if (photonCamera == null)
             return false;
-
+        else {
+            SettingsManager settingsManager = photonCamera.getSettingsManager();
+            if (settingsManager != null) {
+                settingsManager.set(SettingsManager.SCOPE_GLOBAL, getKey(), value);
+                return true;
+            } else
+                return false;
+        }
     }
 
     private void set(boolean value) {

@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.ui.camera.model;
 
 import android.graphics.Bitmap;
+
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
@@ -11,6 +12,7 @@ public class CameraFragmentModel extends BaseObservable {
     private int orientation;
     private int duration;
     private Bitmap bitmap;
+    private boolean settingsBarVisibility;
 
     @Bindable
     public Bitmap getBitmap() {
@@ -43,5 +45,14 @@ public class CameraFragmentModel extends BaseObservable {
 
     public void setDuration(int duration) {
         this.duration = duration;
+    }
+    @Bindable
+    public boolean isSettingsBarVisibility() {
+        return settingsBarVisibility;
+    }
+
+    public void setSettingsBarVisibility(boolean settingsBarVisibility) {
+        this.settingsBarVisibility = settingsBarVisibility;
+        notifyChange();
     }
 }

@@ -19,6 +19,7 @@ public class Settings {
     public boolean align;
     public boolean hdrx;
     public boolean hdrxNR;
+    public double exposureCompensation;
     public double saturation;
     public double sharpness;
     public double contrastMpy = 1.0;
@@ -56,6 +57,7 @@ public class Settings {
 //        contrastConst = get(contrastConst, "ContrastConst");///////TODO
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
+        exposureCompensation = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_EXPOCOMPENSATE_SEEKBAR);
         compressor = PreferenceKeys.getCompressorValue();
         noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR);
         gain = PreferenceKeys.getGainValue();

@@ -5,14 +5,14 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.processing.UnlimitedProcessor;
+import com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLOneScript;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 
-import static com.particlesdevs.photoncamera.processing.UnlimitedProcessor.unlimitedCounter;
+import static com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor.unlimitedCounter;
 
 public class AverageRaw extends GLOneScript {
     GLTexture in1,in2, first,second,stack,finalTex;

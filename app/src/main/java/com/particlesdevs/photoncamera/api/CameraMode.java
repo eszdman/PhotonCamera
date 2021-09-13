@@ -1,13 +1,23 @@
 package com.particlesdevs.photoncamera.api;
 
+import androidx.annotation.StringRes;
+
+import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+
 import java.util.stream.Stream;
 
 public enum CameraMode {
-    UNLIMITED,
-    PHOTO,
-    NIGHT,
-    VIDEO;
+    UNLIMITED(R.string.mode_unlimited),
+    PHOTO(R.string.mode_photo),
+    NIGHT(R.string.mode_night),
+    VIDEO(R.string.mode_video);
 
+    int stringId;
+
+    CameraMode(@StringRes int stringId) {
+        this.stringId = stringId;
+    }
 
     public static CameraMode valueOf(int modeOrdinal) {
         for (CameraMode mode : values()) {
@@ -18,8 +28,8 @@ public enum CameraMode {
         return PHOTO;
     }
 
-    public static String[] names() {
-        return Stream.of(values()).map(Enum::name).toArray(String[]::new);
+    public static Integer[] nameIds() {
+        return Stream.of(values()).map(mode -> mode.stringId).toArray(Integer[]::new);
     }
 
 }

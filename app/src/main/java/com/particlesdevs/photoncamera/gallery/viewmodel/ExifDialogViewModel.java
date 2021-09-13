@@ -4,20 +4,27 @@ package com.particlesdevs.photoncamera.gallery.viewmodel;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Rational;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.lifecycle.AndroidViewModel;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.gallery.model.ExifDialogModel;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 import com.particlesdevs.photoncamera.util.Utilities;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -25,9 +32,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * The View Model class which updates the {@link ExifDialogModel}
@@ -35,7 +39,8 @@ import java.util.concurrent.Executors;
 public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final Handler histoHandler = new Handler(Looper.getMainLooper());
+    private Runnable histoRunnable;
 
     public ExifDialogViewModel(Application application) {
         super(application);
@@ -105,30 +110,29 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(File imageFile) {
-        Handler handler = new Handler(Looper.getMainLooper(), msg -> {
-            exifDialogModel.setHistogramModel((Histogram.HistogramModel) msg.obj); //setting histogram view to model
-            return true;
-        });
-        executorService.execute(() -> {
-            try {
-                Bitmap preview = Glide.with(getApplication())
-                        .asBitmap()
-                        .load(imageFile)
-                        .apply(new RequestOptions()
-                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                                .signature(new ObjectKey("hist" + imageFile.getName() + imageFile.lastModified()))
-                                .override(800) //800*800
-                                .fitCenter()
-                        )
-                        .submit()
-                        .get();
-                Message msg = new Message();
-                msg.obj = Histogram.analyze(preview);
-                handler.sendMessage(msg);
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
+        if (histoRunnable != null) {
+            histoHandler.removeCallbacks(histoRunnable);
+        }
+        histoHandler.post(histoRunnable = () ->
+                Glide.with(getApplication())
+                .asBitmap()
+                .load(imageFile)
+                .apply(new RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                        .signature(new ObjectKey("hist" + imageFile.getName() + imageFile.lastModified()))
+                        .override(800) //800*800
+                        .fitCenter())
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        exifDialogModel.setHistogramModel(Histogram.analyze(resource));
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                    }
+                }));
     }
 
     private String getDateText(String savedDate) {
@@ -137,10 +141,14 @@ public class ExifDialogViewModel extends AndroidViewModel {
         Date photoDate;
         try {
             photoDate = ParseExif.sFormatter.parse(savedDate); //parsing with the same formatter with which it was saved
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
             return "";
         }
         return displayedDateFormat.format(photoDate == null ? new Date() : photoDate);
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
     }
 }

@@ -2,10 +2,12 @@ package com.particlesdevs.photoncamera.pro;
 
 import android.os.Build;
 import android.util.Log;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.util.HttpLoader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,6 +24,8 @@ public class SupportedDevice {
     private static final String TAG = "SupportedDevice";
     private final SettingsManager mSettingsManager;
     private Set<String> mSupportedDevicesSet = new LinkedHashSet<>();
+    public Specific specific;
+    public SensorSpecifics sensorSpecifics;
     private boolean loaded = false;
     private int checkedCount = 0;
 
@@ -30,6 +34,8 @@ public class SupportedDevice {
     }
 
     public void loadCheck() {
+        specific = new Specific(mSettingsManager);
+        sensorSpecifics = new SensorSpecifics(mSettingsManager);
         new Thread(() -> {
             try {
                 if (checkedCount < 1) {
@@ -42,10 +48,22 @@ public class SupportedDevice {
             if (!loaded && mSettingsManager.isSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
                 mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
+        Thread thread = new Thread(() -> {
+                if (checkedCount < 2) {
+                    specific.loadSpecific();
+                }
+        });
+        thread.start();
+        while(thread.isAlive()){
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void isSupported() {
-        Log.d(TAG, "isSupported(): checkedCount = " + checkedCount);
         checkedCount++;
         if (mSupportedDevicesSet == null) {
             return;
@@ -65,15 +83,12 @@ public class SupportedDevice {
     }
 
     private void loadSupportedDevicesList() throws IOException {
-        URL supportedList = new URL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
-        HttpURLConnection conn = (HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(200); // timing out in a 200 ms
-        BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
         String str;
         while ((str = in.readLine()) != null) {
             mSupportedDevicesSet.add(str);
-            Log.d(TAG, "Loaded:" + str);
         }
+
         loaded = true;
         in.close();
         mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, mSupportedDevicesSet);

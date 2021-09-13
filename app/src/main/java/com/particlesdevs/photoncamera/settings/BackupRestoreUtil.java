@@ -5,6 +5,7 @@ import android.content.Context;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.FileManager;
+
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -47,7 +48,7 @@ public class BackupRestoreUtil {
 
         try {
             FileUtils.copyFile(toRestore, shared_prefs_file);
-            PhotonCamera.restartWithDelay(1000);
+            PhotonCamera.restartWithDelay(context, 1000);
             return "Restored:" + toRestore.getName();
         } catch (IOException e) {
             e.printStackTrace();

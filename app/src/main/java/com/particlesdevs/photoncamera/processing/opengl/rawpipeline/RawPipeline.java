@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl.rawpipeline;
 
 import android.media.Image;
+import android.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
@@ -16,16 +17,23 @@ import java.util.ArrayList;
 public class RawPipeline extends GLBasePipeline {
     public float sensitivity = 1.f;
     public ArrayList<ImageFrame> images;
+    public ArrayList<ByteBuffer> alignments;
     public ArrayList<Image> imageObj;
+    public int alignAlgorithm;
 
     public ByteBuffer Run() {
-        Parameters parameters = PhotonCamera.getParameters();
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16));
+        mParameters = PhotonCamera.getParameters();
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16));
         //GLContext glContext = new GLContext(parameters.rawSize.x,parameters.rawSize.y);
         glint = new GLInterface(glproc);
-        glint.parameters = parameters;
+        glint.parameters = mParameters;
         //add(new Debug(R.raw.debugraw,"DebugRaw"));
-        add(new AlignAndMerge(0, "AlignAndMerge"));
+        if(alignAlgorithm == 1)
+        add(new AlignAndMerge());
+        if(alignAlgorithm == 2) {
+            Log.d("RawPipeline","Entering hybrid alignment");
+            add(new AlignAndMergeCV());
+        }
         return runAllRaw();
     }
 }

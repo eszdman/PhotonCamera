@@ -1,32 +1,34 @@
 #version 300 es
 precision mediump float;
 precision mediump sampler2D;
-uniform sampler2D InputBuffer22;
-uniform sampler2D MainBuffer22;
-uniform sampler2D InputBuffer88;
-uniform sampler2D MainBuffer88;
-uniform sampler2D InputBuffer32;
-uniform sampler2D MainBuffer32;
-uniform sampler2D InputBuffer128;
-uniform sampler2D MainBuffer128;
-uniform sampler2D AlignVectors;
-uniform int yOffset;
+precision mediump isampler2D;
+uniform sampler2D CornersRef;
+uniform sampler2D CornersIn;
+
+uniform isampler2D AlignVectors;
+#define distribute(x,dev,sigma) (abs(x-dev))
 #define MIN_NOISE 0.1f
 #define MAX_NOISE 0.7f
-#define TILESIZE (32)
-out float Output;
-#import interpolation
+#define TILESIZE 32
+#define WEIGHTSIZE 128
+#define FRAMECOUNT 15
+#define INPUTSIZE 1,1
 #import coords
+out float Output;
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy+=ivec2(0,yOffset);
-    vec2 outsize = vec2(textureSize(MainBuffer22, 0))/2.0;
-    ivec2 align = ivec2(texture(AlignVectors, vec2(gl_FragCoord.xy)/outsize).rg*float(TILESIZE)*256.0);
-    vec2 aligned = vec2(mirrorCoords(xy*2 + align,ivec4(0,0,ivec2(outsize*2.0))))/(outsize*2.0);
-    Output =
-    sqrt(abs(textureBicubicHardware(InputBuffer128,aligned).a-textureBicubicHardware(MainBuffer128,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer32,aligned).a-textureBicubicHardware(MainBuffer32,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer88,aligned).a-textureBicubicHardware(MainBuffer88,vec2(gl_FragCoord.xy)*2.0).a))*
-    sqrt(abs(textureBicubicHardware(InputBuffer22,aligned).a-textureBicubicHardware(MainBuffer22,vec2(gl_FragCoord.xy)*2.0).a));
-    Output = texture(MainBuffer22,aligned).a*0.1;
+    ivec2 xyFrame = ivec2(gl_FragCoord.xy*float(TILESIZE/2));
+    vec2 dist = vec2(0.0);
+    ivec2 shift = ivec2(texelFetch(AlignVectors,(xy), 0).rg);
+    vec2 in2;
+    for (int i=-WEIGHTSIZE/2;i<WEIGHTSIZE/2;i++){
+        in2 = texelFetch(CornersIn, mirrorCoords2((xyFrame+shift+ivec2(i, 0)),ivec2(INPUTSIZE)), 0).rg;
+        dist+= distribute(texelFetch(CornersRef, mirrorCoords2((xyFrame+ivec2(i, 0)),ivec2(INPUTSIZE)), 0).rg, in2, 0.1);
+        in2 = texelFetch(CornersIn, mirrorCoords2((xyFrame+shift+ivec2(0, i)),ivec2(INPUTSIZE)), 0).rg;
+        dist+= distribute(texelFetch(CornersRef, mirrorCoords2((xyFrame+ivec2(0, i)),ivec2(INPUTSIZE)), 0).rg, in2, 0.1);
+    }
+    //dist += ((float(texelFetch(AlignVectors, xy, 0).b)/1024.0));
+    Output = ((dist.r+dist.g)/float(TILESIZE*TILESIZE*FRAMECOUNT/30));
+    Output /=30.0;
+    //Output = ((float(texelFetch(AlignVectors, xy, 0).b)/1024.0))/float(FRAMECOUNT) + 0.25;
 }

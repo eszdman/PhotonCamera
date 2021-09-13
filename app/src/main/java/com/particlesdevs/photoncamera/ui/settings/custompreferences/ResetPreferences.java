@@ -3,13 +3,15 @@ package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.AttributeSet;
+
 import androidx.preference.DialogPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceDialogFragmentCompat;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
-import com.google.android.material.snackbar.Snackbar;
 
 public class ResetPreferences extends DialogPreference {
     public ResetPreferences(Context context, AttributeSet attributeSet) {
@@ -37,7 +39,7 @@ public class ResetPreferences extends DialogPreference {
                     if (!BackupRestoreUtil.resetPreferences(getContext()))
                         status = "Failed";
                     Snackbar.make(getActivity().findViewById(android.R.id.content), status, Snackbar.LENGTH_SHORT).show();
-                    PhotonCamera.restartWithDelay(1000);
+                    PhotonCamera.restartWithDelay(getContext(), 1000);
                 }
             }
         }

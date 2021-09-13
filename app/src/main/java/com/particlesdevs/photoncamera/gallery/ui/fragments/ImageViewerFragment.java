@@ -30,6 +30,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.DepthPageTransformer;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageAdapter;
+import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
@@ -39,14 +40,18 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.util.List;
+import java.util.Locale;
 
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.COMPARE;
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.MODE_KEY;
 
+/**
+ * Created by Vibhor Srivastava on 02-Dec-2020
+ */
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
-    private List < File > allFiles;
+    private List<File> allFiles;
     private File newEditedFile;
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
@@ -55,8 +60,11 @@ public class ImageViewerFragment extends Fragment {
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
     private String mode;
+    private SSIVListener ssivListener;
 
-    @Nullable@Override
+
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
         initialiseDataMembers();
@@ -67,7 +75,8 @@ public class ImageViewerFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getFragmentManager().beginTransaction().remove((Fragment) ImageViewerFragment.this).commitAllowingStateLoss();
+        getParentFragmentManager().beginTransaction().remove((Fragment) ImageViewerFragment.this).commitAllowingStateLoss();
+        fragmentGalleryImageViewerBinding = null;
     }
 
     private void initialiseDataMembers() {
@@ -83,6 +92,9 @@ public class ImageViewerFragment extends Fragment {
         allFiles = FileManager.getAllImageFiles();
         adapter = new ImageAdapter(allFiles);
         adapter.setImageViewClickListener(this::onImageViewClicked);
+        if (ssivListener != null) {
+            adapter.setSsivListener(ssivListener);
+        }
         viewPager.setAdapter(adapter);
     }
 
@@ -101,19 +113,34 @@ public class ImageViewerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
-        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {@Override
-        public void onPageSelected(int position) {
-            updateExif();
-        }
+        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                updateExif();
+                resetScaleText();
+            }
         });
         Bundle bundle = getArguments();
         if (bundle != null) {
             mode = bundle.getString(MODE_KEY);
             viewPager.setCurrentItem(bundle.getInt(IMAGE_POSITION_KEY, 0));
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         if (isCompareMode()) {
             fragmentGalleryImageViewerBinding.setMiniExifVisible(true);
         }
+    }
+
+    public void setSsivListener(SSIVListener ssivListener) {
+        this.ssivListener = ssivListener;
+    }
+
+    public ImageAdapter.CustomSSIV getCurrentSSIV() {
+        return viewPager.findViewById(adapter.getSsivId(viewPager.getCurrentItem()));
     }
 
     private void onBack(View view) {
@@ -121,7 +148,8 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private void onGalleryButtonClick(View view) {
-        if (navController.getPreviousBackStackEntry() == null) navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
+        if (navController.getPreviousBackStackEntry() == null)
+            navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
         else navController.navigateUp();
     }
 
@@ -149,7 +177,8 @@ public class ImageViewerFragment extends Fragment {
         if (requestCode == Constants.REQUEST_EDIT_IMAGE) {
             if (resultCode == Activity.RESULT_CANCELED) {
                 if (newEditedFile != null) {
-                    if (newEditedFile.exists() && newEditedFile.length() == 0) Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
+                    if (newEditedFile.exists() && newEditedFile.length() == 0)
+                        Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
                 }
             }
             if (resultCode == Activity.RESULT_OK) {
@@ -164,14 +193,17 @@ public class ImageViewerFragment extends Fragment {
 
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) ->dialog.dismiss())
+        builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
 
-                .setPositiveButton(R.string.yes, (dialog, which) ->{
+                .setPositiveButton(R.string.yes, (dialog, which) -> {
 
                     int position = viewPager.getCurrentItem();
                     File thisFile = new File(String.valueOf(allFiles.get(position)));
-                    thisFile.delete();
-                    MediaScannerConnection.scanFile(getContext(), new String[] {
+                    boolean result = thisFile.delete();
+                    if (!result) {
+                        Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
+                    }
+                    MediaScannerConnection.scanFile(getContext(), new String[]{
                                     String.valueOf(thisFile)
                             },
                             null, null);
@@ -217,20 +249,30 @@ public class ImageViewerFragment extends Fragment {
         }
     }
 
+    public void updateScaleText() {
+        fragmentGalleryImageViewerBinding.setScale(String.format(Locale.ROOT, "%.0f%%", (getCurrentSSIV().getScale() * 100)));
+    }
+
+    public void resetScaleText() {
+        fragmentGalleryImageViewerBinding.setScale("");
+    }
+
     private void updateExif() {
         int position = viewPager.getCurrentItem();
-        File currentFile = allFiles.get(position);
-        if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-            //update values for exif dialog
-            exifDialogViewModel.updateModel(currentFile);
-            exifDialogViewModel.updateHistogramView(currentFile);
-        } else {
-            exifDialogViewModel.updateModel(currentFile);
+        if (allFiles.size() > 0) {
+            File currentFile = allFiles.get(position);
+            if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+                //update values for exif dialog
+                exifDialogViewModel.updateModel(currentFile);
+                exifDialogViewModel.updateHistogramView(currentFile);
+            } else {
+                exifDialogViewModel.updateModel(currentFile);
+            }
         }
     }
 
     private void isHistogramLoading(boolean loading) {
-        new Handler(Looper.getMainLooper()).post(() ->{
+        new Handler(Looper.getMainLooper()).post(() -> {
             if (loading) {
                 fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.VISIBLE);
             } else {

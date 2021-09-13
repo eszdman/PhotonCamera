@@ -1,6 +1,8 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_NEAREST;
@@ -53,7 +55,7 @@ import static android.opengl.GLES30.GL_UNSIGNED_INT;
 import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 
 public class GLFormat {
-    final int mChannels;
+    public final int mChannels;
     final DataType mFormat;
     public int filter = GL_NEAREST;
     public int wrap = GL_CLAMP_TO_EDGE;
@@ -72,7 +74,7 @@ public class GLFormat {
         UNSIGNED_64(11, 8),
         BOOLEAN(12, 1);
         final int mID;
-        final int mSize;
+        public final int mSize;
 
         DataType(int id, int size) {
             mID = id;
@@ -96,7 +98,37 @@ public class GLFormat {
         mFormat = format;
         mChannels = channels;
     }
-
+    public Element getElement(RenderScript rs){
+        switch (mFormat){
+            case FLOAT_16: {
+                switch (mChannels) {
+                    case 1:
+                        return Element.F16(rs);
+                    case 2:
+                        return Element.F16_2(rs);
+                    case 3:
+                        return Element.F16_3(rs);
+                    case 4:
+                        return Element.F16_4(rs);
+                }
+                break;
+            }
+            case SIGNED_16: {
+                switch (mChannels) {
+                    case 1:
+                        return Element.I16(rs);
+                    case 2:
+                        return Element.I16_2(rs);
+                    case 3:
+                        return Element.I16_3(rs);
+                    case 4:
+                        return Element.I16_4(rs);
+                }
+                break;
+            }
+        }
+        return null;
+    }
     public int getGLFormatInternal() {
         switch (mFormat) {
             case NONE:

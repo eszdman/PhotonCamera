@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+
 import static android.opengl.GLES30.*;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
 import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_2D;
@@ -118,10 +119,24 @@ public class GLTexture implements AutoCloseable {
         checkEglError("Tex bind");
     }
 
+    public void textureBuffer(GLFormat outputFormat,ByteBuffer output) {
+        glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), output);
+    }
+
+    public ByteBuffer textureBuffer(GLFormat outputFormat,boolean direct) {
+        ByteBuffer buffer;
+        if(!direct) buffer = ByteBuffer.allocate(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
+        else buffer = ByteBuffer.allocateDirect(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
+        glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
+        return buffer;
+    }
     public ByteBuffer textureBuffer(GLFormat outputFormat) {
         ByteBuffer buffer = ByteBuffer.allocate(mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels);
         glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
         return buffer;
+    }
+    public int getByteCount(){
+        return mSize.x * mSize.y * mFormat.mFormat.mSize * mFormat.mChannels;
     }
 
     @androidx.annotation.NonNull

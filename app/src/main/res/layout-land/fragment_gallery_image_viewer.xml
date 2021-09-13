@@ -59,20 +59,35 @@
                 tools:visibility="visible"
                 />
         <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:id="@+id/mini_exif_tv"
                 android:textSize="13sp"
                 android:padding="5dp"
                 android:textAppearance="@style/TextWithShadow"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/scale_percent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintVertical_bias="1"
                 android:text="@{exifmodel.miniText}"
                 android:visibility='@{mini_exif_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
 
+                />
+        <TextView
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/scale_percent"
+                android:textSize="13sp"
+                android:padding="5dp"
+                android:textAppearance="@style/TextWithShadow"
+                app:layout_constraintStart_toEndOf="@id/mini_exif_tv"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="1"
+                android:text="@{scale}"
+                android:visibility='@{mini_exif_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
                 />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

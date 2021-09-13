@@ -31,6 +31,7 @@
     <string name="pref_contrast_seekbar_key" translatable="false">pref_contrast_seekbar_key</string>
     <string name="pref_sharpness_seekbar_key" translatable="false">pref_sharpness_seekbar_key</string>
     <string name="pref_saturation_seekbar_key" translatable="false">pref_saturation_seekbar_key</string>
+    <string name="pref_expocompensation_seekbar_key" translatable="false">pref_expocompensation_seekbar_key</string>
     <string name="pref_align_method_key" translatable="false">pref_align_method_key</string>
     <string name="pref_cfa_key" translatable="false">pref_cfa_key</string>
     <string name="pref_remosaic_key" translatable="false">pref_remosaic_key</string>
@@ -49,16 +50,18 @@
     <string name="gamma_key" translatable="false">gamma_key</string>
     <string name="pref_camera_mode_key" translatable="false">pref_camera_mode_key</string>
     <string name="pref_ae_mode_key" translatable="false">pref_ae_mode_key</string>
+    <string name="pref_countdown_timer_key" translatable="false">pref_countdown_timer_key</string>
 
     <string name="all_camera_ids" translatable="false">all_camera_ids</string>
     <string name="front_camera_ids" translatable="false">front_camera_ids</string>
     <string name="back_camera_ids" translatable="false">back_camera_ids</string>
-    <string name="all_camera_focals" translatable="false">all_camera_focals</string>
+    <string name="all_camera_lens" translatable="false">all_camera_lens</string>
     <string name="all_camera_count" translatable="false">all_camera_count</string>
 
     <string name="_cameras" translatable="false">_cameras</string>
     <string name="_devices" translatable="false">_devices</string>
     <string name="all_devices_names" translatable="false">all_devices_names</string>
+    <string name="all_devices_specific" translatable="false">all_devices_specific</string>
     <string name="pref_this_device_key" translatable="false">pref_this_device_key</string>
     <string name="_per_lens" translatable="false">_per_lens</string>
 

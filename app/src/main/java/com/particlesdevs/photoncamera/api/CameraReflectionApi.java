@@ -1,16 +1,29 @@
 package com.particlesdevs.photoncamera.api;
 
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
+import android.hardware.camera2.params.InputConfiguration;
+import android.hardware.camera2.params.OutputConfiguration;
+import android.os.Handler;
+import android.util.Log;
+import android.view.Surface;
+
 import com.particlesdevs.photoncamera.capture.CaptureController;
+
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 public class CameraReflectionApi {
     //private static final String TAG = "CameraReflectionApi";
@@ -19,7 +32,7 @@ public class CameraReflectionApi {
         try {
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
-            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);//Ur camera Characteristics
+            Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);
             assert CameraMetadataNative != null;
             Method set = RestrictionBypass.getDeclaredMethod(CameraMetadataNative.getClass(), "set", CameraCharacteristics.Key.class, Object.class);
             set.setAccessible(true);
@@ -70,6 +83,24 @@ public class CameraReflectionApi {
             e.printStackTrace();
         }
     }
+    public static void createCustomCaptureSession(CameraDevice cameraDevice,
+                                                  InputConfiguration inputConfig,
+                                                  List<OutputConfiguration> outputs,
+                                                  int operatingMode,
+                                                  CameraCaptureSession.StateCallback callback,
+                                                  Handler handler) throws CameraAccessException, InvocationTargetException, IllegalAccessException {
+        Method createCustomCaptureSession = null;
+        try {
+            createCustomCaptureSession = RestrictionBypass.getDeclaredMethod(cameraDevice.getClass(), "createCustomCaptureSession",
+            //createCustomCaptureSession = cameraDevice.getClass().getDeclaredMethod("createCustomCaptureSession",
+                    InputConfiguration.class,List.class,Integer.TYPE,CameraCaptureSession.StateCallback.class,Handler.class);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        createCustomCaptureSession.setAccessible(true);
+        createCustomCaptureSession.invoke(cameraDevice,inputConfig,outputs,operatingMode,callback,handler);
+
+    }
 
     public static void PatchBL(BlackLevelPattern pattern, int[] bl) {
         try {
@@ -89,31 +120,5 @@ public class CameraReflectionApi {
 
     public static Field[] getAllMetadataFields() {
         return CameraMetadata.class.getDeclaredFields();
-    }
-
-    /*public static void PrintMethods(Object in){
-        Log.d(TAG,"StartPrinting:"+in.getClass());
-        Method[] methods = in.getClass().getDeclaredMethods();
-        int cnt = 0;
-        for(Method m : methods) {Log.d(TAG,"["+cnt+"]"+m.toString());cnt++;}
-    }
-    public static void PrintFields(Object in){
-        Log.d(TAG,"StartPrinting:"+in.getClass());
-        Field[] fields = in.getClass().getDeclaredFields();
-        int cnt = 0;
-        for(Field f : fields) {Log.d(TAG,"["+cnt+"]"+f.toString());cnt++;}
-    }*/
-    public static void setVERBOSE(boolean in) {
-        Object capres = CaptureController.mCaptureResult;//Ur camera CaptureResult
-        Field verbose;
-        try {
-            //noinspection JavaReflectionMemberAccess
-            verbose = CaptureResult.class.getDeclaredField("VERBOSE");
-            verbose.setAccessible(true);
-            verbose.set(capres, in);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-
     }
 }

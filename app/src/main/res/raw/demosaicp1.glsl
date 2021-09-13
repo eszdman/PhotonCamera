@@ -27,7 +27,7 @@ void main() {
     int fact2 = xy.y%2;
     float outp = 0.0;
     if(fact1+fact2 != 1){
-        //Alexey Lukin, Denis Kubasov demosaicing with an eszdman's upgrade
+        //Gradient green channel interpolation
         float P[9];
         for(int i =0; i<9;i++){
             P[i] = float(texelFetch(RawBuffer, (xy+ivec2(i%3 - 1,i/3 - 1)), 0).x);
@@ -82,21 +82,10 @@ void main() {
         E[3] = 1.0/sqrt(E[3]);
         E[5] = 1.0/sqrt(E[5]);
         E[7] = 1.0/sqrt(E[7]);
-
-        //E[1]+=E[0]+E[2];
-        //E[3]+=E[0]+E[6];
-        //E[5]+=E[2]+E[4];
-        //E[7]+=E[4]+E[6];
-        //float all = (E[1]+E[3]+E[5]+E[7]+(E[0]+E[2]+E[4]+E[6])/4.);
         float all = (E[1]+E[3]+E[5]+E[7]);
-        outp = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
-
-        //else outp = (P[1] + P[3] + P[5] + P[7])/4.;
-        //Output = clamp(outp/float(WhiteLevel),0.,1.);
-        Output = outp;
+        Output = (E[1]*P[1] + E[3]*P[3] + E[5]*P[5] + E[7]*P[7])/all;
     }
     else {
-    //Output = clamp(float(texelFetch(RawBuffer, (xy), 0).x)/float(WhiteLevel),0.,1.);
         Output = float(texelFetch(RawBuffer, (xy), 0).x);
     }
 }

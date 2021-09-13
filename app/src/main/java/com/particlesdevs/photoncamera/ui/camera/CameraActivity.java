@@ -8,8 +8,11 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+
 import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
@@ -17,7 +20,6 @@ import com.particlesdevs.photoncamera.settings.MigrationManager;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
-import com.particlesdevs.photoncamera.manual.ManualMode;
 
 import java.util.Arrays;
 
@@ -25,7 +27,7 @@ import java.util.Arrays;
 public class CameraActivity extends BaseActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
-    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
+    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
     private static int requestCount;
 
     @Override
@@ -33,8 +35,6 @@ public class CameraActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        PhotonCamera.setManualMode(ManualMode.getInstance(this));
 
         //Preferences Init
         PreferenceManager.setDefaultValues(this, R.xml.preferences, MigrationManager.readAgain);
@@ -45,7 +45,7 @@ public class CameraActivity extends BaseActivity {
 
         if (hasAllPermissions()) {
 //            if (null == savedInstanceState)
-                tryLoad();
+            tryLoad();
         } else {
             requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //First Permission request
         }
@@ -81,7 +81,10 @@ public class CameraActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
+        if (!(fragment instanceof BackPressedListener) || !((BackPressedListener) fragment).onBackPressed()) {
+            super.onBackPressed();
+        }
     }
 
     @Override

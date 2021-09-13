@@ -5,19 +5,25 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-import com.particlesdevs.photoncamera.app.PhotonCamera;
-
 public class Gravity {
     private static final String TAG = "Gravity";
     private final SensorManager mSensorManager;
     private final Sensor mGravitySensor;
     public float[] mGravity;
+    private final SensorEventListener mGravityTracker = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            mGravity = sensorEvent.values;
+        }
 
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+        }
+    };
 
     public Gravity(SensorManager sensorManager) {
         mSensorManager = sensorManager;
         mGravitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-
     }
 
     public void register() {
@@ -29,17 +35,6 @@ public class Gravity {
             mGravity = mGravity.clone();
         mSensorManager.unregisterListener(mGravityTracker, mGravitySensor);
     }
-
-    private final SensorEventListener mGravityTracker = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent sensorEvent) {
-            mGravity = sensorEvent.values;
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int i) {
-        }
-    };
 
     public int getRotation() {
 
@@ -62,7 +57,7 @@ public class Gravity {
         }
     }
 
-    public int getCameraRotation() {
-        return (PhotonCamera.getCaptureController().mSensorOrientation + PhotonCamera.getGravity().getRotation() + 270) % 360;
+    public int getCameraRotation(int sensorOrientation) {
+        return (sensorOrientation + getRotation() + 270) % 360;
     }
 }

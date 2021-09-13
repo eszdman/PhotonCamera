@@ -5,7 +5,9 @@ import android.text.InputFilter;
 import android.text.SpannableStringBuilder;
 import android.util.AttributeSet;
 import android.widget.Toast;
+
 import androidx.preference.EditTextPreference;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.util.FileManager;
 
@@ -19,7 +21,7 @@ public class BackupPreferences extends EditTextPreference {
         setPersistent(false);
         setSummary(FileManager.sPHOTON_DIR.toString());
         setDialogMessage("(Per lens settings are not backed up at the moment)"); //temporary
-        
+
         setOnBindEditTextListener(editText -> {
             editText.setText(getContext().getString(R.string.backup_file_name,
                     new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())));

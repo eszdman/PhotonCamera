@@ -3,26 +3,42 @@ package com.particlesdevs.photoncamera.api;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
-import android.util.SizeF;
-import androidx.core.util.Pair;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
-import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.*;
+import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_CAMERA_IDS_KEY;
+import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_CAMERA_LENS_KEY;
+import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.CAMERAS_PREFERENCE_FILE_NAME;
+import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.CAMERA_COUNT_KEY;
 
 /**
  * Responsible for Scanning all Camera IDs on a Device and Storing them in SharedPreferences as a {@link Set<String>}
  */
 public final class CameraManager2 {
-    public static final String _CAMERAS = CAMERAS_PREFERENCE_FILE_NAME.mValue;
+    private static final String _CAMERAS = CAMERAS_PREFERENCE_FILE_NAME.mValue;
     private static final String TAG = "CameraManager2";
-    public final Map<String, Pair<Float, Float>> mFocalLengthAperturePairList = new LinkedHashMap<>();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private final Map<String, CameraLensData> mCameraLensDataMap = new LinkedHashMap<>();
     private final SettingsManager mSettingsManager;
-    private Set<String> mAllCameraIDs = new LinkedHashSet<>();
-    private Set<String> mFrontIDs = new LinkedHashSet<>();
-    private Set<String> mBackIDs = new LinkedHashSet<>();
-    private Set<String> mFocals = new LinkedHashSet<>();
+    /**
+     * This Set stores the set of all valid camera IDs as String,
+     * to be saved in SharedPreferences
+     */
+    private Set<String> mAllCameraIDsSet = new LinkedHashSet<>();
+    /**
+     * This Set stores the set of {@link CameraLensData} objects as JSON strings,
+     * to be saved in SharedPreferences
+     */
+    private Set<String> mCameraLensDataJSONSet = new LinkedHashSet<>();
 
     /**
      * Initialise this class.
@@ -40,44 +56,78 @@ public final class CameraManager2 {
             scanAllCameras(cameraManager);
             save();
         } else {
-            mAllCameraIDs = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_IDS_KEY, null);
-            mFrontIDs = mSettingsManager.getStringSet(_CAMERAS, FRONT_IDS_KEY, null);
-            mBackIDs = mSettingsManager.getStringSet(_CAMERAS, BACK_IDS_KEY, null);
-            mFocals = mSettingsManager.getStringSet(_CAMERAS, FOCAL_IDS_KEY, null);
-            mFocals.forEach(entry -> {
-                String[] split = entry.split(":");
-                String id = split[0];
-                String focal = split[1];
-                String aperture = split[2];
-                mFocalLengthAperturePairList.put(id, new Pair<>(Float.parseFloat(focal), Float.parseFloat(aperture)));
+            mAllCameraIDsSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_IDS_KEY, null);
+
+            //Retrieve the saved Set of CameraLensData JSON strings from SharedPreferences
+            mCameraLensDataJSONSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_LENS_KEY, null);
+            //Deserialize JSON and store CameraLensData objects into mCameraLensDataMap
+            mCameraLensDataJSONSet.forEach(jsonString -> {
+                CameraLensData cameraLensData = GSON.fromJson(jsonString, CameraLensData.class);
+                mCameraLensDataMap.put(cameraLensData.getCameraId(), cameraLensData);
             });
         }
     }
 
     private void scanAllCameras(CameraManager cameraManager) {
-        for (int num = 0; num < 121; num++) {
-            CameraCharacteristics cameraCharacteristics;
-            try {
-                cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
-                log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
-                float[] focalLength = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-                SizeF size = cameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
-                if (size != null && focalLength != null) {
-                    focalLength[0] /= size.getWidth();
+
+            for (int num = 0; num < 121; num++) {
+                try {
+                    CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+                    log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
+                    CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
+                    if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
+                        mAllCameraIDsSet.add(String.valueOf(num));
+                        mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
+                    }
+                } catch (Exception ignored) {
                 }
-                float[] aperture = cameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES);
-                if (focalLength != null && aperture != null) {
-                    Pair<Float, Float> focalAperturePair = new Pair<>(focalLength[0], aperture[0]);
-                    if (!getBit(6, num) && !mFocalLengthAperturePairList.containsValue(focalAperturePair)) {
-                        mFocalLengthAperturePairList.put(String.valueOf(num), focalAperturePair);
-                        mAllCameraIDs.add(String.valueOf(num));
-                        mFocals.add(num + ":" + (focalAperturePair.first) + ":" + aperture[0]);
-                        fillBackFrontLists(cameraCharacteristics.get(CameraCharacteristics.LENS_FACING), String.valueOf(num));
+            }
+            if(mAllCameraIDsSet.size() == 0) {
+                for(int i = 0; i<2;i++){
+                    try {
+                    CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(i));
+                    CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(i), cameraCharacteristics);
+                    mAllCameraIDsSet.add(String.valueOf(i));
+                    mCameraLensDataMap.put(String.valueOf(i), cameraLensData);
+                    } catch (Exception ignored) {
                     }
                 }
-            } catch (IllegalArgumentException ignored) {
-            } catch (Exception e) {
-                e.printStackTrace();
+            }
+
+        findLensZoomFactor(mCameraLensDataMap);
+    }
+
+    private CameraLensData createNewCameraLensData(String cameraId, CameraCharacteristics characteristics) {
+        CameraLensData cameraLensData = new CameraLensData(cameraId);
+        cameraLensData.setFacing(characteristics.get(CameraCharacteristics.LENS_FACING));
+        cameraLensData.setCameraFocalLength(characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0]);
+        cameraLensData.setCameraAperture(characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)[0]);
+        cameraLensData.setCamera35mmFocalLength((36.0f / characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth() * cameraLensData.getCameraFocalLength()));
+        return cameraLensData;
+    }
+
+    /**
+     * This method finds the optical zoom factor of multiple camera lenses with respect to the Main Camera for each facing(ie. Front and Back)
+     * <p>
+     * Note: Here, it is assumed that the first camera in the list for each facing is the Main Camera for that facing.
+     *
+     * @param mCameraLensData Map of all valid CameraLensData objects
+     */
+    private void findLensZoomFactor(Map<String, CameraLensData> mCameraLensData) {
+        CameraLensData mainBack = null;
+        CameraLensData mainFront = null;
+        for (Map.Entry<String, CameraLensData> entry : mCameraLensData.entrySet()) {
+            CameraLensData cameraLensData = entry.getValue();
+            if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_FRONT) {
+                if (mainFront == null) {
+                    mainFront = cameraLensData;
+                }
+                cameraLensData.setZoomFactor(cameraLensData.getCamera35mmFocalLength() / mainFront.getCamera35mmFocalLength());
+            } else if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
+                if (mainBack == null) {
+                    mainBack = cameraLensData;
+                }
+                cameraLensData.setZoomFactor(cameraLensData.getCamera35mmFocalLength() / mainBack.getCamera35mmFocalLength());
             }
         }
     }
@@ -86,19 +136,14 @@ public final class CameraManager2 {
         Log.d(TAG, msg);
     }
 
-    private void fillBackFrontLists(Integer lensFacing, String id) {
-        if (lensFacing == CameraCharacteristics.LENS_FACING_FRONT)
-            mFrontIDs.add(id);
-        else if (lensFacing == CameraCharacteristics.LENS_FACING_BACK)
-            mBackIDs.add(id);
-    }
-
     private void save() {
-        mSettingsManager.set(_CAMERAS, CAMERA_COUNT_KEY, mAllCameraIDs.size());
-        mSettingsManager.set(_CAMERAS, ALL_CAMERA_IDS_KEY, mAllCameraIDs);
-        mSettingsManager.set(_CAMERAS, BACK_IDS_KEY, mBackIDs);
-        mSettingsManager.set(_CAMERAS, FRONT_IDS_KEY, mFrontIDs);
-        mSettingsManager.set(_CAMERAS, FOCAL_IDS_KEY, mFocals);
+        mSettingsManager.set(_CAMERAS, CAMERA_COUNT_KEY, mAllCameraIDsSet.size());
+        mSettingsManager.set(_CAMERAS, ALL_CAMERA_IDS_KEY, mAllCameraIDsSet);
+
+        //Serialise CameraLensData objects to JSON and store them to mCameraLensDataJSONSet
+        mCameraLensDataMap.forEach((id, lensData) -> mCameraLensDataJSONSet.add(GSON.toJson(lensData)));
+        //Save mCameraLensDataJSONSet to SharedPreferences
+        mSettingsManager.set(_CAMERAS, ALL_CAMERA_LENS_KEY, mCameraLensDataJSONSet);
     }
 
     //Getters===========================================================================================================
@@ -107,45 +152,17 @@ public final class CameraManager2 {
      * @return the list of scanned Camera IDs
      */
     public String[] getCameraIdList() {
-        log("CameraCount:" + mAllCameraIDs.size()
-                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
-        return mAllCameraIDs.toArray(new String[0]);
+        log("CameraCount:" + mAllCameraIDsSet.size()
+                + ", CameraIDs:" + Arrays.toString(mAllCameraIDsSet.toArray(new String[0])));
+        return mAllCameraIDsSet.toArray(new String[0]);
     }
 
     /**
-     * @return the list of scanned Focal's
+     * @return the map of CameraLensData
      */
-    public String[] getCameraFocalList() {
-        log("FocalsCount:" + mFocals.size()
-                + ", Focal's:" + Arrays.toString(mFocals.toArray(new String[0])));
-        return mFocals.toArray(new String[0]);
-    }
-
-    /**
-     * @return the list of scanned Camera IDs as a {@link Set<String>}
-     */
-    public Set<String> getCameraIDsSet() {
-        log("CameraCount:" + mAllCameraIDs.size()
-                + ", CameraIDs:" + Arrays.toString(mAllCameraIDs.toArray(new String[0])));
-        return mAllCameraIDs;
-    }
-
-    /**
-     * @return the list of scanned Front Camera IDs as a {@link Set<String>}
-     */
-    public Set<String> getFrontIDsSet() {
-        log("FrontCamerasCount:" + mFrontIDs.size()
-                + ", FrontCameraIDs:" + Arrays.toString(mFrontIDs.toArray(new String[0])));
-        return mFrontIDs;
-    }
-
-    /**
-     * @return the list of scanned Back Camera IDs as a {@link Set<String>}
-     */
-    public Set<String> getBackIDsSet() {
-        log("BackCamerasCount:" + mBackIDs.size()
-                + ", BackCameraIDs:" + Arrays.toString(mBackIDs.toArray(new String[0])));
-        return mBackIDs;
+    public Map<String, CameraLensData> getCameraLensDataMap() {
+        Log.d(TAG,"LensData : \n" + mCameraLensDataMap);
+        return mCameraLensDataMap;
     }
 
     //Bit analyzer for AUX number=======================================================================================

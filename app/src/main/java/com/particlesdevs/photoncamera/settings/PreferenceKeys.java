@@ -5,12 +5,14 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
+
 import androidx.annotation.StringRes;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
+        COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -68,6 +71,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, resources.getBoolean(R.bool.pref_fps_preview_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, 0);
 
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
@@ -89,7 +93,7 @@ public class PreferenceKeys {
                 }
             }
             PhotonCamera.getSettings().loadCache();
-            Log.d(TAG, key + " : changed!");
+            //Log.d(TAG, key + " : changed!");
         });
     }
 
@@ -175,6 +179,17 @@ public class PreferenceKeys {
 
     public static boolean isSaveRawOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
+    }
+
+    public static boolean isBatterySaverOn(){
+        return getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
+    }
+
+    public static void setBatterySaver(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ENERGY_SAVING,value);
+    }
+    public static void setSaveRaw(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW,value);
     }
 
     public static boolean isRoundEdgeOn() {
@@ -276,6 +291,14 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getString(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID);
     }
 
+    public static int getCountdownTimerIndex() {
+        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER);
+    }
+
+    public static void setCountdownTimerIndex(int valueMS) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, valueMS);
+    }
+
     public static void setCameraID(String value) {
         preferenceKeys.settingsManager.set(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID, value);
     }
@@ -341,6 +364,7 @@ public class PreferenceKeys {
         KEY_FRAME_COUNT(R.string.pref_frame_count_key),
         KEY_CONTRAST_SEEKBAR(R.string.pref_contrast_seekbar_key),
         KEY_SHARPNESS_SEEKBAR(R.string.pref_sharpness_seekbar_key),
+        KEY_EXPOCOMPENSATE_SEEKBAR(R.string.pref_expocompensation_seekbar_key),
         KEY_SATURATION_SEEKBAR(R.string.pref_saturation_seekbar_key),
         KEY_ALIGN_METHOD(R.string.pref_align_method_key),
         KEY_CFA(R.string.pref_cfa_key),
@@ -352,6 +376,7 @@ public class PreferenceKeys {
         KEY_SHOW_GRADIENT(R.string.pref_show_gradient_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
+        KEY_COUNTDOWN_TIMER(R.string.pref_countdown_timer_key),
         /**
          * Other Keys
          */
@@ -369,7 +394,7 @@ public class PreferenceKeys {
         ALL_CAMERA_IDS_KEY(R.string.all_camera_ids),
         FRONT_IDS_KEY(R.string.front_camera_ids),
         BACK_IDS_KEY(R.string.back_camera_ids),
-        FOCAL_IDS_KEY(R.string.all_camera_focals),
+        ALL_CAMERA_LENS_KEY(R.string.all_camera_lens),
         CAMERA_COUNT_KEY(R.string.all_camera_count),
 
         /* SupportedDevice keys */

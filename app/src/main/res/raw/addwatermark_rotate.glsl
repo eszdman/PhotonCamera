@@ -6,6 +6,7 @@ uniform sampler2D Watermark;
 uniform int yOffset;
 uniform int rotate;
 out vec4 Output;
+#define WATERMARK 1
 #define watersizek (15.0)
 #import interpolation
 void main() {
@@ -34,6 +35,7 @@ void main() {
         Output = texelFetch(InputBuffer, ivec2(xy.y,texSize.y-xy.x),0);
         break;
     }
+    #if WATERMARK == 1
     cr+=vec2(0.0,1.0/watersizek);
     cr.x*=(texS.x)/(texS.y);
     cr.x/=watersize.x/watersize.y;
@@ -43,5 +45,7 @@ void main() {
     water = textureBicubicHardware(Watermark,cr);
     Output = mix(Output,water.rgba,water.a);
     }
+    #endif
+    Output*=1.015;
     Output.a=1.0;
 }

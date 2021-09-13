@@ -87,4 +87,5 @@
     <string name="supported_devices">Поддерживаемые устройства</string>
     <string name="this_device">Ваше устройство - %1$s</string>
     <string name="shadows">Тени</string>
+    <string name="expocompensation">Экспокомпенсация:</string>
 </resources>

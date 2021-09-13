@@ -21,7 +21,7 @@
     <string-array name="alignset_entries">
         <item>PCam CPU</item>
         <item>PCam GPU</item>
-        <item>NightCam GPU(not working)</item>
+        <item>PCam Hybrid</item>
     </string-array>
     <string-array name="alignset_entryValues">
         <item>0</item>
@@ -63,15 +63,22 @@
         <item>1</item>
     </string-array>
     <string-array name="vf_grid_entries">
-        <item>Off</item>
-        <item>3x3</item>
-        <item>4x4</item>
-        <item>Golden Ratio</item>
+        <item>@string/off</item>
+        <item>@string/three_x3</item>
+        <item>@string/four_x4</item>
+        <item>@string/golden_ratio</item>
+        <item>@string/diag_triangle</item>
     </string-array>
     <string-array name="vf_grid_entryvalues">
         <item>0</item>
         <item>1</item>
         <item>2</item>
         <item>3</item>
+        <item>4</item>
     </string-array>
+    <integer-array name="countdowntimer_entryvalues">
+        <item>0</item>
+        <item>3</item>
+        <item>10</item>
+    </integer-array>
 </resources>

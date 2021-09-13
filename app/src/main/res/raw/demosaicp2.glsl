@@ -5,7 +5,6 @@ uniform sampler2D RawBuffer;
 uniform sampler2D GreenBuffer;
 uniform int yOffset;
 uniform int CfaPattern;
-uniform vec3 whitePoint;
 
 
 //#define greenmin (0.04)

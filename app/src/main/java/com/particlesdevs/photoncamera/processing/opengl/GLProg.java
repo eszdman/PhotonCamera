@@ -79,7 +79,7 @@ public class GLProg implements AutoCloseable {
     boolean changedDef = false;
     ArrayList<String[]> Defines = new ArrayList<>();
     public void setDefine(String DefineName, Point in){
-        setDefine(DefineName,(float)in.x,(float)in.y);
+        setDefine(DefineName,in.x,in.y);
     }
     public void setDefine(String DefineName, boolean bool){
         if(bool)
@@ -89,42 +89,13 @@ public class GLProg implements AutoCloseable {
         }
     }
     public void setDefine(String DefineName, float... vars){
-        switch (vars.length) {
-            case 1:
-                setDefine(DefineName,String.valueOf(vars[0]));
-                break;
-            case 2:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+")");
-                break;
-            case 3:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");
-                break;
-            case 4:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
-                break;
-            default:
-                setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
-                break;
-        }
+        setDefine(DefineName,true,vars);
+    }
+    public void setDefine(String DefineName,boolean transposed, float... vars){
+        setDefine(DefineName,Arrays.toString(vars).replace("]","").replace("[",""));
     }
     public void setDefine(String DefineName, int... vars){
-        switch (vars.length) {
-            case 1:
-                setDefine(DefineName,"("+(vars[0])+")");
-                break;
-            case 2:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+")");
-                break;
-            case 3:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+")");
-                break;
-            case 4:
-                setDefine(DefineName,"("+vars[0]+","+vars[1]+","+vars[2]+","+vars[3]+")");
-                break;
-            default:
-                setDefine(DefineName,"("+ Arrays.toString(vars).replace("]","").replace("[","")+")");
-                break;
-        }
+        setDefine(DefineName,Arrays.toString(vars).replace("]","").replace("[",""));
     }
     public void setDefine(String DefineName, String DefineVal){
         Defines.add(new String[]{DefineName,DefineVal});
@@ -320,7 +291,6 @@ public class GLProg implements AutoCloseable {
         }
     }
 
-    @SuppressWarnings("ConstantConditions")
     public void setTexture(String var, GLTexture tex) {
         if(tex == null) try {
             throw new Exception("Wrong Texture:"+var);
@@ -363,7 +333,7 @@ public class GLProg implements AutoCloseable {
         setVar(name, in.x, in.y);
     }
 
-    public void setVar(String name, float... vars) {
+    public void setVar(String name, boolean transpose, float... vars) {
         int address = glGetUniformLocation(mCurrentProgramActive, name);
         switch (vars.length) {
             case 1:
@@ -379,11 +349,14 @@ public class GLProg implements AutoCloseable {
                 glUniform4f(address, vars[0], vars[1], vars[2], vars[3]);
                 break;
             case 9:
-                glUniformMatrix3fv(address, 1, true, vars, 0);
+                glUniformMatrix3fv(address, 1, transpose, vars, 0);
                 break;
             default:
                 throw new RuntimeException("Wrong var size " + name);
         }
+    }
+    public void setVar(String name, float... vars) {
+        setVar(name,true,vars);
     }
 
     public void setVarU(String name, Point var) {

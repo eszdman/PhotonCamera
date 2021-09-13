@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.processing.render;
 import android.graphics.Point;
 
 public class Const {
+    final static int TileSize = 64;
     final static Point mapSize = new Point(17, 13);
     //Mi9 default gainmap.
     final static double[] gainMap = {

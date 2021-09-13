@@ -4,6 +4,7 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -29,6 +30,14 @@ public class Bayer2Float extends Node {
         GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        float[] BL = new float[3];
+        /*BL[0] = basePipeline.mParameters.noiseModeler.computeModel[0].second.floatValue();
+        BL[1] = basePipeline.mParameters.noiseModeler.computeModel[1].second.floatValue();
+        BL[2] = basePipeline.mParameters.noiseModeler.computeModel[2].second.floatValue();*/
+        glProg.setDefine("BLR",BL[0]);
+        glProg.setDefine("BLG",BL[1]);
+        glProg.setDefine("BLB",BL[2]);
+        glProg.setDefine("QUAD", basePipeline.mSettings.cfaPattern == -2);
         glProg.useProgram(R.raw.tofloat);
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);

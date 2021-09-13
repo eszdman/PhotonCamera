@@ -32,12 +32,19 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
+
+import androidx.annotation.RequiresApi;
 import androidx.core.text.TextDirectionHeuristicCompat;
 import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -60,6 +67,7 @@ public class HorizontalPicker extends View {
     private static final int SELECTOR_ADJUSTMENT_DURATION_MILLIS = 800;
     private final int overscrollDistance;
     private final PickerTouchHelper touchHelper;
+    private final Vibration vibration;
     /**
      * Determines speed during touch scrolling.
      */
@@ -67,28 +75,28 @@ public class HorizontalPicker extends View {
     /**
      * @see ViewConfiguration#getScaledMinimumFlingVelocity()
      */
-    private int mMinimumFlingVelocity;
+    private final int mMinimumFlingVelocity;
     /**
      * @see ViewConfiguration#getScaledMaximumFlingVelocity()
      */
-    private int maximumFlingVelocity;
-    private int touchSlop;
+    private final int maximumFlingVelocity;
+    private final int touchSlop;
     private CharSequence[] values;
     private BoringLayout[] layouts;
-    private TextPaint textPaint;
-    private BoringLayout.Metrics boringMetrics;
+    private final TextPaint textPaint;
+    private final BoringLayout.Metrics boringMetrics;
     private TextUtils.TruncateAt ellipsize;
     private int itemWidth;
     private RectF itemClipBounds;
     private RectF itemClipBoundsOffset;
     private float lastDownEventX;
-    private OverScroller flingScrollerX;
-    private OverScroller adjustScrollerX;
+    private final OverScroller flingScrollerX;
+    private final OverScroller adjustScrollerX;
     private int previousScrollerX;
     private boolean scrollingX;
     private int pressedItem = -1;
     private ColorStateList textColor;
-    private int selectedTextColor;
+    private final int selectedTextColor;
     private OnItemSelected onItemSelected;
     private OnItemClicked onItemClicked;
     private int selectedItem;
@@ -110,10 +118,11 @@ public class HorizontalPicker extends View {
 
     public HorizontalPicker(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-
+        vibration = PhotonCamera.getVibration();
         // create the selector wheel paint
         TextPaint paint = new TextPaint();
         paint.setAntiAlias(true);
+        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
         textPaint = paint;
 
         TypedArray a = context.getTheme().obtainStyledAttributes(
@@ -220,6 +229,11 @@ public class HorizontalPicker extends View {
         setMeasuredDimension(width, height);
     }
 
+    private final RectF background = new RectF();
+    private final Rect canvasClipBounds = new Rect();
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -274,12 +288,17 @@ public class HorizontalPicker extends View {
                     clipBounds.offset(x, 0);
                 }
                 if (i == selectedItem) {
-                    RectF background = new RectF(canvas.getClipBounds());
+                    canvas.getClipBounds(canvasClipBounds);
+                    background.bottom = canvasClipBounds.bottom;
+                    background.left = canvasClipBounds.left;
+                    background.right = canvasClipBounds.right;
+                    background.top = canvasClipBounds.top;
+
                     float width = itemClipBounds.width();
-                    float margin = (width - getTextWidth(values[i], textPaint)) / 6;
+                    float margin = (width - getTextWidth(values[i], textPaint)) / 8;
                     background.left = itemClipBounds.left + margin;
                     background.right = itemClipBounds.right - margin;
-                    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
                     paint.setColor(Color.WHITE);
                     canvas.drawRoundRect(background, 100, 100, paint);
                 }
@@ -306,6 +325,7 @@ public class HorizontalPicker extends View {
         drawEdgeEffect(canvas, rightEdgeEffect, 90);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     private float getTextWidth(CharSequence text, Paint paint) {
         Rect rect = new Rect();
         paint.getTextBounds(text, 0, text.length(), rect);
@@ -319,12 +339,6 @@ public class HorizontalPicker extends View {
         textDir = getTextDirectionHeuristic();
     }
 
-    /**
-     * TODO cache values
-     *
-     * @param text
-     * @return
-     */
     private boolean isRtl(CharSequence text) {
         if (textDir == null) {
             textDir = getTextDirectionHeuristic();
@@ -557,9 +571,11 @@ public class HorizontalPicker extends View {
     private void selectItem() {
         // post to the UI Thread to avoid potential interference with the OpenGL Thread
         if (onItemClicked != null) {
+
             post(new Runnable() {
                 @Override
                 public void run() {
+                    vibration.Click();
                     onItemClicked.onItemClicked(getSelectedItem());
                 }
             });
@@ -654,9 +670,7 @@ public class HorizontalPicker extends View {
         }
     }
 
-    /**
-     * @return
-     */
+
     public CharSequence[] getValues() {
         return values;
     }
@@ -914,8 +928,8 @@ public class HorizontalPicker extends View {
     /**
      * Calculates color for specific position on time picker
      *
-     * @param scrollX
-     * @return
+     * @param scrollX position
+     * @return Integer
      */
     private int getColor(int scrollX, int position) {
         int itemWithPadding = (int) (itemWidth + dividerSize);
@@ -1056,7 +1070,7 @@ public class HorizontalPicker extends View {
 
         private float mScroll;
 
-        private boolean mRtl;
+        private final boolean mRtl;
 
         Marquee(HorizontalPicker v, Layout l, boolean rtl) {
             final float density = v.getContext().getResources().getDisplayMetrics().density;
@@ -1220,7 +1234,7 @@ public class HorizontalPicker extends View {
         }
 
         @Override
-        public String toString() {
+        public @NotNull String toString() {
             return "HorizontalPicker.SavedState{"
                     + Integer.toHexString(System.identityHashCode(this))
                     + " selItem=" + mSelItem
@@ -1230,7 +1244,7 @@ public class HorizontalPicker extends View {
 
     private static class PickerTouchHelper extends ExploreByTouchHelper {
 
-        private HorizontalPicker mPicker;
+        private final HorizontalPicker mPicker;
 
         public PickerTouchHelper(HorizontalPicker picker) {
             super(picker);
@@ -1286,18 +1300,18 @@ public class HorizontalPicker extends View {
         }
 
         @Override
-        protected void onPopulateNodeForVirtualView(int virtualViewId, AccessibilityNodeInfoCompat node) {
+        protected void onPopulateNodeForVirtualView(int virtualViewId, @NotNull AccessibilityNodeInfoCompat node) {
 
             float itemWidth = mPicker.itemWidth + mPicker.dividerSize;
             float scrollOffset = mPicker.getScrollX() - itemWidth * mPicker.sideItems;
 
             int left = (int) (virtualViewId * itemWidth - scrollOffset);
             int right = left + mPicker.itemWidth;
-
-            node.setContentDescription(mPicker.values[virtualViewId]);
-            node.setBoundsInParent(new Rect(left, 0, right, mPicker.getHeight()));
-            node.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
-
+            if (mPicker.values.length > 0) {
+                node.setContentDescription(mPicker.values[virtualViewId]);
+                node.setBoundsInParent(new Rect(left, 0, right, mPicker.getHeight()));
+                node.addAction(AccessibilityNodeInfoCompat.ACTION_CLICK);
+            }
         }
 
         @Override

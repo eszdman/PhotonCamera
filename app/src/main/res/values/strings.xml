@@ -1,8 +1,5 @@
 <resources>
     <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
-    <string name="manual_mode_auto" translatable="false">Auto</string>
-    <string name="manual_mode_manual" translatable="false">Manual</string>
-    <string name="manual_mode_fixed" translatable="false">Fixed</string>
     <string name="iso" translatable="false">"ISO: "</string>
     <string name="icon_string" translatable="false">Icon</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
@@ -24,6 +21,7 @@
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
     <string name="saturation">Saturation</string>
+    <string name="expocompensation">Exposure Compensation</string>
     <string name="jpg">JPG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
@@ -63,7 +61,7 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
-    <string name="energy_saving">Battery saving</string>
+    <string name="energy_saving">Battery Saver</string>
     <string name="theme">Theme</string>
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
@@ -95,7 +93,29 @@
     <string name="long_press_to_deselect">Long press button to deselect all</string>
     <string name="multiple_deleted_success">%1$s File(s) Deleted! %2$s Cleared.</string>
     <string name="supported_devices">Supported Devices</string>
-    <string name="list_not_loaded"><![CDATA[<list not loaded>]]></string>
+    <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">Your Device - %1$s</string>
+    <string name="sync_on">Sync On</string>
+    <string name="sync_off">Sync Off</string>
+    <string name="mode_unlimited">Unlimited</string>
+    <string name="mode_photo">Photo</string>
+    <string name="mode_night">Night</string>
+    <string name="mode_video">Video</string>
+    <string name="processing_processname">Processing %1$s</string>
+    <string name="countdown_timer">Countdown Timer</string>
+    <string name="flash">Flash</string>
+    <string name="torch">Torch</string>
+    <string name="on">On</string>
+    <string name="auto">Auto</string>
+    <string name="t_3s">3s</string>
+    <string name="t_10s">10s</string>
+    <string name="raw_string">RAW</string>
+    <string name="raw_plus_jpg">RAW + JPG</string>
+    <string name="jpg_only">JPG Only</string>
+    <string name="off">Off</string>
+    <string name="golden_ratio">GoldenR</string>
+    <string name="diag_triangle">DTriangles</string>
+    <string name="three_x3">3x3</string>
+    <string name="four_x4">4x4</string>
 
 </resources>

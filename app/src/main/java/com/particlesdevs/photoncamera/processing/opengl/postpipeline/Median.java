@@ -12,28 +12,31 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 
 public class Median extends Node {
     Point transposing;
-    public Median(Point transpose, String name, int original) {
+    int size;
+    public Median(Point transpose,int size, String name, int original) {
         super(original, name);
         transposing = transpose;
+        this.size = size;
+    }
+
+    @Override
+    public void BeforeCompile() {
+        glProg.setDefine("TRANSPOSE",transposing);
+        glProg.setDefine("SIZE",size);
     }
 
     @Override
     public void Run() {
-        PostPipeline postPipeline = (PostPipeline) basePipeline;
-        GLInterface glint = basePipeline.glint;
-        Node Previous = previousNode;
-        GLProg glProg = glint.glProgram;
         //glProg.servar("size", 5);
-        float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 9.2f;
-        denoiseLevel -= 0.2;
-        Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
-        denoiseLevel = Math.min(10.5f, denoiseLevel);
-        Log.d(Name,"denoiseLevel:"+denoiseLevel);
-        glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
-        //glProg.setVar("robust",2.5f);
-        glProg.setVar("tpose",transposing);
-        glProg.setTexture("InputBuffer", Previous.WorkingTexture);
+        //float denoiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 9.2f;
+        //denoiseLevel -= 0.2;
+        //Log.d("PostNode:" + Name, "denoiseLevel:" + denoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
+        //denoiseLevel = Math.min(10.5f, denoiseLevel);
+        //Log.d(Name,"denoiseLevel:"+denoiseLevel);
+        //glProg.setVar("robust",10.5f-denoiseLevel + 3.5f);
+        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         WorkingTexture = basePipeline.getMain();
-        glProg.closed = false;
+        glProg.drawBlocks(WorkingTexture);
+        glProg.closed = true;
     }
 }

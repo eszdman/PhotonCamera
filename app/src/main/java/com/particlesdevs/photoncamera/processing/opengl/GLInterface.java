@@ -49,7 +49,7 @@ public class GLInterface {
             linecnt++;
             String val = String.valueOf(line);
             if(val.contains("#import")){
-                val = val.replace("\n","").replace(" ","").toLowerCase();
+                /*val = val.replace("\n","").replace(" ","").toLowerCase();
                 @RawRes
                 int id = 0;
                 switch (val){
@@ -83,8 +83,18 @@ public class GLInterface {
                     case "#importmedian":
                         id = R.raw.import_median;
                         break;
+                }*/
+                String imported = "";
+                if(!val.contains("//")) {
+                    imported = PhotonCamera.getAssetLoader().getString(
+                            val
+                                    .replace("#", "")
+                                    .replace(" ", "_")
+                                    .replace("\n", "")
+                                    + ".glsl");
                 }
-                if(id!= 0) {
+                //val.replace("#")
+                /*if(id!= 0) {
                     BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(id)));
                     for (Object line2 : reader2.lines().toArray()) {
                         source.append("#line 1\n");
@@ -93,7 +103,14 @@ public class GLInterface {
                     }
                     //linecnt++;
                     source.append("#line ").append(linecnt+1).append("\n");
+                }*/
+                if(!imported.equals("")){
+                    source.append("#line 1\n");
+                    source.append(imported);
+                    source.append("\n");
+                    source.append("#line ").append(linecnt+1).append("\n");
                 }
+
                 continue;
             }
             if(val.contains("#define") && defines != null){
