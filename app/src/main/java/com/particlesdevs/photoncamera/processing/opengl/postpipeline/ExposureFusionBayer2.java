@@ -132,8 +132,8 @@ public class ExposureFusionBayer2 extends Node {
     float downScalePerLevel = 1.9f;
     float dehazing = 0.5f;
     int curvePointsCount = 5;
-    float[] intenseCurveX;
-    float[] intenseCurveY;
+    float[] toneCurveX;
+    float[] toneCurveY;
     GLTexture interpolatedCurve;
     boolean disableFusion = false;
     boolean useSymmetricExposureFork = true;
@@ -146,45 +146,45 @@ public class ExposureFusionBayer2 extends Node {
             return;
         }
         useSymmetricExposureFork = getTuning("UseSymmetricExposureFork",useSymmetricExposureFork);
-        overExposeMpy = getTuning("OverExposeMpy", overExposeMpy);
-        overExposeMaxFusion = getTuning("OverExposeMaxFusion", overExposeMaxFusion);
-        underExposeMinFusion = getTuning("UnderExposeMinFusion", underExposeMinFusion);
-        underExposeMpy = getTuning("UnderExposeMpy", underExposeMpy);
-        baseExpose = getTuning("BaseExposure",baseExpose);
-        gaussSize = getTuning("GaussSize",gaussSize);
-        targetLuma = getTuning("TargetLuma",targetLuma);
-        dehazing = getTuning("Dehazing",dehazing);
-        downScalePerLevel = getTuning("DownScalePerLevel",downScalePerLevel);
-        curvePointsCount = getTuning("CurvePointsCount",curvePointsCount);
-        intenseCurveX = new float[curvePointsCount];
-        intenseCurveY = new float[curvePointsCount];
+        overExposeMpy =            getTuning("OverExposeMpy", overExposeMpy);
+        overExposeMaxFusion =      getTuning("OverExposeMaxFusion", overExposeMaxFusion);
+        underExposeMinFusion =     getTuning("UnderExposeMinFusion", underExposeMinFusion);
+        underExposeMpy =           getTuning("UnderExposeMpy", underExposeMpy);
+        baseExpose =               getTuning("BaseExposure",baseExpose);
+        gaussSize =                getTuning("GaussSize",gaussSize);
+        targetLuma =               getTuning("TargetLuma",targetLuma);
+        dehazing =                 getTuning("Dehazing",dehazing);
+        downScalePerLevel =        getTuning("DownScalePerLevel",downScalePerLevel);
+        curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
+        toneCurveX = new float[curvePointsCount];
+        toneCurveY = new float[curvePointsCount];
         for(int i = 0; i<curvePointsCount;i++){
             float line = i/((float)(curvePointsCount-1.f));
-            intenseCurveX[i] = line;
-            intenseCurveY[i] = 1.0f;
+            toneCurveX[i] = line;
+            toneCurveY[i] = 1.0f;
         }
 
         if(curvePointsCount == 5) {
-            intenseCurveX[0] = 0.0f;
-            intenseCurveX[1] = 0.07f;
-            intenseCurveX[2] = 0.25f;
-            intenseCurveX[3] = 0.95f;
-            intenseCurveX[4] = 1.0f;
+            toneCurveX[0] = 0.0f;
+            toneCurveX[1] = 0.07f;
+            toneCurveX[2] = 0.25f;
+            toneCurveX[3] = 0.95f;
+            toneCurveX[4] = 1.0f;
 
-            intenseCurveY[0] = 0.7f;
-            intenseCurveY[1] = 1.0f;
-            intenseCurveY[2] = 1.0f;
-            intenseCurveY[3] = 0.85f;
-            intenseCurveY[4] = 0.45f;
+            toneCurveY[0] = 0.7f;
+            toneCurveY[1] = 1.0f;
+            toneCurveY[2] = 1.0f;
+            toneCurveY[3] = 0.85f;
+            toneCurveY[4] = 0.40f;
         }
 
-        intenseCurveX = getTuning("IntenseCurveX", intenseCurveX);
-        intenseCurveY = getTuning("IntenseCurveY", intenseCurveY);
+        toneCurveX = getTuning("TonemapCurveX", toneCurveX);
+        toneCurveY = getTuning("TonemapCurveY", toneCurveY);
         ArrayList<Float> curveX = new ArrayList<>();
         ArrayList<Float> curveY = new ArrayList<>();
         for(int i =0; i<curvePointsCount;i++){
-            curveX.add(intenseCurveX[i]);
-            curveY.add(intenseCurveY[i]);
+            curveX.add(toneCurveX[i]);
+            curveY.add(toneCurveY[i]);
         }
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
         float[] interpolatedCurveArr = new float[1024];

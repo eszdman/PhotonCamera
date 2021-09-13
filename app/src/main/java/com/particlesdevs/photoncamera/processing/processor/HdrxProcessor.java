@@ -222,11 +222,12 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "Denoising level:" + noiseLevel);*/
             NoiseS/=3.f;
             NoiseO/=3.f;
-            double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.7);
-            NoiseS*=noisempy;
-            NoiseO*=noisempy*16384;
+            double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.6);
+            NoiseS = (float) Math.max(NoiseS*noisempy, Float.MIN_NORMAL);
+            NoiseO = (float) Math.max(NoiseO*noisempy*16384, Float.MIN_NORMAL);
             output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
             Wrapper.outputBuffer(output);
+
             Wrapper.processFrame(NoiseS, NoiseO, 6.f,1,0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         } else {

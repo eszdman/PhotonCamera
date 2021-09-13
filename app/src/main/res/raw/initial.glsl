@@ -6,6 +6,7 @@ uniform sampler2D TonemapTex;
 uniform sampler2D GammaCurve;
 uniform sampler2D LookupTable;
 uniform sampler2D FusionMap;
+uniform sampler2D IntenseCurve;
 
 //uniform vec3 neutralPoint;
 //uniform float saturation0;
@@ -279,9 +280,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
     //pRGB = rgbToHsluv(pRGB);
-    //br = pRGB.r+pRGB.g+pRGB.b;
-    //br/=3.0;
-    //pRGB/=br;
+    br = pRGB.r+pRGB.g+pRGB.b;
+    br/=3.0;
+    pRGB/=br;
 
 
     //ISO tint correction
@@ -301,7 +302,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=1.0 + (tonemapGain-1.0)*-5.0;
     //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
 
-    pRGB*=tonemapGain;
+
+    br*=mix(1.0,tonemapGain,texture(IntenseCurve, vec2(br,0.0)).r);
 
 
 
@@ -309,7 +311,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //}
     //br=pow(br,tonemapGain);
 
-    //pRGB*=br;
+    pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
     //pRGB = tonemap(pRGB);
@@ -317,7 +319,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB = saturate(pRGB,br);
 
     pRGB = gammaCorrectPixel2(pRGB);
-    pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.5+0.4,1.0));
+    pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.5+0.5,1.0));
 
     return pRGB;
 }

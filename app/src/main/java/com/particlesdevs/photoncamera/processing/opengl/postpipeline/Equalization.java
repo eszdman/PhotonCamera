@@ -210,11 +210,17 @@ public class Equalization extends Node {
         }
         return (float)(intege/integin);
     }
-    private float[] bSpline(float[] input,float WL){
+    private float[] bSpline(float[] input, float[] blwl){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+        float bilateralk = edgesBilateralSmooth;
+        if(nightMode) bilateralk = edgesBilateralSmoothNight;
+        blwl[0] = pdf(blwl[0]/input.length,bilateralk)*blwl[0]*edgesStretchShadows;
+        blwl[1] = input.length - pdf(1.f - blwl[1]/input.length,bilateralk*highLightSmoothAmplify)*(input.length - blwl[1])*edgesStretchHighLight;
+        blwl[1] = Math.min(blwl[1],input.length-1);
         ArrayList<Float> my,mx;
         my = new ArrayList<>();
         mx = new ArrayList<>();
-        int wlind = (int)WL;
+        int wlind = (int)blwl[1];
         float[] output = new float[wlind];
         float clevel = contrastLevel(input,wlind);
         Log.d(Name,"ContrastLevel:"+clevel);
@@ -498,6 +504,7 @@ public class Equalization extends Node {
     boolean enableTonemap = true;
     float highlightCompress = 0.4f;
     float contrast = 0.2f;
+    boolean useOldEqualization = false;
     boolean removeUnderexpose = true;
     @Override
     public void Run() {
@@ -511,6 +518,7 @@ public class Equalization extends Node {
         contrast = getTuning("Contrast",contrast);
         enableTonemap = getTuning("EnableTonemap",enableTonemap);
         removeUnderexpose = getTuning("RemoveUnderexpose",removeUnderexpose);
+        useOldEqualization = getTuning("UseOldEqualization",useOldEqualization);
         analyzeIntensity = getTuning("AnalyzeIntensity", analyzeIntensity);
         edgesStretchShadows = getTuning("EdgesStretchShadows", edgesStretchShadows);
         edgesStretchHighLight = getTuning("EdgesStretchHighLight", edgesStretchHighLight);
@@ -608,6 +616,9 @@ public class Equalization extends Node {
         float BL = findBL(histParser.histr,histParser.histg,histParser.histb);
         float[] blwl = new float[]{BL,WL};
         double compensation = averageCurve.length/WL;
+        if(useOldEqualization){
+            histParser.hist = bSpline(histParser.hist,blwl);
+        } else
         histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);
 
 

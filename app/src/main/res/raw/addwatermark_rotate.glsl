@@ -46,6 +46,6 @@ void main() {
     Output = mix(Output,water.rgba,water.a);
     }
     #endif
-    Output*=1.015;
+    Output*=1.005;
     Output.a=1.0;
 }

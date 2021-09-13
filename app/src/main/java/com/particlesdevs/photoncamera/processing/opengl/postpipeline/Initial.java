@@ -13,9 +13,11 @@ import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.FileManager;
+import com.particlesdevs.photoncamera.util.SplineInterpolator;
 
 import java.io.File;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -30,11 +32,14 @@ public class Initial extends Node {
     public void AfterRun() {
         lutbm.recycle();
         lut.close();
+        interpolatedCurve.close();
+        TonemapCoeffs.close();
     }
 
     @Override
     public void Compile() {}
-
+    GLTexture interpolatedCurve;
+    GLTexture TonemapCoeffs;
     GLTexture lut;
     Bitmap lutbm;
     float highersatmpy = 1.0f;
@@ -49,6 +54,9 @@ public class Initial extends Node {
     float saturationGauss = 1.5f;
     float saturationRed = 0.7f;
     float eps = 0.0008f;
+    int curvePointsCount = 5;
+    float[] intenseCurveX;
+    float[] intenseCurveY;
     @Override
     public void Run() {
         gammaKoefficientGenerator =getTuning("GammaKoefficientGenerator", gammaKoefficientGenerator);
@@ -62,6 +70,35 @@ public class Initial extends Node {
         saturationGauss = getTuning("SaturationGauss",saturationGauss);
         saturationRed =   getTuning("SaturationRed",  saturationRed);
         eps =             getTuning("Epsilon",        eps      );
+        curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
+        intenseCurveX = new float[curvePointsCount];
+        intenseCurveY = new float[curvePointsCount];
+        for(int i = 0; i<curvePointsCount;i++){
+            float line = i/((float)(curvePointsCount-1.f));
+            intenseCurveX[i] = line;
+            intenseCurveY[i] = 1.0f;
+        }
+        intenseCurveX[curvePointsCount-2] = 0.99f;
+        intenseCurveY[curvePointsCount-2] = 1.f;
+
+        intenseCurveY[curvePointsCount-1] = 0.f;
+        intenseCurveX = getTuning("FusionIntenseCurveX", intenseCurveX);
+        intenseCurveY = getTuning("FusionIntenseCurveY", intenseCurveY);
+        ArrayList<Float> curveX = new ArrayList<>();
+        ArrayList<Float> curveY = new ArrayList<>();
+        for(int i =0; i<curvePointsCount;i++){
+            curveX.add(intenseCurveX[i]);
+            curveY.add(intenseCurveY[i]);
+        }
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
+        float[] interpolatedCurveArr = new float[1024];
+        for(int i =0 ;i<interpolatedCurveArr.length;i++){
+            float line = i/((float)(interpolatedCurveArr.length-1.f));
+            interpolatedCurveArr[i] = splineInterpolator.interpolate(line);
+        }
+        interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
+                new GLFormat(GLFormat.DataType.FLOAT_16), FloatBuffer.wrap(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
+
         glProg.setDefine("GAMMAX1",  gammax1  );
         glProg.setDefine("GAMMAX2",  gammax2  );
         glProg.setDefine("GAMMAX3",  gammax3  );
@@ -79,7 +116,7 @@ public class Initial extends Node {
         }
         glProg.setDefine("SATURATION2",sat);
         glProg.setDefine("SATURATION",sat*highersatmpy);
-        GLTexture TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();
@@ -122,7 +159,7 @@ public class Initial extends Node {
         }
         float[] gamma = new float[1024];
         for(int i =0; i<gamma.length;i++){
-            double pos =((float)i)/gamma.length;
+            double pos =((float)i)/(gamma.length-1.f);
             gamma[i] = (float)(Math.pow(pos, 1./ gammaKoefficientGenerator));
         }
         GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
@@ -138,6 +175,7 @@ public class Initial extends Node {
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);
+        glProg.setTexture("IntenseCurve",interpolatedCurve);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         //glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
