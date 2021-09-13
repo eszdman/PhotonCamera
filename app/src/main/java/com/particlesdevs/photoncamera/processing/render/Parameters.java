@@ -20,6 +20,8 @@ import androidx.annotation.NonNull;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
+import com.particlesdevs.photoncamera.pro.SensorSpecifics;
+import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
@@ -61,6 +63,7 @@ public class Parameters {
     public double YPerMm;
     public double[] cameraIntrinsic = new double[9];
     public double[] cameraIntrinsicRev = new double[9];
+    public SpecificSettingSensor sensorSpecifics;
 
 
 
@@ -123,7 +126,8 @@ public class Parameters {
     }
 
     public void FillDynamicParameters(CaptureResult result) {
-        noiseModeler = new NoiseModeler( result.get(CaptureResult.SENSOR_NOISE_PROFILE),analogIso,result.get(CaptureResult.SENSOR_SENSITIVITY),cfaPattern);
+        sensorSpecifics = PhotonCamera.getSpecificSensor().selectedSensorSpecifics;
+        noiseModeler = new NoiseModeler( result.get(CaptureResult.SENSOR_NOISE_PROFILE),analogIso,result.get(CaptureResult.SENSOR_SENSITIVITY),cfaPattern,sensorSpecifics);
         int[] blarr = new int[4];
         BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (result != null) {

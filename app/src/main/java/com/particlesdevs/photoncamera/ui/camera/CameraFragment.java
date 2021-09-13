@@ -1039,7 +1039,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 case R.id.flip_camera_button:
                     view.animate().rotationBy(180).setDuration(450).start();
                     textureView.animate().rotationBy(360).setDuration(450).start();
-                    PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
+                    //PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
+                    setID(cycler(PreferenceKeys.getCameraID()));
                     this.restartCamera();
                     break;
                 case R.id.grid_toggle_button:
@@ -1087,11 +1088,14 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void onAuxButtonClicked(String id) {
             Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
-            PreferenceKeys.setCameraID(String.valueOf(id));
+            setID(id);
             this.restartCamera();
 
         }
 
+        private void setID(String input){
+            PreferenceKeys.setCameraID(String.valueOf(input));
+        }
         @Override
         public void onCameraModeChanged(CameraMode cameraMode) {
             PreferenceKeys.setCameraModeOrdinal(cameraMode.ordinal());

@@ -1,10 +1,18 @@
 package com.particlesdevs.photoncamera.pro;
 
+import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
+
 //Device current sensor specific
 public class SpecificSettingSensor {
     public int id = 0;
     public boolean isRawColorCorrection = false;
     public float[] blackLevel;
     public float[][] CCT;
-    public float[][] NoiseModeler;
+    public double[][] NoiseModelerArr;
+    public boolean ModelerExists = false;
+    public boolean CCTExists = false;
+    public SpecificSettingSensor(){
+        NoiseModelerArr = new double[4][4];
+        CCT = new float[3][3];
+    }
 }

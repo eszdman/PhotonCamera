@@ -1013,6 +1013,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void UpdateCameraCharacteristics(String cameraId) {
+        PhotonCamera.getSpecificSensor().selectSpecifics(Integer.parseInt(cameraId));
         CameraCharacteristics characteristics = this.mCameraCharacteristicsMap.get(cameraId);
         mCameraCharacteristics = characteristics;
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);

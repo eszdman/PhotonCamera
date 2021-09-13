@@ -24,7 +24,9 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
 import com.particlesdevs.photoncamera.control.Vibration;
+import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.Specific;
+import com.particlesdevs.photoncamera.pro.SpecificSetting;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.render.PreviewParameters;
@@ -103,6 +105,10 @@ public class PhotonCamera extends Application {
     public static Specific getSpecific(){
         return sPhotonCamera.mSupportedDevice.specific;
     }
+    public static SensorSpecifics getSpecificSensor(){
+        return sPhotonCamera.mSupportedDevice.sensorSpecifics;
+    }
+
 
     public static RenderScript getRenderScript() {
         return sPhotonCamera.mRS;
