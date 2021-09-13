@@ -7,6 +7,8 @@ public interface CaptureEventsListener {
 
     void onCaptureStillPictureStarted(Object o);
 
+    void onBurstPrepared(Object o);
+
     void onFrameCaptureStarted(Object o);
 
     void onFrameCaptureProgressed(Object o);

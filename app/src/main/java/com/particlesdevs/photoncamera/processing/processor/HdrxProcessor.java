@@ -224,7 +224,7 @@ public class HdrxProcessor extends ProcessorBase {
             NoiseO/=3.f;
             double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.6);
             NoiseS = (float) Math.max(NoiseS*noisempy, Float.MIN_NORMAL);
-            NoiseO = (float) Math.max(NoiseO*noisempy*16384, Float.MIN_NORMAL);
+            NoiseO = (float) Math.max(NoiseO*noisempy*65535, Float.MIN_NORMAL);
             output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
             Wrapper.outputBuffer(output);
 

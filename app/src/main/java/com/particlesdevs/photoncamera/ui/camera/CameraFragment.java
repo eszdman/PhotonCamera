@@ -30,7 +30,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.graphics.Point;
 import android.graphics.RectF;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
@@ -99,7 +98,6 @@ import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
-import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.log.Logger;
@@ -116,7 +114,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static androidx.constraintlayout.widget.ConstraintSet.GONE;
-import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
 
 public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
@@ -157,6 +154,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
+    private MediaPlayer endPlayer;
     public AutoFitPreviewView textureView;
     private NotificationManagerCompat notificationManager;
     private SettingsManager settingsManager;
@@ -302,7 +300,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         PhotonCamera.getGravity().register();
         updateSettingsBar();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
-        burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
+        burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst2);
+        endPlayer = MediaPlayer.create(activity,R.raw.sound_end);
 
         cameraFragmentViewModel.updateGalleryThumb();
         cameraFragmentViewModel.onResume();
@@ -335,6 +334,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         mCameraUIEventsListener.onPause();
         auxButtonsViewModel.setAuxButtonListener(null);
         burstPlayer.release();
+        endPlayer.release();
         mSwipe.SwipeDown();
         manualModeConsole.onPause();
         super.onPause();
@@ -699,11 +699,19 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             textureView.post(() -> textureView.setAlpha(0.5f));
         }
 
+        private long prevPlayTime = 0;
         @Override
         public void onFrameCaptureStarted(Object o) {
-            burstPlayer.seekTo(0);
+            long seekDelay = 50;
+            if(prevPlayTime + seekDelay < System.currentTimeMillis()){
+                prevPlayTime = System.currentTimeMillis();
+                burstPlayer.seekTo(0);
+            }
         }
 
+        @Override
+        public void onBurstPrepared(Object o) {
+        }
         @Override
         public void onFrameCaptureProgressed(Object o) {
         }
@@ -721,6 +729,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         @Override
         public void onCaptureSequenceCompleted(Object o) {
+            if (PreferenceKeys.isCameraSoundsOn()) {
+                endPlayer.start();
+            }
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
             textureView.post(() -> textureView.setAlpha(1f));

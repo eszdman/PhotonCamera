@@ -1394,7 +1394,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mMeasuredFrameCnt = 0;
             mImageSaver = new ImageSaver(cameraEventsListener);
 
-
+            cameraEventsListener.onBurstPrepared(null);
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
 
                 @Override
