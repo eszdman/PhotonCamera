@@ -90,20 +90,20 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     }
 
     public void updateGalleryThumb() {
-        List<File> allFiles = FileManager.getAllImageFiles();
-        if (allFiles.isEmpty())
-            return;
-        File lastImage = allFiles.get(0);
-        if (lastImage != null) {
-            if (thumbnailThread != null && thumbnailThread.isAlive()) {
-                new Handler(thumbnailThread.getLooper()).post(() -> {
+        if (thumbnailThread != null && thumbnailThread.isAlive()) {
+            new Handler(thumbnailThread.getLooper()).post(() -> {
+                List<File> allFiles = FileManager.getAllImageFiles();
+                if (allFiles.isEmpty())
+                    return;
+                File lastImage = allFiles.get(0);
+                if (lastImage != null) {
                     Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
                             .quality(Quality.LOWEST_OPAQUE)
                             .scaleBy(0.1f)
                             .decode();
                     cameraFragmentModel.setBitmap(bitmap);
-                });
-            }
+                }
+            });
         }
     }
 
