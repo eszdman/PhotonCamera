@@ -165,7 +165,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * Timeout for the pre-capture sequence.
      */
-    private static final long PRECAPTURE_TIMEOUT_MS = 1500;
+    private static final long PRECAPTURE_TIMEOUT_MS = 100;
     private static final int SENSOR_ORIENTATION_DEFAULT_DEGREES = 90;
     private static final int SENSOR_ORIENTATION_INVERSE_DEGREES = 270;
     /**

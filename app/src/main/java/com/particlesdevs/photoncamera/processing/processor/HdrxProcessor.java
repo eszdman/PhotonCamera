@@ -295,7 +295,7 @@ public class HdrxProcessor extends ProcessorBase {
         pipeline.highFrame = highexp;
 
         Bitmap img = pipeline.Run(images.get(0).image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
-        img = overlay(img,pipeline.debugData.toArray(new Bitmap[pipeline.debugData.size()]));
+        img = overlay(img,pipeline.debugData.toArray(new Bitmap[0]));
         processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
 
         //Saves the final bitmap
