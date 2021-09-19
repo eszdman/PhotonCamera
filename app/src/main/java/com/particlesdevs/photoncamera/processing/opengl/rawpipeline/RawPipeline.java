@@ -32,7 +32,8 @@ public class RawPipeline extends GLBasePipeline {
         add(new AlignAndMerge());
         if(alignAlgorithm == 2) {
             Log.d("RawPipeline","Entering hybrid alignment");
-            add(new AlignAndMergeCV());
+            //add(new AlignAndMergeCV());
+            add(new AlignAndMerge());
         }
         return runAllRaw();
     }

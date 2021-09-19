@@ -10,8 +10,6 @@ import android.renderscript.Script;
 import android.renderscript.ScriptIntrinsic;
 import android.renderscript.Type;
 
-import org.opencv.core.Mat;
-
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 
@@ -27,13 +25,13 @@ public class RUtils {
         allocate.copyFromUnchecked(input);
         return allocate;
     }
-    public Allocation allocateIO(Mat in, Type type){
+    /*public Allocation allocateIO(Mat in, Type type){
         Allocation allocate = Allocation.createTyped(rs,type,Allocation.USAGE_GRAPHICS_RENDER_TARGET);
         byte[] input = new byte[in.rows()*in.cols()*in.channels()];
         in.get(0,0,input);
         allocate.copyFromUnchecked(input);
         return allocate;
-    }
+    }*/
     public Allocation allocateIO(Object in, Type type){
         Allocation allocate = Allocation.createTyped(rs,type,Allocation.USAGE_GRAPHICS_RENDER_TARGET);
         allocate.copyFromUnchecked(in);

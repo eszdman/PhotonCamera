@@ -16,8 +16,6 @@ import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.RANSAC;
 import com.particlesdevs.photoncamera.util.Utilities;
 
-import org.opencv.osgi.OpenCVNativeLoader;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

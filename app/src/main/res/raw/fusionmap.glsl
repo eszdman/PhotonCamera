@@ -7,6 +7,7 @@ uniform float factor;
 out float result;
 uniform int yOffset;
 #define DH (0.0)
+#define FUSIONGAIN 1.0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 float gammaInverse(float x) {
     return x*x;
@@ -24,5 +25,5 @@ void main() {
     //br = gammaInverse(br);
     //br+=DH+0.003;
     result=(((br2)/((br)+0.00001)));
-    result = clamp(result/50.0,0.0,1.0);
+    result = clamp(result/FUSIONGAIN,0.0,1.0);
 }

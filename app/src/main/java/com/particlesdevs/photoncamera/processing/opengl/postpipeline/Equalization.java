@@ -747,8 +747,8 @@ public class Equalization extends Node {
         avrbr/=histParser.hist.length;
         float desaturate = 0.5f/(float)avrbr;
         desaturate = Math.max(1.f,desaturate);
-        desaturate*=1.0;
-        desaturate-=1.0;
+        desaturate*=1.0f;
+        desaturate-=1.0f;
         if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,new float[]{WL,WL,WL});
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
                 FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);

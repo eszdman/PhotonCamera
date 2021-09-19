@@ -54,6 +54,7 @@ out vec3 Output;
 #define SATURATIONGAUSS 1.50
 #define SATURATIONRED 0.7
 #define EPS (0.0008)
+#define FUSIONGAIN 1.0
 #define FUSION 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MINP 1.0
@@ -303,7 +304,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
 
 
-    br*=mix(1.0,tonemapGain,texture(IntenseCurve, vec2(br,0.0)).r);
+    br*=tonemapGain;
+    br = clamp(br, 0.0,1.0);
 
 
 
@@ -322,6 +324,18 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.5+0.5,1.0));
 
     return pRGB;
+}
+float getGain(vec2 coordsShift){
+    float ingain = textureLinear(FusionMap, (gl_FragCoord.xy+coordsShift)/vec2(INSIZE)).r;
+    //float ingain = texelFetch(FusionMap, xy, 0).r;
+    /*if(ingain > 0.0){
+        ingain = 1.0/ingain;
+    } else ingain = -ingain;*/
+    return ingain*FUSIONGAIN;
+}
+float getLm(ivec2 coordsShift){
+    vec3 inrgb = texelFetch(InputBuffer, coordsShift, 0).rgb;
+    return inrgb.r+inrgb.g+inrgb.b;
 }
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -364,13 +378,53 @@ void main() {
     tonemapGain += texelFetch(FusionMap, xy2+ivec2(0,-1), 0).r/sqrt(t.r+t.g+t.b);
     t=texelFetch(InputBuffer, xy+ivec2(-2,0), 0).rgb;
     tonemapGain += texelFetch(FusionMap, xy2+ivec2(-1,0), 0).r/sqrt(t.r+t.g+t.b);
-    tonemapGain = (tonemapGain/5.f)*sqrt(sRGB.r+sRGB.g+sRGB.b)*50.0;*/
-    grad = abs(grad);
-    float[2] grads;
+    tonemapGain = (tonemapGain/5.f)*sqrt(sRGB.r+sRGB.g+sRGB.b)*50.0;
+    grad = abs(grad);*/
+    float tempV = 0.0;
+    float minG,maxG;
+    float minImg, maxImg;
+    ivec2 xy2 = xy/2;
 
-    tonemapGain = textureLinear(FusionMap, gl_FragCoord.xy/vec2(INSIZE)).r*50.0;
-    //tonemapGain = 1.f;
+    tempV = getGain(vec2(0,-1));
+    minG = tempV;
+    maxG = tempV;
+    tempV = getGain(vec2(-1,0));
+    minG = min(tempV,minG);
+    maxG = max(tempV,maxG);
+    tempV = getGain(vec2(0,0));
+    minG = min(tempV,minG);
+    maxG = max(tempV,maxG);
+    tempV = getGain(vec2(0,1));
+    minG = min(tempV,minG);
+    maxG = max(tempV,maxG);
+    tempV = getGain(vec2(1,0));
+    minG = min(tempV,minG);
+    maxG = max(tempV,maxG);
 
+    tempV = texelFetch(InputBuffer, xy+ivec2(0,0), 0).g;
+    minImg = tempV;
+    maxImg = tempV;
+    tempV = texelFetch(InputBuffer, xy+ivec2(0,-1), 0).g;
+    minImg = min(tempV,minImg);
+    maxImg = max(tempV,maxImg);
+    tempV = texelFetch(InputBuffer, xy+ivec2(-1,0), 0).g;
+    minImg = min(tempV,minImg);
+    maxImg = max(tempV,maxImg);
+    tempV = texelFetch(InputBuffer, xy+ivec2(0,1), 0).g;
+    minImg = min(tempV,minImg);
+    maxImg = max(tempV,maxImg);
+    tempV = texelFetch(InputBuffer, xy+ivec2(1,0), 0).g;
+    minImg = min(tempV,minImg);
+    maxImg = max(tempV,maxImg);
+
+    //tonemapGain = texture(FusionMap, (gl_FragCoord.xy)/vec2(INSIZE)).r;
+    //tonemapGain = getGain(vec2(0.0,0.0));
+    //if(tonemapGain > 0.0){
+    //    tonemapGain = 1.0/tonemapGain;
+    //} else tonemapGain = -tonemapGain;
+    float mixG = (sRGB.g-minImg)/(maxImg-minImg+0.001);
+    tonemapGain = mix(maxG,minG,mixG);
+    tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(maxImg,0.0)).r);
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

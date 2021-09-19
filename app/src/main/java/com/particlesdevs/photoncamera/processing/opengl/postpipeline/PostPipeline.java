@@ -32,6 +32,7 @@ public class PostPipeline extends GLBasePipeline {
     public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
+    float fusionGain = 1.f;
     public int getRotation() {
         int rotation = mParameters.cameraRotation;
         String TAG = "ParseExif";
@@ -126,7 +127,9 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new GlobalToneMapping());
 
-        //add(new Median(new Point(1,1),4,"PostMedian",R.raw.medianfilter));
+        add(new CaptureSharpening());
+
+        add(new CorrectingFlow());
 
         add(new Sharpen2());
 

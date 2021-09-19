@@ -1,17 +1,10 @@
 package com.particlesdevs.photoncamera.processing;
 
-import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.util.Log;
-
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.rs.GyroMap;
-import com.particlesdevs.photoncamera.util.Utilities;
-
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
 
 import static com.particlesdevs.photoncamera.control.Gyro.NS2S;
 

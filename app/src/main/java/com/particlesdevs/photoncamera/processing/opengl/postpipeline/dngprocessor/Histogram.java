@@ -178,7 +178,7 @@ public class Histogram {
             float val = cumulativeHist[i];
             if (val > 0.001f) {
                 // Which power of the input is the output.
-                double exponent = Math.log(cumulativeHist[i]) / Math.log((double) i / HIST_BINS);
+                float exponent = (float)(Math.log(cumulativeHist[i]) / Math.log((double) i / HIST_BINS));
                 if (exponent > 0f && exponent < 10f) {
                     sumExponent += exponent;
                     exponentCounted++;

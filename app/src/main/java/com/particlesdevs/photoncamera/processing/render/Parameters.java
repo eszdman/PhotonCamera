@@ -19,8 +19,6 @@ import android.util.SizeF;
 import androidx.annotation.NonNull;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.control.GyroBurst;
-import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;

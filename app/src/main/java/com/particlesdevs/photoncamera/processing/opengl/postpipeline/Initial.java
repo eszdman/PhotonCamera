@@ -54,7 +54,7 @@ public class Initial extends Node {
     float saturationGauss = 1.5f;
     float saturationRed = 0.7f;
     float eps = 0.0008f;
-    int curvePointsCount = 5;
+    int curvePointsCount = 6;
     float[] intenseCurveX;
     float[] intenseCurveY;
     @Override
@@ -82,6 +82,23 @@ public class Initial extends Node {
         intenseCurveY[curvePointsCount-2] = 1.f;
 
         intenseCurveY[curvePointsCount-1] = 0.f;
+
+        if(curvePointsCount == 6){
+            intenseCurveX[0] = 0.0f;
+            intenseCurveX[1] = 0.3f;
+            intenseCurveX[2] = 0.65f;
+            intenseCurveX[3] = 0.75f;
+            intenseCurveX[4] = 0.95f;
+            intenseCurveX[5] = 1.0f;
+
+            intenseCurveY[0] = 1.25f;
+            intenseCurveY[1] = 1.5f;
+            intenseCurveY[2] = 1.3f;
+            intenseCurveY[3] = 0.85f;
+            intenseCurveY[4] = 0.8f;
+            intenseCurveY[5] = 0.0f;
+        }
+
         intenseCurveX = getTuning("FusionIntenseCurveX", intenseCurveX);
         intenseCurveY = getTuning("FusionIntenseCurveY", intenseCurveY);
         ArrayList<Float> curveX = new ArrayList<>();
@@ -93,7 +110,7 @@ public class Initial extends Node {
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
         float[] interpolatedCurveArr = new float[1024];
         for(int i =0 ;i<interpolatedCurveArr.length;i++){
-            float line = i/((float)(interpolatedCurveArr.length-1.f));
+            float line = i/ (interpolatedCurveArr.length-1.f);
             interpolatedCurveArr[i] = splineInterpolator.interpolate(line);
         }
         interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
@@ -109,6 +126,8 @@ public class Initial extends Node {
         glProg.setDefine("SATURATIONGAUSS",saturationGauss);
         glProg.setDefine("SATURATIONRED",  saturationRed);
         glProg.setDefine("EPS",            eps      );
+
+        glProg.setDefine("FUSIONGAIN",((PostPipeline)(basePipeline)).fusionGain);
 
         float sat =(float) basePipeline.mSettings.saturation;
         if(basePipeline.mSettings.cfaPattern == 4) {

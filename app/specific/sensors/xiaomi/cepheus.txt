@@ -1,0 +1,11 @@
+sensor_0
+captureSharpeningS = 1.05
+captureSharpeningIntense = 1.0
+
+sensor_20
+captureSharpeningS = 1.2
+captureSharpeningIntense = 1.0
+
+sensor_21
+captureSharpeningS = 1.6
+captureSharpeningIntense = 1.0

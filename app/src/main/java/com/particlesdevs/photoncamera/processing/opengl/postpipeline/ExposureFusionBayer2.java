@@ -107,6 +107,7 @@ public class ExposureFusionBayer2 extends Node {
 
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
         glProg.setDefine("DH","("+dehaze+")");
+        glProg.setDefine("FUSIONGAIN",((PostPipeline)(basePipeline)).fusionGain);
         glProg.useProgram(R.raw.fusionmap);
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("BrBuffer",br);
@@ -182,10 +183,13 @@ public class ExposureFusionBayer2 extends Node {
         toneCurveY = getTuning("TonemapCurveY", toneCurveY);
         ArrayList<Float> curveX = new ArrayList<>();
         ArrayList<Float> curveY = new ArrayList<>();
+        float maxC = 0.f;
         for(int i =0; i<curvePointsCount;i++){
             curveX.add(toneCurveX[i]);
             curveY.add(toneCurveY[i]);
+            if(toneCurveY[i] > maxC) maxC = toneCurveY[i];
         }
+
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
         float[] interpolatedCurveArr = new float[1024];
         for(int i =0 ;i<interpolatedCurveArr.length;i++){
@@ -226,6 +230,7 @@ public class ExposureFusionBayer2 extends Node {
             overexposure/=mpy;
             underexposure/=mpy;
         }
+        ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
         //overexposure = Math.min(10.f,overexposure);
         //underexposure = Math.max(underexposure,0.0008f);
         Log.d(Name,"Overexp:"+overexposure+" , Underexp:"+underexposure);

@@ -41,30 +41,39 @@ public class SensorSpecifics {
                     } else {
                         String[] valsIn = str2.split("=");
                         String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
+                        SpecificSettingSensor current = specificSettingSensor[count - 1];
                         switch (valsIn[0]) {
                             case "NoiseModelA": {
                                 for (int i = 0; i < 4; i++) {
-                                    specificSettingSensor[count - 1].NoiseModelerArr[0][i] = Double.parseDouble(istr[i]);
+                                    current.NoiseModelerArr[0][i] = Double.parseDouble(istr[i]);
                                 }
                                 break;
                             }
                             case "NoiseModelB": {
                                 for (int i = 0; i < 4; i++) {
-                                    specificSettingSensor[count - 1].NoiseModelerArr[1][i] = Double.parseDouble(istr[i]);
+                                    current.NoiseModelerArr[1][i] = Double.parseDouble(istr[i]);
                                 }
                                 break;
                             }
                             case "NoiseModelC": {
                                 for (int i = 0; i < 4; i++) {
-                                    specificSettingSensor[count - 1].NoiseModelerArr[2][i] = Double.parseDouble(istr[i]);
+                                    current.NoiseModelerArr[2][i] = Double.parseDouble(istr[i]);
                                 }
                                 break;
                             }
                             case "NoiseModelD": {
                                 for (int i = 0; i < 4; i++) {
-                                    specificSettingSensor[count - 1].NoiseModelerArr[3][i] = Double.parseDouble(istr[i]);
+                                    current.NoiseModelerArr[3][i] = Double.parseDouble(istr[i]);
                                 }
-                                specificSettingSensor[count - 1].ModelerExists = true;
+                                current.ModelerExists = true;
+                                break;
+                            }
+                            case "CaptureSharpeningS":{
+                                current.captureSharpeningS = Float.parseFloat(valsIn[1]);
+                                break;
+                            }
+                            case "captureSharpeningIntense":{
+                                current.captureSharpeningIntense = Float.parseFloat(valsIn[1]);
                                 break;
                             }
                         }
@@ -78,13 +87,12 @@ public class SensorSpecifics {
             mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists", exists);
         }
     }
-    public SpecificSettingSensor selectSpecifics(int id){
+    public void selectSpecifics(int id){
         if(specificSettingSensor != null) {
             for (SpecificSettingSensor specifics : specificSettingSensor) {
-                if (specifics.id == id) return specifics;
+                if (specifics.id == id) selectedSensorSpecifics = specifics;
             }
         }
-        return null;
     }
 
 }
