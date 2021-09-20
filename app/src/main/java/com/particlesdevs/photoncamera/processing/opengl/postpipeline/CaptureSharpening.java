@@ -1,5 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
+import android.util.Log;
+
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
@@ -14,6 +16,7 @@ public class CaptureSharpening extends Node {
 
     @Override
     public void Run() {
+        Log.d(Name,"CaptureSharpening specific:"+basePipeline.mParameters.sensorSpecifics);
         if(basePipeline.mParameters.sensorSpecifics == null){
             WorkingTexture = previousNode.WorkingTexture;
             glProg.closed = true;

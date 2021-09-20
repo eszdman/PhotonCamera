@@ -18,7 +18,7 @@ public class NoiseModeler {
         baseModel = new Pair[3];
         computeModel = new Pair[3];
         //inModel = null;
-        if (inModel == null || inModel.length == 0 || specificSettingSensor != null) {
+        if (inModel == null || inModel.length == 0 || (specificSettingSensor != null && specificSettingSensor.ModelerExists)) {
             Pair<Double, Double> CustomGeneratorS;
             Pair<Double, Double> CustomGeneratorO;
             if(specificSettingSensor != null) {

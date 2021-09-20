@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.pro;
 
 import android.os.Build;
+import android.util.Log;
 
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
@@ -27,19 +28,24 @@ public class SensorSpecifics {
                 String str;
                 count = 0;
                 while ((str = indevice.readLine()) != null) {
+                    Log.d("SensorSpecifics","read:"+str);
                     if (str.contains("sensor")) count++;
                     inputStr.add(str + "\n");
                 }
+                Log.d("SensorSpecifics","SensorCount:"+count);
                 exists = true;
                 specificSettingSensor = new SpecificSettingSensor[count];
-                count = 1;
+                count = 0;
                 for (String str2 : inputStr) {
                     if (str2.contains("sensor")) {
                         String[] vals = str2.split("_");
+                        vals[1] = vals[1].replace("\n", "");
+                        specificSettingSensor[count] = new SpecificSettingSensor();
                         specificSettingSensor[count].id = Integer.parseInt(vals[1]);
                         count++;
                     } else {
                         String[] valsIn = str2.split("=");
+                        if(valsIn.length <= 1) continue;
                         String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
                         SpecificSettingSensor current = specificSettingSensor[count - 1];
                         switch (valsIn[0]) {
@@ -81,8 +87,7 @@ public class SensorSpecifics {
                     }
                 }
 
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
             mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", loaded);
             mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists", exists);
         }
@@ -90,7 +95,7 @@ public class SensorSpecifics {
     public void selectSpecifics(int id){
         if(specificSettingSensor != null) {
             for (SpecificSettingSensor specifics : specificSettingSensor) {
-                if (specifics.id == id) selectedSensorSpecifics = specifics;
+                if (specifics != null && specifics.id == id) selectedSensorSpecifics = specifics;
             }
         }
     }
