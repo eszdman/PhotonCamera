@@ -46,7 +46,9 @@
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintBottom_toTopOf="@+id/mode_switcher"></include>
+                    app:layout_constraintBottom_toTopOf="@+id/mode_switcher"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    android:layout_marginTop="16dp"></include>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
