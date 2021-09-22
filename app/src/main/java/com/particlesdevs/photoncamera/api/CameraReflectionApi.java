@@ -14,6 +14,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.Surface;
 
+import com.eszdman.photonbypass.ReflectBypass;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
 import org.chickenhook.restrictionbypass.RestrictionBypass;
@@ -30,6 +31,7 @@ public class CameraReflectionApi {
 
     public static <T> void set(CameraCharacteristics.Key<T> key, T value) {
         try {
+            //Class<?> metadataNativeClass = ReflectBypass.findClass("android/hardware/camera2/impl/CameraMetadataNative");
             Field CameraMetadataNativeField = RestrictionBypass.getDeclaredField(CameraCharacteristics.class, "mProperties");
             CameraMetadataNativeField.setAccessible(true);
             Object CameraMetadataNative = CameraMetadataNativeField.get(CaptureController.mCameraCharacteristics);
