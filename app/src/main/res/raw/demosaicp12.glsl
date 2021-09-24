@@ -76,7 +76,7 @@ void main() {
             W = MIN/MAX;
         }
         float avr = (green[0]+green[1]+green[2]+green[3])/4.0;
-        float N = sqrt(avr*NOISES + NOISEO);
+        float N = sqrt(avr*NOISES + NOISEO)/5.0;
         //W=W*W;
         //W=sqrt(W);
         //float badGR = (abs(HV.r-HV.g)*5.0)/((HV.r+HV.g));

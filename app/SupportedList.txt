@@ -6,6 +6,7 @@ xiaomi:umi
 xiaomi:dipper
 xiaomi:apollo
 xiaomi:laurel_sprout
+xiaomi:laurus
 poco:vayu
 redmi:galahad
 realme:rmx1931l1

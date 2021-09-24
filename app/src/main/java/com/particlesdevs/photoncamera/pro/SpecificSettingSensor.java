@@ -7,7 +7,7 @@ public class SpecificSettingSensor {
     public int id = 0;
     public boolean isRawColorCorrection = false;
     public float[] blackLevel;
-    public float captureSharpeningS = 0.0f;
+    public float captureSharpeningS = 1.05f;
     public float captureSharpeningIntense = 0.0f;
     public float[][] CCT;
     public double[][] NoiseModelerArr;

@@ -29,9 +29,6 @@ public class Sharpen2 extends Node {
         sharpSize = getTuning("SharpSize", sharpSize);
         sharpMin = getTuning("SharpMin",sharpMin);
         sharpMax = getTuning("SharpMax",sharpMax);
-        float sharpnessLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) * IsoExpoSelector.getMPY() - 50.) / 14.2f;
-        sharpnessLevel = Math.max(0.5f, sharpnessLevel);
-        sharpnessLevel = Math.min(1.5f, sharpnessLevel);
         glProg.setDefine("INTENSE",denoiseActivity);
         glProg.setDefine("INSIZE",basePipeline.mParameters.rawSize);
         glProg.setDefine("SHARPSIZE",sharpSize);
@@ -40,7 +37,6 @@ public class Sharpen2 extends Node {
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.useProgram(R.raw.lsharpening2);
-        Log.d("PostNode:" + Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setVar("size", sharpSize);
         glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);

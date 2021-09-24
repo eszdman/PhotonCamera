@@ -61,6 +61,8 @@ public class SensorSpecifics {
                     } else {
                         String[] valsIn = str2.split("=");
                         if(valsIn.length <= 1) continue;
+                        valsIn[0] = valsIn[0].replace(" ","");
+                        valsIn[1] = valsIn[1].replace(" ","");
                         String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
                         SpecificSettingSensor current = specificSettingSensor[count - 1];
                         switch (valsIn[0]) {
@@ -89,12 +91,12 @@ public class SensorSpecifics {
                                 current.ModelerExists = true;
                                 break;
                             }
-                            case "CaptureSharpeningS":{
-                                current.captureSharpeningS = Float.parseFloat(valsIn[1]);
+                            case "captureSharpeningS":{
+                                current.captureSharpeningS = (float)Double.parseDouble(valsIn[1]);
                                 break;
                             }
                             case "captureSharpeningIntense":{
-                                current.captureSharpeningIntense = Float.parseFloat(valsIn[1]);
+                                current.captureSharpeningIntense = (float)Double.parseDouble(valsIn[1]);
                                 break;
                             }
                         }
