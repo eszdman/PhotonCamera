@@ -16,37 +16,10 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableListener {
-    private final String vss_default =
-            "in vec2 vPosition;\n"+
-                    "in vec2 vTexCoord;\n"+
-                    "out vec2 texCoord;\n"+
-
-                    "uniform mat4 uTexRotateMatrix;\n"+
-                    "void main() {\n"+
-                    "texCoord.yx = vTexCoord.xy;\n"+
-                    "texCoord.x = 1.0-texCoord.x;\n"+
-                    "gl_Position = uTexRotateMatrix * vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n"+
-                    "}";
-
-    private final String fss_default =
-            "#extension GL_OES_EGL_image_external_essl3 : require\n" +
-                    "precision mediump float;\n" +
-                    "uniform samplerExternalOES sTexture;\n"+
-                    "out vec4 Output;\n"+
-                    "in vec2 texCoord;\n"+
-
-                    "void main() {\n"+
-                    "vec2 texSize = texCoord.xy;\n"+
-                    "vec4 color = texture(sTexture, texSize);\n"+
-                    "Output = color;\n"+
-                    "}";
 
     private int[] hTex;
     private final FloatBuffer pVertex;
     private final FloatBuffer pTexCoord;
-    private int hProgram;
-    private float[] vtmp = {1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
-    private float[] ttmp = {1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
     private final float[] mTexRotateMatrix = new float[]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 
     private SurfaceTexture mSTexture;
@@ -59,9 +32,11 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     MainRenderer(GLPreview view) {
         mView = view;
         pVertex = ByteBuffer.allocateDirect(8 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        float[] vtmp = {1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
         pVertex.put(vtmp);
         pVertex.position(0);
         pTexCoord = ByteBuffer.allocateDirect(8 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        float[] ttmp = {1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
         pTexCoord.put(ttmp);
         pTexCoord.position(0);
         setOrientation(180);
@@ -94,7 +69,28 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         mSTexture = new SurfaceTexture(hTex[0]);
         mSTexture.setOnFrameAvailableListener(this);
 
-        hProgram = loadShader(vss_default, fss_default);
+        String vss_default = "in vec2 vPosition;\n" +
+                "in vec2 vTexCoord;\n" +
+                "out vec2 texCoord;\n" +
+
+                "uniform mat4 uTexRotateMatrix;\n" +
+                "void main() {\n" +
+                "texCoord.yx = vTexCoord.xy;\n" +
+                "texCoord.x = 1.0-texCoord.x;\n" +
+                "gl_Position = uTexRotateMatrix * vec4 ( vPosition.x, vPosition.y, 0.0, 1.0 );\n" +
+                "}";
+        String fss_default = "#extension GL_OES_EGL_image_external_essl3 : require\n" +
+                "precision mediump float;\n" +
+                "uniform samplerExternalOES sTexture;\n" +
+                "out vec4 Output;\n" +
+                "in vec2 texCoord;\n" +
+
+                "void main() {\n" +
+                "vec2 texSize = texCoord.xy;\n" +
+                "vec4 color = texture(sTexture, texSize);\n" +
+                "Output = color;\n" +
+                "}";
+        int hProgram = loadShader(vss_default, fss_default);
         GLES20.glUseProgram(hProgram);
         uTexRotateMatrix = GLES20.glGetUniformLocation(hProgram, "uTexRotateMatrix");
         GLES20.glUniformMatrix4fv(uTexRotateMatrix, 1, false, mTexRotateMatrix, 0);

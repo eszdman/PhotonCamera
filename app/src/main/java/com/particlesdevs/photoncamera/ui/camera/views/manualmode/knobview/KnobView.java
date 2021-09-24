@@ -22,7 +22,7 @@ import java.util.List;
 
 public class KnobView extends View {
     private static final String TAG = KnobView.class.getSimpleName();
-    public Range range;
+    public Range<?> range;
     private final Paint m_BackgroundPaint;
     private boolean m_DashAroundAutoEnabled;
     private final Rect m_DashBounds;
@@ -52,7 +52,7 @@ public class KnobView extends View {
         super(context, attrs);
         this.m_DashAroundAutoEnabled = true;
         this.m_DashBounds = new Rect();
-        this.m_KnobItems = new ArrayList();
+        this.m_KnobItems = new ArrayList<>();
         this.m_RotationCenter = new PointF();
         this.m_RotationState = RotationState.IDLE;
         this.m_Tick = 0;
@@ -79,7 +79,7 @@ public class KnobView extends View {
         onActionUp(null);
     }
 
-    public void setRange(Range range) {
+    public void setRange(Range<?> range) {
         this.range = range;
         invalidate();
     }
@@ -454,9 +454,8 @@ public class KnobView extends View {
     private void setRotationState(RotationState state) {
         if (this.m_RotationState != state) {
             this.m_RotationState = state;
-            if (this.m_KnobViewChangedListener != null) {
+            if (this.m_KnobViewChangedListener != null)
                 this.m_KnobViewChangedListener.onRotationStateChanged(this, state);
-            }
         }
     }
 
@@ -469,9 +468,8 @@ public class KnobView extends View {
         if (item != null) {
             setTick(item.tick);
             setKnobViewRotationSmooth(mapTickToRotation(item.tick));
-            return;
-        }
-        log("setTickByValue() - item is null, " + this);
+        }else
+            log("setTickByValue() - item is null, " + this);
     }
 
 
@@ -508,49 +506,41 @@ public class KnobView extends View {
                     item.rotationCenter = (((double) item.tick) * includedAngle) + ((double) ((Integer.signum(item.tick) * this.m_KnobInfo.autoAngle) / 2));
                     item.rotationLeft = item.rotationCenter - drawableAngleHalf;
                     item.rotationRight = item.rotationCenter + drawableAngleHalf;
-                } else {
+                } else
                     return;
-                }
             }
             Collections.sort(this.m_KnobItems);
         }
     }
 
     private void updateKnobItemSelection() {
-        if (this.m_KnobItems != null) {
-            for (KnobItemInfo item : this.m_KnobItems) {
+        if (this.m_KnobItems != null)
+            for (KnobItemInfo item : this.m_KnobItems)
                 if (item.tick == this.m_Tick) {
                     item.isSelected = true;
                     this.m_Value = item;
-                } else {
+                } else
                     item.isSelected = false;
-                }
-            }
-        }
     }
 
     private double validateRotation(double rotation) {
-        if (this.m_KnobInfo == null) {
-            return rotation;
-        }
-        if (rotation > ((double) this.m_KnobInfo.angleMax)) {
+        if (this.m_KnobInfo == null) return rotation;
+
+        if (rotation > ((double) this.m_KnobInfo.angleMax))
             rotation = this.m_KnobInfo.angleMax;
-        } else if (rotation < ((double) this.m_KnobInfo.angleMin)) {
+        else if (rotation < ((double) this.m_KnobInfo.angleMin))
             rotation = this.m_KnobInfo.angleMin;
-        }
         return rotation;
     }
 
     private int validateTick(int tick) {
         //log("validateTick " + tick);
-        if (this.m_KnobInfo == null) {
-            return tick;
-        }
-        if (tick > this.m_KnobInfo.tickMax) {
+        if (this.m_KnobInfo == null) return tick;
+
+        if (tick > this.m_KnobInfo.tickMax)
             tick = this.m_KnobInfo.tickMax;
-        } else if (tick < this.m_KnobInfo.tickMin) {
+        else if (tick < this.m_KnobInfo.tickMin)
             tick = this.m_KnobInfo.tickMin;
-        }
         return tick;
     }
 

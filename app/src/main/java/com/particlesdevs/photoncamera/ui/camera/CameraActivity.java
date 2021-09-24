@@ -46,9 +46,8 @@ public class CameraActivity extends BaseActivity {
         if (hasAllPermissions()) {
 //            if (null == savedInstanceState)
             tryLoad();
-        } else {
+        } else
             requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //First Permission request
-        }
     }
 
     private boolean hasAllPermissions() { //checks if permissions have already been granted
@@ -70,21 +69,18 @@ public class CameraActivity extends BaseActivity {
             if (Arrays.stream(grantResults).asLongStream().anyMatch(value -> value == PackageManager.PERMISSION_DENIED)) {
                 requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //Recursive Permission check
                 requestCount++;
-            } else {
+            } else
                 tryLoad();
-            }
-            if (requestCount > 15) {
+            if (requestCount > 15)
                 System.exit(0);
-            }
         }
     }
 
     @Override
     public void onBackPressed() {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
-        if (!(fragment instanceof BackPressedListener) || !((BackPressedListener) fragment).onBackPressed()) {
+        if (!(fragment instanceof BackPressedListener) || !((BackPressedListener) fragment).onBackPressed())
             super.onBackPressed();
-        }
     }
 
     @Override
@@ -107,9 +103,8 @@ public class CameraActivity extends BaseActivity {
             case KeyEvent.KEYCODE_VOLUME_DOWN:
                 if (action == KeyEvent.ACTION_DOWN) {
                     View view = findViewById(R.id.shutter_button);
-                    if (view.isClickable()) {
+                    if (view.isClickable())
                         view.performClick();
-                    }
                 }
                 return true;
             default:

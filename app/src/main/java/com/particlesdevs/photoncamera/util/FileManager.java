@@ -43,27 +43,22 @@ public class FileManager {
             if (tempImageFiles.size() < filesList.size()) {
                 List<File> fileDiff = new ArrayList<>();
                 long lastDate = tempImageFiles.get(0).lastModified();
-                for(File f : filesList){
-                    if(lastDate < f.lastModified()){
+                for(File f : filesList)
+                    if(lastDate < f.lastModified())
                         fileDiff.add(f);
-                    }
-                }
                 fileDiff.sort((file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
                 fileDiff.addAll(tempImageFiles);
                 tempImageFiles = fileDiff;
-            } else {
-                if (filesList.size() < tempImageFiles.size()) {
+            } else
+                if (filesList.size() < tempImageFiles.size())
                     tempImageFiles.remove(0);
-                }
-            }
             return tempImageFiles;
         }
         if (!filesList.isEmpty()) {
             filesList.sort((file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
             tempImageFiles = filesList;
-        } else {
+        } else
             Log.e(TAG, "getAllImageFiles(): Could not find any Image Files");
-        }
 
         return filesList;
     }

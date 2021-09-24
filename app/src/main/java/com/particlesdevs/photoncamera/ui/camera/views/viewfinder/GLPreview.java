@@ -40,23 +40,16 @@ public class GLPreview extends GLSurfaceView {
     }
 
     public void fireOnSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int w, int h) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (surfaceTextureListener != null)
-                    surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
-            }
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
         });
-
     }
 
     public void fireOnSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (surfaceTextureListener != null)
-                    surfaceTextureListener.onSurfaceTextureDestroyed(surfaceTexture);
-            }
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureDestroyed(surfaceTexture);
         });
     }
 
@@ -70,12 +63,9 @@ public class GLPreview extends GLSurfaceView {
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         super.surfaceChanged(holder, format, w, h);
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (surfaceTextureListener != null)
-                    surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(), w, h);
-            }
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(), w, h);
         });
     }
 
@@ -108,7 +98,7 @@ public class GLPreview extends GLSurfaceView {
 
         mRatioWidth = width;
         mRatioHeight = height;
-        this.post(() -> requestLayout());
+        this.post(this::requestLayout);
 
     }
 
@@ -124,14 +114,13 @@ public class GLPreview extends GLSurfaceView {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
 
-        if (mRatioWidth == 0 || mRatioHeight == 0) {
+        if (mRatioWidth == 0 || mRatioHeight == 0)
             setMeasuredDimension(width, height);
-        } else {
-            if (width > height * mRatioWidth / mRatioHeight) {
+        else {
+            if (width > height * mRatioWidth / mRatioHeight)
                 setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
-            } else {
+            else
                 setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
-            }
             setMeasuredDimension(mRatioWidth, mRatioHeight);
         }
     }

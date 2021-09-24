@@ -13,6 +13,8 @@ import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
 
+import java.util.function.Function;
+
 /**
  * Created by Vibhor on 11/01/2021
  */
@@ -33,9 +35,8 @@ public class FocusCircleView extends View {
         );
         colorStateList = a.getColorStateList(R.styleable.FocusCircleView_android_color);
         float thickness = a.getDimension(R.styleable.FocusCircleView_android_thickness, 2.5f);
-        if (colorStateList == null) {
+        if (colorStateList == null)
             colorStateList = ColorStateList.valueOf(Color.WHITE);
-        }
         a.recycle();
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(thickness);
@@ -48,12 +49,12 @@ public class FocusCircleView extends View {
     }
 
     private int getPaintColor() {
+        Function<int[], Integer> color = mode -> colorStateList.getColorForState(STATE_FOCUSED_LOCKED, colorStateList.getDefaultColor());
         if (focused_locked)
-            return colorStateList.getColorForState(STATE_FOCUSED_LOCKED, colorStateList.getDefaultColor());
-        else if (unfocused_locked)
-            return colorStateList.getColorForState(STATE_UNFOCUSED_LOCKED, colorStateList.getDefaultColor());
-        else
-            return colorStateList.getDefaultColor();
+            return color.apply(STATE_FOCUSED_LOCKED);
+        if (unfocused_locked)
+            return color.apply(STATE_UNFOCUSED_LOCKED);
+        return colorStateList.getDefaultColor();
     }
 
     public void setAfState(int afState) {

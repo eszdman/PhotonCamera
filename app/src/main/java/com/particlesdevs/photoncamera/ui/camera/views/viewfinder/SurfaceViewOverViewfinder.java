@@ -106,7 +106,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     private void drawSuperDiag(Canvas canvas) {
         int w = canvas.getWidth();
         int h = canvas.getHeight();
-        float gr = (float) goldenRatio(1, 1);
+        //float gr = (float) goldenRatio(1, 1);
         canvas.drawLine(0, 0, w, h, whitePaint);
         canvas.drawLine(w/3.f, h/3.f, w, 0, whitePaint);
         canvas.drawLine(2.f*w/3.f, 2.f*h/3.f, 0, h, whitePaint);

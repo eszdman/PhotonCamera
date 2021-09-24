@@ -47,12 +47,10 @@ public class AuxButtonsViewModel extends ViewModel {
             List<CameraLensData> frontCameras = new ArrayList<>();
             List<CameraLensData> backCameras = new ArrayList<>();
             cameraLensDataMap.forEach((id, cameraLensData) -> {
-                if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
+                if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_BACK)
                     backCameras.add(cameraLensData);
-                }
-                if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_FRONT) {
+                else if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_FRONT)
                     frontCameras.add(cameraLensData);
-                }
             });
             backCameras.sort(SORT_BY_ZOOM_FACTOR);
             frontCameras.sort(SORT_BY_ZOOM_FACTOR);
