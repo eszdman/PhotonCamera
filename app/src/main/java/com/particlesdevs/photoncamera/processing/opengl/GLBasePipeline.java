@@ -61,7 +61,7 @@ public class GLBasePipeline implements AutoCloseable {
                 outputStream.close();*/
             }
             properties.load(new FileInputStream(init));
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e("PostPipeline","Error at loading properties");
             e.printStackTrace();
         }

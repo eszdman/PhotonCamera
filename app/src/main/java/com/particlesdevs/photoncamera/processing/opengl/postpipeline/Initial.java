@@ -22,8 +22,9 @@ import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static com.particlesdevs.photoncamera.util.Math2.mix;
 
-public class Initial extends Node {
+    public class Initial extends Node {
     public Initial() {
         super(0, "Initial");
     }
@@ -57,6 +58,8 @@ public class Initial extends Node {
     int curvePointsCount = 6;
     float[] intenseCurveX;
     float[] intenseCurveY;
+    float[] intenseHardCurveX;
+    float[] intenseHardCurveY;
     @Override
     public void Run() {
         gammaKoefficientGenerator =getTuning("GammaKoefficientGenerator", gammaKoefficientGenerator);
@@ -73,15 +76,26 @@ public class Initial extends Node {
         curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
         intenseCurveX = new float[curvePointsCount];
         intenseCurveY = new float[curvePointsCount];
+
+        intenseHardCurveX = new float[curvePointsCount];
+        intenseHardCurveY = new float[curvePointsCount];
         for(int i = 0; i<curvePointsCount;i++){
             float line = i/((float)(curvePointsCount-1.f));
             intenseCurveX[i] = line;
             intenseCurveY[i] = 1.0f;
+
+            intenseHardCurveX[i] = line;
+            intenseHardCurveY[i] = 1.0f;
         }
         intenseCurveX[curvePointsCount-2] = 0.99f;
         intenseCurveY[curvePointsCount-2] = 1.f;
 
         intenseCurveY[curvePointsCount-1] = 0.f;
+
+        intenseHardCurveX[curvePointsCount-2] = 0.99f;
+        intenseHardCurveY[curvePointsCount-2] = 1.f;
+
+        intenseHardCurveY[curvePointsCount-1] = 0.f;
 
         if(curvePointsCount == 6){
             intenseCurveX[0] = 0.0f;
@@ -97,22 +111,45 @@ public class Initial extends Node {
             intenseCurveY[3] = 0.85f;
             intenseCurveY[4] = 0.8f;
             intenseCurveY[5] = 0.0f;
+
+            intenseHardCurveX[0] = 0.0f;
+            intenseHardCurveX[1] = 0.3f;
+            intenseHardCurveX[2] = 0.65f;
+            intenseHardCurveX[3] = 0.75f;
+            intenseHardCurveX[4] = 0.95f;
+            intenseHardCurveX[5] = 1.0f;
+
+            intenseHardCurveY[0] = 4.25f;
+            intenseHardCurveY[1] = 3.5f;
+            intenseHardCurveY[2] = 3.3f;
+            intenseHardCurveY[3] = 0.85f;
+            intenseHardCurveY[4] = 0.8f;
+            intenseHardCurveY[5] = 0.0f;
         }
 
         intenseCurveX = getTuning("FusionIntenseCurveX", intenseCurveX);
         intenseCurveY = getTuning("FusionIntenseCurveY", intenseCurveY);
+        intenseHardCurveX = getTuning("FusionIntenseHardCurveX", intenseHardCurveX);
+        intenseHardCurveY = getTuning("FusionIntenseHardCurveY", intenseHardCurveY);
         ArrayList<Float> curveX = new ArrayList<>();
         ArrayList<Float> curveY = new ArrayList<>();
+        ArrayList<Float> curveHardX = new ArrayList<>();
+        ArrayList<Float> curveHardY = new ArrayList<>();
         for(int i =0; i<curvePointsCount;i++){
             curveX.add(intenseCurveX[i]);
             curveY.add(intenseCurveY[i]);
+            curveHardX.add(intenseHardCurveX[i]);
+            curveHardY.add(intenseHardCurveY[i]);
         }
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
+        SplineInterpolator splineInterpolatorHard = SplineInterpolator.createMonotoneCubicSpline(curveHardX,curveHardY);
         float[] interpolatedCurveArr = new float[1024];
+        float softLight = ((PostPipeline)(basePipeline)).softLight;
         for(int i =0 ;i<interpolatedCurveArr.length;i++){
             float line = i/ (interpolatedCurveArr.length-1.f);
-            interpolatedCurveArr[i] = splineInterpolator.interpolate(line);
+            interpolatedCurveArr[i] = mix(splineInterpolatorHard.interpolate(line),splineInterpolator.interpolate(line),softLight);
         }
+
         interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
                 new GLFormat(GLFormat.DataType.FLOAT_16), FloatBuffer.wrap(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
 

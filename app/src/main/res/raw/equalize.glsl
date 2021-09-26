@@ -166,8 +166,7 @@ vec3 tonemap(vec3 rgb) {
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
-
-    sRGB = clamp(sRGB,0.0,1.0);
+    vec3 BlVec = vec3(BL2);
     float br = dot(sRGB.rgb, vec3(0.299, 0.587, 0.114));
 
     //sRGB=sRGB/br;
@@ -184,10 +183,10 @@ void main() {
     sRGB.b = texture(Histogram, vec2(1.0/8192.0 + sRGB.b*(1.0-1.0/256.0), 0.5f)).r;
     sRGB = mix(sRGB,vec3(sRGB.r+sRGB.g+sRGB.b)/3.0,DESAT);*/
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
-    vec3 BlVec = vec3(BL2);
-    vec3 BLluv = rgbToHsluv(BlVec);
+
+    //vec3 BLluv = rgbToHsluv(BlVec);
     sRGB = rgbToHsluv(sRGB);
-    sRGB.z = clamp(sRGB.z-BLluv.z,0.0,100.0);
+    //sRGB.z = clamp(sRGB.z-BLluv.z,0.0,100.0);
     br = sRGB.z/100.0;
     float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
     float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);

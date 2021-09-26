@@ -10,6 +10,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.GLUtils;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
+import com.particlesdevs.photoncamera.util.Math2;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
 
 import java.nio.FloatBuffer;
@@ -132,6 +133,9 @@ public class ExposureFusionBayer2 extends Node {
     float targetLuma = 0.5f;
     float downScalePerLevel = 1.9f;
     float dehazing = 0.5f;
+
+    float softLevel = 0.1f;
+    float hardLevel = 0.0f;
     int curvePointsCount = 5;
     float[] toneCurveX;
     float[] toneCurveY;
@@ -157,6 +161,8 @@ public class ExposureFusionBayer2 extends Node {
         dehazing =                 getTuning("Dehazing",dehazing);
         downScalePerLevel =        getTuning("DownScalePerLevel",downScalePerLevel);
         curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
+        softLevel = getTuning("HardLevel", softLevel);
+        hardLevel = getTuning("SoftLevel", hardLevel);
         toneCurveX = new float[curvePointsCount];
         toneCurveY = new float[curvePointsCount];
         for(int i = 0; i<curvePointsCount;i++){
@@ -220,16 +226,21 @@ public class ExposureFusionBayer2 extends Node {
         GLTexture downscaled = glUtils.interpolate(exposureBase,1.0/4.0);
         getHistogram(downscaled);
         downscaled.close();
-        float overexposure = autoExposureHigh()*overExposeMpy;
-        float underexposure = autoExposureLow()*underExposeMpy;
+        float overexposure = autoExposureHigh();
+        float underexposure = autoExposureLow();
+        ((PostPipeline)basePipeline).softLight = Math2.smoothstep(hardLevel, softLevel,((1.f/overexposure)+underexposure)/2.f);
+        Log.d(Name,"SoftLightk:"+((PostPipeline)basePipeline).softLight);
+
+        overexposure*=overExposeMpy;
+        underexposure*=underExposeMpy;
         overexposure = Math.min(1024.f,overexposure);
         underexposure = Math.max(1.f/1024.f,underexposure);
-
         if(useSymmetricExposureFork){
             float mpy = overexposure*underexposure;
             overexposure/=mpy;
             underexposure/=mpy;
         }
+
         ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
         //overexposure = Math.min(10.f,overexposure);
         //underexposure = Math.max(underexposure,0.0008f);

@@ -17,4 +17,18 @@ public class Math2 {
     public static float pdf(float x,float sigma){
         return (float) (0.39894* java.lang.Math.exp(-0.5*x*x/(sigma*sigma))/sigma);
     }
+    public static float smoothstep(float edge0, float edge1, float x) {
+        // Scale, bias and saturate x to 0..1 range
+        x = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+        // Evaluate polynomial
+        return x * x * (3 - 2 * x);
+    }
+
+    public static float clamp(float x, float lowerlimit, float upperlimit) {
+        if (x < lowerlimit)
+            x = lowerlimit;
+        if (x > upperlimit)
+            x = upperlimit;
+        return x;
+    }
 }

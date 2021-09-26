@@ -33,6 +33,7 @@ public class PostPipeline extends GLBasePipeline {
     float regenerationSense = 1.f;
     float AecCorr = 1.f;
     float fusionGain = 1.f;
+    float softLight = 1.f;
     public int getRotation() {
         int rotation = mParameters.cameraRotation;
         String TAG = "ParseExif";
@@ -89,6 +90,12 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
+
+        BuildDefaultPipeline();
+
+        return runAll();
+    }
+    private void BuildDefaultPipeline(){
         add(new Bayer2Float());
 
         add(new ExposureFusionBayer2());
@@ -110,9 +117,6 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
-
-        //add(new DynamicBL());
-        //add(new GlobalToneMapping(0,"GlobalTonemap"));
         if(PhotonCamera.getSettings().hdrxNR) {
             add(new Median(new Point(1,1),3,"MedianColor",R.raw.mediancolor));
             add(new Median(new Point(1,1),3,"MedianColor",R.raw.mediancolor));
@@ -131,10 +135,10 @@ public class PostPipeline extends GLBasePipeline {
 
         add(new CorrectingFlow());
 
+        //add(new ChromaticFlow());
+
         add(new Sharpen2());
 
-        //add(new Sharpen(R.raw.sharpeningbilateral));
         add(new RotateWatermark(getRotation()));
-        return runAll();
     }
 }
