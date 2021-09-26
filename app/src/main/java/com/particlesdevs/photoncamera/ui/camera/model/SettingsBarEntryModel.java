@@ -97,9 +97,8 @@ public class SettingsBarEntryModel {
 
     public void select(SettingsBarButtonModel buttonModel) {
         if (settingsBarButtonModels != null) {
-            for (SettingsBarButtonModel model : settingsBarButtonModels) {
+            for (SettingsBarButtonModel model : settingsBarButtonModels)
                 model.setSelected(model.getId() == buttonModel.getId());
-            }
             setStateTextStringId(buttonModel.getButtonStateNameStringId());
         }
         if (settingsBarListener != null) {

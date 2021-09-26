@@ -78,11 +78,10 @@ public class AuxButtonsLayout extends LinearLayout {
     }
 
     private void refresh(String cameraId) {
-        if (!isFront(cameraId)) {
+        if (!isFront(cameraId))
             this.setAuxButtons(auxButtonsModel.getBackCameras(), cameraId);
-        } else {
+        else
             this.setAuxButtons(auxButtonsModel.getFrontCameras(), cameraId);
-        }
     }
 
     private boolean isFront(String cameraId) {
@@ -102,9 +101,8 @@ public class AuxButtonsLayout extends LinearLayout {
         for (int i = 0; i < getChildCount(); i++) {
             View button = getChildAt(i);
             button.setOnClickListener(auxButtonListener);
-            if (activeId.equals(auxButtonsMap.get(button.getId()))) {
+            if (activeId.equals(auxButtonsMap.get(button.getId())))
                 button.setSelected(true);
-            }
         }
     }
 
@@ -117,9 +115,8 @@ public class AuxButtonsLayout extends LinearLayout {
             View child = getChildAt(i);
             child.setSelected(view.equals(child));
         }
-        if (auxButtonListener != null) {
+        if (auxButtonListener != null)
             auxButtonListener.onAuxButtonClicked(auxButtonsMap.get(view.getId()));
-        }
     }
 
     private void addNewButton(String cameraId, String buttonText) {

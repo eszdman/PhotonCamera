@@ -29,18 +29,14 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.core.content.ContextCompat;
-
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import static android.view.Gravity.CENTER_VERTICAL;
-import static android.view.Gravity.END;
 
 public class SettingsBarEntryView extends LinearLayout {
     private final TextView titleTextView;

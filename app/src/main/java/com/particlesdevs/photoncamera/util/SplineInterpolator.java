@@ -15,6 +15,8 @@
  */
 package com.particlesdevs.photoncamera.util;
 
+import androidx.annotation.NonNull;
+
 import java.util.List;
 
 /**
@@ -52,10 +54,9 @@ public class SplineInterpolator {
 	 *             if the X or Y arrays are null, have different lengths or have fewer than 2 values.
 	 */
 	public static SplineInterpolator createMonotoneCubicSpline(List<Float> x, List<Float> y) {
-		if (x == null || y == null || x.size() != y.size() || x.size() < 2) {
+		if (x == null || y == null || x.size() != y.size() || x.size() < 2)
 			throw new IllegalArgumentException("There must be at least two control "
 					+ "points and the arrays must be of equal length.");
-		}
 
 		final int n = x.size();
 		float[] d = new float[n - 1]; // could optimize this out
@@ -64,18 +65,16 @@ public class SplineInterpolator {
 		// Compute slopes of secant lines between successive points.
 		for (int i = 0; i < n - 1; i++) {
 			float h = x.get(i + 1) - x.get(i);
-			if (h <= 0f) {
+			if (h <= 0f)
 				throw new IllegalArgumentException("The control points must all "
 						+ "have strictly increasing X values.");
-			}
 			d[i] = (y.get(i + 1) - y.get(i)) / h;
 		}
 
 		// Initialize the tangents as the average of the secants.
 		m[0] = d[0];
-		for (int i = 1; i < n - 1; i++) {
+		for (int i = 1; i < n - 1; i++)
 			m[i] = (d[i - 1] + d[i]) * 0.5f;
-		}
 		m[n - 1] = d[n - 2];
 
 		// Update the tangents to preserve monotonicity.
@@ -107,24 +106,19 @@ public class SplineInterpolator {
 	public float interpolate(float x) {
 		// Handle the boundary cases.
 		final int n = mX.size();
-		if (Float.isNaN(x)) {
+		if (Float.isNaN(x))
 			return x;
-		}
-		if (x <= mX.get(0)) {
+		if (x <= mX.get(0))
 			return mY.get(0);
-		}
-		if (x >= mX.get(n - 1)) {
+		if (x >= mX.get(n - 1))
 			return mY.get(n - 1);
-		}
 
 		// Find the index 'i' of the last point with smaller X.
 		// We know this will be within the spline due to the boundary tests.
 		int i = 0;
-		while (x >= mX.get(i + 1)) {
-			i += 1;
-			if (x == mX.get(i)) {
+		for (; x >= mX.get(i + 1); i++) {
+			if (x == mX.get(i))
 				return mY.get(i);
-			}
 		}
 
 		// Perform cubic Hermite spline interpolation.
@@ -135,15 +129,15 @@ public class SplineInterpolator {
 	}
 
 	// For debugging.
+	@NonNull
 	@Override
 	public String toString() {
 		StringBuilder str = new StringBuilder();
 		final int n = mX.size();
 		str.append("[");
 		for (int i = 0; i < n; i++) {
-			if (i != 0) {
+			if (i != 0)
 				str.append(", ");
-			}
 			str.append("(").append(mX.get(i));
 			str.append(", ").append(mY.get(i));
 			str.append(": ").append(mM[i]).append(")");

@@ -14,17 +14,15 @@ public enum Rotation {
     }
 
     public static Rotation fromDeviceOrientation(int orientation) {
-        while (orientation < 0) {
+        while (orientation < 0)
             orientation += 360;
-        }
-        int orientation2 = orientation % 360;
-        if (orientation2 >= 45 && orientation2 < 135) {
+        if (orientation >= 45 && orientation < 135) {
             return LANDSCAPE;
         }
-        if (orientation2 >= 135 && orientation2 < 225) {
+        if (orientation >= 135 && orientation < 225) {
             return INVERSE_PORTRAIT;
         }
-        if (orientation2 < 225 || orientation2 >= 315) {
+        if (orientation < 225 || orientation >= 315) {
             return PORTRAIT;
         }
         return INVERSE_LANDSCAPE;

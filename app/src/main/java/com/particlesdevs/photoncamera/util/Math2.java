@@ -9,11 +9,9 @@ public class Math2 {
     }
     public static int MirrorCoords(int i, int max){
         if(i < 0) return -i;
-        else {
-            if(i>max-1){
+        else
+            if(i>max-1)
                 return max*2-i-1;
-            }
-        }
         return i;
     }
     public static float pdf(float x,float sigma){

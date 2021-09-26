@@ -8,7 +8,7 @@ import java.util.Set;
 import java.lang.Math;
 public class RANSAC
 {
-    private static Random random = new Random();
+    private static final Random random = new Random();
 
     // RANDPERM(N,K) returns a vector of K unique values. This is sometimes
     // referred to as a K-permutation of 1:N or as sampling without replacement.
@@ -34,9 +34,7 @@ public class RANSAC
         {
             double dist = distance.get(i);
             if (Math.abs(dist) <= threshDist)
-            {
                 res.add(i);
-            }
         }
         return res;
     }
@@ -46,9 +44,7 @@ public class RANSAC
         int number = data_Y.size();
         List<Integer> data_X = new ArrayList<>();
         for (int i = 0; i < number; i++)
-        {
             data_X.add(i + 1);
-        }
 
         double bestInNum = 0;
         double bestParameter1 = 0, bestParameter2 = 0;

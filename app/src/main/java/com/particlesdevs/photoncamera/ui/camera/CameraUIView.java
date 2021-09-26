@@ -2,12 +2,7 @@ package com.particlesdevs.photoncamera.ui.camera;
 
 import android.view.View;
 
-import androidx.core.util.Pair;
-
 import com.particlesdevs.photoncamera.api.CameraMode;
-
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Interface defining the functionality required to be implemented by the Camera User Interface

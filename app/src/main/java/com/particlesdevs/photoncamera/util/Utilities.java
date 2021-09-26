@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
-import static java.lang.Math.floor;
 import static java.lang.Math.min;
+//import static java.lang.Math.max;
 
 public class Utilities {
     private static final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
@@ -30,8 +30,8 @@ public class Utilities {
         Paint pointPaint = new Paint();
         pointPaint.setAntiAlias(true);
         pointPaint.setStyle(Paint.Style.FILL);
-        for(int i =0; i<inputKernels.length;i++){
-            for(int j =0; j<inputKernels[i].length;j++){
+        for(int i =0; i<inputKernels.length;i++)
+            for(int j =0; j<inputKernels[i].length;j++)
                 for(int k =0; k<inputKernels[i][j].length;k++){
                     int x = k%kernelSize.x;
                     int y = k/kernelSize.x;
@@ -40,15 +40,12 @@ public class Utilities {
                     //canvas.drawPoint(i*kernelSize.x + kernelSize.x/2.f + x,j*kernelSize.y + kernelSize.y/2.f +y,pointPaint);
                     canvas.drawCircle(i*kernelSize.x + x,j*kernelSize.y + y,5.f,pointPaint);
                 }
-            }
-        }
         pointPaint.setARGB(100, 255, 255, 0);
-        for(int i =1; i<kernelCount.x;i++) {
+        for(int i =1; i<kernelCount.x;i++)
             canvas.drawLine(i*kernelSize.x,0,i*kernelSize.x+2,kernelSize.y*kernelCount.y,pointPaint);
-        }
-        for(int i =1; i<kernelCount.y;i++) {
+        for(int i =1; i<kernelCount.y;i++)
             canvas.drawLine(0,i*kernelSize.y,kernelSize.x*kernelCount.x,i*kernelSize.y+2,pointPaint);
-        }
+
         return output;
     }
     public static void drawPoints(Point[] inputPoints, float pointSize,Bitmap io){
@@ -57,9 +54,8 @@ public class Utilities {
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.FILL);
         wallPaint.setARGB(255, 0, 255, 0);
-        for(Point p : inputPoints){
+        for(Point p : inputPoints)
             canvas.drawCircle(p.x,p.y,pointSize,wallPaint);
-        }
     }
     public static void saveBitmap(Bitmap in, String name){
         File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + name + ".png");
@@ -72,7 +68,7 @@ public class Utilities {
         }
         in.compress(Bitmap.CompressFormat.PNG, 100, fOut);
     }
-    public static void drawBL(float rgb[], Bitmap io){
+    public static void drawBL(float[] rgb, Bitmap io){
         float max = 0.f;
         int width = io.getWidth();
         int height = io.getHeight();
@@ -83,9 +79,9 @@ public class Utilities {
         wallPaint.setARGB(255, (int)(rgb[0]*255.f), (int)(rgb[1]*255.f), (int)(rgb[2]*255.f));
         canvas.drawRect(width*0.50f, height, width*0.50f+32.f, height-32, wallPaint);
     }
-    public static void drawWB(float rgb[], Bitmap io){
-        float max = java.lang.Math.max(java.lang.Math.max(rgb[0],rgb[1]),rgb[2]);
-        max = 1.f;
+    public static void drawWB(float[] rgb, Bitmap io){
+        float max = 1f;//max(max(rgb[0],rgb[1]),rgb[2]);
+        //max = 1.f;
         int width = io.getWidth();
         int height = io.getHeight();
         Canvas canvas = new Canvas(io);
@@ -97,9 +93,9 @@ public class Utilities {
     }
     public static void drawArray(float[] input, Bitmap output){
         float max = 0.f;
-        for(float ccur : input){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : input)
+            if(ccur > max)
+                max = ccur;
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -126,9 +122,8 @@ public class Utilities {
     }
     public static void drawArray(int[] input, Bitmap output){
         float max = 0.f;
-        for(float ccur : input){
+        for(float ccur : input)
             if(ccur > max) max = ccur;
-        }
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -159,9 +154,9 @@ public class Utilities {
         Canvas canvas = new Canvas(output);
 
         float max = 0.f;
-        for(float ccur : r){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : r)
+            if(ccur > max)
+                max = ccur;
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
@@ -184,9 +179,9 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
         max = 0.f;
-        for(float ccur : g){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : g)
+            if(ccur > max)
+                max = ccur;
         xInterval = ((float) width / ((float) g.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 255, 0);
@@ -200,9 +195,9 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
         max = 0.f;
-        for(float ccur : b){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : b)
+            if(ccur > max)
+                max = ccur;
         xInterval = ((float) width / ((float) b.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 0, 255);
@@ -214,7 +209,6 @@ public class Utilities {
         }
         wallPath.lineTo(b.length * xInterval, height);
         canvas.drawPath(wallPath, wallPaint);
-
     }
 
     public static float linearRegressionK(float[] input){
@@ -253,15 +247,15 @@ public class Utilities {
         Canvas canvas = new Canvas(output);
 
         float max = 0.f;
-        for(float ccur : r){
-            if(ccur > max) max = ccur;
-        }
-        for(float ccur : g){
-            if(ccur > max) max = ccur;
-        }
-        for(float ccur : b){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : r)
+            if(ccur > max)
+                max = ccur;
+        for(float ccur : g)
+            if(ccur > max)
+                max = ccur;
+        for(float ccur : b)
+            if(ccur > max)
+                max = ccur;
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
@@ -284,9 +278,9 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
         max = 0.f;
-        for(float ccur : g){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : g)
+            if(ccur > max)
+                max = ccur;
         xInterval = ((float) width / ((float) g.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 255, 0);
@@ -300,9 +294,9 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
 
         max = 0.f;
-        for(float ccur : b){
-            if(ccur > max) max = ccur;
-        }
+        for(float ccur : b)
+            if(ccur > max)
+                max = ccur;
         xInterval = ((float) width / ((float) b.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 0, 255);
@@ -326,9 +320,8 @@ public class Utilities {
             mY.add(in[xi]);
         }
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,mY);
-        for(int i =0; i<output.length;i++){
+        for(int i =0; i<output.length;i++)
             output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
-        }
         return output;
     }
     public static float luminocity(float[] in){
@@ -346,7 +339,7 @@ public class Utilities {
             vec[1] -= min;
             vec[2] -= min;
         }*/
-        float br2 = luminocity(vec);
+        //float br2 = luminocity(vec);
         return vec;
     }
     public static Point div(Point in, int divider){
@@ -362,16 +355,15 @@ public class Utilities {
     public static String formatExposureTime(final double value) {
         String output;
 
-        if (value < 1.0f) {
+        if (value < 1.0f)
             output = String.format(Locale.getDefault(), "%d/%d", 1, (int) (0.5f + 1 / value));
-        } else {
+        else {
             final int integer = (int) value;
             final double time = value - integer;
             output = String.format(Locale.getDefault(), "%d''", integer);
 
-            if (time > 0.0001f) {
+            if (time > 0.0001f)
                 output += String.format(Locale.getDefault(), " %d/%d", 1, (int) (0.5f + 1 / time));
-            }
         }
 
         return output;
