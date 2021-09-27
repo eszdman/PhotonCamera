@@ -122,7 +122,6 @@ public class Parameters {
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
     }
-
     public void FillDynamicParameters(CaptureResult result) {
         sensorSpecifics = PhotonCamera.getSpecificSensor().selectedSensorSpecifics;
         noiseModeler = new NoiseModeler( result.get(CaptureResult.SENSOR_NOISE_PROFILE),analogIso,result.get(CaptureResult.SENSOR_SENSITIVITY),cfaPattern,sensorSpecifics);

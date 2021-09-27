@@ -144,6 +144,7 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "unlucky map:" + image.frameGyro.shakiness + "n:" + image.number);
         }
         unluckyavr /= images.size();
+
         if (images.size() >= 4) {
             int size = (int) (images.size() - FrameNumberSelector.throwCount);
             Log.d(TAG, "Throw Count:" + size);
@@ -176,10 +177,28 @@ public class HdrxProcessor extends ProcessorBase {
                 }
             }
         }
+        processingParameters.noiseModeler.computeStackingNoiseModel(1);
+        float NoiseS = processingParameters.noiseModeler.computeModel[0].first.floatValue()+
+                processingParameters.noiseModeler.computeModel[1].first.floatValue()+
+                processingParameters.noiseModeler.computeModel[2].first.floatValue();
+        float NoiseO = processingParameters.noiseModeler.computeModel[0].second.floatValue()+
+                processingParameters.noiseModeler.computeModel[1].second.floatValue()+
+                processingParameters.noiseModeler.computeModel[2].second.floatValue();
+        NoiseS/=3.f;
+        NoiseO/=3.f;
+        double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.6);
+        int cnt = (int)((NoiseS + NoiseO)*1.5f/(0.001f));
+        cnt = Math.max(cnt,3);
+        cnt = Math.min(cnt,images.size());
+        processingParameters.noiseModeler.computeStackingNoiseModel(cnt);
+        Log.d(TAG,"Desired Frame count:"+cnt);
+        NoiseS = (float) Math.max(NoiseS*noisempy, Float.MIN_NORMAL);
+        NoiseO = (float) Math.max(NoiseO*noisempy*65535, Float.MIN_NORMAL);
         FrameNumberSelector.frameCount = images.size();
         if (!debugAlignment) {
-            Wrapper.init(width, height, images.size());
-            for (int i = 0; i < images.size(); i++) {
+            Wrapper.init(width, height, cnt);
+
+            for (int i = 0; i < cnt; i++) {
                 float mpy = minMpy / images.get(i).pair.layerMpy;
                 //if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
                 //    mpy = 1.f;
@@ -205,12 +224,7 @@ public class HdrxProcessor extends ProcessorBase {
             interpolateGainMap.Run();
             interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
-            float NoiseS = processingParameters.noiseModeler.computeModel[0].first.floatValue()+
-                    processingParameters.noiseModeler.computeModel[1].first.floatValue()+
-                    processingParameters.noiseModeler.computeModel[2].first.floatValue();
-            float NoiseO = processingParameters.noiseModeler.computeModel[0].second.floatValue()+
-                    processingParameters.noiseModeler.computeModel[1].second.floatValue()+
-                    processingParameters.noiseModeler.computeModel[2].second.floatValue();
+
             /*float noiseLevel = (processingParameters.noiseModeler.computeModel[0].first.floatValue()+
                     processingParameters.noiseModeler.computeModel[1].first.floatValue()+
                     processingParameters.noiseModeler.computeModel[2].first.floatValue())*0.7f;
@@ -220,11 +234,6 @@ public class HdrxProcessor extends ProcessorBase {
             noiseLevel*=Math.pow(2.0,19.0+PhotonCamera.getSettings().noiseRstr);
             noiseLevel = Math.max(1.f,noiseLevel);
             Log.d(TAG, "Denoising level:" + noiseLevel);*/
-            NoiseS/=3.f;
-            NoiseO/=3.f;
-            double noisempy = Math.pow(2.0,PhotonCamera.getSettings().noiseRstr+10.6);
-            NoiseS = (float) Math.max(NoiseS*noisempy, Float.MIN_NORMAL);
-            NoiseO = (float) Math.max(NoiseO*noisempy*65535, Float.MIN_NORMAL);
             output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
             Wrapper.outputBuffer(output);
 
