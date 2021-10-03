@@ -422,9 +422,10 @@ void main() {
     //if(tonemapGain > 0.0){
     //    tonemapGain = 1.0/tonemapGain;
     //} else tonemapGain = -tonemapGain;
-    float mixG = (sRGB.g-minImg)/(maxImg-minImg+0.001);
-    tonemapGain = mix(maxG,minG,mixG);
-    tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(maxImg,0.0)).r);
+    float mixG = (sRGB.g-minImg)/(maxImg-minImg);
+    mixG = clamp(mixG,0.0,1.0);
+    tonemapGain = mix(maxG,minG,0.5);
+    tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
