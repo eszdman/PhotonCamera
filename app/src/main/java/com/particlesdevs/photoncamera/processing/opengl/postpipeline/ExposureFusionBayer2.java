@@ -217,7 +217,7 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main3.mSize.y = WorkSize.y;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         float perlevel = downScalePerLevel;
-        int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel))-2;
+        int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel));
         if(levelcount <= 0) levelcount = 2;
         Log.d(Name,"levelCount:"+levelcount);
 
