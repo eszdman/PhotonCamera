@@ -134,8 +134,8 @@ public class ExposureFusionBayer2 extends Node {
     float downScalePerLevel = 1.9f;
     float dehazing = 0.5f;
 
-    float softLevel = 0.1f;
-    float hardLevel = 0.0f;
+    float softUpperLevel = 0.1f;
+    float softLoverLevel = 0.0f;
     int curvePointsCount = 5;
     float[] toneCurveX;
     float[] toneCurveY;
@@ -161,8 +161,8 @@ public class ExposureFusionBayer2 extends Node {
         dehazing =                 getTuning("Dehazing",dehazing);
         downScalePerLevel =        getTuning("DownScalePerLevel",downScalePerLevel);
         curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
-        softLevel = getTuning("HardLevel", softLevel);
-        hardLevel = getTuning("SoftLevel", hardLevel);
+        softUpperLevel = getTuning("HardLevel", softUpperLevel);
+        softLoverLevel = getTuning("SoftLevel", softLoverLevel);
         toneCurveX = new float[curvePointsCount];
         toneCurveY = new float[curvePointsCount];
         for(int i = 0; i<curvePointsCount;i++){
@@ -228,7 +228,7 @@ public class ExposureFusionBayer2 extends Node {
         downscaled.close();
         float overexposure = autoExposureHigh();
         float underexposure = autoExposureLow();
-        ((PostPipeline)basePipeline).softLight = Math2.smoothstep(hardLevel, softLevel,((1.f/overexposure)+underexposure)/2.f);
+        ((PostPipeline)basePipeline).softLight = Math2.smoothstep(softLoverLevel, softUpperLevel,((1.f/overexposure)+underexposure)/2.f);
         Log.d(Name,"SoftLightk:"+((PostPipeline)basePipeline).softLight);
 
         overexposure*=overExposeMpy;
