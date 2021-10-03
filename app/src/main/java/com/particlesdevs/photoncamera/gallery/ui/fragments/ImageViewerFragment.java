@@ -207,6 +207,7 @@ public class ImageViewerFragment extends Fragment {
                                     String.valueOf(thisFile)
                             },
                             null, null);
+                    FileManager.ScanRemovedFile(thisFile);
                     initImageAdapter();
                     //auto scroll to the next photo
                     viewPager.setCurrentItem(position, true);

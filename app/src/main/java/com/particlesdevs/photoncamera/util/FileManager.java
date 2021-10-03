@@ -32,6 +32,28 @@ public class FileManager {
         Log.d(TAG, "CreatedFolder : " + sPHOTON_TUNING_DIR + '=' + sPHOTON_TUNING_DIR.mkdirs());
     }
 
+    public static void ScanRemovedFile(File f){
+        long fileTime = f.lastModified();
+        int ind = -1;
+        int left = 0, right = tempImageFiles.size() - 1;
+
+        while (left <= right)
+        {
+            int mid = left + (right - left) / 2;
+            // Check if x is present at mid
+            if (tempImageFiles.get(mid).lastModified() == fileTime)
+                ind = mid;
+
+            // If x greater, ignore left half
+            if (tempImageFiles.get(mid).lastModified()  < fileTime)
+                left = mid + 1;
+                // If x is smaller, ignore right half
+            else
+                right = mid - 1;
+        }
+        if(ind == -1) return;
+        tempImageFiles.remove(ind);
+    }
     @NonNull
     public static List<File> getAllImageFiles() {
         File[] dcimFiles = FileManager.sDCIM_CAMERA.listFiles(FILENAME_FILTER);
@@ -40,6 +62,7 @@ public class FileManager {
         filesList.addAll(Arrays.asList(dcimFiles != null ? dcimFiles : new File[0]));
         filesList.addAll(Arrays.asList(photonRawFiles != null ? photonRawFiles : new File[0]));
         if(tempImageFiles != null && tempImageFiles.size() > 2) {
+            //On added Images
             if (tempImageFiles.size() < filesList.size()) {
                 List<File> fileDiff = new ArrayList<>();
                 long lastDate = tempImageFiles.get(0).lastModified();
@@ -49,9 +72,7 @@ public class FileManager {
                 fileDiff.sort((file1, file2) -> Long.compare(file2.lastModified(), file1.lastModified()));
                 fileDiff.addAll(tempImageFiles);
                 tempImageFiles = fileDiff;
-            } else
-                if (filesList.size() < tempImageFiles.size())
-                    tempImageFiles.remove(0);
+            }
             return tempImageFiles;
         }
         if (!filesList.isEmpty()) {

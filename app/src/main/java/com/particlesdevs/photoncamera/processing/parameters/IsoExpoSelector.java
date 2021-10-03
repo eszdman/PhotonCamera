@@ -66,7 +66,7 @@ public class IsoExpoSelector {
                     mpy = 1.5;
                 }
             }*/
-            mpy1 = 2500.0;
+            mpy1 = 3000.0;
         }
         if (pair.exposure < ExposureIndex.sec / 40 && pair.normalizedIso() > 90.0/mpy1) {
             pair.ReduceIso();
@@ -149,7 +149,7 @@ public class IsoExpoSelector {
     }
 
     public static double getMPY() {
-        return 50.0 / getISOLOW();
+        return 100.0 / getISOLOW();
     }
 
     private static int mpyIso(int in) {

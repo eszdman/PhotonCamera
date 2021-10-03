@@ -1352,7 +1352,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
-            if (!(focus == 0.0 && Build.DEVICE.toLowerCase().equals("samsung"))) {
+            if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung"))) {
                 captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             }

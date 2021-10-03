@@ -110,6 +110,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
                             Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
                         }
                         MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);
+                        FileManager.ScanRemovedFile(file);
                     });
                     onImageSelectionStopped();
                     allFiles = FileManager.getAllImageFiles();

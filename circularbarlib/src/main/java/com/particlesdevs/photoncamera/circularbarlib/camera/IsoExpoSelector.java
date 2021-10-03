@@ -13,7 +13,7 @@ public class IsoExpoSelector {
     private static double mpy1 = 1.0;
 
     public static double getMPY(CameraCharacteristics cameraCharacteristics) {
-        return 50.0 / getISOLOW(cameraCharacteristics);
+        return 100.0 / getISOLOW(cameraCharacteristics);
     }
 
     private static int mpyIso(int in, CameraCharacteristics cameraCharacteristics) {
