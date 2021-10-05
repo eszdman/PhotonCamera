@@ -1,2 +1,9 @@
 xiaomi:dipper
 oneplus:guacamole
+oneplus:guacamoleb
+oneplus:hotdog
+oneplus:hotdogb
+oneplus:oneplus7
+oneplus:oneplus7t
+oneplus:oneplus7tpro
+oneplus:oneplus7pro
