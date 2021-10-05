@@ -7,6 +7,14 @@ xiaomi:dipper
 xiaomi:apollo
 xiaomi:laurel_sprout
 xiaomi:laurus
+oneplus:oneplus7
+oneplus:oneplus7t
+oneplus:oneplus7tpro
+oneplus:oneplus7pro
+oneplus:hotdog
+oneplus:hotdogb
+oneplus:guacamole
+oneplus:guacamoleb
 poco:vayu
 redmi:galahad
 realme:rmx1931l1
