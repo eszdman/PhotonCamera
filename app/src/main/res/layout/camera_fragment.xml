@@ -61,17 +61,45 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toTopOf="@+id/layout_bottombar"
-                    app:layout_constraintVertical_bias="0.0"></include>
+                    app:layout_constraintVertical_bias="0.0" />
+
+            <com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout
+                    android:id="@+id/aux_buttons_container"
+                    android:orientation="vertical"
+                    android:background="@drawable/aux_container_background"
+                    tools:layout_height="100dp"
+                    tools:layout_width="50dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/aux_container_margin"
+                    app:layout_constraintBottom_toTopOf="@+id/manual_mode"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="1.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="0.97"
+                    setAuxButtonModel="@{auxmodel}"
+                    setActiveId="@{auxmodel.currentCameraId}"
+                    bindViewGroupChildrenRotate="@{uimodel}"
+                    android:layout_marginBottom="6dp" />
+            <!--    Block 1.4-->
+            <!--   includes the Layout resource of Manual Mode palette-->
+
+            <!--    Block 1.5-->
+            <!--Arrow-->
 
             <include
-                    android:id="@+id/layout_bottombar"
-                    layout="@layout/layout_main_bottombar"
+                    android:id="@+id/manual_mode"
+                    layout="@layout/manual_palette"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintBottom_toTopOf="@+id/layout_bottombar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintHorizontal_bias="0.0"></include>
+                    tools:visibility="visible"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintVertical_bias="1.0"
+                     />
 
             <ImageView
                     android:id="@+id/open_close_manual"
@@ -85,41 +113,15 @@
                     app:layout_constraintStart_toStartOf="parent"
                     android:layout_marginBottom="8dp" />
 
-            <com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout
-                    android:id="@+id/aux_buttons_container"
-                    android:orientation="vertical"
-                    android:background="@drawable/aux_container_background"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="@dimen/aux_container_margin"
-                    app:layout_constraintBottom_toTopOf="@+id/manual_mode"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="1.0"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="1.0"
-                    setAuxButtonModel="@{auxmodel}"
-                    setActiveId="@{auxmodel.currentCameraId}"
-                    bindViewGroupChildrenRotate="@{uimodel}"
-                    android:layout_marginBottom="6dp"></com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout>
-            <!--    Block 1.4-->
-            <!--   includes the Layout resource of Manual Mode palette-->
-
-            <!--    Block 1.5-->
-            <!--Arrow-->
-
             <include
-                    android:id="@+id/manual_mode"
-                    layout="@layout/manual_palette"
+                    android:id="@+id/layout_bottombar"
+                    layout="@layout/layout_main_bottombar"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    app:layout_constraintBottom_toTopOf="@+id/open_close_manual"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    tools:visibility="visible"
-                    app:layout_constraintTop_toBottomOf="@+id/layout_viewfinder"
-                    app:layout_constraintHorizontal_bias="0.0"
-                    app:layout_constraintVertical_bias="1.0" />
+                    app:layout_constraintHorizontal_bias="0.0" />
 
             <com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout
                     android:layout_width="match_parent"
@@ -127,6 +129,7 @@
                     android:layout_marginEnd="16dp"
                     android:layout_marginStart="16dp"
                     android:layout_height="0dp"
+                    android:elevation="@dimen/standard_20"
                     app:layout_constraintHeight_max="300dp"
                     app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
                     app:layout_constraintTop_toTopOf="parent"

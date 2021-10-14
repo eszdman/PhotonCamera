@@ -856,6 +856,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
                     break;
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
@@ -863,6 +864,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
                     break;
                 case PHOTO:
                 default:
@@ -874,6 +876,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
                     break;
                 case NIGHT:
                     this.topbar.setEisVisible(false);
@@ -883,6 +886,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
                     break;
             }
             toggleConstraints(mode);

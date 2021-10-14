@@ -16,6 +16,7 @@
         <com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
+                tools:visibility="gone"
                 android:layout_height="128dp" />
     </FrameLayout>
 
@@ -26,6 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/knobViewContainer"
         android:background="@color/panel_transparency"
+        android:paddingBottom="8dp"
         android:orientation="horizontal">
 
         <TextView

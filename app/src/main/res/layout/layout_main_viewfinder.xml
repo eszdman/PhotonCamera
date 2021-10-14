@@ -14,19 +14,16 @@
                 type="com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel"/>
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:animateLayoutChanges="true">
         <!--    Layout that contains viewfinder texture view-->
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/texture_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
                 android:paddingTop="@dimen/viewfinder_top_padding">
 
         <!--Viewfinder TextureView-->   <!--Aspect ratio of viewfinder = 3:4 -->
@@ -67,9 +64,7 @@
                     app:layout_constraintStart_toStartOf="@id/texture"
                     app:layout_constraintTop_toTopOf="@id/texture"
                     android:background="#00000000"
-                    tools:visibility="gone"
-                    >
-            </com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder>
+                    tools:visibility="visible" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!--Capture Progress circle-->
@@ -83,10 +78,7 @@
                 android:indeterminate="false"
                 android:max="100"
                 android:progressDrawable="@drawable/circular_progress_bar"
-                app:layout_constraintBottom_toBottomOf="@id/texture_container"
-                app:layout_constraintEnd_toEndOf="@id/texture_container"
-                app:layout_constraintStart_toStartOf="@id/texture_container"
-                app:layout_constraintTop_toTopOf="@id/texture_container"
+                android:layout_gravity="center"
                 />
 
         <TextView
@@ -100,10 +92,6 @@
                 android:textSize="36sp"
                 android:typeface="normal"
                 android:visibility="visible"
-                app:layout_constraintBottom_toBottomOf="@+id/texture_container"
-                app:layout_constraintEnd_toEndOf="@+id/texture_container"
-                app:layout_constraintStart_toStartOf="@+id/texture_container"
-                app:layout_constraintTop_toTopOf="@+id/texture_container"
-                />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+                android:layout_gravity="center" />
+    </FrameLayout>
 </layout>

@@ -13,6 +13,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/layout_bottombar"
             android:orientation="vertical">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -36,7 +37,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.0"
-                    android:layout_marginTop="16dp"></include>
+                    android:layout_marginTop="16dp" />
 
             <include
                     android:id="@+id/bottom_buttons"
@@ -48,7 +49,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintBottom_toTopOf="@+id/mode_switcher"
                     app:layout_constraintHorizontal_bias="0.0"
-                    android:layout_marginTop="16dp"></include>
+                    android:layout_marginTop="16dp" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
