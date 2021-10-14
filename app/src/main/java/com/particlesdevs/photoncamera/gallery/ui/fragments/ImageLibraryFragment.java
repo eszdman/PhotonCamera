@@ -1,37 +1,37 @@
 package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.content.Intent;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
-import com.particlesdevs.photoncamera.util.FileManager;
-import com.google.android.material.snackbar.Snackbar;
+import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
+import com.particlesdevs.photoncamera.gallery.helper.Constants;
+import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
+
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE1_KEY;
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE2_KEY;
 
 public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.ImageSelectionListener {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
@@ -40,7 +40,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
     private ImageGridAdapter imageGridAdapter;
     private RecyclerView recyclerView;
     private boolean isFABOpen;
-    private List<File> allFiles;
+    private List<ImageFile> allFiles;
+    private GalleryViewModel viewModel;
 
 
     @Nullable
@@ -54,19 +55,26 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        viewModel = new ViewModelProvider(requireActivity()).get(GalleryViewModel.class);
         recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemViewCacheSize(10); //trial
-        initImageAdapter();
+        observeAllMediaFiles();
         initListeners();
     }
 
-    private void initImageAdapter() {
-        allFiles = FileManager.getAllImageFiles();
-        imageGridAdapter = new ImageGridAdapter(allFiles);
-        imageGridAdapter.setHasStableIds(true);
-        imageGridAdapter.setImageSelectionListener(this);
-        recyclerView.setAdapter(imageGridAdapter);
+    private void observeAllMediaFiles() {
+        viewModel.getAllImageFilesData().observe(getViewLifecycleOwner(), this::initImageAdapter);
+    }
+
+    private void initImageAdapter(List<ImageFile> imageFiles) {
+        if (imageFiles != null) {
+            allFiles = imageFiles;
+            imageGridAdapter = new ImageGridAdapter(allFiles);
+            imageGridAdapter.setHasStableIds(true);
+            imageGridAdapter.setImageSelectionListener(this);
+            recyclerView.setAdapter(imageGridAdapter);
+        }
     }
 
     private void initListeners() {
@@ -81,45 +89,29 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
     }
 
     private void onCompareFabClicked(View view) {
-        List<File> list = imageGridAdapter.getSelectedFiles();
+        List<ImageFile> list = imageGridAdapter.getSelectedFiles();
         if (list.size() == 2) {
             NavController navController = Navigation.findNavController(view);
             Bundle b = new Bundle(2);
             int image1pos = allFiles.indexOf(list.get(0));
             int image2pos = allFiles.indexOf(list.get(1));
-            b.putInt(IMAGE1_KEY, image1pos);
-            b.putInt(IMAGE2_KEY, image2pos);
+            b.putInt(Constants.IMAGE1_KEY, image1pos);
+            b.putInt(Constants.IMAGE2_KEY, image2pos);
             navController.navigate(R.id.action_imageLibraryFragment_to_imageCompareFragment, b);
         }
     }
 
     private void onDeleteFabClicked(View view) {
-        List<File> filesToDelete = imageGridAdapter.getSelectedFiles();
+        List<ImageFile> filesToDelete = imageGridAdapter.getSelectedFiles();
         String numOfFiles = String.valueOf(filesToDelete.size());
-        String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(File::length).sum());
+        String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(ImageFile::getSize).sum());
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder
                 .setMessage(getContext().getString(R.string.sure_delete_multiple, numOfFiles, totalFileSize))
                 .setTitle(android.R.string.dialog_alert_title)
                 .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
-                .setPositiveButton(R.string.yes, (dialog, which) -> {
-                    filesToDelete.forEach(file -> {
-                        boolean result = file.delete();
-                        if (!result){
-                            Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
-                        }
-                        MediaScannerConnection.scanFile(getContext(), new String[]{String.valueOf(file)}, null, null);
-                        FileManager.ScanRemovedFile(file);
-                    });
-                    onImageSelectionStopped();
-                    allFiles = FileManager.getAllImageFiles();
-                    imageGridAdapter.setImageList(allFiles);
-                    recyclerView.requestLayout();
-                    Snackbar.make(view,
-                            getString(R.string.multiple_deleted_success, numOfFiles, totalFileSize),
-                            Snackbar.LENGTH_SHORT).show();
-                })
+                .setPositiveButton(R.string.yes, (dialog, which) -> GalleryFileOperations.deleteImageFiles(getActivity(), filesToDelete, this::handleImagesDeletedCallback))
                 .create()
                 .show();
     }
@@ -127,8 +119,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
     private void onShareFabClicked(View view) {
         ArrayList<Uri> imageUris = new ArrayList<>();
         imageGridAdapter.getSelectedFiles()
-                .forEach(file -> imageUris.add(FileProvider.getUriForFile(getContext(),
-                        getContext().getPackageName() + ".provider", file)));
+                .forEach(file -> imageUris.add(file.getFileUri()));
         Intent shareIntent = new Intent();
         shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
         shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris);
@@ -185,5 +176,27 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.I
         super.onDestroy();
         getParentFragmentManager().beginTransaction().remove(ImageLibraryFragment.this).commitAllowingStateLoss();
         fragmentGalleryImageLibraryBinding = null;
+    }
+
+    public void handleImagesDeletedCallback(boolean isDeleted) {
+        if (isDeleted) {
+            List<ImageFile> filesToDelete = imageGridAdapter.getSelectedFiles();
+
+            String numOfFiles = String.valueOf(filesToDelete.size());
+            String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(ImageFile::getSize).sum());
+            allFiles.removeAll(filesToDelete);
+            imageGridAdapter.setImageList(allFiles);
+            imageGridAdapter.notifyItemRangeChanged(0, imageGridAdapter.getItemCount());
+
+            onImageSelectionStopped();
+
+            Snackbar.make(getView(),
+                    getString(R.string.multiple_deleted_success, numOfFiles, totalFileSize),
+                    Snackbar.LENGTH_SHORT).show();
+        } else {
+            Snackbar.make(getView(),
+                    "Deletion Failed!",
+                    Snackbar.LENGTH_SHORT).show();
+        }
     }
 }

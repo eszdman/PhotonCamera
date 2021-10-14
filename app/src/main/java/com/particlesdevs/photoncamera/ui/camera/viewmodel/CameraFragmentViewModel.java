@@ -2,24 +2,20 @@ package com.particlesdevs.photoncamera.ui.camera.viewmodel;
 
 import android.app.Application;
 import android.graphics.Bitmap;
-import android.net.Uri;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Process;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
-import com.particlesdevs.photoncamera.util.FileManager;
-
-import java.io.File;
-import java.util.List;
-
-import rapid.decoder.BitmapDecoder;
-import rapid.decoder.Quality;
 
 /**
  * Class get used to update the Models binded to the ui
@@ -32,15 +28,12 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     private final CameraFragmentModel cameraFragmentModel;
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
-    private HandlerThread thumbnailThread;
 
 
     public CameraFragmentViewModel(@NonNull Application application) {
         super(application);
         cameraFragmentModel = new CameraFragmentModel();
         initOrientationEventListener();
-        thumbnailThread = new HandlerThread("ThumbnailUpdater", Process.THREAD_PRIORITY_BACKGROUND);
-        thumbnailThread.start();
     }
 
     public CameraFragmentModel getCameraFragmentModel() {
@@ -90,20 +83,23 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     }
 
     public void updateGalleryThumb() {
-        if (thumbnailThread != null && thumbnailThread.isAlive()) {
-            new Handler(thumbnailThread.getLooper()).post(() -> {
-                List<File> allFiles = FileManager.getAllImageFiles();
-                if (allFiles.isEmpty())
-                    return;
-                File lastImage = allFiles.get(0);
-                if (lastImage != null) {
-                    Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
-                            .quality(Quality.LOWEST_OPAQUE)
-                            .scaleBy(0.1f)
-                            .decode();
-                    cameraFragmentModel.setBitmap(bitmap);
-                }
-            });
+        ImageFile lastImage = GalleryFileOperations.fetchLatestImage(getApplication().getContentResolver());
+        if (lastImage != null) {
+            Glide.with(getApplication())
+                    .asBitmap()
+                    .load(lastImage.getFileUri())
+                    .override(200)
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            cameraFragmentModel.setBitmap(resource);
+                        }
+
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                        }
+                    });
         }
     }
 
@@ -117,8 +113,6 @@ public class CameraFragmentViewModel extends AndroidViewModel {
 
     @Override
     protected void onCleared() {
-        thumbnailThread.quitSafely();
-        thumbnailThread = null;
         super.onCleared();
     }
 }

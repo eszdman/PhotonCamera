@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.gallery.viewmodel;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
+import android.content.ContentResolver;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -21,14 +22,15 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.api.ParseExif;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.model.ExifDialogModel;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -56,10 +58,12 @@ public class ExifDialogViewModel extends AndroidViewModel {
      *
      * @param imageFile the image imageFile whose exif data is to be read
      */
-    public void updateModel(File imageFile) {
+    public void updateModel(ContentResolver contentResolver, ImageFile imageFile) {
         ExifInterface exifInterface;
+        InputStream inputStream;
         try {
-            exifInterface = new ExifInterface(imageFile);
+            inputStream = contentResolver.openInputStream(imageFile.getFileUri());
+            exifInterface = new ExifInterface(inputStream);
         } catch (IOException e) {
             e.printStackTrace();
             return;
@@ -85,7 +89,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
         String disp_focal = Rational.parseRational(attr_focal == null ? "NaN" : attr_focal).doubleValue() + "mm";
         String disp_iso = "ISO" + attr_iso;
 
-        exifDialogModel.setTitle(imageFile.getAbsolutePath());
+        exifDialogModel.setTitle(imageFile.getDisplayName());
         exifDialogModel.setRes(attr_length + "x" + attr_width);
         exifDialogModel.setDevice(attr_make + " " + attr_model);
         exifDialogModel.setDate(getDateText(attr_date));
@@ -93,35 +97,40 @@ public class ExifDialogViewModel extends AndroidViewModel {
         exifDialogModel.setIso(disp_iso);
         exifDialogModel.setFnum(disp_fnum);
         exifDialogModel.setFocal(disp_focal);
-        exifDialogModel.setFile_size((FileUtils.byteCountToDisplaySize((int) imageFile.length())));
+        exifDialogModel.setFile_size((FileUtils.byteCountToDisplaySize((int) imageFile.getSize())));
         exifDialogModel.setRes_mp(resolution_mp);
         exifDialogModel.setMiniText(
-                imageFile.getName() + "\n" +
+                imageFile.getDisplayName() + "\n" +
                         disp_exp + " | " +
                         disp_iso + " | " +
                         disp_fnum + " | " +
                         disp_focal + " | " +
                         resolution_mp);
         exifDialogModel.notifyChange(); //important
+        try {
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * Updates the {@link Histogram.HistogramModel} view which is associated with ExifDialogModel
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
-    public void updateHistogramView(File imageFile) {
+    public void updateHistogramView(ImageFile imageFile) {
         if (histoRunnable != null) {
             histoHandler.removeCallbacks(histoRunnable);
         }
         histoHandler.post(histoRunnable = () ->
                 Glide.with(getApplication())
-                .asBitmap()
-                .load(imageFile)
-                .apply(new RequestOptions()
-                        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                        .signature(new ObjectKey("hist" + imageFile.getName() + imageFile.lastModified()))
-                        .override(800) //800*800
-                        .fitCenter())
+                        .asBitmap()
+                        .load(imageFile.getFileUri())
+                        .apply(new RequestOptions()
+                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                                .signature(new ObjectKey("hist" + imageFile.getDisplayName() + imageFile.getLastModified()))
+                                .override(800) //800*800
+                                .fitCenter())
                 .into(new CustomTarget<Bitmap>() {
                     @Override
                     public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {

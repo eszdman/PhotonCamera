@@ -3,7 +3,6 @@ package com.particlesdevs.photoncamera.gallery.adapters;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,22 +19,22 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.util.List;
 
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
+import static com.particlesdevs.photoncamera.gallery.helper.Constants.DOUBLE_TAP_ZOOM_DURATION_MS;
 
 
 public class ImageAdapter extends PagerAdapter {
     private static final int BASE_ID = View.generateViewId();
-    private final List<File> imageFiles;
+    private final List<ImageFile> imageFiles;
     private ImageViewClickListener imageViewClickListener;
     private SSIVListener ssivListener;
 
-    public ImageAdapter(List<File> imageFiles) {
+    public ImageAdapter(List<ImageFile> imageFiles) {
         this.imageFiles = imageFiles;
     }
 
@@ -57,8 +56,8 @@ public class ImageAdapter extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        File file = imageFiles.get(position);
-        String fileExt = FileUtils.getExtension(file.getName());
+        ImageFile file = imageFiles.get(position);
+        String fileExt = FileUtils.getExtension(file.getDisplayName());
 
         CustomSSIV scaleImageView = new CustomSSIV(container.getContext());
         scaleImageView.setId(getSsivId(position));
@@ -70,12 +69,12 @@ public class ImageAdapter extends PagerAdapter {
             scaleImageView.setTouchCallBack(ssivListener);
         }
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
-            scaleImageView.setImage(ImageSource.uri(Uri.fromFile(file)));
+            scaleImageView.setImage(ImageSource.uri(file.getFileUri()));
         } else if (fileExt.equalsIgnoreCase("dng")) { //For DNG Files
             Glide.with(container.getContext())
                     .asBitmap()
-                    .load(file)
-                    .apply(RequestOptions.signatureOf(new ObjectKey(file.getName() + file.lastModified())))
+                    .load(file.getFileUri())
+                    .apply(RequestOptions.signatureOf(new ObjectKey(file.getDisplayName() + file.getLastModified())))
                     .into(new CustomViewTarget<SubsamplingScaleImageView, Bitmap>(scaleImageView) {
                         @Override
                         public void onResourceReady(@NonNull Bitmap bitmap, Transition<? super Bitmap> transition) {

@@ -17,10 +17,10 @@ import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,21 +33,21 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     private static final int SELECTION_ANIMATION_DURATION = 100;
     private static final float SELECTION_SCALE_DOWN_FACTOR = 0.8f;
-    private final ArrayList<File> selectedFiles = new ArrayList<>();
+    private final ArrayList<ImageFile> selectedFiles = new ArrayList<>();
     private final ArrayList<GridItemViewHolder> selectedViewHolders = new ArrayList<>();
-    private List<File> imageList;
+    private List<ImageFile> imageList;
     private boolean selectionStarted;
     private ImageSelectionListener imageSelectionListener;
 
-    public ImageGridAdapter(List<File> imageList) {
+    public ImageGridAdapter(List<ImageFile> imageList) {
         this.imageList = imageList;
     }
 
-    public void setImageList(List<File> imageList) {
+    public void setImageList(List<ImageFile> imageList) {
         this.imageList = imageList;
     }
 
-    public ArrayList<File> getSelectedFiles() {
+    public ArrayList<ImageFile> getSelectedFiles() {
         return selectedFiles;
     }
 
@@ -65,16 +65,16 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     @Override
     public void onBindViewHolder(@NonNull GridItemViewHolder holder, int position) {
-        final File file = imageList.get(position);
-        setTagText(holder, file.getName());
+        final ImageFile imageFile = imageList.get(position);
+        setTagText(holder, imageFile.getDisplayName());
         checkSelectable(holder);
         Glide
                 .with(holder.itemView.getContext())
                 .asBitmap()
-                .load(file)
+                .load(imageFile.getFileUri())
                 .apply(new RequestOptions()
                         .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                        .signature(new ObjectKey(file.getName() + file.lastModified()))
+                        .signature(new ObjectKey(imageFile.getDisplayName() + imageFile.getLastModified()))
                         .override(200, 200)
                         .centerCrop()
                 )
@@ -82,10 +82,10 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
         holder.thumbnailSquareImageViewBinding.setClicklistener(view -> {
             if (selectionStarted) {
-                if (selectedFiles.contains(file)) {
-                    deselectFile(holder, file);
+                if (selectedFiles.contains(imageFile)) {
+                    deselectFile(holder, imageFile);
                 } else {
-                    selectFile(holder, file);
+                    selectFile(holder, imageFile);
                 }
             } else {
                 Bundle b = new Bundle();
@@ -97,10 +97,10 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         });
 
         holder.thumbnailSquareImageViewBinding.squareImageCardView.setOnLongClickListener(v -> {
-            if (selectedFiles.contains(file)) {
-                deselectFile(holder, file);
+            if (selectedFiles.contains(imageFile)) {
+                deselectFile(holder, imageFile);
             } else {
-                selectFile(holder, file);
+                selectFile(holder, imageFile);
             }
             Toast.makeText(v.getContext(), R.string.long_press_to_deselect, Toast.LENGTH_SHORT).show();
             return true;
@@ -120,8 +120,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         holder.thumbnailSquareImageViewBinding.selectionCircle.setVisibility(selectionStarted ? ViewGroup.VISIBLE : ViewGroup.GONE);
     }
 
-    private void selectFile(GridItemViewHolder holder, File file) {
-        selectedFiles.add(file);
+    private void selectFile(GridItemViewHolder holder, ImageFile imageFile) {
+        selectedFiles.add(imageFile);
         selectedViewHolders.add(holder);
         selectionStarted = true;
         holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(true);
@@ -134,8 +134,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         notifyDataSetChanged();
     }
 
-    private void deselectFile(GridItemViewHolder holder, File file) {
-        selectedFiles.remove(file);
+    private void deselectFile(GridItemViewHolder holder, ImageFile imageFile) {
+        selectedFiles.remove(imageFile);
         selectedViewHolders.remove(holder);
         holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(false);
         ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
