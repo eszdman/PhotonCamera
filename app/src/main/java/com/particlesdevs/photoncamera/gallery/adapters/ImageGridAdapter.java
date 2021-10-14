@@ -1,30 +1,24 @@
 package com.particlesdevs.photoncamera.gallery.adapters;
 
-import android.os.Bundle;
+import android.content.res.Resources;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewbinding.ViewBinding;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.RequestOptions;
-import com.bumptech.glide.signature.ObjectKey;
-import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
-import com.particlesdevs.photoncamera.gallery.files.ImageFile;
-
-import org.apache.commons.io.FileUtils;
+import com.particlesdevs.photoncamera.gallery.helper.Constants;
+import com.particlesdevs.photoncamera.gallery.interfaces.GalleryItemClickedListener;
+import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
+import com.particlesdevs.photoncamera.gallery.model.SelectionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
 
 /**
  * Created by Vibhor Srivastava on 03-Dec-2020
@@ -33,26 +27,27 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     private static final int SELECTION_ANIMATION_DURATION = 100;
     private static final float SELECTION_SCALE_DOWN_FACTOR = 0.8f;
-    private final ArrayList<ImageFile> selectedFiles = new ArrayList<>();
-    private final ArrayList<GridItemViewHolder> selectedViewHolders = new ArrayList<>();
-    private List<ImageFile> imageList;
-    private boolean selectionStarted;
-    private ImageSelectionListener imageSelectionListener;
+    private final ArrayList<View> selectedViews = new ArrayList<>();
+    private final SelectionHelper<GalleryItem> selectionHelper = new SelectionHelper<>();
+    private final int itemType;
+    private List<GalleryItem> galleryItemList;
+    private GridAdapterCallback gridAdapterCallback;
 
-    public ImageGridAdapter(List<ImageFile> imageList) {
-        this.imageList = imageList;
+    public ImageGridAdapter(List<GalleryItem> galleryItemList, int itemType) {
+        this.galleryItemList = galleryItemList;
+        this.itemType = itemType;
     }
 
-    public void setImageList(List<ImageFile> imageList) {
-        this.imageList = imageList;
+    public void setGalleryItemList(List<GalleryItem> galleryItemList) {
+        this.galleryItemList = galleryItemList;
     }
 
-    public ArrayList<ImageFile> getSelectedFiles() {
-        return selectedFiles;
+    public ArrayList<GalleryItem> getSelectedItems() {
+        return selectionHelper.getSelectedItems();
     }
 
-    public void setImageSelectionListener(ImageSelectionListener imageSelectionListener) {
-        this.imageSelectionListener = imageSelectionListener;
+    public void setGridAdapterCallback(GridAdapterCallback gridAdapterCallback) {
+        this.gridAdapterCallback = gridAdapterCallback;
     }
 
     @NonNull
@@ -60,114 +55,92 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     public GridItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
         ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding = ThumbnailSquareImageViewBinding.inflate(layoutInflater, parent, false);
+        if (itemType == Constants.GALLERY_ITEM_TYPE_LINEAR) {
+            FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(dpToPx(70), dpToPx(70));
+            layoutParams.setMargins(dpToPx(2), dpToPx(4), dpToPx(2), dpToPx(4));
+            thumbnailSquareImageViewBinding.getRoot().setLayoutParams(layoutParams);
+        }
         return new GridItemViewHolder(thumbnailSquareImageViewBinding);
+    }
+
+    private int dpToPx(int dp) {
+        DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
     @Override
     public void onBindViewHolder(@NonNull GridItemViewHolder holder, int position) {
-        final ImageFile imageFile = imageList.get(position);
-        setTagText(holder, imageFile.getDisplayName());
-        checkSelectable(holder);
-        Glide
-                .with(holder.itemView.getContext())
-                .asBitmap()
-                .load(imageFile.getFileUri())
-                .apply(new RequestOptions()
-                        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                        .signature(new ObjectKey(imageFile.getDisplayName() + imageFile.getLastModified()))
-                        .override(200, 200)
-                        .centerCrop()
-                )
-                .into(holder.thumbnailSquareImageViewBinding.squareImageView);
-
-        holder.thumbnailSquareImageViewBinding.setClicklistener(view -> {
-            if (selectionStarted) {
-                if (selectedFiles.contains(imageFile)) {
-                    deselectFile(holder, imageFile);
-                } else {
-                    selectFile(holder, imageFile);
+        final GalleryItem galleryItem = galleryItemList.get(position);
+        if (holder.binding instanceof ThumbnailSquareImageViewBinding) {
+            ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding = (ThumbnailSquareImageViewBinding) holder.binding;
+            thumbnailSquareImageViewBinding.selectionCircle.setVisibility(selectionHelper.isSelectionStarted() ? View.VISIBLE : View.GONE);
+            thumbnailSquareImageViewBinding.setGalleryitem(galleryItem);
+            thumbnailSquareImageViewBinding.setGalleryitemclickedlistener(new GalleryItemClickedListener() {
+                @Override
+                public void onItemClicked(View view, GalleryItem galleryItem) {
+                    if (selectionHelper.isSelectionStarted() && itemType == Constants.GALLERY_ITEM_TYPE_GRID) {
+                        if (selectionHelper.toggleSelection(galleryItem)) {
+                            selectView(view);
+                        } else {
+                            deselectView(view);
+                        }
+                    } else {
+                        gridAdapterCallback.onItemClicked(holder.getAbsoluteAdapterPosition(), view, galleryItem);
+                    }
                 }
-            } else {
-                Bundle b = new Bundle();
-                b.putInt(IMAGE_POSITION_KEY, position);
-                NavController navController = Navigation.findNavController(view);
-                navController.navigate(R.id.action_imageLibraryFragment_to_imageViewerFragment, b);
-//            navController.setGraph(navController.getGraph(), b);
-            }
-        });
 
-        holder.thumbnailSquareImageViewBinding.squareImageCardView.setOnLongClickListener(v -> {
-            if (selectedFiles.contains(imageFile)) {
-                deselectFile(holder, imageFile);
-            } else {
-                selectFile(holder, imageFile);
-            }
-            Toast.makeText(v.getContext(), R.string.long_press_to_deselect, Toast.LENGTH_SHORT).show();
-            return true;
-        });
-
-    }
-
-    private void setTagText(GridItemViewHolder holder, String fileName) {
-        if (FileUtils.getExtension(fileName).equalsIgnoreCase("dng")) {
-            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("RAW");
-        } else {
-            holder.thumbnailSquareImageViewBinding.thumbTagText.setText("");
+                @Override
+                public boolean onItemLongClicked(View view, GalleryItem galleryItem) {
+                    if (itemType == Constants.GALLERY_ITEM_TYPE_GRID) {
+                        if (selectionHelper.toggleSelection(galleryItem)) {
+                            selectView(view);
+                        } else {
+                            deselectView(view);
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            });
         }
     }
 
-    private void checkSelectable(GridItemViewHolder holder) {
-        holder.thumbnailSquareImageViewBinding.selectionCircle.setVisibility(selectionStarted ? ViewGroup.VISIBLE : ViewGroup.GONE);
-    }
-
-    private void selectFile(GridItemViewHolder holder, ImageFile imageFile) {
-        selectedFiles.add(imageFile);
-        selectedViewHolders.add(holder);
-        selectionStarted = true;
-        holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(true);
-        ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
-        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(SELECTION_SCALE_DOWN_FACTOR);
-        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(SELECTION_SCALE_DOWN_FACTOR);
-        if (imageSelectionListener != null) {
-            imageSelectionListener.onImageSelectionChanged(selectedFiles.size());
+    private void selectView(View view) {
+        selectedViews.add(view);
+        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(SELECTION_SCALE_DOWN_FACTOR).scaleY(SELECTION_SCALE_DOWN_FACTOR);
+        if (gridAdapterCallback != null) {
+            gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
         }
         notifyDataSetChanged();
     }
 
-    private void deselectFile(GridItemViewHolder holder, ImageFile imageFile) {
-        selectedFiles.remove(imageFile);
-        selectedViewHolders.remove(holder);
-        holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(false);
-        ImageView imageView = holder.thumbnailSquareImageViewBinding.squareImageView;
-        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f);
-        imageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(1f);
-        if (imageSelectionListener != null) {
-            imageSelectionListener.onImageSelectionChanged(selectedFiles.size());
-        }
-        if (selectedFiles.isEmpty()) {
-            selectionStarted = false;
-            if (imageSelectionListener != null) {
-                imageSelectionListener.onImageSelectionStopped();
+    private void deselectView(View view) {
+        selectedViews.remove(view);
+        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f).scaleY(1f);
+        if (selectionHelper.isEmpty()) {
+            if (gridAdapterCallback != null) {
+                gridAdapterCallback.onImageSelectionStopped();
             }
-            notifyDataSetChanged();
+        } else {
+            if (gridAdapterCallback != null) {
+                gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
+            }
         }
+        notifyDataSetChanged();
     }
 
     public void deselectAll() {
-        selectedFiles.clear();
-        for (GridItemViewHolder holder : selectedViewHolders) {
-            holder.thumbnailSquareImageViewBinding.squareImageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f);
-            holder.thumbnailSquareImageViewBinding.squareImageView.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleY(1f);
-            holder.thumbnailSquareImageViewBinding.selectionCircle.setSelected(false);
+        selectionHelper.deselectAll();
+        for (View view : selectedViews) {
+            view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f).scaleY(1f);
         }
-        selectedViewHolders.clear();
-        selectionStarted = false;
+        selectedViews.clear();
         notifyDataSetChanged();
     }
 
     @Override
     public int getItemCount() {
-        return imageList != null ? imageList.size() : 0;
+        return galleryItemList != null ? galleryItemList.size() : 0;
     }
 
     @Override
@@ -180,18 +153,20 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         return position;
     }
 
-    public interface ImageSelectionListener {
+    public interface GridAdapterCallback {
+        void onItemClicked(int position, View view, GalleryItem galleryItem);
+
         void onImageSelectionChanged(int numOfSelectedFiles);
 
         void onImageSelectionStopped();
     }
 
     public static class GridItemViewHolder extends RecyclerView.ViewHolder {
-        private final ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding;
+        private final ViewBinding binding;
 
-        public GridItemViewHolder(ThumbnailSquareImageViewBinding squareImageViewBinding) {
-            super(squareImageViewBinding.getRoot());
-            this.thumbnailSquareImageViewBinding = squareImageViewBinding;
+        public GridItemViewHolder(ViewBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
         }
     }
 }

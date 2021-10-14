@@ -2,12 +2,14 @@ package com.particlesdevs.photoncamera.gallery.files;
 
 import android.net.Uri;
 
+import androidx.annotation.NonNull;
+
 import java.util.Objects;
 
 /**
  * Created by Vibhor Srivastava on October 13, 2021
  */
-public final class ImageFile {
+public final class ImageFile extends MediaFile {
     private final long id;
     private final Uri fileUri;
     private final String displayName;
@@ -22,26 +24,32 @@ public final class ImageFile {
         this.size = size;
     }
 
+    @Override
     public long getId() {
         return id;
     }
 
+    @Override
     public Uri getFileUri() {
         return fileUri;
     }
 
+    @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public long getLastModified() {
         return lastModified;
     }
 
+    @Override
     public long getSize() {
         return size;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "ImageFile{" +

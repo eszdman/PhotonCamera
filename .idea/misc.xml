@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/drawable/aux_button_background.xml" value="0.20888157894736842" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/drawable/ic_thumbnail_selected_radio.xml" value="0.20625" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout-land/fragment_gallery_image_viewer.xml" value="0.1" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/camera_fragment.xml" value="0.19924529018924966" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/fragment_gallery_image_viewer.xml" value="0.14490566559218157" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/gallery_viewer_bottom_buttons.xml" value="0.18113208199022698" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/gallery_viewer_top_buttons.xml" value="0.1986842105263158" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/item_mini_gallery.xml" value="0.1986842105263158" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/layout_bottombuttons.xml" value="0.13831967213114754" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/layout_main_bottombar.xml" value="0.18271857923497267" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/layout_main_viewfinder.xml" value="0.20405405405405405" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/layout_modeswitcher.xml" value="0.13934426229508196" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/thumbnail_square_image_view.xml" value="0.1986842105263158" />
+        <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/circularbarlib/src/main/res/layout/manual_palette.xml" value="0.13831967213114754" />
+      </map>
+    </option>
+  </component>
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK" />
 </project>

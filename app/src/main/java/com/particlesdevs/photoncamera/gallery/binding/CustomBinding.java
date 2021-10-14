@@ -7,6 +7,11 @@ import android.widget.ImageView;
 
 import androidx.databinding.BindingAdapter;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.signature.ObjectKey;
+import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
 public class CustomBinding {
@@ -48,5 +53,22 @@ public class CustomBinding {
             }
         });
         view.startAnimation(anim_out);
+    }
+
+    @BindingAdapter("loadImage")
+    public static void loadImage(ImageView imageView, GalleryItem galleryItem) {
+        if (galleryItem != null) {
+            Glide
+                    .with(imageView)
+                    .asBitmap()
+                    .load(galleryItem.getFile().getFileUri())
+                    .apply(new RequestOptions()
+                            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                            .signature(new ObjectKey(galleryItem.getFile().getDisplayName() + galleryItem.getFile().getLastModified()))
+                            .override(200, 200)
+                            .centerCrop()
+                    )
+                    .into(imageView);
+        }
     }
 }

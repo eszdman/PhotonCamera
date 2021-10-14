@@ -8,22 +8,23 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
-import com.particlesdevs.photoncamera.gallery.files.ImageFile;
+import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GalleryViewModel extends AndroidViewModel {
-    private final MutableLiveData<List<ImageFile>> allImageFiles = new MutableLiveData<>();
+    private final MutableLiveData<List<GalleryItem>> allImageFiles = new MutableLiveData<>();
 
     public GalleryViewModel(@NonNull Application application) {
         super(application);
     }
 
     public void fetchAllImages() {
-        allImageFiles.setValue(GalleryFileOperations.fetchAllImageFiles(getApplication().getContentResolver()));
+        allImageFiles.setValue(GalleryFileOperations.fetchAllImageFiles(getApplication().getContentResolver()).stream().map(GalleryItem::new).collect(Collectors.toList()));
     }
 
-    public LiveData<List<ImageFile>> getAllImageFilesData() {
+    public LiveData<List<GalleryItem>> getAllImageFilesData() {
         return allImageFiles;
     }
 }

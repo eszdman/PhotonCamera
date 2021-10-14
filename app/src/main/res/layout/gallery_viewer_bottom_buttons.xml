@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools">
 
     <data>
 
         <variable
                 name="on_share"
-                type="android.view.View.OnClickListener"/>
+                type="android.view.View.OnClickListener" />
 
         <variable
                 name="on_exif"
-                type="android.view.View.OnClickListener"/>
+                type="android.view.View.OnClickListener" />
 
         <variable
                 name="on_delete"
@@ -21,128 +22,142 @@
                 type="android.view.View.OnClickListener"/>
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/bottom_controls_container"
+    <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:background="@drawable/gradient_shadow_vector_bottom"
-            >
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/gradient_shadow_vector_bottom">
 
-        <FrameLayout
-                android:id="@+id/delete"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
-                app:layout_constraintHeight_max="90dp"
-                app:layout_constraintDimensionRatio="1:1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/exif"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="1"
-                android:onClick="@{on_delete}"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                >
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/bottom_controls_container"
+                android:layout_width="match_parent"
+                android:layout_gravity="top"
+                android:layout_height="120dp">
 
-            <Button
-                    android:layout_width="@dimen/gallery_viewer_button_size"
-                    android:layout_height="@dimen/gallery_viewer_button_size"
-                    android:layout_gravity="center"
+            <FrameLayout
+                    android:id="@+id/delete"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                    app:layout_constraintHeight_max="90dp"
+                    app:layout_constraintDimensionRatio="1:1"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/exif"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="1"
+                    android:onClick="@{on_delete}"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless">
+
+                <Button
+                        android:layout_width="@dimen/gallery_viewer_button_size"
+                        android:layout_height="@dimen/gallery_viewer_button_size"
+                        android:layout_gravity="center"
+                        android:text=""
+                        android:clickable="false"
+                        android:background="@drawable/ic_delete"
+                        app:backgroundTint="@android:color/white" />
+            </FrameLayout>
+
+
+            <FrameLayout
+                    android:id="@+id/exif"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                    app:layout_constraintHeight_max="90dp"
+                    app:layout_constraintDimensionRatio="1:1"
                     android:text=""
-                    android:clickable="false"
-                    android:background="@drawable/ic_delete"
-                    app:backgroundTint="@android:color/white"
-                    />
-        </FrameLayout>
+                    app:layout_constraintStart_toEndOf="@id/edit"
+                    app:layout_constraintEnd_toStartOf="@id/delete"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="1"
+                    android:onClick="@{on_exif}"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless">
 
+                <Button
+                        android:layout_width="@dimen/gallery_viewer_button_size"
+                        android:layout_height="@dimen/gallery_viewer_button_size"
+                        android:layout_gravity="center"
+                        android:text=""
+                        android:clickable="false"
+                        android:background="@drawable/ic_info"
+                        app:backgroundTint="@android:color/white" />
+            </FrameLayout>
 
-        <FrameLayout
-                android:id="@+id/exif"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
-                app:layout_constraintHeight_max="90dp"
-                app:layout_constraintDimensionRatio="1:1"
-                android:text=""
-                app:layout_constraintStart_toEndOf="@id/edit"
-                app:layout_constraintEnd_toStartOf="@id/delete"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="1"
-                android:onClick="@{on_exif}"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                >
-
-            <Button
-                    android:layout_width="@dimen/gallery_viewer_button_size"
-                    android:layout_height="@dimen/gallery_viewer_button_size"
-                    android:layout_gravity="center"
+            <FrameLayout
+                    android:id="@+id/edit"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                    app:layout_constraintHeight_max="90dp"
+                    app:layout_constraintDimensionRatio="1:1"
                     android:text=""
-                    android:clickable="false"
-                    android:background="@drawable/ic_info"
-                    app:backgroundTint="@android:color/white"
-                    />
-        </FrameLayout>
+                    app:layout_constraintStart_toEndOf="@+id/share"
+                    app:layout_constraintEnd_toStartOf="@id/exif"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="1"
+                    android:onClick="@{on_edit}"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless">
 
-        <FrameLayout
-                android:id="@+id/edit"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
-                app:layout_constraintHeight_max="90dp"
-                app:layout_constraintDimensionRatio="1:1"
-                android:text=""
-                app:layout_constraintStart_toEndOf="@+id/share"
-                app:layout_constraintEnd_toStartOf="@id/exif"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="1"
-                android:onClick="@{on_edit}"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                >
+                <Button
+                        android:layout_width="@dimen/gallery_viewer_button_size"
+                        android:layout_height="@dimen/gallery_viewer_button_size"
+                        android:layout_gravity="center"
+                        android:text=""
+                        android:clickable="false"
+                        android:background="@drawable/ic_edit"
+                        app:backgroundTint="@android:color/white" />
+            </FrameLayout>
 
-            <Button
-                    android:layout_width="@dimen/gallery_viewer_button_size"
-                    android:layout_height="@dimen/gallery_viewer_button_size"
-                    android:layout_gravity="center"
+            <FrameLayout
+                    android:id="@+id/share"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                    app:layout_constraintHeight_max="90dp"
+                    app:layout_constraintDimensionRatio="1:1"
                     android:text=""
-                    android:clickable="false"
-                    android:background="@drawable/ic_edit"
-                    app:backgroundTint="@android:color/white"
-                    />
-        </FrameLayout>
+                    app:layout_constraintEnd_toStartOf="@+id/edit"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintVertical_bias="1"
+                    android:onClick="@{on_share}"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless">
 
-        <FrameLayout
-                android:id="@+id/share"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
-                app:layout_constraintHeight_max="90dp"
-                app:layout_constraintDimensionRatio="1:1"
-                android:text=""
-                app:layout_constraintEnd_toStartOf="@+id/edit"
+                <Button
+                        android:layout_width="@dimen/gallery_viewer_button_size"
+                        android:layout_height="@dimen/gallery_viewer_button_size"
+                        android:layout_gravity="center"
+                        android:text=""
+                        android:clickable="false"
+                        android:background="@drawable/ic_share"
+                        app:backgroundTint="@android:color/white" />
+            </FrameLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:id="@+id/scrolling_gallery_view"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="1"
-                android:onClick="@{on_share}"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                >
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:orientation="horizontal"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginBottom="8dp"
+                android:layout_gravity="bottom"
+                tools:itemCount="20"
+                tools:listitem="@layout/thumbnail_square_image_view" />
+    </LinearLayout>
 
-            <Button
-                    android:layout_width="@dimen/gallery_viewer_button_size"
-                    android:layout_height="@dimen/gallery_viewer_button_size"
-                    android:layout_gravity="center"
-                    android:text=""
-                    android:clickable="false"
-                    android:background="@drawable/ic_share"
-                    app:backgroundTint="@android:color/white"
-                    />
-        </FrameLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

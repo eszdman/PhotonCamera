@@ -23,6 +23,7 @@ import com.bumptech.glide.request.transition.Transition;
 import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
+import com.particlesdevs.photoncamera.gallery.files.MediaFile;
 import com.particlesdevs.photoncamera.gallery.model.ExifDialogModel;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 import com.particlesdevs.photoncamera.util.Utilities;
@@ -58,7 +59,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
      *
      * @param imageFile the image imageFile whose exif data is to be read
      */
-    public void updateModel(ContentResolver contentResolver, ImageFile imageFile) {
+    public void updateModel(ContentResolver contentResolver, MediaFile imageFile) {
         ExifInterface exifInterface;
         InputStream inputStream;
         try {
