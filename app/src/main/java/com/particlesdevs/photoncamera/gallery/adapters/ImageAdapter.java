@@ -19,7 +19,7 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
-import com.particlesdevs.photoncamera.gallery.files.ImageFile;
+import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 
 import org.apache.commons.io.FileUtils;
 
@@ -30,12 +30,12 @@ import static com.particlesdevs.photoncamera.gallery.helper.Constants.DOUBLE_TAP
 
 public class ImageAdapter extends PagerAdapter {
     private static final int BASE_ID = View.generateViewId();
-    private final List<ImageFile> imageFiles;
+    private final List<GalleryItem> galleryItemList;
     private ImageViewClickListener imageViewClickListener;
     private SSIVListener ssivListener;
 
-    public ImageAdapter(List<ImageFile> imageFiles) {
-        this.imageFiles = imageFiles;
+    public ImageAdapter(List<GalleryItem> galleryItemList) {
+        this.galleryItemList = galleryItemList;
     }
 
     public void setSsivListener(SSIVListener ssivListener) {
@@ -44,7 +44,7 @@ public class ImageAdapter extends PagerAdapter {
 
     @Override
     public int getCount() {
-        return imageFiles.size();
+        return galleryItemList.size();
     }
 
     @Override
@@ -56,8 +56,8 @@ public class ImageAdapter extends PagerAdapter {
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        ImageFile file = imageFiles.get(position);
-        String fileExt = FileUtils.getExtension(file.getDisplayName());
+        GalleryItem galleryItem = galleryItemList.get(position);
+        String fileExt = FileUtils.getExtension(galleryItem.getFile().getDisplayName());
 
         CustomSSIV scaleImageView = new CustomSSIV(container.getContext());
         scaleImageView.setId(getSsivId(position));
@@ -69,12 +69,12 @@ public class ImageAdapter extends PagerAdapter {
             scaleImageView.setTouchCallBack(ssivListener);
         }
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
-            scaleImageView.setImage(ImageSource.uri(file.getFileUri()));
+            scaleImageView.setImage(ImageSource.uri(galleryItem.getFile().getFileUri()));
         } else if (fileExt.equalsIgnoreCase("dng")) { //For DNG Files
             Glide.with(container.getContext())
                     .asBitmap()
-                    .load(file.getFileUri())
-                    .apply(RequestOptions.signatureOf(new ObjectKey(file.getDisplayName() + file.getLastModified())))
+                    .load(galleryItem.getFile().getFileUri())
+                    .apply(RequestOptions.signatureOf(new ObjectKey(galleryItem.getFile().getDisplayName() + galleryItem.getFile().getLastModified())))
                     .into(new CustomViewTarget<SubsamplingScaleImageView, Bitmap>(scaleImageView) {
                         @Override
                         public void onResourceReady(@NonNull Bitmap bitmap, Transition<? super Bitmap> transition) {
