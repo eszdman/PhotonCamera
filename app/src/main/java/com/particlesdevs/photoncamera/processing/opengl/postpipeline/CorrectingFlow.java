@@ -42,6 +42,11 @@ public class CorrectingFlow extends Node {
                 cnt++;
             }
         }
+        for(int i =0; i<parsedFlow.length;i++)
+            if(i%2 == 0)
+                parsedFlow[i] /= (float) basePipeline.mParameters.rawSize.x / 4;
+             else
+                parsedFlow[i]/= (float) basePipeline.mParameters.rawSize.y /4;
     }
     float[] parsedFlow;
     Point FlowXY;
