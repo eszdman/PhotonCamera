@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -100,7 +101,7 @@ public class Swipe {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
         ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
-        ConstraintLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
+        FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
         RectF viewfinderRect = new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container

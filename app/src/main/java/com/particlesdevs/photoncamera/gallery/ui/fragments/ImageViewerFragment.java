@@ -2,13 +2,11 @@ package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,55 +16,61 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.DepthPageTransformer;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageAdapter;
+import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
+import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
+import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
+import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
-import com.particlesdevs.photoncamera.util.FileManager;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.COMPARE;
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.IMAGE_POSITION_KEY;
-import static com.particlesdevs.photoncamera.gallery.helper.Constants.MODE_KEY;
 
 /**
  * Created by Vibhor Srivastava on 02-Dec-2020
  */
 public class ImageViewerFragment extends Fragment {
     private static final String TAG = ImageViewerFragment.class.getSimpleName();
-    private List<File> allFiles;
-    private File newEditedFile;
+    private List<GalleryItem> galleryItems;
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager viewPager;
+    private RecyclerView linearRecyclerView;
     private ImageAdapter adapter;
+    private ImageGridAdapter linearGridAdapter;
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
     private String mode;
     private SSIVListener ssivListener;
+    private int indexToDelete = -1;
+    private GalleryViewModel viewModel;
 
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         fragmentGalleryImageViewerBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery_image_viewer, container, false);
+        viewModel = new ViewModelProvider(requireActivity()).get(GalleryViewModel.class);
         initialiseDataMembers();
         setClickListeners();
         return fragmentGalleryImageViewerBinding.getRoot();
@@ -81,21 +85,60 @@ public class ImageViewerFragment extends Fragment {
 
     private void initialiseDataMembers() {
         viewPager = fragmentGalleryImageViewerBinding.viewPager;
+        linearRecyclerView = fragmentGalleryImageViewerBinding.bottomControlsContainer.scrollingGalleryView;
         exifDialogViewModel = new ViewModelProvider(this).get(ExifDialogViewModel.class);
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
         fragmentGalleryImageViewerBinding.setExifmodel(exifDialogViewModel.getExifDataModel());
         navController = NavHostFragment.findNavController(this);
-        initImageAdapter();
+        initImageAdapter(viewModel.getAllImageFilesData().getValue());
+        initLinearRecyclerAdapter(viewModel.getAllImageFilesData().getValue());
     }
 
-    private void initImageAdapter() {
-        allFiles = FileManager.getAllImageFiles();
-        adapter = new ImageAdapter(allFiles);
-        adapter.setImageViewClickListener(this::onImageViewClicked);
-        if (ssivListener != null) {
-            adapter.setSsivListener(ssivListener);
+    private void initImageAdapter(List<GalleryItem> galleryItems) {
+        if (galleryItems != null) {
+            this.galleryItems = galleryItems;
+            adapter = new ImageAdapter(this.galleryItems);
+            adapter.setImageViewClickListener(ImageViewerFragment.this::onImageViewClicked);
+            if (ssivListener != null) {
+                adapter.setSsivListener(ssivListener);
+            }
+            viewPager.setAdapter(adapter);
         }
-        viewPager.setAdapter(adapter);
+    }
+
+    private void initLinearRecyclerAdapter(List<GalleryItem> galleryItems) {
+        if (galleryItems != null) {
+            linearGridAdapter = new ImageGridAdapter(galleryItems, Constants.GALLERY_ITEM_TYPE_LINEAR);
+            fragmentGalleryImageViewerBinding.bottomControlsContainer.scrollingGalleryView.setAdapter(linearGridAdapter);
+            linearGridAdapter.setGridAdapterCallback(new ImageGridAdapter.GridAdapterCallback() {
+                @Override
+                public void onItemClicked(int position, View view, GalleryItem galleryItem) {
+                    viewPager.setCurrentItem(position, true);
+                    LinearLayoutManager linearLayoutManager = (LinearLayoutManager) linearRecyclerView.getLayoutManager();
+                    if (linearLayoutManager != null) {
+                        int avg = (linearLayoutManager.findFirstCompletelyVisibleItemPosition() + (linearLayoutManager.findFirstCompletelyVisibleItemPosition() + 1) +
+                                linearLayoutManager.findLastCompletelyVisibleItemPosition()) / 3;
+                        if (position > avg)
+                            linearRecyclerView.smoothScrollToPosition(position + 1);
+                        else if (position != 0)
+                            linearRecyclerView.smoothScrollToPosition(position - 1);
+                        else
+                            linearRecyclerView.smoothScrollToPosition(0);
+
+                    }
+                }
+
+                @Override
+                public void onImageSelectionChanged(int numOfSelectedFiles) {
+                    //Not implemented
+                }
+
+                @Override
+                public void onImageSelectionStopped() {
+                    //Not implemented
+                }
+            });
+        }
     }
 
     private void setClickListeners() {
@@ -118,12 +161,14 @@ public class ImageViewerFragment extends Fragment {
             public void onPageSelected(int position) {
                 updateExif();
                 resetScaleText();
+                linearRecyclerView.smoothScrollToPosition(position);
             }
         });
         Bundle bundle = getArguments();
         if (bundle != null) {
-            mode = bundle.getString(MODE_KEY);
-            viewPager.setCurrentItem(bundle.getInt(IMAGE_POSITION_KEY, 0));
+            mode = bundle.getString(Constants.MODE_KEY);
+            viewPager.setCurrentItem(bundle.getInt(Constants.IMAGE_POSITION_KEY, 0));
+            linearRecyclerView.scrollToPosition(bundle.getInt(Constants.IMAGE_POSITION_KEY, 0));
         }
     }
 
@@ -155,16 +200,15 @@ public class ImageViewerFragment extends Fragment {
 
     private void onEditButtonClick(View view) {
         int position = viewPager.getCurrentItem();
-        if (allFiles != null && getContext() != null) {
-            File file = allFiles.get(position);
-            String fileName = file.getName();
+        if (galleryItems != null && getContext() != null) {
+            GalleryItem galleryItem = galleryItems.get(position);
+            String fileName = galleryItem.getFile().getDisplayName();
             String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
+            Uri uri = galleryItem.getFile().getFileUri();
             Intent editIntent = new Intent(Intent.ACTION_EDIT);
             editIntent.setDataAndType(uri, mediaType);
-            String outputFilePath = file.getAbsolutePath().replace(file.getName(), ImageSaver.Util.generateNewFileName() + '.' + FileUtils.getExtension(fileName));
-            newEditedFile = new File(outputFilePath);
-            editIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newEditedFile));
+            String outPutFileUri = galleryItem.getFile().getFileUri().toString().replace(galleryItem.getFile().getDisplayName(), ImageSaver.Util.generateNewFileName() + '.' + FileUtils.getExtension(fileName));
+            editIntent.putExtra(MediaStore.EXTRA_OUTPUT, outPutFileUri);
             editIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             Intent chooser = Intent.createChooser(editIntent, null);
             startActivityForResult(chooser, Constants.REQUEST_EDIT_IMAGE);
@@ -176,53 +220,46 @@ public class ImageViewerFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.REQUEST_EDIT_IMAGE) {
             if (resultCode == Activity.RESULT_CANCELED) {
-                if (newEditedFile != null) {
-                    if (newEditedFile.exists() && newEditedFile.length() == 0)
-                        Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
-                }
+//                if (newEditedFile != null) {
+//                    if (newEditedFile.exists() && newEditedFile.length() == 0)
+//                        Log.d(TAG, "onActivityResult(" + requestCode + "," + resultCode + ")->Dummy file deleted : " + newEditedFile.delete());
+//                }
             }
             if (resultCode == Activity.RESULT_OK) {
                 if (data != null && data.getData() != null) {
                     String savedFilePath = data.getData().getPath();
                     Toast.makeText(getContext(), "Saved : " + savedFilePath, Toast.LENGTH_LONG).show();
+                    viewModel.fetchAllImages();
+                    initImageAdapter(viewModel.getAllImageFilesData().getValue());
+                    refreshLinearGridAdapter(viewModel.getAllImageFilesData().getValue());
+                    updateExif();
                 }
             }
             //            Log.d(TAG, "onActivityResult(): requestCode = [" + requestCode + "], resultCode = [" + resultCode + "], data = [" + data + "]");
         }
     }
 
+    private void refreshLinearGridAdapter(List<GalleryItem> galleryItems) {
+        linearGridAdapter.setGalleryItemList(galleryItems);
+        linearGridAdapter.notifyDataSetChanged();
+    }
+
     private void onDeleteButtonClick(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
-
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
-
-                    int position = viewPager.getCurrentItem();
-                    File thisFile = new File(String.valueOf(allFiles.get(position)));
-                    boolean result = thisFile.delete();
-                    if (!result) {
-                        Toast.makeText(getContext(), "Failed!", Toast.LENGTH_SHORT).show();
-                    }
-                    MediaScannerConnection.scanFile(getContext(), new String[]{
-                                    String.valueOf(thisFile)
-                            },
-                            null, null);
-                    FileManager.ScanRemovedFile(thisFile);
-                    initImageAdapter();
-                    //auto scroll to the next photo
-                    viewPager.setCurrentItem(position, true);
-                    updateExif();
-                    Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT).show();
+                    indexToDelete = viewPager.getCurrentItem();
+                    GalleryFileOperations.deleteImageFiles(getActivity(), Collections.singletonList((ImageFile) galleryItems.get(indexToDelete).getFile()), this::handleImagesDeletedCallback);
                 });
         builder.create().show();
     }
 
     private void onShareButtonClick(View view) {
         int position = viewPager.getCurrentItem();
-        File file = allFiles.get(position);
-        String fileName = file.getName();
+        GalleryItem galleryItem = galleryItems.get(position);
+        String fileName = galleryItem.getFile().getDisplayName();
         String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-        Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
+        Uri uri = galleryItem.getFile().getFileUri();
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -260,14 +297,14 @@ public class ImageViewerFragment extends Fragment {
 
     private void updateExif() {
         int position = viewPager.getCurrentItem();
-        if (allFiles.size() > 0) {
-            File currentFile = allFiles.get(position);
+        if (galleryItems.size() > 0) {
+            GalleryItem galleryItem = galleryItems.get(position);
             if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
                 //update values for exif dialog
-                exifDialogViewModel.updateModel(currentFile);
-                exifDialogViewModel.updateHistogramView(currentFile);
+                exifDialogViewModel.updateModel(getContext().getContentResolver(), galleryItem.getFile());
+                exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
             } else {
-                exifDialogViewModel.updateModel(currentFile);
+                exifDialogViewModel.updateModel(getContext().getContentResolver(), galleryItem.getFile());
             }
         }
     }
@@ -284,6 +321,21 @@ public class ImageViewerFragment extends Fragment {
     }
 
     private boolean isCompareMode() {
-        return mode != null && mode.equalsIgnoreCase(COMPARE);
+        return mode != null && mode.equalsIgnoreCase(Constants.COMPARE);
+    }
+
+    public void handleImagesDeletedCallback(boolean isDeleted) {
+        if (isDeleted && indexToDelete >= 0) {
+            galleryItems.remove(indexToDelete);
+            initImageAdapter(galleryItems);
+            refreshLinearGridAdapter(galleryItems);
+            //auto scroll to the next photo
+            viewPager.setCurrentItem(indexToDelete, true);
+            updateExif();
+            Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT).show();
+            indexToDelete = -1;
+        } else {
+            Toast.makeText(getContext(), "Deletion Failed!", Toast.LENGTH_SHORT).show();
+        }
     }
 }

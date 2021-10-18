@@ -9,4 +9,7 @@ public class Constants {
     public static final String IMAGE2_KEY = "image2";
     public static final int DOUBLE_TAP_ZOOM_DURATION_MS = 200;
 
+    public static final int GALLERY_ITEM_TYPE_GRID = 100;
+    public static final int GALLERY_ITEM_TYPE_LINEAR = 101;
+
 }
