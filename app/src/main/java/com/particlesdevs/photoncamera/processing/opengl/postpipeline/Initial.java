@@ -106,8 +106,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             intenseCurveX[5] = 1.0f;
 
             intenseCurveY[0] = 1.25f;
-            intenseCurveY[1] = 1.5f;
-            intenseCurveY[2] = 1.3f;
+            intenseCurveY[1] = 1.20f;
+            intenseCurveY[2] = 1.1f;
             intenseCurveY[3] = 0.85f;
             intenseCurveY[4] = 0.8f;
             intenseCurveY[5] = 0.0f;
@@ -119,9 +119,9 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             intenseHardCurveX[4] = 0.95f;
             intenseHardCurveX[5] = 1.0f;
 
-            intenseHardCurveY[0] = 4.25f;
-            intenseHardCurveY[1] = 3.5f;
-            intenseHardCurveY[2] = 3.3f;
+            intenseHardCurveY[0] = 1.75f;
+            intenseHardCurveY[1] = 1.5f;
+            intenseHardCurveY[2] = 1.3f;
             intenseHardCurveY[3] = 0.85f;
             intenseHardCurveY[4] = 0.8f;
             intenseHardCurveY[5] = 0.0f;

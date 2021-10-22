@@ -32,6 +32,11 @@ float normpdf3(in vec3 v, in float sigma)
 {
     return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
 }
+
+float normpdf2(in vec2 v, in float sigma)
+{
+    return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
+}
 float lum(in vec4 color) {
     return length(color.xyz);
 }
@@ -45,18 +50,20 @@ void main() {
         float kernel[MSIZE];
         vec3 final_colour = vec3(0.0);
         float sigX = 3.5;
-        float sigY = sqrt(noisefactor*NOISES*(INTENSE*1.0 + 1.0)/2.0 + NOISEO*INTENSE*1.0);
+        float sigY = sqrt(noisefactor*NOISES + NOISEO);
         //sigY = max(0.01,sigY);
         //create the 1-D kernel
         float Z = 0.0;
         vec2 dxy;
         vec2 dxyabs;
         float sum = 0.0001;
+        vec2 baseGrad = texelFetch(GradBuffer, xy, 0).rg;
         for (int i=-KSIZE; i <= KSIZE; i++){
             float k0 = normpdf(float(i),sigX);
             for (int j=-KSIZE; j <= KSIZE; j++){
-                float k = normpdf(float(j),sigX)*k0;
-                vec2 temp = k*texelFetch(GradBuffer, xy+ivec2(i,j), 0).rg;
+                vec2 temp = texelFetch(GradBuffer, xy+ivec2(i,j), 0).rg;
+                float k = normpdf(float(j),sigX)*k0*normpdf2(temp-baseGrad,sigY);
+                temp *= k;
                 dxy+=temp;
                 dxyabs+=abs(temp);
                 sum+=k;
@@ -74,10 +81,10 @@ void main() {
         coso*=coso;
         float sin2o = sin(angle*2.0);
         vec2 sigo = vec2(3.5*1.5,3.5/2.35);
-
         //Improve energy
-        sigo*=min(sigY*300.1,1.0);
+        //sigo*=min(sigY*30.1,1.0);
         sigo*=sigo;
+        sigo*=1.0+sigY;
 
         float a = (coso)/(2.0*sigo.x) + (sino)/(2.0*sigo.y);
         float b = -(sin2o)/(4.0*sigo.x) + (sin2o)/(4.0*sigo.y);

@@ -53,6 +53,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         return in;
     }
+    float constShift = -10.0f;
     public Bitmap Run(ByteBuffer inBuffer, Parameters parameters){
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
@@ -66,9 +67,11 @@ public class PostPipeline extends GLBasePipeline {
                 modeler.computeModel[2].second.floatValue();
         noiseS/=3.f;
         noiseO/=3.f;
-        double noisempy = Math.pow(2.0,mSettings.noiseRstr);
+        double noisempy = Math.pow(2.0,mSettings.noiseRstr+constShift);
+        Log.d("PostPipeline","noisempy:"+noisempy);
         noiseS*=noisempy;
         noiseO*=noisempy;
+        Log.d("PostPipeline","NoiseS:"+noiseS+"\n"+"NoiseO:"+noiseO);
         if(!PhotonCamera.getSettings().hdrxNR){
             noiseO = 0.f;
             noiseS = 0.f;

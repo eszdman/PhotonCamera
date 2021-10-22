@@ -25,6 +25,7 @@ public class Settings {
     public double contrastMpy = 1.0;
     public int contrastConst = 0;//TODO
     public double noiseRstr;
+    public double mergeStrength;
     public double compressor;
     public double gain;
     public double shadows;
@@ -60,6 +61,7 @@ public class Settings {
         exposureCompensation = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_EXPOCOMPENSATE_SEEKBAR);
         compressor = PreferenceKeys.getCompressorValue();
         noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR);
+        mergeStrength = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_MERGE_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
         shadows = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_SHADOWS_SEEKBAR);
         hdrx = PreferenceKeys.isHdrxNrOn();

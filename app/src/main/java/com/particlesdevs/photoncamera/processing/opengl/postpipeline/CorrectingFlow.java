@@ -46,14 +46,13 @@ public class CorrectingFlow extends Node {
             if(i%2 == 0)
                 parsedFlow[i] /= (float) basePipeline.mParameters.rawSize.x / 4;
              else
-                parsedFlow[i]/= (float) basePipeline.mParameters.rawSize.y /4;
+                parsedFlow[i] /= (float) basePipeline.mParameters.rawSize.y / 4;
     }
     float[] parsedFlow;
     Point FlowXY;
     GLTexture correctingFlow;
     @Override
     public void Run() {
-
         File corrFlow = new File(FileManager.sPHOTON_TUNING_DIR,"correctingFlow.txt");
         if(!corrFlow.exists()) {
             WorkingTexture = previousNode.WorkingTexture;

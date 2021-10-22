@@ -25,6 +25,7 @@
     <string name="pref_luma_nr_seekbar_key" translatable="false">pref_luma_nr_seekbar_key</string>
     <string name="pref_compressor_seekbar_key" translatable="false">pref_compressor_seekbar_key</string>
     <string name="pref_noise_seekbar_key" translatable="false">pref_noise_seekbar_key</string>
+    <string name="pref_merge_seekbar_key" translatable="false">pref_merge_seekbar_key</string>
     <string name="pref_gain_seekbar_key" translatable="false">pref_gain_seekbar_key</string>
     <string name="pref_shadows_seekbar_key" translatable="false">pref_shadows_seekbar_key</string>
     <string name="pref_frame_count_key" translatable="false">pref_frame_count_key</string>

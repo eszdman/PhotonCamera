@@ -86,12 +86,27 @@ public class NoiseModeler {
         computeModel[2] = new Pair<>(baseModel[2].first/noiseRemove,baseModel[2].second/(Math.pow(noiseRemove,1.0)));
     }
     private double computeNoiseModelS(double Sensitivity,Pair<Double,Double> sGenerator) {
-        return sGenerator.first * Sensitivity + sGenerator.second;
+        double returning = sGenerator.first * Sensitivity + sGenerator.second;
+        if(returning < 0.0) {
+            Log.d("NoiseModeler","Negative noise model sGenerator at Sensivity:"+ Sensitivity+
+                    ",First:"+sGenerator.first+
+                    ",Second:"+sGenerator.second);
+            //returning=-returning;
+        }
+        return returning;
     }
 
     private double computeNoiseModelO(double Sensitivity,Pair<Double,Double> oGenerator) {
         double dGain = Math.max(Sensitivity/AnalogueISO,1.0);
-        return (oGenerator.first * Sensitivity*Sensitivity) + (oGenerator.second*dGain*dGain);
+        double returning = (oGenerator.first * Sensitivity*Sensitivity) + (oGenerator.second*dGain*dGain);
+        if(returning < 0.0) {
+            Log.d("NoiseModeler","Negative noise model oGenerator at Sensivity:"+Sensitivity+
+                    ",Dgain:"+dGain+
+                    ",First:"+oGenerator.first+
+                    ",Second:"+oGenerator.second);
+            //returning=-returning;
+        }
+        return returning;
     }
 
 }

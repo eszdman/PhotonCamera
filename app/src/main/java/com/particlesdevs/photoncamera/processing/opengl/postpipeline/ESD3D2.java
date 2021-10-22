@@ -5,11 +5,10 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 
-public class ESD3D extends Node {
+public class ESD3D2 extends Node {
 
-    public ESD3D() {
+    public ESD3D2() {
         super(0, "ES3D");
     }
 
@@ -30,7 +29,9 @@ public class ESD3D extends Node {
 
 
 
-
+        WorkingTexture = basePipeline.getMain();
+        GLTexture temp = new GLTexture(WorkingTexture);
+        glUtils.ops(WorkingTexture,map,temp,"in1-in2","",0);
         {
             Log.d(Name, "NoiseS:" + basePipeline.noiseS + ", NoiseO:" + basePipeline.noiseO);
             glProg.setDefine("NOISES", basePipeline.noiseS);
@@ -40,10 +41,13 @@ public class ESD3D extends Node {
             glProg.setTexture("NoiseMap", map);
             glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
             glProg.setTexture("GradBuffer", grad);
-            WorkingTexture = basePipeline.getMain();
-            glProg.drawBlocks(WorkingTexture);
+            glProg.drawBlocks(temp);
         }
+        GLTexture ntex = basePipeline.getMain();
+        glUtils.ops(temp,map,ntex,"in1+in2","",0);
+        WorkingTexture = ntex;
         glProg.closed = true;
         map.close();
+        temp.close();
     }
 }

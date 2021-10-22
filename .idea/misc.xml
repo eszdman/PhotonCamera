@@ -3,6 +3,7 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/layout/preference_seekbar.xml" value="0.2758152173913043" />
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/drawable/aux_button_background.xml" value="0.20888157894736842" />
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/drawable/ic_thumbnail_selected_radio.xml" value="0.20625" />
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout-land/fragment_gallery_image_viewer.xml" value="0.1" />

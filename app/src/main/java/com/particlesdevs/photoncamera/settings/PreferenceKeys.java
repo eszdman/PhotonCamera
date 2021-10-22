@@ -359,6 +359,7 @@ public class PreferenceKeys {
         KEY_LUMA_NR_SEEKBAR(R.string.pref_luma_nr_seekbar_key),
         KEY_COMPRESSOR_SEEKBAR(R.string.pref_compressor_seekbar_key),
         KEY_NOISESTR_SEEKBAR(R.string.pref_noise_seekbar_key),
+        KEY_MERGE_SEEKBAR(R.string.pref_merge_seekbar_key),
         KEY_GAIN_SEEKBAR(R.string.pref_gain_seekbar_key),
         KEY_SHADOWS_SEEKBAR(R.string.pref_shadows_seekbar_key),
         KEY_FRAME_COUNT(R.string.pref_frame_count_key),
