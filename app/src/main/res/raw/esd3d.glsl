@@ -108,6 +108,7 @@ void main() {
         } else {
             Output = vec4(clamp(final_colour/Z,0.0,1.0),1.0);
         }
+        Output=clamp(Output-NOISEO,0.0,1.0);
         //Output = vec4(length2);
         //vec4 test = vec4(texture(NoiseMap, vec2(xy)/mapsize).r);
         //test = clamp(test*1.0,0.0,1.0);

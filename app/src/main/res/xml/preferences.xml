@@ -200,7 +200,7 @@
                 android:summary=""
                 android:defaultValue="@string/pref_noise_seekbar_default"
                 app:maxValue="2"
-                app:minValue="-2"
+                app:minValue="-6"
                 app:isFloat="true"
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_compressor"
