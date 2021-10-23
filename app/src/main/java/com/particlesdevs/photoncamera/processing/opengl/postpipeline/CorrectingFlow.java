@@ -106,8 +106,8 @@ public class CorrectingFlow extends Node {
             glProg.closed = true;
             return;
         }
-        correctingFlowRG = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(parsedFlowRG),GL_LINEAR, GL_CLAMP_TO_EDGE);
-        correctingFlowB = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,2), FloatBuffer.wrap(parsedFlowB),GL_LINEAR, GL_CLAMP_TO_EDGE);
+        //correctingFlowRG = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(parsedFlowRG),GL_LINEAR, GL_CLAMP_TO_EDGE);
+        //correctingFlowB = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,2), FloatBuffer.wrap(parsedFlowB),GL_LINEAR, GL_CLAMP_TO_EDGE);
         glProg.setDefine("SIZE",basePipeline.mParameters.rawSize);
         glProg.setDefine("C", correction[0],correction[1]);
         glProg.setDefine("RC",correction[2],correction[3]);
