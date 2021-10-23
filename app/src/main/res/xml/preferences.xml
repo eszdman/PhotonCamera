@@ -163,7 +163,7 @@
                 android:title="@string/sharpness"
                 android:summary=""
                 android:defaultValue="@string/pref_sharpness_seekbar_default"
-                app:maxValue="2.0"
+                app:maxValue="1.0"
                 app:minValue="0"
                 app:isFloat="true"
                 app:stepPerUnit="20"

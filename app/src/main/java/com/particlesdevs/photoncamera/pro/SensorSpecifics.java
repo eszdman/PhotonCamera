@@ -91,14 +91,21 @@ public class SensorSpecifics {
                                 current.ModelerExists = true;
                                 break;
                             }
-                            case "captureSharpeningS":{
+                            case "captureSharpeningS": {
                                 current.captureSharpeningS = (float)Double.parseDouble(valsIn[1]);
                                 break;
                             }
-                            case "captureSharpeningIntense":{
+                            case "captureSharpeningIntense": {
                                 current.captureSharpeningIntense = (float)Double.parseDouble(valsIn[1]);
                                 break;
                             }
+                            case "aberrationCorrection": {
+                                for (int i = 0; i < 8; i++) {
+                                    current.aberrationCorrection[i] = (float)Double.parseDouble(istr[i]);
+                                }
+                                break;
+                            }
+
                         }
                         mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_val",inputStr);
                         loaded = true;

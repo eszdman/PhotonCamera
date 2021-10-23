@@ -8,7 +8,8 @@ public class SpecificSettingSensor {
     public boolean isRawColorCorrection = false;
     public float[] blackLevel;
     public float captureSharpeningS = 1.05f;
-    public float captureSharpeningIntense = 0.0f;
+    public float captureSharpeningIntense = 0.5f;
+    public float[] aberrationCorrection;
     public float[][] CCT;
     public double[][] NoiseModelerArr;
     public boolean ModelerExists = false;
@@ -16,5 +17,6 @@ public class SpecificSettingSensor {
     public SpecificSettingSensor(){
         NoiseModelerArr = new double[4][4];
         CCT = new float[3][3];
+        aberrationCorrection = new float[8];
     }
 }

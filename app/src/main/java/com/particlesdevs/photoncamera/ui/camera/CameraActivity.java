@@ -1,9 +1,13 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -23,11 +27,18 @@ import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
 
 import java.util.Arrays;
 
+import static android.os.Build.VERSION.SDK_INT;
+
 
 public class CameraActivity extends BaseActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
-    private static final String[] PERMISSIONS = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.INTERNET};
+    private static final String[] PERMISSIONS = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.INTERNET
+    };
     private static int requestCount;
 
     @Override
@@ -47,7 +58,23 @@ public class CameraActivity extends BaseActivity {
 //            if (null == savedInstanceState)
             tryLoad();
         } else
-            requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //First Permission request
+            requestPermission(); //First Permission request
+    }
+    private void requestPermission() {
+        if (SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.addCategory("android.intent.category.DEFAULT");
+                intent.setData(Uri.parse(String.format("package:%s",getApplicationContext().getPackageName())));
+                startActivityForResult(intent, 2296);
+            } catch (Exception e) {
+                Intent intent = new Intent();
+                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivityForResult(intent, 2296);
+            }
+        }
+        //below android 11
+        requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS);
     }
 
     private boolean hasAllPermissions() { //checks if permissions have already been granted
@@ -67,7 +94,7 @@ public class CameraActivity extends BaseActivity {
         Log.d("CameraActivity", "onRequestPermissionsResult() called with: " + "requestCode = [" + requestCode + "], " + "permissions = [" + Arrays.toString(permissions) + "], " + "grantResults = [" + Arrays.toString(grantResults) + "]");
         if (requestCode == CODE_REQUEST_PERMISSIONS) {
             if (Arrays.stream(grantResults).asLongStream().anyMatch(value -> value == PackageManager.PERMISSION_DENIED)) {
-                requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS); //Recursive Permission check
+                requestPermission(); //Recursive Permission check
                 requestCount++;
             } else
                 tryLoad();
