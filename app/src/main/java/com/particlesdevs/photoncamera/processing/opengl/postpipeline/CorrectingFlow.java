@@ -100,12 +100,16 @@ public class CorrectingFlow extends Node {
             e.printStackTrace();
             return;
         }*/
-        float[] correction = basePipeline.mParameters.sensorSpecifics.aberrationCorrection;
-        if(correction == null || correction[0] == 0.0 && correction[1] == 0.0){
+
+        if(basePipeline.mParameters.sensorSpecifics == null ||
+                basePipeline.mParameters.sensorSpecifics.aberrationCorrection == null ||
+                basePipeline.mParameters.sensorSpecifics.aberrationCorrection[0] == 0.0
+                        && basePipeline.mParameters.sensorSpecifics.aberrationCorrection[1] == 0.0) {
             WorkingTexture = previousNode.WorkingTexture;
             glProg.closed = true;
             return;
         }
+        float[] correction = basePipeline.mParameters.sensorSpecifics.aberrationCorrection;
         //correctingFlowRG = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(parsedFlowRG),GL_LINEAR, GL_CLAMP_TO_EDGE);
         //correctingFlowB = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,2), FloatBuffer.wrap(parsedFlowB),GL_LINEAR, GL_CLAMP_TO_EDGE);
         glProg.setDefine("SIZE",basePipeline.mParameters.rawSize);
