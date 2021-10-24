@@ -87,7 +87,7 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLower(mpy);
         }
         if (useTripod) {
-            pair.MinIso();
+            pair.UseIso(Math.max(pair.isoanalog/4.0,101));
         }
 
         double currentManExp = captureController.getParamController().getCurrentExposureValue();
@@ -248,11 +248,13 @@ public class IsoExpoSelector {
         public void normalizeiso100() {
             double mpy = 100.0 / isolow;
             iso *= mpy;
+            isoanalog *=mpy;
         }
 
         public void denormalizeSystem() {
             double div = 100.0 / isolow;
             iso /= div;
+            isoanalog /=div;
         }
         public float normalizedIso(){
             return (float)iso/isoanalog;
@@ -298,7 +300,11 @@ public class IsoExpoSelector {
         }
 
         public void MinIso() {
-            double k = iso / 101.0;
+            UseIso(101);
+        }
+
+        public void UseIso(double isoUsed) {
+            double k = iso / isoUsed;
             ReduceIso(k);
             if (normalizeCheck()) {
                 iso *= (double) (exposure) / exposurehigh;

@@ -127,7 +127,7 @@ public class Gyro {
         }
         counter = 0;
         integrate = true;
-        timeCount = capturingTimes[capturingNumber]+System.nanoTime();
+        timeCount = capturingTimes[capturingNumber%capturingTimes.length]+System.nanoTime();
         //gyroBurst.timestamps.add(System.nanoTime());
         burstout = 0;
         gyroburst = true;
