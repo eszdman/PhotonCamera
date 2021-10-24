@@ -16,9 +16,11 @@ oneplus:hotdogb
 oneplus:guacamole
 oneplus:guacamoleb
 poco:vayu
+poco:surya
 redmi:galahad
 realme:rmx1931l1
 samsung:x1s
 motorola:sofiar
 lge:flashlm
 lge:flashlmdd
+huawei:hweml
