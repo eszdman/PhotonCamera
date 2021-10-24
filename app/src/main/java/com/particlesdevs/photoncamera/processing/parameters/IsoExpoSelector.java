@@ -87,7 +87,7 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLower(mpy);
         }
         if (useTripod) {
-            pair.UseIso(Math.max(pair.isoanalog/4.0,101));
+            pair.UseIso(Math.max(pair.isoanalog/6.0,101));
         }
 
         double currentManExp = captureController.getParamController().getCurrentExposureValue();
