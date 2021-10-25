@@ -1,6 +1,7 @@
 xiaomi:cepheus
 xiaomi:cas
 xiaomi:raphael
+xiaomi:raphaelin
 xiaomi:davinci
 xiaomi:umi
 xiaomi:dipper

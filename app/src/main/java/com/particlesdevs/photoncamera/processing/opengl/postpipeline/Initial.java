@@ -162,6 +162,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         glProg.setDefine("SATURATIONCONST",saturationConst);
         glProg.setDefine("SATURATIONGAUSS",saturationGauss);
         glProg.setDefine("SATURATIONRED",  saturationRed);
+        glProg.setDefine("NOISEO",  basePipeline.noiseO);
         glProg.setDefine("EPS",            eps      );
 
         glProg.setDefine("FUSIONGAIN",((PostPipeline)(basePipeline)).fusionGain);

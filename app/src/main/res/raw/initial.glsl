@@ -58,6 +58,7 @@ out vec3 Output;
 #define FUSION 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MINP 1.0
+#define NOISEO 0.0
 #import coords
 #import interpolation
 #import gaussian
@@ -442,5 +443,5 @@ void main() {
     //float sat2 = SATURATION2;
     //sat2*=br;
     sRGB = saturate(sRGB,SATURATION2,SATURATION);
-    Output = clamp(sRGB,0.0,1.0);
+    Output = clamp((sRGB-NOISEO)/(vec3(1.0)-NOISEO),0.0,1.0);
 }
