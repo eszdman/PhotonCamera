@@ -42,6 +42,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -1734,7 +1735,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
         mMediaRecorder.reset();
-        cameraEventsListener.onRequestTriggerMediaScanner(vid);
+        cameraEventsListener.onRequestTriggerMediaScanner(Uri.fromFile(vid));
         createCameraPreviewSession();
     }
 

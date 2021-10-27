@@ -304,7 +304,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst2);
         endPlayer = MediaPlayer.create(activity,R.raw.sound_end);
 
-        cameraFragmentViewModel.updateGalleryThumb();
+        cameraFragmentViewModel.updateGalleryThumb(null);
         cameraFragmentViewModel.onResume();
 
         auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
@@ -537,11 +537,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         }
     }
 
-    public void triggerMediaScanner(File imageToSave) {
+    public void triggerMediaScanner(Uri imageUri) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        Uri contentUri = Uri.fromFile(imageToSave);
 //        Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
-        mediaScanIntent.setData(contentUri);
+        mediaScanIntent.setData(imageUri);
         if (activity != null)
             activity.sendBroadcast(mediaScanIntent);
     }
@@ -665,12 +664,13 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void notifyImageSavedStatus(boolean saved, Path savedFilePath) {
             if (saved) {
+                Uri imageUri = null;
                 if (savedFilePath != null) {
-                    triggerMediaScanner(savedFilePath.toFile());
+                    triggerMediaScanner(imageUri = Uri.fromFile(savedFilePath.toFile()));
                     logD("ImageSaved: " + savedFilePath.toString());
 //                    showSnackBar("ImageSaved: " + savedFilePath.toString());
                 }
-                cameraFragmentViewModel.updateGalleryThumb();
+                cameraFragmentViewModel.updateGalleryThumb(imageUri);
             } else {
                 logE("ImageSavingError");
                 showSnackBar("ImageSavingError");
@@ -786,8 +786,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         }
 
         @Override
-        public void onRequestTriggerMediaScanner(File file) {
-            triggerMediaScanner(file);
+        public void onRequestTriggerMediaScanner(Uri fileUri) {
+            triggerMediaScanner(fileUri);
         }
     }
 

@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.ui.camera.viewmodel;
 import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -82,12 +83,18 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         };
     }
 
-    public void updateGalleryThumb() {
-        ImageFile lastImage = GalleryFileOperations.fetchLatestImage(getApplication().getContentResolver());
-        if (lastImage != null) {
+    public void updateGalleryThumb(@Nullable Uri uri) {
+        Uri lastImageUri = uri;
+        if (lastImageUri == null) {
+            ImageFile lastImage = GalleryFileOperations.fetchLatestImage(getApplication().getContentResolver());
+            if (lastImage != null) {
+                lastImageUri = lastImage.getFileUri();
+            }
+        }
+        if (lastImageUri != null) {
             Glide.with(getApplication())
                     .asBitmap()
-                    .load(lastImage.getFileUri())
+                    .load(lastImageUri)
                     .override(200)
                     .into(new CustomTarget<Bitmap>() {
                         @Override
