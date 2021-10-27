@@ -24,6 +24,7 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
 import com.particlesdevs.photoncamera.control.Vibration;
+import com.particlesdevs.photoncamera.debugclient.Debugger;
 import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SpecificSetting;
@@ -64,6 +65,7 @@ public class PhotonCamera extends Application {
     private AssetLoader mAssetLoader;
     private RenderScript mRS;
     private ObjectLoader objectLoader;
+    private Debugger mDebugger;
 
     @Nullable
     public static PhotonCamera getInstance(Context context) {
@@ -102,6 +104,10 @@ public class PhotonCamera extends Application {
 
     public static PreviewParameters getPreviewParameters() {
         return sPhotonCamera.mPreviewParameters;
+    }
+
+    public static Debugger getDebugger(){
+        return sPhotonCamera.mDebugger;
     }
 
     public static Specific getSpecific(){
@@ -192,6 +198,7 @@ public class PhotonCamera extends Application {
         return mSettingsManager;
     }
 
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -222,6 +229,7 @@ public class PhotonCamera extends Application {
         mSupportedDevice = new SupportedDevice(mSettingsManager);
         mAssetLoader = new AssetLoader(this);
         mRS = RenderScript.create(this);
+        mDebugger = new Debugger();
     }
     //  a MemoryInfo object for the device's current memory status.
     /*public ActivityManager.MemoryInfo AvailableMemory() {

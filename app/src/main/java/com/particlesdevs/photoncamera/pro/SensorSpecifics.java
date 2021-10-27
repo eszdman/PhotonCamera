@@ -4,20 +4,46 @@ import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
+import com.bumptech.glide.load.model.FileLoader;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.util.HttpLoader;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.particlesdevs.photoncamera.util.FileManager.sPHOTON_TUNING_DIR;
+
 public class SensorSpecifics {
     public SpecificSettingSensor[] specificSettingSensor;
     public SpecificSettingSensor selectedSensorSpecifics = null;
+    ArrayList<String> loadNetwork(String device) throws IOException {
+        ArrayList<String> inputStr = new ArrayList<String>();
+        BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/sensors/" + device + ".txt");
+        String str;
+        while ((str = indevice.readLine()) != null) {
+            Log.d("SensorSpecifics", "read:" + str);
+            inputStr.add(str + "\n");
+        }
+        return inputStr;
+    }
+    ArrayList<String> loadLocal(File specifics) throws IOException {
+        ArrayList<String> inputStr = new ArrayList<String>();
+        String str;
+        BufferedReader indevice = new BufferedReader(new FileReader(specifics));
+        while ((str = indevice.readLine()) != null) {
+            Log.d("SensorSpecifics", "read:" + str);
+            inputStr.add(str + "\n");
+        }
+        return inputStr;
+    }
     public SensorSpecifics(SettingsManager mSettingsManager){
         boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded",false);
         boolean exists = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists",true);
@@ -26,17 +52,18 @@ public class SensorSpecifics {
             String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
             String fullSpec = "";
             ArrayList<String> inputStr = new ArrayList<String>();
+            File init = new File(sPHOTON_TUNING_DIR, "SensorSpecifics.txt");
             try {
                 try {
-
                     exists = false;
-                    BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/sensors/" + device + ".txt");
-                    String str;
+                    if(init.exists())
+                        inputStr = loadLocal(init);
+                     else
+                        inputStr = loadNetwork(device);
                     count = 0;
-                    while ((str = indevice.readLine()) != null) {
+                    for (String str : inputStr) {
                         Log.d("SensorSpecifics", "read:" + str);
                         if (str.contains("sensor")) count++;
-                        inputStr.add(str + "\n");
                     }
                     Log.d("SensorSpecifics", "SensorCount:" + count);
                     exists = true;

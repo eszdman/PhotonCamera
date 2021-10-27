@@ -8,13 +8,15 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+
+import com.particlesdevs.photoncamera.processing.ImageSaver;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import static com.particlesdevs.photoncamera.processing.ImageSaver.jpgFilePathToSave;
 import static java.lang.Math.min;
 //import static java.lang.Math.max;
 
@@ -58,7 +60,7 @@ public class Utilities {
             canvas.drawCircle(p.x,p.y,pointSize,wallPaint);
     }
     public static void saveBitmap(Bitmap in, String name){
-        File debug = new File(jpgFilePathToSave.toString().replace(".jpg","") + name + ".png");
+        File debug = new File(ImageSaver.Util.newJPGFilePath().toString().replace(".jpg","") + name + ".png");
         FileOutputStream fOut = null;
         try {
             debug.createNewFile();
