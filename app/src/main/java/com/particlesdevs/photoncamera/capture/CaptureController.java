@@ -70,6 +70,7 @@ import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
+import com.particlesdevs.photoncamera.debugclient.DebugSender;
 import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
@@ -1322,6 +1323,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
         mMeasuredFrameCnt = 0;
         mImageSaver = new ImageSaver(cameraEventsListener);
+        mImageSaver.implementation = new DebugSender(mImageSaver.implementation.processingEventsListener);
         int frameCount = 1;
         cameraEventsListener.onFrameCountSet(frameCount);
         final long[] baseFrameNumber = {0};
@@ -1392,13 +1394,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         };
         burst = true;
         Camera2ApiAutoFix.ApplyBurst();
-        if (isDualSession)
-            activity.runOnUiThread(this::createCameraPreviewSession);
-        try {
-            mCaptureSession.captureBurst(captures, CaptureCallback, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
+        activity.runOnUiThread(()-> {
+                try {
+                    if (isDualSession)
+                        createCameraPreviewSession();
+                    mCaptureSession.captureBurst(captures, CaptureCallback, null);
+                } catch (CameraAccessException e) {
+                    e.printStackTrace();
+                }
+            });
     }
 
     private void captureStillPicture() {
