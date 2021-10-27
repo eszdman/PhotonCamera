@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class Debugger {
-    public DebugParameters debugParameters = new DebugParameters();
     public DebugClient debugClient;
     public Debugger(){
         File debugClientSettings = new File(FileManager.sPHOTON_TUNING_DIR,"DebugClient.txt");

@@ -29,7 +29,7 @@ public class DefaultSaver extends SaverImplementation{
         this.hdrxProcessor = new HdrxProcessor(processingEventsListener);
         this.mUnlimitedProcessor = new UnlimitedProcessor(processingEventsListener);
     }
-    void addRAW16(Image image) {
+    public void addRAW16(Image image) {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
             mUnlimitedProcessor.unlimitedCycle(image);
         } else {
@@ -39,7 +39,7 @@ public class DefaultSaver extends SaverImplementation{
         }
     }
 
-    void addJPEG(Image image) {
+    public void addJPEG(Image image) {
         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         try {
             IMAGE_BUFFER.add(image);
@@ -69,7 +69,7 @@ public class DefaultSaver extends SaverImplementation{
         }
     }
 
-    void addYUV(Image image) {
+    public void addYUV(Image image) {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
         IMAGE_BUFFER.add(image);
         if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {

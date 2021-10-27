@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.debugclient;
 
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
@@ -18,6 +19,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DebugClient {
@@ -85,9 +88,11 @@ public class DebugClient {
     CaptureRequest.Builder captureRequestBuilder = null;
     private void ParseControl(String mServerMessage){
         String[] commands = mServerMessage.split(":");
-        List<CameraCharacteristics.Key<?>> keys = CaptureController.mCameraCharacteristics.getKeys();
+
         CaptureController controller = PhotonCamera.getCaptureController();
         List<CaptureRequest.Key<?>> captureKeys = controller.mPreviewRequest.getKeys();
+        List<CameraCharacteristics.Key<?>> keys = CaptureController.mCameraCharacteristics.getKeys();
+        List<CaptureResult.Key<?>> resultKeys = CaptureController.mPreviewCaptureResult.getKeys();
         //DebugParameters debugParameters = PhotonCamera.getDebugger().debugParameters;
 
         switch (commands[0]){
@@ -141,8 +146,45 @@ public class DebugClient {
                 setKey(captureRequestBuilder,requestKey,commands[2],commands[3]);
                 return;
             }
+            case "PREVIEW_KEY":{
+                CaptureResult.Key<?> resultKey = null;
+                for(CaptureResult.Key<?> key : resultKeys){
+                    if(key.getName().equals(commands[1])) resultKey = key;
+                }
+                if(resultKey == null) {
+                    mBufferOut.println("Result key is null");
+                    return;
+                }
+                Object obj = CaptureController.mPreviewCaptureResult.get(resultKey);
+                Class clasObj = obj.getClass();
+                String name = clasObj.getName();
+                switch (name){
+                    case "[B":{
+                        mBufferOut.println("key:"+ Arrays.toString((byte[]) obj)+" Object:"+name);
+                        break;
+                    }
+                    case "[F":{
+                        mBufferOut.println("key:"+ Arrays.toString((float[]) obj)+" Object:"+name);
+                        break;
+                    }
+                    default:{
+                        mBufferOut.println("key:"+obj.toString()+" Object:"+name);
+                        break;
+                    }
+                }
+                return;
+            }
+            case "PREVIEW_KEYS":{
+                StringBuilder keysStr = new StringBuilder();
+                for(CaptureResult.Key<?> key : resultKeys){
+                    keysStr.append(key.getName());
+                    keysStr.append(" ");
+                }
+                mBufferOut.println(keysStr.toString());
+                return;
+            }
             case "DEBUG_SHOT":{
-                controller.debugCapture(captureRequestBuilder);
+                controller.runDebug(captureRequestBuilder);
                 break;
             }
         }
@@ -162,6 +204,7 @@ public class DebugClient {
             mBufferOut.print(value);
             mBufferOut.print(",");
         }
-        mBufferOut.println();
+        mBufferOut.println(" ");
+        mBufferOut.flush();
     }
 }
