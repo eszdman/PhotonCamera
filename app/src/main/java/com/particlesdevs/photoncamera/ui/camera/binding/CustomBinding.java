@@ -1,9 +1,11 @@
 package com.particlesdevs.photoncamera.ui.camera.binding;
 
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckedTextView;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
@@ -103,5 +105,33 @@ public class CustomBinding {
     public static void setActiveCameraId(AuxButtonsLayout layout, String cameraId) {
         if (cameraId != null)
             layout.setActiveId(cameraId);
+    }
+
+    @BindingAdapter("layoutMarginTop")
+    public static void setLayoutMarginTop(View view, float margin) {
+        ViewGroup.MarginLayoutParams layoutParams = ((ViewGroup.MarginLayoutParams) view.getLayoutParams());
+        layoutParams.topMargin = (int) margin;
+        view.setLayoutParams(layoutParams);
+    }
+
+    @BindingAdapter("adjustCameraContainer")
+    public static void adjustCameraContainer(ConstraintLayout cameraContainer, float displayAspectRatio) {
+        if (displayAspectRatio <= 16f / 9) {
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) cameraContainer.getLayoutParams();
+            params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.topToBottom = ConstraintLayout.LayoutParams.UNSET;
+        }
+    }
+
+    @BindingAdapter("adjustTopBar")
+    public static void adjustTopBar(View topbar, float displayAspectRatio) {
+        if (displayAspectRatio > 16f / 9) {
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) topbar.getLayoutParams();
+            DisplayMetrics displayMetrics = topbar.getResources().getDisplayMetrics();
+            float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
+            float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+            float dpmargin = (dpHeight - (dpWidth / 9f * 16f));
+            params.topMargin = (int) dpmargin;
+        }
     }
 }

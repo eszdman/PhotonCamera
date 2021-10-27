@@ -34,6 +34,7 @@
     <dimen name="aux_button_internal_margin">3dp</dimen>
     <dimen name="capture_progress_circle_size">150dp</dimen>
     <dimen name="camera_switch_button_size">@dimen/gallery_button_size</dimen>
+    <dimen name="standard_0">0dp</dimen>
     <dimen name="standard_65">65dp</dimen>
     <dimen name="standard_125">125dp</dimen>
     <dimen name="standard_20">20dp</dimen>

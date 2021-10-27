@@ -37,7 +37,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.0"
-                    android:layout_marginTop="16dp" />
+                    android:layout_marginVertical="8dp" />
 
             <include
                     android:id="@+id/bottom_buttons"

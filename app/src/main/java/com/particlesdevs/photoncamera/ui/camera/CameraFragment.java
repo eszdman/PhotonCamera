@@ -206,17 +206,18 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         Log.d(TAG, "onCreateView: ");
         initMembers();
         setModelsToLayout();
-
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        logDisplayProperties(dm);
-        displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
-
-        return getAdjustedLayout(displayAspectRatio, cameraFragmentBinding.textureHolder);
+        return cameraFragmentBinding.getRoot();
     }
 
     private void initMembers() {
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
+
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        cameraFragmentViewModel.setScreenAspectRatio(displayAspectRatio);
+
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
