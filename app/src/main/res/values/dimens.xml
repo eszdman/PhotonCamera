@@ -39,6 +39,6 @@
     <dimen name="standard_125">125dp</dimen>
     <dimen name="standard_20">20dp</dimen>
     <dimen name="gallery_viewer_button_size">25dp</dimen>
-    <dimen name="gallery_viewer_button_conainer_size">80dp</dimen>
+    <dimen name="gallery_viewer_button_conainer_size">60dp</dimen>
     <dimen name="topbar_button_inset">11dp</dimen>
 </resources>

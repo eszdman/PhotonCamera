@@ -8,6 +8,9 @@
         <variable
                 name="on_back"
                 type="android.view.View.OnClickListener"/>
+        <variable
+                name="on_quick_compare"
+                type="android.view.View.OnClickListener"/>
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -70,6 +73,35 @@
                     android:text=""
                     android:clickable="false"
                     android:background="@drawable/ic_photo_library"
+                    app:backgroundTint="@android:color/white"
+                    />
+        </FrameLayout>
+
+        <FrameLayout
+                android:id="@+id/gallery_quick_compare_button"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/gallery_viewer_button_conainer_size"
+                app:layout_constraintHeight_max="80dp"
+                app:layout_constraintDimensionRatio="1:1"
+                android:text=""
+                app:layout_constraintEnd_toStartOf="@id/gallery_grid_button"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintHorizontal_bias="1"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:onClick="@{on_quick_compare}"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                >
+
+            <Button
+                    android:layout_width="@dimen/gallery_viewer_button_size"
+                    android:layout_height="@dimen/gallery_viewer_button_size"
+                    android:layout_gravity="center"
+                    android:text=""
+                    android:clickable="false"
+                    android:background="@drawable/ic_compare"
                     app:backgroundTint="@android:color/white"
                     />
         </FrameLayout>

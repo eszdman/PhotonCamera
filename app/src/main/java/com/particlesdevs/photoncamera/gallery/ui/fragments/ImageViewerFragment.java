@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -149,6 +151,7 @@ public class ImageViewerFragment extends Fragment {
         fragmentGalleryImageViewerBinding.bottomControlsContainer.setOnEdit(this::onEditButtonClick);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnGallery(this::onGalleryButtonClick);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnBack(this::onBack);
+        fragmentGalleryImageViewerBinding.topControlsContainer.setOnQuickCompare(this::onQuickCompare);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
     }
 
@@ -190,6 +193,24 @@ public class ImageViewerFragment extends Fragment {
 
     private void onBack(View view) {
         getActivity().finish();
+    }
+
+    private void onQuickCompare(View view) {
+        if (galleryItems.size() >= 2) {
+            NavController navController = Navigation.findNavController(view);
+            Bundle b = new Bundle(2);
+            int image1pos = viewPager.getCurrentItem();
+            int image2pos = image1pos + 1;
+            if (image1pos == galleryItems.size() - 1) {
+                image2pos = image1pos;
+                image1pos -= 1;
+            }
+            b.putInt(Constants.IMAGE1_KEY, image1pos);
+            b.putInt(Constants.IMAGE2_KEY, image2pos);
+            navController.navigate(R.id.action_imageViewerFragment_to_imageCompareFragment, b);
+        } else {
+            Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void onGalleryButtonClick(View view) {
