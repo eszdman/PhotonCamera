@@ -14,7 +14,6 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEV
 
 public class Specific {
     private static final String TAG = "Specific";
-    public boolean isRawColorCorrection = false;
     public SpecificSetting specificSetting;
     public float[] blackLevel;
     private final SettingsManager mSettingsManager;
@@ -43,16 +42,28 @@ public class Specific {
                     while ((str = in.readLine()) != null) {
                         String[] caseS = str.split("=");
                         switch (caseS[0]) {
-                            case "isDualSessionSupported":
+                            case "isDualSessionSupported": {
                                 specificSetting.isDualSessionSupported = Boolean.parseBoolean(caseS[1]);
                                 break;
-                            case "blackLevel":
+                            }
+                            case "blackLevel": {
                                 String[] bl = caseS[1].split(",");
-                                blackLevel = new float[]{Float.parseFloat(bl[0]),Float.parseFloat(bl[1]),Float.parseFloat(bl[2]),Float.parseFloat(bl[3])};
+                                blackLevel = new float[]{Float.parseFloat(bl[0]), Float.parseFloat(bl[1]), Float.parseFloat(bl[2]), Float.parseFloat(bl[3])};
                                 break;
-                            case "rawColorCorrection":
-                                isRawColorCorrection = Boolean.parseBoolean(caseS[1]);
+                            }
+                            case "rawColorCorrection": {
+                                specificSetting.isRawColorCorrection = Boolean.parseBoolean(caseS[1]);
                                 break;
+                            }
+                            case "cameraIDS": {
+                                String[] ids = caseS[1].replace("{", "").replace("}", "").split(",");
+                                specificSetting.cameraIDS = new int[ids.length];
+                                for(int i =0; i<specificSetting.cameraIDS.length;i++){
+                                    specificSetting.cameraIDS[i] = Integer.parseInt(ids[i]);
+                                }
+                                break;
+                            }
+
                         }
                     }
                     mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded", true);

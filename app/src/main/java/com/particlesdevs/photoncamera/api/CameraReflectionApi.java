@@ -20,6 +20,7 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import org.chickenhook.restrictionbypass.RestrictionBypass;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -28,6 +29,16 @@ import java.util.List;
 
 public class CameraReflectionApi {
     //private static final String TAG = "CameraReflectionApi";
+    public static CaptureResult.Key<?> createKeyResult(String name, Class<?> type){
+        Class captureResultKey = ReflectBypass.findClass("android/hardware/camera2/CaptureResult$Key");
+        try {
+            Constructor constructor = captureResultKey.getConstructor(String.class, Class.class);
+            return (CaptureResult.Key<?>) constructor.newInstance(name,type);
+        } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     public static <T> void set(CameraCharacteristics.Key<T> key, T value) {
         try {

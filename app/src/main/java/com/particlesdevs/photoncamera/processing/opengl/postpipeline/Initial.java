@@ -34,7 +34,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         lutbm.recycle();
         lut.close();
         interpolatedCurve.close();
-        TonemapCoeffs.close();
+        //TonemapCoeffs.close();
     }
 
     @Override
@@ -98,32 +98,32 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         intenseHardCurveY[curvePointsCount-1] = 0.f;
 
         if(curvePointsCount == 6){
-            intenseCurveX[0] = 0.0f;
-            intenseCurveX[1] = 0.3f;
-            intenseCurveX[2] = 0.65f;
-            intenseCurveX[3] = 0.75f;
-            intenseCurveX[4] = 0.95f;
+            intenseCurveX[0] = 0.0f*0.65f;
+            intenseCurveX[1] = 0.3f*0.65f;
+            intenseCurveX[2] = 0.65f*0.65f;
+            intenseCurveX[3] = 0.75f*0.65f;
+            intenseCurveX[4] = 0.95f*0.65f;
             intenseCurveX[5] = 1.0f;
 
             intenseCurveY[0] = 1.25f;
             intenseCurveY[1] = 1.20f;
             intenseCurveY[2] = 1.1f;
-            intenseCurveY[3] = 0.85f;
-            intenseCurveY[4] = 0.8f;
+            intenseCurveY[3] = 0.75f;
+            intenseCurveY[4] = 0.5f;
             intenseCurveY[5] = 0.0f;
 
-            intenseHardCurveX[0] = 0.0f;
-            intenseHardCurveX[1] = 0.3f;
-            intenseHardCurveX[2] = 0.65f;
-            intenseHardCurveX[3] = 0.75f;
-            intenseHardCurveX[4] = 0.95f;
+            intenseHardCurveX[0] = 0.0f*0.65f;
+            intenseHardCurveX[1] = 0.3f*0.65f;
+            intenseHardCurveX[2] = 0.65f*0.65f;
+            intenseHardCurveX[3] = 0.75f*0.65f;
+            intenseHardCurveX[4] = 0.95f*0.65f;
             intenseHardCurveX[5] = 1.0f;
 
             intenseHardCurveY[0] = 1.75f;
             intenseHardCurveY[1] = 1.5f;
             intenseHardCurveY[2] = 1.3f;
-            intenseHardCurveY[3] = 0.85f;
-            intenseHardCurveY[4] = 0.8f;
+            intenseHardCurveY[3] = 0.75f;
+            intenseHardCurveY[4] = 0.5f;
             intenseHardCurveY[5] = 0.0f;
         }
 
@@ -173,7 +173,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         }
         glProg.setDefine("SATURATION2",sat);
         glProg.setDefine("SATURATION",sat*highersatmpy);
-        TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        //TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         /*GLTexture oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();
@@ -215,11 +215,12 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             Log.d(Name,"CCT:"+ Arrays.toString(cct));
         }
         float[] gamma = new float[1024];
-        for(int i =0; i<gamma.length;i++){
-            double pos =((float)i)/(gamma.length-1.f);
-            gamma[i] = (float)(Math.pow(pos, 1./ gammaKoefficientGenerator));
+        for (int i = 0; i < gamma.length; i++) {
+            double pos = ((float) i) / (gamma.length - 1.f);
+            gamma[i] = (float) (Math.pow(pos, 1. / gammaKoefficientGenerator));
         }
-        GLTexture GammaTexture = new GLTexture(gamma.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
+        GLTexture GammaTexture = new GLTexture(gamma.length,1,
+                new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
         if(customlut.exists()){
             lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
@@ -228,7 +229,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(),R.drawable.initial_lut);
         }
         lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
-        glProg.setTexture("TonemapTex",TonemapCoeffs);
+        //glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("LookupTable",lut);

@@ -80,7 +80,7 @@ void main() {
         float coso = cos(angle);
         coso*=coso;
         float sin2o = sin(angle*2.0);
-        vec2 sigo = vec2(3.5*1.5,3.5/2.35);
+        vec2 sigo = vec2(3.5*1.5,3.5/4.35);
         //Improve energy
         //sigo*=min(sigY*30.1,1.0);
         sigo*=sigo;

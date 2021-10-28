@@ -155,10 +155,12 @@ vec3 tonemap(vec3 rgb) {
     minmax.y = sorted.z;
 
     // Apply tonemapping curve to min, max RGB channel values
-    minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
+    /*minmax = pow(minmax, vec2(3.f)) * toneMapCoeffs.x +
     pow(minmax, vec2(2.f)) * toneMapCoeffs.y +
     minmax * toneMapCoeffs.z +
-    toneMapCoeffs.w;
+    toneMapCoeffs.w;*/
+    minmax.r = texture(TonemapTex,vec2(minmax.r,0.5f)).r;
+    minmax.g = texture(TonemapTex,vec2(minmax.g,0.5f)).r;
 
     //minmax = mix(minmax, minmaxsin, 0.9f);
 
@@ -305,8 +307,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
 
 
-    br*=tonemapGain;
-    br = clamp(br, 0.0,1.0);
+    br=mix(br*tonemapGain,pow(br,2.0/tonemapGain),br);
+    //br*=tonemapGain;
 
 
 
@@ -317,6 +319,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     pRGB*=br;
     //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
     //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
+
     //pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
@@ -425,8 +428,8 @@ void main() {
     //} else tonemapGain = -tonemapGain;
     float mixG = (sRGB.g-minImg)/(maxImg-minImg);
     mixG = clamp(mixG,0.0,1.0);
-    tonemapGain = mix(maxG,minG,0.5);
-    tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
+    tonemapGain = mix(maxG,minG,mixG);
+    //tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;

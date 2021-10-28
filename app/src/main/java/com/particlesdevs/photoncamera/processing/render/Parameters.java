@@ -8,6 +8,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
+import android.hardware.camera2.params.TonemapCurve;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -23,6 +24,7 @@ import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -61,6 +63,8 @@ public class Parameters {
     public double YPerMm;
     public double[] cameraIntrinsic = new double[9];
     public double[] cameraIntrinsicRev = new double[9];
+    public float[][] tonemapCurves = new float[3][];
+    public float gammaCurve = 2.0f;
     public SpecificSettingSensor sensorSpecifics;
 
 
@@ -246,7 +250,7 @@ public class Parameters {
             }
             if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
-        if(PhotonCamera.getSpecific().isRawColorCorrection) wrongCalibration = false;
+        if(PhotonCamera.getSpecific().specificSetting.isRawColorCorrection) wrongCalibration = false;
         if (wrongCalibration && !customCCT.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;

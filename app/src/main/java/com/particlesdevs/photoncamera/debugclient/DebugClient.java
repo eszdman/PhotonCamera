@@ -1,11 +1,13 @@
 package com.particlesdevs.photoncamera.debugclient;
 
+import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
+import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
@@ -18,8 +20,11 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static android.hardware.camera2.CaptureResult.STATISTICS_HOT_PIXEL_MAP;
 
 public class DebugClient {
     private PrintWriter mBufferOut;
@@ -120,7 +125,9 @@ public class DebugClient {
             case "[Landroid.hardware.camera2.params.MeteringRectangle;": {
                 return (Arrays.toString((android.hardware.camera2.params.MeteringRectangle[]) input));
             }
-
+            case "[Landroid.graphics.Point;": {
+                return (Arrays.toString((android.graphics.Point[]) input));
+            }
             default: {
                 return (input.toString());
             }
@@ -145,11 +152,10 @@ public class DebugClient {
         String[] commands = mServerMessage.split(":");
 
         CaptureController controller = PhotonCamera.getCaptureController();
-        List<CaptureRequest.Key<?>> captureKeys = controller.mPreviewRequest.getKeys();
+        ArrayList<CaptureRequest.Key<?>> captureKeys = new ArrayList<>(controller.mPreviewRequest.getKeys());
         List<CameraCharacteristics.Key<?>> keys = CaptureController.mCameraCharacteristics.getKeys();
         List<CaptureResult.Key<?>> resultKeys = CaptureController.mPreviewCaptureResult.getKeys();
         //DebugParameters debugParameters = PhotonCamera.getDebugger().debugParameters;
-
         switch (commands[0]){
             case "CHARACTERISTICS_KEY":{
                 Log.v("DebugClient","KeyRequired:"+commands[1]);

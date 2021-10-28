@@ -326,6 +326,21 @@ public class Utilities {
             output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
         return output;
     }
+    public static float[] interpolateTonemap(float[] in, int requiredSize){
+        float[] output = new float[requiredSize];
+        ArrayList<Float> mY,mx;
+        mY = new ArrayList<>();
+        mx = new ArrayList<>();
+        for(int xi = 0; xi<in.length; xi+=2){
+            float line = xi / (in.length-1.f);
+            mx.add(in[xi]);
+            mY.add((float) Math.pow(line,1.0/2.0));
+        }
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(mx,mY);
+        for(int i =0; i<output.length;i++)
+            output[i] = splineInterpolator.interpolate(i/(float)(output.length-1));
+        return output;
+    }
     public static float luminocity(float[] in){
         return (in[0]*0.299f+in[1]*0.587f+in[2]*0.114f);
     }
