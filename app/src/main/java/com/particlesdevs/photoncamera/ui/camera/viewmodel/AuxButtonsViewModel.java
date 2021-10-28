@@ -38,7 +38,7 @@ import java.util.Map;
  * ViewModel which connects {@link AuxButtonsModel} with {@link CameraFragment}
  */
 public class AuxButtonsViewModel extends ViewModel {
-    private static final Comparator<CameraLensData> SORT_BY_ZOOM_FACTOR = Comparator.comparingDouble(CameraLensData::getZoomFactor);
+    private static final Comparator<CameraLensData> SORT_BY_ZOOM_FACTOR = (o1, o2) -> -Double.compare(o1.getZoomFactor(), o2.getZoomFactor());
     private final AuxButtonsModel auxButtonsModel = new AuxButtonsModel();
     private boolean initialized = false;
 
