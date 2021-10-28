@@ -17,9 +17,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -84,6 +82,53 @@ public class DebugClient {
                 builder.set((CaptureRequest.Key<Double>)key,Double.parseDouble(value));
             }
         }
+    }
+    private String getObjectString(Object input){
+        Class clasObj = input.getClass();
+        String name = clasObj.getName();
+        switch (name) {
+            case "[B": {
+                return (Arrays.toString((byte[]) input));
+            }
+            case "[F": {
+                return (Arrays.toString((float[]) input));
+            }
+            case "[I": {
+                return (Arrays.toString((int[]) input) );
+            }
+            case "[J": {
+                return (Arrays.toString((long[]) input));
+            }
+            case "[D": {
+                return (Arrays.toString((double[]) input));
+            }
+            case "[S": {
+                return (Arrays.toString((short[]) input));
+            }
+            case "[C": {
+                return (Arrays.toString((char[]) input));
+            }
+            case "[Landroid.hardware.camera2.params.Face;": {
+                return (Arrays.toString((android.hardware.camera2.params.Face[]) input));
+            }
+            case "[Landroid.util.Pair;": {
+                return (Arrays.toString((android.util.Pair<?,?>[]) input));
+            }
+            case "[Landroid.util.Rational;": {
+                return (Arrays.toString((android.util.Rational[]) input));
+            }
+            case "[Landroid.hardware.camera2.params.MeteringRectangle;": {
+                return (Arrays.toString((android.hardware.camera2.params.MeteringRectangle[]) input));
+            }
+
+            default: {
+                return (input.toString());
+            }
+        }
+    }
+    private String previewKeyValue(CaptureResult.Key<?> key) {
+        Object obj = CaptureController.mPreviewCaptureResult.get(key);
+        return getObjectString(obj);
     }
     CaptureRequest.Builder captureRequestBuilder = null;
     private void ParseControl(String mServerMessage){
@@ -155,29 +200,24 @@ public class DebugClient {
                     mBufferOut.println("Result key is null");
                     return;
                 }
-                Object obj = CaptureController.mPreviewCaptureResult.get(resultKey);
-                Class clasObj = obj.getClass();
-                String name = clasObj.getName();
-                switch (name){
-                    case "[B":{
-                        mBufferOut.println("key:"+ Arrays.toString((byte[]) obj)+" Object:"+name);
-                        break;
-                    }
-                    case "[F":{
-                        mBufferOut.println("key:"+ Arrays.toString((float[]) obj)+" Object:"+name);
-                        break;
-                    }
-                    default:{
-                        mBufferOut.println("key:"+obj.toString()+" Object:"+name);
-                        break;
-                    }
-                }
+                mBufferOut.println(previewKeyValue(resultKey));
                 return;
             }
             case "PREVIEW_KEYS":{
                 StringBuilder keysStr = new StringBuilder();
                 for(CaptureResult.Key<?> key : resultKeys){
                     keysStr.append(key.getName());
+                    keysStr.append(" ");
+                }
+                mBufferOut.println(keysStr.toString());
+                return;
+            }
+            case "PREVIEW_KEYS_PRINT":{
+                StringBuilder keysStr = new StringBuilder();
+                for(CaptureResult.Key<?> key : resultKeys){
+                    keysStr.append(key.getName());
+                    keysStr.append("=");
+                    keysStr.append(previewKeyValue(key));
                     keysStr.append(" ");
                 }
                 mBufferOut.println(keysStr.toString());
