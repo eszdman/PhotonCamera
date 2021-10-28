@@ -130,6 +130,16 @@ public class DebugClient {
         Object obj = CaptureController.mPreviewCaptureResult.get(key);
         return getObjectString(obj);
     }
+    //Keys
+    //CHARACTERISTICS_KEY
+    //CHARACTERISTICS_KEYS
+    //CAPTURE_KEYS
+    //BUILDER_CREATE
+    //BUILDER_SET
+    //PREVIEW_KEY
+    //PREVIEW_KEYS
+    //PREVIEW_KEYS_PRINT
+    //DEBUG_SHOT
     CaptureRequest.Builder captureRequestBuilder = null;
     private void ParseControl(String mServerMessage){
         String[] commands = mServerMessage.split(":");
