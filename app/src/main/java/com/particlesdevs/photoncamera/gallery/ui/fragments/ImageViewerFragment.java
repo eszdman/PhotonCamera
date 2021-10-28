@@ -2,12 +2,12 @@ package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.PointF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
+import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.DepthPageTransformer;
@@ -63,7 +64,22 @@ public class ImageViewerFragment extends Fragment {
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
     private String mode;
-    private SSIVListener ssivListener;
+    private SSIVListener ssivListener = new SSIVListener() {
+        @Override
+        public void onScaleChanged(float newScale, int origin) {
+            updateScaleText();
+        }
+
+        @Override
+        public void onCenterChanged(PointF newCenter, int origin) {
+
+        }
+
+        @Override
+        public void onTouched(int id) {
+
+        }
+    };
     private int indexToDelete = -1;
     private GalleryViewModel viewModel;
 
@@ -104,6 +120,12 @@ public class ImageViewerFragment extends Fragment {
             if (ssivListener != null) {
                 adapter.setSsivListener(ssivListener);
             }
+            adapter.setImageEventListener(new SubsamplingScaleImageView.DefaultOnImageEventListener() {
+                @Override
+                public void onReady() {
+                    updateScaleText();
+                }
+            });
             viewPager.setAdapter(adapter);
         }
     }
@@ -159,14 +181,16 @@ public class ImageViewerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewPager.setPageTransformer(true, new DepthPageTransformer());
+        viewPager.setOffscreenPageLimit(3);
         viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
                 updateExif();
-                resetScaleText();
+                updateScaleText();
                 linearRecyclerView.smoothScrollToPosition(position);
             }
         });
+        updateExif();
         Bundle bundle = getArguments();
         if (bundle != null) {
             mode = bundle.getString(Constants.MODE_KEY);
@@ -178,9 +202,9 @@ public class ImageViewerFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (isCompareMode()) {
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(true);
-        }
+//        if (isCompareMode()) {
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+//        }
     }
 
     public void setSsivListener(SSIVListener ssivListener) {
@@ -301,6 +325,7 @@ public class ImageViewerFragment extends Fragment {
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!isExifVisible);
         } else {
             fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
             if (isExifVisible) {
                 fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
                 updateExif();
@@ -309,7 +334,10 @@ public class ImageViewerFragment extends Fragment {
     }
 
     public void updateScaleText() {
-        fragmentGalleryImageViewerBinding.setScale(String.format(Locale.ROOT, "%.0f%%", (getCurrentSSIV().getScale() * 100)));
+        SubsamplingScaleImageView view = getCurrentSSIV();
+        if (view != null) {
+            fragmentGalleryImageViewerBinding.setScale(String.format(Locale.ROOT, "%.0f%%", (view.getScale() * 100)));
+        }
     }
 
     public void resetScaleText() {
@@ -320,12 +348,9 @@ public class ImageViewerFragment extends Fragment {
         int position = viewPager.getCurrentItem();
         if (galleryItems.size() > 0) {
             GalleryItem galleryItem = galleryItems.get(position);
+            exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile());
             if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-                //update values for exif dialog
-                exifDialogViewModel.updateModel(getContext().getContentResolver(), galleryItem.getFile());
                 exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
-            } else {
-                exifDialogViewModel.updateModel(getContext().getContentResolver(), galleryItem.getFile());
             }
         }
     }

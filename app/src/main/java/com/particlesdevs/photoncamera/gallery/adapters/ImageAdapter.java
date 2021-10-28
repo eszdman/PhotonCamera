@@ -33,6 +33,8 @@ public class ImageAdapter extends PagerAdapter {
     private final List<GalleryItem> galleryItemList;
     private ImageViewClickListener imageViewClickListener;
     private SSIVListener ssivListener;
+    private SubsamplingScaleImageView.OnImageEventListener imageEventListener;
+
 
     public ImageAdapter(List<GalleryItem> galleryItemList) {
         this.galleryItemList = galleryItemList;
@@ -40,6 +42,10 @@ public class ImageAdapter extends PagerAdapter {
 
     public void setSsivListener(SSIVListener ssivListener) {
         this.ssivListener = ssivListener;
+    }
+
+    public void setImageEventListener(SubsamplingScaleImageView.OnImageEventListener imageEventListener) {
+        this.imageEventListener = imageEventListener;
     }
 
     @Override
@@ -68,6 +74,7 @@ public class ImageAdapter extends PagerAdapter {
             scaleImageView.setOnStateChangedListener(ssivListener);
             scaleImageView.setTouchCallBack(ssivListener);
         }
+        scaleImageView.setOnImageEventListener(imageEventListener);
         if (fileExt.equalsIgnoreCase("jpg") || fileExt.equalsIgnoreCase("png")) {
             scaleImageView.setImage(ImageSource.uri(galleryItem.getFile().getFileUri()));
         } else if (fileExt.equalsIgnoreCase("dng")) { //For DNG Files
