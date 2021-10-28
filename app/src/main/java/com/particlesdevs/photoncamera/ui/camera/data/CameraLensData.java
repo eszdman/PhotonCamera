@@ -22,6 +22,8 @@ package com.particlesdevs.photoncamera.ui.camera.data;
 
 import androidx.annotation.NonNull;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Objects;
 
 /**
@@ -29,12 +31,20 @@ import java.util.Objects;
  * Mainly for usage with multi-camera buttons.
  */
 public class CameraLensData {
+    @SerializedName("id")
     private final String cameraId;
+    @SerializedName("face")
     private int facing;
+    @SerializedName("fl")
     private float cameraFocalLength;
+    @SerializedName("ap")
     private float cameraAperture;
+    @SerializedName("fl35")
     private float camera35mmFocalLength;
+    @SerializedName("zf")
     private float zoomFactor;
+    @SerializedName("fs")
+    private boolean flashSupported;
 
     public CameraLensData(String cameraId) {
         this.cameraId = cameraId;
@@ -84,17 +94,21 @@ public class CameraLensData {
         this.cameraAperture = cameraAperture;
     }
 
+    public void setFlashSupported(boolean flashSupported) {
+        this.flashSupported = flashSupported;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CameraLensData that = (CameraLensData) o;
-        return Float.compare(that.cameraFocalLength, cameraFocalLength) == 0 && Float.compare(that.cameraAperture, cameraAperture) == 0;
+        return facing == that.facing && Float.compare(that.cameraFocalLength, cameraFocalLength) == 0 && Float.compare(that.cameraAperture, cameraAperture) == 0 && flashSupported == that.flashSupported;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cameraFocalLength, cameraAperture);
+        return Objects.hash(facing, cameraFocalLength, cameraAperture, flashSupported);
     }
 
     @Override
