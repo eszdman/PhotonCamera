@@ -1,0 +1,138 @@
+{
+  "list": [
+    {
+      "aberrationCorrection": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "blackLevel": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "captureSharpeningIntense": 0.5,
+      "captureSharpeningS": 1.05,
+      "cct": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "cctExists": false,
+      "id": 0,
+      "isRawColorCorrection": false,
+      "modelerExists": false,
+      "noiseModelerArr": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "aberrationCorrection": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "blackLevel": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "captureSharpeningIntense": 0.5,
+      "captureSharpeningS": 1.05,
+      "cct": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "cctExists": false,
+      "id": 1,
+      "isRawColorCorrection": false,
+      "modelerExists": false,
+      "noiseModelerArr": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    }
+  ]
+}

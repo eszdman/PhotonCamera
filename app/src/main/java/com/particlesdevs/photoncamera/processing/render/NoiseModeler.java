@@ -18,12 +18,12 @@ public class NoiseModeler {
         baseModel = new Pair[3];
         computeModel = new Pair[3];
         //inModel = null;
-        if (inModel == null || inModel.length == 0 || inModel[0].first == 0.0 || (specificSettingSensor != null && specificSettingSensor.ModelerExists)) {
+        if (inModel == null || inModel.length == 0 || inModel[0].first == 0.0 || (specificSettingSensor != null && specificSettingSensor.modelerExists)) {
             Pair<Double, Double> CustomGeneratorS;
             Pair<Double, Double> CustomGeneratorO;
             if(specificSettingSensor != null) {
                 double[] avrdouble = new double[4];
-                for (double[] ind : specificSettingSensor.NoiseModelerArr) {
+                for (double[] ind : specificSettingSensor.noiseModelerArr) {
                     avrdouble[0] += ind[0];
                     avrdouble[1] += ind[1];
                     avrdouble[2] += ind[2];
