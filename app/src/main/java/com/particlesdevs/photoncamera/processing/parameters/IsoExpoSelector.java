@@ -68,6 +68,9 @@ public class IsoExpoSelector {
             }*/
             mpy1 = 3000.0;
         }
+        if(PhotonCamera.getSettings().selectedMode == CameraMode.MOTION){
+            mpy1 = 0.0;
+        }
         if (pair.exposure < ExposureIndex.sec / 40 && pair.normalizedIso() > 90.0/mpy1) {
             pair.ReduceIso();
         }

@@ -99,6 +99,7 @@
     <string name="sync_on">Sync On</string>
     <string name="sync_off">Sync Off</string>
     <string name="mode_unlimited">Unlimited</string>
+    <string name="mode_motion">Motion</string>
     <string name="mode_photo">Photo</string>
     <string name="mode_night">Night</string>
     <string name="mode_video">Video</string>
