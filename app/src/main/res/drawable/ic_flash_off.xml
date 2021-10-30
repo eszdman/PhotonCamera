@@ -4,6 +4,6 @@
     <group>
         <clip-path android:pathData="M0,0h52v52h-52z" />
         <path android:fillColor="#00000000" android:pathData="M27.844,2.464l-11.708,24.567L36.52,27.0309l-9.1,21.442 -0.42,0.991" android:strokeColor="#ffffffff" android:strokeWidth="4.5" android:strokeLineCap="round" android:strokeLineJoin="round" />
-        <path android:fillColor="#00000000" android:pathData="M9.237,2.463L43.419,49.463" android:strokeColor="#ffffffff" android:strokeWidth="3.0" android:strokeLineCap="round" />
+        <path android:fillColor="#ffffffff" android:pathData="M46.576,47.6411a1.5,1.5 0,0 1,-1.059 -0.438l-41.152,-41.036a1.5,1.5 0,0 1,0 -2.122,1.5 1.5,0 0,1 2.121,0l41.152,41.036a1.5,1.5 0,0 1,0 2.122A1.5,1.5 0,0 1,46.576 47.6411Z" />
     </group>
 </vector>

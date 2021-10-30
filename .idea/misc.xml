@@ -36,6 +36,7 @@
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_exposure_selected.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_exposure_unselect.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_flash.xml" value="0.24375" />
+        <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_flash_off.xml" value="0.2838541666666667" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_focus_selected.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_focus_selected_camera.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_focus_unselect.xml" value="0.24375" />
@@ -43,6 +44,8 @@
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_frame_setting.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_gradient_black_24dp.xml" value="0.21145833333333333" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_gradient_setting.xml" value="0.24375" />
+        <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_grid_off.xml" value="0.2838541666666667" />
+        <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_hdrx_off.xml" value="0.2838541666666667" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_quad_off.xml" value="0.24375" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_quad_on.xml" value="0.403125" />
         <entry key="..\:/AndroidApps/PhotonCamera/app/src/main/res/drawable/ic_raw.xml" value="0.403125" />
