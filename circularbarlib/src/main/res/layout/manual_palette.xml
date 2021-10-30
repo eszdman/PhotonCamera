@@ -17,7 +17,7 @@
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 tools:visibility="gone"
-                android:layout_height="128dp" />
+                android:layout_height="96dp" />
     </FrameLayout>
 
 

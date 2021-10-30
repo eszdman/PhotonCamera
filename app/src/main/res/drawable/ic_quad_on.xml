@@ -1,8 +1,11 @@
-<!-- drawable/view_grid.xml -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp"
-    android:width="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-  <path android:fillColor="#fff" android:pathData="M3,11H11V3H3M3,21H11V13H3M13,21H21V13H13M13,3V11H21V3" />
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="24.0dip" android:width="24.0dip" android:viewportWidth="52.0" android:viewportHeight="52.0"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <group>
+        <clip-path android:pathData="M0,0h52v52h-52z" />
+        <path android:fillColor="#ffffffff" android:pathData="M16.626,4.0032h-10.51a2.113,2.113 0,0 0,-2.12 2.11v10.51a2.113,2.113 0,0 0,2.12 2.11h10.51a2.11,2.11 0,0 0,2.11 -2.11v-10.51A2.11,2.11 0,0 0,16.626 4.0032Z" />
+        <path android:fillColor="#ffffffff" android:pathData="M45.886,4.0032h-10.51a2.11,2.11 0,0 0,-2.11 2.11v10.51a2.11,2.11 0,0 0,2.11 2.11h10.51a2.1,2.1 0,0 0,2.11 -2.11v-10.51A2.1,2.1 0,0 0,45.886 4.0032Z" />
+        <path android:fillColor="#ffffffff" android:pathData="M16.626,33.2632h-10.51a2.119,2.119 0,0 0,-2.12 2.11v10.52a2.119,2.119 0,0 0,2.12 2.11h10.51a2.117,2.117 0,0 0,2.11 -2.11v-10.52A2.117,2.117 0,0 0,16.626 33.2632Z" />
+        <path android:fillColor="#ffffffff" android:pathData="M45.886,33.2632h-10.51a2.117,2.117 0,0 0,-2.11 2.11v10.52a2.117,2.117 0,0 0,2.11 2.11h10.51a2.111,2.111 0,0 0,2.11 -2.11v-10.52A2.11,2.11 0,0 0,45.886 33.2632Z" />
+    </group>
 </vector>

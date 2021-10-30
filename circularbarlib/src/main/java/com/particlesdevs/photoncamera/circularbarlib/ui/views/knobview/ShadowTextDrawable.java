@@ -26,8 +26,7 @@ public class ShadowTextDrawable extends Drawable {
         this.m_Renderer.getBounds(this.m_TextBounds);
         if (!this.m_TextBounds.isEmpty()) {
             this.m_Renderer.draw(canvas, (float) (bounds.left + ((bounds.width() - this.m_TextBounds.width()) / 2)), (float) (bounds.top + ((bounds.height() - this.m_TextBounds.height()) / 2)));
-        }
-    }
+        }    }
 
     @Override
     public int getIntrinsicHeight() {
