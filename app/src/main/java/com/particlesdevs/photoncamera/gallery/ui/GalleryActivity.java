@@ -17,6 +17,7 @@ import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
 import com.particlesdevs.photoncamera.gallery.ui.fragments.ImageLibraryFragment;
 import com.particlesdevs.photoncamera.gallery.ui.fragments.ImageViewerFragment;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class GalleryActivity extends BaseActivity {
     private ActivityGalleryBinding activityGalleryBinding;
@@ -25,6 +26,7 @@ public class GalleryActivity extends BaseActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getDelegate().setLocalNightMode(PreferenceKeys.getThemeValue());
         activityGalleryBinding = DataBindingUtil.setContentView(this, R.layout.activity_gallery);
         viewModel = new ViewModelProvider(this).get(GalleryViewModel.class);
         viewModel.fetchAllImages();

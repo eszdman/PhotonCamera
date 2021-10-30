@@ -47,7 +47,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AppCompatDelegate.setDefaultNightMode(PreferenceKeys.getThemeValue());
+        getDelegate().setLocalNightMode(PreferenceKeys.getThemeValue());
         setContentView(R.layout.activity_settings);
         getSupportFragmentManager()
                 .beginTransaction()
