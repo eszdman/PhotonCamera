@@ -2,13 +2,14 @@
     <!--Activity Themes-->
 
     <!-- Base application theme. -->
-    <style name="Theme.Photon.BaseApp" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Photon.BaseApp" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="iconTint">?android:textColorPrimary</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimary">@color/colorAccent</item>
+        <item name="colorPrimaryContainer">@color/colorPrimaryContainer</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="cameraFragmentBackground">@android:color/black</item>
@@ -64,20 +65,20 @@
         <item name="android:textColor">?android:textColorPrimary</item>
     </style>
 
-    <style name="AlertDialogTheme" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
-        <item name="dialogCornerRadius">8dp</item>
+    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3.Dialog.Alert">
+        <item name="dialogCornerRadius">16dp</item>
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
         <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
     </style>
 
-    <style name="NegativeButtonStyle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+    <style name="NegativeButtonStyle" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:textColor">?colorControlActivated</item>
         <item name="strokeColor">?colorControlActivated</item>
-        <item name="strokeWidth">2dp</item>
+        <item name="strokeWidth">1dp</item>
 
     </style>
 
-    <style name="PositiveButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+    <style name="PositiveButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@android:color/white</item>
         <item name="backgroundTint">?colorControlActivated</item>
     </style>

@@ -45,6 +45,9 @@
         <item>@string/theme_accent_red</item>
         <item>@string/theme_accent_orange</item>
         <item>@string/theme_accent_green</item>
+        <item>@string/theme_accent_pink</item>
+        <item>@string/theme_accent_cyan</item>
+        <item>@string/theme_accent_teal</item>
     </string-array>
     <string-array name="theme_accent_entryValues">
         <item>default</item>
@@ -53,6 +56,9 @@
         <item>red</item>
         <item>orange</item>
         <item>green</item>
+        <item>pink</item>
+        <item>cyan</item>
+        <item>teal</item>
     </string-array>
     <string-array name="af_mode_entries">
         <item>Continuous Picture</item>

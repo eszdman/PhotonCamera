@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
-import android.util.Log;
 
 import androidx.annotation.StringRes;
 
@@ -126,6 +125,9 @@ public class PreferenceKeys {
         map.put("orange", R.style.OrangeTheme);
         map.put("green", R.style.GreenTheme);
         map.put("eszdman", R.style.EszdmanTheme);
+        map.put("pink", R.style.PinkTheme);
+        map.put("cyan", R.style.CyanTheme);
+        map.put("teal", R.style.TealTheme);
 
         SettingsManager sm = preferenceKeys.settingsManager;
 

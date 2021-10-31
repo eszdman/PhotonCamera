@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     def versionPropsFile = file('version.properties')
     def versionBuild
-    compileSdkVersion 30
+    compileSdkVersion 31
     buildToolsVersion '30.0.3'
     lintOptions {
         abortOnError false
@@ -108,7 +108,7 @@ dependencies {
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.3.0'
+    implementation 'com.google.android.material:material:1.5.0-alpha05'
     //Leak Canary
     //Use this lib to detect memory leaks when debugging
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
