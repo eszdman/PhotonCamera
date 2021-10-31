@@ -86,7 +86,7 @@ public class SettingsBarEntryView extends LinearLayout {
                 ImageButton button = new ImageButton(context);
                 button.setId(buttonModel.getId());
                 button.setImageResource(buttonModel.getButtonDrawableId());
-                button.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+                button.setImageTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_selected}, new int[]{-android.R.attr.state_selected}}, new int[]{Color.BLACK, Color.WHITE}));
                 button.setBackgroundResource(R.drawable.aux_button_background);
                 button.setCropToPadding(false);
                 button.setOnClickListener(buttonModel.getButtonClickListener());
