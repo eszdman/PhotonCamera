@@ -27,17 +27,24 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:animateLayoutChanges="true">
 
-
-        <com.particlesdevs.photoncamera.gallery.views.SquareImageView
-                android:id="@+id/square_image_view"
-                android:background="@color/grid_thumbnail_background"
-                android:scaleType="centerCrop"
+        <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                app:loadImage="@{galleryitem}"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="@dimen/standard_0"
+                app:strokeWidth="@dimen/standard_0"
                 android:onClick="@{(v)-> galleryitemclickedlistener.onItemClicked(v,galleryitem)}"
-                android:onLongClickListener="@{(v)-> galleryitemclickedlistener.onItemLongClicked(v,galleryitem)}"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center" />
+                android:onLongClickListener="@{(v)-> galleryitemclickedlistener.onItemLongClicked(v,galleryitem)}">
+
+            <com.particlesdevs.photoncamera.gallery.views.SquareImageView
+                    android:id="@+id/square_image_view"
+                    android:background="@color/grid_thumbnail_background"
+                    android:scaleType="centerCrop"
+                    android:layout_width="match_parent"
+                    app:loadImage="@{galleryitem}"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center" />
+        </com.google.android.material.card.MaterialCardView>
+
 
         <TextView
                 android:id="@+id/thumb_tag_text"

@@ -407,4 +407,8 @@ public class Utilities {
         int attributeResourceId = a.getResourceId(0, 0);
         return ResourcesCompat.getDrawable(context.getResources(), attributeResourceId, context.getTheme());
     }
+
+    public static int dpToPx(float dp) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().getDisplayMetrics());
+    }
 }

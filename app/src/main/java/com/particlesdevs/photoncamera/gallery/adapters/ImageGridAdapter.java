@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.gallery.adapters;
 
+import android.animation.ValueAnimator;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -11,11 +12,13 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewbinding.ViewBinding;
 
+import com.google.android.material.card.MaterialCardView;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.GalleryItemClickedListener;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.model.SelectionHelper;
+import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +28,8 @@ import java.util.List;
  */
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
-    private static final int SELECTION_ANIMATION_DURATION = 100;
+    private static final int SELECTION_ANIMATION_DURATION = 250;
+    private static final int ANIMATE_RADIUS = Utilities.dpToPx(20);
     private static final float SELECTION_SCALE_DOWN_FACTOR = 0.8f;
     private final ArrayList<View> selectedViews = new ArrayList<>();
     private final SelectionHelper<GalleryItem> selectionHelper = new SelectionHelper<>();
@@ -107,7 +111,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     private void selectView(View view) {
         selectedViews.add(view);
-        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(SELECTION_SCALE_DOWN_FACTOR).scaleY(SELECTION_SCALE_DOWN_FACTOR);
+        animatedSelect(view, true);
         if (gridAdapterCallback != null) {
             gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
         }
@@ -116,7 +120,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
 
     private void deselectView(View view) {
         selectedViews.remove(view);
-        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f).scaleY(1f);
+        animatedSelect(view, false);
         if (selectionHelper.isEmpty()) {
             if (gridAdapterCallback != null) {
                 gridAdapterCallback.onImageSelectionStopped();
@@ -132,7 +136,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     public void deselectAll() {
         selectionHelper.deselectAll();
         for (View view : selectedViews) {
-            view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(1f).scaleY(1f);
+            animatedSelect(view, false);
         }
         selectedViews.clear();
         notifyDataSetChanged();
@@ -168,5 +172,16 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             super(binding.getRoot());
             this.binding = binding;
         }
+    }
+
+    private void animatedSelect(View view, boolean select) {
+        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(select ? SELECTION_SCALE_DOWN_FACTOR : 1f).scaleY(select ? SELECTION_SCALE_DOWN_FACTOR : 1f);
+        final ValueAnimator animator = ValueAnimator.ofFloat(select ? 0 : ANIMATE_RADIUS, select ? ANIMATE_RADIUS : 0);
+        animator.setDuration(SELECTION_ANIMATION_DURATION)
+                .addUpdateListener(animation -> {
+                    float value = (float) animation.getAnimatedValue();
+                    ((MaterialCardView) view).setRadius(value);
+                });
+        animator.start();
     }
 }
