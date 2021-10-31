@@ -100,6 +100,7 @@ import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizo
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.Utilities;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.io.File;
@@ -858,6 +859,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                     cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                    cameraFragmentBinding.getRoot().setBackgroundResource(android.R.color.black);
                     break;
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
@@ -866,6 +868,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
                     cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
                 case PHOTO:
                 case MOTION:
@@ -879,6 +882,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
                 case NIGHT:
                     this.topbar.setEisVisible(false);
@@ -889,6 +893,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                     cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
                     cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
             }
             toggleConstraints(mode);

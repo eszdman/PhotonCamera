@@ -1,5 +1,8 @@
 package com.particlesdevs.photoncamera.util;
 
+import android.content.Context;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -8,6 +11,11 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.drawable.Drawable;
+import android.util.TypedValue;
+
+import androidx.annotation.ColorInt;
+import androidx.core.content.res.ResourcesCompat;
 
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 
@@ -384,5 +392,19 @@ public class Utilities {
         }
 
         return output;
+    }
+
+    @ColorInt
+    public static int resolveColor(Context context, int attr) {
+        TypedValue typedValue = new TypedValue();
+        Resources.Theme theme = context.getTheme();
+        theme.resolveAttribute(attr, typedValue, true);
+        return typedValue.data;
+    }
+
+    public static Drawable resolveDrawable(Context context, int attr) {
+        TypedArray a = context.getTheme().obtainStyledAttributes(new int[]{attr});
+        int attributeResourceId = a.getResourceId(0, 0);
+        return ResourcesCompat.getDrawable(context.getResources(), attributeResourceId, context.getTheme());
     }
 }
