@@ -66,6 +66,7 @@ public class ParseExif {
         int isonum = 100;
         if (iso != null) isonum = (int) (iso * IsoExpoSelector.getMPY());
         Log.d(TAG, "sensivity:" + isonum);
+        isonum = Math.min(65535,isonum);
 
         data.SENSITIVITY_TYPE = String.valueOf(ExifInterface.SENSITIVITY_TYPE_ISO_SPEED);
         data.PHOTOGRAPHIC_SENSITIVITY = String.valueOf(isonum);
