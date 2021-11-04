@@ -1,4 +1,4 @@
-#version 300 es
+
 
 #define TILE_OFFSET 4
 #define TILE_SCALE 8

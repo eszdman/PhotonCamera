@@ -1,4 +1,4 @@
-#version 300 es
+
 
 #define FLT_MAX 3.402823466e+38
 

@@ -1,4 +1,4 @@
-#version 300 es
+
 precision highp float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
@@ -14,7 +14,7 @@ out vec3 Output;
 #define NOISES 0.0
 #define INTENSE 1.0
 #import coords
-float normpdf(in float x, in float sigma){return exp(-0.5*x*x/(sigma*sigma));}
+#import gaussian
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     float edges[25];
@@ -43,10 +43,10 @@ void main() {
     float N = sqrt(avr*NOISES*INTENSE + NOISEO*INTENSE); + 0.00001;
     vec3 center = texelFetch(InputBuffer, (xy), 0).rgb;
     for(int i = -2; i<=2;i++){
-        float k0 = normpdf(float(i), SHARPSIZE);
+        float k0 = pdf(float(i)/SHARPSIZE);
         for (int j = -2; j<=2;j++){
             float br = edges[(i+2)*5 + j + 2];
-            float k = k0*normpdf(float(j), SHARPSIZE);
+            float k = k0*pdf(float(j)/SHARPSIZE);
             if (i == 12) continue;
             Output+=br*k;
             ksum+=k;
@@ -58,7 +58,7 @@ void main() {
     W = mix(SHARPMIN,SHARPMAX,W);
     W*=-strength/ksum;
 
-    float W2 = 1.0-normpdf(Output.g/ksum - center.g,N);
+    float W2 = 1.0-pdf((Output.g/ksum - center.g)/N);
     W*=W2;
     W = max(W,-0.90/ksum);
     Output = (Output*W - center.g*W*ksum)/(W*ksum + 1.0) + center.rgb;

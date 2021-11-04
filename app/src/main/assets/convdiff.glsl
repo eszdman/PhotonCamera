@@ -1,4 +1,3 @@
-#version 300 es
 #define INSIZE 1,1
 #define tvar vec2
 #define tscal float

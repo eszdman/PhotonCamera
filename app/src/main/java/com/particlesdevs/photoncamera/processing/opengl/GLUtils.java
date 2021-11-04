@@ -24,7 +24,7 @@ public class GLUtils {
         glProcessing = blockProcessing;
     }
     public GLTexture blurfast(GLTexture in, double size){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "precision mediump float;\n" +
@@ -34,7 +34,7 @@ public class GLUtils {
                 "out tvar Output;\n" +
                 "#define size1 "+((double)(size)*0.5)+"\n" +
                 "#define MSIZE1 "+(int)size+"\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "#import gaussian\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
@@ -45,12 +45,11 @@ public class GLUtils {
                 //"    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size1);\n" +
                 //"    for (int i=-kSize; i <= kSize; ++i){\n" +
                 "        for (int j=-kSize; j <= kSize; ++j){\n" +
-                //"            float pdf = kernel[kSize+j];\n" +
                 "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,j)), 0)"+in.mFormat.getTemExt()+");\n" +
                 "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
-                "            float pdf = normpdf(float(abs(j)), size1);\n" +
-                "            mask+=inp*pdf;\n" +
-                "            pdfsize+=pdf;\n" +
+                "            float pdfv = pdf(float(float(abs(j)))/size1);\n" +
+                "            mask+=inp*pdfv;\n" +
+                "            pdfsize+=pdfv;\n" +
                 "            }\n" +
                 "        }\n" +
                 //"    }\n" +
@@ -61,7 +60,7 @@ public class GLUtils {
         GLTexture out = new GLTexture(in);
         glProg.drawBlocks(out);
         glProg.closed = true;
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+out.mFormat.getTemVar()+"\n" +
                 "#define tscal "+out.mFormat.getScalar()+"\n" +
                 "precision mediump float;\n" +
@@ -71,7 +70,7 @@ public class GLUtils {
                 "out tvar Output;\n" +
                 "#define size1 "+((double)(size)*0.5)+"\n" +
                 "#define MSIZE1 "+(int)size+"\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "#import gaussian\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
@@ -85,9 +84,9 @@ public class GLUtils {
                 //"            float pdf = kernel[kSize+i];\n" +
                 "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i,0)), 0)"+out.mFormat.getTemExt()+");\n" +
                 "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
-                "            float pdf = normpdf(float(abs(i)), size1);\n" +
-                "            mask+=inp*pdf;\n" +
-                "            pdfsize+=pdf;\n" +
+                "            float pdfv = pdf(float(float(abs(i)))/size1);\n" +
+                "            mask+=inp*pdfv;\n" +
+                "            pdfsize+=pdfv;\n" +
                 "            }\n" +
                 "        }\n" +
                 //"    }\n" +
@@ -120,7 +119,7 @@ public class GLUtils {
         return blursmall(in,out,kersize,size);
     }
     public GLTexture blursmall(GLTexture in,GLTexture out, int kersize,double size){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "precision mediump float;\n" +
@@ -130,7 +129,7 @@ public class GLUtils {
                 "out tvar Output;\n" +
                 "#define size1 "+(size)+"\n" +
                 "#define MSIZE1 "+(int)kersize+"\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "#import gaussian\n"+
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
@@ -138,14 +137,14 @@ public class GLUtils {
                 "    float kernel[MSIZE1];\n" +
                 "    tvar mask = tvar(0.0);\n" +
                 "    float pdfsize = 0.0;\n" +
-                "    for (int j = 0; j <= kSize; ++j) kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), size1);\n" +
                 "    for (int i=-kSize; i <= kSize; ++i){\n" +
+                "            float pdf0 = pdf(float(abs(i))/size1);\n" +
                 "        for (int j=-kSize; j <= kSize; ++j){\n" +
-                "            float pdf = kernel[kSize+j]*kernel[kSize+i];\n" +
+                "            float pdfv = pdf0*pdf(float(abs(j))/size1);\n" +
                 "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i,j)), 0)"+in.mFormat.getTemExt()+");\n" +
                 "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
-                "            mask+=inp*pdf;\n" +
-                "            pdfsize+=pdf;\n" +
+                "            mask+=inp*pdfv;\n" +
+                "            pdfsize+=pdfv;\n" +
                 "            }\n" +
                 "        }\n" +
                 "    }\n" +
@@ -161,7 +160,7 @@ public class GLUtils {
         return fastdown(in,k,(double)k*0.3);
     }
     public GLTexture fastdown(GLTexture in, int k,double blur){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "precision highp float;\n" +
@@ -173,7 +172,7 @@ public class GLUtils {
                 "#define transpose ("+(int)((4.5/k)+1)+")\n" +
                 "#define resize ("+k+")\n" +
                 "#define MSIZE1 5\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "#import gaussian\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
@@ -184,9 +183,9 @@ public class GLUtils {
                 "        for (int j=-kSize; j <= kSize; ++j){\n" +
                 "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(0,j*transpose)), 0)"+in.mFormat.getTemExt()+");\n" +
                 "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
-                "            float pdf = normpdf(float(abs(j)), size1);\n" +
-                "            mask+=inp*pdf;\n" +
-                "            pdfsize+=pdf;\n" +
+                "            float pdfv = pdf(float(float(abs(j)))/size1);\n" +
+                "            mask+=inp*pdfv;\n" +
+                "            pdfsize+=pdfv;\n" +
                 "            }\n" +
                 "        }\n" +
                 "    mask/=pdfsize;\n" +
@@ -196,7 +195,7 @@ public class GLUtils {
         GLTexture out = new GLTexture(in.mSize.x,in.mSize.y/2,in.mFormat,null);
         glProg.drawBlocks(out);
         glProg.closed = true;
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+out.mFormat.getTemVar()+"\n" +
                 "#define tscal "+out.mFormat.getScalar()+"\n" +
                 "precision highp float;\n" +
@@ -208,7 +207,7 @@ public class GLUtils {
                 "#define transpose ("+(int)((4.5/k)+1)+")\n" +
                 "#define MSIZE1 5\n" +
                 "#define resize ("+k+")\n" +
-                "float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}\n" +
+                "#import gaussian\n" +
                 "void main() {\n" +
                 "    ivec2 xy = ivec2(gl_FragCoord.xy);\n" +
                 "    xy+=ivec2(0,yOffset);\n" +
@@ -219,9 +218,9 @@ public class GLUtils {
                 "    for (int i=-kSize; i <= kSize; ++i){\n" +
                 "            tvar inp = tvar(texelFetch(InputBuffer, (xy+ivec2(i*transpose,0)), 0)"+out.mFormat.getTemExt()+");\n" +
                 "            if(length(inp"+in.mFormat.getLimExt()+") > 1.0/1000.0) {\n"+
-                "            float pdf = normpdf(float(abs(i)), size1);\n" +
-                "            mask+=inp*pdf;\n" +
-                "            pdfsize+=pdf;\n" +
+                "            float pdfv = pdf(float(float(abs(i)))/size1);\n" +
+                "            mask+=inp*pdfv;\n" +
+                "            pdfsize+=pdfv;\n" +
                 "            }\n" +
                 "        }\n" +
                 "    mask/=pdfsize;\n" +
@@ -244,7 +243,7 @@ public class GLUtils {
         return gaussdown(in,out,k,blur);
     }
     public GLTexture gaussdown(GLTexture in,GLTexture out, int k,double blur){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -288,7 +287,7 @@ public class GLUtils {
     }
 
     public GLTexture upscale(GLTexture in, int k){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
                 "#define tscal "+in.mFormat.getScalar()+"\n" +
                 "uniform "+in.mFormat.getTemSamp()+" InputBuffer;\n" +
@@ -338,7 +337,7 @@ public class GLUtils {
     }
     public GLTexture medianpatch(GLTexture in, GLTexture out){
         glProg.setDefine("RES",(((float)in.mSize.x)/out.mSize.x),(((float)in.mSize.y)/out.mSize.y));
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define RES (1.0,1.0)\n" +
@@ -378,7 +377,7 @@ public class GLUtils {
     }
     public GLTexture patch(GLTexture in, GLTexture out){
         glProg.setDefine("RES",(((float)in.mSize.x)/out.mSize.x),(((float)in.mSize.y)/out.mSize.y));
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define RES (1.0,1.0)\n" +
@@ -425,7 +424,7 @@ public class GLUtils {
         return interpolate(in,out,1.0,out.mSize);
     }
     public GLTexture interpolate(GLTexture in,GLTexture out,double zoom, Point size){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -450,7 +449,7 @@ public class GLUtils {
         return interpolate(in,out,out.mSize,k);
     }
     public GLTexture interpolate(GLTexture in,GLTexture out,Point outSize, double k){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -474,7 +473,7 @@ public class GLUtils {
     public void Convolve(GLTexture in, GLTexture out, float[] kernel, boolean centered,boolean abs){
         String center = "";
         if(centered) center = "Output += 0.5;\n";
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -558,7 +557,7 @@ public class GLUtils {
     public GLTexture mpy(GLTexture in, float[] vecmat,GLTexture out){
         String vecext = "vec3";
         if(vecmat.length == 9) vecext = "mat3";
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -601,7 +600,7 @@ public class GLUtils {
         if(interpolate >= 2){
             tex2 = "    tvar in2 = (textureBicubic(InputBuffer2, vec2(gl_FragCoord.xy)/vec2(size))"+out.mFormat.getTemExt()+");\n";
         }
-            glProg.useProgram("#version 300 es\n" +
+            glProg.useProgram(
                 "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in1.mFormat.getTemVar()+"\n" +
@@ -632,7 +631,7 @@ public class GLUtils {
         return ops(in,"",operation,"");
     }
     public GLTexture ops(GLTexture in1,String add, String operation,String operation2){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in1.mFormat.getTemVar()+"\n" +
@@ -654,7 +653,7 @@ public class GLUtils {
         return out;
     }
     public GLTexture convertVec4(GLTexture in1,String operation){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in1.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in1.mFormat.getTemVar()+"\n" +
@@ -674,7 +673,7 @@ public class GLUtils {
         return out;
     }
     public GLTexture splitby(GLTexture in,GLTexture out, int split,int step){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +
@@ -694,7 +693,7 @@ public class GLUtils {
         return out;
     }
     public GLTexture conglby(GLTexture in,GLTexture out,GLTexture prevout, int split,int step){
-        glProg.useProgram("#version 300 es\n" +
+        glProg.useProgram(
                 "precision highp "+in.mFormat.getTemSamp()+";\n" +
                 "precision highp float;\n" +
                 "#define tvar "+in.mFormat.getTemVar()+"\n" +

@@ -1,4 +1,3 @@
-#version 300 es
 precision mediump float;
 precision mediump sampler2D;
 uniform sampler2D InputBuffer;
@@ -13,21 +12,18 @@ out vec3 Output;
 #define SHARPSIZE 5
 #define SHARPSIZEKER 3.0
 #define SHARPSTR 1.0
-float normpdf(in float x, in float sigma){
-    x/=sigma;
-    return exp(-0.5*x*x);
-}
+#import gaussian
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 mask = vec3(0.0);
     vec3 cur = (texelFetch(InputBuffer, (xy), 0).rgb);
     float pdfsize = 0.0;
     for (int i=-SHARPSIZE; i <= SHARPSIZE; ++i){
-        float pdf2 = normpdf(float(i), float(SHARPSIZEKER));
+        float pdf2 = pdf(float(i)/float(SHARPSIZEKER));
         for (int j=-SHARPSIZE; j <= SHARPSIZE; ++j){
-            float pdf = normpdf(float(j), float(SHARPSIZEKER))*pdf2;
-            mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i, j)), 0).rgb)*pdf;
-            pdfsize+=pdf;
+            float pdfv = pdf(float(j)/float(SHARPSIZEKER))*pdf2;
+            mask+=vec3(texelFetch(InputBuffer, (xy+ivec2(i, j)), 0).rgb)*pdfv;
+            pdfsize+=pdfv;
         }
     }
     mask/=pdfsize;

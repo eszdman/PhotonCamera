@@ -1,4 +1,3 @@
-#version 300 es
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
@@ -23,20 +22,7 @@ out vec4 Output;
 #define NOISEO 0.0
 #define INTENSE 1.0
 #define PI 3.1415926535897932384626433832795
-float normpdf(in float x, in float sigma)
-{
-    return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
-}
-
-float normpdf3(in vec3 v, in float sigma)
-{
-    return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
-}
-
-float normpdf2(in vec2 v, in float sigma)
-{
-    return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
-}
+#import gaussian
 float lum(in vec4 color) {
     return length(color.xyz);
 }
@@ -47,7 +33,6 @@ void main() {
     vec3 cin = vec3(texelFetch(InputBuffer, xy, 0).rgb);
     float noisefactor = texture(NoiseMap, vec2(xy)/vec2(INSIZE)).g;
     {
-        float kernel[MSIZE];
         vec3 final_colour = vec3(0.0);
         float sigX = 3.5;
         float sigY = sqrt(noisefactor*NOISES + NOISEO);
@@ -59,10 +44,10 @@ void main() {
         float sum = 0.0001;
         vec2 baseGrad = texelFetch(GradBuffer, xy, 0).rg;
         for (int i=-KSIZE; i <= KSIZE; i++){
-            float k0 = normpdf(float(i),sigX);
+            float k0 = pdf(float(i)/sigX);
             for (int j=-KSIZE; j <= KSIZE; j++){
                 vec2 temp = texelFetch(GradBuffer, xy+ivec2(i,j), 0).rg;
-                float k = normpdf(float(j),sigX)*k0*normpdf2(temp-baseGrad,sigY);
+                float k = pdf(float(j)/sigX)*k0*pdf((temp-baseGrad)/sigY);
                 temp *= k;
                 dxy+=temp;
                 dxyabs+=abs(temp);
@@ -95,9 +80,13 @@ void main() {
             for (int j=-KSIZE; j <= KSIZE; ++j)
             {
                 cc = vec3(texelFetch(InputBuffer, xy+ivec2(i,j), 0).rgb);
-                factor = normpdf3(cc-cin, sigY)*
-                exp(-(a*float(i*i) + 2.0*b*float(i*j) + c*float(j*j)))
-                ;
+                factor = pdf((cc-cin)/sigY)/
+                fastExp(
+                (a*float(i*i) +
+                2.0*b*float(i*j) +
+                c*float(j*j))
+                );
+
                 Z += factor;
                 final_colour += factor*cc;
             }
@@ -108,9 +97,5 @@ void main() {
         } else {
             Output = vec4(clamp(final_colour/Z,0.0,1.0),1.0);
         }
-        //Output = vec4(length2);
-        //vec4 test = vec4(texture(NoiseMap, vec2(xy)/mapsize).r);
-        //test = clamp(test*1.0,0.0,1.0);
-        //Output = test;
     }
 }

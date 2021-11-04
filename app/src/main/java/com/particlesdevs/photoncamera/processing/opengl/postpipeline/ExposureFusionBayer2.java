@@ -132,7 +132,7 @@ public class ExposureFusionBayer2 extends Node {
     float gaussSize = 0.5f;
     float targetLuma = 0.5f;
     float downScalePerLevel = 2.2f;
-    float dehazing = 0.5f;
+    float dehazing = 0.25f;
 
     float softUpperLevel = 0.1f;
     float softLoverLevel = 0.0f;

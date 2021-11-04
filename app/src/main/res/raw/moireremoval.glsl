@@ -1,4 +1,4 @@
-#version 300 es
+
 uniform sampler2D InputBuffer;
 uniform vec3 whitePoint;
 uniform int yOffset;

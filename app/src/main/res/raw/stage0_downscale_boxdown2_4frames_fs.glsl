@@ -1,4 +1,4 @@
-#version 300 es
+
 
 // If the sensor noise is linear in all channels, then 50/50 split should reduce it the most.
 // Rescale to 0.5 total because we are adding two values per weight.

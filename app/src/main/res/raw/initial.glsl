@@ -1,4 +1,3 @@
-#version 300 es
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
@@ -307,7 +306,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
 
 
-    br=mix(br*tonemapGain,pow(br,2.0/tonemapGain),br);
+    br=mix(br*tonemapGain,pow(br,1.0/tonemapGain),br);
     //br*=tonemapGain;
 
 
@@ -446,5 +445,7 @@ void main() {
     //float sat2 = SATURATION2;
     //sat2*=br;
     sRGB = saturate(sRGB,SATURATION2,SATURATION);
-    Output = clamp((sRGB-NOISEO)/(vec3(1.0)-NOISEO),0.0,1.0);
+    float noiseO = (NOISEO*NOISEO)*0.25;
+    noiseO = min(noiseO,0.25);
+    Output = clamp((sRGB-noiseO)/(vec3(1.0)-noiseO),0.0,1.0);
 }

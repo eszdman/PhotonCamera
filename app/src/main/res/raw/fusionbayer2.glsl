@@ -1,5 +1,3 @@
-#version 300 es
-
 precision highp float;
 precision highp sampler2D;
 
@@ -58,8 +56,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(unscaledGaussian(midNormal.r - TARGET, GAUSS));
-    float midHighToAvg = sqrt(unscaledGaussian(midHigh.r - TARGET, GAUSS));
+    float midNormalToAvg = sqrt(pdf((midNormal.r - TARGET)/GAUSS));
+    float midHighToAvg = sqrt(pdf((midHigh.r - TARGET)/GAUSS));
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;

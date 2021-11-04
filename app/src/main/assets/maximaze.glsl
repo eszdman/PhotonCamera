@@ -1,4 +1,3 @@
-#version 300 es
 #define SIZE 1
 #define INSIZE 1
 #define tvar vec2

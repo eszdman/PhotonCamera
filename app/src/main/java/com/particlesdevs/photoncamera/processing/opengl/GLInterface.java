@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 
+import static com.particlesdevs.photoncamera.processing.opengl.GLProg.glVersion;
+
 public class GLInterface {
     public final GLProg glProgram;
     public Parameters parameters;
@@ -44,6 +46,7 @@ public class GLInterface {
     }
     static public String readprog(BufferedReader reader, ArrayList<String[]> defines) {
         StringBuilder source = new StringBuilder();
+        source.append(glVersion);
         int linecnt = 0;
         for (Object line : reader.lines().toArray()) {
             linecnt++;

@@ -1,4 +1,4 @@
-#version 300 es
+
 
 // Tiles of 16x16 with the middle 8x8 being the important region.
 #define TILE_MIN_INDEX -4

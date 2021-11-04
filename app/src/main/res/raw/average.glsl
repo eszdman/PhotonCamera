@@ -1,4 +1,3 @@
-#version 300 es
 precision highp float;
 precision highp usampler2D;
 precision highp sampler2D;

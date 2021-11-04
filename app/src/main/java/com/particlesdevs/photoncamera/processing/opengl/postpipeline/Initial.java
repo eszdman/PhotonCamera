@@ -180,7 +180,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         oldT = TonemapCoeffs;
         TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
         oldT.close();*/
-        float green = ((((PostPipeline)basePipeline).analyzedBL[0]+((PostPipeline)basePipeline).analyzedBL[2]+0.0002f)/2.f)/(((PostPipeline)basePipeline).analyzedBL[1]+0.0001f);
+        float green = ((((PostPipeline)basePipeline).analyzedBL[0]+((PostPipeline)basePipeline).analyzedBL[2]+0.0002f)/2.f)/
+                        (((PostPipeline)basePipeline).analyzedBL[1]+0.0001f);
         if(green > 0.0f && green < 1.7f) {
             float tcor = (green+1.f)/2.f;
             glProg.setDefine("TINT",tcor);
@@ -198,9 +199,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             glProg.setDefine("CCT", 1);
             if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
             cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
-            else {
+            else
                 cube = basePipeline.mParameters.CCT.cubes[0].cube;
-            }
         }
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
         glProg.useProgram(R.raw.initial);

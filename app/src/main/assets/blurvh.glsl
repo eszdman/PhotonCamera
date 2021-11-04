@@ -1,11 +1,10 @@
-#version 300 es
 #define SIZE 0.5
 #define KSIZE 1
 #define INSIZE 1
 #define tvar vec2
 #define tscal float
 #define TSAMP sampler2D
-#define INP INP;
+#define INP ;
 #define coordstp(x,y) (ivec2(x,y))
 precision mediump TSAMP;
 precision mediump tscal;

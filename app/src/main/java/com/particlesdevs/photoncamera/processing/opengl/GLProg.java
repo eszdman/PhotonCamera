@@ -65,7 +65,8 @@ public class GLProg implements AutoCloseable {
     private int mNewTextureId;
     public boolean closed = true;
     public int currentShader;
-    final String vertexShaderSource = "#version 300 es\n" +
+    public final static String glVersion = "#version 300 es\n";
+    final String vertexShaderSource = glVersion +
             "precision mediump float;\n" +
             "in vec4 vPosition;\n" +
             "void main() {\n" +

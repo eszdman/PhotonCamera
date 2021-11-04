@@ -1,4 +1,4 @@
-#version 300 es
+
 /*
 3x3 Median
 Morgan McGuire and Kyle Whitson

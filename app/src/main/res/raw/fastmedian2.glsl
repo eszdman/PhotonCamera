@@ -1,4 +1,4 @@
-#version 300 es
+
 #define mtrxSize 5
 precision mediump float;
 precision mediump sampler2D;

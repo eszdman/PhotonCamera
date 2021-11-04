@@ -1,4 +1,3 @@
-#version 300 es
 uniform sampler2D RawBuffer;
 uniform int yOffset;
 out float Output;
