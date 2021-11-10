@@ -54,7 +54,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         return in;
     }
-    float constShift = -10.0f;
+    float constShift = 0.0f;
     public Bitmap Run(ByteBuffer inBuffer, Parameters parameters){
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();

@@ -11,6 +11,7 @@ public class SpecificSettingSensor {
     public float captureSharpeningIntense = 0.5f;
     public float[] aberrationCorrection;
     public float[][] CCT;
+    //Noise model [A,B,C,D][bayer]
     public double[][] NoiseModelerArr;
     public boolean ModelerExists = false;
     public boolean CCTExists = false;

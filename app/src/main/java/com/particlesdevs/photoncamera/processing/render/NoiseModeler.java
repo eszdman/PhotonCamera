@@ -23,16 +23,19 @@ public class NoiseModeler {
             Pair<Double, Double> CustomGeneratorO;
             if(specificSettingSensor != null) {
                 double[] avrdouble = new double[4];
+                int cnt = 0;
                 for (double[] ind : specificSettingSensor.NoiseModelerArr) {
-                    avrdouble[0] += ind[0];
+                    for (double v : ind) {
+                        //Average only bayer models, not cross generators
+                        avrdouble[cnt] += v;
+                    }
+                    avrdouble[cnt]/=ind.length;
+                    /*avrdouble[0] += ind[0];
                     avrdouble[1] += ind[1];
                     avrdouble[2] += ind[2];
-                    avrdouble[3] += ind[3];
+                    avrdouble[3] += ind[3];*/
+                    cnt++;
                 }
-                avrdouble[0] /= 4.0;
-                avrdouble[1] /= 4.0;
-                avrdouble[2] /= 4.0;
-                avrdouble[3] /= 4.0;
                 CustomGeneratorS = new Pair<>(avrdouble[0], avrdouble[1]);
                 CustomGeneratorO = new Pair<>(avrdouble[2], avrdouble[3]);
             } else {

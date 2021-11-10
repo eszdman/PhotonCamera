@@ -186,8 +186,8 @@ public class HdrxProcessor extends ProcessorBase {
                 processingParameters.noiseModeler.computeModel[2].second.floatValue();
         NoiseS/=3.f;
         NoiseO/=3.f;
-        double noisempy = Math.pow(2.0,-16.0+PhotonCamera.getSettings().mergeStrength);
-        int cnt = (int)((NoiseS + NoiseO)*PhotonCamera.getSettings().frameCount*Math.pow(2.0,-6.5+PhotonCamera.getSettings().mergeStrength)/(0.001f));
+        double noisempy = Math.pow(2.0,PhotonCamera.getSettings().mergeStrength);
+        int cnt = (int)((NoiseS + NoiseO)*PhotonCamera.getSettings().frameCount*Math.pow(2.0,PhotonCamera.getSettings().mergeStrength)/(0.001f));
         Log.d(TAG,"Desired Frame count0:"+cnt);
         cnt = Math.max(cnt,3);
         //cnt = Math.min(cnt,images.size());

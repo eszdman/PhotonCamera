@@ -48,7 +48,7 @@ void main() {
             //sigX = clamp(sigX+NRshift,minNR,maxNR);
 
             vec3 Z = vec3(0.0);
-            float sigY = abs(sqrt(Output.g*NOISES + NOISEO)*2.0)+0.00001;
+            float sigY = abs(sqrt(Output.g*NOISES + NOISEO)*2.0)+0.0001;
 
             float sigX = 3.0+sigY;
             vec4 cc;
@@ -67,7 +67,7 @@ void main() {
                     final_colour += factor*cc.rgb;
                 }
             }
-            Output.rb = (clamp(c.a*final_colour.rb/(Z.rb+0.0001), 0.0, 1.0));
+            Output.rb = (clamp(c.a*final_colour.rb/(Z.rb+0.00001), 0.0, 1.0));
             //Output = (clamp(c.a*final_colour/(Z+0.0001), 0.0, 1.0));
             //Output = vec4(xyYtoXYZ(vec3(clamp(final_colour.rg/Z,0.0,1.0),c.z)),1.0);
         }
