@@ -9,13 +9,13 @@
     <string name="chroma_nr_count">কালার নয়েজ কমানোর মাত্রা:</string>
     <string name="enhanced_processing">উচ্চতর প্রসেসিং</string>
     <string name="settings">সেটিংস</string>
-    <string name="comp">কম্প্রেসর:</string>
-    <string name="gain">গেইন:</string>
-    <string name="contrmul">কন্ট্র্যাস্ট গুনিতক :</string>
-    <string name="contrconst">ধ্রুবক:</string>
-    <string name="saturation">রঙের ঘনত্ব:</string>
+    <string name="comp">কম্প্রেসর</string>
+    <string name="gain">গেইন</string>
+    <string name="contrmul">"কন্ট্র্যাস্ট গুনিতক "</string>
+    <string name="contrconst">ধ্রুবক</string>
+    <string name="saturation">রঙের ঘনত্ব</string>
     <string name="jpg">জেপিজি</string>
     <string name="hdrx">এইচডিআরএক্স</string>
-    <string name="sharpness">সূক্ষ্মতা:</string>
+    <string name="sharpness">সূক্ষ্মতা</string>
     <string name="turn_on_grid">গ্রিড দেখুন</string>
 </resources>
