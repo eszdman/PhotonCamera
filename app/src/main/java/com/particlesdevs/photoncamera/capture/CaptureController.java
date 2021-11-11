@@ -32,6 +32,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CameraOfflineSession;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
@@ -332,7 +333,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * Creates a new {@link CameraCaptureSession} for camera preview.
      */
-    private boolean burst = false;
+    public static boolean burst = false;
     /**
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
@@ -468,7 +469,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // This method is called when the camera is opened.  We start camera preview here.
             mCameraOpenCloseLock.release();
             mCameraDevice = cameraDevice;
-            createCameraPreviewSession();
+            createCameraPreviewSession(false);
         }
 
         @Override
@@ -690,12 +691,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
-                if (!isProcessing)
+                if (!isProcessing) {
                     mImageReaderPreview.close();
-                mImageReaderPreview = null;
-                if (!isProcessing)
+                    mImageReaderPreview = null;
+                }
+                if (!isProcessing) {
                     mImageReaderRaw.close();
-                mImageReaderRaw = null;
+                    mImageReaderRaw = null;
+                }
             }
             if (null != mMediaRecorder) {
                 mMediaRecorder.release();
@@ -749,6 +752,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //    }
 
     public void rebuildPreviewBuilder() {
+        if(burst) return;
         try {
 //            mCaptureSession.stopRepeating();
             mCaptureSession.setRepeatingRequest(mPreviewRequest = mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
@@ -760,6 +764,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void rebuildPreviewBuilderOneShot() {
+        if(burst) return;
         try {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (IllegalStateException | IllegalArgumentException | NullPointerException e) {
@@ -820,12 +825,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mCameraDevice = null;
             }
             if (null != mImageReaderPreview) {
-                if (!isProcessing)
+                if (!isProcessing) {
                     mImageReaderPreview.close();
-                mImageReaderPreview = null;
-                if (!isProcessing)
+                    mImageReaderPreview = null;
+                }
+                if (!isProcessing) {
                     mImageReaderRaw.close();
-                mImageReaderRaw = null;
+                    mImageReaderRaw = null;
+                }
             }
             if (null != mMediaRecorder) {
                 mMediaRecorder.release();
@@ -952,6 +959,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * Lock the focus as the first step for a still image capture.
      */
     private void lockFocus() {
+        if(burst) return;
         startTimerLocked();
         // This is how to tell the camera to lock focus.
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
@@ -973,6 +981,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
      */
     private void runPreCaptureSequence() {
+        if(burst) return;
         try {
             // This is how to tell the camera to trigger.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
@@ -981,7 +990,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mState = STATE_WAITING_PRECAPTURE;
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
                     mBackgroundHandler);
-        } catch (CameraAccessException e) {
+        } catch (CameraAccessException | IllegalStateException e) {
             e.printStackTrace();
         }
     }
@@ -1142,7 +1151,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         cameraEventsListener.onCharacteristicsUpdated(characteristics);
     }
 
-    public void createCameraPreviewSession() {
+    public void createCameraPreviewSession(boolean isBurstSession) {
+
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
@@ -1178,7 +1188,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             if (isDualSession) {
-                if (burst) {
+                if (isBurstSession) {
                     surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
                 }
                 if (mTargetFormat == mPreviewTargetFormat) {
@@ -1217,7 +1227,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     FpsRangeHigh);
                         }
                         mPreviewRequest = mPreviewRequestBuilder.build();
-                        if (burst && isDualSession) {
+                        if (isBurstSession && isDualSession) {
                             switch (CameraFragment.mSelectedMode) {
                                 case NIGHT:
                                 case PHOTO:
@@ -1228,7 +1238,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
                                     break;
                             }
-                            burst = false;
                         } else {
                             //if(mSelectedMode != CameraMode.VIDEO)
                             mCaptureSession.setRepeatingRequest(mPreviewRequest,
@@ -1396,13 +1405,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
-
+                    burst = false;
                     //Surface texture related
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
                     if (!isDualSession)
                         unlockFocus();
                     else
-                        createCameraPreviewSession();
+                        createCameraPreviewSession(false);
                     taskResults.removeIf(Future::isDone); //remove already completed results
                     Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
                     taskResults.add(result);
@@ -1411,7 +1420,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             burst = true;
             Camera2ApiAutoFix.ApplyBurst();
             if (isDualSession)
-                createCameraPreviewSession();
+                createCameraPreviewSession(true);
             else {
                 mCaptureSession.captureBurst(captures, CaptureCallback, null);
             }
@@ -1563,6 +1572,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
+                    burst = false;
                     if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
                     //unlockFocus();
                     //Surface texture related
@@ -1570,7 +1580,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (!isDualSession)
                         unlockFocus();
                     else
-                        createCameraPreviewSession();
+                        createCameraPreviewSession(false);
                     PhotonCamera.getGyro().CompleteSequence();
 
                     taskResults.removeIf(Future::isDone); //remove already completed results
@@ -1585,7 +1595,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             burst = true;
             Camera2ApiAutoFix.ApplyBurst();
             if (isDualSession)
-                createCameraPreviewSession();
+                createCameraPreviewSession(true);
             else {
                 switch (PhotonCamera.getSettings().selectedMode) {
                     case NIGHT:
@@ -1679,7 +1689,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         onUnlimited = false;
         mImageSaver.unlimitedEnd();
         abortCaptures();
-        createCameraPreviewSession();
+        createCameraPreviewSession(false);
         unlimitedStarted = false;
     }
 
@@ -1695,7 +1705,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void VideoStart() {
         mIsRecordingVideo = true;
-        createCameraPreviewSession();
+        createCameraPreviewSession(false);
     }
 
     private void setUpMediaRecorder() {
@@ -1755,7 +1765,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
         mMediaRecorder.reset();
         cameraEventsListener.onRequestTriggerMediaScanner(Uri.fromFile(vid));
-        createCameraPreviewSession();
+        createCameraPreviewSession(false);
     }
 
     @Override

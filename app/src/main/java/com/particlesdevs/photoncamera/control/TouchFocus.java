@@ -111,6 +111,7 @@ public class TouchFocus {
     }
 
     private void triggerAutoFocus(MeteringRectangle[] rectaf) {
+        if(CaptureController.burst) return;
         CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
         if (builder == null) {
             Log.w(TAG, "triggerAutoFocus(): mPreviewRequestBuilder is null");
@@ -136,6 +137,7 @@ public class TouchFocus {
         captureController.rebuildPreviewBuilder();
     }
     private void resetAutoFocus() {
+        if(CaptureController.burst) return;
         CaptureRequest.Builder builder = captureController.mPreviewRequestBuilder;
         if (builder == null) {
             Log.w(TAG, "triggerAutoFocus(): mPreviewRequestBuilder is null");
