@@ -32,7 +32,6 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
-import android.hardware.camera2.CameraOfflineSession;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
@@ -106,7 +105,7 @@ import java.util.concurrent.TimeUnit;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_TRIGGER_IDLE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
 import static android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE;
@@ -177,6 +176,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static CaptureResult mCaptureResult;
 
     public static CaptureResult mPreviewCaptureResult;
+    public static CaptureRequest mPreviewCaptureRequest;
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
     public boolean isDualSession = true;
     private static int mTargetFormat = RAW_FORMAT;
@@ -230,7 +230,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public ImageReader mImageReaderRaw;
     /*{@link CaptureRequest.Builder} for the camera preview*/
     public CaptureRequest.Builder mPreviewRequestBuilder;
-    public CaptureRequest mPreviewRequest;
+    public CaptureRequest mPreviewInputRequest;
     /**
      * The current state of camera state for taking pictures.
      */
@@ -430,6 +430,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Integer state = result.get(CaptureResult.FLASH_STATE);
             mFlashed = state != null && state == CaptureResult.FLASH_STATE_PARTIAL || state == CaptureResult.FLASH_STATE_FIRED;
             mPreviewCaptureResult = result;
+            mPreviewCaptureRequest = request;
             process(result);
             cameraEventsListener.onPreviewCaptureCompleted(result);
         }
@@ -443,6 +444,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (!is30Fps) {
                         Log.d(TAG, "Changed preview target 30fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeDef);
+                        try {
+                            mCaptureSession.stopRepeating();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
                         rebuildPreviewBuilder();
                         is30Fps = true;
                     }
@@ -451,6 +457,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (is30Fps && PhotonCamera.getSettings().fpsPreview && !mCameraDevice.getId().equals("1")) {
                         Log.d(TAG, "Changed preview target 60fps");
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeHigh);
+                        try {
+                            mCaptureSession.stopRepeating();
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
                         rebuildPreviewBuilder();
                         is30Fps = false;
                     }
@@ -755,7 +766,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if(burst) return;
         try {
 //            mCaptureSession.stopRepeating();
-            mCaptureSession.setRepeatingRequest(mPreviewRequest = mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+            mCaptureSession.setRepeatingRequest(mPreviewInputRequest = mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (IllegalStateException | IllegalArgumentException | NullPointerException e) {
             Logger.warnShort(TAG, "Cannot rebuildPreviewBuilder()!", e);
         } catch (CameraAccessException e) {
@@ -1226,7 +1237,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                                     FpsRangeHigh);
                         }
-                        mPreviewRequest = mPreviewRequestBuilder.build();
+                        mPreviewInputRequest = mPreviewRequestBuilder.build();
                         if (isBurstSession && isDualSession) {
                             switch (CameraFragment.mSelectedMode) {
                                 case NIGHT:
@@ -1240,7 +1251,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             }
                         } else {
                             //if(mSelectedMode != CameraMode.VIDEO)
-                            mCaptureSession.setRepeatingRequest(mPreviewRequest,
+                            mCaptureSession.setRepeatingRequest(mPreviewInputRequest,
                                     mCaptureCallback, mBackgroundHandler);
                             unlockFocus();
                         }
@@ -1307,7 +1318,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private void unlockFocus() {
         // Reset the auto-focus trigger
         //mCaptureSession.stopRepeating();
-        CameraReflectionApi.set(mPreviewRequest, CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+        CameraReflectionApi.set(mPreviewInputRequest, CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
         //mCaptureSession.capture(mPreviewRequest, mCaptureCallback,
         //        mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
@@ -1478,8 +1489,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //IsoExpoSelector.HDR = (PhotonCamera.getSettings().alignAlgorithm == 1);
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
+
             if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung"))) {
-                captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
+                //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
+                captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
             }
 

@@ -1,13 +1,11 @@
 package com.particlesdevs.photoncamera.debugclient;
 
-import android.annotation.SuppressLint;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
-import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
@@ -24,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static android.hardware.camera2.CaptureResult.STATISTICS_HOT_PIXEL_MAP;
 
 public class DebugClient {
     private PrintWriter mBufferOut;
@@ -86,10 +83,13 @@ public class DebugClient {
             case "DOUBLE":{
                 builder.set((CaptureRequest.Key<Double>)key,Double.parseDouble(value));
             }
+            break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + type);
         }
     }
     private String getObjectString(Object input){
-        Class clasObj = input.getClass();
+        Class<?> clasObj = input.getClass();
         String name = clasObj.getName();
         switch (name) {
             case "[B": {
@@ -152,7 +152,8 @@ public class DebugClient {
         String[] commands = mServerMessage.split(":");
 
         CaptureController controller = PhotonCamera.getCaptureController();
-        ArrayList<CaptureRequest.Key<?>> captureKeys = new ArrayList<>(controller.mPreviewRequest.getKeys());
+        ArrayList<CaptureRequest.Key<?>> captureKeys = new ArrayList<>(controller.mPreviewInputRequest.getKeys());
+        ArrayList<CaptureRequest.Key<?>> captureRequestKeys = new ArrayList<>(CaptureController.mPreviewCaptureRequest.getKeys());
         List<CameraCharacteristics.Key<?>> keys = CaptureController.mCameraCharacteristics.getKeys();
         List<CaptureResult.Key<?>> resultKeys = CaptureController.mPreviewCaptureResult.getKeys();
         //DebugParameters debugParameters = PhotonCamera.getDebugger().debugParameters;
@@ -223,6 +224,26 @@ public class DebugClient {
                 StringBuilder keysStr = new StringBuilder();
                 for(CaptureResult.Key<?> key : resultKeys){
                     keysStr.append(key.getName());
+                    keysStr.append(" ");
+                }
+                mBufferOut.println(keysStr.toString());
+                return;
+            }
+            case "PREVIEW_REQUEST_KEYS":{
+                StringBuilder keysStr = new StringBuilder();
+                for(CaptureRequest.Key<?> key : captureRequestKeys){
+                    keysStr.append(key.getName());
+                    keysStr.append(" ");
+                }
+                mBufferOut.println(keysStr.toString());
+                return;
+            }
+            case "PREVIEW_REQUEST_KEYS_PRINT":{
+                StringBuilder keysStr = new StringBuilder();
+                for(CaptureRequest.Key<?> key : captureRequestKeys){
+                    keysStr.append(key.getName());
+                    keysStr.append("=");
+                    keysStr.append(getObjectString(CaptureController.mPreviewCaptureRequest.get(key)));
                     keysStr.append(" ");
                 }
                 mBufferOut.println(keysStr.toString());

@@ -15,6 +15,10 @@ out vec3 Output;
 #define INTENSE 1.0
 #import coords
 #import gaussian
+float pdfSharp(float i, float sig) {
+    i/=sig;
+    return 1.0/(1.0+i*i*i*i);
+}
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     float edges[25];
@@ -46,7 +50,7 @@ void main() {
         float k0 = pdf(float(i)/SHARPSIZE);
         for (int j = -2; j<=2;j++){
             float br = edges[(i+2)*5 + j + 2];
-            float k = k0*pdf(float(j)/SHARPSIZE);
+            float k = k0*pdfSharp(float(j)/SHARPSIZE,1.0);
             if (i == 12) continue;
             Output+=br*k;
             ksum+=k;

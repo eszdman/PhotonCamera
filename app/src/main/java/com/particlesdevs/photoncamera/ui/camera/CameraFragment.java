@@ -452,6 +452,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
 
     private String getResultFieldName(String prefix, Integer value) {
+        if(value == null) return "";
         for (Field f : this.metadataFields)
             if (f.getName().startsWith(prefix)) {
                 try {

@@ -26,7 +26,7 @@ public class CaptureSharpening extends Node {
             return;
         }
         float size = basePipeline.mParameters.sensorSpecifics.captureSharpeningS;
-        float strength = basePipeline.mParameters.sensorSpecifics.captureSharpeningIntense+ PreferenceKeys.getSharpnessValue();
+        float strength = basePipeline.mParameters.sensorSpecifics.captureSharpeningIntense;
         glProg.setDefine("SHARPSTR",strength);
         glProg.setDefine("SHARPSIZEKER",size);
         glProg.useProgram(R.raw.capturesharpening);

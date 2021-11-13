@@ -103,7 +103,7 @@
     <string name="countdown_timer">Таймер</string>
     <string name="processing_processname">Обработка %1$s...</string>
     <string name="mode_video">Видео</string>
-    <string name="mode_unlimited">Безлимитный</string>
+    <string name="mode_unlimited">Бесконечный</string>
     <string name="mode_motion">Движение</string>
     <string name="mode_photo">Фото</string>
     <string name="mode_night">Ночь</string>
