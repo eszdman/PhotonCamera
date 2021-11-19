@@ -29,6 +29,7 @@ public class AssetLoader {
         outStream.close();
         return targetFile;
     }
+
     public InputStream getInputStream(String name) throws IOException {
         return context.getAssets().open(name, AssetManager.ACCESS_BUFFER);
     }

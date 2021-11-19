@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Point;
 import android.opengl.GLES30;
+import android.opengl.GLES31;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
@@ -11,46 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static android.opengl.GLES20.GL_FLOAT;
-import static android.opengl.GLES20.GL_RGBA;
-import static android.opengl.GLES20.glGetError;
-import static android.opengl.GLES20.glReadPixels;
-import static android.opengl.GLES30.GL_COMPILE_STATUS;
-import static android.opengl.GLES30.GL_FRAGMENT_SHADER;
-import static android.opengl.GLES30.GL_LINK_STATUS;
-import static android.opengl.GLES30.GL_RGBA_INTEGER;
-import static android.opengl.GLES30.GL_TEXTURE0;
-import static android.opengl.GLES30.GL_VERTEX_SHADER;
-import static android.opengl.GLES30.glAttachShader;
-import static android.opengl.GLES30.glCompileShader;
-import static android.opengl.GLES30.glCreateProgram;
-import static android.opengl.GLES30.glCreateShader;
-import static android.opengl.GLES30.glDeleteProgram;
-import static android.opengl.GLES30.glDeleteShader;
-import static android.opengl.GLES30.glFlush;
-import static android.opengl.GLES30.glGetAttribLocation;
-import static android.opengl.GLES30.glGetProgramInfoLog;
-import static android.opengl.GLES30.glGetProgramiv;
-import static android.opengl.GLES30.glGetShaderInfoLog;
-import static android.opengl.GLES30.glGetShaderiv;
-import static android.opengl.GLES30.glGetUniformLocation;
-import static android.opengl.GLES30.glLinkProgram;
-import static android.opengl.GLES30.glShaderSource;
-import static android.opengl.GLES30.glUniform1f;
-import static android.opengl.GLES30.glUniform1i;
-import static android.opengl.GLES30.glUniform1ui;
-import static android.opengl.GLES30.glUniform2f;
-import static android.opengl.GLES30.glUniform2i;
-import static android.opengl.GLES30.glUniform2ui;
-import static android.opengl.GLES30.glUniform3f;
-import static android.opengl.GLES30.glUniform3i;
-import static android.opengl.GLES30.glUniform3ui;
-import static android.opengl.GLES30.glUniform4f;
-import static android.opengl.GLES30.glUniform4i;
-import static android.opengl.GLES30.glUniform4ui;
-import static android.opengl.GLES30.glUniformMatrix3fv;
-import static android.opengl.GLES30.glUseProgram;
-import static android.opengl.GLES30.glViewport;
+import static android.opengl.GLES31.*;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
 
 public class GLProg implements AutoCloseable {
@@ -60,12 +22,14 @@ public class GLProg implements AutoCloseable {
     private final Map<String, Integer> mProgramCache = new HashMap<>();
     private final int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
-    private int mCurrentProgramActive;
+    public int mCurrentProgramActive;
     private final Map<String, Integer> mTextureBinds = new HashMap<>();
+    private Map<String, GLComputeLayout> mComputeLayouts = null;
     private int mNewTextureId;
     public boolean closed = true;
+    public boolean isCompute = false;
     public int currentShader;
-    public final static String glVersion = "#version 300 es\n";
+    public final static String glVersion = "#version 310 es\n";
     final String vertexShaderSource = glVersion +
             "precision mediump float;\n" +
             "in vec4 vPosition;\n" +
@@ -79,6 +43,7 @@ public class GLProg implements AutoCloseable {
     }
     boolean changedDef = false;
     ArrayList<String[]> Defines = new ArrayList<>();
+
     public void setDefine(String DefineName, Point in){
         setDefine(DefineName,in.x,in.y);
     }
@@ -88,6 +53,9 @@ public class GLProg implements AutoCloseable {
         else {
         setDefine(DefineName,"0");
         }
+    }
+    public void setLayout(int x, int y, int z){
+        setDefine("LAYOUT","layout(local_size_x = "+x+", local_size_y = "+y+", local_size_z = "+z+") in;");
     }
     public void setDefine(String DefineName, float... vars){
         setDefine(DefineName,true,vars);
@@ -102,15 +70,20 @@ public class GLProg implements AutoCloseable {
         Defines.add(new String[]{DefineName,DefineVal});
         changedDef = true;
     }
-    public void useProgram(int fragmentRes) {
+    public void useProgram(int fragmentRes){
+        useProgram(fragmentRes,false);
+    }
+    public void useProgram(int fragmentRes, boolean compute) {
+        isCompute = compute;
         closed = false;
-        String shader = "";
+        String shader;
         if(changedDef) {
             shader = GLInterface.loadShader(fragmentRes,Defines);
         }
         else {
             shader = GLInterface.loadShader(fragmentRes);
         }
+        mComputeLayouts = GLInterface.getLayouts(shader);
         if(mProgramCache.containsKey(shader)) {
             Defines.clear();
             changedDef = false;
@@ -119,38 +92,52 @@ public class GLProg implements AutoCloseable {
             glUseProgram(prog);
             checkEglError("glUseProgram");
             mCurrentProgramActive = prog;
-            mTextureBinds.clear();
-            mNewTextureId = 0;
         } else {
-            int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
-            Defines.clear();
-            changedDef = false;
+            int program;
+            int nShader;
+            if(!compute) {
+                nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+                program = createProgram(vertexShader, nShader);
+            } else {
+                nShader = compileShader(GLES31.GL_COMPUTE_SHADER, shader);
+                program = glCreateProgram();
+                glAttachShader(program,nShader);
+                glLinkProgram(program);
+            }
             currentShader = nShader;
-            int program = createProgram(vertexShader, nShader);
-            glLinkProgram(program);
             GLES30.glGetError();
-            //checkEglError("glLinkProgram");
             glUseProgram(program);
             checkEglError("glUseProgram");
+            Defines.clear();
+            changedDef = false;
             mCurrentProgramActive = program;
-            mTextureBinds.clear();
-            mNewTextureId = 0;
             mProgramCache.put(shader,program);
         }
+        mTextureBinds.clear();
+        mNewTextureId = 0;
     }
-
-    public void useProgram(String prog) {
+    public void useProgram(String programSource) {
+        useProgram(programSource,false);
+    }
+    public void useProgram(String programSource, boolean compute) {
+        isCompute = compute;
         closed = false;
-        String shader = "";
-        if(changedDef) shader = GLInterface.loadShader(prog,Defines);
+        String shader;
+        if(changedDef) shader = GLInterface.loadShader(programSource,Defines);
         else {
-            shader = GLInterface.loadShader(prog);
+            shader = GLInterface.loadShader(programSource);
         }
-        int nShader = compileShader(GL_FRAGMENT_SHADER, shader);
-        Defines.clear();
-        changedDef = false;
-        //this.vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-        int program = createProgram(vertexShader, nShader);
+        int program;
+        int nShader;
+        if(!compute) {
+            nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+            program = createProgram(vertexShader, nShader);
+        } else {
+            nShader = compileShader(GLES31.GL_COMPUTE_SHADER, shader);
+            program = glCreateProgram();
+            glAttachShader(program,nShader);
+            glLinkProgram(program);
+        }
         glLinkProgram(program);
         GLES30.glGetError();
         //checkEglError("glLinkProgram");
@@ -159,6 +146,8 @@ public class GLProg implements AutoCloseable {
         mCurrentProgramActive = program;
         mTextureBinds.clear();
         mNewTextureId = 0;
+        Defines.clear();
+        changedDef = false;
     }
 
     /**
@@ -228,6 +217,36 @@ public class GLProg implements AutoCloseable {
         return glGetAttribLocation(mCurrentProgramActive, "vPosition");
     }
 
+    public void setLayout(Point layoutSize, int z){
+
+    }
+    public void computeAuto(Point size, int z) {
+        if(!isCompute) {
+            new Exception("Program must be compute!").printStackTrace();
+            return;
+        }
+        GLComputeLayout glComputeLayout = mComputeLayouts.get("in");
+        if(glComputeLayout == null){
+            new Exception("glComputeLayout is null").printStackTrace();
+            return;
+        }
+        glDispatchCompute(size.x/glComputeLayout.xy.x + (size.x%glComputeLayout.xy.x),
+                size.y/glComputeLayout.xy.y + (size.y%glComputeLayout.xy.y),
+                z/glComputeLayout.z + (z%glComputeLayout.z));
+        glMemoryBarrier(GLES31.GL_TEXTURE_UPDATE_BARRIER_BIT);
+        glMemoryBarrier(GLES31.GL_ALL_SHADER_BITS);
+    }
+    public void computeManual(int x,int y, int z) {
+        if(!isCompute) {
+            new Exception("Program must be compute!").printStackTrace();
+            return;
+        }
+        glDispatchCompute(x, y, z);
+        glMemoryBarrier(GLES31.GL_TEXTURE_UPDATE_BARRIER_BIT);
+        glMemoryBarrier(GLES31.GL_ALL_SHADER_BITS);
+    }
+
+
     public void draw() {
         mSquare.draw(vPosition());
         glFlush();
@@ -292,11 +311,11 @@ public class GLProg implements AutoCloseable {
         }
     }
 
-    public void setTexture(String var, GLTexture tex) {
-        if(tex == null) try {
-            throw new Exception("Wrong Texture:"+var);
-        } catch (Exception e) {
-            e.printStackTrace();
+
+    public void setTexture(String var,GLTexture tex) {
+        if(tex == null) {
+            new Exception("Wrong Texture:" + var).printStackTrace();
+            return;
         }
         int textureId;
         if (mTextureBinds.containsKey(var)) {
@@ -308,6 +327,24 @@ public class GLProg implements AutoCloseable {
         }
         setVar(var, textureId);
         tex.bind(GL_TEXTURE0 + textureId);
+    }
+    public void setTextureCompute(String var,GLTexture tex,boolean write){
+        int access = GL_READ_ONLY;
+        if(write) access = GL_WRITE_ONLY;
+        setTextureCompute(var,tex,access);
+    }
+    public void setTextureCompute(String var,GLTexture tex,int access){
+        if(mComputeLayouts == null){
+            new Exception("Wrong mComputeLayouts:"+var).printStackTrace();
+            return;
+        }
+        GLComputeLayout computeLayout = mComputeLayouts.get(var);
+        if(computeLayout == null){
+            new Exception("Wrong computeLayout:"+var).printStackTrace();
+            return;
+        }
+        glBindImageTexture(computeLayout.binding,
+                tex.mTextureID, 0, false, 0, access, tex.mFormat.getGLFormatInternal());
     }
 
     public void setVar(String name, int... vars) {

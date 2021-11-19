@@ -7,7 +7,6 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
@@ -122,14 +121,19 @@ public class PostPipeline extends GLBasePipeline {
          * * * All filters after demosaicing * * *
          */
         if(PhotonCamera.getSettings().hdrxNR) {
-            add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
             //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
+
+            //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
+            add(new Wavelet());
+
             add(new ESD3D());
         }
 
         add(new AWB());
 
         add(new Initial());
+
+
 
         add(new Equalization());
 
@@ -141,7 +145,9 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new ChromaticFlow());
 
+
         add(new Sharpen2());
+
 
         add(new RotateWatermark(getRotation()));
     }

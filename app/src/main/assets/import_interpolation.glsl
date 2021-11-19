@@ -23,6 +23,9 @@ vec4 textureLinear (sampler2D sampler, vec2 pixel) {
     vec4 D = texture(sampler, ((floorPixel+vec2(1.0,1.0)) / (texSize)));
     return mix(mix(A,B,fracu), mix(C,D,fracu), fracv);
 }
+vec4 mix4(vec4 inp[4],vec2 mixing){
+    return mix(mix(inp[0],inp[1],mixing.x), mix(inp[2],inp[3],mixing.x), mixing.y);
+}
 vec4 textureLinear1D (sampler2D sampler, vec2 pixel) {
     // Nearest sampling:
     // Software linear sampling

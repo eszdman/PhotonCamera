@@ -19,6 +19,8 @@ public class GLTexture implements AutoCloseable {
     public Point mSize;
     public final int mGLFormat;
     public final int mTextureID;
+    public int mBuffer;
+    public boolean isBuffered = false;
     @NonNull
     public final GLFormat mFormat;
     private int Cur;
@@ -87,27 +89,39 @@ public class GLTexture implements AutoCloseable {
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         //Log.d("GLTexture","Texture ID:"+mTextureID);
-        if(pixels != null)
+        /*
         glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
                 glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
-        else {
-            //glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(), size.x, size.y);
-            glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
-                    glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
-        }
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
+         */
+        glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
+        checkEglError("glTexStorage2D");
+        glTexSubImage2D(GL_TEXTURE_2D, level,0,0,size.x,size.y,glFormat.getGLFormatExternal(),glFormat.getGLType(),pixels);
+        checkEglError("glTexSubImage2D");
+        reSetParameters();
         checkEglError("Tex glTexParameteri");
     }
-
-
+    void reSetParameters(){
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mFormat.filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mFormat.filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mFormat.wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mFormat.wrap);
+    }
+    public void Bufferize(){
+        if(!isBuffered) {
+            int[] frameBuffer = new int[1];
+            glGenFramebuffers(1, frameBuffer, 0);
+            mBuffer = frameBuffer[0];
+            isBuffered = true;
+        }
+    }
+    public void BindBuffer(){
+        glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureID, 0);
+    }
 
     public void BufferLoad() {
-        int[] frameBuffer = new int[1];
-        glGenFramebuffers(1, frameBuffer, 0);
-        glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer[0]);
+        Bufferize();
+        glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureID, 0);
         glViewport(0, 0, mSize.x, mSize.y);
         checkEglError("Tex BufferLoad");
@@ -153,5 +167,6 @@ public class GLTexture implements AutoCloseable {
     @Override
     public void close() {
         glDeleteTextures(1, new int[]{mTextureID}, 0);
+        if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
     }
 }

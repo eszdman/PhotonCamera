@@ -1,8 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
-import androidx.annotation.RawRes;
+import android.util.Log;
 
-import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 
@@ -10,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.particlesdevs.photoncamera.processing.opengl.GLProg.glVersion;
 
@@ -38,13 +39,60 @@ public class GLInterface {
     }
     public static String loadShader(int fragment,ArrayList<String[]> defines){
         BufferedReader reader = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(fragment)));
-        return readprog(reader,defines);
+        return readProgram(reader,defines);
     }
     public static String loadShader(String code,ArrayList<String[]> defines){
         BufferedReader reader = new BufferedReader(new StringReader(code));
-        return readprog(reader,defines);
+        return readProgram(reader,defines);
     }
-    static public String readprog(BufferedReader reader, ArrayList<String[]> defines) {
+    private static int findLeft(String in, char search){
+        char left;
+        for(int i =0; i<in.length();i++){
+            left = in.charAt(i);
+            if(left == search) return i;
+        }
+        return 0;
+    }
+    private static int findRight(String in, char search){
+        char right;
+        for(int i = in.length()-1; i>=0;i--){
+            right = in.charAt(i);
+            if(right == search) return i;
+        }
+        return in.length()-1;
+    }
+    private static int getParameter(String[] in, String parameter){
+        for(String in2 : in){
+            String[] paramVal = in2.replace(" ","").split("=");
+            if(paramVal[0].equals(parameter)) return Integer.parseInt(paramVal[1]);
+        }
+        return 0;
+    }
+    public static Map<String, GLComputeLayout> getLayouts(String program){
+        BufferedReader reader = new BufferedReader(new StringReader(program));
+        Map<String, GLComputeLayout> layoutsMap = new HashMap<>();
+        for (Object line : reader.lines().toArray()) {
+            String val = String.valueOf(line);
+            if(val.contains("layout")){
+                String[] divided = val.split(" ");
+                String last = "";
+                if(divided.length > 0){
+                    last = divided[divided.length-1].replace(";","").replace("\n","");
+                }
+                String[] parameters = val.substring(findLeft(val,'(')+1,findRight(val,')')).split(",");
+                if(last.equals("in")){
+                    layoutsMap.put(last,new GLComputeLayout(
+                            getParameter(parameters,"local_size_x"),
+                            getParameter(parameters,"local_size_y"),
+                            getParameter(parameters,"local_size_z")));
+                } else {
+                    layoutsMap.put(last,new GLComputeLayout(getParameter(parameters,"binding")));
+                }
+            }
+        }
+        return layoutsMap;
+    }
+    public static String readProgram(BufferedReader reader, ArrayList<String[]> defines) {
         StringBuilder source = new StringBuilder();
         source.append(glVersion);
         int linecnt = 0;
@@ -52,41 +100,6 @@ public class GLInterface {
             linecnt++;
             String val = String.valueOf(line);
             if(val.contains("#import")){
-                /*val = val.replace("\n","").replace(" ","").toLowerCase();
-                @RawRes
-                int id = 0;
-                switch (val){
-                    case "#importxyytoxyz":
-                        id = R.raw.import_xyy2xyz;
-                        break;
-                    case "#importxyztoxyy":
-                        id = R.raw.import_xyz2xyy;
-                        break;
-                    case "#importsigmoid":
-                        id = R.raw.import_sigmoid;
-                        break;
-                    case "#importgaussian":
-                        id = R.raw.import_gaussian;
-                        break;
-                    case "#importcubic":
-                        id = R.raw.import_cubic;
-                        break;
-                    case "#importinterpolation":
-                        id = R.raw.import_interpolation;
-                        break;
-                    case "#importloadbayer":
-                        id = R.raw.import_loadbayer;
-                        break;
-                    case "#importcoords":
-                        id = R.raw.import_coords;
-                        break;
-                    case "#importcmyk":
-                        id = R.raw.import_cmyk;
-                        break;
-                    case "#importmedian":
-                        id = R.raw.import_median;
-                        break;
-                }*/
                 String imported = "";
                 if(!val.contains("//")) {
                     imported = PhotonCamera.getAssetLoader().getString(
@@ -96,17 +109,6 @@ public class GLInterface {
                                     .replace("\n", "")
                                     + ".glsl");
                 }
-                //val.replace("#")
-                /*if(id!= 0) {
-                    BufferedReader reader2 = new BufferedReader(new InputStreamReader(PhotonCamera.getResourcesStatic().openRawResource(id)));
-                    for (Object line2 : reader2.lines().toArray()) {
-                        source.append("#line 1\n");
-                        source.append(line2);
-                        source.append("\n");
-                    }
-                    //linecnt++;
-                    source.append("#line ").append(linecnt+1).append("\n");
-                }*/
                 if(!imported.equals("")){
                     source.append("#line 1\n");
                     source.append(imported);
