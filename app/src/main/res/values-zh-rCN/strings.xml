@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
+    <string name="iso" translatable="false">"ISO "</string>
+    <string name="icon_string" translatable="false">Icon</string>
+    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
+    <string name="app_name" translatable="false">PhotonCamera</string>
+    <string name="device_support" translatable="false">PhotonCamera Pro</string>
+    <string name="request_permission">此 APP 需要相机权限。</string>
+    <string name="camera_error">此设备不支持 Camera2 API。</string>
+    <string name="luma_nr_count">亮度降噪强度</string>
+    <string name="frame_count">HDR 帧数</string>
+    <string name="disable_aligning">禁用对齐</string>
+    <string name="chroma_nr_count">色度 NR 计数</string>
+    <string name="enhanced_processing">增强处理</string>
+    <string name="settings">设置</string>
+
+    <string name="comp">Compressor</string>
+    <string name="gain">Gain</string>
+    <string name="shadows">阴影</string>
+    <string name="contrmul">Contrast Multiply</string>
+    <string name="contrconst">Constant</string>
+    <string name="saturation">饱和度</string>
+    <string name="expocompensation">曝光补偿</string>
+    <string name="jpg" translatable="false">JPEG</string>
+    <string name="hdrx" translatable="false">HDRX</string>
+    <string name="sharpness">锐度</string>
+    <string name="turn_on_grid">显示网格</string>
+    <string name="noise_reduction_str">降噪强度</string>
+    <string name="noise_merge_str">降噪合并强度</string>
+    <string name="raw">保存为 RAW + JPEG</string>
+    <string name="turn_on_round_edges">启用圆角</string>
+    <string name="enable_remosaic">启用 Remosaic</string>
+    <string name="general">通用</string>
+    <string name="telegram">Telegram 群组 ↗</string>
+    <string name="hdrxNR">HDRX 降噪</string>
+    <string name="turn_on_watermark">水印</string>
+    <string name="sure_delete">你确定要删除这张照片吗？</string>
+    <string name="sure_delete_multiple">你确定要删除 %1$s 张照片吗？ 将释放 %2$s 空间。</string>
+    <string name="cancel">取消</string>
+    <string name="yes">确定</string>
+    <string name="image_deleted">照片已删除</string>
+    <string name="close">关闭</string>
+    <string name="unknown">未知</string>
+    <string name="resolution">"分辨率 "</string>
+    <string name="size">"文件大小 "</string>
+    <string name="device">"设备 "</string>
+    <string name="date">"时间 "</string>
+    <string name="exposure_time">"曝光 "</string>
+    <string name="aperture">"光圈 "</string>
+    <string name="flength">"焦距 "</string>
+    <string name="info">信息</string>
+    <string name="filename">"文件名 "</string>
+    <string name="turn_on_afdata">显示调试信息</string>
+    <string name="histogram">柱状图</string>
+    <string name="export_settings">导出设置</string>
+    <string name="import_settings">导入设置</string>
+    <string name="pref_show_grid_title">显示网格</string>
+    <string name="cfa">拜耳过滤器</string>
+    <string name="align_method">对齐方式</string>
+    <string name="pref_save_per_lens_string">每个镜头设置</string>
+    <string name="compressor">Compressor</string>
+    <string name="about">关于</string>
+    <string name="camera_sounds">快门声音</string>
+    <string name="energy_saving">省电模式</string>
+    <string name="theme">主题</string>
+    <string name="theme_follow_system">跟随系统</string>
+    <string name="theme_light">亮色</string>
+    <string name="theme_dark">暗色</string>
+    <string name="theme_accent">主题颜色</string>
+    <string name="Default">默认</string>
+    <string name="theme_accent_blue">蓝色</string>
+    <string name="theme_accent_red">红色</string>
+    <string name="theme_accent_orange">橙色</string>
+    <string name="theme_accent_green">绿色</string>
+    <string name="theme_accent_pink">粉色</string>
+    <string name="theme_accent_cyan">青色</string>
+    <string name="theme_accent_teal">蓝绿色</string>
+    <string name="show_gradient">显示渐变背景</string>
+    <string name="unprocessed_raw">未处理的 RAW 文件</string>
+    <string name="frame_count_summary">图像帧数</string>
+    <string name="photon_camera_summary">一个具有增强图像处理功能的开源安卓相机</string>
+    <string name="version_title">版本</string>
+    <string name="contributors_title">贡献者 ↗</string>
+    <string name="eis_toggle_text">光学防抖</string>
+    <string name="fps_60_toggle_text">帧率</string>
+    <string name="quad_bayer_toggle_text">像素 (48/64 MP)</string>
+    <string name="backup_restore">备份/恢复设置</string>
+    <string name="reset">重置全部</string>
+    <string name="reset_preferences_warning">将会重置所有设置为默认值，继续吗？</string>
+    <string name="backup">备份</string>
+    <string name="app_will_restart">APP 将重启</string>
+    <string name="restore">恢复</string>
+    <string name="empty_file_name_error">文件名不能为空字符</string>
+    <string name="device_unsupport">警告: 不受支持的设备</string>
+    <string name="af_mode">自动对焦模式</string>
+    <string name="long_press_to_deselect">长按按钮来取消所有选择</string>
+    <string name="multiple_deleted_success">删除了 %1$s 张照片！ 释放了 %2$s 空间。</string>
+    <string name="supported_devices">受支持的设备</string>
+    <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
+    <string name="this_device">你的设备 - %1$s</string>
+    <string name="sync_on">同步已开启</string>
+    <string name="sync_off">同步已关闭</string>
+    <string name="mode_unlimited">无限制</string>
+    <string name="mode_motion">慢动作</string>
+    <string name="mode_photo">照片</string>
+    <string name="mode_night">夜景</string>
+    <string name="mode_video">视频</string>
+    <string name="countdown_timer">计时器</string>
+    <string name="flash">闪光灯</string>
+    <string name="torch">手电筒</string>
+    <string name="on">开启</string>
+    <string name="auto">自动</string>
+    <string name="t_3s">3秒</string>
+    <string name="t_10s">10秒</string>
+    <string name="raw_string" translatable="false">RAW</string>
+    <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
+    <string name="jpg_only">仅 JPEG</string>
+    <string name="off">关闭</string>
+    <string name="golden_ratio">黄金比例</string>
+    <string name="diag_triangle">Diag. Triangles</string>
+    <string name="three_x3" translatable="false">3x3</string>
+    <string name="four_x4" translatable="false">4x4</string>
+    <string name="processing_processname">处理中 %1$s...</string>
+    <string name="turn_on_system_nr">系统降噪</string>
+
+</resources>
