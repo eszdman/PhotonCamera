@@ -23,7 +23,7 @@ public class Wavelet extends Node {
     int rescaling = 1;
     int waves = 4;
     int tile = 8;
-    int waveTile = 3;
+    int waveTile = 2;
     void Wavelet2(){
         //GLTexture input = previousNode.WorkingTexture;
         for(int i =0; i<waves;i++){
@@ -32,6 +32,7 @@ public class Wavelet extends Node {
             glProg.setDefine("RESCALING",rescaling);
             glProg.setDefine("OFFSET",0,0);
             glProg.setDefine("OUTSET",basePipeline.mParameters.rawSize);
+            glProg.setDefine("SQRT2",(float)Math.sqrt(2));
             glProg.useProgram(R.raw.wavelet2,true);
             glProg.setTextureCompute("inTexture",input,false);
             glProg.setTextureCompute("outTexture", waveletRT,true);
@@ -41,18 +42,32 @@ public class Wavelet extends Node {
             input = waveletRT;
             WorkingTexture = waveletRT;
         }
+        rescaling/=waveTile;
+    }
+    void Thresholding(){
+        glProg.setDefine("NOISEO", basePipeline.noiseO);
+        glProg.setDefine("NOISES", basePipeline.noiseS);
+        glProg.setDefine("RESCALING",rescaling);
+        glProg.setDefine("TILE",waveTile);
+        glProg.setDefine("OUTSET",basePipeline.mParameters.rawSize);
+        glProg.setLayout(tile, tile, 1);
+        glProg.useProgram(R.raw.waveletthr, true);
+        glProg.setTextureCompute("inTexture", input, false);
+        glProg.setTextureCompute("outTexture", waveletRT, true);
+        glProg.computeAuto(input.mSize,1);
     }
     void UndoWavelet2() {
         //GLTexture input = WorkingTexture;
-        rescaling /= waveTile;
         for (int i = waves - 1; i >= 0; i--) {
             glProg.setLayout(tile, tile, 1);
             glProg.setDefine("TILE",waveTile);
             glProg.setDefine("RESCALING", rescaling);
             glProg.setDefine("OFFSET", 0, 0);
+            glProg.setDefine("SQRT2",(float)Math.sqrt(2));
             glProg.setDefine("OUTSET", basePipeline.mParameters.rawSize);
-            glProg.setDefine("NOISEO",basePipeline.noiseO);
-            glProg.setDefine("NOISES",basePipeline.noiseS);
+            glProg.setDefine("NOISEO", basePipeline.noiseO);
+            glProg.setDefine("NOISES", basePipeline.noiseS);
+
             glProg.useProgram(R.raw.waveletinv2, true);
             glProg.setTextureCompute("inTexture", input, false);
             glProg.setTextureCompute("outTexture", waveletRT, true);
@@ -68,29 +83,32 @@ public class Wavelet extends Node {
         glProg.setLayout(tile, tile, 1);
         glProg.useProgram(R.raw.tocol, true);
         glProg.setTextureCompute("inTexture", previousNode.WorkingTexture, false);
-        input = waveletRT;
+        input = basePipeline.getMain();
         glProg.setTextureCompute("outTexture", input, true);
         glProg.computeAuto(basePipeline.mParameters.rawSize, 1);
     }
     void TransFormImage(){
         glProg.setDefine("OUTSET", basePipeline.mParameters.rawSize);
+        glProg.setDefine("BL",basePipeline.mParameters.blackLevel);
         glProg.setLayout(tile, tile, 1);
         glProg.useProgram(R.raw.toimg, true);
         glProg.setTextureCompute("inTexture", previousNode.WorkingTexture, false);
         glProg.setTextureCompute("colTexture", waveletRT, false);
-        glProg.setTextureCompute("outTexture", waveletRT, true);
+        WorkingTexture = basePipeline.getMain();
+        glProg.setTextureCompute("outTexture", WorkingTexture, true);
         glProg.computeAuto(basePipeline.mParameters.rawSize, 1);
     }
     @Override
     public void Run() {
-        waves = (int)(Math.log10(basePipeline.mParameters.rawSize.x)/Math.log10(waveTile))-2;
-        if(waves <= 0) waves = 1;
+        waves = (int)(Math.log10(basePipeline.mParameters.rawSize.y)/Math.log10(waveTile))-4;
+        //if(waves <= 0) waves = 1;
         input = previousNode.WorkingTexture;
         waveletRT = basePipeline.getMain();
 
         TransFormColors();
 
         Wavelet2();
+        //Thresholding();
         UndoWavelet2();
 
         TransFormImage();

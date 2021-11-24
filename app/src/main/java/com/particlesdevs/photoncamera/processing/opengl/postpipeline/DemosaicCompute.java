@@ -1,14 +1,12 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
-import android.graphics.Point;
-
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
-public class Demosaic2 extends Node {
-    public Demosaic2() {
-        super(0, "Demosaic");
+public class DemosaicCompute extends Node {
+    public DemosaicCompute() {
+        super(0, "DemosaicCompute");
     }
 
     @Override
@@ -18,6 +16,7 @@ public class Demosaic2 extends Node {
     float fuseMax = 1.f;
     float fuseShift = -0.5f;
     float fuseMpy = 6.0f;
+    int tile = 16;
     @Override
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);
@@ -28,13 +27,13 @@ public class Demosaic2 extends Node {
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         //Gradients
-        glProg.useProgram(R.raw.demosaicp0);
-        glProg.setTexture("RawBuffer", glTexture);
-        glProg.drawBlocks(basePipeline.main3);
+        glProg.setLayout(tile,tile,1);
+        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.useProgram(R.raw.demosaicp0c,true);
+        glProg.setTextureCompute("inTexture", glTexture,false);
+        glProg.setTextureCompute("outTexture", basePipeline.main3,true);
+        glProg.computeAuto(basePipeline.main3.mSize,1);
         GLTexture outp;
-        //glUtils.convertVec4(basePipeline.main3,"in1");
-        //glUtils.SaveProgResult(basePipeline.main3.mSize,"deriv");
-
 
         //Green channel
         glProg.setDefine("GRADSIZE",gradSize);
@@ -44,25 +43,30 @@ public class Demosaic2 extends Node {
         glProg.setDefine("FUSEMPY",fuseMpy);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
-        glProg.useProgram(R.raw.demosaicp12);
-        glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("GradBuffer",basePipeline.main3);
+        glProg.setLayout(tile,tile,1);
+        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.useProgram(R.raw.demosaicp12c,true);
+        glProg.setTextureCompute("inTexture",previousNode.WorkingTexture,false);
+        glProg.setTextureCompute("gradTexture",basePipeline.main3,false);
+
         if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
         GLTexture prev = previousNode.WorkingTexture;
         outp = basePipeline.main1;
         if(basePipeline.main1 == previousNode.WorkingTexture){
             outp = basePipeline.main2;
         }
-        glProg.drawBlocks(outp);
+        glProg.setTextureCompute("outTexture",outp,true);
+        glProg.computeAuto(outp.mSize,1);
 
         //Colour channels
-        glProg.useProgram(R.raw.demosaicp2);
-        glProg.setTexture("RawBuffer", glTexture);
-        glProg.setTexture("GreenBuffer", outp);
+        glProg.setLayout(tile,tile,1);
+        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.useProgram(R.raw.demosaicp2c,true);
+        glProg.setTextureCompute("inTexture", glTexture,false);
+        glProg.setTextureCompute("greenTexture", outp,false);
         WorkingTexture = basePipeline.main3;
-        glProg.drawBlocks(WorkingTexture);
-        glProg.close();
+        glProg.setTextureCompute("outTexture",WorkingTexture,true);
+        glProg.computeAuto(WorkingTexture.mSize,1);
+        glProg.closed = true;
     }
 }
-
-

@@ -100,9 +100,7 @@ public class PostPipeline extends GLBasePipeline {
     }
     private void BuildDefaultPipeline(){
         add(new Bayer2Float());
-
         add(new ExposureFusionBayer2());
-
         switch (PhotonCamera.getSettings().cfaPattern){
             case -2:{
                 add(new DemosaicQUAD());
@@ -113,7 +111,9 @@ public class PostPipeline extends GLBasePipeline {
                 break;
             }
             default:{
-                add(new Demosaic2());
+                add(new HotPixelFilter());
+                add(new DemosaicCompute());
+                //add(new ImpulsePixelFilter());
                 break;
             }
         }
@@ -124,7 +124,7 @@ public class PostPipeline extends GLBasePipeline {
             //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
 
             //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
-            add(new Wavelet());
+            //add(new Wavelet());
 
             add(new ESD3D());
         }
@@ -132,8 +132,6 @@ public class PostPipeline extends GLBasePipeline {
         add(new AWB());
 
         add(new Initial());
-
-
 
         add(new Equalization());
 
@@ -145,9 +143,7 @@ public class PostPipeline extends GLBasePipeline {
 
         //add(new ChromaticFlow());
 
-
         add(new Sharpen2());
-
 
         add(new RotateWatermark(getRotation()));
     }

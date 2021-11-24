@@ -22,10 +22,14 @@ public class ESD3D extends Node {
         GLTexture map = glUtils.medianDown(previousNode.WorkingTexture,4);
         GLTexture grad;
 
-        //if(previousNode.WorkingTexture != basePipeline.main3){
+        if(previousNode.WorkingTexture != basePipeline.main3){
             grad = basePipeline.main3;
-        //}
-        //else grad = basePipeline.getMain();
+            WorkingTexture = basePipeline.getMain();
+        }
+        else {
+            grad = basePipeline.getMain();
+            WorkingTexture = basePipeline.main3;
+        }
         glUtils.ConvDiff(previousNode.WorkingTexture, grad, 0.f);
 
 
@@ -40,7 +44,6 @@ public class ESD3D extends Node {
             glProg.setTexture("NoiseMap", map);
             glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
             glProg.setTexture("GradBuffer", grad);
-            WorkingTexture = basePipeline.getMain();
             glProg.drawBlocks(WorkingTexture);
         }
         glProg.closed = true;

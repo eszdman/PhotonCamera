@@ -3,7 +3,6 @@ precision mediump sampler2D;
 uniform sampler2D RawBuffer;
 uniform sampler2D GreenBuffer;
 uniform int yOffset;
-uniform int CfaPattern;
 
 
 //#define greenmin (0.04)
