@@ -36,4 +36,9 @@ public class GLDrawParams {
             EGL_CONTEXT_CLIENT_VERSION, 3,
             EGL_NONE
     };
+    public enum Allocate {
+        None(),
+        Direct(),
+        Heap();
+    }
 }

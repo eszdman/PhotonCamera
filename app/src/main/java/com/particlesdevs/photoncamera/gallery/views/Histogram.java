@@ -10,6 +10,7 @@ import android.graphics.PorterDuffXfermode;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.particlesdevs.photoncamera.processing.opengl.scripts.GLHistogram;
 import com.particlesdevs.photoncamera.processing.rs.HistogramRs;
 
 public class Histogram extends View {
@@ -18,17 +19,19 @@ public class Histogram extends View {
     private HistogramLoadingListener sHistogramLoadingListener;
     private HistogramModel histogramModel;
     private final Path wallPath = new Path();
-
+    //GLHistogram glHistogram = new GLHistogram();
     public Histogram(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         wallPaint = new Paint();
     }
 
-    public static HistogramModel analyze(Bitmap bitmap) {
+    public HistogramModel analyze(Bitmap bitmap) {
         int size = 256;
         int[][] colorsMap;
         int maxY = 0;
         colorsMap = HistogramRs.getHistogram(bitmap);
+
+        //colorsMap = glHistogram.Compute(bitmap);
         //Find max
         for (int i = 0; i < size; i++) {
             maxY = Math.max(maxY, colorsMap[0][i]);

@@ -20,12 +20,8 @@ public class GLCoreBlockProcessing extends GLContext {
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;
     private final GLFormat mglFormat;
-    public enum Allocate {
-        None(),
-        Direct(),
-        Heap();
-    }
-    public Allocate allocation = Allocate.Heap;
+
+    public GLDrawParams.Allocate allocation = GLDrawParams.Allocate.Heap;
 
     public static void checkEglError(String op) {
         int error = GLES30.glGetError();
@@ -35,26 +31,26 @@ public class GLCoreBlockProcessing extends GLContext {
             Log.v(TAG, msg);
         }
     }
-    public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat,Allocate alloc) {
+    public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         this(size, glFormat,alloc);
         mOut = out;
     }
     public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat) {
-        this(size, glFormat,Allocate.Heap);
+        this(size, glFormat, GLDrawParams.Allocate.Heap);
         mOut = out;
     }
     public GLCoreBlockProcessing(Point size, GLFormat glFormat) {
-        this(size,glFormat,Allocate.Heap);
+        this(size,glFormat, GLDrawParams.Allocate.Heap);
     }
-    public GLCoreBlockProcessing(Point size, GLFormat glFormat,Allocate alloc) {
+    public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         super(size.x, GLDrawParams.TileSize);
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
         mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
         final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
-        if(alloc == Allocate.None) return;
-        if(alloc == Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(capacity);
+        if(alloc == GLDrawParams.Allocate.None) return;
+        if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(capacity);
         else {
             mOutBuffer = ByteBuffer.allocate(capacity);
         }
@@ -103,11 +99,11 @@ public class GLCoreBlockProcessing extends GLContext {
 
     private final int[] bind = new int[1];
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat) {
-        return drawBlocksToOutput(size,glFormat,Allocate.Heap);
+        return drawBlocksToOutput(size,glFormat, GLDrawParams.Allocate.Heap);
     }
-    public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,Allocate alloc) {
+    public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,GLDrawParams.Allocate alloc) {
         ByteBuffer mOutBuffer;
-        if(alloc == Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
+        if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
         else
             mOutBuffer = ByteBuffer.allocate(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
         return drawBlocksToOutput(size,glFormat,mOutBuffer);

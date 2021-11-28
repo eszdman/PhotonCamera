@@ -37,6 +37,7 @@ public class DemosaicCompute extends Node {
 
         //Green channel
         glProg.setDefine("GRADSIZE",gradSize);
+        glProg.setDefine("SCANGRAD",15);
         glProg.setDefine("FUSEMIN",fuseMin);
         glProg.setDefine("FUSEMAX",fuseMax);
         glProg.setDefine("FUSESHIFT",fuseShift);

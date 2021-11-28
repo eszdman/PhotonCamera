@@ -4,6 +4,7 @@ import android.graphics.Point;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
+import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLOneScript;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -20,7 +21,7 @@ public class NonIdealRaw extends GLOneScript {
     public ByteBuffer prevmap;
     public Parameters parameters;
     public NonIdealRaw(Point size) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLCoreBlockProcessing.Allocate.None), R.raw.nonidealraw, "NonIdealRaw");
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLDrawParams.Allocate.None), R.raw.nonidealraw, "NonIdealRaw");
     }
 
     @Override

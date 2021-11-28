@@ -3,13 +3,14 @@ package com.particlesdevs.photoncamera.processing.opengl;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.opengl.GLUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
-import static android.opengl.GLES30.*;
+import static android.opengl.GLES31.*;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
 import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_2D;
 import static javax.microedition.khronos.opengles.GL11.GL_TEXTURE_MAG_FILTER;
@@ -60,22 +61,31 @@ public class GLTexture implements AutoCloseable {
     public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
         this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
     }
+    public GLTexture(Bitmap bmp){
+        this(bmp,0);
+    }
+    public GLTexture(Bitmap bmp,int level){
+        this(bmp,GL_NEAREST,GL_CLAMP_TO_EDGE,level);
+    }
     public GLTexture(Bitmap bmp, int textureFilter, int textureWrapper,int level) {
-        mFormat = null;
         this.mSize = new Point(bmp.getWidth(),bmp.getHeight());
-        this.mGLFormat = 0;
+        this.mFormat = new GLFormat(GLFormat.DataType.SIMPLE_8,bmp.getByteCount()/(bmp.getWidth()*bmp.getHeight()));
+        this.mGLFormat = mFormat.getGLFormatInternal();
+        mFormat.filter = textureFilter;
+        mFormat.wrap = textureWrapper;
         int[] TexID = new int[1];
         glGenTextures(TexID.length, TexID, 0);
+        checkEglError("glGenTextures");
         mTextureID = TexID[0];
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        GLUtils.texImage2D(GL_TEXTURE_2D,level,bmp,0);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, textureWrapper);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, textureWrapper);
-        checkEglError("Tex glTexParameteri");
+        checkEglError("glBindTexture");
+        glTexStorage2D(GL_TEXTURE_2D, 1, mFormat.getGLFormatInternal(),  mSize.x, mSize.y);
+        checkEglError("glTexStorage2D");
+        GLUtils.texSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bmp);
+        checkEglError("GLUtils.texSubImage2D");
+        reSetParameters();
+        checkEglError("Tex glTexParameter");
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         mFormat = glFormat;
@@ -88,17 +98,12 @@ public class GLTexture implements AutoCloseable {
         mTextureID = TexID[0];
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        //Log.d("GLTexture","Texture ID:"+mTextureID);
-        /*
-        glTexImage2D(GL_TEXTURE_2D, level, glFormat.getGLFormatInternal(), size.x, size.y, 0,
-                glFormat.getGLFormatExternal(), glFormat.getGLType(), pixels);
-         */
         glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
         checkEglError("glTexStorage2D");
         glTexSubImage2D(GL_TEXTURE_2D, level,0,0,size.x,size.y,glFormat.getGLFormatExternal(),glFormat.getGLType(),pixels);
         checkEglError("glTexSubImage2D");
         reSetParameters();
-        checkEglError("Tex glTexParameteri");
+        checkEglError("Tex glTexParameter");
     }
     void reSetParameters(){
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mFormat.filter);
@@ -114,6 +119,7 @@ public class GLTexture implements AutoCloseable {
             isBuffered = true;
         }
     }
+
     public void BindBuffer(){
         glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureID, 0);

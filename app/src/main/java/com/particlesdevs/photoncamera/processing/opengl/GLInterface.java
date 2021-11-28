@@ -74,7 +74,7 @@ public class GLInterface {
         for (Object line : reader.lines().toArray()) {
             String val = String.valueOf(line);
             if(val.contains("layout")){
-                String[] divided = val.split(" ");
+                String[] divided = val.replace("{","").split(" ");
                 String last = "";
                 if(divided.length > 0){
                     last = divided[divided.length-1].replace(";","").replace("\n","");

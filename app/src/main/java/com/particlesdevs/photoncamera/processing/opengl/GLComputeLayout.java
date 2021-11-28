@@ -12,6 +12,5 @@ public class GLComputeLayout {
     public GLComputeLayout(int x, int y, int z){
         xy = new Point(x,y);
         this.z = z;
-
     }
 }

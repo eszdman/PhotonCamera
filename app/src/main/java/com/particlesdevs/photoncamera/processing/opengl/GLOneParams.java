@@ -17,7 +17,7 @@ public class GLOneParams {
         glProgram = glProcessing.mProgram;
     }
     public GLOneParams(Point size, Bitmap out, GLFormat glFormat) {
-        glProcessing = new GLCoreBlockProcessing(size, out, glFormat, GLCoreBlockProcessing.Allocate.Direct);
+        glProcessing = new GLCoreBlockProcessing(size, out, glFormat, GLDrawParams.Allocate.Direct);
         glProgram = glProcessing.mProgram;
     }
 

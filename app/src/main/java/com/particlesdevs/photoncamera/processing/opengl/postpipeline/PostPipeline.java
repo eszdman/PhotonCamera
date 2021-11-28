@@ -111,7 +111,7 @@ public class PostPipeline extends GLBasePipeline {
                 break;
             }
             default:{
-                add(new HotPixelFilter());
+                //add(new HotPixelFilter());
                 add(new DemosaicCompute());
                 //add(new ImpulsePixelFilter());
                 break;

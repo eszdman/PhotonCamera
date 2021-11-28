@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.AttributeSet;
 import android.util.Rational;
 
 import androidx.annotation.NonNull;
@@ -120,6 +121,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(ImageFile imageFile) {
+        Histogram histogram = new Histogram(getApplication().getBaseContext(), null);
         if (histoRunnable != null) {
             histoHandler.removeCallbacks(histoRunnable);
         }
@@ -135,7 +137,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
                 .into(new CustomTarget<Bitmap>() {
                     @Override
                     public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        exifDialogModel.setHistogramModel(Histogram.analyze(resource));
+                        exifDialogModel.setHistogramModel(histogram.analyze(resource));
                     }
 
                     @Override

@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
+import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLOneScript;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -27,7 +28,7 @@ import static android.opengl.GLES30.GL_RED_INTEGER;
 public class InterpolateGainMap extends GLOneScript {
     public Parameters parameters;
     public InterpolateGainMap(Point size) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.FLOAT_32), GLCoreBlockProcessing.Allocate.Direct), R.raw.interpolategainmap, "InterpolateGainMap");
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.FLOAT_32), GLDrawParams.Allocate.Direct), R.raw.interpolategainmap, "InterpolateGainMap");
     }
 
     @Override

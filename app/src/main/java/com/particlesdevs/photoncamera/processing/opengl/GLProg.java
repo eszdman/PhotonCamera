@@ -328,6 +328,17 @@ public class GLProg implements AutoCloseable {
         setVar(var, textureId);
         tex.bind(GL_TEXTURE0 + textureId);
     }
+    public void setBufferCompute(String var,GLBuffer buff){
+        setBufferCompute(var,buff,GL_SHADER_STORAGE_BUFFER);
+    }
+    public void setBufferCompute(String var,GLBuffer buff,int type){
+        GLComputeLayout computeLayout = mComputeLayouts.get(var);
+        if(computeLayout == null){
+            new Exception("Wrong computeLayout:"+var).printStackTrace();
+            return;
+        }
+        buff.BindBase(computeLayout.binding,type);
+    }
     public void setTextureCompute(String var,GLTexture tex,boolean write){
         int access = GL_READ_ONLY;
         if(write) access = GL_WRITE_ONLY;
@@ -345,6 +356,7 @@ public class GLProg implements AutoCloseable {
         }
         glBindImageTexture(computeLayout.binding,
                 tex.mTextureID, 0, false, 0, access, tex.mFormat.getGLFormatInternal());
+        checkEglError("glBindImageTexture tex.mTextureID:"+tex.mTextureID);
     }
 
     public void setVar(String name, int... vars) {
