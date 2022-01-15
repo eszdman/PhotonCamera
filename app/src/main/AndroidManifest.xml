@@ -10,7 +10,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+            tools:ignore="ScopedStorage" />
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
@@ -34,7 +35,8 @@
             android:theme="@style/Theme.Photon.SettingsActivity" />
         <activity
             android:name="com.particlesdevs.photoncamera.ui.SplashActivity"
-            android:theme="@style/Theme.Photon.Splash">
+            android:theme="@style/Theme.Photon.Splash"
+                android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
