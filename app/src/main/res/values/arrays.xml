@@ -23,6 +23,11 @@
         <item>PCam GPU</item>
         <item>PCam Hybrid</item>
     </string-array>
+    <string-array name="location_geotag_entryValues">
+        <item>Off</item>
+        <item>High Accuracy</item>
+        <item>Network</item>
+    </string-array>
     <string-array name="alignset_entryValues">
         <item>0</item>
         <item>1</item>
