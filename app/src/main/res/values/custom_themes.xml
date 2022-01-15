@@ -8,6 +8,8 @@
         <item name="cameraFragmentBackground">@drawable/updatetheme</item>
     </style>
 
+
+
     <style name="BlueTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
         <item name="colorPrimaryContainer">@color/md_blue_600</item>
         <item name="colorPrimary">@color/md_blue_400</item>
@@ -53,5 +55,9 @@
     <style name="GradientBackgroundTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
         <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
     </style>
-
+    <style name="snajdovskiTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
+        <item name="colorAccent">#A1A1A1</item>
+        <item name="colorPrimary">#A1A1A1</item>
+        <item name="colorPrimaryContainer">#C2C2C2</item>
+    </style>
 </resources>
