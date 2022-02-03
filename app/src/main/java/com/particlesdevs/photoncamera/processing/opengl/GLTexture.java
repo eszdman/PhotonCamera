@@ -22,9 +22,10 @@ public class GLTexture implements AutoCloseable {
     public final int mTextureID;
     public int mBuffer;
     public boolean isBuffered = false;
+    private static int count = 0;
     @NonNull
     public final GLFormat mFormat;
-    private int Cur;
+    private static boolean[] ids = new boolean[256];
     public GLTexture(GLTexture in,GLFormat format) {
         this(in.mSize,new GLFormat(format),null,in.mFormat.filter,in.mFormat.wrap,0);
     }
@@ -74,6 +75,7 @@ public class GLTexture implements AutoCloseable {
         mFormat.filter = textureFilter;
         mFormat.wrap = textureWrapper;
         int[] TexID = new int[1];
+
         glGenTextures(TexID.length, TexID, 0);
         checkEglError("glGenTextures");
         mTextureID = TexID[0];
@@ -94,8 +96,20 @@ public class GLTexture implements AutoCloseable {
         this.mSize = size;
         this.mGLFormat = glFormat.getGLFormatInternal();
         int[] TexID = new int[1];
-        glGenTextures(TexID.length, TexID, 0);
+        for(int i = 1; i<ids.length;i++){
+            if(!ids[i]){
+                Log.d("GLTexture","get:"+i);
+                if(count < i){
+                    count = i;
+                    glGenTextures(TexID.length, TexID, 0);
+                }
+                TexID[0] = i;
+                ids[i] = true;
+                break;
+            }
+        }
         mTextureID = TexID[0];
+        Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
@@ -169,10 +183,22 @@ public class GLTexture implements AutoCloseable {
                 ", mFormat=" + mFormat +
                 '}';
     }
+    public static void notClosed(){
+        StringBuilder str = new StringBuilder();
+        for(int i =0; i<ids.length;i++){
+            if(ids[i]) {
+                str.append(i);
+                str.append(" ");
+            }
+        }
+        Log.d("GLTexture","notClosed:"+str.toString());
+    }
 
     @Override
     public void close() {
         glDeleteTextures(1, new int[]{mTextureID}, 0);
+        ids[mTextureID] = false;
+        Log.d("GLTexture","close ID:"+mTextureID);
         if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
     }
 }

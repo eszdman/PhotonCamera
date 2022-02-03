@@ -20,6 +20,7 @@ public class Demosaic2 extends Node {
     float fuseMpy = 6.0f;
     @Override
     public void Run() {
+        startT();
         gradSize = getTuning("GradSize",gradSize);
         fuseMin = getTuning("FuseMin",fuseMin);
         fuseMax = getTuning("FuseMax",fuseMax);
@@ -31,7 +32,9 @@ public class Demosaic2 extends Node {
         glProg.useProgram(R.raw.demosaicp0);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.drawBlocks(basePipeline.main3);
+        endT("Demosaic00");
         GLTexture outp;
+
         //glUtils.convertVec4(basePipeline.main3,"in1");
         //glUtils.SaveProgResult(basePipeline.main3.mSize,"deriv");
 
@@ -44,24 +47,28 @@ public class Demosaic2 extends Node {
         glProg.setDefine("FUSEMPY",fuseMpy);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
+        startT();
         glProg.useProgram(R.raw.demosaicp12);
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GradBuffer",basePipeline.main3);
         if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
         GLTexture prev = previousNode.WorkingTexture;
-        outp = basePipeline.main1;
-        if(basePipeline.main1 == previousNode.WorkingTexture){
+        outp = basePipeline.getMain();
+        /*if(basePipeline.main1 == previousNode.WorkingTexture){
             outp = basePipeline.main2;
-        }
+        }*/
         glProg.drawBlocks(outp);
+        endT("Demosaic12");
 
         //Colour channels
+        startT();
         glProg.useProgram(R.raw.demosaicp2);
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setTexture("GreenBuffer", outp);
         WorkingTexture = basePipeline.main3;
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
+        endT("Demosaic2");
     }
 }
 

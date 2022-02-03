@@ -10,7 +10,7 @@ public class HttpLoader {
     public static BufferedReader readURL(String addr) throws IOException {
         URL supportedList = new URL(addr);
         HttpURLConnection conn = (HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(120); // timing out in a 120 ms
+        conn.setConnectTimeout(25); // timing out in a 25 ms
         return new BufferedReader(new InputStreamReader(conn.getInputStream()));
     }
 }

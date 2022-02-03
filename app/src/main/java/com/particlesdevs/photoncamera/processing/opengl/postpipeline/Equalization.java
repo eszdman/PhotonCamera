@@ -61,6 +61,7 @@ public class Equalization extends Node {
     @Override
     public void Compile() {}
     private Histogram Analyze(){
+
         int resize = 6;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
                 previousNode.WorkingTexture.mSize.y/resize,previousNode.WorkingTexture.mFormat);
@@ -95,8 +96,13 @@ public class Equalization extends Node {
         fb.get(brArr);
         fb.reset();
         r1.close();*/
+        endT("Equalization Part 01");
+        startT();
         Histogram histogram = new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
         bmp.recycle();
+        endT("Equalization Part 02");
+        r1.close();
+
         return histogram;
     }
     private float gauss(float[] in,int ind){
@@ -508,6 +514,7 @@ public class Equalization extends Node {
     boolean removeUnderexpose = true;
     @Override
     public void Run() {
+        startT();
         disableEqualization = getTuning("DisableEqualization",disableEqualization);
         if(disableEqualization){
             WorkingTexture = previousNode.WorkingTexture;
@@ -538,7 +545,9 @@ public class Equalization extends Node {
         float gmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[1].first));
         float bmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[2].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[2].first));
         Log.d("Equalization","rgb max shift:"+rmax+","+gmax+","+bmax);
+        endT("Equalization Part 00");
         Histogram histParser = Analyze();
+        startT();
         //Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut2);
         int wrongHist = 0;
         int brokeHist = 0;
@@ -608,6 +617,8 @@ public class Equalization extends Node {
         for(int i =0; i<averageCurve.length;i++){
             averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
         }
+        endT("Equalization Part 1");
+        startT();
         if(basePipeline.mSettings.DebugData) {
             GenerateCurveBitm(histParser.histr,histParser.histg,histParser.histb);
         }
@@ -764,6 +775,8 @@ public class Equalization extends Node {
             lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
             glProg.setDefine("LUT",true);
         }
+        endT("Equalization Part 2");
+        startT();
         glProg.useProgram(R.raw.equalize);
         if(lut != null) glProg.setTexture("LookupTable",lut);
         glProg.setTexture("Histogram",histogram);
@@ -779,5 +792,6 @@ public class Equalization extends Node {
         if(lut != null) lut.close();
         TonemapCoeffs.close();
         glProg.closed = true;
+        endT("Equalization Part 3");
     }
 }

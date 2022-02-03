@@ -64,10 +64,11 @@ public class ExposureFusionBayer2 extends Node {
         return tex;
     }
     void getHistogram(GLTexture lowGauss){
-        glUtils.convertVec4(lowGauss,"in1.r");
+        GLTexture vectored = glUtils.convertVec4(lowGauss,"in1.r");
         Bitmap sourceh = glUtils.GenerateBitmap(lowGauss.mSize);
         histogram = new Histogram(sourceh,lowGauss.mSize.x*lowGauss.mSize.y,256);
         sourceh.recycle();
+        vectored.close();
     }
     float autoExposureHigh(){
         float max = 0.f;
@@ -132,7 +133,7 @@ public class ExposureFusionBayer2 extends Node {
     float gaussSize = 0.5f;
     float targetLuma = 0.5f;
     float downScalePerLevel = 2.2f;
-    float dehazing = 0.25f;
+    float dehazing = 0.0f;
 
     float softUpperLevel = 0.1f;
     float softLoverLevel = 0.0f;
@@ -266,9 +267,9 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
         glProg.setVar("upscaleIn",binnedFuse.mSize);
         glProg.setVar("blendMpy",1.f);
-        //normalExpo.gauss[ind].close();
-        //highExpo.gauss[ind].close();
+
         glProg.drawBlocks(binnedFuse,normalExpo.sizes[ind]);
+
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
             //GLTexture upsampleWip = (glUtils.interpolate(binnedFuse,normalExpo.sizes[i]));
             //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
@@ -308,6 +309,8 @@ public class ExposureFusionBayer2 extends Node {
 
         }
         //previousNode.WorkingTexture.close();
+        normalExpo.gauss[ind].close();
+        highExpo.gauss[ind].close();
         basePipeline.main1.mSize.x = initialSize.x;
         basePipeline.main1.mSize.y = initialSize.y;
         basePipeline.main2.mSize.x = initialSize.x;

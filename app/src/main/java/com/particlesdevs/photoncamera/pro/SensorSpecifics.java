@@ -23,7 +23,7 @@ import static com.particlesdevs.photoncamera.util.FileManager.sPHOTON_TUNING_DIR
 
 public class SensorSpecifics {
     public SpecificSettingSensor[] specificSettingSensor;
-    public SpecificSettingSensor selectedSensorSpecifics = null;
+    public SpecificSettingSensor selectedSensorSpecifics = new SpecificSettingSensor();
     ArrayList<String> loadNetwork(String device) throws IOException {
         ArrayList<String> inputStr = new ArrayList<String>();
         BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/sensors/" + device + ".txt");
@@ -45,8 +45,10 @@ public class SensorSpecifics {
         return inputStr;
     }
     public SensorSpecifics(SettingsManager mSettingsManager){
+
         boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded",false);
         boolean exists = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists",true);
+        Log.d("SensorSpecifics", "loaded:"+loaded+", exists:"+exists);
         if(exists) {
             int count = 0;
             String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();

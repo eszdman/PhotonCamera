@@ -883,7 +883,7 @@ public class GLUtils {
         return SaveProgResult(size, "");
     }
     public Bitmap SaveProgResult(Point size, String namesuffix){
-        return SaveProgResult(size, namesuffix, 4,".jpg");
+        return SaveProgResult(size, namesuffix, 4,".png");
     }
     public Bitmap SaveProgResult(Point size, String namesuffix, int channels,String ext){
         Bitmap preview = GenerateBitmap(size,channels);
@@ -896,12 +896,12 @@ public class GLUtils {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            preview.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            preview.compress(Bitmap.CompressFormat.PNG, 100, fOut);
         }
         return preview;
     }
     public Bitmap Result(Point size, String namesuffix, ByteBuffer in){
-        return Result(size, namesuffix, 4,".jpg",in);
+        return Result(size, namesuffix, 4,".png",in);
     }
     public Bitmap Result(Point size, String namesuffix, int channels,String ext,ByteBuffer in){
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, channels);
@@ -916,7 +916,7 @@ public class GLUtils {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            preview.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            preview.compress(Bitmap.CompressFormat.PNG, 100, fOut);
         }
         return preview;
     }

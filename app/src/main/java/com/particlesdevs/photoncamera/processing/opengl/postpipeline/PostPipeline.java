@@ -112,7 +112,10 @@ public class PostPipeline extends GLBasePipeline {
             }
             default:{
                 //add(new HotPixelFilter());
-                add(new DemosaicCompute());
+                if(PhotonCamera.getSettings().hdrxNR) {
+                    add(new ESD3DBayer());
+                }
+                add(new Demosaic2());
                 //add(new ImpulsePixelFilter());
                 break;
             }
@@ -120,6 +123,8 @@ public class PostPipeline extends GLBasePipeline {
         /*
          * * * All filters after demosaicing * * *
          */
+
+        /*
         if(PhotonCamera.getSettings().hdrxNR) {
             //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
 
@@ -127,7 +132,7 @@ public class PostPipeline extends GLBasePipeline {
             //add(new Wavelet());
 
             add(new ESD3D());
-        }
+        }*/
 
         add(new AWB());
 

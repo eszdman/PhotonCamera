@@ -34,6 +34,7 @@ public class SupportedDevice {
     }
 
     public void loadCheck() {
+
         specific = new Specific(mSettingsManager);
         new Thread(() -> {
             try {
@@ -53,9 +54,7 @@ public class SupportedDevice {
                 }
         });
         thread.start();
-        new Thread(() -> {
-            sensorSpecifics = new SensorSpecifics(mSettingsManager);
-        }).start();
+        new Thread(() -> sensorSpecifics = new SensorSpecifics(mSettingsManager)).start();
         while(thread.isAlive()){
             try {
                 Thread.sleep(1);
