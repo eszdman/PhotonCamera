@@ -224,9 +224,9 @@ public class ExposureFusionBayer2 extends Node {
 
 
         GLTexture exposureBase = expose3(in,baseExpose);
-        GLTexture downscaled = glUtils.interpolate(exposureBase,1.0/4.0);
-        getHistogram(downscaled);
-        downscaled.close();
+        basePipeline.main4 = glUtils.interpolate(exposureBase,1.0/4.0);
+        getHistogram(basePipeline.main4);
+        basePipeline.main4.close();
         float overexposure = autoExposureHigh();
         float underexposure = autoExposureLow();
         ((PostPipeline)basePipeline).softLight = Math2.smoothstep(softLoverLevel, softUpperLevel,((1.f/overexposure)+underexposure)/2.f);

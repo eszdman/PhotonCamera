@@ -5,8 +5,11 @@ layout(rgba16f, binding = 1) uniform highp readonly image2D colTexture;
 layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;
 #define WB 1.0,1.0,1.0
 #define BL 0.0,0.0,0.0
+#define NOISES 0.0
+#define NOISEO 0.0
 #define LAYOUT //
 #define OUTSET 0,0
+#import gaussian
 LAYOUT
 void main() {
     ivec2 xyIn = ivec2(gl_GlobalInvocationID.xy);
@@ -18,7 +21,7 @@ void main() {
     float br0 = (inp2.r*0.2+inp2.g*0.5+inp2.b*0.3);
     //float br = mix(br0,inp.a,0.5);
     //inp.rgb+=0.001*vec3(BL);
-    inp.rgb/=(inp.r*0.2+inp.g*0.5+inp.b*0.3);
+    inp.rgb/=(inp.r*0.2+inp.g*0.5+inp.b*0.3 + 0.0001);
     //inp.rgb/=inp.a;
     //inp.rgb-=0.001;
 
@@ -26,5 +29,6 @@ void main() {
 
     //inp.a = 1.0;
     //inp = clamp(inp,0.0,1.0);
+    float k = unscaledGaussian(dot(inp-inp2,vec4(0.2,0.5,0.3,0.0)),sqrt(NOISES*br0 + NOISEO));
     imageStore(outTexture, xyIn, inp);
 }

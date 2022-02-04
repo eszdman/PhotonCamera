@@ -51,7 +51,8 @@ void main() {
     for(int i =1; i<TILE*TILE;i++){
         sum+=texColor[i];
     }
-    vec4 in0 = br*float(TILE*TILE) - (br + sum/float(TILE*TILE - 1))*float(TILE*TILE - 1);
+    sum/=float(TILE*TILE - 1);
+    vec4 in0 = br*float(TILE*TILE) - (br + sum)*float(TILE*TILE - 1);
     texColor[0] = in0-br;
 
     for(int i =0; i<TILE*TILE;i++){
@@ -59,8 +60,7 @@ void main() {
         br = mix4(brs,interp);
         vec4 brdiff = br-brs[0];
         texColor[i]-=brdiff;
-
-        texColor[i] = hardThresholding(texColor[i],sqrt(abs(1.0*NOISES + NOISEO))/2.0);
+        texColor[i] = hardThresholding(texColor[i],sqrt(abs(1.0*NOISES + NOISEO))*0.12);
 
         imageStore(outTexture, xyOut+ivec2(i%TILE,i/TILE)*RESCALING, texColor[i]+br);
     }

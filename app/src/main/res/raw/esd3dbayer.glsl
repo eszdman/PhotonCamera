@@ -54,16 +54,15 @@ void main() {
         for (int i=-KSIZE; i <= KSIZE; i++){
             float k0 = pdf(float(i)/sigX);
             for (int j=-KSIZE; j <= KSIZE; j++){
-                vec2 temp = texelFetch(GradBuffer, xy+i*mvx+j*mvy, 0).rg;
-                float k = pdf(float(j)/sigX)*k0*pdf((temp-baseGrad)/sigY);
-                temp *= k;
-                dxy+=temp;
-                //dxyabs+=abs(temp);
-                sum+=k;
+                    vec2 temp = texelFetch(GradBuffer, xy+ivec2(-1,1)*i+ivec2(1,1)*j, 0).rg;
+                    float k = pdf(float(j)/sigX)*k0*pdf((temp-baseGrad)/sigY);
+                    temp *= k;
+                    dxy+=temp.x*vec2(-1.0,1.0)+temp.y*vec2(1.0,1.0);
+                    sum+=k;
             }
         }
         dxy/=sum;
-        //dxyabs/=sum;
+        //dxy = dxy.x*vec2(-1.0,1.0) + dxy.y*vec2(1.0,1.0);
 
         float angle = atan(dxy.y,dxy.x)+PI/2.0;
         float cc;
@@ -74,6 +73,8 @@ void main() {
         coso*=coso;
         float sin2o = sin(angle*2.0);
         vec2 sigo = vec2(3.5*1.5,3.5/4.35);
+        //vec2 sigo = vec2(25.0*sqrt(sigY),7.0*sqrt(sigY));
+        //sigo.y = sKernel/sigo.x;
         //Improve energy
         //sigo*=min(sigY*30.1,1.0);
         sigo*=sigo;
@@ -87,12 +88,14 @@ void main() {
         {
             for (int j=-KSIZE; j <= KSIZE; ++j)
             {
-                cc = float(texelFetch(InputBuffer, xy+i*mvx+j*mvy, 0).r);
+                ivec2 xyc = i*mvx+j*mvy;
+                cc = float(texelFetch(InputBuffer, xy+xyc, 0).r);
                 factor = pdf((cc-cin)/sigY)/
                 fastExp(
-                (a*float(i*i) +
-                2.0*b*float(i*j) +
-                c*float(j*j))
+                (a*float(xyc.x*xyc.x) +
+                2.0*b*float(xyc.x*xyc.y) +
+                c*float(xyc.y*xyc.y))
+                //float(xyc.x*xyc.x)+float(xyc.y*xyc.y)
                 );
 
                 Z += factor;
@@ -105,5 +108,6 @@ void main() {
         } else {
             Output = float(clamp(final_colour/Z,0.0,1.0));
         }
+
     }
 }

@@ -57,7 +57,7 @@ void main() {
         dxy/=sum;
         dxyabs/=sum;
 
-        float angle = atan(dxy.y,dxy.x)+PI;
+        float angle = atan(dxy.x,dxy.y);
         vec3 cc;
         float factor;
         float sino = sin(angle);
@@ -65,9 +65,10 @@ void main() {
         float coso = cos(angle);
         coso*=coso;
         float sin2o = sin(angle*2.0);
-        vec2 sigo = vec2(3.5*1.5,3.5/4.35);
+        float pwrful = clamp(length(dxy)*2.5,0.0,1.0);
+        vec2 sigo = vec2(3.5*1.5*(1.0 + pwrful),3.5/(4.35*(1.0 + pwrful)));
         //Improve energy
-        //sigo*=min(sigY*30.1,1.0);
+        sigo*=min(sqrt(sigY)*15.1,1.0);
         sigo*=sigo;
         sigo*=1.0+sigY;
 
