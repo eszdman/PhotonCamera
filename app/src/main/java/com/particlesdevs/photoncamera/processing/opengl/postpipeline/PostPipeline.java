@@ -31,6 +31,7 @@ public class PostPipeline extends GLBasePipeline {
     public ArrayList<ImageFrame> SAGAIN;
     public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
+    float totalGain = 1.f;
     float AecCorr = 1.f;
     float fusionGain = 1.f;
     float softLight = 1.f;

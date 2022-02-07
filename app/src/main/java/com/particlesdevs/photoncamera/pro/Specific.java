@@ -9,6 +9,7 @@ import com.particlesdevs.photoncamera.util.HttpLoader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Set;
 
 import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY;
 
@@ -29,16 +30,19 @@ public class Specific {
         if(exists) {
             if (!loaded) {
                 try {
-                    BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
-                    String str;
+                    Set<String> mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
+                    //BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
                     boolean specificExists = false;
-                    while ((str = indevice.readLine()) != null) {
-                        if (str.contains(SupportedDevice.THIS_DEVICE)) specificExists = true;
+                    if (mSupportedDevicesSet.contains(SupportedDevice.THIS_DEVICE)) {
+                        specificExists = true;
                     }
+                    String str;
+                    /*while ((str = indevice.readLine()) != null) {
+                    }*/
                     mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_exists", specificExists);
                     if (!specificExists) return;
                     String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
-                    BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/" + device + "_specificsettings.txt");
+                    BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/" + device + "_specificsettings.txt",100);
                     while ((str = in.readLine()) != null) {
                         String[] caseS = str.split("=");
                         switch (caseS[0]) {

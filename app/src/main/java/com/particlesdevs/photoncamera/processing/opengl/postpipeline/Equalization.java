@@ -506,7 +506,7 @@ public class Equalization extends Node {
     int whiteBalanceSearch = 400;
     float whiteBalanceSaturation = 1.35f;
     float[] tonemapCoeffs = new float[]{-0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f};
-    boolean disableEqualization = false;
+    boolean disableEqualization = true;
     boolean enableTonemap = true;
     float highlightCompress = 0.4f;
     float contrast = 0.2f;
@@ -654,6 +654,8 @@ public class Equalization extends Node {
         BLPredict[0]/=cnt;
         BLPredict[1]/=cnt;
         BLPredict[2]/=cnt;
+        ((PostPipeline)basePipeline).totalGain *=Math.max(BLPredict[0],Math.max(BLPredict[1],BLPredict[2]));
+        Log.d(Name,"TotalGain:"+((PostPipeline)basePipeline).totalGain);
         cnt = 0;
         for(int i =5; i<maxshift;i++){
             float x = (float)(i)/histSize;

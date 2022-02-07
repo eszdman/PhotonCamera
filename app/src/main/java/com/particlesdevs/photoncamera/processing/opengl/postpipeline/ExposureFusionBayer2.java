@@ -234,15 +234,18 @@ public class ExposureFusionBayer2 extends Node {
 
         overexposure*=overExposeMpy;
         underexposure*=underExposeMpy;
-        overexposure = Math.min(1024.f,overexposure);
-        underexposure = Math.max(1.f/1024.f,underexposure);
+        overexposure = Math.min(256.f,overexposure);
+        underexposure = Math.max(1.f/256.f,underexposure);
         if(useSymmetricExposureFork){
             float mpy = overexposure*underexposure;
             overexposure/=mpy;
             underexposure/=mpy;
         }
-
+        overexposure = Math.min(4.f,overexposure);
+        underexposure = Math.max(1.f/8.f,underexposure);
         ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
+        ((PostPipeline)basePipeline).totalGain *= overexposure;
+        Log.d(Name,"TotalGain:"+((PostPipeline)basePipeline).totalGain);
         //overexposure = Math.min(10.f,overexposure);
         //underexposure = Math.max(underexposure,0.0008f);
         Log.d(Name,"Overexp:"+overexposure+" , Underexp:"+underexposure);

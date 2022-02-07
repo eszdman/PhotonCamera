@@ -84,7 +84,7 @@ public class SupportedDevice {
     }
 
     private void loadSupportedDevicesList() throws IOException {
-        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
+        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt",100);
         String str;
         while ((str = in.readLine()) != null) {
             mSupportedDevicesSet.add(str);
