@@ -1062,32 +1062,35 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         int displayRotation = PhotonCamera.getGravity().getRotation();
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         Range<Integer>[] ranges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-        int def = 30;
-        int min = 20;
+
         if (ranges == null) {
-            ranges = new Range[1];
-            ranges[0] = new Range<>(15, 30);
-        }
-        for (Range<Integer> value : ranges) {
-            if ((int) value.getUpper() >= def) {
-                FpsRangeDef = value;
-                break;
-            }
-        }
-        if (FpsRangeDef == null)
+            Log.d(TAG, "No available FPS ranges.");
+            assert false;
+            ranges[0] = new Range<>(30, 30);
+        } else {
+            Log.d(TAG, "Available FPS ranges is:" + Arrays.toString(ranges) + ".");
+
+            // Get FPS range for 60 FPS preview
             for (Range<Integer> range : ranges) {
-                if ((int) range.getUpper() >= min) {
+                if (range.getUpper() >= 60) {
+                    FpsRangeHigh = new Range<>(range.getLower(), range.getUpper());
+                    break;
+                } else {
+                    FpsRangeHigh = range;
+                }
+            }
+
+            // Get FPS range for non-60 FPS preview
+            for (Range<Integer> range : ranges) {
+                if (range.getUpper() == 30) {
                     FpsRangeDef = range;
                     break;
                 }
             }
-        for (Range<Integer> range : ranges) {
-            if (range.getUpper() > def) {
-                FpsRangeDef = range;
-                break;
-            }
+
+            Log.d(TAG, "In 60 FPS - " + FpsRangeHigh + ".");
+            Log.d(TAG, "In 30 FPS - " + FpsRangeDef + ".");
         }
-        if (FpsRangeHigh == null) FpsRangeHigh = new Range<>(60, 60);
 
         /*boolean swappedDimensions = false;
         switch (displayRotation) {
@@ -1230,12 +1233,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         resetPreviewAEMode();
                         Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                         // Finally, we start displaying the camera preview.
-                        if (is30Fps) {
-                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                    FpsRangeDef);
+                        if (!PreferenceKeys.isFpsPreviewOn()) {
+                            Log.d(TAG, "60 FPS is disabled. Current FPS is " + FpsRangeDef + ".");
+                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeDef);
                         } else {
-                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                                    FpsRangeHigh);
+                            Log.d(TAG, "60 FPS is enabled. Current FPS is " + FpsRangeHigh + ".");
+                            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, FpsRangeHigh);
                         }
                         mPreviewInputRequest = mPreviewRequestBuilder.build();
                         if (isBurstSession && isDualSession) {
