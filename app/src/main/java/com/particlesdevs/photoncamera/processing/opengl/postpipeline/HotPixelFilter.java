@@ -22,7 +22,7 @@ public class HotPixelFilter extends Node {
         glProg.setDefine("TILE",tileSize);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.setDefine("NOISES",basePipeline.noiseS);
-        glProg.setDefine("IMPULSE",10.0f);
+        glProg.setDefine("IMPULSE",5.0f);
         glProg.useProgram(R.raw.hotpixels,true);
         glProg.setTextureCompute("inTexture",previousNode.WorkingTexture,false);
         WorkingTexture = previousNode.WorkingTexture;

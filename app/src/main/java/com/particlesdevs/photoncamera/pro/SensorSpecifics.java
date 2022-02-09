@@ -23,10 +23,10 @@ import static com.particlesdevs.photoncamera.util.FileManager.sPHOTON_TUNING_DIR
 
 public class SensorSpecifics {
     public SpecificSettingSensor[] specificSettingSensor;
-    public SpecificSettingSensor selectedSensorSpecifics = null;
+    public SpecificSettingSensor selectedSensorSpecifics = new SpecificSettingSensor();
     ArrayList<String> loadNetwork(String device) throws IOException {
         ArrayList<String> inputStr = new ArrayList<String>();
-        BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/sensors/" + device + ".txt");
+        BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/specific/sensors/" + device + ".txt", 150);
         String str;
         while ((str = indevice.readLine()) != null) {
             Log.d("SensorSpecifics", "read:" + str);
@@ -45,17 +45,15 @@ public class SensorSpecifics {
         return inputStr;
     }
     public SensorSpecifics(SettingsManager mSettingsManager){
+
         boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded",false);
-        boolean exists = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists",true);
-        if(exists) {
+        Log.d("SensorSpecifics", "loaded:"+loaded);
             int count = 0;
             String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
-            String fullSpec = "";
             ArrayList<String> inputStr = new ArrayList<String>();
             File init = new File(sPHOTON_TUNING_DIR, "SensorSpecifics.txt");
             try {
                 try {
-                    exists = false;
                     if(init.exists())
                         inputStr = loadLocal(init);
                      else
@@ -66,14 +64,12 @@ public class SensorSpecifics {
                         if (str.contains("sensor")) count++;
                     }
                     Log.d("SensorSpecifics", "SensorCount:" + count);
-                    exists = true;
                 } catch (Exception e){
                     if(loaded){
                         inputStr = mSettingsManager.getArrayList(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", new HashSet<>());
                         for (String str2 : inputStr) {
                             if (str2.contains("sensor")) count++;
                         }
-                        exists = true;
                     }
                 }
                 specificSettingSensor = new SpecificSettingSensor[count];
@@ -141,15 +137,17 @@ public class SensorSpecifics {
                 }
 
             } catch (Exception ignored) {}
-
             mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", loaded);
-            mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_exists", exists);
-        }
     }
     public void selectSpecifics(int id){
         if(specificSettingSensor != null) {
             for (SpecificSettingSensor specifics : specificSettingSensor) {
-                if (specifics != null && specifics.id == id) selectedSensorSpecifics = specifics;
+                if(specifics != null) {
+                    if (specifics.id == id) {
+                        Log.d("SensorSpecifics", "Selected:" + id);
+                        selectedSensorSpecifics = specifics;
+                    }
+                }
             }
         }
     }

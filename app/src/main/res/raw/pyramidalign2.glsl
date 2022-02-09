@@ -241,14 +241,16 @@ void main() {
     for (int t=-SCANSIZE/2;t<=SCANSIZE/2;t++){
         for (int j=-SCANSIZE/2;j<=SCANSIZE/2;j++){
             dist2 = 1.0+5.0*abs(float(t)/float(SCANSIZE))+5.0*abs(float(j)/float(SCANSIZE));
-            in2 = texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg;
+            float k = 1.0/dist2;
+            in2 = texelFetch(DiffHVRef, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg*k;
             vec2 dref = in2;
-            M.r += (dref.r*dref.r)/dist2;
-            M.g += (dref.r*dref.g)/dist2;
+            M.r += (dref.r*dref.r);
+            M.g += (dref.r*dref.g);
             M.b += (dref.g*dref.g)/dist2;
             in2 = texelFetch(MainBuffer, mirrorCoords2((xyFrame+ivec2(t, j)),inbounds), 0).rg-texelFetch(InputBuffer, mirrorCoords2((xyFrame+ivec2(t, j)+shift),inbounds), 0).rg;
-            b.r +=(in2.r+in2.g)*dref.r/(2.f*dist2);
-            b.g +=(in2.r+in2.g)*dref.g/(2.f*dist2);
+            in2*=k;
+            b.r +=(in2.r+in2.g)*dref.r*k;
+            b.g +=(in2.r+in2.g)*dref.g*k;
         }
     }
     outV.x = ((M.b * b.r - M.g * b.g) / (M.g * M.g - M.r * M.b)*FLOWACT);

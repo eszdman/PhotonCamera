@@ -1,4 +1,5 @@
 precision highp float;
+precision highp int;
 layout(rgba16f, binding = 0) uniform highp readonly image2D inTexture;
 layout(rgba16f, binding = 1) uniform highp readonly image2D greenTexture;
 layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;

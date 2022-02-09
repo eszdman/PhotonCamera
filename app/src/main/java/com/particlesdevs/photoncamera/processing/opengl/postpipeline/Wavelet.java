@@ -90,6 +90,8 @@ public class Wavelet extends Node {
     void TransFormImage(){
         glProg.setDefine("OUTSET", basePipeline.mParameters.rawSize);
         glProg.setDefine("BL",basePipeline.mParameters.blackLevel);
+        glProg.setDefine("NOISEO", basePipeline.noiseO);
+        glProg.setDefine("NOISES", basePipeline.noiseS);
         glProg.setLayout(tile, tile, 1);
         glProg.useProgram(R.raw.toimg, true);
         glProg.setTextureCompute("inTexture", previousNode.WorkingTexture, false);

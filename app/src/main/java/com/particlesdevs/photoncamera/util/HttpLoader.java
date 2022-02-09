@@ -7,10 +7,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class HttpLoader {
-    public static BufferedReader readURL(String addr) throws IOException {
+    public static BufferedReader readURL(String addr,int timeout) throws IOException {
         URL supportedList = new URL(addr);
         HttpURLConnection conn = (HttpURLConnection) supportedList.openConnection();
-        conn.setConnectTimeout(120); // timing out in a 120 ms
+        conn.setConnectTimeout(timeout); // timing out in a timeout
         return new BufferedReader(new InputStreamReader(conn.getInputStream()));
     }
 }

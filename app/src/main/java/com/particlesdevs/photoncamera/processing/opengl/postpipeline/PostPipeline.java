@@ -31,6 +31,7 @@ public class PostPipeline extends GLBasePipeline {
     public ArrayList<ImageFrame> SAGAIN;
     public float[] analyzedBL = new float[]{0.f,0.f,0.f};;
     float regenerationSense = 1.f;
+    float totalGain = 1.f;
     float AecCorr = 1.f;
     float fusionGain = 1.f;
     float softLight = 1.f;
@@ -76,7 +77,8 @@ public class PostPipeline extends GLBasePipeline {
             noiseO = 0.f;
             noiseS = 0.f;
         }
-        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
+        noiseO = Math.max(noiseO,Float.MIN_NORMAL);
+
         Point rotated = getRotatedCoords(parameters.rawSize);
         if(PhotonCamera.getSettings().energySaving || mParameters.rawSize.x*mParameters.rawSize.y < ResolutionSolution.smallRes){
             GLDrawParams.TileSize = 8;
@@ -99,6 +101,7 @@ public class PostPipeline extends GLBasePipeline {
         return runAll();
     }
     private void BuildDefaultPipeline(){
+        boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         add(new Bayer2Float());
         add(new ExposureFusionBayer2());
         switch (PhotonCamera.getSettings().cfaPattern){
@@ -111,21 +114,24 @@ public class PostPipeline extends GLBasePipeline {
                 break;
             }
             default:{
-                //add(new HotPixelFilter());
-                add(new DemosaicCompute());
-                //add(new ImpulsePixelFilter());
+                if(nightMode)
+                    add(new HotPixelFilter());
+                //if(PhotonCamera.getSettings().hdrxNR) {
+                    //add(new ESD3DBayerCS());
+                //}
+                add(new Demosaic2());
+
+                    //add(new ImpulsePixelFilter());
                 break;
             }
         }
         /*
          * * * All filters after demosaicing * * *
          */
+
         if(PhotonCamera.getSettings().hdrxNR) {
-            //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
-
-            //add(new ColorD(new Point(1,1),3,"ColorDenoise",R.raw.bilateralcolor));
-            //add(new Wavelet());
-
+            if(nightMode)
+                add(new Wavelet());
             add(new ESD3D());
         }
 

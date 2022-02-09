@@ -34,6 +34,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         lutbm.recycle();
         lut.close();
         interpolatedCurve.close();
+        GammaTexture.close();
+        if(((PostPipeline)basePipeline).FusionMap != null) ((PostPipeline)basePipeline).FusionMap.close();
         //TonemapCoeffs.close();
     }
 
@@ -42,6 +44,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     GLTexture interpolatedCurve;
     GLTexture TonemapCoeffs;
     GLTexture lut;
+    GLTexture GammaTexture;
     Bitmap lutbm;
     float highersatmpy = 1.0f;
     float gammaKoefficientGenerator = 2.0f;
@@ -219,7 +222,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             double pos = ((float) i) / (gamma.length - 1.f);
             gamma[i] = (float) (Math.pow(pos, 1. / gammaKoefficientGenerator));
         }
-        GLTexture GammaTexture = new GLTexture(gamma.length,1,
+        GammaTexture = new GLTexture(gamma.length,1,
                 new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
         if(customlut.exists()){

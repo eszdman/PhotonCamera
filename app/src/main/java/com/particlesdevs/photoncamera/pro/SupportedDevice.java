@@ -34,6 +34,7 @@ public class SupportedDevice {
     }
 
     public void loadCheck() {
+
         specific = new Specific(mSettingsManager);
         new Thread(() -> {
             try {
@@ -53,9 +54,7 @@ public class SupportedDevice {
                 }
         });
         thread.start();
-        new Thread(() -> {
-            sensorSpecifics = new SensorSpecifics(mSettingsManager);
-        }).start();
+        new Thread(() -> sensorSpecifics = new SensorSpecifics(mSettingsManager)).start();
         while(thread.isAlive()){
             try {
                 Thread.sleep(1);
@@ -85,7 +84,7 @@ public class SupportedDevice {
     }
 
     private void loadSupportedDevicesList() throws IOException {
-        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
+        BufferedReader in = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt",100);
         String str;
         while ((str = in.readLine()) != null) {
             mSupportedDevicesSet.add(str);

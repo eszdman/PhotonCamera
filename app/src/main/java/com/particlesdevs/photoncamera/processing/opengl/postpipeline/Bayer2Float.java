@@ -88,5 +88,7 @@ public class Bayer2Float extends Node {
         basePipeline.main3 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         ((PostPipeline)basePipeline).GainMap = GainMapTex;
         glProg.closed = true;
+        in.close();
+        GainMapTex.close();
     }
 }

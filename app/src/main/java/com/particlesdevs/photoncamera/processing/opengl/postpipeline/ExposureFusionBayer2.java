@@ -64,10 +64,11 @@ public class ExposureFusionBayer2 extends Node {
         return tex;
     }
     void getHistogram(GLTexture lowGauss){
-        glUtils.convertVec4(lowGauss,"in1.r");
+        GLTexture vectored = glUtils.convertVec4(lowGauss,"in1.r");
         Bitmap sourceh = glUtils.GenerateBitmap(lowGauss.mSize);
         histogram = new Histogram(sourceh,lowGauss.mSize.x*lowGauss.mSize.y,256);
         sourceh.recycle();
+        vectored.close();
     }
     float autoExposureHigh(){
         float max = 0.f;
@@ -132,7 +133,7 @@ public class ExposureFusionBayer2 extends Node {
     float gaussSize = 0.5f;
     float targetLuma = 0.5f;
     float downScalePerLevel = 2.2f;
-    float dehazing = 0.25f;
+    float dehazing = 0.0f;
 
     float softUpperLevel = 0.1f;
     float softLoverLevel = 0.0f;
@@ -223,9 +224,9 @@ public class ExposureFusionBayer2 extends Node {
 
 
         GLTexture exposureBase = expose3(in,baseExpose);
-        GLTexture downscaled = glUtils.interpolate(exposureBase,1.0/4.0);
-        getHistogram(downscaled);
-        downscaled.close();
+        basePipeline.main4 = glUtils.interpolate(exposureBase,1.0/4.0);
+        getHistogram(basePipeline.main4);
+        basePipeline.main4.close();
         float overexposure = autoExposureHigh();
         float underexposure = autoExposureLow();
         ((PostPipeline)basePipeline).softLight = Math2.smoothstep(softLoverLevel, softUpperLevel,((1.f/overexposure)+underexposure)/2.f);
@@ -233,15 +234,18 @@ public class ExposureFusionBayer2 extends Node {
 
         overexposure*=overExposeMpy;
         underexposure*=underExposeMpy;
-        overexposure = Math.min(1024.f,overexposure);
-        underexposure = Math.max(1.f/1024.f,underexposure);
+        overexposure = Math.min(256.f,overexposure);
+        underexposure = Math.max(1.f/256.f,underexposure);
         if(useSymmetricExposureFork){
             float mpy = overexposure*underexposure;
             overexposure/=mpy;
             underexposure/=mpy;
         }
-
+        overexposure = Math.min(4.f,overexposure);
+        underexposure = Math.max(1.f/8.f,underexposure);
         ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
+        ((PostPipeline)basePipeline).totalGain *= overexposure;
+        Log.d(Name,"TotalGain:"+((PostPipeline)basePipeline).totalGain);
         //overexposure = Math.min(10.f,overexposure);
         //underexposure = Math.max(underexposure,0.0008f);
         Log.d(Name,"Overexp:"+overexposure+" , Underexp:"+underexposure);
@@ -266,9 +270,9 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("highExpoDiff",highExpo.gauss[ind]);
         glProg.setVar("upscaleIn",binnedFuse.mSize);
         glProg.setVar("blendMpy",1.f);
-        //normalExpo.gauss[ind].close();
-        //highExpo.gauss[ind].close();
+
         glProg.drawBlocks(binnedFuse,normalExpo.sizes[ind]);
+
         for (int i = normalExpo.laplace.length - 1; i >= 0; i--) {
             //GLTexture upsampleWip = (glUtils.interpolate(binnedFuse,normalExpo.sizes[i]));
             //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
@@ -308,6 +312,8 @@ public class ExposureFusionBayer2 extends Node {
 
         }
         //previousNode.WorkingTexture.close();
+        normalExpo.gauss[ind].close();
+        highExpo.gauss[ind].close();
         basePipeline.main1.mSize.x = initialSize.x;
         basePipeline.main1.mSize.y = initialSize.y;
         basePipeline.main2.mSize.x = initialSize.x;

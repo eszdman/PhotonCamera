@@ -6,11 +6,11 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
-import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
@@ -19,11 +19,11 @@ import java.util.ArrayList;
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
-public class AlignAndMerge extends Node {
+public class AlignAndMergeCompute extends Node {
     Point rawSize;
     GLProg glProg;
 
-    public AlignAndMerge() {
+    public AlignAndMergeCompute() {
         super(0, "AlignAndMerge");
     }
 
@@ -42,18 +42,6 @@ public class AlignAndMerge extends Node {
               0.f,   0.f, 0.f,
              -0.3f,-0.1f,-0.3f
         };
-    /*float[] DV = new float[]
-            {
-                    -0.1f,0.f,0.1f,
-                   -0.7f,  0.0f,0.7f,
-                    -0.1f,0.f,0.1f
-            };
-    float[] DH = new float[]
-            {
-                    0.1f, 0.7f, 0.1f,
-                    0.f,  0.0f, 0.f,
-                    -0.1f,-0.7f,-0.1f
-            };*/
 
     private void CorrectedRaw(GLTexture out, int number) {
         float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0],PhotonCamera.getParameters().blackLevel[1]),
@@ -311,7 +299,7 @@ public class AlignAndMerge extends Node {
     GLTexture Weights,WeightsAlt;
     GLTexture[] Weight;
     GLTexture GainMap;
-    int tileSize = 16;
+    int tileSize = 32;
     int overScan = 2;
     boolean useLuckyLayers = false;
     boolean medianFilterPyramid = true;

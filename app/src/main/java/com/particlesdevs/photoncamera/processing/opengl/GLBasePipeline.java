@@ -175,6 +175,7 @@ public class GLBasePipeline implements AutoCloseable {
         }else {
             if (main2 != null) main2.close();
         }
+        if (main3 != null) main3.close();
         glint.glProgram.close();
         Nodes.clear();
         return glint.glProcessing.mOutBuffer;
@@ -187,5 +188,6 @@ public class GLBasePipeline implements AutoCloseable {
             if (glint.glContext != null) glint.glContext.close();
             if (glint.glProgram != null) glint.glProgram.close();
         }
+        GLTexture.notClosed();
     }
 }
