@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-
+apply plugin: 'hunter-debug'
 android {
     def versionPropsFile = file('version.properties')
     def versionBuild
@@ -119,7 +119,12 @@ dependencies {
     //Leak Canary
     //Use this lib to detect memory leaks when debugging
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+    implementation 'com.quinn.hunter:hunter-debug-library:1.2.0'
+
 }
 repositories {
     mavenCentral()
+}
+debugHunterExt {
+    runVariant = 'ALWAYS'  //'DEBUG', 'RELEASE', 'ALWAYS', 'NEVER', The 'ALWAYS' is default value
 }

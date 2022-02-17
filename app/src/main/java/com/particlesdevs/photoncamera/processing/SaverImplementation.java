@@ -46,6 +46,7 @@ public class SaverImplementation {
     public void addRAW16(Image image){
         image.close();
     }
+
     void addRAW10(Image image){
         image.close();
     }

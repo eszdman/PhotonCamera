@@ -7,10 +7,12 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.DngCreator;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import androidx.exifinterface.media.ExifInterface;
 
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
@@ -28,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ImageSaver {
     /**
@@ -38,9 +41,7 @@ public class ImageSaver {
 
     public SaverImplementation implementation;
     private ImageReader imageReader;
-
     public ImageSaver(ProcessingEventsListener processingEventsListener) {
-
         implementation = new DefaultSaver(processingEventsListener);
     }
 
@@ -56,6 +57,7 @@ public class ImageSaver {
             return;
         int format = mImage.getFormat();
         imageReader = mReader;
+
         switch (format) {
             case ImageFormat.JPEG:
                 implementation.addJPEG(mImage);
@@ -115,12 +117,12 @@ public class ImageSaver {
             return saveSingleRaw(dngFilePath, image, characteristics, captureResult, cameraRotation);
         }
 
+        @HunterDebug
         public static boolean saveSingleRaw(Path dngFilePath,
                                             Image image,
                                             CameraCharacteristics characteristics,
                                             CaptureResult captureResult,
                                             int cameraRotation) {
-
             Log.d(TAG, "activearr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "precorr:" + characteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE));
             Log.d(TAG, "image:" + image.getCropRect());

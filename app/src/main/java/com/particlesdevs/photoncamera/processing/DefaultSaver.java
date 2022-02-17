@@ -6,6 +6,7 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.util.Log;
 
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -18,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DefaultSaver extends SaverImplementation{
     private static final String TAG = "DefaultSaver";
@@ -86,16 +88,27 @@ public class DefaultSaver extends SaverImplementation{
 
         }
     }
+    @HunterDebug
     public void runRaw(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
         super.runRaw(imageReader,characteristics,captureResult,burstShakiness,cameraRotation);
-        if (PhotonCamera.getSettings().frameCount == 1) {
+        //Wait for one frame at least.
+        Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
+        while (IMAGE_BUFFER.size() < 1){
+            try {
+
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        if(PhotonCamera.getSettings().frameCount == 1){
             Path dngFile = ImageSaver.Util.newDNGFilePath();
+            Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
             boolean imageSaved = ImageSaver.Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
                     characteristics, captureResult, cameraRotation);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
             IMAGE_BUFFER.clear();
-            clearImageReader(imageReader);
             return;
         }
         Path dngFile = ImageSaver.Util.newDNGFilePath();

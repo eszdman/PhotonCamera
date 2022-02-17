@@ -13,6 +13,7 @@ import androidx.lifecycle.AndroidViewModel;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
@@ -82,7 +83,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
             }
         };
     }
-
+    @HunterDebug
     public void updateGalleryThumb(@Nullable Uri uri) {
         Uri lastImageUri = uri;
         if (lastImageUri == null) {

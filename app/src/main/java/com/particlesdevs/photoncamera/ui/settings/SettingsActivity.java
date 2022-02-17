@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +26,7 @@ import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
@@ -43,11 +45,11 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.SCOPE_GLOBA
 
 public class SettingsActivity extends BaseActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
     public static boolean toRestartApp;
-
+    @HunterDebug
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         getDelegate().setLocalNightMode(PreferenceKeys.getThemeValue());
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
         getSupportFragmentManager()
                 .beginTransaction()
@@ -60,7 +62,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     public void back(View view) {
         onBackPressed();
     }
-
+    @HunterDebug
     @Override
     public boolean onPreferenceStartScreen(PreferenceFragmentCompat preferenceFragmentCompat,
                                            PreferenceScreen preferenceScreen) {
@@ -130,21 +132,23 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onViewCreated(view, savedInstanceState);
             mRootView = view;
         }
-
+        @HunterDebug
         @Override
         public void onResume() {
-            super.onResume();
             Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
-            toolbar.setTitle(getPreferenceScreen().getTitle());
-            setHdrxTitle();
-            checkEszdTheme();
-            setTelegramPref();
-            setGithubPref();
-            setBackupPref();
-            setRestorePref();
-            setSupportedDevices();
-            setProTitle();
-            setThisDevice();
+            AsyncTask.execute(()-> {
+                toolbar.setTitle(getPreferenceScreen().getTitle());
+                setHdrxTitle();
+                checkEszdTheme();
+                setTelegramPref();
+                setGithubPref();
+                setBackupPref();
+                setRestorePref();
+                setSupportedDevices();
+                setProTitle();
+                setThisDevice();
+            });
+            super.onResume();
         }
 
         @Override
@@ -194,7 +198,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 });
             }
         }
-
+        @HunterDebug
         private void setSupportedDevices() {
             Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
             if (preference != null) {
@@ -278,7 +282,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 }
             }
         }
-
+        @HunterDebug
         private void restartActivity() {
             if (getActivity() != null) {
                 Intent intent = new Intent(mContext, getActivity().getClass());
@@ -287,26 +291,29 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         ActivityOptions.makeCustomAnimation(mContext, R.anim.fade_in, R.anim.fade_out).toBundle());
             }
         }
-
+        @HunterDebug
         private void setVersionDetails() {
-            Preference about = findPreference(mContext.getString(R.string.pref_version_key));
-            if (about != null) {
-                try {
-                    PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
-                    String versionName = packageInfo.versionName;
-                    long versionCode = packageInfo.versionCode;
+            AsyncTask.execute(() -> {
+                Preference about = findPreference(mContext.getString(R.string.pref_version_key));
+                if (about != null) {
+                    try {
+                        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                        String versionName = packageInfo.versionName;
+                        long versionCode = packageInfo.versionCode;
 
-                    Date date = new Date(packageInfo.lastUpdateTime);
-                    SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
-                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                        Date date = new Date(packageInfo.lastUpdateTime);
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
+                        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-                    about.setSummary(mContext.getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
+                        about.setSummary(mContext.getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
 
-                } catch (PackageManager.NameNotFoundException e) {
-                    e.printStackTrace();
+                    } catch (PackageManager.NameNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
                 }
+            });
 
-            }
         }
 
         @Override

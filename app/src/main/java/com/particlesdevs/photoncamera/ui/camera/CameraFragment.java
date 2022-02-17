@@ -37,6 +37,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -63,6 +64,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.R;
@@ -187,7 +189,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public CameraFragmentViewModel getCameraFragmentViewModel() {
         return cameraFragmentViewModel;
     }
-
+    @HunterDebug
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -198,7 +200,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
         supportedDevice.loadCheck();
     }
-
+    @HunterDebug
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -209,7 +211,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         setModelsToLayout();
         return cameraFragmentBinding.getRoot();
     }
-
     private void initMembers() {
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
@@ -238,7 +239,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         // associating AuxButtonsModel with layout
         cameraFragmentBinding.setAuxmodel(auxButtonsViewModel.getAuxButtonsModel());
     }
-
+    @HunterDebug
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
         this.mCameraUIView = new CameraUIViewImpl();
@@ -293,23 +294,22 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
+    @HunterDebug
     @Override
     public void onResume() {
         super.onResume();
-        mSwipe.init();
-        PhotonCamera.getGyro().register();
-        PhotonCamera.getGravity().register();
         updateSettingsBar();
+        mSwipe.init();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
-        burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst2);
-        endPlayer = MediaPlayer.create(activity,R.raw.sound_end);
-
-        cameraFragmentViewModel.updateGalleryThumb(null);
+        AsyncTask.execute(() -> {
+            PhotonCamera.getGyro().register();
+            PhotonCamera.getGravity().register();
+            burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst2);
+            endPlayer = MediaPlayer.create(activity,R.raw.sound_end);
+            cameraFragmentViewModel.updateGalleryThumb(null);
+        });
         cameraFragmentViewModel.onResume();
-
         auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
-
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();

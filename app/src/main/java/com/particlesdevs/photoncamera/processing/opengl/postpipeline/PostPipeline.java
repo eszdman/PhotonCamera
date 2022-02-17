@@ -121,7 +121,7 @@ public class PostPipeline extends GLBasePipeline {
                 //}
                 add(new Demosaic2());
 
-                    //add(new ImpulsePixelFilter());
+                //add(new ImpulsePixelFilter());
                 break;
             }
         }

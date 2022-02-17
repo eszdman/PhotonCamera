@@ -43,6 +43,7 @@ import android.media.CamcorderProfile;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -62,6 +63,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
@@ -260,7 +262,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //            msg.obj = reader;
 //            mImageSaver.processingHandler.sendMessage(msg);
             processExecutor.execute(() -> mImageSaver.initProcess(reader));
-            //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
         }
     };
     private final ImageReader.OnImageAvailableListener mOnRawImageAvailableListener
@@ -276,10 +277,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (onUnlimited && !unlimitedStarted) {
                 return;
             }
-            taskResults.removeIf(Future::isDone); //remove already completed results
-            Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
-            taskResults.add(result);
-            //mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
+
+            //This code creates single frame bugs
+            //taskResults.removeIf(Future::isDone); //remove already completed results
+            //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
+            //taskResults.add(result);
+            AsyncTask.execute(() -> {
+                mImageSaver.initProcess(reader);
+            });
         }
 
     };
@@ -530,7 +535,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
 
     };
-
+    @HunterDebug
     public CaptureController(Activity activity, ExecutorService processExecutor, CameraEventsListener cameraEventsListener) {
         this.activity = activity;
         this.cameraEventsListener = cameraEventsListener;
@@ -817,7 +822,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }*/
         mTextureView.setTransform(matrix);
     }
-
+    @HunterDebug
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
@@ -1009,20 +1014,23 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * Opens the camera specified by {@link Settings#mCameraID}.
      */
+    @HunterDebug
     public void openCamera(int width, int height) {
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
-        mMediaRecorder = new MediaRecorder();
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             //requestCameraPermission();
             return;
         }
-        cameraEventsListener.onOpenCamera(this.mCameraManager);
+        AsyncTask.execute(()->{
+            mMediaRecorder = new MediaRecorder();
+            cameraEventsListener.onOpenCamera(this.mCameraManager);
+        });
         setUpCameraOutputs(width, height);
         configureTransform(width, height);
         try {
-            if (!mCameraOpenCloseLock.tryAcquire(3000, TimeUnit.MILLISECONDS)) {
-//                throw new RuntimeException("Time out waiting to lock camera opening.");
+            if (!mCameraOpenCloseLock.tryAcquire(1000, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("Time out waiting to lock camera opening.");
             }
             this.mCameraManager.openCamera(PhotonCamera.getSettings().mCameraID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -1032,7 +1040,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
 
     }
-
+    @HunterDebug
     public void UpdateCameraCharacteristics(String cameraId) {
         PhotonCamera.getSpecificSensor().selectSpecifics(Integer.parseInt(cameraId));
         CameraCharacteristics characteristics = this.mCameraCharacteristicsMap.get(cameraId);
@@ -1130,11 +1138,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         //        // bus' bandwidth limitation, resulting in gorgeous previews but the storage of
         //        // garbage capture data.
         mPreviewSize = getTextureOutputSize(mTextureView.getDisplay(), PhotonCamera.getSettings().selectedMode);
-        mTextureView.setAspectRatio(
-                mPreviewSize.getHeight(), mPreviewSize.getWidth());
-        mTextureView.cameraSize = new Point(mPreviewSize.getHeight(), mPreviewSize.getWidth());
-        if (PhotonCamera.getSettings().DebugData)
-            showToast("preview:" + new Point(mPreviewWidth, mPreviewHeight));
+        activity.runOnUiThread(() -> {
+            mTextureView.setAspectRatio(
+                    mPreviewSize.getHeight(), mPreviewSize.getWidth());
+            mTextureView.cameraSize = new Point(mPreviewSize.getHeight(), mPreviewSize.getWidth());
+            if (PhotonCamera.getSettings().DebugData)
+                showToast("preview:" + new Point(mPreviewWidth, mPreviewHeight));
+        });
 
         // We fit the aspect ratio of TextureView to the size of preview we picked.
         /*
@@ -1159,11 +1169,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mMediaRecorder = new MediaRecorder();
 //            setUpMediaRecorder();
         }
-        cameraEventsListener.onCharacteristicsUpdated(characteristics);
+
+        activity.runOnUiThread(() -> cameraEventsListener.onCharacteristicsUpdated(characteristics));
+
     }
-
+    Surface surface;
+    @HunterDebug
     public void createCameraPreviewSession(boolean isBurstSession) {
-
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             assert texture != null;
@@ -1171,10 +1183,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "createCameraPreviewSession() mTextureView:" + mTextureView);
             Log.d(TAG, "createCameraPreviewSession() Texture:" + texture);
             Log.d(TAG, "previewSize:" + mTextureView.cameraSize);
+
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
             // This is the output Surface we need to start preview.
-            Surface surface = new Surface(texture);
+            if(surface == null)
+                surface = new Surface(texture);
             // We set up a CaptureRequest.Builder with the output Surface.
             mPreviewRequestBuilder = null;
             if (mIsRecordingVideo) {
@@ -1268,7 +1282,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 @Override
                 public void onConfigureFailed(
                         @NonNull CameraCaptureSession cameraCaptureSession) {
-                    showToast("Failed");
+                    showToast("Session onConfigureFailed");
                 }
             };
             ArrayList<OutputConfiguration> outputConfigurations = new ArrayList<>();
@@ -1440,9 +1454,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             e.printStackTrace();
         }
     }
+
     public void runDebug(CaptureRequest.Builder builder){
         activity.runOnUiThread(() -> debugCapture(builder));
     }
+
     private void captureStillPicture() {
         try {
             if (null == mCameraDevice) {
@@ -1482,7 +1498,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             BurstShakiness = new ArrayList<>();
 
             int frameCount = FrameNumberSelector.getFrames();
-            if (frameCount == 1) frameCount++;
+            //if (frameCount == 1) frameCount++;
             cameraEventsListener.onFrameCountSet(frameCount);
             Log.d(TAG, "HDRFact1:" + paramController.isManualMode() + " HDRFact2:" + PhotonCamera.getSettings().alignAlgorithm);
             //IsoExpoSelector.HDR = (!manualParamModel.isManualMode()) && (PhotonCamera.getSettings().alignAlgorithm == 0);
@@ -1504,8 +1520,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             rebuildPreviewBuilder();*/
 
             IsoExpoSelector.useTripod = PhotonCamera.getGyro().getTripod();
+            long[] times = new long[frameCount];
             for (int i = 0; i < frameCount; i++) {
                 IsoExpoSelector.setExpo(captureBuilder, i, this);
+                times[i] = IsoExpoSelector.lastSelectedExposure;
                 captures.add(captureBuilder.build());
             }
             if (frameCount == -1) {
@@ -1513,13 +1531,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     IsoExpoSelector.setExpo(captureBuilder, i, this);
                     captures.add(captureBuilder.build());
                 }
-            } else {
-                long[] times = new long[frameCount];
-                for (int i = 0; i < frameCount; i++) {
-                    times[i] = captures.get(i).get(CaptureRequest.SENSOR_EXPOSURE_TIME);
-                }
+            } else
                 PhotonCamera.getGyro().PrepareGyroBurst(times, BurstShakiness);
-            }
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
@@ -1804,18 +1817,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mTextureView = null;
         super.finalize();
     }
-
+    @HunterDebug
     public void resumeCamera() {
-        if (mTextureView == null)
-            mTextureView = new AutoFitPreviewView(activity);
-        if (mTextureView.isAvailable()) {
-            Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
-                    mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
-                    PhotonCamera.getSettings().selectedMode);
-            openCamera(optimal.getWidth(), optimal.getHeight());
-        } else {
-            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
-        }
+        AsyncTask.execute(() -> {
+            if (mTextureView == null)
+                mTextureView = new AutoFitPreviewView(activity);
+            if (mTextureView.isAvailable()) {
+                Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
+                        mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
+                        PhotonCamera.getSettings().selectedMode);
+                openCamera(optimal.getWidth(), optimal.getHeight());
+            } else {
+                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+            }
+        });
     }
 
     /**

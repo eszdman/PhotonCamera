@@ -109,7 +109,7 @@ public class GLTexture implements AutoCloseable {
             }
         }
         mTextureID = TexID[0];
-        Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
+        //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
@@ -198,7 +198,7 @@ public class GLTexture implements AutoCloseable {
     public void close() {
         glDeleteTextures(1, new int[]{mTextureID}, 0);
         ids[mTextureID] = false;
-        Log.d("GLTexture","close ID:"+mTextureID);
+        //Log.d("GLTexture","close ID:"+mTextureID);
         if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
     }
 }

@@ -506,7 +506,7 @@ public class Equalization extends Node {
     int whiteBalanceSearch = 400;
     float whiteBalanceSaturation = 1.35f;
     float[] tonemapCoeffs = new float[]{-0.78360f / 1.0063f, 0.84690f / 1.0063f, 0.9430f / 1.0063f, 0f};
-    boolean disableEqualization = true;
+    boolean disableEqualization = false;
     boolean enableTonemap = true;
     float highlightCompress = 0.4f;
     float contrast = 0.2f;
@@ -776,6 +776,10 @@ public class Equalization extends Node {
             lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
             lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
             glProg.setDefine("LUT",true);
+            int lutBase = (int)(0.1f+Math.pow(lutbm.getWidth(),1.0/3.0));
+            Log.d(Name,"LutBase:"+lutBase);
+            glProg.setDefine("LUTSIZETILES", (float) lutBase);
+            glProg.setDefine("LUTSIZE", (float) (lutBase*lutBase));
         }
         endT("Equalization Part 2");
         startT();

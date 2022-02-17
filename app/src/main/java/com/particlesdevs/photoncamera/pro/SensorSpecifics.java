@@ -44,100 +44,99 @@ public class SensorSpecifics {
         }
         return inputStr;
     }
-    public SensorSpecifics(SettingsManager mSettingsManager){
-
+    public void loadSpecifics(SettingsManager mSettingsManager){
         boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded",false);
         Log.d("SensorSpecifics", "loaded:"+loaded);
-            int count = 0;
-            String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
-            ArrayList<String> inputStr = new ArrayList<String>();
-            File init = new File(sPHOTON_TUNING_DIR, "SensorSpecifics.txt");
+        int count = 0;
+        String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
+        ArrayList<String> inputStr = new ArrayList<String>();
+        File init = new File(sPHOTON_TUNING_DIR, "SensorSpecifics.txt");
+        try {
             try {
-                try {
-                    if(init.exists())
-                        inputStr = loadLocal(init);
-                     else
-                        inputStr = loadNetwork(device);
-                    count = 0;
-                    for (String str : inputStr) {
-                        Log.d("SensorSpecifics", "read:" + str);
-                        if (str.contains("sensor")) count++;
-                    }
-                    Log.d("SensorSpecifics", "SensorCount:" + count);
-                } catch (Exception e){
-                    if(loaded){
-                        inputStr = mSettingsManager.getArrayList(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", new HashSet<>());
-                        for (String str2 : inputStr) {
-                            if (str2.contains("sensor")) count++;
-                        }
-                    }
-                }
-                specificSettingSensor = new SpecificSettingSensor[count];
+                if(init.exists())
+                    inputStr = loadLocal(init);
+                else
+                    inputStr = loadNetwork(device);
                 count = 0;
-                for (String str2 : inputStr) {
-                    if (str2.contains("sensor")) {
-                        String[] vals = str2.split("_");
-                        vals[1] = vals[1].replace("\n", "");
-                        specificSettingSensor[count] = new SpecificSettingSensor();
-                        specificSettingSensor[count].id = Integer.parseInt(vals[1]);
-                        count++;
-                    } else {
-                        String[] valsIn = str2.split("=");
-                        if(valsIn.length <= 1) continue;
-                        valsIn[0] = valsIn[0].replace(" ","");
-                        valsIn[1] = valsIn[1].replace(" ","");
-                        String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
-                        SpecificSettingSensor current = specificSettingSensor[count - 1];
-                        switch (valsIn[0]) {
-                            case "NoiseModelA": {
-                                for (int i = 0; i < 4; i++) {
-                                    current.NoiseModelerArr[0][i] = Double.parseDouble(istr[i]);
-                                }
-                                break;
-                            }
-                            case "NoiseModelB": {
-                                for (int i = 0; i < 4; i++) {
-                                    current.NoiseModelerArr[1][i] = Double.parseDouble(istr[i]);
-                                }
-                                break;
-                            }
-                            case "NoiseModelC": {
-                                for (int i = 0; i < 4; i++) {
-                                    current.NoiseModelerArr[2][i] = Double.parseDouble(istr[i]);
-                                }
-                                break;
-                            }
-                            case "NoiseModelD": {
-                                for (int i = 0; i < 4; i++) {
-                                    current.NoiseModelerArr[3][i] = Double.parseDouble(istr[i]);
-                                }
-                                current.ModelerExists = true;
-                                break;
-                            }
-                            case "captureSharpeningS": {
-                                current.captureSharpeningS = (float)Double.parseDouble(valsIn[1]);
-                                break;
-                            }
-                            case "captureSharpeningIntense": {
-                                current.captureSharpeningIntense = (float)Double.parseDouble(valsIn[1]);
-                                break;
-                            }
-                            case "aberrationCorrection": {
-                                for (int i = 0; i < 8; i++) {
-                                    current.aberrationCorrection[i] = (float)Double.parseDouble(istr[i]);
-                                }
-                                break;
-                            }
-
-                        }
-                        mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_val",inputStr);
-                        loaded = true;
-
+                for (String str : inputStr) {
+                    Log.d("SensorSpecifics", "read:" + str);
+                    if (str.contains("sensor")) count++;
+                }
+                Log.d("SensorSpecifics", "SensorCount:" + count);
+            } catch (Exception e){
+                if(loaded){
+                    inputStr = mSettingsManager.getArrayList(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", new HashSet<>());
+                    for (String str2 : inputStr) {
+                        if (str2.contains("sensor")) count++;
                     }
                 }
+            }
+            specificSettingSensor = new SpecificSettingSensor[count];
+            count = 0;
+            for (String str2 : inputStr) {
+                if (str2.contains("sensor")) {
+                    String[] vals = str2.split("_");
+                    vals[1] = vals[1].replace("\n", "");
+                    specificSettingSensor[count] = new SpecificSettingSensor();
+                    specificSettingSensor[count].id = Integer.parseInt(vals[1]);
+                    count++;
+                } else {
+                    String[] valsIn = str2.split("=");
+                    if(valsIn.length <= 1) continue;
+                    valsIn[0] = valsIn[0].replace(" ","");
+                    valsIn[1] = valsIn[1].replace(" ","");
+                    String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
+                    SpecificSettingSensor current = specificSettingSensor[count - 1];
+                    switch (valsIn[0]) {
+                        case "NoiseModelA": {
+                            for (int i = 0; i < 4; i++) {
+                                current.NoiseModelerArr[0][i] = Double.parseDouble(istr[i]);
+                            }
+                            break;
+                        }
+                        case "NoiseModelB": {
+                            for (int i = 0; i < 4; i++) {
+                                current.NoiseModelerArr[1][i] = Double.parseDouble(istr[i]);
+                            }
+                            break;
+                        }
+                        case "NoiseModelC": {
+                            for (int i = 0; i < 4; i++) {
+                                current.NoiseModelerArr[2][i] = Double.parseDouble(istr[i]);
+                            }
+                            break;
+                        }
+                        case "NoiseModelD": {
+                            for (int i = 0; i < 4; i++) {
+                                current.NoiseModelerArr[3][i] = Double.parseDouble(istr[i]);
+                            }
+                            current.ModelerExists = true;
+                            break;
+                        }
+                        case "captureSharpeningS": {
+                            current.captureSharpeningS = (float)Double.parseDouble(valsIn[1]);
+                            break;
+                        }
+                        case "captureSharpeningIntense": {
+                            current.captureSharpeningIntense = (float)Double.parseDouble(valsIn[1]);
+                            break;
+                        }
+                        case "aberrationCorrection": {
+                            for (int i = 0; i < 8; i++) {
+                                current.aberrationCorrection[i] = (float)Double.parseDouble(istr[i]);
+                            }
+                            break;
+                        }
 
-            } catch (Exception ignored) {}
-            mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", loaded);
+                    }
+                    mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_val",inputStr);
+                    loaded = true;
+
+                }
+            }
+
+        } catch (Exception ignored) {}
+        mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "sensor_specific_loaded", loaded);
     }
     public void selectSpecifics(int id){
         if(specificSettingSensor != null) {

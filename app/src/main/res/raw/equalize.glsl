@@ -8,7 +8,7 @@ uniform sampler2D LookupTable;
 uniform sampler2D InputBuffer;
 //uniform vec4 toneMapCoeffs;
 out vec3 Output;
-//#import interpolation
+#import interpolation
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #import xyytoxyz
 #import xyztoxyy
@@ -24,6 +24,8 @@ out vec3 Output;
 #define TONEMAP 1
 #define DESAT 1.0
 #define LUVEPS 0.04
+#define LUTSIZE 64.0
+#define LUTSIZETILES 8.0
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform sampler2D TonemapTex;
 #define PI (3.1415926535)
@@ -45,31 +47,42 @@ vec3 hsv2rgb(vec3 c) {
 vec3 lookup(in vec3 textureColor) {
     textureColor = clamp(textureColor, 0.0, 1.0);
 
-    highp float blueColor = textureColor.b * 63.0;
+    //0.0 - 63.0
+    highp float blueColor = textureColor.b * (float(LUTSIZE)-1.0); //63.0;
 
     highp vec2 quad1;
-    quad1.y = floor(floor(blueColor) / 8.0);
-    quad1.x = floor(blueColor) - (quad1.y * 8.0);
+    quad1.y = floor(floor(blueColor) / LUTSIZETILES);
+    quad1.x = floor(blueColor) - (quad1.y * LUTSIZETILES);
 
     highp vec2 quad2;
-    quad2.y = floor(ceil(blueColor) / 8.0);
-    quad2.x = ceil(blueColor) - (quad2.y * 8.0);
+    quad2.y = floor(ceil(blueColor) / LUTSIZETILES);
+    quad2.x = ceil(blueColor) - (quad2.y * LUTSIZETILES);
 
     highp vec2 texPos1;
-    texPos1.x = (quad1.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
-    texPos1.y = (quad1.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
+    texPos1.x = (quad1.x / LUTSIZETILES) + 0.5/(LUTSIZE*LUTSIZETILES) + ((1.0/(LUTSIZETILES) - 1.0/(LUTSIZE*LUTSIZETILES)) * textureColor.r);
+    texPos1.y = (quad1.y / LUTSIZETILES) + 0.5/(LUTSIZE*LUTSIZETILES) + ((1.0/(LUTSIZETILES) - 1.0/(LUTSIZE*LUTSIZETILES)) * textureColor.g);
 
     highp vec2 texPos2;
-    texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);
-    texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);
+    texPos2.x = (quad2.x / LUTSIZETILES) + 0.5/(LUTSIZE*LUTSIZETILES) + ((1.0/(LUTSIZETILES) - 1.0/(LUTSIZE*LUTSIZETILES)) * textureColor.r);
+    texPos2.y = (quad2.y / LUTSIZETILES) + 0.5/(LUTSIZE*LUTSIZETILES) + ((1.0/(LUTSIZETILES) - 1.0/(LUTSIZE*LUTSIZETILES)) * textureColor.g);
 
+    //Tile 1
     highp vec3 newColor1 = texture(LookupTable, texPos1).rgb;
+    //Tile 2
     highp vec3 newColor2 = texture(LookupTable, texPos2).rgb;
 
     highp vec3 newColor = (mix(newColor1, newColor2, fract(blueColor)));
     return newColor;
 }
-    #define TONEMAP_GAMMA (1.5)
+vec3 tricubiclookup(in vec3 xyzIn){
+    float res = float(LUTSIZE)-1.0;
+    xyzIn*=res;
+    vec3 floating = fract(xyzIn);
+    vec3 inv = floor(xyzIn) + floating*floating*(3.-2.*floating);
+    return lookup((inv-.5) / res);
+}
+
+#define TONEMAP_GAMMA (1.5)
 float tonemapSin(float ch) {
     return ch < 0.0001f
     ? ch
@@ -241,6 +254,6 @@ void main() {
     Output.rgb = tonemap(Output.rgb);
     #endif
     #if LUT == 1
-    Output.rgb = lookup(Output.rgb);
+    Output.rgb = tricubiclookup(Output.rgb);
     #endif
 }

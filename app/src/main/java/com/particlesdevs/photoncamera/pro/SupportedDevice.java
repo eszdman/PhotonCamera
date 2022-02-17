@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.pro;
 import android.os.Build;
 import android.util.Log;
 
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -32,9 +33,9 @@ public class SupportedDevice {
     public SupportedDevice(SettingsManager manager) {
         mSettingsManager = manager;
     }
-
+    @HunterDebug
     public void loadCheck() {
-
+        sensorSpecifics = new SensorSpecifics();
         specific = new Specific(mSettingsManager);
         new Thread(() -> {
             try {
@@ -54,14 +55,15 @@ public class SupportedDevice {
                 }
         });
         thread.start();
-        new Thread(() -> sensorSpecifics = new SensorSpecifics(mSettingsManager)).start();
-        while(thread.isAlive()){
+        new Thread(() -> sensorSpecifics.loadSpecifics(mSettingsManager)).start();
+        if (checkedCount < 2) {
             try {
-                Thread.sleep(1);
+                Thread.sleep(50);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+
     }
 
     private void isSupported() {
