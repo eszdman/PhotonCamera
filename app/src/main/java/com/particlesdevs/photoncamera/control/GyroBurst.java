@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 public class GyroBurst {
     public float shakiness;
+    public int samples;
     public float[][] movementss;
     public long[] timestampss;
     public float[] integrated;
@@ -15,6 +16,7 @@ public class GyroBurst {
         movementss = new float[3][maxSamples];
         timestampss = new long[maxSamples];
         integrated = new float[3];
+        samples = 0;
     }
 
     @NonNull
@@ -25,6 +27,7 @@ public class GyroBurst {
         out.timestampss = timestampss.clone();
         out.integrated = integrated.clone();
         out.shakiness = shakiness;
+        out.samples = samples;
         return out;
     }
 }

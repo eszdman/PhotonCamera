@@ -79,6 +79,7 @@ public class TouchFocus {
             x = 0;
         if (y < 0)
             y = 0;
+        Log.v(TAG,"y:"+y);
         /*if (y > CurUi.y)
             y = CurUi.y;
         if (x > CurUi.x)
@@ -91,6 +92,8 @@ public class TouchFocus {
         float y_scale = (float) sizee.height() / (float) CurUi.x;
         int x_to_set = (int) (x * x_scale) - width_to_set / 2;
         int y_to_set = (int) (y * y_scale) - height_to_set / 2;
+        Log.v(TAG,"y_to_set:"+y_to_set);
+        y_to_set = sizee.height()-y_to_set-height_to_set;
         if (x_to_set < 0)
             x_to_set = 0;
         if (y_to_set < 0)
@@ -99,6 +102,7 @@ public class TouchFocus {
             y_to_set = sizee.height() - height_to_set;
         if (x_to_set - width_to_set > sizee.width())
             y_to_set = sizee.width() - width_to_set;
+
         MeteringRectangle rect_to_set = new MeteringRectangle(x_to_set, y_to_set, width_to_set, height_to_set, MeteringRectangle.METERING_WEIGHT_MAX - 1);
         MeteringRectangle[] rectaf = new MeteringRectangle[1];
         Log.v(TAG, "\nInput x/y:" + x + "/" + y + "\n" +

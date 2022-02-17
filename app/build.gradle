@@ -4,7 +4,7 @@ apply plugin: 'hunter-debug'
 android {
     def versionPropsFile = file('version.properties')
     def versionBuild
-    compileSdkVersion 32
+    compileSdkVersion 31
     buildToolsVersion '30.0.3'
     lintOptions {
         abortOnError false
@@ -38,7 +38,7 @@ android {
     defaultConfig {
         applicationId 'com.particlesdevs.photoncamera'
         minSdkVersion 26
-        targetSdkVersion 32
+        targetSdkVersion 31
         versionCode versionBuild
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {

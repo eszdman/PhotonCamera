@@ -134,27 +134,47 @@ public class Gyro {
         gyroburst = true;
         capturingNumber++;
     }
-
     public void CompleteGyroBurst() {
         if(gyroburst) {
             gyroburst = false;
             gyroBurst.shakiness = Math.min(burstout * burstout, Float.MAX_VALUE);
+            gyroBurst.samples = counter;
             gyroBurst.integrated[0] = -x;
             gyroBurst.integrated[1] = y;
             gyroBurst.integrated[2] = z;
             BurstShakiness.add(gyroBurst.clone());
-            Log.d(TAG, "GyroBurst counter:" + BurstShakiness.size()+" sampleCount:"+counter+" shakiness:"+gyroBurst.shakiness);
+            //Log.d(TAG, "GyroBurst counter:" + BurstShakiness.size()+" sampleCount:"+counter+" shakiness:"+gyroBurst.shakiness);
         }
     }
     public void CompleteSequence() {
+
         integrate = false;
         delayUs = delayPreview;
         unregister();
         register();
-        if(BurstShakiness.size() > 2)
-            BurstShakiness.get(BurstShakiness.size()-1).shakiness =
-                    Math.max(BurstShakiness.get(BurstShakiness.size()-2).shakiness,
-                    BurstShakiness.get(BurstShakiness.size()-1).shakiness);
+        for(int i =0; i<BurstShakiness.size();i++){
+            float shakinessP = 0.f;
+            float shakinessA = 0.f;
+            int sizeP = 0;
+            int sizeA = 0;
+            if(i > 0) {
+                shakinessP = BurstShakiness.get(i - 1).shakiness;
+                sizeP = BurstShakiness.get(i - 1).samples;
+            }
+            if(i < BurstShakiness.size()-1) {
+                shakinessA = BurstShakiness.get(i + 1).shakiness;
+                sizeA = BurstShakiness.get(i + 1).samples;
+            }
+            float shakiness = BurstShakiness.get(i).shakiness;
+            int size = BurstShakiness.get(i).samples;
+            if(size < (sizeP+sizeA)/3){
+                size = Math.max(size,1);
+                sizeP = Math.max(sizeP,1);
+                sizeA = Math.max(sizeA,1);
+                BurstShakiness.get(i).shakiness = (shakinessP*sizeP + shakinessA*sizeA + shakiness*size)/(sizeP+size+sizeA);
+            }
+            Log.d(TAG, "GyroBurst Shakiness["+i+"]:" + BurstShakiness.get(i).shakiness+" sampleCount:"+ BurstShakiness.get(i).samples);
+        }
     }
 
     public int getShakiness() {

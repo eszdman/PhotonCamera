@@ -443,10 +443,13 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         float top = (((float) meteringRectangle.getX() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
         float width = (((float) meteringRectangle.getHeight() / captureController.mImageReaderPreview.getHeight()) * (textureView.getWidth()));
         float height = (((float) meteringRectangle.getWidth() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
+        //left = textureView.getWidth() - left;
         return new RectF(
-                left, //Left
+                //meteringRectangle.getY()-left, //Left
+                textureView.getWidth()-left-width,//Right
                 top,  //Top
-                left + width,//Right
+                //meteringRectangle.getY() - (left + width),//Right
+                textureView.getWidth()-left,
                 top + height //Bottom
         );
     }
