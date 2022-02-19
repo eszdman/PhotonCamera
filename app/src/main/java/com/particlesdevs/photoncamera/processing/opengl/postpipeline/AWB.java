@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
@@ -429,6 +430,6 @@ public class AWB extends Node {
         //neutral[2] = new Rational((int)(mpy*1.f/ccv[2])*1024,1024);
         parameters.customNeutral = new float[ccv.length];
         for(int i =0;i<ccv.length;i++) parameters.customNeutral[i] = ccv[i];
-        parameters.ReCalcColor(true);
+        parameters.ReCalcColor(true, CaptureController.mCaptureResult);
     }
 }

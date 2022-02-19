@@ -166,7 +166,7 @@ public class Parameters {
                 }
             }
             hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-            ReCalcColor(false);
+            ReCalcColor(false,result);
         }
         if (!usedDynamic)
             if (level != null) {
@@ -178,9 +178,8 @@ public class Parameters {
 
     public float[] customNeutral;
 
-    public void ReCalcColor(boolean customNeutr) {
+    public void ReCalcColor(boolean customNeutr,CaptureResult result) {
         CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
-        CaptureResult result = CaptureController.mCaptureResult;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         if (!customNeutr)
             for (int i = 0; i < neutralR.length; i++) {
