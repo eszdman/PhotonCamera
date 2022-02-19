@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -136,7 +137,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         @Override
         public void onResume() {
             Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
-            AsyncTask.execute(()-> {
                 toolbar.setTitle(getPreferenceScreen().getTitle());
                 setHdrxTitle();
                 checkEszdTheme();
@@ -147,7 +147,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 setSupportedDevices();
                 setProTitle();
                 setThisDevice();
-            });
             super.onResume();
         }
 
@@ -158,16 +157,19 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
 
         private void setTelegramPref() {
-            Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
-            if (myPref != null)
-                myPref.setOnPreferenceClickListener(preference -> {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
-                    startActivity(browserIntent);
-                    return true;
-                });
+            AsyncTask.execute(()-> {
+                Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
+                if (myPref != null)
+                    myPref.setOnPreferenceClickListener(preference -> {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
+                        startActivity(browserIntent);
+                        return true;
+                    });
+            });
         }
 
         private void setGithubPref() {
+            AsyncTask.execute(()-> {
             Preference github = findPreference(PreferenceKeys.Key.KEY_CONTRIBUTORS.mValue);
             if (github != null)
                 github.setOnPreferenceClickListener(preference -> {
@@ -175,9 +177,11 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     startActivity(browserIntent);
                     return true;
                 });
+            });
         }
 
         private void setRestorePref() {
+                AsyncTask.execute(()-> {
             Preference restorePref = findPreference(mContext.getString(R.string.pref_restore_preferences_key));
             if (restorePref != null) {
                 restorePref.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -186,33 +190,40 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     return true;
                 });
             }
+          });
         }
 
         private void setBackupPref() {
-            Preference backupPref = findPreference(mContext.getString(R.string.pref_backup_preferences_key));
-            if (backupPref != null) {
-                backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                    String backupResult = BackupRestoreUtil.backupSettings(mContext, newValue.toString());
-                    Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
-                    return true;
-                });
-            }
+            AsyncTask.execute(()-> {
+                Preference backupPref = findPreference(mContext.getString(R.string.pref_backup_preferences_key));
+                if (backupPref != null) {
+                    backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                        String backupResult = BackupRestoreUtil.backupSettings(mContext, newValue.toString());
+                        Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
+                        return true;
+                    });
+                }
+           });
         }
         @HunterDebug
         private void setSupportedDevices() {
-            Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
-            if (preference != null) {
-                preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
-                        ALL_DEVICES_NAMES_KEY, Collections.singleton(mContext.getString(R.string.list_not_loaded)))
-                        .stream().map(s -> s + "\n").reduce("\n", String::concat)));
-            }
+            AsyncTask.execute(()-> {
+                Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
+                if (preference != null) {
+                    preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
+                            ALL_DEVICES_NAMES_KEY, Collections.singleton(mContext.getString(R.string.list_not_loaded)))
+                            .stream().map(s -> s + "\n").reduce("\n", String::concat)));
+                }
+           });
         }
 
         private void setProTitle() {
-            Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
-            if (preference != null && supportedDevice.isSupportedDevice()) {
-                preference.setTitle(R.string.device_support);
-            }
+                AsyncTask.execute(()-> {
+                    Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
+                    if (preference != null && supportedDevice.isSupportedDevice()) {
+                        preference.setTitle(R.string.device_support);
+                    }
+            });
         }
 
         private void setThisDevice() {

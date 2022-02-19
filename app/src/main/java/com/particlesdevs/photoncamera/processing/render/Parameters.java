@@ -189,12 +189,51 @@ public class Parameters {
         else {
             whitePoint = customNeutral;
         }
+        int ref1 = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT1);
+        int ref2;
+        Object ref2obj = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT2);
+        if (ref2obj != null) {
+            ref2 = (byte) ref2obj;
+        } else {
+            ref2 = ref1;
+        }
         ColorSpaceTransform calibration1 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM1);
         ColorSpaceTransform calibration2 = characteristics.get(CameraCharacteristics.SENSOR_CALIBRATION_TRANSFORM2);
         ColorSpaceTransform colorMat1 = characteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM1);
         ColorSpaceTransform colorMat2 = characteristics.get(CameraCharacteristics.SENSOR_COLOR_TRANSFORM2);
         ColorSpaceTransform forwardt1 = characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX1);
         ColorSpaceTransform forwardt2 = characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX2);
+
+        if(sensorSpecifics.CCTExists){
+            if(sensorSpecifics.calibrationTransform1 != null){
+                calibration1 = sensorSpecifics.calibrationTransform1;
+            }
+            if(sensorSpecifics.calibrationTransform1 != null){
+                calibration2 = sensorSpecifics.calibrationTransform2;
+            }
+
+            if(sensorSpecifics.calibrationTransform1 != null){
+                colorMat1 = sensorSpecifics.colorTransform1;
+            }
+            if(sensorSpecifics.calibrationTransform1 != null){
+                colorMat2 = sensorSpecifics.colorTransform2;
+            }
+
+            if(sensorSpecifics.calibrationTransform1 != null){
+                forwardt1 = sensorSpecifics.forwardMatrix1;
+            }
+            if(sensorSpecifics.calibrationTransform1 != null){
+                forwardt2 = sensorSpecifics.forwardMatrix2;
+            }
+            if(sensorSpecifics.referenceIlluminant1 != -1){
+                ref1 = sensorSpecifics.referenceIlluminant1;
+            }
+            if(sensorSpecifics.referenceIlluminant2 != -1){
+                ref2 = sensorSpecifics.referenceIlluminant2;
+            }
+
+        }
+
         float[] calibrationTransform1 = new float[9];
         float[] normalizedForwardTransform1 = new float[9];
         float[] normalizedColorMatrix1 = new float[9];
@@ -215,14 +254,7 @@ public class Parameters {
         Converter.normalizeFM(normalizedColorMatrix1);
         Converter.normalizeFM(normalizedColorMatrix2);
         float[] sensorToXYZ = new float[9];
-        int ref1 = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT1);
-        int ref2;
-        Object ref2obj = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT2);
-        if (ref2obj != null) {
-            ref2 = (byte) ref2obj;
-        } else {
-            ref2 = ref1;
-        }
+
         double interpolationFactor = Converter.findDngInterpolationFactor(ref1,
                 ref2, calibrationTransform1, calibrationTransform2,
                 normalizedColorMatrix1, normalizedColorMatrix2, whitePoint);
@@ -231,7 +263,8 @@ public class Parameters {
                 interpolationFactor, /*out*/sensorToXYZ);
         Converter.multiply(Converter.sXYZtoProPhoto, sensorToXYZ, /*out*/sensorToProPhoto);
         File customCCT = new File(Environment.getExternalStorageDirectory() + "//DCIM//PhotonCamera//", "customCCT.txt");
-        ColorSpaceTransform CST = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        //ColorSpaceTransform CST = PhotonCamera.getCaptureController().mColorSpaceTransform;//= result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+        ColorSpaceTransform CST = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
         assert calibration2 != null;
         assert forwardt1 != null;
         assert forwardt2 != null;
@@ -250,6 +283,7 @@ public class Parameters {
             }
             if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
+        if(sensorSpecifics.CCTExists) wrongCalibration = false;
         if(PhotonCamera.getSpecific().specificSetting.isRawColorCorrection) wrongCalibration = false;
         if (wrongCalibration && !customCCT.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
