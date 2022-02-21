@@ -1676,7 +1676,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void reset3Aparams() {
         setAEMode(mPreviewRequestBuilder, PreferenceKeys.getAeMode());
-//        setAFMode(mPreviewRequestBuilder, PreferenceKeys.getAfMode());
         setAFMode(mPreviewRequestBuilder, CONTROL_AF_MODE_CONTINUOUS_PICTURE);
         rebuildPreviewBuilder();
     }
