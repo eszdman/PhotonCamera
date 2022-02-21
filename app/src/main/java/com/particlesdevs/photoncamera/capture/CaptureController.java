@@ -1635,7 +1635,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     else
                         createCameraPreviewSession(false);
                     PhotonCamera.getGyro().CompleteSequence();
-
                     taskResults.removeIf(Future::isDone); //remove already completed results
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
                         Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
