@@ -345,7 +345,6 @@ public class PreferenceKeys {
     public enum Key {
         KEY_PREF_VERSION(R.string._pref_version),
 
-        KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
         KEY_ENABLE_SYSTEM_NR(R.string.pref_enable_system_nr_key),
         KEY_SAVE_PER_LENS_SETTINGS(R.string.pref_save_per_lens_settings),
         KEY_DISABLE_ALIGNINIG(R.string.pref_disable_aligning_key),
@@ -353,7 +352,6 @@ public class PreferenceKeys {
         KEY_ENERGY_SAVING(R.string.pref_energy_safe_key),
         KEY_ENHANCED_PROCESSING(R.string.pref_enhanced_processing_key),
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
-        KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
@@ -370,8 +368,6 @@ public class PreferenceKeys {
         KEY_EXPOCOMPENSATE_SEEKBAR(R.string.pref_expocompensation_seekbar_key),
         KEY_SATURATION_SEEKBAR(R.string.pref_saturation_seekbar_key),
         KEY_ALIGN_METHOD(R.string.pref_align_method_key),
-        KEY_CFA(R.string.pref_cfa_key),
-        KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
         KEY_TELEGRAM(R.string.pref_telegram_channel_key),
         KEY_CONTRIBUTORS(R.string.pref_contributors_key),
         KEY_THEME(R.string.pref_theme_key),
@@ -380,6 +376,15 @@ public class PreferenceKeys {
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_COUNTDOWN_TIMER(R.string.pref_countdown_timer_key),
+        /**
+         * Enhanced settings keys
+         */
+        KEY_PREVIEW_RESOLUTION(R.string.pref_preview_resolution_key),////TODO add preview resolution selector
+        KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
+        KEY_SAVE_RAW(R.string.pref_save_raw_key),
+        KEY_CFA(R.string.pref_cfa_key),
+        KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
+
         /**
          * Other Keys
          */

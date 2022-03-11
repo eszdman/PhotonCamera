@@ -23,6 +23,8 @@ out vec3 Output;
 #define LUT 0
 #define TONEMAP 1
 #define DESAT 1.0
+#define BLACKDOT 0.1
+#define BLACKPOS 0.1
 #define LUVEPS 0.04
 #define LUTSIZE 64.0
 #define LUTSIZETILES 8.0
@@ -239,6 +241,7 @@ void main() {
     float minbl = min(BlVec.r,min(BlVec.g,BlVec.b));
     BlVec-=minbl;
     sRGB = clamp((sRGB-BlVec)/(vec3(1.0)-BlVec),0.0,1.0);
+    sRGB = mix(sRGB2,sRGB,clamp(pbr/BLACKPOS,0.0,1.0));
 
     //sRGB /= luminocity(sRGB);
     //sRGB*=pbr;

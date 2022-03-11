@@ -1,8 +1,6 @@
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
-//uniform sampler2D CorrectingFlowRG;
-//uniform sampler2D CorrectingFlowB;
 #define SIZE 0,0
 out vec3 Output;
 #define C 0.5,0.5
@@ -16,9 +14,9 @@ void main() {
     vec2 dxyR = center*vec2(RC);
     vec2 dxyG = center*vec2(GC);
     vec2 dxyB = center*vec2(BC);
-    Output.r = texture(InputBuffer,(uv+dxyR)).r;
-    Output.g = texture(InputBuffer,(uv+dxyG)).g;
-    Output.b = texture(InputBuffer,(uv+dxyB)).b;
+    Output.r = texture(InputBuffer,clamp(uv+dxyR,0.0,1.0)).r;
+    Output.g = texture(InputBuffer,clamp(uv+dxyG,0.0,1.0)).g;
+    Output.b = texture(InputBuffer,clamp(uv+dxyB,0.0,1.0)).b;
 
 
     /*

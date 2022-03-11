@@ -4,21 +4,13 @@ import android.graphics.Point;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
-import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
-import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.util.FileManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.FloatBuffer;
 import java.util.Arrays;
 import java.util.Scanner;
-
-import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
-import static android.opengl.GLES20.GL_LINEAR;
-import static android.opengl.GLES20.GL_NEAREST;
 
 public class CorrectingFlow extends Node {
 

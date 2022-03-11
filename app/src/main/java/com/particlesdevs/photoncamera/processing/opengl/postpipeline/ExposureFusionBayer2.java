@@ -137,6 +137,8 @@ public class ExposureFusionBayer2 extends Node {
 
     float softUpperLevel = 0.1f;
     float softLoverLevel = 0.0f;
+    float fusionExpoLowLimit = 1.f/3.f;
+    float fusionExpoHighLimit = 5.f;
     int curvePointsCount = 5;
     float[] toneCurveX;
     float[] toneCurveY;
@@ -162,6 +164,9 @@ public class ExposureFusionBayer2 extends Node {
         dehazing =                 getTuning("Dehazing",dehazing);
         downScalePerLevel =        getTuning("DownScalePerLevel",downScalePerLevel);
         curvePointsCount =         getTuning("CurvePointsCount",curvePointsCount);
+        fusionExpoLowLimit =         getTuning("FusionExpoLowLimit",fusionExpoLowLimit);
+        fusionExpoHighLimit =         getTuning("FusionExpoHighLimit",fusionExpoHighLimit);
+
         softUpperLevel = getTuning("HardLevel", softUpperLevel);
         softLoverLevel = getTuning("SoftLevel", softLoverLevel);
         toneCurveX = new float[curvePointsCount];
@@ -241,8 +246,8 @@ public class ExposureFusionBayer2 extends Node {
             overexposure/=mpy;
             underexposure/=mpy;
         }
-        overexposure = Math.min(4.f,overexposure);
-        underexposure = Math.max(1.f/8.f,underexposure);
+        overexposure = Math.min(fusionExpoHighLimit,overexposure);
+        underexposure = Math.max(fusionExpoLowLimit,underexposure);
         ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
         ((PostPipeline)basePipeline).totalGain *= overexposure;
         Log.d(Name,"TotalGain:"+((PostPipeline)basePipeline).totalGain);

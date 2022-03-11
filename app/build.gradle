@@ -37,7 +37,9 @@ android {
 
     defaultConfig {
         applicationId 'com.particlesdevs.photoncamera'
-        minSdkVersion 26
+        minSdkVersion 24
+        //Waiting for api 32 sources
+        //noinspection OldTargetApi
         targetSdkVersion 31
         versionCode versionBuild
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

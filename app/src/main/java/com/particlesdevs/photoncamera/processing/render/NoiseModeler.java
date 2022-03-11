@@ -3,7 +3,6 @@ package com.particlesdevs.photoncamera.processing.render;
 import android.util.Log;
 import android.util.Pair;
 
-import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 
 public class NoiseModeler {

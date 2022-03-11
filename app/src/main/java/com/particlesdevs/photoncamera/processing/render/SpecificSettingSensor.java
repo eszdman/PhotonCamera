@@ -1,4 +1,4 @@
-package com.particlesdevs.photoncamera.pro;
+package com.particlesdevs.photoncamera.processing.render;
 
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.util.Rational;
@@ -12,12 +12,12 @@ public class SpecificSettingSensor {
     public float captureSharpeningIntense = 0.5f;
     public float[] aberrationCorrection;
 
-    float[][] CalibrationTransform1;
-    float[][] CalibrationTransform2;
-    float[][] ColorTransform1;
-    float[][] ColorTransform2;
-    float[][] ForwardMatrix1;
-    float[][] ForwardMatrix2;
+    public float[][] CalibrationTransform1;
+    public float[][] CalibrationTransform2;
+    public float[][] ColorTransform1;
+    public float[][] ColorTransform2;
+    public float[][] ForwardMatrix1;
+    public float[][] ForwardMatrix2;
 
     public ColorSpaceTransform calibrationTransform1;
     public ColorSpaceTransform calibrationTransform2;
@@ -29,7 +29,7 @@ public class SpecificSettingSensor {
 
     public int referenceIlluminant1 = -1;
     public int referenceIlluminant2 = -1;
-    boolean overrideRawColors = false;
+    public boolean overrideRawColors = false;
     //Noise model [A,B,C,D][bayer]
     public double[][] NoiseModelerArr;
     public boolean ModelerExists = false;

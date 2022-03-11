@@ -8,23 +8,18 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.BlackLevelPattern;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.hardware.camera2.params.LensShadingMap;
-import android.hardware.camera2.params.TonemapCurve;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
-import android.util.Pair;
 import android.util.Rational;
-import android.util.Size;
 import android.util.SizeF;
 
 import androidx.annotation.NonNull;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.pro.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
-import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -207,21 +202,21 @@ public class Parameters {
             if(sensorSpecifics.calibrationTransform1 != null){
                 calibration1 = sensorSpecifics.calibrationTransform1;
             }
-            if(sensorSpecifics.calibrationTransform1 != null){
+            if(sensorSpecifics.calibrationTransform2 != null){
                 calibration2 = sensorSpecifics.calibrationTransform2;
             }
 
-            if(sensorSpecifics.calibrationTransform1 != null){
+            if(sensorSpecifics.colorTransform1 != null){
                 colorMat1 = sensorSpecifics.colorTransform1;
             }
-            if(sensorSpecifics.calibrationTransform1 != null){
+            if(sensorSpecifics.colorTransform2 != null){
                 colorMat2 = sensorSpecifics.colorTransform2;
             }
 
-            if(sensorSpecifics.calibrationTransform1 != null){
+            if(sensorSpecifics.forwardMatrix1 != null){
                 forwardt1 = sensorSpecifics.forwardMatrix1;
             }
-            if(sensorSpecifics.calibrationTransform1 != null){
+            if(sensorSpecifics.forwardMatrix2 != null){
                 forwardt2 = sensorSpecifics.forwardMatrix2;
             }
             if(sensorSpecifics.referenceIlluminant1 != -1){

@@ -293,7 +293,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 }
             }
         }
-        @HunterDebug
+
         private void restartActivity() {
             if (getActivity() != null) {
                 Intent intent = new Intent(mContext, getActivity().getClass());
@@ -302,7 +302,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         ActivityOptions.makeCustomAnimation(mContext, R.anim.fade_in, R.anim.fade_out).toBundle());
             }
         }
-        @HunterDebug
+
         private void setVersionDetails() {
             AsyncTask.execute(() -> {
                 Preference about = findPreference(mContext.getString(R.string.pref_version_key));
