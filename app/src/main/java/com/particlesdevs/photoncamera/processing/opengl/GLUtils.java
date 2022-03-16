@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.processing.ImagePath;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.util.AssetLoader;
 import com.particlesdevs.photoncamera.util.Utilities;
@@ -888,7 +889,7 @@ public class GLUtils {
     public Bitmap SaveProgResult(Point size, String namesuffix, int channels,String ext){
         Bitmap preview = GenerateBitmap(size,channels);
         if(!namesuffix.equals("")) {
-            File debug = new File(ImageSaver.Util.newJPGFilePath().toString().replace(".jpg","") + namesuffix + ext);
+            File debug = new File(ImagePath.newJPGFilePath().toString().replace(".jpg","") + namesuffix + ext);
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();
@@ -908,7 +909,7 @@ public class GLUtils {
         Bitmap preview = Bitmap.createBitmap((int)(((double)size.x*channels)/4), size.y, bitmapF.getBitmapConfig());
         preview.copyPixelsFromBuffer(in);
         if(!namesuffix.equals("")) {
-            File debug = new File(ImageSaver.Util.newJPGFilePath().toString().replace(".jpg","") + namesuffix + ext);
+            File debug = new File(ImagePath.newJPGFilePath().toString().replace(".jpg","") + namesuffix + ext);
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();

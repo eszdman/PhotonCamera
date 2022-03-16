@@ -47,7 +47,7 @@ public class DefaultSaver extends SaverImplementation{
             IMAGE_BUFFER.add(image);
             byte[] bytes = new byte[buffer.remaining()];
             if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
-                Path jpgPath = ImageSaver.Util.newJPGFilePath();
+                Path jpgPath = ImagePath.newJPGFilePath();
                 buffer.duplicate().get(bytes);
                 Files.write(jpgPath, bytes);
 
@@ -58,7 +58,7 @@ public class DefaultSaver extends SaverImplementation{
                 IMAGE_BUFFER.clear();
             }
             if (PhotonCamera.getSettings().frameCount == 1) {
-                Path jpgPath = ImageSaver.Util.newJPGFilePath();
+                Path jpgPath = ImagePath.newJPGFilePath();
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);
                 Files.write(jpgPath, bytes);
@@ -102,7 +102,7 @@ public class DefaultSaver extends SaverImplementation{
             }
         }
         if(PhotonCamera.getSettings().frameCount == 1){
-            Path dngFile = ImageSaver.Util.newDNGFilePath();
+            Path dngFile = ImagePath.newDNGFilePath();
             Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
             boolean imageSaved = ImageSaver.Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
                     characteristics, captureResult, cameraRotation);
@@ -111,8 +111,8 @@ public class DefaultSaver extends SaverImplementation{
             IMAGE_BUFFER.clear();
             return;
         }
-        Path dngFile = ImageSaver.Util.newDNGFilePath();
-        Path jpgFile = ImageSaver.Util.newJPGFilePath();
+        Path dngFile = ImagePath.newDNGFilePath();
+        Path jpgFile = ImagePath.newJPGFilePath();
         //Remove broken images
             /*for(int i =0; i<IMAGE_BUFFER.size();i++){
                 try{
@@ -145,8 +145,8 @@ public class DefaultSaver extends SaverImplementation{
     }
     public void unlimitedStart(ImageReader imageReader,CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
         super.unlimitedStart(imageReader,characteristics,captureResult,cameraRotation);
-        Path dngFile = ImageSaver.Util.newDNGFilePath();
-        Path jpgFile = ImageSaver.Util.newJPGFilePath();
+        Path dngFile = ImagePath.newDNGFilePath();
+        Path jpgFile = ImagePath.newJPGFilePath();
 
         mUnlimitedProcessor.configure(PhotonCamera.getSettings().rawSaver);
         mUnlimitedProcessor.unlimitedStart(

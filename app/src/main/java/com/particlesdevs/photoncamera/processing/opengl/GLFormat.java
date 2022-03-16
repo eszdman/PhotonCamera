@@ -246,10 +246,10 @@ public class GLFormat {
             case NONE:
                 break;
             case FLOAT_16:
-                return Bitmap.Config.RGBA_F16;
+            //    return Bitmap.Config.RGBA_F16;
             case FLOAT_32:
             case UNSIGNED_16:
-                return Bitmap.Config.HARDWARE;
+            //    return Bitmap.Config.HARDWARE;
             case UNSIGNED_8:
                 return Bitmap.Config.ARGB_8888;
             case SIGNED_8:

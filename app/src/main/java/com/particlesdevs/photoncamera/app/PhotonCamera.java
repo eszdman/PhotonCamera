@@ -33,6 +33,7 @@ import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SpecificSetting;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
+import com.particlesdevs.photoncamera.processing.ImagePath;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.render.PreviewParameters;
@@ -305,7 +306,7 @@ public class PhotonCamera extends Application {
             }
             ByteBuffer outBuffer = ByteBuffer.wrap(bytes);
             bitmap.copyPixelsFromBuffer(outBuffer);
-            File debug = new File(ImageSaver.Util.newJPGFilePath()+"test.jpg");
+            File debug = new File(ImagePath.newJPGFilePath()+"test.jpg");
             FileOutputStream fOut = null;
             try {
                 debug.createNewFile();

@@ -17,6 +17,7 @@ import android.util.TypedValue;
 import androidx.annotation.ColorInt;
 import androidx.core.content.res.ResourcesCompat;
 
+import com.particlesdevs.photoncamera.processing.ImagePath;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 
 import java.io.File;
@@ -68,7 +69,7 @@ public class Utilities {
             canvas.drawCircle(p.x,p.y,pointSize,wallPaint);
     }
     public static void saveBitmap(Bitmap in, String name){
-        File debug = new File(ImageSaver.Util.newJPGFilePath().toString().replace(".jpg","") + name + ".png");
+        File debug = new File(ImagePath.newJPGFilePath().toString().replace(".jpg","") + name + ".png");
         FileOutputStream fOut = null;
         try {
             debug.createNewFile();
