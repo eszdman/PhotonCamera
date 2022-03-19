@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class SAGA extends Node {
     private ArrayList<ImageFrame> images;
     public SAGA() {
-        super(0, "SAGA");
+        super("", "SAGA");
     }
 
     @Override
@@ -24,7 +24,7 @@ public class SAGA extends Node {
     @Override
     public void Run() {
         images = ((PostPipeline)basePipeline).SAGAIN;
-        glProg.useProgram(R.raw.sagamerge);
+        glProg.useAssetProgram("sagamerge");
         GLTexture output =  new GLTexture(basePipeline.mParameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),images.get(0).buffer);
         GLTexture align = null;
 

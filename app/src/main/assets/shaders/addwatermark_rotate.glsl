@@ -41,10 +41,11 @@ void main() {
     cr.x*=1.025;
     cr*=watersizek;
     if(cr.x >= 0.0 && cr.y >= 0.0){
-    water = textureBicubicHardware(Watermark,cr);
-    Output = mix(Output,water.rgba,water.a);
+    water = texture(Watermark,cr);
+    Output = mix(Output,water,water.a);
     }
     #endif
     Output*=1.005;
-    Output.a=1.0;
+    Output.a = 1.0;
+
 }

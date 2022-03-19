@@ -7,7 +7,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class CaptureSharpening extends Node {
     public CaptureSharpening() {
-        super(0, "CaptureSharpening");
+        super("", "CaptureSharpening");
     }
 
     @Override
@@ -26,7 +26,7 @@ public class CaptureSharpening extends Node {
         glProg.setDefine("SHARPSTR",strength);
         glProg.setDefine("SHARPSIZEKER",size);
         glProg.setDefine("INSIZE",basePipeline.workSize);
-        glProg.useProgram(R.raw.capturesharpening);
+        glProg.useAssetProgram("capturesharpening");
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
 
         WorkingTexture = basePipeline.getMain();

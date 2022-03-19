@@ -7,7 +7,7 @@ import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE_OFF;
 public class Settings {
     private final String TAG = "Settings";
     //Preferences
-    public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
+
     public int frameCount;
     public int lumenCount;
     public int chromaCount;
@@ -38,9 +38,12 @@ public class Settings {
     public boolean fpsPreview;
     public int alignAlgorithm;
     public String mCameraID;
-    public CameraMode selectedMode;
     public float[] toneMap;
     public float[] gamma;
+
+    //Camera direct related
+    public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
+    public CameraMode selectedMode;
 
     public void loadCache() {
         noiseReduction = PreferenceKeys.isSystemNrOn();

@@ -1,8 +1,6 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
-import android.renderscript.Element;
-import android.renderscript.RenderScript;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_NEAREST;
@@ -56,6 +54,7 @@ import static android.opengl.GLES30.GL_RG_INTEGER;
 import static android.opengl.GLES30.GL_SHORT;
 import static android.opengl.GLES30.GL_UNSIGNED_BYTE;
 import static android.opengl.GLES30.GL_UNSIGNED_INT;
+import static android.opengl.GLES30.GL_UNSIGNED_INT_24_8;
 import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 
 public class GLFormat {
@@ -98,41 +97,24 @@ public class GLFormat {
         mFormat = format;
         mChannels = 1;
     }
+    public Bitmap.Config getBufferedImageConfig() {
+        switch (mFormat) {
+            case NONE:
+                break;
+            case FLOAT_16:
+            case FLOAT_32:
+            case UNSIGNED_16:
+            case UNSIGNED_8:
+            case SIGNED_8:
+            case SIMPLE_8:
+                return Bitmap.Config.ARGB_8888;
+        }
+        return Bitmap.Config.ARGB_8888;
+    }
 
     public GLFormat(DataType format, int channels) {
         mFormat = format;
         mChannels = channels;
-    }
-    public Element getElement(RenderScript rs){
-        switch (mFormat){
-            case FLOAT_16: {
-                switch (mChannels) {
-                    case 1:
-                        return Element.F16(rs);
-                    case 2:
-                        return Element.F16_2(rs);
-                    case 3:
-                        return Element.F16_3(rs);
-                    case 4:
-                        return Element.F16_4(rs);
-                }
-                break;
-            }
-            case SIGNED_16: {
-                switch (mChannels) {
-                    case 1:
-                        return Element.I16(rs);
-                    case 2:
-                        return Element.I16_2(rs);
-                    case 3:
-                        return Element.I16_3(rs);
-                    case 4:
-                        return Element.I16_4(rs);
-                }
-                break;
-            }
-        }
-        return null;
     }
     public int getGLFormatInternal() {
         switch (mFormat) {
@@ -241,23 +223,6 @@ public class GLFormat {
         return 0;
     }
 
-    public Bitmap.Config getBitmapConfig() {
-        switch (mFormat) {
-            case NONE:
-                break;
-            case FLOAT_16:
-            //    return Bitmap.Config.RGBA_F16;
-            case FLOAT_32:
-            case UNSIGNED_16:
-            //    return Bitmap.Config.HARDWARE;
-            case UNSIGNED_8:
-                return Bitmap.Config.ARGB_8888;
-            case SIGNED_8:
-            case SIMPLE_8:
-                return Bitmap.Config.ARGB_8888;
-        }
-        return Bitmap.Config.ARGB_8888;
-    }
 
     public int getGLFormatExternal() {
         switch (mFormat) {
@@ -312,8 +277,9 @@ public class GLFormat {
             case UNSIGNED_32:
                 return GL_UNSIGNED_INT;
             case SIGNED_8:
-            case SIMPLE_8:
                 return GL_BYTE;
+            case SIMPLE_8:
+                return GL_UNSIGNED_BYTE;
             case SIGNED_16:
                 return GL_SHORT;
             case SIGNED_32:
@@ -434,7 +400,6 @@ public class GLFormat {
         return "sampler2D";
     }
 
-    @androidx.annotation.NonNull
     @Override
     public String toString() {
         return "GLFormat{" +

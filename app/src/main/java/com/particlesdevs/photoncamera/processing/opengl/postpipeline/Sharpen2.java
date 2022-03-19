@@ -11,7 +11,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class Sharpen2 extends Node {
     public Sharpen2() {
-        super(0, "Sharpening");
+        super("", "Sharpening");
     }
 
     @Override
@@ -36,7 +36,7 @@ public class Sharpen2 extends Node {
         glProg.setDefine("SHARPMAX",sharpMax);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
-        glProg.useProgram(R.raw.lsharpening2);
+        glProg.useAssetProgram("lsharpening2");
         glProg.setVar("size", sharpSize);
         glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);

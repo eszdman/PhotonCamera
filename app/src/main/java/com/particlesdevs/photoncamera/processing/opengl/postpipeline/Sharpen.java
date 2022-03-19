@@ -9,7 +9,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
 public class Sharpen extends Node {
-    public Sharpen(int rid) {
+    public Sharpen(String rid) {
         super(rid, "Sharpening");
     }
     @Override

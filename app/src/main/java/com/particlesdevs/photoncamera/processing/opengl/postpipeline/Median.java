@@ -13,7 +13,7 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 public class Median extends Node {
     Point transposing;
     int size;
-    public Median(Point transpose,int size, String name, int original) {
+    public Median(Point transpose,int size, String name, String original) {
         super(original, name);
         transposing = transpose;
         this.size = size;

@@ -10,7 +10,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class AEC extends Node {
     public AEC(String name) {
-        super(0, name);
+        super("", name);
     }
 
     private final int SIZE = 256;
@@ -82,7 +82,7 @@ public class AEC extends Node {
         GLTexture r1 = glUtils.interpolate(r2, new Point(40, 40));
         //GLTexture r2 = glUtils.mpy(r1,new float[]{reg,reg,reg});
         GLFormat bitmapF = new GLFormat(GLFormat.DataType.UNSIGNED_8, 4);
-        Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
+        Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBufferedImageConfig());
         preview.copyPixelsFromBuffer(glInt.glProcessing.drawBlocksToOutput(r1.mSize, bitmapF));
         if (basePipeline.mSettings.DebugData) glUtils.SaveProgResult(r1.mSize, "debAEC");
         ((PostPipeline) basePipeline).AecCorr = MpyAEC(Histogram(preview));

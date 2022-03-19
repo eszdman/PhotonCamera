@@ -6,7 +6,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class MedianDownRevert extends Node {
     public MedianDownRevert() {
-        super(0, "MedianDownUpscale");
+        super("", "MedianDownUpscale");
     }
 
     @Override

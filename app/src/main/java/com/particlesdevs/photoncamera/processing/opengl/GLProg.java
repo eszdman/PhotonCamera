@@ -1,9 +1,9 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Point;
-import android.opengl.GLES30;
-import android.opengl.GLES31;
 import android.util.Log;
+
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -49,9 +49,9 @@ public class GLProg implements AutoCloseable {
     }
     public void setDefine(String DefineName, boolean bool){
         if(bool)
-        setDefine(DefineName,"1");
+            setDefine(DefineName,"1");
         else {
-        setDefine(DefineName,"0");
+            setDefine(DefineName,"0");
         }
     }
     public void setLayout(int x, int y, int z){
@@ -70,6 +70,18 @@ public class GLProg implements AutoCloseable {
         Defines.add(new String[]{DefineName,DefineVal});
         changedDef = true;
     }
+    public void useAssetProgram(String name){
+        useAssetProgram(name,false);
+    }
+    public void useAssetProgram(String name,boolean compute){
+        useProgram(PhotonCamera.getAssetLoader().getString("shaders/"+name+".glsl"),compute);
+    }
+    public void useUtilProgram(String name){
+        useUtilProgram(name,false);
+    }
+    public void useUtilProgram(String name,boolean compute){
+        useProgram(PhotonCamera.getAssetLoader().getString("shaders/utils/"+name+".glsl"),compute);
+    }
     public void useProgram(int fragmentRes){
         useProgram(fragmentRes,false);
     }
@@ -83,6 +95,22 @@ public class GLProg implements AutoCloseable {
         else {
             shader = GLInterface.loadShader(fragmentRes);
         }
+        useShader(shader,compute);
+    }
+    public void useProgram(String programSource) {
+        useProgram(programSource,false);
+    }
+    public void useProgram(String programSource, boolean compute) {
+        isCompute = compute;
+        closed = false;
+        String shader;
+        if(changedDef) shader = GLInterface.loadShader(programSource,Defines);
+        else {
+            shader = GLInterface.loadShader(programSource);
+        }
+        useShader(shader,compute);
+    }
+    private void useShader(String shader, boolean compute){
         mComputeLayouts = GLInterface.getLayouts(shader);
         if(mProgramCache.containsKey(shader)) {
             Defines.clear();
@@ -99,13 +127,13 @@ public class GLProg implements AutoCloseable {
                 nShader = compileShader(GL_FRAGMENT_SHADER, shader);
                 program = createProgram(vertexShader, nShader);
             } else {
-                nShader = compileShader(GLES31.GL_COMPUTE_SHADER, shader);
+                nShader = compileShader(GL_COMPUTE_SHADER, shader);
                 program = glCreateProgram();
                 glAttachShader(program,nShader);
                 glLinkProgram(program);
             }
             currentShader = nShader;
-            GLES30.glGetError();
+            glGetError();
             glUseProgram(program);
             checkEglError("glUseProgram");
             Defines.clear();
@@ -115,39 +143,6 @@ public class GLProg implements AutoCloseable {
         }
         mTextureBinds.clear();
         mNewTextureId = 0;
-    }
-    public void useProgram(String programSource) {
-        useProgram(programSource,false);
-    }
-    public void useProgram(String programSource, boolean compute) {
-        isCompute = compute;
-        closed = false;
-        String shader;
-        if(changedDef) shader = GLInterface.loadShader(programSource,Defines);
-        else {
-            shader = GLInterface.loadShader(programSource);
-        }
-        int program;
-        int nShader;
-        if(!compute) {
-            nShader = compileShader(GL_FRAGMENT_SHADER, shader);
-            program = createProgram(vertexShader, nShader);
-        } else {
-            nShader = compileShader(GLES31.GL_COMPUTE_SHADER, shader);
-            program = glCreateProgram();
-            glAttachShader(program,nShader);
-            glLinkProgram(program);
-        }
-        glLinkProgram(program);
-        GLES30.glGetError();
-        //checkEglError("glLinkProgram");
-        glUseProgram(program);
-        checkEglError("glUseProgram");
-        mCurrentProgramActive = program;
-        mTextureBinds.clear();
-        mNewTextureId = 0;
-        Defines.clear();
-        changedDef = false;
     }
 
     /**
@@ -166,7 +161,7 @@ public class GLProg implements AutoCloseable {
             glCompileShader(shaderHandle);
             // Get the compilation status.
             final int[] compileStatus = new int[1];
-            glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, compileStatus, 0);
+            glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, compileStatus,0);
             // If the compilation failed, delete the shader.
             if (compileStatus[0] == 0) {
                 Log.e(TAG, "Error compiling shader: " + glGetShaderInfoLog(shaderHandle));
@@ -198,7 +193,7 @@ public class GLProg implements AutoCloseable {
             glLinkProgram(programHandle);
             // Get the link status.
             final int[] linkStatus = new int[1];
-            glGetProgramiv(programHandle, GL_LINK_STATUS, linkStatus, 0);
+            glGetProgramiv(programHandle, GL_LINK_STATUS, linkStatus,0);
             // If the link failed, delete the program.
             if (linkStatus[0] == 0) {
                 Log.e(TAG, "Error compiling program: " + glGetProgramInfoLog(programHandle));
@@ -233,8 +228,8 @@ public class GLProg implements AutoCloseable {
         glDispatchCompute(size.x/glComputeLayout.xy.x + (size.x%glComputeLayout.xy.x),
                 size.y/glComputeLayout.xy.y + (size.y%glComputeLayout.xy.y),
                 z/glComputeLayout.z + (z%glComputeLayout.z));
-        glMemoryBarrier(GLES31.GL_TEXTURE_UPDATE_BARRIER_BIT);
-        glMemoryBarrier(GLES31.GL_ALL_SHADER_BITS);
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+        glMemoryBarrier(GL_ALL_SHADER_BITS);
     }
     public void computeManual(int x,int y, int z) {
         if(!isCompute) {
@@ -242,8 +237,8 @@ public class GLProg implements AutoCloseable {
             return;
         }
         glDispatchCompute(x, y, z);
-        glMemoryBarrier(GLES31.GL_TEXTURE_UPDATE_BARRIER_BIT);
-        glMemoryBarrier(GLES31.GL_ALL_SHADER_BITS);
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+        glMemoryBarrier(GL_ALL_SHADER_BITS);
     }
 
 
@@ -399,7 +394,7 @@ public class GLProg implements AutoCloseable {
                 glUniform4f(address, vars[0], vars[1], vars[2], vars[3]);
                 break;
             case 9:
-                glUniformMatrix3fv(address, 1, transpose, vars, 0);
+                glUniformMatrix3fv(address,1, transpose, vars,0);
                 break;
             default:
                 throw new RuntimeException("Wrong var size " + name);
@@ -436,8 +431,8 @@ public class GLProg implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
-        for (int program : mPrograms) {
-            glDeleteProgram(program);
-        }
+        //for (int program : mPrograms) {
+        //    glDeleteProgram(program);
+        //}
     }
 }

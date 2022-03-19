@@ -17,7 +17,7 @@ public class GaussianResize extends GLOneScript {
     public ByteBuffer inputB;
     public Point sizeIn;
     public GaussianResize(GLCoreBlockProcessing glCoreBlockProcessing) {
-        super(new Point(1,1), glCoreBlockProcessing, R.raw.gaussdown44, "GaussianResize");
+        super(new Point(1,1), glCoreBlockProcessing, "gaussdown44", "GaussianResize");
     }
 
     @Override

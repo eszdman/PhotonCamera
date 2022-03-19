@@ -9,7 +9,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 public class ESD3D2 extends Node {
 
     public ESD3D2() {
-        super(0, "ES3D");
+        super("", "ES3D");
     }
 
     @Override
@@ -37,7 +37,7 @@ public class ESD3D2 extends Node {
             glProg.setDefine("NOISES", basePipeline.noiseS);
             glProg.setDefine("NOISEO", basePipeline.noiseO);
             glProg.setDefine("INSIZE", previousNode.WorkingTexture.mSize);
-            glProg.useProgram(R.raw.esd3d);
+            glProg.useAssetProgram("esd3d");
             glProg.setTexture("NoiseMap", map);
             glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
             glProg.setTexture("GradBuffer", grad);

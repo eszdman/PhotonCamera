@@ -29,7 +29,7 @@ public class AlignAndMergeGyro extends Node {
     GLProg glProg;
 
     public AlignAndMergeGyro() {
-        super(0, "AlignAndMerge");
+        super("", "AlignAndMerge");
     }
 
     @Override
@@ -44,7 +44,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("MPY",mpy);
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
         Log.d("Align","mpy:"+mpy);
-        glProg.useProgram(R.raw.precorrection);
+        glProg.useAssetProgram("precorrection");
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
         glProg.setVar("WhiteLevel",(float)PhotonCamera.getParameters().whiteLevel);
@@ -53,7 +53,7 @@ public class AlignAndMergeGyro extends Node {
     }
     private static final boolean corners = true;
     private void BoxDown22(GLTexture input,GLTexture out) {
-        glProg.useProgram(R.raw.boxdown22);
+        glProg.useAssetProgram("boxdown22");
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
@@ -103,7 +103,7 @@ public class AlignAndMergeGyro extends Node {
     }
 
     private GLTexture LaplacDown44(GLTexture input) {
-        glProg.useProgram(R.raw.laplaciandown44);
+        glProg.useAssetProgram("laplaciandown44");
         glProg.setTexture("InputBuffer", input);
         GLTexture output = new GLTexture(new Point(input.mSize.x / 4, input.mSize.y / 4), input.mFormat, null);
         glProg.drawBlocks(output);
@@ -140,7 +140,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("INITIALMOVE", Utilities.div(movement,64));
         glProg.setDefine("LOWPASSCOMBINE",false);
 
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
 
         //glProg.setTexture("InputBufferH", DiffHVIn);
         //glProg.setTexture("MainBufferH", DiffHVRef);
@@ -164,7 +164,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("LUCKYINPUT",false);
         glProg.setDefine("LOWPASSCOMBINE",false);
         glProg.setDefine("LOWPASSK",4);
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
         glProg.setTexture("AlignVectors",vsmall);
 
         //glProg.setTexture("InputBufferH", DiffHVIn);
@@ -188,7 +188,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("LUCKYINPUT",false);
         glProg.setDefine("LOWPASSCOMBINE",false);
         glProg.setDefine("LOWPASSK",16);
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
         glProg.setTexture("AlignVectors",small);
 
         //glProg.setTexture("InputBufferH", DiffHVIn);
@@ -214,7 +214,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("LUCKYINPUT",false);
         glProg.setDefine("LOWPASSCOMBINE",false);
         glProg.setDefine("LOWPASSK",64);
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
         glProg.setTexture("AlignVectors",medium);
 
         //glProg.setTexture("InputBufferH", DiffHVIn);
@@ -239,7 +239,7 @@ public class AlignAndMergeGyro extends Node {
         GLTexture out = Weights;
         GLTexture alt = WeightsAlt;
         GLTexture t = Weights;
-        glProg.useProgram(R.raw.sumweights);
+        glProg.useAssetProgram("sumweights");
         for(int i =1; i<images.size();i++){
             glProg.setTexture("WeightsIn", Weight[i-1]);
             glProg.setTexture("WeightsOut", out);
@@ -267,7 +267,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("WEIGHTSIZE","("+tileSize*4+")");
         glProg.setDefine("FRAMECOUNT",images.size());
-        glProg.useProgram(R.raw.spatialweights);
+        glProg.useAssetProgram("spatialweights");
         glProg.setTexture("CornersRef", CornersRef);
         glProg.setTexture("CornersIn", CornersIn);
         glProg.setTexture("AlignVectors", alignVector);
@@ -284,7 +284,7 @@ public class AlignAndMergeGyro extends Node {
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
         glProg.setDefine("HDR",IsoExpoSelector.HDR);
         glProg.setDefine("ROTATIOn", (float) images.get(num).rotation);
-        glProg.useProgram(R.raw.spatialmerge);
+        glProg.useAssetProgram("spatialmerge");
 
         /*short[] bufin = new short[alignVectors[0].mSize.x*alignVectors[0].mSize.y*4];
         for(int k =0; k<alignVectors[0].mSize.x*alignVectors[0].mSize.y*4; k+=4){
@@ -330,7 +330,7 @@ public class AlignAndMergeGyro extends Node {
         for(int i=0;i<outBL.length;i++) outBL[i] = PhotonCamera.getParameters().blackLevel[i]*(ProcessorBase.FAKE_WL/((float)PhotonCamera.getParameters().whiteLevel));
         glProg.setDefine("BL",outBL);
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
-        glProg.useProgram(R.raw.toraw);
+        glProg.useAssetProgram("toraw");
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("whitelevel", ProcessorBase.FAKE_WL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);

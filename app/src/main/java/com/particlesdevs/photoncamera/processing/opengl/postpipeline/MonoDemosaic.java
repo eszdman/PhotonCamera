@@ -8,7 +8,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class MonoDemosaic extends Node {
     public MonoDemosaic() {
-        super(R.raw.monochrome, "Monochrome");
+        super("monochrome", "Monochrome");
     }
 
     @Override

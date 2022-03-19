@@ -13,7 +13,7 @@ import static android.opengl.GLES31.GL_READ_WRITE;
 public class Wavelet extends Node {
 
     public Wavelet() {
-        super(0, "Wavelet");
+        super("", "Wavelet");
     }
 
     @Override
@@ -33,7 +33,7 @@ public class Wavelet extends Node {
             glProg.setDefine("OFFSET",0,0);
             glProg.setDefine("OUTSET",basePipeline.mParameters.rawSize);
             glProg.setDefine("SQRT2",(float)Math.sqrt(2));
-            glProg.useProgram(R.raw.wavelet2,true);
+            glProg.useAssetProgram("wavelet2",true);
             glProg.setTextureCompute("inTexture",input,false);
             glProg.setTextureCompute("outTexture", waveletRT,true);
             glProg.computeManual(input.mSize.x/(rescaling*tile*waveTile) + 1,input.mSize.y/(rescaling*tile*waveTile) + 1,1);
@@ -51,7 +51,7 @@ public class Wavelet extends Node {
         glProg.setDefine("TILE",waveTile);
         glProg.setDefine("OUTSET",basePipeline.mParameters.rawSize);
         glProg.setLayout(tile, tile, 1);
-        glProg.useProgram(R.raw.waveletthr, true);
+        glProg.useAssetProgram("waveletthr", true);
         glProg.setTextureCompute("inTexture", input, false);
         glProg.setTextureCompute("outTexture", waveletRT, true);
         glProg.computeAuto(input.mSize,1);
@@ -68,7 +68,7 @@ public class Wavelet extends Node {
             glProg.setDefine("NOISEO", basePipeline.noiseO);
             glProg.setDefine("NOISES", basePipeline.noiseS);
 
-            glProg.useProgram(R.raw.waveletinv2, true);
+            glProg.useAssetProgram("waveletinv2", true);
             glProg.setTextureCompute("inTexture", input, false);
             glProg.setTextureCompute("outTexture", waveletRT, true);
             glProg.computeManual(input.mSize.x / (rescaling*tile*waveTile) + 1, input.mSize.y / (rescaling*tile*waveTile) + 1, 1);
@@ -81,7 +81,7 @@ public class Wavelet extends Node {
     void TransFormColors(){
         glProg.setDefine("OUTSET", basePipeline.mParameters.rawSize);
         glProg.setLayout(tile, tile, 1);
-        glProg.useProgram(R.raw.tocol, true);
+        glProg.useAssetProgram("tocol", true);
         glProg.setTextureCompute("inTexture", previousNode.WorkingTexture, false);
         input = basePipeline.getMain();
         glProg.setTextureCompute("outTexture", input, true);
@@ -93,7 +93,7 @@ public class Wavelet extends Node {
         glProg.setDefine("NOISEO", basePipeline.noiseO);
         glProg.setDefine("NOISES", basePipeline.noiseS);
         glProg.setLayout(tile, tile, 1);
-        glProg.useProgram(R.raw.toimg, true);
+        glProg.useAssetProgram("toimg", true);
         glProg.setTextureCompute("inTexture", previousNode.WorkingTexture, false);
         glProg.setTextureCompute("colTexture", waveletRT, false);
         WorkingTexture = basePipeline.getMain();

@@ -2,16 +2,19 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.opengl.GLUtils;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.FileManager;
 
 import java.io.File;
+import java.io.IOException;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -19,9 +22,9 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class RotateWatermark extends Node {
     private int rotate;
     private boolean watermarkNeeded;
-    private Bitmap watermark;
+    private GLImage watermark;
     public RotateWatermark(int rotation) {
-        super(0, "Rotate");
+        super("", "Rotate");
         rotate = rotation;
         watermarkNeeded = PreferenceKeys.isShowWatermarkOn();
     }
@@ -30,7 +33,7 @@ public class RotateWatermark extends Node {
     public void Compile() {}
     @Override
     public void AfterRun() {
-        if(watermark != null) watermark.recycle();
+        if(watermark != null) watermark.close();
     }
 
     @Override
@@ -38,9 +41,14 @@ public class RotateWatermark extends Node {
 
         //else lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.neutral_lut);
         glProg.setDefine("WATERMARK",watermarkNeeded);
-        glProg.useProgram(R.raw.addwatermark_rotate);
-        watermark = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.photoncamera_watermark);
-        glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
+        glProg.useAssetProgram("addwatermark_rotate");
+        try {
+            watermark = new GLImage(PhotonCamera.getAssetLoader().getInputStream("watermark/photoncamera_watermark.png"));
+            glProg.setTexture("Watermark", new GLTexture(watermark,GL_LINEAR,GL_CLAMP_TO_EDGE,0));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         int rot = -1;
         Log.d(Name,"Rotation:"+rotate);

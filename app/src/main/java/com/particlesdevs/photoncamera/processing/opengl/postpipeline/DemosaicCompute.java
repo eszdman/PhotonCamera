@@ -6,7 +6,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class DemosaicCompute extends Node {
     public DemosaicCompute() {
-        super(0, "DemosaicCompute");
+        super("", "DemosaicCompute");
     }
 
     @Override
@@ -29,7 +29,7 @@ public class DemosaicCompute extends Node {
         //Gradients
         glProg.setLayout(tile,tile,1);
         glProg.setDefine("OUTSET",basePipeline.main3.mSize);
-        glProg.useProgram(R.raw.demosaicp0c,true);
+        glProg.useAssetProgram("demosaicp0c",true);
         glProg.setTextureCompute("inTexture", glTexture,false);
         glProg.setTextureCompute("outTexture", basePipeline.main3,true);
         glProg.computeAuto(basePipeline.main3.mSize,1);
@@ -46,7 +46,7 @@ public class DemosaicCompute extends Node {
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.setLayout(tile,tile,1);
         glProg.setDefine("OUTSET",basePipeline.main3.mSize);
-        glProg.useProgram(R.raw.demosaicp12c,true);
+        glProg.useAssetProgram("demosaicp12c",true);
         glProg.setTextureCompute("inTexture",previousNode.WorkingTexture,false);
         glProg.setTextureCompute("gradTexture",basePipeline.main3,false);
 
@@ -62,7 +62,7 @@ public class DemosaicCompute extends Node {
         //Colour channels
         glProg.setLayout(tile,tile,1);
         glProg.setDefine("OUTSET",basePipeline.main3.mSize);
-        glProg.useProgram(R.raw.demosaicp2c,true);
+        glProg.useAssetProgram("demosaicp2c",true);
         glProg.setTextureCompute("inTexture", glTexture,false);
         glProg.setTextureCompute("greenTexture", outp,false);
         WorkingTexture = basePipeline.main3;

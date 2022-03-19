@@ -8,7 +8,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class Demosaic2 extends Node {
     public Demosaic2() {
-        super(0, "Demosaic");
+        super("", "Demosaic");
     }
 
     @Override
@@ -29,7 +29,7 @@ public class Demosaic2 extends Node {
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         //Gradients
-        glProg.useProgram(R.raw.demosaicp0);
+        glProg.useAssetProgram("demosaicp0");
         glProg.setTexture("RawBuffer", glTexture);
         glProg.drawBlocks(basePipeline.main3);
         endT("Demosaic00");
@@ -48,7 +48,7 @@ public class Demosaic2 extends Node {
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         startT();
-        glProg.useProgram(R.raw.demosaicp12);
+        glProg.useAssetProgram("demosaicp12");
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GradBuffer",basePipeline.main3);
         if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
@@ -62,7 +62,7 @@ public class Demosaic2 extends Node {
 
         //Colour channels
         startT();
-        glProg.useProgram(R.raw.demosaicp2);
+        glProg.useAssetProgram("demosaicp2");
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setTexture("GreenBuffer", outp);
         WorkingTexture = basePipeline.main3;

@@ -11,6 +11,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
@@ -20,10 +21,13 @@ import com.particlesdevs.photoncamera.util.SplineInterpolator;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.microedition.khronos.opengles.GL;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -33,7 +37,7 @@ import static com.particlesdevs.photoncamera.util.Math2.pdf;
 
 public class Equalization extends Node {
     public Equalization() {
-        super(0,"Equalization");
+        super("","Equalization");
     }
     private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
     private void GenerateCurveBitmWB(float[] curve, float[] BL, float[] WB){
@@ -69,24 +73,34 @@ public class Equalization extends Node {
         glProg.setDefine("SAMPLING",resize);
         glProg.setDefine("ANALYZEINTENSE", analyzeIntensity);
         glProg.setDefine("LUT",true);
-        glProg.useProgram(R.raw.analyze);
+        glProg.useAssetProgram("analyze");
         File customAnalyzelut = new File(FileManager.sPHOTON_TUNING_DIR,"analyze_lut.png");
-        Bitmap analyze_lutbm;
-        GLTexture analyze_lut;
+        GLImage analyze_lutbm = null;
+        GLTexture analyze_lut = null;
+        boolean loaded = false;
         if(customAnalyzelut.exists()){
-            analyze_lutbm = BitmapFactory.decodeFile(customAnalyzelut.getAbsolutePath());
+            analyze_lutbm = new GLImage(customAnalyzelut);
             analyze_lut = new GLTexture(analyze_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
         } else {
-            analyze_lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(),R.drawable.analyze_lut);
-            analyze_lut = new GLTexture(analyze_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+            try {
+                analyze_lutbm = new GLImage(PhotonCamera.getAssetLoader().getInputStream("analyze_lut.png"));
+                analyze_lut = new GLTexture(analyze_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+                loaded = true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
-        glProg.setTexture("LookupTable",analyze_lut);
+        if(loaded)
+            glProg.setTexture("LookupTable",analyze_lut);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("stp",0);
         glProg.drawBlocks(r1);
-        Bitmap bmp = glUtils.GenerateBitmap(r1.mSize);
-        analyze_lut.close();
-        analyze_lutbm.recycle();
+        GLImage bmp = glUtils.GenerateGLImage(r1.mSize);
+        if(loaded) {
+            analyze_lut.close();
+            analyze_lutbm.close();
+        }
         /*float [] brArr = new float[r1.mSize.x*r1.mSize.y * 4];
         FloatBuffer fb = ByteBuffer.allocateDirect(brArr.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -98,8 +112,8 @@ public class Equalization extends Node {
         r1.close();*/
         endT("Equalization Part 01");
         startT();
-        Histogram histogram = new Histogram(bmp, r1.mSize.x*r1.mSize.y,histSize);
-        bmp.recycle();
+        Histogram histogram = new Histogram(bmp.getBufferedImage(), r1.mSize.x*r1.mSize.y,histSize);
+        bmp.close();
         endT("Equalization Part 02");
         r1.close();
 
@@ -490,7 +504,7 @@ public class Equalization extends Node {
         return new float[]{outp[0],outp[1],outp[2]};
     }
     GLTexture lut;
-    Bitmap lutbm;
+    GLImage lutbm;
     float analyzeIntensity = -2.0f;
     float analyzeCenter = 0.5f;
     float curveCenter = 0.5f;
@@ -773,17 +787,17 @@ public class Equalization extends Node {
         glProg.setDefine("TONEMAP",enableTonemap);
         glProg.setDefine("DESAT",desaturate);
         if(customlut.exists()){
-            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
+            lutbm = new GLImage(customlut);
             lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
             glProg.setDefine("LUT",true);
-            int lutBase = (int)(0.1f+Math.pow(lutbm.getWidth(),1.0/3.0));
+            int lutBase = (int)(0.1f+Math.pow(lutbm.size.x,1.0/3.0));
             Log.d(Name,"LutBase:"+lutBase);
             glProg.setDefine("LUTSIZETILES", (float) lutBase);
             glProg.setDefine("LUTSIZE", (float) (lutBase*lutBase));
         }
         endT("Equalization Part 2");
         startT();
-        glProg.useProgram(R.raw.equalize);
+        glProg.useAssetProgram("equalize");
         if(lut != null) glProg.setTexture("LookupTable",lut);
         glProg.setTexture("Histogram",histogram);
         //glProg.setTexture("Shadows",shadows);
@@ -794,7 +808,7 @@ public class Equalization extends Node {
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.drawBlocks(WorkingTexture);
         histogram.close();
-        if(lutbm != null) lutbm.recycle();
+        if(lutbm != null) lutbm.close();
         if(lut != null) lut.close();
         TonemapCoeffs.close();
         glProg.closed = true;

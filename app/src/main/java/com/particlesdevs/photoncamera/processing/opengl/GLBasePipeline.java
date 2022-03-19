@@ -103,7 +103,7 @@ public class GLBasePipeline implements AutoCloseable {
         checkEglError("glBindFramebuffer");
     }
 
-    public Bitmap runAll() {
+    public GLImage runAll() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
             Nodes.get(i).mProp = mProp;

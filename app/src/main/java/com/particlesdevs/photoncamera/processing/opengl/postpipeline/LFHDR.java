@@ -15,7 +15,7 @@ public class LFHDR extends Node {
     GLProg glProg;
 
     public LFHDR() {
-        super(0, "LFHDR");
+        super("", "LFHDR");
     }
 
     @Override
@@ -23,7 +23,7 @@ public class LFHDR extends Node {
     }
 
     GLTexture SharpMask(GLTexture input) {
-        glProg.useProgram(R.raw.laplacian554);
+        glProg.useAssetProgram("laplacian554");
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("size", 1.7f);
         Log.d(Name, "Sharp mFormat:" + input.mFormat.toString());
@@ -34,7 +34,7 @@ public class LFHDR extends Node {
     }
 
     GLTexture Blur(GLTexture input) {
-        glProg.useProgram(R.raw.gaussblur554);
+        glProg.useAssetProgram("gaussblur554");
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("size", 1.7f);
         GLTexture output = new GLTexture(new Point(input.mSize.x, input.mSize.y), input.mFormat, null);
@@ -44,7 +44,7 @@ public class LFHDR extends Node {
     }
 
     GLTexture ApplyMask(GLTexture input, GLTexture mask) {
-        glProg.useProgram(R.raw.add4);
+        glProg.useAssetProgram("add4");
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("InputBuffer2", mask);
         GLTexture output = new GLTexture(new Point(input.mSize.x, input.mSize.y), input.mFormat, null);
@@ -54,7 +54,7 @@ public class LFHDR extends Node {
     }
 
     GLTexture MergeHDR(GLTexture inputLow, GLTexture inputHigh) {
-        glProg.useProgram(R.raw.mergehdr);
+        glProg.useAssetProgram("mergehdr");
         glProg.setTexture("InputBufferLow", inputLow);
         glProg.setTexture("InputBufferHigh", inputHigh);
         GLTexture output = new GLTexture(inputLow.mSize, inputLow.mFormat, null);
@@ -67,7 +67,7 @@ public class LFHDR extends Node {
         GLInterface glint = basePipeline.glint;
         GLProg glProg = glint.glProgram;
         Parameters params = glint.parameters;
-        glProg.useProgram(R.raw.demosaicp1);
+        glProg.useAssetProgram("demosaicp1");
         glProg.setTexture("RawBuffer", input);
         glProg.setVar("WhiteLevel", params.whiteLevel);
         glProg.setVar("CfaPattern", params.cfaPattern);
@@ -75,7 +75,7 @@ public class LFHDR extends Node {
         glProg.drawBlocks(Output);
         glProg.close();
 
-        glProg.useProgram(R.raw.demosaicp2);
+        glProg.useAssetProgram("demosaicp2");
         glProg.setTexture("RawBuffer", input);
         glProg.setTexture("GreenBuffer", Output);
         glProg.setVar("WhiteLevel", params.whiteLevel);

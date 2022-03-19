@@ -18,7 +18,7 @@ public class BoxDown extends GLOneScript {
     public ByteBuffer inputB;
     public Point sizeIn;
     public BoxDown(GLCoreBlockProcessing glCoreBlockProcessing) {
-        super(new Point(1,1), glCoreBlockProcessing, R.raw.boxdown221, "BoxDown");
+        super(new Point(1,1), glCoreBlockProcessing, "boxdown221", "BoxDown");
     }
 
     @Override

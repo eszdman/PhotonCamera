@@ -15,7 +15,7 @@ import java.util.Scanner;
 public class CorrectingFlow extends Node {
 
     public CorrectingFlow() {
-        super(0, "CorrectingFlow");
+        super("", "CorrectingFlow");
     }
 
     @Override
@@ -109,7 +109,7 @@ public class CorrectingFlow extends Node {
         glProg.setDefine("RC",correction[2],correction[3]);
         glProg.setDefine("GC",correction[4],correction[5]);
         glProg.setDefine("BC",correction[6],correction[7]);
-        glProg.useProgram(R.raw.correctingflow);
+        glProg.useAssetProgram("correctingflow");
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         //glProg.setTexture("CorrectingFlowRG", correctingFlowRG);
         //glProg.setTexture("CorrectingFlowB", correctingFlowB);

@@ -49,7 +49,7 @@ import java.util.List;
 
 public class AlignAndMergeCV extends Node {
     public AlignAndMergeCV() {
-        super(0, "AlignAndMerge");
+        super("", "AlignAndMerge");
     }
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -70,7 +70,7 @@ public class AlignAndMergeCV extends Node {
         glProg.setDefine("MPY",mpy);
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
         Log.d("Align","mpy:"+mpy);
-        glProg.useProgram(R.raw.precorrection);
+        glProg.useAssetProgram("precorrection);
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
         glProg.setVar("WhiteLevel",(float)PhotonCamera.getParameters().whiteLevel);
@@ -78,7 +78,7 @@ public class AlignAndMergeCV extends Node {
         inraw.close();
     }
     private void BoxDown22(GLTexture input,GLTexture out) {
-        glProg.useProgram(R.raw.boxdown22);
+        glProg.useAssetProgram("boxdown22);
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
@@ -255,7 +255,7 @@ public class AlignAndMergeCV extends Node {
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("FRAMECOUNT",images.size());
         glProg.setDefine("MATMUL",((float)Math.min(rawSize.x,rawSize.y)));
-        glProg.useProgram(R.raw.weightscv);
+        glProg.useAssetProgram("weightscv);
         glProg.setVar("HMatrix",false,alignmentsH[num-1]);
         glProg.setTexture("BaseFrame", BaseFrame2);
         glProg.setTexture("InputFrame", brTex2);
@@ -265,7 +265,7 @@ public class AlignAndMergeCV extends Node {
         GLTexture out = Weights;
         GLTexture alt = WeightsAlt;
         GLTexture t = Weights;
-        glProg.useProgram(R.raw.sumweights);
+        glProg.useAssetProgram("sumweights);
         for(int i =1; i<images.size();i++){
             glProg.setTexture("WeightsIn", Weight[i-1]);
             glProg.setTexture("WeightsOut", out);
@@ -290,7 +290,7 @@ public class AlignAndMergeCV extends Node {
         glProg.setDefine("MATMUL",((float)Math.min(rawSize.x,rawSize.y)));
 
 
-        glProg.useProgram(R.raw.cvmerge);
+        glProg.useAssetProgram("cvmerge);
 
         glProg.setVar("HMatrix",false,alignmentsH[num-1]);
         glProg.setTexture("InputBuffer", inputRaw);
@@ -310,7 +310,7 @@ public class AlignAndMergeCV extends Node {
         for(int i=0;i<outBL.length;i++) outBL[i] = PhotonCamera.getParameters().blackLevel[i]*(ProcessorBase.FAKE_WL/((float)PhotonCamera.getParameters().whiteLevel));
         glProg.setDefine("BL",outBL);
         glProg.setDefine("BAYER",PhotonCamera.getParameters().cfaPattern);
-        glProg.useProgram(R.raw.toraw);
+        glProg.useAssetProgram("toraw);
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("whitelevel", ProcessorBase.FAKE_WL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);

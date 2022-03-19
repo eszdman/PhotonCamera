@@ -9,16 +9,18 @@ import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.util.BufferUtils;
 
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_NEAREST;
 
 public class Bayer2Float extends Node {
 
     public Bayer2Float() {
-        super(0, "Bayer2Float");
+        super("", "Bayer2Float");
     }
 
     @Override
@@ -27,9 +29,10 @@ public class Bayer2Float extends Node {
     @Override
     public void Run() {
         PostPipeline postPipeline = (PostPipeline)basePipeline;
-        GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), ((PostPipeline)(basePipeline)).stackFrame);
+        GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
+                ((PostPipeline)(basePipeline)).stackFrame,GL_NEAREST,GL_CLAMP_TO_EDGE);
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
-                FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+                BufferUtils.getFrom(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         float[] BL = new float[3];
         /*BL[0] = basePipeline.mParameters.noiseModeler.computeModel[0].second.floatValue();
         BL[1] = basePipeline.mParameters.noiseModeler.computeModel[1].second.floatValue();
@@ -38,7 +41,7 @@ public class Bayer2Float extends Node {
         glProg.setDefine("BLG",BL[1]);
         glProg.setDefine("BLB",BL[2]);
         glProg.setDefine("QUAD", basePipeline.mSettings.cfaPattern == -2);
-        glProg.useProgram(R.raw.tofloat);
+        glProg.useAssetProgram("tofloat");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("CfaPattern",basePipeline.mParameters.cfaPattern);
         glProg.setVar("patSize",2);
@@ -71,7 +74,7 @@ public class Bayer2Float extends Node {
         basePipeline.main2 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
         WorkingTexture = basePipeline.main2;
         /*glProg.drawBlocks(basePipeline.main3);
-        glProg.useProgram(R.raw.demosaicantiremosaic);
+        glProg.useAssetProgram("demosaicantiremosaic);
         glProg.setTexture("RawBuffer",basePipeline.main3);*/
 
 

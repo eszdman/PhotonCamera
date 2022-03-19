@@ -7,7 +7,7 @@ import com.particlesdevs.photoncamera.processing.render.Parameters;
 
 public class Debug3 extends Node {
 
-    public Debug3(int rid, String name) {
+    public Debug3(String rid, String name) {
         super(rid, name);
     }
 

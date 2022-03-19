@@ -1,16 +1,14 @@
 precision highp float;
 precision highp sampler2D;
-
 uniform sampler2D upsampled;
 uniform bool useUpsampled;
 uniform float blendMpy;
 // Weighting is done using these.
 uniform sampler2D normalExpo;
-uniform sampler2D highExpo;
 
 // Blending is done using these.
 uniform sampler2D normalExpoDiff;
-uniform sampler2D highExpoDiff;
+
 uniform int level;
 uniform ivec2 upscaleIn;
 #define TARGET 0.5
@@ -27,6 +25,14 @@ float laplace(sampler2D tex, float mid, ivec2 xyCenter) {
 
     return distance(4. * mid, left + right + top + bottom);
 }
+float laplace2(sampler2D tex, float mid, ivec2 xyCenter) {
+    float left = texelFetch(tex, xyCenter - ivec2(1, 0), 0).b,
+    right = texelFetch(tex, xyCenter + ivec2(1, 0), 0).b,
+    top = texelFetch(tex, xyCenter - ivec2(0, 1), 0).b,
+    bottom = texelFetch(tex, xyCenter + ivec2(0, 1), 0).b;
+
+    return distance(4. * mid, left + right + top + bottom);
+}
 
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
@@ -35,21 +41,15 @@ void main() {
     //if(useUpsampled == 2) mpy = 2.0;
     float base = (useUpsampled)
     //? texelFetch(upsampled, xyCenter, 0).xyz
-    ? textureBicubic(upsampled, vec2(gl_FragCoord.xy)/vec2(upscaleIn)).r
+    ? textureBicubicHardware(upsampled, (vec2(xyCenter.xy))/(vec2(upscaleIn))).r
     : float(0.0);
     // How are we going to blend these two?
     vec2 normal = texelFetch(normalExpoDiff, xyCenter, 0).rg;
-    vec2 high = texelFetch(highExpoDiff, xyCenter, 0).rg;
-    //vec2 normal = textureBicubic(normalExpoDiff, gl_FragCoord.xy).rg;
-    //vec2 high = textureBicubic(highExpoDiff, gl_FragCoord.xy).rg;
+    vec2 high = texelFetch(normalExpoDiff, xyCenter, 0).ba;
 
     // To know that, look at multiple factors.
     vec2 midNormal = texelFetch(normalExpo, xyCenter, 0).rg;
-    vec2 midHigh = texelFetch(highExpo, xyCenter, 0).rg;
-    //vec2 midNormal = textureBicubic(normalExpo, gl_FragCoord.xy).rg;
-    //vec2 midHigh = textureBicubic(highExpo, gl_FragCoord.xy).rg;
-
-
+    vec2 midHigh = texelFetch(normalExpo, xyCenter, 0).ba;
 
     float normalWeight = 1000.;
     float highWeight = 1000.;
@@ -64,7 +64,7 @@ void main() {
 
     // Factor 2: Contrast.
     float laplaceNormal = laplace(normalExpo, midNormal.r, xyCenter);
-    float laplaceHigh = laplace(highExpo, midHigh.r, xyCenter);
+    float laplaceHigh = laplace2(normalExpo, midHigh.r, xyCenter);
 
     normalWeight *= sqrt(laplaceNormal + 0.01);
     highWeight *= sqrt(laplaceHigh + 0.01);

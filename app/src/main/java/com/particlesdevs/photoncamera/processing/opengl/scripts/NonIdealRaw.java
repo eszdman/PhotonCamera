@@ -21,7 +21,7 @@ public class NonIdealRaw extends GLOneScript {
     public ByteBuffer prevmap;
     public Parameters parameters;
     public NonIdealRaw(Point size) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLDrawParams.Allocate.None), R.raw.nonidealraw, "NonIdealRaw");
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLDrawParams.Allocate.None), "nonidealraw", "NonIdealRaw");
     }
 
     @Override

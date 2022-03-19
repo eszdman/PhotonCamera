@@ -16,7 +16,7 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class SmartNR extends Node {
 
     public SmartNR() {
-        super(0, "SmartNR");
+        super("", "SmartNR");
     }
 
     @Override
@@ -34,11 +34,11 @@ public class SmartNR extends Node {
         Log.d("PostNode:" + Name, "LumaDenoiseLevel:" + LumaDenoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         Log.d("PostNode:" + Name, "ChromaDenoiseLevel:" + ChromaDenoiseLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
 
-        //glProg.useProgram(R.raw.nlmeans);
+        //glProg.useAssetProgram("nlmeans);
 
         if (LumaDenoiseLevel > 0.001) {
         GLTexture inpdetect = glUtils.interpolate(previousNode.WorkingTexture,1.0/2.0);
-        glProg.useProgram(R.raw.noisedetection44);
+        glProg.useAssetProgram("noisedetection44");
         glProg.setTexture("InputBuffer", inpdetect);
         GLTexture detect = new GLTexture(inpdetect.mSize, new GLFormat(GLFormat.DataType.FLOAT_16,3), null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.drawBlocks(detect);
@@ -46,12 +46,12 @@ public class SmartNR extends Node {
         detect.close();
         GLTexture detectblur = new GLTexture(detectresize);
         glProg.setDefine("TRANSPOSE",1,1);
-        glProg.useProgram(R.raw.medianfilter);
+        glProg.useAssetProgram("medianfilter");
         glProg.setTexture("InputBuffer",detectresize);
         glProg.drawBlocks(detectblur);
         detectresize.close();
         glProg.setDefine("TRANSPOSE",1,1);
-        glProg.useProgram(R.raw.medianfilter);
+        glProg.useAssetProgram("medianfilter");
         glProg.setTexture("InputBuffer",detectblur);
         GLFormat format = new GLFormat(detectblur.mFormat);
         format.wrap = GL_CLAMP_TO_EDGE;
@@ -82,7 +82,7 @@ public class SmartNR extends Node {
         glProg.setDefine("STR",str);
         glProg.setDefine("SIZE","("+((double)(previousNode.WorkingTexture.mSize.x))+","+
                 ((double)(previousNode.WorkingTexture.mSize.y))+")");
-        glProg.useProgram(R.raw.bilateralguide);
+        glProg.useAssetProgram("bilateralguide");
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setTexture("NoiseMap",detectblur2);
         //if(tonemaped) {
@@ -98,7 +98,7 @@ public class SmartNR extends Node {
         glProg.drawBlocks(WorkingTexture);
 
         /*glProg.setDefine("BSIGMA",ChromaDenoiseLevel);
-        glProg.useProgram(R.raw.bilateralcolor);
+        glProg.useAssetProgram("bilateralcolor);
         glProg.setTexture("InputBuffer",WorkingTexture);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);*/
@@ -115,7 +115,7 @@ public class SmartNR extends Node {
             int size = 3;
             if(ChromaDenoiseLevel > 0.04) size = 4;
             glProg.setDefine("MEDSIZE",size);
-            glProg.useProgram(R.raw.hybridmedianfiltercolor);
+            glProg.useAssetProgram("hybridmedianfiltercolor");
             glProg.setTexture("InputBuffer", inp);
             WorkingTexture = basePipeline.getMain();
             glProg.drawBlocks(WorkingTexture);
@@ -126,18 +126,18 @@ public class SmartNR extends Node {
         /*else if(ChromaDenoiseLevel>=0.004){
             for(int i =1;i<2;i++) {
                 glProg.setDefine("TRANSPOSE",1,i);
-                glProg.useProgram(R.raw.hybridmedianfiltercolor);
+                glProg.useAssetProgram("hybridmedianfiltercolor);
                 glProg.setTexture("InputBuffer", WorkingTexture);
                 WorkingTexture = basePipeline.getMain();
                 glProg.drawBlocks(WorkingTexture);
                 glProg.setDefine("TRANSPOSE",i,1);
-                glProg.useProgram(R.raw.hybridmedianfiltercolor);
+                glProg.useAssetProgram("hybridmedianfiltercolor);
                 glProg.setTexture("InputBuffer", WorkingTexture);
                 WorkingTexture = basePipeline.getMain();
                 glProg.drawBlocks(WorkingTexture);
             }
         }*/
-        glProg.useProgram(R.raw.reinterpolatecolors);
+        glProg.useAssetProgram("reinterpolatecolors");
         glProg.setTexture("InputBuffer", WorkingTexture);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);

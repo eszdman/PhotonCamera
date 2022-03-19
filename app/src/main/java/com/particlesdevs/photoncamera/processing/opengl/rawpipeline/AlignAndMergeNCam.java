@@ -29,7 +29,7 @@ public class AlignAndMergeNCam extends Node {
     private final List<GLTexture> mTextures = new ArrayList<>();
     private GLTexture mAlign, mWeights;
 
-    public AlignAndMergeNCam(int rid, String name) {
+    public AlignAndMergeNCam(String rid, String name) {
         super(rid, name);
     }
 
@@ -38,7 +38,7 @@ public class AlignAndMergeNCam extends Node {
     }
 
     private GLTexture CorrectedRaw(ByteBuffer input) {
-        glProg.useProgram(R.raw.precorrection);
+        glProg.useAssetProgram("precorrection");
         glProg.setTexture("InputBuffer", new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), input));
         glProg.setVar("WhiteLevel", (float) PhotonCamera.getParameters().realWL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
@@ -78,13 +78,13 @@ public class AlignAndMergeNCam extends Node {
                     mLargeResRef.mSize.y / DOWNSAMPLE_SCALE + 1), new GLFormat(GLFormat.DataType.FLOAT_16), null);
 
             // Running the downscalers.
-            glProg.useProgram(R.raw.stage0_downscale_boxdown2_fs);
+            glProg.useAssetProgram("stage0_downscale_boxdown2_fs");
             {
                 glProg.setVar("frame", 0);
                 refTex.bind(GL_TEXTURE0);
                 glProg.drawBlocks(mLargeResRef, TileSize);
             }
-            glProg.useProgram(R.raw.stage0_downscale_gaussdown4_fs);
+            glProg.useAssetProgram("stage0_downscale_gaussdown4_fs");
             {
                 glProg.setVar("frame", 0);
                 mLargeResRef.bind(GL_TEXTURE0);
@@ -107,7 +107,7 @@ public class AlignAndMergeNCam extends Node {
                     mMidRes.mSize.y / DOWNSAMPLE_SCALE + 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
 
             // Running the downscalers.
-            glProg.useProgram(R.raw.stage0_downscale_boxdown2_4frames_fs);
+            glProg.useAssetProgram("stage0_downscale_boxdown2_4frames_fs");
             {
                 for (int i = 1; i < mTextures.size(); i++) {
                     mTextures.get(i).bind(GL_TEXTURE0 + 2 * i);
@@ -115,7 +115,7 @@ public class AlignAndMergeNCam extends Node {
                 }
                 glProg.drawBlocks(mLargeRes, TileSize);
             }
-            glProg.useProgram(R.raw.stage0_downscale_gaussdown4_4frames_fs);
+            glProg.useAssetProgram("stage0_downscale_gaussdown4_4frames_fs");
             glProg.setVar("frame", 0);
             {
                 mLargeRes.bind(GL_TEXTURE0);
@@ -132,7 +132,7 @@ public class AlignAndMergeNCam extends Node {
         public void integrate() {
 
             // Single-channel ref frame.
-            glProg.useProgram(R.raw.stage1_integrate_fs);
+            glProg.useAssetProgram("stage1_integrate_fs");
             glProg.setVar("refFrame", 0);
 
             mLargeResRefSumHorz = new GLTexture(mLargeResRef.mSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
@@ -146,7 +146,7 @@ public class AlignAndMergeNCam extends Node {
             glProg.drawBlocks(mLargeResRefSumVert, TileSize, true);
 
             // Quad-channel alt frames.
-            glProg.useProgram(R.raw.stage1_integrate_4frames_fs);
+            glProg.useAssetProgram("stage1_integrate_4frames_fs");
             glProg.setVar("altFrame", 0);
 
             mLargeResSumHorz = new GLTexture(mLargeRes.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
@@ -164,7 +164,7 @@ public class AlignAndMergeNCam extends Node {
 
         public void differentiate() {
             // Single-channel ref frame.
-            glProg.useProgram(R.raw.stage1_diff_fs);
+            glProg.useAssetProgram("stage1_diff_fs");
             glProg.setVar("refFrame", 0);
             glProg.setVar("bounds", mLargeRes.mSize);
 
@@ -182,7 +182,7 @@ public class AlignAndMergeNCam extends Node {
             // Release resources.
             mLargeResRefSumVert.close();
 
-            glProg.useProgram(R.raw.stage1_diff_4frames_fs);
+            glProg.useAssetProgram("stage1_diff_4frames_fs");
             glProg.setVar("altFrame", 0);
             glProg.setVar("bounds", mLargeRes.mSize);
 
@@ -213,7 +213,7 @@ public class AlignAndMergeNCam extends Node {
          * end cycle
          */
         private void align() {
-            glProg.useProgram(R.raw.stage1_alignlayer_fs);
+            glProg.useAssetProgram("stage1_alignlayer_fs");
 
             mSmallAlign = new GLTexture(mSmallRes.mSize.x / TILE_SIZE + 1,
                     mSmallRes.mSize.y / TILE_SIZE + 1, new GLFormat(GLFormat.DataType.UNSIGNED_16, 4), null);
@@ -249,7 +249,7 @@ public class AlignAndMergeNCam extends Node {
             mMidRes.close();
             mSmallAlign.close();
 
-            glProg.useProgram(R.raw.stage1_alignlayer_approximate_fs);
+            glProg.useAssetProgram("stage1_alignlayer_approximate_fs");
 
             glProg.setVar("refFrameHorz", 0);
             glProg.setVar("refFrameVert", 2);
@@ -278,7 +278,7 @@ public class AlignAndMergeNCam extends Node {
         }
 
         private void weigh() {
-            glProg.useProgram(R.raw.stage2_weightiles_fs);
+            glProg.useAssetProgram("stage2_weightiles_fs");
             mLargeWeights = new GLTexture(mLargeAlign.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
             glProg.setVar("refFrame", 0);
             glProg.setVar("altFrame", 2);

@@ -9,7 +9,7 @@ import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 public class BayerBilateralChroma extends Node {
 
     public BayerBilateralChroma() {
-        super(0, "Denoise");
+        super("", "Denoise");
     }
 
     @Override
@@ -32,7 +32,7 @@ public class BayerBilateralChroma extends Node {
         glProg.setDefine("NOISEO",noiseO);
         glProg.setDefine("INTENSE", (float) basePipeline.mSettings.noiseRstr);
         glProg.setDefine("INSIZE",previousNode.WorkingTexture.mSize);
-        glProg.useProgram(R.raw.bayerbilateralchroma);
+        glProg.useAssetProgram("bayerbilateralchroma");
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);

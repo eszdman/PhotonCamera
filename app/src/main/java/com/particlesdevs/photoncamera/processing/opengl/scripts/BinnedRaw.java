@@ -17,7 +17,7 @@ public class BinnedRaw extends GLOneScript {
     public ByteBuffer prevmap;
     public Parameters parameters;
     public BinnedRaw(Point size) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLDrawParams.Allocate.None), R.raw.binnedraw, "NonIdealRaw");
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16), GLDrawParams.Allocate.None),"binnedraw", "NonIdealRaw");
     }
 
     @Override

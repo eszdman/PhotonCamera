@@ -11,6 +11,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLOneScript;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.GLUtils;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.util.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -28,7 +29,7 @@ import static android.opengl.GLES30.GL_RED_INTEGER;
 public class InterpolateGainMap extends GLOneScript {
     public Parameters parameters;
     public InterpolateGainMap(Point size) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.FLOAT_32), GLDrawParams.Allocate.Direct), R.raw.interpolategainmap, "InterpolateGainMap");
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.FLOAT_32), GLDrawParams.Allocate.Direct),"interpolategainmap", "InterpolateGainMap");
     }
 
     @Override
@@ -38,7 +39,7 @@ public class InterpolateGainMap extends GLOneScript {
         //GLUtils glUtils = new GLUtils(glOne.glProcessing);
         Compile();
         GLTexture input = new GLTexture(parameters.mapSize,new GLFormat(GLFormat.DataType.FLOAT_32,4),
-                FloatBuffer.wrap(parameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+                BufferUtils.getFrom(parameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         GLTexture outputTex = new GLTexture(parameters.rawSize,new GLFormat(GLFormat.DataType.FLOAT_32));
         glOne.glProgram.setTexture("GainMap",input);
         //glOne.glProgram.drawBlocks(outputTex,outputTex.mSize);

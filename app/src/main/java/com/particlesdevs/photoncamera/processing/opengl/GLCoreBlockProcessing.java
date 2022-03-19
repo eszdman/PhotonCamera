@@ -8,14 +8,25 @@ import android.util.Log;
 
 import java.nio.ByteBuffer;
 
+import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
+import static android.opengl.GLES20.GL_NO_ERROR;
+import static android.opengl.GLES20.GL_RENDERBUFFER;
 import static android.opengl.GLES20.glBindFramebuffer;
+import static android.opengl.GLES20.glBindRenderbuffer;
+import static android.opengl.GLES20.glFramebufferRenderbuffer;
+import static android.opengl.GLES20.glGenFramebuffers;
+import static android.opengl.GLES20.glGenRenderbuffers;
+import static android.opengl.GLES20.glGetError;
+import static android.opengl.GLES20.glRenderbufferStorage;
+import static android.opengl.GLES30.GL_DRAW_FRAMEBUFFER;
+import static android.opengl.GLES30.GL_RGBA8;
 import static android.opengl.GLES30.glReadPixels;
 import static android.opengl.GLES30.glViewport;
 
 public class GLCoreBlockProcessing extends GLContext {
     private static String TAG = "GLCoreBlockProcessing";
-    public Bitmap mOut = null;
+    public GLImage mOut = null;
     private final int mOutWidth, mOutHeight;
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;
@@ -31,11 +42,11 @@ public class GLCoreBlockProcessing extends GLContext {
             Log.v(TAG, msg);
         }
     }
-    public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat, GLDrawParams.Allocate alloc) {
+    public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         this(size, glFormat,alloc);
         mOut = out;
     }
-    public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat) {
+    public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat) {
         this(size, glFormat, GLDrawParams.Allocate.Heap);
         mOut = out;
     }
@@ -47,7 +58,13 @@ public class GLCoreBlockProcessing extends GLContext {
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        glGenFramebuffers(1,bindFB,0);
+        glGenRenderbuffers(1,bindRB,0);
+        glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
         if(alloc == GLDrawParams.Allocate.None) return;
         if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(capacity);
@@ -55,18 +72,25 @@ public class GLCoreBlockProcessing extends GLContext {
             mOutBuffer = ByteBuffer.allocate(capacity);
         }
     }
-    public GLCoreBlockProcessing(Point size, Bitmap out, GLFormat glFormat,ByteBuffer output) {
+    public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat,ByteBuffer output) {
         super(size.x, GLDrawParams.TileSize);
         output.position(0);
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
         mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        glGenFramebuffers(1,bindFB,0);
+        glGenRenderbuffers(1,bindRB,0);
+        glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         mOutBuffer = output;
         mOut = out;
     }
 
     public void drawBlocksToOutput() {
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLDrawParams.TileSize);
         int[] row = new int[2];
@@ -94,13 +118,15 @@ public class GLCoreBlockProcessing extends GLContext {
         }
         mOutBuffer.position(0);
         mBlockBuffer = null;
-        if (mOut != null) mOut.copyPixelsFromBuffer(mOutBuffer);
+        if (mOut != null) mOut.byteBuffer = mOutBuffer;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    private final int[] bind = new int[1];
+
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat) {
         return drawBlocksToOutput(size,glFormat, GLDrawParams.Allocate.Heap);
     }
+
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,GLDrawParams.Allocate alloc) {
         ByteBuffer mOutBuffer;
         if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = ByteBuffer.allocateDirect(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
@@ -108,18 +134,14 @@ public class GLCoreBlockProcessing extends GLContext {
             mOutBuffer = ByteBuffer.allocate(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
         return drawBlocksToOutput(size,glFormat,mOutBuffer);
     }
-    ByteBuffer mBlockBuffert = null;
+
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,ByteBuffer mOutBuffer) {
-        glBindFramebuffer(GL_FRAMEBUFFER, bind[0]);
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
         checkEglError("glBindFramebuffer");
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(size.y, GLDrawParams.TileSize);
         int[] row = new int[2];
         ByteBuffer mBlockBuffert = mBlockBuffer;
-        //if(mBlockBuffert == null ||
-        //        mBlockBuffert.position(0).capacity() < size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels)
-        //    mBlockBuffert = ByteBuffer.allocate((size.x) * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels * 2);
-        //Log.d(TAG,"mBlockBuffert:"+mBlockBuffert.toString());
         mOutBuffer.position(0);
         mBlockBuffert.position(0);
         while (divider.nextBlock(row)) {
@@ -145,7 +167,7 @@ public class GLCoreBlockProcessing extends GLContext {
             }
         }
         mOutBuffer.position(0);
-        //mBlockBuffer = null;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         return mOutBuffer;
     }
 }

@@ -8,7 +8,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 public class ColorD extends Node {
     Point transposing;
     int size;
-    public ColorD(Point transpose, int size, String name, int original) {
+    public ColorD(Point transpose, int size, String name, String original) {
         super(original, name);
         transposing = transpose;
         this.size = size;

@@ -6,7 +6,7 @@ import com.particlesdevs.photoncamera.R;
 
 public class GlobalToneMapping extends Node {
     public GlobalToneMapping() {
-        super(0, "GlobalToneMapping");
+        super("", "GlobalToneMapping");
     }
     float intenseHigher = 0.020f;
     float intenseLower = 0.090f;
@@ -16,7 +16,7 @@ public class GlobalToneMapping extends Node {
     public void Run() {
         GLTexture lowRes0 = glUtils.interpolate(previousNode.WorkingTexture,1.0/8.0);
         GLTexture lowRes = glUtils.interpolate(lowRes0,1.0/8.0);
-        glProg.useProgram(R.raw.globaltonemaping);
+        glProg.useAssetProgram("globaltonemaping");
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setTexture("LowRes",lowRes);
         glProg.setVar("insize",previousNode.WorkingTexture.mSize);
@@ -29,7 +29,7 @@ public class GlobalToneMapping extends Node {
         lowRes.close();
         lowRes0.close();
         WorkingTexture = basePipeline.getMain();
-        glProg.useProgram(R.raw.globaltonemaping);
+        glProg.useAssetProgram("globaltonemaping");
         glProg.setTexture("InputBuffer",out1);
         glProg.setTexture("LowRes",lowRes2);
         glProg.setVar("insize",previousNode.WorkingTexture.mSize);

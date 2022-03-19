@@ -13,7 +13,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class SharpenDual extends Node {
     public SharpenDual() {
-        super(0, "Sharpening");
+        super("", "Sharpening");
     }
 
     @Override
@@ -36,7 +36,7 @@ public class SharpenDual extends Node {
         sharpnessLevel = Math.min(1.5f, sharpnessLevel);
         glProg.setDefine("SAVEGREEN",true);
         glProg.setDefine("size1",blurSize);
-        glProg.useProgram(R.raw.blur);
+        glProg.useAssetProgram("blur");
         //glProg.setVar("size", blurSize);
         //glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
@@ -48,7 +48,7 @@ public class SharpenDual extends Node {
         glProg.setDefine("SHARPMAX",sharpMax);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
-        glProg.useProgram(R.raw.lsharpening);
+        glProg.useAssetProgram("lsharpening");
         Log.d("PostNode:" + Name, "sharpnessLevel:" + sharpnessLevel + " iso:" + CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY));
         glProg.setVar("size", sharpSize);
         glProg.setVar("strength", PreferenceKeys.getSharpnessValue());

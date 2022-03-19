@@ -23,7 +23,6 @@ public class GLTexture implements AutoCloseable {
     public int mBuffer;
     public boolean isBuffered = false;
     private static int count = 0;
-    @NonNull
     public final GLFormat mFormat;
     private static boolean[] ids = new boolean[256];
     public GLTexture(GLTexture in,GLFormat format) {
@@ -33,7 +32,7 @@ public class GLTexture implements AutoCloseable {
         this(in.mSize,in.mFormat,null,in.mFormat.filter,in.mFormat.wrap,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, GL_LINEAR, GL_CLAMP_TO_EDGE,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat, Buffer pixels,int textureFilter, int textureWrapper) {
         this(new Point(sizeX, sizeY), new GLFormat(glFormat), pixels, textureFilter, textureWrapper,0);
@@ -42,19 +41,19 @@ public class GLTexture implements AutoCloseable {
         this(new Point(size), new GLFormat(glFormat), pixels, textureFilter, textureWrapper,0);
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels) {
-        this(new Point(size), new GLFormat(glFormat), pixels, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
+        this(new Point(size), new GLFormat(glFormat), pixels, GL_LINEAR, GL_CLAMP_TO_EDGE,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat,int level) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,level);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_LINEAR, GL_CLAMP_TO_EDGE,level);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat) {
-        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,0);
+        this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, GL_LINEAR, GL_CLAMP_TO_EDGE,0);
     }
     public GLTexture(int sizeX, int sizeY, GLFormat glFormat,int textureFilter, int textureWrapper) {
         this(new Point(sizeX, sizeY), new GLFormat(glFormat), null, textureFilter, textureWrapper,0);
     }
     public GLTexture(Point size, GLFormat glFormat,int level) {
-        this(new Point(size), new GLFormat(glFormat), null, GL_NEAREST, GL_CLAMP_TO_EDGE,level);
+        this(new Point(size), new GLFormat(glFormat), null, GL_LINEAR, GL_CLAMP_TO_EDGE,level);
     }
     public GLTexture(Point size, GLFormat glFormat) {
         this(new Point(size), new GLFormat(glFormat), null, glFormat.filter, glFormat.wrap,0);
@@ -62,30 +61,45 @@ public class GLTexture implements AutoCloseable {
     public GLTexture(Point point, GLFormat glFormat, int textureFilter, int textureWrapper) {
         this(new Point(point),new GLFormat(glFormat),null,textureFilter,textureWrapper);
     }
-    public GLTexture(Bitmap bmp){
+    public GLTexture(GLImage bmp){
         this(bmp,0);
     }
-    public GLTexture(Bitmap bmp,int level){
-        this(bmp,GL_NEAREST,GL_CLAMP_TO_EDGE,level);
+    public GLTexture(GLImage bmp,int level){
+        this(bmp,GL_LINEAR,GL_CLAMP_TO_EDGE,level);
     }
-    public GLTexture(Bitmap bmp, int textureFilter, int textureWrapper,int level) {
-        this.mSize = new Point(bmp.getWidth(),bmp.getHeight());
-        this.mFormat = new GLFormat(GLFormat.DataType.SIMPLE_8,bmp.getByteCount()/(bmp.getWidth()*bmp.getHeight()));
+    public GLTexture(GLImage bmp, int textureFilter, int textureWrapper,int level) {
+        this.mSize = bmp.size;
+        this.mFormat = bmp.glFormat;
         this.mGLFormat = mFormat.getGLFormatInternal();
+        bmp.byteBuffer.position(0);
         mFormat.filter = textureFilter;
         mFormat.wrap = textureWrapper;
         int[] TexID = new int[1];
-
-        glGenTextures(TexID.length, TexID, 0);
-        checkEglError("glGenTextures");
+        for(int i = 1; i<ids.length;i++){
+            if(!ids[i]){
+                Log.d("GLTexture","get:"+i);
+                if(count < i){
+                    count = i;
+                    glGenTextures(1,TexID,0);
+                }
+                TexID[0] = i;
+                ids[i] = true;
+                break;
+            }
+        }
         mTextureID = TexID[0];
+        //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        checkEglError("glBindTexture");
-        glTexStorage2D(GL_TEXTURE_2D, 1, mFormat.getGLFormatInternal(),  mSize.x, mSize.y);
-        checkEglError("glTexStorage2D");
-        GLUtils.texSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bmp);
-        checkEglError("GLUtils.texSubImage2D");
+        //if(bmp.byteBuffer != null) {
+            glTexStorage2D(GL_TEXTURE_2D, 1, mFormat.getGLFormatInternal(),  mSize.x, mSize.y);
+            checkEglError("glTexStorage2D");
+            if(bmp.byteBuffer != null) {
+                glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), mFormat.getGLType(), (ByteBuffer) bmp.byteBuffer);
+            }
+        //}
+        //else glTexImage2D(GL_TEXTURE_2D, level,mFormat.getGLFormatInternal(), mSize.x, mSize.y,0, mFormat.getGLFormatExternal(), mFormat.getGLType(), null);
+        checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
     }
@@ -101,7 +115,7 @@ public class GLTexture implements AutoCloseable {
                 Log.d("GLTexture","get:"+i);
                 if(count < i){
                     count = i;
-                    glGenTextures(TexID.length, TexID, 0);
+                    glGenTextures(1,TexID,0);
                 }
                 TexID[0] = i;
                 ids[i] = true;
@@ -112,9 +126,14 @@ public class GLTexture implements AutoCloseable {
         //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
-        glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
-        checkEglError("glTexStorage2D");
-        glTexSubImage2D(GL_TEXTURE_2D, level,0,0,size.x,size.y,glFormat.getGLFormatExternal(),glFormat.getGLType(),pixels);
+        //if(pixels != null) {
+            glTexStorage2D(GL_TEXTURE_2D, 1, glFormat.getGLFormatInternal(),  size.x, size.y);
+            checkEglError("glTexStorage2D");
+            if(pixels != null) {
+            glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, size.x, size.y, glFormat.getGLFormatExternal(), glFormat.getGLType(), (ByteBuffer) pixels);
+            }
+         //}
+        //else glTexImage2D(GL_TEXTURE_2D, level,mFormat.getGLFormatInternal(), mSize.x, mSize.y,0, mFormat.getGLFormatExternal(), mFormat.getGLType(), null);
         checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
@@ -128,7 +147,7 @@ public class GLTexture implements AutoCloseable {
     public void Bufferize(){
         if(!isBuffered) {
             int[] frameBuffer = new int[1];
-            glGenFramebuffers(1, frameBuffer, 0);
+            glGenFramebuffers(1,frameBuffer,0);
             mBuffer = frameBuffer[0];
             isBuffered = true;
         }
@@ -173,7 +192,7 @@ public class GLTexture implements AutoCloseable {
         return mSize.x * mSize.y * mFormat.mFormat.mSize * mFormat.mChannels;
     }
 
-    @androidx.annotation.NonNull
+
     @Override
     public String toString() {
         return "GLTexture{" +
@@ -196,7 +215,7 @@ public class GLTexture implements AutoCloseable {
 
     @Override
     public void close() {
-        glDeleteTextures(1, new int[]{mTextureID}, 0);
+        glDeleteTextures(1,new int[]{mTextureID},0);
         ids[mTextureID] = false;
         //Log.d("GLTexture","close ID:"+mTextureID);
         if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);

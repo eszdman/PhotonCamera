@@ -7,7 +7,7 @@ public class ImpulsePixelFilter extends Node {
 
 
     public ImpulsePixelFilter() {
-        super(0, "HotPixelFilter");
+        super("", "HotPixelFilter");
     }
 
     @Override
@@ -21,7 +21,7 @@ public class ImpulsePixelFilter extends Node {
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("IMPULSE",8.0f);
         glProg.setDefine("COLOR",color);
-        glProg.useProgram(R.raw.impixels,true);
+        glProg.useAssetProgram("impixels",true);
         glProg.setTextureCompute("inTexture",previousNode.WorkingTexture,false);
         WorkingTexture = previousNode.WorkingTexture;
         glProg.setTextureCompute("outTexture",WorkingTexture,true);

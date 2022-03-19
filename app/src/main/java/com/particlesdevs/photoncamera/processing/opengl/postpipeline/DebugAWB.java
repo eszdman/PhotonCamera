@@ -6,7 +6,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class DebugAWB extends Node {
-    public DebugAWB(int rid, String name) {
+    public DebugAWB(String rid, String name) {
         super(rid, name);
     }
 
@@ -16,7 +16,7 @@ public class DebugAWB extends Node {
     @Override
     public void Run() {
         GLProg glProg = basePipeline.glint.glProgram;
-        glProg.useProgram(R.raw.applyvector);
+        glProg.useAssetProgram("applyvector");
         glProg.setVar("colorvec", 0.5f,1.f,0.3f);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         WorkingTexture = new GLTexture(previousNode.WorkingTexture);

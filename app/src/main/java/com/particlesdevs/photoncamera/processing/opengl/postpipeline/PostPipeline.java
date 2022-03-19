@@ -12,6 +12,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLInterface;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
@@ -89,16 +90,17 @@ public class PostPipeline extends GLBasePipeline {
             rotated.x/=2;
             rotated.y/=2;
         }*/
-        Bitmap output = Bitmap.createBitmap(rotated.x,rotated.y, Bitmap.Config.ARGB_8888);
+        GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8,4);
+        GLImage output = new GLImage(rotated,format);
 
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, new GLFormat(GLFormat.DataType.UNSIGNED_8,4));
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotated,output, format);
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
 
         BuildDefaultPipeline();
 
-        return runAll();
+        return runAll().getBufferedImage();
     }
     private void BuildDefaultPipeline(){
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
@@ -135,13 +137,13 @@ public class PostPipeline extends GLBasePipeline {
             add(new ESD3D());
         }
 
-        add(new AWB());
+        //add(new AWB());
 
         add(new Initial());
 
         add(new Equalization());
 
-        add(new GlobalToneMapping());
+        //add(new GlobalToneMapping());
 
         add(new CaptureSharpening());
 

@@ -8,7 +8,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class DirectedMedian extends Node {
     public DirectedMedian() {
-        super(0, "DirectedMedian");
+        super("", "DirectedMedian");
     }
 
     @Override
@@ -23,7 +23,7 @@ public class DirectedMedian extends Node {
         {
             glProg.setDefine("INTENSE", (float) basePipeline.mSettings.noiseRstr);
             glProg.setDefine("INSIZE", previousNode.WorkingTexture.mSize);
-            glProg.useProgram(R.raw.directedmedian);
+            glProg.useAssetProgram("directedmedian");
             glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
             glProg.setTexture("GradBuffer", grad);
             WorkingTexture = basePipeline.getMain();

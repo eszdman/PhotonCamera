@@ -16,14 +16,14 @@ import java.util.ArrayList;
 public class HybridAlign extends Node {
 
     public HybridAlign() {
-        super(0, "HybridAlign");
+        super("", "HybridAlign");
     }
     ArrayList<ImageFrame> images;
     public ArrayList<ByteBuffer> alignments;
     Point rawSize;
 
     private void CorrectedRaw(GLTexture out, int number) {
-        glProg.useProgram(R.raw.precorrection);
+        glProg.useAssetProgram("precorrection");
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
         glProg.setVar("WhiteLevel",(float)PhotonCamera.getParameters().whiteLevel);
@@ -44,7 +44,7 @@ public class HybridAlign extends Node {
 
     private GLTexture RawOutput(GLTexture input) {
         //startT();
-        glProg.useProgram(R.raw.toraw);
+        glProg.useAssetProgram("toraw");
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("whitelevel", ProcessorBase.FAKE_WL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);

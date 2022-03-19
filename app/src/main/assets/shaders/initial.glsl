@@ -58,6 +58,7 @@ out vec3 Output;
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MINP 1.0
 #define NOISEO 0.0
+#define LUT 0
 #import coords
 #import interpolation
 #import gaussian
@@ -249,15 +250,6 @@ vec3 saturate(vec3 rgb, float sat2, float sat) {
 #define TONEMAPSWITCH (0.05)
 #define TONEMAPAMP (1.0)
 vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
-    /*float grmodel = clamp(pRGB.g-0.8,0.0,0.2)*5.0;
-    grmodel*=grmodel;
-    float br = pRGB.r+pRGB.g+pRGB.b;
-    br/=3.0;
-    br = mix(br,min(pRGB.r,pRGB.b),grmodel);
-    pRGB*=br;*/
-    //pRGB*=2.0;
-    //pRGB+=vec3(EPS);
-    float br = pRGB.r+pRGB.g+pRGB.b;
     vec3 neutralPoint = vec3(NEUTRALPOINT);
     pRGB = clamp(pRGB, vec3(0.0), neutralPoint);
     #if CCT == 0
@@ -283,47 +275,19 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
     //pRGB = rgbToHsluv(pRGB);
-    br = pRGB.r+pRGB.g+pRGB.b;
-    br/=3.0;
+    float br = pRGB.r+pRGB.g+pRGB.b;
     pRGB/=br;
-
-
+    br*=tonemapGain;
+    pRGB*=br;
     //ISO tint correction
     //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
-
-    //if(br>EPS){
-    //float model = clamp((br-EPS)*TONEMAPAMP,0.0,1.0);
-    //model*=model;
-    //br=mix(br, pow(br,tonemapGain*br),model);
-    //tonemapGain*=clamp((tonemapGain-1.0),0.0,50.0)*2.0 + 1.0;
-
-    //br/=clamp((tonemapGain)-1.0,0.0,0.15)*1.0 + 1.0;
-    //br*=4.0;
-
-    //br*=(clamp(((tonemapGain)),1.00,8.0) - 1.0)*((tonemapGain*tonemapGain/16.0)*8.0000 + (tonemapGain/4.0)*-8.0000 + 1.0000) + 1.0;
-    //if(br < 0.993)
-    //br*=1.0 + (tonemapGain-1.0)*-5.0;
-    //br*=mix(tonemapGain,1.0,clamp(2.5*(br-0.99)/0.01,0.0,1.0));
-
-
-    br=mix(br*tonemapGain,pow(br,1.0/tonemapGain),br);
-    //br*=tonemapGain;
-
-
-
-    //br=mix(sqrt(br),br,0.7);
-    //}
-    //br=pow(br,tonemapGain);
-
-    pRGB*=br;
-    //pRGB*=mix(br,br*br*br*-0.75000000 + br*br*0.72500000 - br*1.02500000,br);
-    //pRGB*=br*br*br*-0.75000000 + br*br*0.72500000 + br*1.02500000;
 
     //pRGB = tonemap(pRGB);
 
     //pRGB = saturate(pRGB,br);
 
     pRGB = gammaCorrectPixel2(pRGB);
+
     pRGB = mix(pRGB*pRGB*pRGB*TONEMAPX3 + pRGB*pRGB*TONEMAPX2 + pRGB*TONEMAPX1,pRGB,min(pRGB*0.8+0.55,1.0));
 
     return pRGB;
@@ -434,9 +398,9 @@ void main() {
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB,tonemapGain);
     //sRGB = clamp(sRGB,0.0,1.0);
-
+    #if LUT == 1
     sRGB = lookup(sRGB);
-
+    #endif
     //Rip Shadowing applied
     br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));
     //br*= (clamp(3.0-sRGB.r+sRGB.g+sRGB.b,0.0,0.006)*(1.0/0.006));

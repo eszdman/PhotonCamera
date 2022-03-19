@@ -9,6 +9,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
@@ -27,7 +28,7 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class AWB extends Node {
 
     public AWB() {
-        super(0,"AWB");
+        super("","AWB");
     }
     @Override
     public void AfterRun() {
@@ -38,8 +39,8 @@ public class AWB extends Node {
 
     private final int SIZE = 256;
 
-    private int[][] ChromaHistogram(Bitmap in) {
-        int[][] histin = HistogramRs.getHistogram(in);
+    private int[][] ChromaHistogram(GLImage in) {
+        int[][] histin = HistogramRs.getHistogram(in.mBmp);
         return histin;
     }
     private void GenerateCurveBitm(int[] r,int[] g,int[] b){
@@ -370,18 +371,18 @@ public class AWB extends Node {
         r0.close();
         r1.close();*/
         File awblut = new File(FileManager.sPHOTON_TUNING_DIR,"awb_lut.png");
-        Bitmap awb_lutbm;
+        GLImage awb_lutbm;
         GLTexture awb_lut = null;
         if(awblut.exists()){
-            awb_lutbm = BitmapFactory.decodeFile(awblut.getAbsolutePath());
+            awb_lutbm = new GLImage(awblut);
             awb_lut = new GLTexture(awb_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
             glProg.setDefine("LUT",true);
         }
-        glProg.useProgram(R.raw.awbgetchroma);
+        glProg.useAssetProgram("awbgetchroma");
         glProg.setTexture("InputBuffer",r1);
         if(awb_lut != null) glProg.setTexture("LookupTable",awb_lut);
         glProg.drawBlocks(basePipeline.main3,r1.mSize);
-        Bitmap preview = glUtils.GenerateBitmap(r1.mSize);
+        GLImage preview = glUtils.GenerateGLImage(r1.mSize);
         //r0.close();
         int[][] ChromaHist = ChromaHistogram(preview);
         r1.close();
@@ -416,7 +417,7 @@ public class AWB extends Node {
         PatchPoint(CCV);
         WorkingTexture = previousNode.WorkingTexture;
         glProg.closed = true;
-        preview.recycle();
+        preview.close();
         if(awb_lut != null) awb_lut.close();
     }
     private void PatchPoint(float[] ccv){

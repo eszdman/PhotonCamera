@@ -6,7 +6,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 
 public class DemosaicQUAD extends Node {
     public DemosaicQUAD() {
-        super(0, "Demosaic");
+        super("", "Demosaic");
     }
 
     @Override
@@ -26,7 +26,7 @@ public class DemosaicQUAD extends Node {
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
         //Gradients
-        glProg.useProgram(R.raw.demosaicp0quad);
+        glProg.useAssetProgram("demosaicp0quad");
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         glProg.drawBlocks(basePipeline.main3);
@@ -43,7 +43,7 @@ public class DemosaicQUAD extends Node {
         glProg.setDefine("FUSEMPY",fuseMpy);
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
-        glProg.useProgram(R.raw.demosaicp12quad);
+        glProg.useAssetProgram("demosaicp12quad");
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
         glProg.setTexture("GradBuffer",basePipeline.main3);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
@@ -56,7 +56,7 @@ public class DemosaicQUAD extends Node {
 
         //Colour channels
 
-        glProg.useProgram(R.raw.demosaicp2quad);
+        glProg.useAssetProgram("demosaicp2quad");
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setTexture("GreenBuffer", outp);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);

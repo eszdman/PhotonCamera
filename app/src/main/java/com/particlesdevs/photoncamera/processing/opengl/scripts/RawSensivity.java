@@ -16,7 +16,7 @@ public class RawSensivity extends GLOneScript {
     public float oldWhiteLevel;
     public ByteBuffer input;
     public RawSensivity(Point size) {
-        super(size, null, new GLFormat(GLFormat.DataType.UNSIGNED_16), R.raw.rawsensivity, "RawSensivity");
+        super(size, null, new GLFormat(GLFormat.DataType.UNSIGNED_16), "rawsensivity", "RawSensivity");
     }
     GLTexture inp;
     @Override

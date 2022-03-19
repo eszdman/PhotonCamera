@@ -12,11 +12,12 @@ import java.nio.ByteBuffer;
 public class GLOneParams {
     public final GLProg glProgram;
     public final GLCoreBlockProcessing glProcessing;
-    public GLOneParams(Point size, Bitmap out, GLFormat glFormat, ByteBuffer outbuffer) {
+    public GLOneParams(Point size, GLImage out, GLFormat glFormat, ByteBuffer outbuffer) {
+
         glProcessing = new GLCoreBlockProcessing(size, out, glFormat,outbuffer);
         glProgram = glProcessing.mProgram;
     }
-    public GLOneParams(Point size, Bitmap out, GLFormat glFormat) {
+    public GLOneParams(Point size, GLImage out, GLFormat glFormat) {
         glProcessing = new GLCoreBlockProcessing(size, out, glFormat, GLDrawParams.Allocate.Direct);
         glProgram = glProcessing.mProgram;
     }

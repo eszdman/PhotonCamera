@@ -9,7 +9,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 public class ESD3DBayer extends Node {
 
     public ESD3DBayer() {
-        super(0, "ES3D");
+        super("", "ES3D");
     }
 
     @Override
@@ -35,7 +35,7 @@ public class ESD3DBayer extends Node {
         WorkingTexture = basePipeline.getMain();
         grad = basePipeline.main3;
         glProg.setDefine("INSIZE",basePipeline.workSize);
-        glProg.useProgram(R.raw.diffbayer);
+        glProg.useAssetProgram("diffbayer");
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         glProg.drawBlocks(grad);
         endT("Differentiate");
@@ -49,7 +49,7 @@ public class ESD3DBayer extends Node {
             glProg.setDefine("NOISES", basePipeline.noiseS);
             glProg.setDefine("NOISEO", basePipeline.noiseO);
             glProg.setDefine("INSIZE", previousNode.WorkingTexture.mSize);
-            glProg.useProgram(R.raw.esd3dbayer);
+            glProg.useAssetProgram("esd3dbayer");
             glProg.setTexture("NoiseMap", map);
             glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
             glProg.setTexture("GradBuffer", grad);

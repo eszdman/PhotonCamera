@@ -7,16 +7,18 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
 import com.particlesdevs.photoncamera.processing.render.Converter;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
 
 import java.io.File;
-import java.nio.FloatBuffer;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -26,18 +28,21 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
 
     public class Initial extends Node {
     public Initial() {
-        super(0, "Initial");
+        super("", "Initial");
     }
 
     @Override
     public void AfterRun() {
-        lutbm.recycle();
-        lut.close();
+        if(lutLoaded) {
+            lutbm.close();
+            lut.close();
+        }
         interpolatedCurve.close();
         GammaTexture.close();
         if(((PostPipeline)basePipeline).FusionMap != null) ((PostPipeline)basePipeline).FusionMap.close();
         //TonemapCoeffs.close();
     }
+    private boolean lutLoaded = false;
 
     @Override
     public void Compile() {}
@@ -45,7 +50,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     GLTexture TonemapCoeffs;
     GLTexture lut;
     GLTexture GammaTexture;
-    Bitmap lutbm;
+    GLImage lutbm;
     float highersatmpy = 1.0f;
     float gammaKoefficientGenerator = 2.0f;
     float gammax1 = 7.1896f;
@@ -154,7 +159,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         }
 
         interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
-                new GLFormat(GLFormat.DataType.FLOAT_16), FloatBuffer.wrap(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
+                new GLFormat(GLFormat.DataType.FLOAT_16), BufferUtils.getFrom(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
 
         glProg.setDefine("GAMMAX1",  gammax1  );
         glProg.setDefine("GAMMAX2",  gammax2  );
@@ -206,7 +211,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
                 cube = basePipeline.mParameters.CCT.cubes[0].cube;
         }
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
-        glProg.useProgram(R.raw.initial);
+        glProg.useAssetProgram("initial");
         if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
             glProg.setVar("CUBE0",cube[0]);
             glProg.setVar("CUBE1",cube[1]);
@@ -223,19 +228,28 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             gamma[i] = (float) (Math.pow(pos, 1. / gammaKoefficientGenerator));
         }
         GammaTexture = new GLTexture(gamma.length,1,
-                new GLFormat(GLFormat.DataType.FLOAT_16),FloatBuffer.wrap(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
+                new GLFormat(GLFormat.DataType.FLOAT_16),BufferUtils.getFrom(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
+        boolean loaded = false;
         if(customlut.exists()){
-            lutbm = BitmapFactory.decodeFile(customlut.getAbsolutePath());
+            lutbm = new GLImage(customlut);
             glProg.setDefine("LUT",true);
+            lutLoaded = true;
         } else {
-            lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(),R.drawable.initial_lut);
+            try {
+                lutbm = new GLImage(PhotonCamera.getAssetLoader().getInputStream("initial_lut.png"));
+                lutLoaded = true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-        lut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+        if(lutLoaded) {
+            lut = new GLTexture(lutbm, GL_LINEAR, GL_CLAMP_TO_EDGE, 0);
+            glProg.setTexture("LookupTable", lut);
+        }
         //glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
-        glProg.setTexture("LookupTable",lut);
         glProg.setTexture("IntenseCurve",interpolatedCurve);
         //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         //glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);

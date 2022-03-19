@@ -13,7 +13,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import java.nio.ByteBuffer;
 
 public class ShadowTexturing extends Node {
-    public ShadowTexturing(int rid, String name) {
+    public ShadowTexturing(String rid, String name) {
         super(rid, name);
     }
 

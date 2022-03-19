@@ -24,7 +24,7 @@ public class AlignAndMerge extends Node {
     GLProg glProg;
 
     public AlignAndMerge() {
-        super(0, "AlignAndMerge");
+        super("", "AlignAndMerge");
     }
 
     @Override
@@ -59,7 +59,7 @@ public class AlignAndMerge extends Node {
         float bl = Math.min(Math.min(Math.min(PhotonCamera.getParameters().blackLevel[0],PhotonCamera.getParameters().blackLevel[1]),
                 PhotonCamera.getParameters().blackLevel[2]),PhotonCamera.getParameters().blackLevel[3]);    
         //glProg.setDefine("BL",bl);
-        glProg.useProgram(R.raw.precorrection);
+        glProg.useAssetProgram("precorrection");
         GLTexture inraw = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), images.get(number).buffer);
         glProg.setTexture("InputBuffer",inraw);
         glProg.setVar("WhiteLevel",(float)PhotonCamera.getParameters().whiteLevel);
@@ -68,7 +68,7 @@ public class AlignAndMerge extends Node {
     }
 
     private void BoxDown22(GLTexture input,GLTexture out) {
-        glProg.useProgram(R.raw.boxdown22);
+        glProg.useAssetProgram("boxdown22");
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("GainMap", GainMap);
         glProg.setVar("CfaPattern", PhotonCamera.getParameters().cfaPattern);
@@ -91,7 +91,7 @@ public class AlignAndMerge extends Node {
     }
 
     private GLTexture LaplacDown44(GLTexture input) {
-        glProg.useProgram(R.raw.laplaciandown44);
+        glProg.useAssetProgram("laplaciandown44");
         glProg.setTexture("InputBuffer", input);
         GLTexture output = new GLTexture(new Point(input.mSize.x / 4, input.mSize.y / 4), input.mFormat, null);
         glProg.drawBlocks(output);
@@ -111,7 +111,7 @@ public class AlignAndMerge extends Node {
         glProg.setDefine("LOWPASSCOMBINE",false);
         glProg.setDefine("FLOWACT",opticalFlowActivity);
 
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
         glProg.setTexture("InputBuffer",brTex128);
         glProg.setTexture("MainBuffer",BaseFrame128);
 
@@ -129,7 +129,7 @@ public class AlignAndMerge extends Node {
         glProg.setDefine("FLOWACT",opticalFlowActivity);
         glProg.setDefine("LOWPASSK",4);
 
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
         glProg.setTexture("AlignVectors",vsmall);
         glProg.setTexture("InputBuffer", brTex32);
         glProg.setTexture("MainBuffer", BaseFrame32);
@@ -147,7 +147,7 @@ public class AlignAndMerge extends Node {
         glProg.setDefine("FLOWACT",opticalFlowActivity);
         glProg.setDefine("LOWPASSK",16);
 
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
 
         glProg.setTexture("AlignVectors",small);
 
@@ -167,7 +167,7 @@ public class AlignAndMerge extends Node {
         glProg.setDefine("FLOWACT",opticalFlowActivity);
         glProg.setDefine("LOWPASSK",64);
 
-        glProg.useProgram(R.raw.pyramidalign2);
+        glProg.useAssetProgram("pyramidalign2");
 
         glProg.setTexture("AlignVectors",medium);
         glProg.setTexture("InputBuffer", brTex2);
@@ -184,7 +184,7 @@ public class AlignAndMerge extends Node {
         GLTexture out = Weights;
         GLTexture alt = WeightsAlt;
         GLTexture t = Weights;
-        glProg.useProgram(R.raw.sumweights);
+        glProg.useAssetProgram("sumweights");
         for(int i =1; i<images.size();i++){
             glProg.setTexture("WeightsIn", Weight[i-1]);
             glProg.setTexture("WeightsOut", out);
@@ -224,7 +224,7 @@ public class AlignAndMerge extends Node {
     private void Weight(int num) {
         glProg.setDefine("TILESIZE","("+tileSize+")");
         glProg.setDefine("FRAMECOUNT",images.size());
-        glProg.useProgram(R.raw.spatialweights);
+        glProg.useAssetProgram("spatialweights");
         glProg.setTexture("MainBuffer", BaseFrame2);
         glProg.setTexture("InputBuffer", brTex2);
         glProg.setTexture("AlignVectors", alignVectors[num-1]);
@@ -237,7 +237,7 @@ public class AlignAndMerge extends Node {
     private GLTexture Merge(GLTexture Output, GLTexture inputRaw,int num) {
         //startT();
         glProg.setDefine("TILESIZE","("+tileSize+")");
-        glProg.useProgram(R.raw.spatialmerge);
+        glProg.useAssetProgram("spatialmerge");
         //short[] bufin = new short[alignVectors[num-1].mSize.x*alignVectors[num-1].mSize.y*4];
         //ByteBuffer buffers = alignVectors[num-1].textureBuffer(alignVectors[num-1].mFormat);
         //buffers.asShortBuffer().get(bufin);
@@ -290,7 +290,7 @@ public class AlignAndMerge extends Node {
 
     private GLTexture RawOutput(GLTexture input) {
         //startT();
-        glProg.useProgram(R.raw.toraw);
+        glProg.useAssetProgram("toraw");
         glProg.setTexture("InputBuffer", input);
         glProg.setVar("whitelevel", ProcessorBase.FAKE_WL);
         GLTexture output = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), null);

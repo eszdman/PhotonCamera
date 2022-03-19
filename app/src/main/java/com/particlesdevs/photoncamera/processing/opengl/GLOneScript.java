@@ -11,15 +11,15 @@ public class GLOneScript implements AutoCloseable {
     public GLOneParams glOne;
     public final String Name;
     public ByteBuffer Output;
-    public final int Rid;
+    public final String Rid;
     private long timeStart;
     public Point size;
     public GLFormat glFormat;
-    Bitmap outbit;
+    GLImage outbit;
     public Object additionalParams;
     public boolean hiddenScript = false;
 
-    public GLOneScript(Point size, Bitmap output, GLFormat glFormat, int rid, String name) {
+    public GLOneScript(Point size, GLImage output, GLFormat glFormat, String rid, String name) {
         outbit = output;
         this.glFormat = glFormat;
         this.size = size;
@@ -27,7 +27,7 @@ public class GLOneScript implements AutoCloseable {
         Rid = rid;
     }
 
-    public GLOneScript(Point size, GLCoreBlockProcessing glCoreBlockProcessing, int rid, String name) {
+    public GLOneScript(Point size, GLCoreBlockProcessing glCoreBlockProcessing, String rid, String name) {
         this.size = size;
         glOne = new GLOneParams(glCoreBlockProcessing);
         Name = name;
@@ -77,7 +77,7 @@ public class GLOneScript implements AutoCloseable {
     }
 
     public void Compile() {
-        glOne.glProgram.useProgram(Rid);
+        glOne.glProgram.useAssetProgram(Rid);
     }
 
     @Override
