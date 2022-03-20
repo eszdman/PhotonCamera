@@ -84,8 +84,8 @@ public class ExposureFusionBayer2 extends Node {
     }
 
     float autoExposureHigh(){
-        float avr = 0.f;
-        float w = 0.f;
+        float avr = 128.f;
+        float w = 1.f;
         for(int i = 15; i<128;i++){
             float line = i/255.f;
             float ind = (float)(Math.pow(line, 1./ gammaKSearch))*256.f;
@@ -93,13 +93,13 @@ public class ExposureFusionBayer2 extends Node {
             avr+=mpy;
             w+=glHistogram.outputArr[0][i];
         }
-        Log.d(Name,"Overexp:"+avr/w);
+        Log.d(Name,"Overexp pos:"+avr/w);
         return 128/(avr/w + 1);
         //return mix(avr/w,max, overExposeMaxFusion);
     }
     float autoExposureLow(){
         float avr = 0.f;
-        float w = 0.f;
+        float w = 1.f;
         for(int i = 128; i<240;i++){
             float line = i/255.f;
             float ind = (float)(Math.pow(line, 1./ gammaKSearch))*256.f;
@@ -107,7 +107,7 @@ public class ExposureFusionBayer2 extends Node {
             avr+=mpy;
             w+=glHistogram.outputArr[0][i];
         }
-        Log.d(Name,"Underexp:"+avr/w);
+        Log.d(Name,"Underexp pos:"+avr/w);
         return (256 - avr/w)/256;
         //return mix(avr/w,min,underExposeMinFusion);
     }
