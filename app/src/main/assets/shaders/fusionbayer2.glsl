@@ -56,8 +56,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(pdf((midNormal.r - TARGET)/GAUSS));
-    float midHighToAvg = sqrt(pdf((midHigh.r - TARGET)/GAUSS));
+    float midNormalToAvg = sqrt(pdf((midNormal.r - TARGET)/GAUSS) + 0.01);
+    float midHighToAvg = sqrt(pdf((midHigh.r - TARGET)/GAUSS) + 0.01);
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;
@@ -80,6 +80,7 @@ void main() {
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.4 - 0.4*(float(level)/float(MAXLEVEL))));
     //result = base + mix(normal.r, high.r, blend*blend)*(max(1.0, 1.1 - 0.1*(float(level)/float(MAXLEVEL))));
     result = base + mix(normal.r, high.r, blend)*blendMpy;
+    result = clamp(result,0.0,1.0);
     //if(level == 0){
     //    result = result*result;
     //}

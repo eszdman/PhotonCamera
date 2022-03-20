@@ -14,7 +14,14 @@ void main() {
     //float center = float(texelFetch(RawBuffer, (xy), 0).x);
     ivec2 shift = xy%2;
     if(shift.x+shift.y !=  1) return;
-    Output.r = abs(
+    float center = texelFetch(RawBuffer, (xy+ivec2(0,0)), 0).x;
+    vec4 temp;
+    temp.r = center - texelFetch(RawBuffer, (xy+ivec2(1,1)), 0).x;
+    temp.g = center - texelFetch(RawBuffer, (xy+ivec2(-1,1)), 0).x;
+    temp.b = center - texelFetch(RawBuffer, (xy+ivec2(-1,-1)), 0).x;
+    temp.a = center - texelFetch(RawBuffer, (xy+ivec2(1,-1)), 0).x;
+
+    /*Output.r = abs(
     float(texelFetch(RawBuffer, (xy+ivec2(-1,0)), 0).x) -
     float(texelFetch(RawBuffer, (xy+ivec2(1,0)), 0).x))
     //+abs(2.0*center-float(texelFetch(RawBuffer, (xy+ivec2(-2,0)), 0).x)-float(texelFetch(RawBuffer, (xy+ivec2(2,0)), 0).x))
@@ -24,6 +31,10 @@ void main() {
     float(texelFetch(RawBuffer, (xy+ivec2(0,1)), 0).x))
     //+abs(2.0*center-float(texelFetch(RawBuffer, (xy+ivec2(0,-2)), 0).x)-float(texelFetch(RawBuffer, (xy+ivec2(0,2)), 0).x))
     ;
-    Output/=2.0;
+    */
+    Output.xy = abs(vec2(
+    ((temp.r+temp.a)-(temp.g+temp.b)),
+    ((temp.r+temp.g)-(temp.b+temp.a))));
+    Output/=4.0;
     //}
 }

@@ -79,46 +79,37 @@ public class ExposureFusionBayer2 extends Node {
         glHistogram.Bc = false;
         glHistogram.Gc = false;
         glHistogram.Ac = false;
-        histr = buildCumulativeHist(glHistogram.outputArr[0], 1024);
-        histInvr = buildCumulativeHistInv(glHistogram.outputArr[0], 1024);
         //sourceh.close();
         vectored.close();
     }
+
     float autoExposureHigh(){
-        float max = 0.f;
         float avr = 0.f;
         float w = 0.f;
-        for(int i = 15; i<240;i++){
+        for(int i = 15; i<128;i++){
             float line = i/255.f;
-            float ind = (float)(Math.pow(line, 1./ gammaKSearch));
-            float mpy = histr[i]/(ind);
-            max = Math.max(max,mpy);
+            float ind = (float)(Math.pow(line, 1./ gammaKSearch))*256.f;
+            float mpy = glHistogram.outputArr[0][i]*(ind);
             avr+=mpy;
-            w+=1.0f;
+            w+=glHistogram.outputArr[0][i];
         }
-        return mix(avr/w,max, overExposeMaxFusion);
+        Log.d(Name,"Overexp:"+avr/w);
+        return 128/(avr/w + 1);
+        //return mix(avr/w,max, overExposeMaxFusion);
     }
     float autoExposureLow(){
-        /*float min = 1.f;
-        for(int i = 15; i<240;i++){
-            float ind = (float)(Math.pow(i/255.f, 1./ gammaKSearch));
-            float mpy = histogram.histr[i]/(ind);
-            min = Math.min(min,mpy);
-        }
-        return max;
-        */
-        float min = 0.f;
         float avr = 0.f;
         float w = 0.f;
-        for(int i = 15; i<240;i++){
+        for(int i = 128; i<240;i++){
             float line = i/255.f;
-            float ind = (float)(Math.pow(line, 1./ gammaKSearch));
-            float mpy = histInvr[i]/(ind);
-            min = Math.min(min,mpy);
+            float ind = (float)(Math.pow(line, 1./ gammaKSearch))*256.f;
+            float mpy = glHistogram.outputArr[0][i]*(ind);
             avr+=mpy;
-            w+=1.0f;
+            w+=glHistogram.outputArr[0][i];
         }
-        return mix(avr/w,min,underExposeMinFusion);
+        Log.d(Name,"Underexp:"+avr/w);
+        return (256 - avr/w)/256;
+        //return mix(avr/w,min,underExposeMinFusion);
     }
 
     GLTexture fusionMap(GLTexture in,GLTexture br,float str){
@@ -138,9 +129,7 @@ public class ExposureFusionBayer2 extends Node {
     GLHistogram glHistogram;
     Point initialSize;
     Point WorkSize;
-    private float[] histInvr;
-    private float[] histr;
-    float overExposeMpy = 1.8f;
+    float overExposeMpy = 2.2f;
     float overExposeMaxFusion = 0.9f;
     float underExposeMpy = 1.0f;
     float underExposeMinFusion = 0.0f;
@@ -251,8 +240,7 @@ public class ExposureFusionBayer2 extends Node {
         ((PostPipeline)basePipeline).softLight = Math2.smoothstep(softLoverLevel, softUpperLevel,((1.f/overexposure)+underexposure)/2.f);
         Log.d(Name,"SoftLightk:"+((PostPipeline)basePipeline).softLight);
 
-        overexposure*=overExposeMpy;
-        underexposure*=underExposeMpy;
+
         overexposure = Math.min(256.f,overexposure);
         underexposure = Math.max(1.f/256.f,underexposure);
         if(useSymmetricExposureFork){
@@ -260,8 +248,11 @@ public class ExposureFusionBayer2 extends Node {
             overexposure/=mpy;
             underexposure/=mpy;
         }
+        overexposure*=overExposeMpy;
+        underexposure*=underExposeMpy;
         overexposure = Math.min(fusionExpoHighLimit,overexposure);
         underexposure = Math.max(fusionExpoLowLimit,underexposure);
+
         ((PostPipeline)basePipeline).fusionGain = mix(1.f,overexposure,maxC);
         ((PostPipeline)basePipeline).totalGain *= overexposure;
 
@@ -308,7 +299,6 @@ public class ExposureFusionBayer2 extends Node {
             glProg.setVar("upscaleIn",normalExpo.sizes[i]);
             // We can discard the previous work in progress merge.
             //binnedFuse.close();
-            Point wsize;
             binnedFuse = new GLTexture(normalExpo.laplace[i]);
 
             // Weigh full image.

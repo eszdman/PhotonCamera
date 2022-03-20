@@ -275,10 +275,11 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
     //pRGB = rgbToHsluv(pRGB);
-    float br = pRGB.r+pRGB.g+pRGB.b;
+    float br = (pRGB.r+pRGB.g+pRGB.b)/3.0;
     pRGB/=br;
-    br*=tonemapGain;
+    br = clamp(br*tonemapGain,0.0,1.0);
     pRGB*=br;
+
     //ISO tint correction
     //pRGB = mix(vec3(pRGB.r*0.99*(TINT2),pRGB.g*(TINT),pRGB.b*1.025*(TINT2)),pRGB,clamp(br*10.0,0.0,1.0));
 
@@ -293,7 +294,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     return pRGB;
 }
 float getGain(vec2 coordsShift){
-    float ingain = textureLinear(FusionMap, (gl_FragCoord.xy+coordsShift)/vec2(INSIZE)).r;
+    float ingain = textureBicubicHardware(FusionMap, (gl_FragCoord.xy+coordsShift)/vec2(INSIZE)).r;
     //float ingain = texelFetch(FusionMap, xy, 0).r;
     /*if(ingain > 0.0){
         ingain = 1.0/ingain;
@@ -389,17 +390,17 @@ void main() {
     //if(tonemapGain > 0.0){
     //    tonemapGain = 1.0/tonemapGain;
     //} else tonemapGain = -tonemapGain;
-    float mixG = (sRGB.g-minImg)/(maxImg-minImg);
+    float mixG = (sRGB.g-minImg+0.001)/(maxImg-minImg+0.001);
     mixG = clamp(mixG,0.0,1.0);
     tonemapGain = mix(maxG,minG,mixG);
-    //tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
+    tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
     #endif
 
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     sRGB = applyColorSpace(sRGB,tonemapGain);
     //sRGB = clamp(sRGB,0.0,1.0);
     #if LUT == 1
-    sRGB = lookup(sRGB);
+    //sRGB = lookup(sRGB);
     #endif
     //Rip Shadowing applied
     br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));

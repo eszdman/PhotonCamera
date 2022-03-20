@@ -1,4 +1,3 @@
-
 precision mediump sampler2D;
 precision highp int;
 uniform sampler2D inTexture;

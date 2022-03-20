@@ -15,6 +15,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
+import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.RANSAC;
 import com.particlesdevs.photoncamera.util.SplineInterpolator;
@@ -22,7 +23,6 @@ import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -778,7 +778,7 @@ public class Equalization extends Node {
         desaturate-=1.0f;
         if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,new float[]{WL,WL,WL});
         GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
-                FloatBuffer.wrap(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
+                BufferUtils.getFrom(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
         //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),
         //        FloatBuffer.wrap(shadowCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         glProg.setDefine("BL2",BLPredictShift);
@@ -802,7 +802,7 @@ public class Equalization extends Node {
         glProg.setTexture("Histogram",histogram);
         //glProg.setTexture("Shadows",shadows);
         GLTexture TonemapCoeffs = new GLTexture(new Point(256, 1),
-                new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
+                new GLFormat(GLFormat.DataType.FLOAT_16,1),BufferUtils.getFrom(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setTexture("TonemapTex",TonemapCoeffs);
         glProg.setVar("toneMapCoeffs", tonemapCoeffs);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
