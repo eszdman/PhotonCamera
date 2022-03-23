@@ -129,7 +129,7 @@ public class ExposureFusionBayer2 extends Node {
     GLHistogram glHistogram;
     Point initialSize;
     Point WorkSize;
-    float overExposeMpy = 2.2f;
+    float overExposeMpy = 1.8f;
     float overExposeMaxFusion = 0.9f;
     float underExposeMpy = 1.0f;
     float underExposeMinFusion = 0.0f;

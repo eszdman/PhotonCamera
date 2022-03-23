@@ -15,6 +15,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.dngprocessor.Histogram;
+import com.particlesdevs.photoncamera.processing.opengl.scripts.GLHistogram;
 import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.FileManager;
 import com.particlesdevs.photoncamera.util.RANSAC;
@@ -32,6 +33,7 @@ import javax.microedition.khronos.opengles.GL;
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 import static com.particlesdevs.photoncamera.util.Math2.MirrorCoords;
+import static com.particlesdevs.photoncamera.util.Math2.buildCumulativeHist;
 import static com.particlesdevs.photoncamera.util.Math2.mix;
 import static com.particlesdevs.photoncamera.util.Math2.pdf;
 
@@ -64,7 +66,7 @@ public class Equalization extends Node {
     }
     @Override
     public void Compile() {}
-    private Histogram Analyze(){
+    private GLHistogram Analyze(){
 
         int resize = 6;
         GLTexture r1 = new GLTexture(previousNode.WorkingTexture.mSize.x/resize,
@@ -96,7 +98,7 @@ public class Equalization extends Node {
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
         glProg.setVar("stp",0);
         glProg.drawBlocks(r1);
-        GLImage bmp = glUtils.GenerateGLImage(r1.mSize);
+        //GLImage bmp = glUtils.GenerateGLImage(r1.mSize);
         if(loaded) {
             analyze_lut.close();
             analyze_lutbm.close();
@@ -112,8 +114,7 @@ public class Equalization extends Node {
         r1.close();*/
         endT("Equalization Part 01");
         startT();
-        Histogram histogram = new Histogram(bmp.getBufferedImage(), r1.mSize.x*r1.mSize.y,histSize);
-        bmp.close();
+        GLHistogram histogram = new GLHistogram(basePipeline.glint.glProcessing);
         endT("Equalization Part 02");
         r1.close();
 
@@ -560,94 +561,64 @@ public class Equalization extends Node {
         float bmax = (float)(Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[2].second) + Math.sqrt(basePipeline.mParameters.noiseModeler.computeModel[2].first));
         Log.d("Equalization","rgb max shift:"+rmax+","+gmax+","+bmax);
         endT("Equalization Part 00");
-        Histogram histParser = Analyze();
+        GLHistogram histParser = Analyze();
+        float[] histr = buildCumulativeHist(histParser.outputArr[0],1024);
+        float[] histg = buildCumulativeHist(histParser.outputArr[1],1024);
+        float[] histb = buildCumulativeHist(histParser.outputArr[2],1024);
+        float[] hist = buildCumulativeHist(histParser.outputArr[3],1024);
         startT();
         //Bitmap lutbm = BitmapFactory.decodeResource(PhotonCamera.getResourcesStatic(), R.drawable.lut2);
         int wrongHist = 0;
         int brokeHist = 0;
-        for(int i =0; i<histParser.hist.length;i++){
-            float val = ((float)(i))/histParser.hist.length;
-            //if(3.f < histParser.hist[i] || val*0.25 > histParser.hist[i]) {
+        for(int i =0; i<hist.length;i++){
+            float val = ((float)(i))/hist.length;
+            //if(3.f < hist[i] || val*0.25 > hist[i]) {
                 //wrongHist++;
             //}
-            if(histParser.hist[i] > 15.f){
+            if(hist[i] > 15.f){
                 brokeHist++;
             }
-            if(Float.isNaN(histParser.hist[i])){
+            if(Float.isNaN(hist[i])){
                 brokeHist+=2;
             }
         }
         if(brokeHist >= 10){
-            wrongHist = histParser.hist.length;
+            wrongHist = hist.length;
         }
         Log.d(Name,"WrongHistFactor:"+wrongHist);
         if(wrongHist != 0){
-            float wrongP = ((float)wrongHist)/histParser.hist.length;
+            float wrongP = ((float)wrongHist)/hist.length;
             wrongP-=0.5f;
             if(wrongP > 0.0) wrongP*=1.6f;
             wrongP+=0.5f;
             wrongP = Math.min(wrongP,1.f);
             Log.d(Name,"WrongHistPercent:"+wrongP);
-            histParser.gamma = (1.f-wrongP)*histParser.gamma + 1.f*wrongP;
-            for(int i =0; i<histParser.hist.length;i++){
-                histParser.hist[i] = (((float)(i))/histParser.hist.length)*wrongP + histParser.hist[i]*(1.f-wrongP);
+            for(int i =0; i<hist.length;i++){
+                hist[i] = (((float)(i))/hist.length)*wrongP + hist[i]*(1.f-wrongP);
             }
         }
-        //Log.d(Name,"hist:"+Arrays.toString(histParser.hist));
 
-        /*histParser.hist[0] = 0.f;
-        float prev = histParser.hist[0];
-        for(int i = 0; i<histParser.hist.length;i++){
-            float prevh = histParser.hist[i];
-            histParser.hist[i] = prev-Math.min(histParser.hist[i]-prev,0.001f);
-            prev = prevh;
-        }
-        */
-        /*float eq = histParser.gamma;
-        eq = Math.min(eq,1.f);
-        Log.d(Name,"Gamma:"+eq);
-        float minGamma = Math.min(1f, MIN_GAMMA + 3f * (float) Math.hypot(histParser.sigma[0], histParser.sigma[1]));
-        eq = Math.max(minGamma, eq < 1.f ? 0.55f + 0.45f * eq : eq);
-        eq = (float) Math.pow(eq, 0.6);
-        Log.d(Name,"Equalizek:"+eq);*/
-
-
-        /*for(int j =0; j<2;j++) {
-            histParser.hist[0] = 0.f;
-            for (int i = 0; i < histParser.hist.length - 8; i++) {
-                histParser.hist[i] = gauss(histParser.hist, i);
-                histParser.histr[i] = gauss(histParser.histr, i);
-                histParser.histg[i] = gauss(histParser.histg, i);
-                histParser.histb[i] = gauss(histParser.histb, i);
-            }
-        }*/
-
-        //Log.d(Name,"Hist:"+Arrays.toString(histParser.hist));
-
-
-
-
-        float[] averageCurve = new float[histParser.hist.length];
+        float[] averageCurve = new float[hist.length];
         for(int i =0; i<averageCurve.length;i++){
-            averageCurve[i] = (histParser.histr[i]+histParser.histg[i]+histParser.histb[i])/3.f;
+            averageCurve[i] = (histr[i]+histg[i]+histb[i])/3.f;
         }
         endT("Equalization Part 1");
         startT();
         if(basePipeline.mSettings.DebugData) {
-            GenerateCurveBitm(histParser.histr,histParser.histg,histParser.histb);
+            GenerateCurveBitm(histr,histg,histb);
         }
         float max = 0.f;
-        float WL = findWL(histParser.histr,histParser.histg,histParser.histb);
-        float BL = findBL(histParser.histr,histParser.histg,histParser.histb);
+        float WL = findWL(histr,histg,histb);
+        float BL = findBL(histr,histg,histb);
         float[] blwl = new float[]{BL,WL};
         double compensation = averageCurve.length/WL;
         if(useOldEqualization){
-            histParser.hist = bSpline(histParser.hist,blwl);
+            hist = bSpline(hist,blwl);
         } else
-        histParser.hist = bilateralSmoothCurve(histParser.hist,blwl);
+        hist = bilateralSmoothCurve(hist,blwl);
 
 
-        float[] WB = new float[]{1.0f,1.0f,1.0f};// = getWB(histParser.histr,histParser.histg,histParser.hist,blwl);
+        float[] WB = new float[]{1.0f,1.0f,1.0f};// = getWB(histr,histg,hist,blwl);
 
         //Use kx+b prediction for curve start
         //Depurple Degreen
@@ -660,9 +631,9 @@ public class Equalization extends Node {
         int cnt = 0;
         for(int i =5; i<maxshift;i++){
             float x = (float)(i)/histSize;
-            BLPredict[0]+= histParser.histr[i]/x;
-            BLPredict[1]+= histParser.histg[i]/x;
-            BLPredict[2]+= histParser.histb[i]/x;
+            BLPredict[0]+= histr[i]/x;
+            BLPredict[1]+= histg[i]/x;
+            BLPredict[2]+= histb[i]/x;
             cnt++;
         }
         BLPredict[0]/=cnt;
@@ -673,9 +644,9 @@ public class Equalization extends Node {
         cnt = 0;
         for(int i =5; i<maxshift;i++){
             float x = (float)(i)/histSize;
-            BLPredictShift[0]+=histParser.histr[i]-x*BLPredict[0];
-            BLPredictShift[1]+=histParser.histg[i]-x*BLPredict[1];
-            BLPredictShift[2]+=histParser.histb[i]-x*BLPredict[2];
+            BLPredictShift[0]+=histr[i]-x*BLPredict[0];
+            BLPredictShift[1]+=histg[i]-x*BLPredict[1];
+            BLPredictShift[2]+=histb[i]-x*BLPredict[2];
             cnt++;
         }
         BLPredictShift[0]/=cnt;
@@ -711,75 +682,37 @@ public class Equalization extends Node {
         BLPredictShift[1]*=blackLevelSensitivity*length2;
         BLPredictShift[2]*=blackLevelSensitivity*length2;
 
-
-
-        /*float[] smoothArr = bilateralSmoothCurve(averageCurve,BL,WL);
-        for(int i =0; i<smoothArr.length;i++){
-            float t = ((float)i)/smoothArr.length;
-            float shadow = (float)i*4.f/smoothArr.length;
-            shadow = Math.min(shadow,1.f);
-            float high = (((float)i/smoothArr.length)-0.6f)*0.8f;
-            high = Math.max(high,0.f);
-            float prev = histParser.hist[i];
-            averageCurve[i] = Math.min(mix(averageCurve[i],smoothArr[i],shadow),smoothArr[i]);
-            averageCurve[i] = Math.max(mix(averageCurve[i],prev,high),averageCurve[i]);
-            averageCurve[i] = mix(prev,averageCurve[i],Math.min(t*1.3f,0.4f) + 0.6f);
-            averageCurve[i] = Math.min(averageCurve[i],1.f);
-            if(max < averageCurve[i]) max = averageCurve[i];
-        }
-        for(int i =0; i<histParser.hist.length;i++){
-            if(i<smoothArr.length){
-                //histParser.hist[i] = bezierArr[i];
-                histParser.hist[i] = averageCurve[i]*(1.f/max);
-            } else
-            histParser.hist[i] = 1.f;
-        }*/
         Log.d(Name,"PredictedBLShift:"+Arrays.toString(BLPredictShift));
         Log.d(Name,"PredictedWBKoeff:"+Arrays.toString(WB));
-        if(basePipeline.mSettings.DebugData)GenerateCurveBitm(histParser.histInr,histParser.histIng,histParser.histInb);
+        if(basePipeline.mSettings.DebugData)GenerateCurveBitm(histParser.outputArr[1],histParser.outputArr[2],histParser.outputArr[3]);
 
-
-        /*float[] equalizingCurve = new float[histParser.hist.length];
-        for(int i =0; i<histParser.hist.length;i++){
-            equalizingCurve[i] = (float)(Math.pow(((double)i)/histParser.hist.length,eq));
-        }
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitm(equalizingCurve);
-        GLTexture equalizing = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
-                FloatBuffer.wrap(equalizingCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        Log.d(Name,"Equalizing:"+Arrays.toString(equalizingCurve));*/
-        /*float[] shadowCurve = new float[histParser.histr.length*3];
-        for(int i =0; i<shadowCurve.length;i+=3){
-            shadowCurve[i] = (histParser.histr[i/3]);
-            shadowCurve[i+1] = (histParser.histg[i/3]);
-            shadowCurve[i+2] = (histParser.histb[i/3]);
-        }*/
         double shadowW = (basePipeline.mSettings.shadows);
         double avrbr = 0.0;
 
-        for(int i =0; i<histParser.hist.length;i++){
-            float line = i/(histParser.hist.length-1.f);
+        for(int i =0; i<hist.length;i++){
+            float line = i/(hist.length-1.f);
             double linepi = line*Math.PI - Math.PI/2.0;
             double contrastCurve = (Math.sin(linepi) + 1.0)/2.0;
-            if(removeUnderexpose) histParser.hist[i] = Math.max(histParser.hist[i],line);
+            if(removeUnderexpose) hist[i] = Math.max(hist[i],line);
             if(shadowW != 0.f) {
                 if(shadowW > 0.f)
-                histParser.hist[i] = (float)mix(histParser.hist[i],Math.sqrt(histParser.hist[i]),(shadowW)*shadowsSensitivity);
-                else histParser.hist[i] = (float)mix(histParser.hist[i],(histParser.hist[i])*(histParser.hist[i]),-(shadowW)*shadowsSensitivity);
+                hist[i] = (float)mix(hist[i],Math.sqrt(hist[i]),(shadowW)*shadowsSensitivity);
+                else hist[i] = (float)mix(hist[i],(hist[i])*(hist[i]),-(shadowW)*shadowsSensitivity);
             }
 
-            histParser.hist[i] = mix(histParser.hist[i],line,line*line*highlightCompress);
-            histParser.hist[i] = (float) mix(histParser.hist[i],histParser.hist[i]*contrastCurve,contrast);
-            avrbr+=histParser.hist[i];
+            hist[i] = mix(hist[i],line,line*line*highlightCompress);
+            hist[i] = (float) mix(hist[i],hist[i]*contrastCurve,contrast);
+            avrbr+=hist[i];
         }
-        avrbr/=histParser.hist.length;
+        avrbr/=hist.length;
         float desaturate = 0.5f/(float)avrbr;
         desaturate = Math.max(1.f,desaturate);
         desaturate*=1.0f;
         desaturate-=1.0f;
-        if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(histParser.hist,BLPredictShift,new float[]{WL,WL,WL});
-        GLTexture histogram = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
-                BufferUtils.getFrom(histParser.hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
-        //GLTexture shadows = new GLTexture(histParser.hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),
+        if(basePipeline.mSettings.DebugData) GenerateCurveBitmWB(hist,BLPredictShift,new float[]{WL,WL,WL});
+        GLTexture histogram = new GLTexture(hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16),
+                BufferUtils.getFrom(hist), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        //GLTexture shadows = new GLTexture(hist.length,1,new GLFormat(GLFormat.DataType.FLOAT_16,3),
         //        FloatBuffer.wrap(shadowCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         glProg.setDefine("BL2",BLPredictShift);
         glProg.setDefine("BR",(float)(shadowW)*shadowsSensitivity);
