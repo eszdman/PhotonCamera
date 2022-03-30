@@ -8,5 +8,5 @@ out vec4 result;
 
 void main() {
     ivec2 xyCenter = ivec2(gl_FragCoord.xy);
-    result = texelFetch(target, xyCenter, 0) - textureBicubicHardware(base, (vec2(gl_FragCoord.xy))/vec2(size));
+    result = texelFetch(target, xyCenter, 0) - textureBicubicHardware(base, (vec2(gl_FragCoord.xy))/vec2(size+1));
 }

@@ -199,16 +199,21 @@ void main() {
     //sRGB = mix(sRGB2,sRGB,abs(maxrgb-0.5)*2.0);
 
     //vec3 BLluv = rgbToHsluv(BlVec);
-    sRGB = rgbToHsluv(sRGB);
+    //sRGB = rgbToHsluv(sRGB);
     //sRGB.z = clamp(sRGB.z-BLluv.z,0.0,100.0);
-    br = sRGB.z/100.0;
+    //br = sRGB.z/100.0;
+    //br = clamp(br,0.0,1.0);
+    sRGB/=br;
     float HistEq = texture(Histogram, vec2(1.0/8192.0 + br*(1.0-1.0/256.0), 0.5f)).r;
-    float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);
-    sRGB.z = HistEq*100.0;
+    sRGB*=HistEq;
+    //float bsat = mix(sqrt(sRGB.z/HistEq),1.0,0.8);
+    //sRGB.z = HistEq*100.0;
+    //sRGB.z = clamp(sRGB.z,0.0,100.0);
 
 
     //sRGB.y*=bsat;
-    sRGB = hsluvToRgb(sRGB);
+    //sRGB = hsluvToRgb(sRGB);
+
 
     //Limit eq
     //HistEq = clamp(HistEq, 0.0, 5.0);
@@ -241,7 +246,7 @@ void main() {
     float minbl = min(BlVec.r,min(BlVec.g,BlVec.b));
     BlVec-=minbl;
     sRGB = clamp((sRGB-BlVec)/(vec3(1.0)-BlVec),0.0,1.0);
-    sRGB = mix(sRGB2,sRGB,clamp(pbr/BLACKPOS,0.0,1.0));
+    Output.rgb = mix(sRGB2,sRGB,clamp(pbr/BLACKPOS,0.0,1.0));
 
     //sRGB /= luminocity(sRGB);
     //sRGB*=pbr;
@@ -252,11 +257,11 @@ void main() {
 
     //Output = mix(sRGB*sRGB*sRGB*-1.6 + sRGB*sRGB*2.55 - sRGB*0.15,sRGB,min(sRGB*0.5+0.4,1.0));
 
-    Output.rgb = clamp(sRGB,0.0,1.0);
     #if TONEMAP == 1
     Output.rgb = tonemap(Output.rgb);
     #endif
     #if LUT == 1
     Output.rgb = tricubiclookup(Output.rgb);
     #endif
+    Output = clamp(Output,0.0,1.0);
 }

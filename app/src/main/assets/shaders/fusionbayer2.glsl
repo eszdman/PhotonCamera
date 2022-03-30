@@ -56,8 +56,8 @@ void main() {
 
     // Factor 1: Well-exposedness.
 
-    float midNormalToAvg = sqrt(pdf((midNormal.r - TARGET)/GAUSS) + 0.01);
-    float midHighToAvg = sqrt(pdf((midHigh.r - TARGET)/GAUSS) + 0.01);
+    float midNormalToAvg = sqrt(pdf((midNormal.r - TARGET)/GAUSS));
+    float midHighToAvg = sqrt(pdf((midHigh.r - TARGET)/GAUSS));
 
     normalWeight *= midNormalToAvg;
     highWeight *= midHighToAvg;

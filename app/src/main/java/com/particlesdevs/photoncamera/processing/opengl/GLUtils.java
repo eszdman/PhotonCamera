@@ -439,8 +439,9 @@ public class GLUtils {
                         "void main() {\n" +
                         "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
                         "    xy+=vec2(0,yOffset);\n" +
-                        "    Output = tvar(textureBicubicHardware(InputBuffer, ((vec2(xy)-1.0)*"+1.0/zoom+"/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                        "    Output = tvar(textureBicubicHardware(InputBuffer, ((vec2(xy))*"+1.0/zoom+"/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                         "}\n");
+
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",size);
         glProg.drawBlocks(out,out.mSize);
@@ -464,7 +465,7 @@ public class GLUtils {
                         "void main() {\n" +
                         "    vec2 xy = vec2(gl_FragCoord.xy);\n" +
                         "    xy+=vec2(0,yOffset);\n" +
-                        "    Output = tvar(textureBicubicHardware(InputBuffer, ((vec2(xy)-1.0)/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
+                        "    Output = tvar(textureBicubicHardware(InputBuffer, ((vec2(xy))/vec2(size)))"+in.mFormat.getTemExt()+");\n" +
                         "}\n");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("size",(int)(in.mSize.x*k),(int)(in.mSize.y*k));
@@ -748,7 +749,7 @@ public class GLUtils {
                 glUtils.interpolate(gauss[i - 1],gauss[i]);
             }
             System.arraycopy(gauss, 1, upscale, 0, upscale.length);
-            glProg.useUtilProgram("pyramiddiff",false);
+            glProg.useAssetProgram("pyramiddiff",false);
             for (int i = 0; i < laplace.length; i++) {
                 glProg.setTexture("target", gauss[i]);
                 glProg.setTexture("base", upscale[i]);
@@ -767,7 +768,7 @@ public class GLUtils {
         }
         public GLTexture getLaplace(int number){
             if(number > sizes.length || number < 0) return null;
-            glProg.useUtilProgram("pyramiddiff",false);
+            glProg.useAssetProgram("pyramiddiff",false);
             GLTexture downscaled = getGauss(number);
             glProg.setTexture("target", downscaled);
             glProg.setTexture("base", getGauss(number+1));

@@ -52,7 +52,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     GLTexture GammaTexture;
     GLImage lutbm;
     float highersatmpy = 1.0f;
-    float gammaKoefficientGenerator = 2.0f;
+    float gammaKoefficientGenerator = 2.2f;
     float gammax1 = 7.1896f;
     float gammax2 = -50.8195f;
     float gammax3 = 129.3564f;

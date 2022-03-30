@@ -275,7 +275,7 @@ public class AlignAndMerge extends Node {
         if(num == 1){
             glProg.setTexture("OutputBuffer", BaseFrame);
         } else glProg.setTexture("OutputBuffer", Output);
-        glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
+        glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).images.size()));
         glProg.setVar("number",num+1);
         glProg.setVarU("rawsize", rawSize);
         glProg.setVarU("alignsize", alignVectors[0].mSize);

@@ -21,7 +21,7 @@ layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;
 #define LAYOUT //
 #define OUTSET 0,0
 float normpdf(in float x, in float sigma){return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;}
-    LAYOUT
+LAYOUT
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     if(xy.x >= ivec2(OUTSET).x) return;

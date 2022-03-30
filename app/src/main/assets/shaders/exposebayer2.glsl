@@ -31,9 +31,17 @@ vec3 brIn(vec4 inp, float factor2){
     br2/=4.0;
     #if CURVE == 1
     float texinput = texture(InterpolatedCurve,vec2(br2,0.5)).r;
-    #if INVERSE == 1
-    texinput = clamp(1.0-texinput,0.0,1.0);
+    factor2=mix(1.0,factor2,texinput);
     #endif
+    inp=clamp(reinhard_extended(inp*factor2,min(factor2,1.0)),0.0,1.0);
+    return vec3(inp.r,(inp.g+inp.b)/2.0,inp.a);
+}
+vec3 brIn2(vec4 inp, float factor2){
+    float br2 = inp.r+inp.g+inp.b+inp.a;
+    br2/=4.0;
+    #if CURVE == 1
+    float texinput = texture(InterpolatedCurve,vec2(br2,0.5)).r;
+    texinput = clamp(1.0-texinput,0.0,1.0);
     factor2=mix(1.0,factor2,texinput);
     #endif
     inp=clamp(reinhard_extended(inp*factor2,min(factor2,1.0)),0.0,1.0);
@@ -50,7 +58,7 @@ void main() {
     inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
     inp = clamp(inp,vec4(0.0001),vec3(NEUTRALPOINT).rggb)/vec3(NEUTRALPOINT).rggb;
 
-    vec3 v3 = brIn(inp,STRLOW);
+    vec3 v3 = brIn2(inp,STRLOW);
     float br = luminocity(v3);
     br = gammaEncode(clamp(br-DH,0.0,1.0));
     result.r = br;

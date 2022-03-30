@@ -38,6 +38,7 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);
         glProg.setDefine("STRLOW",strLow);
         glProg.setDefine("STRHIGH",strHigh);
+        glProg.setDefine("CURVE",true);
         glProg.useAssetProgram("exposebayer2",false);
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("InterpolatedCurve",interpolatedCurve);
@@ -46,21 +47,7 @@ public class ExposureFusionBayer2 extends Node {
         glProg.drawBlocks(outp);
         return outp;
     }
-    /*
-    GLTexture expose2(GLTexture in, float str){
-        glProg.setDefine("DH","("+dehaze+")");
-        glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);
-        glProg.setDefine("CURVE",true);
-        glProg.setDefine("INVERSE",true);
-        glProg.useAssetProgram("exposebayer2",false);
-        glProg.setTexture("InputBuffer",in);
-        glProg.setTexture("InterpolatedCurve",interpolatedCurve);
-        glProg.setVar("factor", str);
-        GLTexture outp = new GLTexture(WorkSize,new GLFormat(GLFormat.DataType.FLOAT_16,2));
-        glProg.drawBlocks(outp);
-        return outp;
-    }
-     */
+
     GLTexture expose3(GLTexture in, float str){
         glProg.setDefine("DH","("+dehaze+")");
         glProg.setDefine("NEUTRALPOINT",basePipeline.mParameters.whitePoint);

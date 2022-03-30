@@ -275,9 +275,9 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain){
     //pRGB/=pRGB.r+pRGB.g+pRGB.b;
     //pRGB*=br*MINP;
     //pRGB = rgbToHsluv(pRGB);
-    float br = (pRGB.r+pRGB.g+pRGB.b)/3.0;
+    float br = pRGB.r+pRGB.g+pRGB.b;
     pRGB/=br;
-    br = clamp(br*tonemapGain,0.0,1.0);
+    br=clamp(br*tonemapGain,0.0,1.0);
     pRGB*=br;
 
     //ISO tint correction
@@ -400,7 +400,7 @@ void main() {
     sRGB = applyColorSpace(sRGB,tonemapGain);
     //sRGB = clamp(sRGB,0.0,1.0);
     #if LUT == 1
-    //sRGB = lookup(sRGB);
+    sRGB = lookup(sRGB);
     #endif
     //Rip Shadowing applied
     br = (clamp(br-0.0008,0.0,0.007)*(1.0/0.007));

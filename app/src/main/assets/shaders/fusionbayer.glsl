@@ -44,7 +44,7 @@ void main() {
     //if(useUpsampled == 2) mpy = 2.0;
     vec4 base = (useUpsampled)
     //? texelFetch(upsampled, xyCenter, 0).xyz
-    ? textureBicubic(upsampled, vec2(gl_FragCoord.xy)/vec2(upscaleIn))
+    ? textureBicubicHardware(upsampled, vec2(gl_FragCoord.xy)/vec2(upscaleIn))
     : vec4(0.);
     // How are we going to blend these two?
     vec4 normal = texelFetch(normalExpoDiff, xyCenter, 0);
