@@ -71,6 +71,7 @@ public class GLHistogram implements AutoCloseable{
         outputArr[0] = buffers[0].readBufferIntegers();
         outputArr[1] = buffers[1].readBufferIntegers();
         outputArr[2] = buffers[2].readBufferIntegers();
+        outputArr[3] = buffers[3].readBufferIntegers();
         Log.d("GLHistogram"," elapsed:"+(System.currentTimeMillis()-time)+" ms");
         return outputArr;
     }
