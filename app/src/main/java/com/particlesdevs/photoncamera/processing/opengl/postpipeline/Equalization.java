@@ -83,6 +83,7 @@ public class Equalization extends Node {
         if(customAnalyzelut.exists()){
             analyze_lutbm = new GLImage(customAnalyzelut);
             analyze_lut = new GLTexture(analyze_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
+            loaded = true;
         } else {
             try {
                 analyze_lutbm = new GLImage(PhotonCamera.getAssetLoader().getInputStream("analyze_lut.png"));
@@ -115,6 +116,7 @@ public class Equalization extends Node {
         endT("Equalization Part 01");
         startT();
         GLHistogram histogram = new GLHistogram(basePipeline.glint.glProcessing);
+        histogram.Compute(r1);
         endT("Equalization Part 02");
         r1.close();
 
