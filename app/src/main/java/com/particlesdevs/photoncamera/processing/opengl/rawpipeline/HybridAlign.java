@@ -34,7 +34,7 @@ public class HybridAlign extends Node {
     public void Compile() {}
 
     private GLTexture Merge(GLTexture Output, GLTexture inputRaw, ByteBuffer alignVectors,int num) {
-        glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).imageObj.size()));
+        glProg.setVar("alignk", 1.f / (float) (((RawPipeline) (basePipeline)).images.size()));
         glProg.setVar("number",num+1);
         glProg.setVarU("rawsize", rawSize);
         GLTexture output = basePipeline.getMain();
