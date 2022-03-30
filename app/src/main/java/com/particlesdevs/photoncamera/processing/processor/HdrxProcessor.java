@@ -209,7 +209,7 @@ public class HdrxProcessor extends ProcessorBase {
                 Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
             }
         }
-        rawPipeline.imageObj = mImageFramesToProcess;
+        //rawPipeline.imageObj = mImageFramesToProcess;
         rawPipeline.images = images;
         Log.d(TAG, "White Level:" + processingParameters.whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
