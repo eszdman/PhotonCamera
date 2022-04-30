@@ -128,7 +128,7 @@ import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int RAW_FORMAT = ImageFormat.RAW_SENSOR;
     public static final int YUV_FORMAT = ImageFormat.YUV_420_888;
-    public static final int PREVIEW_FORMAT = ImageFormat.YUV_420_888;
+    public static final int PREVIEW_FORMAT = ImageFormat.JPEG;
     private static final String TAG = CaptureController.class.getSimpleName();
     public List<Future<?>> taskResults = new ArrayList<>();
     private final ExecutorService processExecutor;
