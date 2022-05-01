@@ -6,6 +6,9 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hunter.library.debug.HunterDebug;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.pro.SpecificSetting;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 
@@ -48,23 +51,46 @@ public final class CameraManager2 {
      */
     public CameraManager2(CameraManager cameraManager, SettingsManager settingsManager) {
         this.mSettingsManager = settingsManager;
-        init(cameraManager);
+        SpecificSetting sp = PhotonCamera.getSpecific().specificSetting;
+        int[] ids = sp.cameraIDS;
+            if (!isLoaded()) {
+                if(ids == null)
+                    scanAllCameras(cameraManager);
+                //Override ID detection
+                save();
+            } else {
+                loadFromSave(cameraManager,ids);
+            }
+    }
+    private void initExt(CameraManager cameraManager, int[] ids) {
+        for (int num : ids) {
+            try {
+                CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
+                log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
+                CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
+                mAllCameraIDsSet.add(String.valueOf(num));
+                mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
-    private void init(CameraManager cameraManager) {
-        if (!mSettingsManager.isSet(_CAMERAS, ALL_CAMERA_IDS_KEY)) {
-            scanAllCameras(cameraManager);
-            save();
-        } else {
-            mAllCameraIDsSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_IDS_KEY, null);
+    private boolean isLoaded(){
+        return mSettingsManager.isSet(_CAMERAS, ALL_CAMERA_IDS_KEY);
+    }
 
-            //Retrieve the saved Set of CameraLensData JSON strings from SharedPreferences
-            mCameraLensDataJSONSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_LENS_KEY, null);
-            //Deserialize JSON and store CameraLensData objects into mCameraLensDataMap
-            mCameraLensDataJSONSet.forEach(jsonString -> {
-                CameraLensData cameraLensData = GSON.fromJson(jsonString, CameraLensData.class);
-                mCameraLensDataMap.put(cameraLensData.getCameraId(), cameraLensData);
-            });
+    private void loadFromSave(CameraManager cameraManager,int ids[]){
+        mAllCameraIDsSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_IDS_KEY, null);
+        //Retrieve the saved Set of CameraLensData JSON strings from SharedPreferences
+        mCameraLensDataJSONSet = mSettingsManager.getStringSet(_CAMERAS, ALL_CAMERA_LENS_KEY, null);
+        //Deserialize JSON and store CameraLensData objects into mCameraLensDataMap
+        mCameraLensDataJSONSet.forEach(jsonString -> {
+            CameraLensData cameraLensData = GSON.fromJson(jsonString, CameraLensData.class);
+            mCameraLensDataMap.put(cameraLensData.getCameraId(), cameraLensData);
+        });
+        if(ids != null && mCameraLensDataJSONSet.size() < ids.length){
+            initExt(cameraManager,ids);
+            save();
         }
     }
 

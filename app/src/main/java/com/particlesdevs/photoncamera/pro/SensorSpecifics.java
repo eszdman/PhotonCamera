@@ -78,10 +78,8 @@ public class SensorSpecifics {
                     specificSettingSensor[count].id = Integer.parseInt(vals[1]);
                     count++;
                 } else {
-                    String[] valsIn = str2.split("=");
+                    String[] valsIn = str2.replace(" ","").replace("\n","").split("=");
                     if(valsIn.length <= 1) continue;
-                    valsIn[0] = valsIn[0].replace(" ","");
-                    valsIn[1] = valsIn[1].replace(" ","");
                     String[] istr = valsIn[1].replace("{", "").replace("}", "").split(",");
                     SpecificSettingSensor current = specificSettingSensor[count - 1];
                     AsyncTask.execute(() -> {

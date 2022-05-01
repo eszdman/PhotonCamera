@@ -214,7 +214,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private void initMembers() {
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
-
         DisplayMetrics dm = getResources().getDisplayMetrics();
         logDisplayProperties(dm);
         displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);

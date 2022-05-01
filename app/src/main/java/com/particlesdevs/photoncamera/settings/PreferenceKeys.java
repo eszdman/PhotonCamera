@@ -9,6 +9,7 @@ import androidx.annotation.StringRes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -57,10 +58,9 @@ public class PreferenceKeys {
     public static void initialise(SettingsManager settingsManager) {
         preferenceKeys = new PreferenceKeys(settingsManager);
     }
-
+    @HunterDebug
     public static void setDefaults(Context context) {
         SettingsManager settingsManager = preferenceKeys.settingsManager;
-        CameraManager2 cameraManager2 = new CameraManager2((CameraManager) context.getSystemService(CAMERA_SERVICE), settingsManager);
         Resources resources = context.getResources();
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
@@ -76,12 +76,8 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
 
-        Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
-        map.keySet().removeAll(COMMON_KEYS);
-        String json = GSON.toJson(map);
-        for (String cameraId : cameraManager2.getCameraIdList()) { //Makes a copy of default settings for each camera
-            settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
-        }
+
+
         settingsManager.addListener((settingsManager1, key) -> {
             if (isPerLensSettingsOn()) {
                 if (key.equals(Key.CAMERA_ID.mValue)) {
@@ -94,6 +90,14 @@ public class PreferenceKeys {
             PhotonCamera.getSettings().loadCache();
             //Log.d(TAG, key + " : changed!");
         });
+    }
+    public static void addIds(String[] ids){
+        SettingsManager settingsManager = preferenceKeys.settingsManager;
+        Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
+        map.keySet().removeAll(COMMON_KEYS); String json = GSON.toJson(map);
+        for (String cameraId : ids) { //Makes a copy of default settings for each camera
+            settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
+        }
     }
 
     private static void saveJsonForCamera(String cameraID) {

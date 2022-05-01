@@ -550,6 +550,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.mTextureView = activity.findViewById(R.id.texture);
         this.mCameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         this.mCameraManager2 = new CameraManager2(mCameraManager, PhotonCamera.getInstance(activity).getSettingsManager());
+        PreferenceKeys.addIds(mCameraManager2.getCameraIdList());
+
         this.processExecutor = processExecutor;
         this.paramController = new ParamController(this);
 

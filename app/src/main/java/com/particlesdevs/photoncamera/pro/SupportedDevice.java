@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.pro;
 
+import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 
@@ -49,21 +50,11 @@ public class SupportedDevice {
             if (!loaded && mSettingsManager.isSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
                 mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
-        Thread thread = new Thread(() -> {
-                if (checkedCount < 2) {
-                    specific.loadSpecific();
-                }
-        });
-        thread.start();
-        new Thread(() -> sensorSpecifics.loadSpecifics(mSettingsManager)).start();
-        if (checkedCount < 2) {
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
 
+        if (checkedCount < 2) {
+            specific.loadSpecific();
+        }
+        new Thread(() -> sensorSpecifics.loadSpecifics(mSettingsManager)).start();
     }
 
     private void isSupported() {

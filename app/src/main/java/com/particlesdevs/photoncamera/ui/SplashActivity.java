@@ -15,7 +15,6 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Runtime.getRuntime();
         try {
             final File path = new File(
                     FileManager.sPHOTON_DIR, "PhotonLog");
