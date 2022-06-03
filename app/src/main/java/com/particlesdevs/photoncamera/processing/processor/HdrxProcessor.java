@@ -8,6 +8,7 @@ import android.media.Image;
 import android.util.Log;
 
 import com.particlesdevs.photoncamera.Wrapper;
+import com.particlesdevs.photoncamera.WrapperGPU;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
@@ -19,12 +20,12 @@ import com.particlesdevs.photoncamera.processing.ImageFrameDeblur;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
-import com.particlesdevs.photoncamera.processing.opengl.rawpipeline.RawPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -112,7 +113,6 @@ public class HdrxProcessor extends ProcessorBase {
         exifData.IMAGE_DESCRIPTION = processingParameters.toString();
 
         Log.d(TAG, "Wrapper.init");
-        RawPipeline rawPipeline = new RawPipeline();
         ArrayList<ImageFrame> images = new ArrayList<>();
         ByteBuffer lowexp = null;
         ByteBuffer highexp = null;
@@ -197,20 +197,24 @@ public class HdrxProcessor extends ProcessorBase {
         NoiseS = (float) Math.max(NoiseS*noisempy, Float.MIN_NORMAL);
         NoiseO = (float) Math.max(NoiseO*noisempy, Float.MIN_NORMAL);
         FrameNumberSelector.frameCount = cnt;
-        if (!debugAlignment) {
-            Wrapper.init(width, height, cnt);
-
-            for (int i = 0; i < cnt; i++) {
-                float mpy = minMpy / images.get(i).pair.layerMpy;
-                //if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
-                //    mpy = 1.f;
-                //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
-                Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer + " mpy:" + mpy);
+        Wrapper.init(width, height, cnt);
+        WrapperGPU.init(width,height,cnt);
+        //WrapperGPU.InitCL();
+        //WrapperGPU.nativeLib(new File(PhotonCamera.getLibsDirectory(),"libOpenCL.so").getAbsolutePath());
+        for (int i = 0; i < cnt; i++) {
+            float mpy = minMpy / images.get(i).pair.layerMpy;
+            //if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
+            //    mpy = 1.f;
+            //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
+            Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer +
+                    " mpy:" + mpy+ " wl:"+((FAKE_WL) / processingParameters.whiteLevel) * mpy);
+            if (!debugAlignment) {
                 Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
+            } else {
+                WrapperGPU.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
             }
         }
-        //rawPipeline.imageObj = mImageFramesToProcess;
-        rawPipeline.images = images;
+
         Log.d(TAG, "White Level:" + processingParameters.whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
         //float noiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) *
@@ -220,30 +224,23 @@ public class HdrxProcessor extends ProcessorBase {
 
         ByteBuffer output = null;
         InterpolateGainMap interpolateGainMap;
+        interpolateGainMap = new InterpolateGainMap(new Point(width, height));
+        interpolateGainMap.parameters = processingParameters;
+        interpolateGainMap.Run();
+        interpolateGainMap.close();
+
+
+        output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
         if (!debugAlignment) {
-            interpolateGainMap = new InterpolateGainMap(new Point(width, height));
-            interpolateGainMap.parameters = processingParameters;
-            interpolateGainMap.Run();
-            interpolateGainMap.close();
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
-
-            /*float noiseLevel = (processingParameters.noiseModeler.computeModel[0].first.floatValue()+
-                    processingParameters.noiseModeler.computeModel[1].first.floatValue()+
-                    processingParameters.noiseModeler.computeModel[2].first.floatValue())*0.7f;
-            noiseLevel += processingParameters.noiseModeler.computeModel[0].second.floatValue()+
-                    processingParameters.noiseModeler.computeModel[1].second.floatValue()+
-                    processingParameters.noiseModeler.computeModel[2].second.floatValue();
-            noiseLevel*=Math.pow(2.0,19.0+PhotonCamera.getSettings().noiseRstr);
-            noiseLevel = Math.max(1.f,noiseLevel);
-            Log.d(TAG, "Denoising level:" + noiseLevel);*/
-            output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
             Wrapper.outputBuffer(output);
-
             Wrapper.processFrame(NoiseS, NoiseO, 1.5f,1,0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         } else {
-        rawPipeline.alignAlgorithm = alignAlgorithm;
-        output = rawPipeline.Run();
+            WrapperGPU.loadInterpolatedGainMap(interpolateGainMap.Output);
+            WrapperGPU.outputBuffer(output);
+            WrapperGPU.processFrame(NoiseS, NoiseO, 0.007f,1,0.f, 0.f, 0.f, processingParameters.whiteLevel
+                    , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         }
         float[] oldBL = processingParameters.blackLevel.clone();
 
@@ -255,9 +252,6 @@ public class HdrxProcessor extends ProcessorBase {
             //if ((i == 3 || i == 2) && IsoExpoSelector.HDR)
             //    continue;
             images.get(i).image.close();
-        }
-        if (debugAlignment) {
-            rawPipeline.close();
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 

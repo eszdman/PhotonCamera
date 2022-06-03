@@ -20,7 +20,6 @@
     </string-array>
     <string-array name="alignset_entries">
         <item>PCam CPU</item>
-        <item>PCam GPU</item>
         <item>PCam Hybrid</item>
     </string-array>
     <string-array name="location_geotag_entryValues">
@@ -31,7 +30,6 @@
     <string-array name="alignset_entryValues">
         <item>0</item>
         <item>1</item>
-        <item>2</item>
     </string-array>
     <string-array name="theme_entries">
         <item>@string/theme_follow_system</item>

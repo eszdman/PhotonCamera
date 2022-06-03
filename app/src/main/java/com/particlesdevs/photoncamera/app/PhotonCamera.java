@@ -29,7 +29,6 @@ import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
 import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.debugclient.Debugger;
-import com.particlesdevs.photoncamera.ml.Model;
 import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SpecificSetting;
@@ -201,6 +200,9 @@ public class PhotonCamera extends Application {
         }
         return version;
     }
+    public static String getLibsDirectory(){
+        return sPhotonCamera.getApplicationInfo().nativeLibraryDir;
+    }
 
     public ExecutorService getExecutorService() {
         return executorService;
@@ -221,109 +223,6 @@ public class PhotonCamera extends Application {
         sPhotonCamera = this;
         initModules();
         super.onCreate();
-    }
-    void test(){
-        try {
-            org.tensorflow.lite.support.model.Model.Options.Builder builder = new org.tensorflow.lite.support.model.Model.Options.Builder();
-            builder.setDevice(org.tensorflow.lite.support.model.Model.Device.GPU);
-            Model model = Model.newInstance(this);
-            AssetLoader loader = PhotonCamera.getAssetLoader();
-            Bitmap bitmap = BitmapFactory.decodeStream(loader.getInputStream("lr-4.jpg"));
-
-            ByteBuffer img = ByteBuffer.allocateDirect(bitmap.getByteCount());
-            int width = 256;
-            int height = 256;
-            int channels = 1;
-            int wcount = (bitmap.getByteCount()/height);
-            Log.d("PhotonCamera","Wcount:"+wcount);
-            bitmap.copyPixelsToBuffer(img);
-            byte[] bytesIn = new byte[width*height*4];
-            img.limit(width*height*4);
-            img.position(0);
-            img.get(bytesIn);
-
-            Log.d("PhotonCamera","bb input:"+bytesIn[0]);
-            float[] floatsIn = new float[width*height*channels];
-            int cnt = 0;
-            for(int i = 0; i<bytesIn.length;i+=4){
-                for(int ch = 0; ch<channels;ch++) {
-                    floatsIn[cnt] = (((int) bytesIn[i + ch] & 0xff) / 256.f);
-                    cnt += 1;
-                }
-            }
-            Log.d("PhotonCamera","float input:"+floatsIn[50]+","+floatsIn[51]);
-            // Creates inputs for reference.
-            TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, width, height, channels}, DataType.FLOAT32);
-            ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4 * channels);
-            FloatBuffer fb = buffer.asFloatBuffer();
-
-            fb.position(0);
-            fb.put(floatsIn);
-            buffer.position(0);
-            buffer.limit(width * height * 4 * channels);
-            inputFeature0.loadBuffer(buffer);
-
-            // Runs model inference and gets result.
-            Model.Outputs outputs = model.process(inputFeature0);
-
-            TensorBuffer outputFeature0 = outputs.getOutputFeature0AsTensorBuffer();
-            fb.position(0);
-            /*float[] floats = outputFeature0.getFloatArray();
-            ByteBuffer bb2 = ByteBuffer.allocate(width*height*4*channels);
-            FloatBuffer fb2 = bb2.asFloatBuffer();
-            fb2.position(0);
-            fb2.put(floats);
-            fb2.position(0);
-            bb2.position(0);
-            bb2.put(outputFeature0.getBuffer());
-            fb2.position(0);
-            //fb2.limit(width*height);
-            //fb2.get(floats);
-            Log.d("PhotonCamera","bb outputsize:"+outputFeature0.getBuffer().capacity());*/
-            byte[] bytes = new byte[width*height*4];
-            cnt = 0;
-            //Log.d("PhotonCamera","bb output2:"+floats[50]+","+floats[51]);
-            for(int i = 0; i<width*height*channels;i++){
-                if(cnt + 4 >= bytes.length) break;
-
-                bytes[cnt] = (byte)(255);
-                bytes[cnt+1] = (byte)(255);
-                bytes[cnt+2] = (byte)(255);
-                bytes[cnt+3] = (byte)(255);
-                Log.d("PhotonCamera","TF runtime:"+TensorFlowLite.runtimeVersion()+",TF native:"+TensorFlowLite.nativeRuntimeVersion());
-                for(int ch = 0;ch<channels;ch++){
-                    float inp = outputFeature0.getFloatValue(i)*255.f;
-                    bytes[cnt+ch] = (byte)(inp);
-                    Log.d("PhotonCamera","float input:"+inp);
-                }
-                /*
-                bytes[cnt] = (byte)(inp);
-                bytes[cnt+1] = (byte)(inp);
-                bytes[cnt+2] = (byte)(inp);
-                bytes[cnt+3] = (byte)(255);
-                */
-
-                cnt+=4;
-            }
-            ByteBuffer outBuffer = ByteBuffer.wrap(bytes);
-            bitmap.copyPixelsFromBuffer(outBuffer);
-            File debug = new File(ImagePath.newJPGFilePath()+"test.jpg");
-            FileOutputStream fOut = null;
-            try {
-                debug.createNewFile();
-                fOut = new FileOutputStream(debug);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
-
-
-            // Releases model resources if no longer used.
-            model.close();
-        } catch (IOException e) {
-            Log.d("PhotonCamera",e.toString());
-        }
-        Log.d("PhotonCamera","Test Complete!");
     }
     private void initModules() {
 

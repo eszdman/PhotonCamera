@@ -5,6 +5,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ public class FileManager {
         return ACCEPTED_FILES_EXTENSIONS.contains(-1 == index ? "" : name.substring(index + 1).toUpperCase()) && new File(dir, name).length() > 0;
     };
     public static File sEXTERNAL_DIR = Environment.getExternalStorageDirectory();
+    public static File sCACHE_DIR;
     public static File sPHOTON_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera//");
     public static File sPHOTON_RAW_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera//Raw//");
     public static File sPHOTON_TUNING_DIR = new File(sEXTERNAL_DIR + "//DCIM//PhotonCamera//Tuning//");

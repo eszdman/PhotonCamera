@@ -21,6 +21,7 @@ public class SplashActivity extends AppCompatActivity {
             if (!path.exists()) {
                 path.mkdirs();
             }
+            Runtime.getRuntime().exec("adb logcat --clear");
             Runtime.getRuntime().exec(
                     "logcat  -d -f " + path + File.separator
                             + "dbo_logcat"
