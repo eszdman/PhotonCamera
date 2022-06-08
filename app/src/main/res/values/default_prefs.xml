@@ -5,6 +5,7 @@
     <bool name="pref_camera_sounds_default">true</bool>
     <bool name="pref_energy_safe_default">false</bool>
     <string name="pref_show_grid_default" translatable="false">0</string>
+    <bool name="pref_wide169_default">false</bool>
     <bool name="pref_show_watermark_default">true</bool>
     <bool name="pref_show_afdata_default">false</bool>
     <bool name="pref_show_roundedge_default">true</bool>

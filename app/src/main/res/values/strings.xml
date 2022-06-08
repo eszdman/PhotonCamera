@@ -19,7 +19,7 @@
     <string name="shadows">Shadows</string>
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
-    <string name="saturation">Saturation</string>
+    <string name="saturation" translatable="false">Saturation</string>
     <string name="expocompensation">Exposure Compensation</string>
     <string name="jpg" translatable="false">JPEG</string>
     <string name="hdrx" translatable="false">HDRX</string>
@@ -32,7 +32,7 @@
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>
     <string name="telegram">Telegram Group ↗</string>
-    <string name="hdrxNR">HDRX Noise Reduction</string>
+    <string name="hdrxNR">Noise Reduction</string>
     <string name="turn_on_watermark">Watermark</string>
     <string name="sure_delete">Are you sure to delete this image?</string>
     <string name="sure_delete_multiple">Are you sure to delete %1$s image(s)? %2$s will be cleared.</string>
@@ -122,5 +122,6 @@
     <string name="four_x4" translatable="false">4x4</string>
     <string name="processing_processname">Processing %1$s...</string>
     <string name="turn_on_system_nr">System Noise Reduction</string>
+    <string name="wide169" translatable="false">16:9</string>
 
 </resources>

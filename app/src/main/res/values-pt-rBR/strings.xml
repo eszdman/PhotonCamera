@@ -21,7 +21,7 @@
     <string name="enable_remosaic">"Habilitar Remosaico "</string>
     <string name="general">"Geral "</string>
     <string name="telegram">"Grupo no Telegram "</string>
-    <string name="hdrxNR">Redução de Ruído do HDRX</string>
+    <string name="hdrxNR">Redução de Ruído</string>
     <string name="turn_on_watermark">"Habilitar marca d'água "</string>
     <string name="sure_delete">Você tem certeza que quer excluir esta imagem?</string>
     <string name="cancel">Cancelar</string>

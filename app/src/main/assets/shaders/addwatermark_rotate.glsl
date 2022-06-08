@@ -7,6 +7,7 @@ uniform int rotate;
 out vec4 Output;
 #define WATERMARK 1
 #define watersizek (15.0)
+#define OFFSET 0,0
 #import interpolation
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
@@ -15,7 +16,7 @@ void main() {
     vec2 watersize = vec2(textureSize(Watermark, 0));
     vec4 water;
     vec2 cr;
-    xy+=ivec2(0,yOffset);
+    xy+=ivec2(0,yOffset)+ivec2(OFFSET);
     switch(rotate){
         case 0:
         cr = (vec2(xy+ivec2(0,-texSize.y))/(texS));

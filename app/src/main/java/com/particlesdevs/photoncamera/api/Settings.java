@@ -14,6 +14,7 @@ public class Settings {
     public boolean enhancedProcess;
     public boolean watermark;
     public boolean energySaving;
+    public boolean aspect169;
     public boolean DebugData;
     public boolean roundEdge;
     public boolean align;
@@ -54,6 +55,7 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
         energySaving = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
+        aspect169 = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_WIDE169);
         DebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();

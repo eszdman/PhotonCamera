@@ -51,7 +51,7 @@ android {
         ndk {
             abiFilters "arm64-v8a"
         }
-        versionName '0.8'
+        versionName '0.85'
         proguardFiles
     }
 

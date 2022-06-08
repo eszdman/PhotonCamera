@@ -19,6 +19,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_wide169_key"
+                android:defaultValue="@bool/pref_wide169_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/wide169"
+                android:summary=""
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
             android:key="@string/pref_energy_safe_key"
             android:defaultValue="@bool/pref_energy_safe_default"
             android:layout="@layout/preference_with_margin"

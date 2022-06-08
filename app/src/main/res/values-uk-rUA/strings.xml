@@ -25,7 +25,7 @@
     <string name="enable_remosaic">Ввімкнути Remosaic</string>
     <string name="general">Загальні</string>
     <string name="telegram">Група Telegram ↗</string>
-    <string name="hdrxNR">HDRX зниження шуму</string>
+    <string name="hdrxNR">Зниження шуму</string>
     <string name="turn_on_watermark">Водяний знак</string>
     <string name="sure_delete">Ви дійсно хочете видалити це зображення?</string>
     <string name="sure_delete_multiple">Ви впевнені, що видалити %1$s зображення? %2$s буде очищено.</string>

@@ -190,6 +190,9 @@ public class PreferenceKeys {
     public static boolean isBatterySaverOn(){
         return getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
     }
+    public static boolean isAspect169On(){
+        return getBool(Key.KEY_WIDE169);
+    }
 
     public static void setBatterySaver(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ENERGY_SAVING,value);
@@ -354,6 +357,7 @@ public class PreferenceKeys {
         KEY_DISABLE_ALIGNINIG(R.string.pref_disable_aligning_key),
         KEY_SHOW_WATERMARK(R.string.pref_show_watermark_key),
         KEY_ENERGY_SAVING(R.string.pref_energy_safe_key),
+        KEY_WIDE169(R.string.pref_wide169_key),
         KEY_ENHANCED_PROCESSING(R.string.pref_enhanced_processing_key),
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),

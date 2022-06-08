@@ -15,6 +15,7 @@
     <string name="pref_disable_aligning_key" translatable="false">pref_disable_aligning_key</string>
     <string name="pref_show_watermark_key" translatable="false">pref_show_watermark_key</string>
     <string name="pref_energy_safe_key" translatable="false">pref_energy_safe_key</string>
+    <string name="pref_wide169_key" translatable="false">pref_wide169_key</string>
     <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
     <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
     <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>

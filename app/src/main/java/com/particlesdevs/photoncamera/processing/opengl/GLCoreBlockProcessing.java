@@ -27,6 +27,7 @@ import static android.opengl.GLES30.glViewport;
 public class GLCoreBlockProcessing extends GLContext {
     private static String TAG = "GLCoreBlockProcessing";
     public GLImage mOut = null;
+    public Point shift = new Point(0,0);
     private final int mOutWidth, mOutHeight;
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;

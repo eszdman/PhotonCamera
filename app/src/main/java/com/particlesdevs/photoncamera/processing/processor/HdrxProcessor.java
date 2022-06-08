@@ -239,7 +239,7 @@ public class HdrxProcessor extends ProcessorBase {
         } else {
             WrapperGPU.loadInterpolatedGainMap(interpolateGainMap.Output);
             WrapperGPU.outputBuffer(output);
-            WrapperGPU.processFrame(NoiseS, NoiseO, 0.007f,1,0.f, 0.f, 0.f, processingParameters.whiteLevel
+            WrapperGPU.processFrame(NoiseS, NoiseO, 0.004f+(NoiseS+NoiseO),1,0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         }
         float[] oldBL = processingParameters.blackLevel.clone();
@@ -300,6 +300,13 @@ public class HdrxProcessor extends ProcessorBase {
         pipeline.highFrame = highexp;
 
         Bitmap img = pipeline.Run(images.get(0).image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
+        if(img.getWidth() > img.getHeight()) {
+            int crop = (img.getHeight() - img.getWidth()*9/16)/2;
+            img = Bitmap.createBitmap(img, 0, crop, img.getWidth(),img.getWidth()*9/16);
+        } else {
+            int crop = (img.getWidth() - img.getHeight()*9/16)/2;
+            img = Bitmap.createBitmap(img, crop, 0, img.getHeight()*9/16,img.getHeight());
+        }
         img = overlay(img,pipeline.debugData.toArray(new Bitmap[0]));
         processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
 

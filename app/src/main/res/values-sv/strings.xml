@@ -21,7 +21,7 @@
     <string name="enable_remosaic">Aktivera Remosaik</string>
     <string name="general">Generellt</string>
     <string name="telegram">Telegram-grupp</string>
-    <string name="hdrxNR">HDRX Brusreducering</string>
+    <string name="hdrxNR">Brusreducering</string>
     <string name="turn_on_watermark">Aktivera vattenstämpel</string>
     <string name="sure_delete">Är du säker på att du vill ta bort denna bild?</string>
     <string name="cancel">Avbryt</string>

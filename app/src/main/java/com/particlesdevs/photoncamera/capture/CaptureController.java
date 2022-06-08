@@ -921,7 +921,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
     private Size getAspect(CameraMode targetMode){
         Size aspectRatio;
-        if (targetMode == CameraMode.VIDEO) {
+        if (targetMode == CameraMode.VIDEO || PhotonCamera.getSettings().aspect169) {
             aspectRatio = new Size(9, 16);
         } else {
             aspectRatio = new Size(3, 4);

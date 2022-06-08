@@ -15,7 +15,9 @@ import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_MIRRORED_REPEAT;
 import static android.opengl.GLES20.GL_NEAREST;
+import static android.opengl.GLES20.GL_REPEAT;
 
 public class Bayer2Float extends Node {
 
@@ -30,7 +32,7 @@ public class Bayer2Float extends Node {
     public void Run() {
         PostPipeline postPipeline = (PostPipeline)basePipeline;
         GLTexture in = new GLTexture(basePipeline.mParameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
-                ((PostPipeline)(basePipeline)).stackFrame,GL_NEAREST,GL_CLAMP_TO_EDGE);
+                ((PostPipeline)(basePipeline)).stackFrame,GL_NEAREST,GL_MIRRORED_REPEAT);
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16,4),
                 BufferUtils.getFrom(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         float[] BL = new float[3];

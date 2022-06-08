@@ -257,8 +257,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         glProg.setVar("intermediateToSRGB",cct);
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
-        glProg.setVar("activeSize",4,4,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-4,
-                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-4);
+        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
+                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
         //glProg.setVar("neutralPoint",WP);
         Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
         //glProg.setVar("saturation0",sat);

@@ -21,7 +21,7 @@
     <string name="enable_remosaic">Remosaic etkinleştir</string>
     <string name="general">Genel</string>
     <string name="telegram">Telegram grubu</string>
-    <string name="hdrxNR">HDRX Gürültü Azaltma</string>
+    <string name="hdrxNR">Gürültü Azaltma</string>
     <string name="turn_on_watermark">Filigran etkinleştir</string>
     <string name="sure_delete">Bu görüntüyü silmek istiyor musunuz?</string>
     <string name="cancel">İptal</string>

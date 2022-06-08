@@ -19,7 +19,7 @@
     <string name="turn_on_round_edges">Включить закруглённые края</string>
     <string name="enable_remosaic">Включить Remosaic</string>
     <string name="telegram">Группа Telegram</string>
-    <string name="hdrxNR">HDRX Шумоподавление</string>
+    <string name="hdrxNR">Шумоподавление</string>
     <string name="turn_on_watermark">Водяной знак</string>
     <string name="export_settings">Экспортировать настройки</string>
     <string name="import_settings">Импортировать настройки</string>

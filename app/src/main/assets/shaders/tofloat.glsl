@@ -16,6 +16,7 @@ uniform int MinimalInd;
 #define BLG (0.0)
 #define BLB (0.0)
 #define QUAD 0
+#define OFFSET 0,0
 #import interpolation
 #import median
 out float Output;

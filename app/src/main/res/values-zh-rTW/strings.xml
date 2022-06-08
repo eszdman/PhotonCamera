@@ -33,7 +33,7 @@
     <string name="enable_remosaic">啟用 Remosaic</string>
     <string name="general">通用</string>
     <string name="telegram">Telegram 群組 ↗</string>
-    <string name="hdrxNR">HDRX 降噪</string>
+    <string name="hdrxNR">降噪</string>
     <string name="turn_on_watermark">浮水印</string>
     <string name="sure_delete">你確定要刪除這張照片嗎？</string>
     <string name="sure_delete_multiple">你確定要刪除 %1$s 張照片嗎？ 將釋放 %2$s 空間。</string>
@@ -97,7 +97,6 @@
     <string name="long_press_to_deselect">長按按鈕來取消所有選擇</string>
     <string name="multiple_deleted_success">刪除了 %1$s 張照片！ 釋放了 %2$s 空間。</string>
     <string name="supported_devices">支援的裝置</string>
-    <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">你的裝置 - %1$s</string>
     <string name="sync_on">同步已開啟</string>
     <string name="sync_off">同步已關閉</string>

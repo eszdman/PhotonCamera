@@ -86,8 +86,13 @@
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/layout_modeswitcher.xml" value="0.13934426229508196" />
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/app/src/main/res/layout/thumbnail_square_image_view.xml" value="0.1986842105263158" />
         <entry key="..\:/Data/Android/PhotonCamera/PhotonCamera/circularbarlib/src/main/res/layout/manual_palette.xml" value="0.13831967213114754" />
+        <entry key="app/src/main/res/layout/activity_settings.xml" value="0.31323414252153486" />
+        <entry key="app/src/main/res/layout/preference_about.xml" value="0.18518518518518517" />
         <entry key="app/src/main/res/layout/preference_category_layout.xml" value="0.14221014492753623" />
         <entry key="app/src/main/res/layout/preference_seekbar.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/preference_with_margin.xml" value="0.25" />
+        <entry key="app/src/main/res/layout/preference_with_margin_centered.xml" value="0.18518518518518517" />
+        <entry key="app/src/main/res/layout/thumbnail_square_image_view.xml" value="0.18518518518518517" />
       </map>
     </option>
   </component>

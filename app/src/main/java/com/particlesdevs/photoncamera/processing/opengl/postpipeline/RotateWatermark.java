@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.opengl.GLUtils;
 import android.util.Log;
 
