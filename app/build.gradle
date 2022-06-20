@@ -12,7 +12,7 @@ android {
     }
     def versionPropsFile = file('version.properties')
     def versionBuild
-    compileSdkVersion 31
+    compileSdkVersion 32
     buildToolsVersion '30.0.3'
 
     buildFeatures {
@@ -45,7 +45,7 @@ android {
         minSdkVersion 24
         //Waiting for api 32 sources
         //noinspection OldTargetApi
-        targetSdkVersion 31
+        targetSdkVersion 32
         versionCode versionBuild
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -99,33 +99,33 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(path: ':circularbarlib')
     implementation 'de.hdodenhof:circleimageview:3.1.0'
-    implementation 'androidx.appcompat:appcompat:1.4.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.preference:preference-ktx:1.2.0'
-    implementation 'org.jetbrains:annotations:16.0.1'
+    implementation 'org.jetbrains:annotations:23.0.0'
     implementation 'androidx.exifinterface:exifinterface:1.3.3'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
-    implementation 'com.github.bumptech.glide:glide:4.11.0'
+    implementation 'com.github.bumptech.glide:glide:4.13.2'
     implementation project(path: ':photonbypass')
-    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
-    implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0'
-    implementation 'org.tensorflow:tensorflow-lite-gpu:2.3.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.1'
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.1'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.9.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.13.2'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
     implementation 'rapid.decoder:jpeg-decoder:0.3.0'
     implementation 'rapid.decoder:png-decoder:0.3.0'
-    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.google.code.gson:gson:2.9.0'
     // Navigation Component
     implementation "androidx.navigation:navigation-fragment-ktx:2.4.2"
     implementation "androidx.navigation:navigation-ui-ktx:2.4.2"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.7.0-alpha01'
-    implementation "androidx.core:core-ktx:1.7.0"
+    implementation 'com.google.android.material:material:1.6.1'
+    implementation "androidx.core:core-ktx:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     //Leak Canary
     //Use this lib to detect memory leaks when debugging

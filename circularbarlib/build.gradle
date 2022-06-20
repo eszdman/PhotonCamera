@@ -4,14 +4,14 @@ plugins {
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         minSdkVersion 24
         //Waiting for api 32 sources
         //noinspection OldTargetApi
-        targetSdkVersion 31
+        targetSdkVersion 32
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -30,7 +30,7 @@ android {
 }
 
 dependencies {
-    implementation "androidx.core:core-ktx:+"
+    implementation "androidx.core:core-ktx:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
 /*    testImplementation 'junit:junit:4.+'
