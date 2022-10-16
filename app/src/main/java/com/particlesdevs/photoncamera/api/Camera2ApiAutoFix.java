@@ -16,6 +16,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
@@ -258,17 +259,20 @@ public class Camera2ApiAutoFix {
             GLDrawParams.TileSize = 256;
         }
     }
+    public static void enableOIS(CaptureRequest.Builder captureBuilder) {
+        int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+        if (stabilizationModes != null && stabilizationModes.length > 1) {
+            Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE: " + Arrays.toString(stabilizationModes));
+//            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
+            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
+        }
+    }
 
     public static void applyPrev(CaptureRequest.Builder captureBuilder) {
         Camera2ApiAutoFix.Apply();
 //        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-        if (stabilizationModes != null && stabilizationModes.length > 1) {
-            Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
-//            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
-            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
-        }
+        enableOIS(captureBuilder);
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range<Integer> range = CaptureController.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
     }
