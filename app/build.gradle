@@ -2,6 +2,9 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'hunter-debug'
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
+apply plugin: 'com.google.firebase.firebase-perf'
 android {
     signingConfigs {
         debug {
@@ -114,6 +117,9 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.2'
     implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.2'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.10.0'
+    implementation 'com.google.firebase:firebase-analytics:21.2.0'
+    implementation 'com.google.firebase:firebase-crashlytics:18.3.1'
+    implementation 'com.google.firebase:firebase-perf:20.2.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.14.2'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
