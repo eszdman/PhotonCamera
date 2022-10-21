@@ -12,14 +12,12 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -39,7 +37,11 @@ import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPrefere
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.TimeZone;
 
 import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY;
 import static com.particlesdevs.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
@@ -65,7 +67,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     }
     @HunterDebug
     @Override
-    public boolean onPreferenceStartScreen(PreferenceFragmentCompat preferenceFragmentCompat,
+    public boolean onPreferenceStartScreen(@NonNull PreferenceFragmentCompat preferenceFragmentCompat,
                                            PreferenceScreen preferenceScreen) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(R.anim.animate_slide_left_enter, R.anim.animate_slide_left_exit
@@ -106,9 +108,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onCreate(savedInstanceState);
             activity = getActivity();
             mContext = getContext();
-            mSettingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
-            supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
-            getPreferenceScreen().getSharedPreferences()
+            mSettingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
+            supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
+            Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
                     .registerOnSharedPreferenceChangeListener(this);
             showHideHdrxSettings();
             setFramesSummary();
@@ -122,6 +124,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
         }
 
+        @NonNull
         @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (container != null) container.removeAllViews();
@@ -328,12 +331,12 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
 
         @Override
-        public boolean onPreferenceTreeClick(Preference preference) {
+        public boolean onPreferenceTreeClick(@NonNull Preference preference) {
             return true;
         }
 
         @Override
-        public void onDisplayPreferenceDialog(Preference preference) {
+        public void onDisplayPreferenceDialog(@NonNull Preference preference) {
             if (preference instanceof ResetPreferences) {
                 DialogFragment dialogFragment = ResetPreferences.Dialog.newInstance(preference);
                 dialogFragment.setTargetFragment(this, 0);

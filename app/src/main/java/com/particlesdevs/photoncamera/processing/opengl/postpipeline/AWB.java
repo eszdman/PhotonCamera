@@ -1,14 +1,10 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 
-
-import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
-import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
@@ -28,14 +24,17 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class AWB extends Node {
 
     public AWB() {
-        super("","AWB");
+        super("", "AWB");
     }
+
     @Override
     public void AfterRun() {
         //previousNode.WorkingTexture.close();
     }
+
     @Override
-    public void Compile() {}
+    public void Compile() {
+    }
 
     private final int SIZE = 256;
 
@@ -43,21 +42,23 @@ public class AWB extends Node {
         int[][] histin = HistogramRs.getHistogram(in.mBmp);
         return histin;
     }
-    private void GenerateCurveBitm(int[] r,int[] g,int[] b){
-        Bitmap CurveEQ = Bitmap.createBitmap(256,256, Bitmap.Config.ARGB_8888);
-        ((PostPipeline)basePipeline).debugData.add(CurveEQ);
-        Utilities.drawArray(r,g,b,CurveEQ);
+
+    private void GenerateCurveBitm(int[] r, int[] g, int[] b) {
+        Bitmap CurveEQ = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888);
+        ((PostPipeline) basePipeline).debugData.add(CurveEQ);
+        Utilities.drawArray(r, g, b, CurveEQ);
     }
+
     private short[][] ChromaHistogram(byte[] in) {
         short[][] colorsMap;
         colorsMap = new short[3][SIZE];
-        for(int w = 0; w<in.length;w+=4){
-            Log.d(Name,"inputR:"+in[w]);
-            int r = ((in[w]))+128;
-            int g = ((in[w + 1]))+128;
-            int b = ((in[w + 2]))+128;
-            int br = (r+g+b);
-            if(br/3 > 1 && br/3 < 255) {
+        for (int w = 0; w < in.length; w += 4) {
+            Log.d(Name, "inputR:" + in[w]);
+            int r = ((in[w])) + 128;
+            int g = ((in[w + 1])) + 128;
+            int b = ((in[w + 2])) + 128;
+            int br = (r + g + b);
+            if (br / 3 > 1 && br / 3 < 255) {
                 colorsMap[0][(int) ((double) (r) * (255.0) / br)]++;
                 colorsMap[1][(int) ((double) (g) * (255.0) / br)]++;
                 colorsMap[2][(int) ((double) (b) * (255.0) / br)]++;
@@ -65,14 +66,15 @@ public class AWB extends Node {
         }
         return colorsMap;
     }
+
     private List<Double> buildCumulativeHist(short[] hist) {
         List<Double> cumulativeHist = new ArrayList<>();
         for (int i = 1; i < SIZE; i++) {
-            cumulativeHist.set(i,cumulativeHist.get(i-1) + hist[i - 1]);
+            cumulativeHist.set(i, cumulativeHist.get(i - 1) + hist[i - 1]);
         }
         double max = cumulativeHist.get(SIZE);
         for (int i = 0; i < cumulativeHist.size(); i++) {
-            cumulativeHist.set(i,cumulativeHist.get(i)/max);
+            cumulativeHist.set(i, cumulativeHist.get(i) / max);
         }
         /*float[] prevH = cumulativeHist.clone();
         cumulativeHist = new float[histSize];
@@ -81,15 +83,16 @@ public class AWB extends Node {
         }*/
         return cumulativeHist;
     }
+
     private List<Double> buildCumulativeHist(int[] hist) {
         List<Double> cumulativeHist = new ArrayList<>();
         cumulativeHist.add(0.0);
         for (int i = 1; i < SIZE; i++) {
-            cumulativeHist.add(cumulativeHist.get(i-1) + hist[i - 1]);
+            cumulativeHist.add(cumulativeHist.get(i - 1) + hist[i - 1]);
         }
-        double max = cumulativeHist.get(SIZE-1);
+        double max = cumulativeHist.get(SIZE - 1);
         for (int i = 0; i < cumulativeHist.size(); i++) {
-            cumulativeHist.set(i,cumulativeHist.get(i)/max);
+            cumulativeHist.set(i, cumulativeHist.get(i) / max);
         }
         /*float[] prevH = cumulativeHist.clone();
         cumulativeHist = new float[histSize];
@@ -98,6 +101,7 @@ public class AWB extends Node {
         }*/
         return cumulativeHist;
     }
+
     private short[][] Histogram(Bitmap in) {
         short[][] brMap;
         brMap = new short[3][SIZE];
@@ -114,6 +118,7 @@ public class AWB extends Node {
         }
         return brMap;
     }
+
     private float[] CCVRANSAC(int[][] input) {
         int maxHistH = -1;
         float redVector = 0;
@@ -137,13 +142,13 @@ public class AWB extends Node {
         output[0] = blueVector / mean;
         output[1] = greenVector / mean;
         output[2] = redVector / mean;
-        output[0] = 1.f/output[0];
-        output[1] = 1.f/output[1];
-        output[2] = 1.f/output[2];
+        output[0] = 1.f / output[0];
+        output[1] = 1.f / output[1];
+        output[2] = 1.f / output[2];
         mean = (float) (output[0] + output[1] + output[2]) / 3;
-        output[0]/= mean;
-        output[1]/= mean;
-        output[2]/= mean;
+        output[0] /= mean;
+        output[1] /= mean;
+        output[2] /= mean;
 
         //if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
         //if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
@@ -151,6 +156,7 @@ public class AWB extends Node {
         Log.v("AWB", "Color correction vector:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
+
     //Yellow point 0xE3BFA5
     //Averaged white point 0xC2C2C2
     //Color average point 210 192 179
@@ -163,9 +169,9 @@ public class AWB extends Node {
         double maxmpy = 0;
         //short minC = 0;
 
-        for (short i = (short)startR; i < endR; i++) {
-            for (short j = (short)startG; j < endG; j++) {
-                for (short k = (short)startB; k < endB; k++) {
+        for (short i = (short) startR; i < endR; i++) {
+            for (short j = (short) startG; j < endG; j++) {
+                for (short k = (short) startB; k < endB; k++) {
                     //for (short i = 20; i < 200; i++) {
                     //    for (short j = 20; j < 200; j++) {
                     //        for (short k = 20; k < 200; k++) {
@@ -219,10 +225,10 @@ public class AWB extends Node {
         output[0] = blueVector / mean;
         output[1] = greenVector / mean;
         output[2] = redVector / mean;
-        float max = Math.max(output[0],Math.max(output[1],output[2]));
-        output[0]/=max;
-        output[1]/=max;
-        output[2]/=max;
+        float max = Math.max(output[0], Math.max(output[1], output[2]));
+        output[0] /= max;
+        output[1] /= max;
+        output[2] /= max;
         //if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
         //if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
         //if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
@@ -238,35 +244,35 @@ public class AWB extends Node {
         double maxmpy = 0;
         short minC = 0;
         Parameters parameters = PhotonCamera.getParameters();
-        short[]starts = new short[3];
-        short[]ends = new short[3];
-        for(int i = 0;i<starts.length;i++){
+        short[] starts = new short[3];
+        short[] ends = new short[3];
+        for (int i = 0; i < starts.length; i++) {
             int mpy = 1;
             int add = 0;
-            switch (i){
+            switch (i) {
                 case 0:
                     mpy = 120;
-                    add=20;
+                    add = 20;
                     break;
                 case 1:
                     mpy = 120;
                     break;
                 case 2:
                     mpy = 120;
-                    add=-5;
+                    add = -5;
                     break;
 
             }
-            starts[i] = (short) Math.max(parameters.whitePoint[i]*mpy - 30 + add,50);
-            ends[i] = (short) Math.min(parameters.whitePoint[i]*mpy + 100 + add,250);
+            starts[i] = (short) Math.max(parameters.whitePoint[i] * mpy - 30 + add, 50);
+            ends[i] = (short) Math.min(parameters.whitePoint[i] * mpy + 100 + add, 250);
             /*if(i == 2) {
                 starts[i] = (short) Math.max(parameters.whitePoint[i]*188 - 90,30);
                 ends[i] = (short) Math.min(parameters.whitePoint[i]*188 + 40,250);
             }*/
         }
-        Log.d(Name,"WP start:"+starts[0]+" WP end:"+ends[0]);
-        Log.d(Name,"WP start:"+starts[1]+" WP end:"+ends[1]);
-        Log.d(Name,"WP start:"+starts[2]+" WP end:"+ends[2]);
+        Log.d(Name, "WP start:" + starts[0] + " WP end:" + ends[0]);
+        Log.d(Name, "WP start:" + starts[1] + " WP end:" + ends[1]);
+        Log.d(Name, "WP start:" + starts[2] + " WP end:" + ends[2]);
         for (short i = starts[2]; i < ends[2]; i++) {
             for (short j = starts[1]; j < ends[1]; j++) {
                 for (short k = starts[0]; k < ends[0]; k++) {
@@ -279,8 +285,8 @@ public class AWB extends Node {
                         redVector = i;
                         greenVector = j;
                         blueVector = k;
-                        maxmpy = (double)Math.max(Math.max(redVector,greenVector),blueVector)/Math.min(Math.min(redVector,greenVector),blueVector);
-                        minC = (short)Math.max(Math.max(redVector,greenVector),blueVector);
+                        maxmpy = (double) Math.max(Math.max(redVector, greenVector), blueVector) / Math.min(Math.min(redVector, greenVector), blueVector);
+                        minC = (short) Math.max(Math.max(redVector, greenVector), blueVector);
                     }
                 }
             }
@@ -293,52 +299,54 @@ public class AWB extends Node {
         output[0] = blueVector / mean;
         output[1] = greenVector / mean;
         output[2] = redVector / mean;
-        output[0] = 1.f/output[0];
-        output[1] = 1.f/output[1];
-        output[2] = 1.f/output[2];
-        float max = Math.max(output[0],Math.max(output[1],output[2]));
-        output[0]/=max;
-        output[1]/=max;
-        output[2]/=max;
+        output[0] = 1.f / output[0];
+        output[1] = 1.f / output[1];
+        output[2] = 1.f / output[2];
+        float max = Math.max(output[0], Math.max(output[1], output[2]));
+        output[0] /= max;
+        output[1] /= max;
+        output[2] /= max;
         //if(redVector > greenVector && redVector > blueVector) output[0]*=Math.min(maxmpy,1.05);
         //if(blueVector > redVector && blueVector > greenVector) output[1]*=Math.min(maxmpy,1.05);
         //if(greenVector > redVector && greenVector > blueVector) output[2]*=Math.min(maxmpy,1.05);
         Log.v("AWB", "Color correction vector:" + output[0] + " ," + output[1] + " ," + output[2]);
         return output;
     }
-    private float[] CCVAEC(short[][] brH,float[] CCV){
+
+    private float[] CCVAEC(short[][] brH, float[] CCV) {
         double avr = 0.0;
-        for(int k =0; k<3;k++)
-            for(int i =70; i<SIZE;i++) {
+        for (int k = 0; k < 3; k++)
+            for (int i = 70; i < SIZE; i++) {
                 avr = (avr + brH[k][i]) / 2.0;
             }
-        avr/=SIZE/4.0f;
+        avr /= SIZE / 4.0f;
         int ind80 = 204;
         int indo = -1;
         int indmax = -1;
         double tmax = 1000.0;
-        for(int i = 253;i>=128;i--){
-            double br = (brH[0][i]+brH[1][i]+brH[2][i])/3.0;
-            Log.d(Name,"AEC br:"+br);
-            if(br > avr){
+        for (int i = 253; i >= 128; i--) {
+            double br = (brH[0][i] + brH[1][i] + brH[2][i]) / 3.0;
+            Log.d(Name, "AEC br:" + br);
+            if (br > avr) {
                 indo = i;
                 break;
             }
-            if(br > tmax){
+            if (br > tmax) {
                 tmax = br;
                 indmax = i;
             }
         }
-        Log.d(Name,"AEC avr:"+avr);
-        Log.d(Name,"AEC ind:"+indo);
-        if(indo > ind80) return CCV;
-        float corr = ((float)ind80)/indo;
-        if(indo == -1) corr = ((float)ind80)/indmax;
-        CCV[0]*=(float)(corr);
-        CCV[1]*=(float)(corr);
-        CCV[2]*=(float)(corr);
+        Log.d(Name, "AEC avr:" + avr);
+        Log.d(Name, "AEC ind:" + indo);
+        if (indo > ind80) return CCV;
+        float corr = ((float) ind80) / indo;
+        if (indo == -1) corr = ((float) ind80) / indmax;
+        CCV[0] *= (float) (corr);
+        CCV[1] *= (float) (corr);
+        CCV[2] *= (float) (corr);
         return CCV;
     }
+
     int startR = 40;
     int startG = 40;
     int startB = 40;
@@ -347,22 +355,23 @@ public class AWB extends Node {
     int endB = 255;
     int blur = 1;
     boolean enableAWB = false;
+
     @Override
     public void Run() {
-        enableAWB = getTuning("EnableAWB",enableAWB);
-        if(!enableAWB){
+        enableAWB = getTuning("EnableAWB", enableAWB);
+        if (!enableAWB) {
             WorkingTexture = previousNode.WorkingTexture;
             glProg.closed = true;
             return;
         }
-        startR = getTuning("StartR",startR);
-        startG = getTuning("StartG",startG);
-        startB = getTuning("StartB",startB);
-        endR = getTuning("EndR",endR);
-        endG = getTuning("EndG",endG);
-        endB = getTuning("EndB",endB);
+        startR = getTuning("StartR", startR);
+        startG = getTuning("StartG", startG);
+        startB = getTuning("StartB", startB);
+        endR = getTuning("EndR", endR);
+        endG = getTuning("EndG", endG);
+        endB = getTuning("EndB", endB);
         //GLTexture r1 = glUtils.medianpatch(previousNode.WorkingTexture,new Point(400,300));
-        GLTexture r1 = glUtils.medianDown(previousNode.WorkingTexture,5);
+        GLTexture r1 = glUtils.medianDown(previousNode.WorkingTexture, 5);
         //GLTexture r1 = glUtils.patch(r0,new Point(80,80));
         //GLTexture r2 = glUtils.blursmall(r1,3,1.8);
         /*Bitmap preview = Bitmap.createBitmap(r1.mSize.x, r1.mSize.y, bitmapF.getBitmapConfig());
@@ -370,18 +379,18 @@ public class AWB extends Node {
         if(PhotonCamera.getSettings().DebugData) glUtils.SaveProgResult(r1.mSize,"debAWB");
         r0.close();
         r1.close();*/
-        File awblut = new File(FileManager.sPHOTON_TUNING_DIR,"awb_lut.png");
+        File awblut = new File(FileManager.sPHOTON_TUNING_DIR, "awb_lut.png");
         GLImage awb_lutbm;
         GLTexture awb_lut = null;
-        if(awblut.exists()){
+        if (awblut.exists()) {
             awb_lutbm = new GLImage(awblut);
-            awb_lut = new GLTexture(awb_lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
-            glProg.setDefine("LUT",true);
+            awb_lut = new GLTexture(awb_lutbm, GL_LINEAR, GL_CLAMP_TO_EDGE, 0);
+            glProg.setDefine("LUT", true);
         }
         glProg.useAssetProgram("awbgetchroma");
-        glProg.setTexture("InputBuffer",r1);
-        if(awb_lut != null) glProg.setTexture("LookupTable",awb_lut);
-        glProg.drawBlocks(basePipeline.main3,r1.mSize);
+        glProg.setTexture("InputBuffer", r1);
+        if (awb_lut != null) glProg.setTexture("LookupTable", awb_lut);
+        glProg.drawBlocks(basePipeline.main3, r1.mSize);
         GLImage preview = glUtils.GenerateGLImage(r1.mSize);
         //r0.close();
         int[][] ChromaHist = ChromaHistogram(preview);
@@ -405,8 +414,8 @@ public class AWB extends Node {
         for(int i =blur; i<255-blur;i++){
             ChromaHist[j][i] = (int)((ChromaHist[j][i-1]*0.5f+ChromaHist[j][i]*1.2f+ChromaHist[j][i+1]*0.5f)/(0.5f+1.2f+0.5f));
         }*/
-        if(basePipeline.mSettings.DebugData) {
-            GenerateCurveBitm(ChromaHist[0],ChromaHist[1],ChromaHist[2]);
+        if (basePipeline.mSettings.DebugData) {
+            GenerateCurveBitm(ChromaHist[0], ChromaHist[1], ChromaHist[2]);
         }
         float[] CCV = CCV(ChromaHist);
 
@@ -418,19 +427,20 @@ public class AWB extends Node {
         WorkingTexture = previousNode.WorkingTexture;
         glProg.closed = true;
         preview.close();
-        if(awb_lut != null) awb_lut.close();
+        if (awb_lut != null) awb_lut.close();
     }
-    private void PatchPoint(float[] ccv){
+
+    private void PatchPoint(float[] ccv) {
         Parameters parameters = PhotonCamera.getParameters();
         //Rational[] neutral = new Rational[3];
-        for(int i =0; i<3;i++)
-            Log.d(Name,"Before Patch:"+ PhotonCamera.getParameters().whitePoint[i]);
+        for (int i = 0; i < 3; i++)
+            Log.d(Name, "Before Patch:" + PhotonCamera.getParameters().whitePoint[i]);
         //float mpy = ccv[1];
         //neutral[0] = new Rational((int)(mpy*1.f/ccv[0])*1024,1024);
         //neutral[1] = new Rational((int)(mpy*1.f/ccv[1])*1024,1024);
         //neutral[2] = new Rational((int)(mpy*1.f/ccv[2])*1024,1024);
         parameters.customNeutral = new float[ccv.length];
-        for(int i =0;i<ccv.length;i++) parameters.customNeutral[i] = ccv[i];
+        for (int i = 0; i < ccv.length; i++) parameters.customNeutral[i] = ccv[i];
         parameters.ReCalcColor(true, CaptureController.mCaptureResult);
     }
 }

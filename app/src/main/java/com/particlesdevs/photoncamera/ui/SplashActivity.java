@@ -1,7 +1,7 @@
 package com.particlesdevs.photoncamera.ui;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.os.Environment;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -11,6 +11,7 @@ import com.particlesdevs.photoncamera.util.FileManager;
 import java.io.File;
 import java.io.IOException;
 
+@SuppressLint("CustomSplashScreen")
 public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,7 +20,7 @@ public class SplashActivity extends AppCompatActivity {
             final File path = new File(
                     FileManager.sPHOTON_DIR, "PhotonLog");
             if (!path.exists()) {
-                path.mkdirs();
+                boolean result = path.mkdirs();
             }
             Runtime.getRuntime().exec("adb logcat --clear");
             Runtime.getRuntime().exec(

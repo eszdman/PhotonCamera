@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
-    <string name="iso" translatable="false">"ISO "</string>
-    <string name="icon_string" translatable="false">Icon</string>
-    <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
-    <string name="app_name" translatable="false">PhotonCamera</string>
-    <string name="device_support" translatable="false">PhotonCamera Pro</string>
     <string name="request_permission">此 APP 需要相機許可權。</string>
     <string name="camera_error">此裝置不支援 Camera2 API。</string>
     <string name="luma_nr_count">亮度降噪強度</string>
@@ -22,8 +16,6 @@
     <string name="contrconst">恆定光圈</string>
     <string name="saturation">飽和度</string>
     <string name="expocompensation">曝光補償</string>
-    <string name="jpg" translatable="false">JPEG</string>
-    <string name="hdrx" translatable="false">HDRX</string>
     <string name="sharpness">銳度</string>
     <string name="turn_on_grid">顯示網格</string>
     <string name="noise_reduction_str">降噪強度</string>
@@ -112,14 +104,10 @@
     <string name="auto">自動</string>
     <string name="t_3s">3 秒</string>
     <string name="t_10s">10 秒</string>
-    <string name="raw_string" translatable="false">RAW</string>
-    <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
     <string name="jpg_only">僅 JPEG</string>
     <string name="off">關閉</string>
     <string name="golden_ratio">黃金比例</string>
     <string name="diag_triangle">Diag. Triangles</string>
-    <string name="three_x3" translatable="false">3x3</string>
-    <string name="four_x4" translatable="false">4x4</string>
     <string name="processing_processname">處理中 %1$s...</string>
     <string name="turn_on_system_nr">系統降噪</string>
 

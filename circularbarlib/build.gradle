@@ -8,7 +8,7 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        minSdkVersion 24
+        minSdkVersion 26
         //Waiting for api 32 sources
         //noinspection OldTargetApi
         targetSdkVersion 33

@@ -14,6 +14,8 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.preference.PreferenceManager;
@@ -63,15 +65,20 @@ public class CameraActivity extends BaseActivity {
     }
     private void requestPermission() {
         if (SDK_INT >= Build.VERSION_CODES.R) {
+            ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> Log.d("CameraActivity", result.toString()));
             try {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.addCategory("android.intent.category.DEFAULT");
                 intent.setData(Uri.parse(String.format("package:%s",getApplicationContext().getPackageName())));
-                startActivityForResult(intent, 2296);
+                startActivityIntent.launch(intent);
+//                startActivityForResult(intent, 2296);
             } catch (Exception e) {
                 Intent intent = new Intent();
                 intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                startActivityForResult(intent, 2296);
+                startActivityIntent.launch(intent);
+//                startActivityForResult(intent, 2296);
             }
         }
         //below android 11

@@ -1,27 +1,28 @@
 package com.particlesdevs.photoncamera.processing;
 
 import android.graphics.Point;
+
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.rs.GyroMap;
 
-import static com.particlesdevs.photoncamera.control.Gyro.NS2S;
-
 public class ImageFrameDeblur {
     public GyroBurst firstFrameGyro;
     private GyroMap gyroMap;
-    private Point size,kernelSize,kernelCount,nsize;
+    private Point size, kernelSize, kernelCount, nsize;
     private Parameters parameters;
-    public ImageFrameDeblur(){
+
+    public ImageFrameDeblur() {
         parameters = PhotonCamera.getParameters();
         size = parameters.rawSize;
-        nsize = new Point(size.x/4,size.y/4);
-        kernelSize = new Point(64,64);
-        kernelCount = new Point(nsize.x/kernelSize.x,nsize.y/kernelSize.y);
-        gyroMap = new GyroMap(kernelSize,kernelCount,nsize);
+        nsize = new Point(size.x / 4, size.y / 4);
+        kernelSize = new Point(64, 64);
+        kernelCount = new Point(nsize.x / kernelSize.x, nsize.y / kernelSize.y);
+        gyroMap = new GyroMap(kernelSize, kernelCount, nsize);
     }
-    public void processDeblurPosition(ImageFrame in){
+
+    public void processDeblurPosition(ImageFrame in) {
         /*
         double xzoom = (Math.PI*2)/(parameters.angleX);
         double yzoom = (Math.PI*2)/(parameters.angleY);
@@ -59,7 +60,7 @@ public class ImageFrameDeblur {
             Utilities.saveBitmap(kernels,"kernels");
 
          */
-        double xf,yf,zf;
+        double xf, yf, zf;
         xf = in.frameGyro.integrated[0];
         yf = in.frameGyro.integrated[1];
         zf = in.frameGyro.integrated[2];
@@ -67,8 +68,8 @@ public class ImageFrameDeblur {
         in.rX = xf;
         in.rY = yf;
         in.rZ = zf;
-        in.posx = xf*parameters.perXAngle;
-        in.posy = yf*parameters.perYAngle;
+        in.posx = xf * parameters.perXAngle;
+        in.posy = yf * parameters.perYAngle;
         in.rotation = zf;
     }
 }

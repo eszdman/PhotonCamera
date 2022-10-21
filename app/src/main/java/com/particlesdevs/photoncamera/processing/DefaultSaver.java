@@ -19,9 +19,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantLock;
 
-public class DefaultSaver extends SaverImplementation{
+public class DefaultSaver extends SaverImplementation {
     private static final String TAG = "DefaultSaver";
     final UnlimitedProcessor mUnlimitedProcessor;
     final HdrxProcessor hdrxProcessor;
@@ -31,6 +30,7 @@ public class DefaultSaver extends SaverImplementation{
         this.hdrxProcessor = new HdrxProcessor(processingEventsListener);
         this.mUnlimitedProcessor = new UnlimitedProcessor(processingEventsListener);
     }
+
     public void addRAW16(Image image) {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
             mUnlimitedProcessor.unlimitedCycle(image);
@@ -88,9 +88,10 @@ public class DefaultSaver extends SaverImplementation{
 
         }
     }
+
     @HunterDebug
     public void runRaw(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
-        super.runRaw(imageReader,characteristics,captureResult,burstShakiness,cameraRotation);
+        super.runRaw(imageReader, characteristics, captureResult, burstShakiness, cameraRotation);
         //Wait for one frame at least.
         Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
         while (IMAGE_BUFFER.size() < 1){
@@ -101,9 +102,9 @@ public class DefaultSaver extends SaverImplementation{
                 e.printStackTrace();
             }
         }
-        if(PhotonCamera.getSettings().frameCount == 1){
+        if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = ImagePath.newDNGFilePath();
-            Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
+            Log.d(TAG, "Size:" + IMAGE_BUFFER.size());
             boolean imageSaved = ImageSaver.Util.saveSingleRaw(dngFile, IMAGE_BUFFER.get(0),
                     characteristics, captureResult, cameraRotation);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
@@ -143,8 +144,9 @@ public class DefaultSaver extends SaverImplementation{
         );
         IMAGE_BUFFER.clear();
     }
-    public void unlimitedStart(ImageReader imageReader,CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
-        super.unlimitedStart(imageReader,characteristics,captureResult,cameraRotation);
+
+    public void unlimitedStart(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
+        super.unlimitedStart(imageReader, characteristics, captureResult, cameraRotation);
         Path dngFile = ImagePath.newDNGFilePath();
         Path jpgFile = ImagePath.newJPGFilePath();
 
@@ -159,7 +161,8 @@ public class DefaultSaver extends SaverImplementation{
                 processingCallback
         );
     }
-    public void unlimitedEnd(){
+
+    public void unlimitedEnd() {
         mUnlimitedProcessor.unlimitedEnd();
     }
 }

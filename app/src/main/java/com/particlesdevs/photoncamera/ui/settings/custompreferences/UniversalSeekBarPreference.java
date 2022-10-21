@@ -2,15 +2,13 @@ package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
@@ -68,7 +66,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
     }
 
     @Override
-    public void onBindViewHolder(PreferenceViewHolder holder) {
+    public void onBindViewHolder(@NonNull PreferenceViewHolder holder) {
 //        log("onBindViewHolder");
         super.onBindViewHolder(holder);
         holder.setDividerAllowedAbove(false);

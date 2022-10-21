@@ -1,6 +1,5 @@
 package com.particlesdevs.photoncamera.processing;
 
-import android.graphics.Point;
 import android.media.Image;
 
 import com.particlesdevs.photoncamera.control.GyroBurst;
@@ -13,8 +12,8 @@ public class ImageFrame {
     public Image image;
     public GyroBurst frameGyro;
     public float[][][] BlurKernels;
-    public double posx,posy;
-    public double rX,rY,rZ;
+    public double posx, posy;
+    public double rX, rY, rZ;
     public double[] HomographyMatrix;
     public double rotation;
     public int number;

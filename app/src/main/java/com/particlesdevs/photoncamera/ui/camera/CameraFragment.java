@@ -38,7 +38,6 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
@@ -65,8 +64,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.hunter.library.debug.HunterDebug;
-import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
-import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
@@ -76,6 +73,8 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.control.CountdownTimer;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
@@ -105,12 +104,12 @@ import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.Utilities;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -195,9 +194,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         activity = getActivity();
+        assert activity != null;
         notificationManager = NotificationManagerCompat.from(activity);
-        settingsManager = PhotonCamera.getInstance(activity).getSettingsManager();
-        supportedDevice = PhotonCamera.getInstance(activity).getSupportedDevice();
+        settingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
+        supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
         supportedDevice.loadCheck();
     }
     @HunterDebug
@@ -487,7 +487,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
     /**
      * Returns the ConstraintLayout object after adjusting the LayoutParams of Views contained in it.
-     * Adjusts the relative position of layout_topbar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
+     * Adjusts the relative position of layout_top-bar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
      * depending on the aspect ratio of device.
      * This is done in order to re-organise the camera layout for long displays (having aspect ratio > 16:9)
      *
@@ -532,7 +532,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
 
     public String cycler(String savedCameraID) {
-        if (mCameraLensDataMap.get(savedCameraID).getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
+        if (Objects.requireNonNull(mCameraLensDataMap.get(savedCameraID)).getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
             sActiveBackCamId = savedCameraID;
             return sActiveFrontCamId;
         } else {
@@ -583,11 +583,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
     private void showNotification(String processName) {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel
-                    (NOTIFICATION_CHANNEL_ID, "NotificationChannel", NotificationManager.IMPORTANCE_LOW);
-            notificationManager.createNotificationChannel(channel);
-        }
+        NotificationChannel channel = new NotificationChannel
+                (NOTIFICATION_CHANNEL_ID, "NotificationChannel", NotificationManager.IMPORTANCE_LOW);
+        notificationManager.createNotificationChannel(channel);
         notificationBuilder
                 .setSmallIcon(R.drawable.ic_round_photo_camera_24)
                 .setContentTitle(activity.getString(R.string.app_name))
@@ -671,7 +669,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 Uri imageUri = null;
                 if (savedFilePath != null) {
                     triggerMediaScanner(imageUri = Uri.fromFile(savedFilePath.toFile()));
-                    logD("ImageSaved: " + savedFilePath.toString());
+                    logD("ImageSaved: " + savedFilePath);
 //                    showSnackBar("ImageSaved: " + savedFilePath.toString());
                 }
                 cameraFragmentViewModel.updateGalleryThumb(imageUri);
@@ -994,6 +992,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         private CountDownTimer countdownTimer;
         private View shutterButton;
 
+        @SuppressLint("NonConstantResourceId")
         @Override
         public void onClick(View view) {
             switch (view.getId()) {

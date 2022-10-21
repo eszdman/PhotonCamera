@@ -572,12 +572,9 @@ public class HorizontalPicker extends View {
         // post to the UI Thread to avoid potential interference with the OpenGL Thread
         if (onItemClicked != null) {
 
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    vibration.Click();
-                    onItemClicked.onItemClicked(getSelectedItem());
-                }
+            post(() -> {
+                vibration.Click();
+                onItemClicked.onItemClicked(getSelectedItem());
             });
         }
 
@@ -828,7 +825,7 @@ public class HorizontalPicker extends View {
     private void adjustToNearestItemX() {
 
         int x = getScrollX();
-        int item = Math.round(x / (itemWidth + dividerSize * 1f));
+        int item = Math.round(x / (itemWidth + dividerSize));
 
         if (item < 0) {
             item = 0;
@@ -876,12 +873,7 @@ public class HorizontalPicker extends View {
         startMarqueeIfNeeded();
         // post to the UI Thread to avoid potential interference with the OpenGL Thread
         if (onItemSelected != null) {
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    onItemSelected.onItemSelected(getPositionFromCoordinates(getScrollX()));
-                }
-            });
+            post(() -> onItemSelected.onItemSelected(getPositionFromCoordinates(getScrollX())));
         }
     }
 

@@ -19,10 +19,10 @@
     <string name="shadows">Shadows</string>
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
-    <string name="saturation" translatable="false">Saturation</string>
+    <string name="saturation">Saturation</string>
     <string name="expocompensation">Exposure Compensation</string>
-    <string name="jpg" translatable="false">JPEG</string>
-    <string name="hdrx" translatable="false">HDRX</string>
+    <string name="jpg">JPEG</string>
+    <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>

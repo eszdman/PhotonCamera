@@ -569,7 +569,7 @@ public class SettingsManager {
     }
 
     /**
-     * Check whether a settings's value is currently set to the
+     * Check whether a setting's value is currently set to the
      * default value.
      */
     public boolean isDefault(String scope, PreferenceKeys.Key key) {

@@ -63,11 +63,10 @@ public class Parameters {
     public SpecificSettingSensor sensorSpecifics;
 
 
-
     public void FillConstParameters(CameraCharacteristics characteristics, Point size) {
         rawSize = size;
         Integer analogue = characteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
-        if(analogue != null){
+        if (analogue != null) {
             analogIso = analogue;
         } else analogIso = 100;
         for (int i = 0; i < 4; i++) blackLevel[i] = 64;
@@ -83,27 +82,39 @@ public class Parameters {
             flen[0] = 4.75f;
         }
         sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
-        XPerMm = rawSize.x/sensorSize.getWidth();
-        YPerMm = rawSize.y/sensorSize.getHeight();
+        XPerMm = rawSize.x / sensorSize.getWidth();
+        YPerMm = rawSize.y / sensorSize.getHeight();
 
 
         double[] cameraIntrinsic = this.cameraIntrinsic;
-        cameraIntrinsic[0]=flen[0];  cameraIntrinsic[1]=0.0;      cameraIntrinsic[2]=rawSize.x/2.0;
-        cameraIntrinsic[3]=0.0;      cameraIntrinsic[4]=flen[0];  cameraIntrinsic[5]=rawSize.y/2.0;
-        cameraIntrinsic[6]=0.0;      cameraIntrinsic[7]=0.0;      cameraIntrinsic[8]=1.0;
+        cameraIntrinsic[0] = flen[0];
+        cameraIntrinsic[1] = 0.0;
+        cameraIntrinsic[2] = rawSize.x / 2.0;
+        cameraIntrinsic[3] = 0.0;
+        cameraIntrinsic[4] = flen[0];
+        cameraIntrinsic[5] = rawSize.y / 2.0;
+        cameraIntrinsic[6] = 0.0;
+        cameraIntrinsic[7] = 0.0;
+        cameraIntrinsic[8] = 1.0;
 
-        cameraIntrinsicRev[0]=1.0;  cameraIntrinsicRev[1]=0.0;  cameraIntrinsicRev[2]=-rawSize.x/2.0;
-        cameraIntrinsicRev[3]=0.0;  cameraIntrinsicRev[4]=1.0;  cameraIntrinsicRev[5]=-rawSize.y/2.0;
-        cameraIntrinsicRev[6]=0.0;  cameraIntrinsicRev[7]=0.0;  cameraIntrinsicRev[8]=flen[0];
+        cameraIntrinsicRev[0] = 1.0;
+        cameraIntrinsicRev[1] = 0.0;
+        cameraIntrinsicRev[2] = -rawSize.x / 2.0;
+        cameraIntrinsicRev[3] = 0.0;
+        cameraIntrinsicRev[4] = 1.0;
+        cameraIntrinsicRev[5] = -rawSize.y / 2.0;
+        cameraIntrinsicRev[6] = 0.0;
+        cameraIntrinsicRev[7] = 0.0;
+        cameraIntrinsicRev[8] = flen[0];
 
-        Log.d(TAG,"IntrinsicMatrix:\n"
-                +cameraIntrinsic[0]+","+cameraIntrinsic[1]+","+cameraIntrinsic[2]+",\n"
-                +cameraIntrinsic[3]+","+cameraIntrinsic[4]+","+cameraIntrinsic[5]+",\n"
-                +cameraIntrinsic[6]+","+cameraIntrinsic[7]+","+cameraIntrinsic[8]+",\n");
-        angleX = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
-        angleY = (2*Math.atan(sensorSize.getWidth()/((double)flen[0]*2)));
-        perXAngle = rawSize.x/angleX;
-        perYAngle = rawSize.y/angleY;
+        Log.d(TAG, "IntrinsicMatrix:\n"
+                + cameraIntrinsic[0] + "," + cameraIntrinsic[1] + "," + cameraIntrinsic[2] + ",\n"
+                + cameraIntrinsic[3] + "," + cameraIntrinsic[4] + "," + cameraIntrinsic[5] + ",\n"
+                + cameraIntrinsic[6] + "," + cameraIntrinsic[7] + "," + cameraIntrinsic[8] + ",\n");
+        angleX = (2 * Math.atan(sensorSize.getWidth() / ((double) flen[0] * 2)));
+        angleY = (2 * Math.atan(sensorSize.getWidth() / ((double) flen[0] * 2)));
+        perXAngle = rawSize.x / angleX;
+        perYAngle = rawSize.y / angleY;
         Log.d(TAG, "Focal Length:" + flen[0]);
         focalLength = flen[0];
         Object whiteLevel = characteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
@@ -121,9 +132,10 @@ public class Parameters {
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
     }
+
     public void FillDynamicParameters(CaptureResult result) {
         sensorSpecifics = PhotonCamera.getSpecificSensor().selectedSensorSpecifics;
-        noiseModeler = new NoiseModeler( result.get(CaptureResult.SENSOR_NOISE_PROFILE),analogIso,result.get(CaptureResult.SENSOR_SENSITIVITY),cfaPattern,sensorSpecifics);
+        noiseModeler = new NoiseModeler(result.get(CaptureResult.SENSOR_NOISE_PROFILE), analogIso, result.get(CaptureResult.SENSOR_SENSITIVITY), cfaPattern, sensorSpecifics);
         int[] blarr = new int[4];
         BlackLevelPattern level = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN);
         if (result != null) {
@@ -145,7 +157,7 @@ public class Parameters {
                         (gainMap[(gainMap.length / 2) - (gainMap.length / 2) % 4]) == 1.0 &&
                         (gainMap[(gainMap.length / 2 + gainMap.length / 8) - (gainMap.length / 2 + gainMap.length / 8) % 4]) == 1.0) {
                     hasGainMap = false;
-                    if(isHuawei) {
+                    if (isHuawei) {
                         Log.d(TAG, "DETECTED FAKE GAINMAP, REPLACING WITH STATIC GAINMAP");
                         gainMap = new float[Const.gainMap.length];
                         for (int i = 0; i < Const.gainMap.length; i += 4) {
@@ -161,7 +173,7 @@ public class Parameters {
                 }
             }
             hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-            ReCalcColor(false,result);
+            ReCalcColor(false, result);
         }
         if (!usedDynamic)
             if (level != null) {
@@ -173,7 +185,7 @@ public class Parameters {
 
     public float[] customNeutral;
 
-    public void ReCalcColor(boolean customNeutr,CaptureResult result) {
+    public void ReCalcColor(boolean customNeutr, CaptureResult result) {
         CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
         if (!customNeutr)
@@ -198,31 +210,31 @@ public class Parameters {
         ColorSpaceTransform forwardt1 = characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX1);
         ColorSpaceTransform forwardt2 = characteristics.get(CameraCharacteristics.SENSOR_FORWARD_MATRIX2);
 
-        if(sensorSpecifics.CCTExists){
-            if(sensorSpecifics.calibrationTransform1 != null){
+        if (sensorSpecifics.CCTExists) {
+            if (sensorSpecifics.calibrationTransform1 != null) {
                 calibration1 = sensorSpecifics.calibrationTransform1;
             }
-            if(sensorSpecifics.calibrationTransform2 != null){
+            if (sensorSpecifics.calibrationTransform2 != null) {
                 calibration2 = sensorSpecifics.calibrationTransform2;
             }
 
-            if(sensorSpecifics.colorTransform1 != null){
+            if (sensorSpecifics.colorTransform1 != null) {
                 colorMat1 = sensorSpecifics.colorTransform1;
             }
-            if(sensorSpecifics.colorTransform2 != null){
+            if (sensorSpecifics.colorTransform2 != null) {
                 colorMat2 = sensorSpecifics.colorTransform2;
             }
 
-            if(sensorSpecifics.forwardMatrix1 != null){
+            if (sensorSpecifics.forwardMatrix1 != null) {
                 forwardt1 = sensorSpecifics.forwardMatrix1;
             }
-            if(sensorSpecifics.forwardMatrix2 != null){
+            if (sensorSpecifics.forwardMatrix2 != null) {
                 forwardt2 = sensorSpecifics.forwardMatrix2;
             }
-            if(sensorSpecifics.referenceIlluminant1 != -1){
+            if (sensorSpecifics.referenceIlluminant1 != -1) {
                 ref1 = sensorSpecifics.referenceIlluminant1;
             }
-            if(sensorSpecifics.referenceIlluminant2 != -1){
+            if (sensorSpecifics.referenceIlluminant2 != -1) {
                 ref2 = sensorSpecifics.referenceIlluminant2;
             }
 
@@ -277,8 +289,9 @@ public class Parameters {
             }
             if (cnt <= 4) wrongCalibration = false;
         } else wrongCalibration = false;
-        if(sensorSpecifics.CCTExists) wrongCalibration = false;
-        if(PhotonCamera.getSpecific().specificSetting.isRawColorCorrection) wrongCalibration = false;
+        if (sensorSpecifics.CCTExists) wrongCalibration = false;
+        if (PhotonCamera.getSpecific().specificSetting.isRawColorCorrection)
+            wrongCalibration = false;
         if (wrongCalibration && !customCCT.exists()) {
             sensorToProPhoto[0] = 1.0f / whitePoint[0];
             sensorToProPhoto[1] = 0.0f;
@@ -328,20 +341,22 @@ public class Parameters {
                 0f
         };
     }
-    private void normalize(float [] in){
-        float avr = in[0]+in[1]+in[2];
-        in[0]/=avr;
-        in[1]/=avr;
-        in[2]/=avr;
-        avr = in[3]+in[4]+in[5];
-        in[3]/=avr;
-        in[4]/=avr;
-        in[5]/=avr;
-        avr = in[6]+in[7]+in[8];
-        in[6]/=avr;
-        in[7]/=avr;
-        in[8]/=avr;
+
+    private void normalize(float[] in) {
+        float avr = in[0] + in[1] + in[2];
+        in[0] /= avr;
+        in[1] /= avr;
+        in[2] /= avr;
+        avr = in[3] + in[4] + in[5];
+        in[3] /= avr;
+        in[4] /= avr;
+        in[5] /= avr;
+        avr = in[6] + in[7] + in[8];
+        in[6] /= avr;
+        in[7] /= avr;
+        in[8] /= avr;
     }
+
     private static void PrintMat(float[] mat) {
         StringBuilder outp = new StringBuilder();
         for (int i = 0; i < mat.length; i++) {
