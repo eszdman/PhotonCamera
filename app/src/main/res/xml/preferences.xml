@@ -19,6 +19,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_wide169_key"
+                android:defaultValue="@bool/pref_wide169_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/wide169"
+                android:summary=""
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
             android:key="@string/pref_energy_safe_key"
             android:defaultValue="@bool/pref_energy_safe_default"
             android:layout="@layout/preference_with_margin"
@@ -163,10 +171,10 @@
                 android:title="@string/sharpness"
                 android:summary=""
                 android:defaultValue="@string/pref_sharpness_seekbar_default"
-                app:maxValue="2.5"
+                app:maxValue="1.0"
                 app:minValue="0"
                 app:isFloat="true"
-                app:stepPerUnit="10"
+                app:stepPerUnit="20"
                 android:icon="@drawable/ic_grain_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
@@ -182,25 +190,49 @@
                 android:icon="@drawable/ic_saturation"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
+                android:key="@string/pref_expocompensation_seekbar_key"
+                android:layout="@layout/preference_seekbar"
+                android:title="@string/expocompensation"
+                android:summary=""
+                android:defaultValue="@string/pref_expocompensation_seekbar_default"
+                app:maxValue="4"
+                app:minValue="-4"
+                app:isFloat="true"
+                app:stepPerUnit="10"
+                android:icon="@drawable/ic_saturation"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
                 android:key="@string/pref_noise_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/noise_reduction_str"
                 android:summary=""
                 android:defaultValue="@string/pref_noise_seekbar_default"
                 app:maxValue="2"
-                app:minValue="0.1"
+                app:minValue="-6"
                 app:isFloat="true"
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_compressor"
             />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
+                android:key="@string/pref_merge_seekbar_key"
+                android:layout="@layout/preference_seekbar"
+                android:title="@string/noise_merge_str"
+                android:summary=""
+                android:defaultValue="@string/pref_noise_merge_seekbar_default"
+                app:maxValue="8"
+                app:minValue="-4"
+                app:isFloat="true"
+                app:stepPerUnit="10"
+                android:icon="@drawable/ic_compressor"
+                />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
                 android:key="@string/pref_shadows_seekbar_key"
                 android:layout="@layout/preference_seekbar"
                 android:title="@string/shadows"
                 android:summary=""
                 android:defaultValue="@string/pref_gain_seekbar_default"
-                app:maxValue="2.5"
-                app:minValue="0.1"
+                app:maxValue="2.0"
+                app:minValue="-1.0"
                 app:isFloat="true"
                 app:stepPerUnit="10"
                 android:icon="@drawable/ic_compressor"

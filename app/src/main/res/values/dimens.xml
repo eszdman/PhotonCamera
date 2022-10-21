@@ -2,7 +2,7 @@
 <resources>
     <dimen name="SettingSize1">50dp</dimen>
     <dimen name="SettingSize2">45dp</dimen>
-    <dimen name="topbar_padding">10dp</dimen>
+    <dimen name="topbar_padding">0dp</dimen>
     <dimen name="topbar_icon_size">30dp</dimen>
     <dimen name="viewfinder_top_padding">0dp</dimen>
     <dimen name="mode_chip_height">30dp</dimen>
@@ -20,11 +20,6 @@
     <dimen name="mode_chip_text_size">15sp</dimen>
     <dimen name="exif_dialog_width">320dp</dimen>
     <dimen name="mode_switcher_padding">8dp</dimen>
-    <dimen name="manual_knob_dash_length">8dp</dimen>
-    <dimen name="manual_knob_dash_padding">11dp</dimen>
-    <dimen name="manual_knob_icon_padding">10dp</dimen>
-    <dimen name="manual_knob_text_size">13sp</dimen>
-    <dimen name="manual_knob_icon_size">17dp</dimen>
     <dimen name="camera_settings_preference_font_size">15sp</dimen>
     <dimen name="camera_settings_entry_left_margin">16dp</dimen>
     <dimen name="camera_settings_icon_size">24dp</dimen>
@@ -39,9 +34,11 @@
     <dimen name="aux_button_internal_margin">3dp</dimen>
     <dimen name="capture_progress_circle_size">150dp</dimen>
     <dimen name="camera_switch_button_size">@dimen/gallery_button_size</dimen>
+    <dimen name="standard_0">0dp</dimen>
     <dimen name="standard_65">65dp</dimen>
     <dimen name="standard_125">125dp</dimen>
     <dimen name="standard_20">20dp</dimen>
-    <dimen name="gallery_viewer_button_size">30dp</dimen>
-    <dimen name="gallery_viewer_button_conainer_size">80dp</dimen>
+    <dimen name="gallery_viewer_button_size">25dp</dimen>
+    <dimen name="gallery_viewer_button_conainer_size">60dp</dimen>
+    <dimen name="topbar_button_inset">11dp</dimen>
 </resources>

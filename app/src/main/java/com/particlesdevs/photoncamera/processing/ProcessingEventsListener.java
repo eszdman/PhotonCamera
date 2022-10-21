@@ -8,7 +8,7 @@ import java.nio.file.Path;
 public interface ProcessingEventsListener {
     String FAILED_MSG = "Image Processing/Saving Failed!";
 
-    void onProcessingStarted(Object obj);
+    void onProcessingStarted(String processName);
 
     void onProcessingChanged(Object obj);
 

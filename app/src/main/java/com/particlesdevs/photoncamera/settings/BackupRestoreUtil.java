@@ -48,7 +48,7 @@ public class BackupRestoreUtil {
 
         try {
             FileUtils.copyFile(toRestore, shared_prefs_file);
-            PhotonCamera.restartWithDelay(1000);
+            PhotonCamera.restartWithDelay(context, 1000);
             return "Restored:" + toRestore.getName();
         } catch (IOException e) {
             e.printStackTrace();

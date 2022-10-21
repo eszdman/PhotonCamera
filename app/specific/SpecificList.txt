@@ -1,0 +1,15 @@
+xiaomi:dipper
+oneplus:guacamole
+oneplus:guacamoles
+oneplus:guacamoleb
+oneplus:hotdog
+oneplus:hotdogg
+oneplus:hotdogb
+oneplus:oneplus7
+oneplus:oneplus7t
+oneplus:oneplus7tpro
+oneplus:oneplus7tpronr
+oneplus:oneplus7pro
+oneplus:oneplus7pronr
+samsung:p3s
+samsung:r0q

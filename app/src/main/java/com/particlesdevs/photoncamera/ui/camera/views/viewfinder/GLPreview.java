@@ -5,9 +5,12 @@ import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLSurfaceView;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.TextureView;
+
 
 public class GLPreview extends GLSurfaceView {
     MainRenderer mRenderer;
@@ -15,6 +18,7 @@ public class GLPreview extends GLSurfaceView {
     private int mRatioHeight;
     public Point cameraSize;
     private TextureView.SurfaceTextureListener surfaceTextureListener;
+    private Handler handler;
 
     public GLPreview(Context context) {
         super(context);
@@ -27,20 +31,26 @@ public class GLPreview extends GLSurfaceView {
     }
 
     private void init() {
+        handler = new Handler(Looper.getMainLooper());
         mRenderer = new MainRenderer(this);
+
         setEGLContextClientVersion(2);
         setRenderer(mRenderer);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
     }
 
     public void fireOnSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int w, int h) {
-        if (surfaceTextureListener != null)
-            surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
+        });
     }
 
     public void fireOnSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-        if (surfaceTextureListener != null)
-            surfaceTextureListener.onSurfaceTextureDestroyed(surfaceTexture);
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureDestroyed(surfaceTexture);
+        });
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
@@ -53,13 +63,16 @@ public class GLPreview extends GLSurfaceView {
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         super.surfaceChanged(holder, format, w, h);
-        if (surfaceTextureListener != null)
-            surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(), w, h);
+        handler.post(() -> {
+            if (surfaceTextureListener != null)
+                surfaceTextureListener.onSurfaceTextureSizeChanged(getSurfaceTexture(), w, h);
+        });
     }
 
     @Override
     public void onResume() {
         super.onResume();
+
         //mRenderer.onResume();
     }
 
@@ -82,9 +95,10 @@ public class GLPreview extends GLSurfaceView {
         if (width < 0 || height < 0) {
             throw new IllegalArgumentException("Size cannot be negative.");
         }
+
         mRatioWidth = width;
         mRatioHeight = height;
-        this.post(() -> requestLayout());
+        this.post(this::requestLayout);
 
     }
 
@@ -100,14 +114,13 @@ public class GLPreview extends GLSurfaceView {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
 
-        if (mRatioWidth == 0 || mRatioHeight == 0) {
+        if (mRatioWidth == 0 || mRatioHeight == 0)
             setMeasuredDimension(width, height);
-        } else {
-            if (width > height * mRatioWidth / mRatioHeight) {
+        else {
+            if (width > height * mRatioWidth / mRatioHeight)
                 setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
-            } else {
+            else
                 setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
-            }
             setMeasuredDimension(mRatioWidth, mRatioHeight);
         }
     }

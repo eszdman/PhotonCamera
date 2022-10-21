@@ -151,6 +151,7 @@ public class ImageCompareFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         getParentFragmentManager().beginTransaction().remove(fragment1).remove(fragment2).commitAllowingStateLoss();
+        binding = null;
     }
 
     private class SSIVListenerImpl extends SSIVListener {

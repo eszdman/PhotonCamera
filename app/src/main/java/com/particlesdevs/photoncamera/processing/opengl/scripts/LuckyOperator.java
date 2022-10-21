@@ -15,7 +15,7 @@ public class LuckyOperator extends GLOneScript {
     Point insize;
     public long out = 0;
     public LuckyOperator(Point size) {
-        super(new Point(size.x/(64),size.y/(64)), null, new GLFormat(GLFormat.DataType.FLOAT_16,4), R.raw.luckyoperator, "LuckyOperator");
+        super(new Point(size.x/(64),size.y/(64)), null, new GLFormat(GLFormat.DataType.FLOAT_16,4), "luckyoperator", "LuckyOperator");
         insize = size;
     }
 

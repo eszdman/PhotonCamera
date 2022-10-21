@@ -1,17 +1,21 @@
 /*
- * Copyright 2020 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  PhotonCamera
+ *  CameraFragment.java
+ *  Copyright (C) 2020 - 2021  Eszdman
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 package com.particlesdevs.photoncamera.ui.camera;
@@ -20,11 +24,12 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.graphics.Point;
 import android.graphics.RectF;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
@@ -32,6 +37,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.DisplayMetrics;
@@ -39,9 +45,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -50,22 +54,27 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.util.Pair;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.google.firebase.analytics.FirebaseAnalytics;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.app.base.BaseActivity;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.control.CountdownTimer;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
@@ -73,33 +82,42 @@ import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
-import com.particlesdevs.photoncamera.manual.ManualMode;
+import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.settings.SettingType;
+import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.AuxButtonsViewModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.Utilities;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import static androidx.constraintlayout.widget.ConstraintSet.WRAP_CONTENT;
+import static androidx.constraintlayout.widget.ConstraintSet.GONE;
 
-public class CameraFragment extends Fragment {
+public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
     public static final String FRAGMENT_DIALOG = "dialog";
     /**
@@ -108,6 +126,7 @@ public class CameraFragment extends Fragment {
     private static final String TAG = CameraFragment.class.getSimpleName();
     private static final String ACTIVE_BACKCAM_ID = "ACTIVE_BACKCAM_ID"; //key for savedInstanceState
     private static final String ACTIVE_FRONTCAM_ID = "ACTIVE_FRONTCAM_ID"; //key for savedInstanceState
+    private static final String NOTIFICATION_CHANNEL_ID = "NOTIFICATION_CHANNEL_ID";
     /**
      * sActiveBackCamId is either
      * = 0 or camera_id stored in SharedPreferences in case of fresh application Start; or
@@ -118,23 +137,33 @@ public class CameraFragment extends Fragment {
     public static String sActiveFrontCamId = "1";
     public static CameraMode mSelectedMode;
     private final Field[] metadataFields = CameraReflectionApi.getAllMetadataFields();
+    private final int NOTIFICATION_ID = 1;
+    private final ExecutorService processExecutorService = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "ProcessingThread");
+        t.setPriority(Thread.MIN_PRIORITY);
+        return t;
+    });
     public SurfaceViewOverViewfinder surfaceView;
-    public String[] mAllCameraIds;
-    public Set<String> mFrontCameraIDs;
-    public Set<String> mBackCameraIDs;
-    public Map<String, Pair<Float, Float>> mFocalLengthAperturePairList;
+    public Map<String, CameraLensData> mCameraLensDataMap;
     private Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
-    private CameraUIView.CameraUIEventsListener mCameraUIEventsListener;
+    private CameraUIController mCameraUIEventsListener;
     private CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
+    private AuxButtonsViewModel auxButtonsViewModel;
     private CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     private Swipe mSwipe;
     private MediaPlayer burstPlayer;
-    private AutoFitPreviewView textureView;
-    private FirebaseAnalytics mFirebaseAnalytics;
+    private MediaPlayer endPlayer;
+    public AutoFitPreviewView textureView;
+    private NotificationManagerCompat notificationManager;
+    private SettingsManager settingsManager;
+    private SupportedDevice supportedDevice;
+    private SettingsBarEntryProvider settingsBarEntryProvider;
+    private ManualModeConsole manualModeConsole;
+    private float displayAspectRatio;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -152,35 +181,48 @@ public class CameraFragment extends Fragment {
         return captureController;
     }
 
+    public ManualModeConsole getManualModeConsole() {
+        return manualModeConsole;
+    }
+
+    public CameraFragmentViewModel getCameraFragmentViewModel() {
+        return cameraFragmentViewModel;
+    }
+    @HunterDebug
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        this.activity = getActivity();
-        if (activity == null) return;
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(activity);
+        activity = getActivity();
+        assert activity != null;
+        notificationManager = NotificationManagerCompat.from(activity);
+        settingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
+        supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
+        supportedDevice.loadCheck();
     }
-
+    @HunterDebug
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         //create the ui binding
         this.cameraFragmentBinding = DataBindingUtil.inflate(inflater, R.layout.camera_fragment, container, false);
-
+        Log.d(TAG, "onCreateView: ");
         initMembers();
         setModelsToLayout();
-
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        logDisplayProperties(dm);
-        float aspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
-
-        return getAdjustedLayout(aspectRatio, cameraFragmentBinding.textureHolder);
+        return cameraFragmentBinding.getRoot();
     }
-
     private void initMembers() {
         //create the viewmodel which updates the model
         cameraFragmentViewModel = new ViewModelProvider(this).get(CameraFragmentViewModel.class);
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        logDisplayProperties(dm);
+        displayAspectRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        cameraFragmentViewModel.setScreenAspectRatio(displayAspectRatio);
+
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
+        manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
+        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
+        auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
     }
@@ -189,22 +231,37 @@ public class CameraFragment extends Fragment {
         //bind the model to the ui, it applies changes when the model values get changed
         cameraFragmentBinding.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutTopbar.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
-        cameraFragmentBinding.manualMode.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         cameraFragmentBinding.layoutBottombar.bottomButtons.setUimodel(cameraFragmentViewModel.getCameraFragmentModel());
         // associating timer model with layouts
         cameraFragmentBinding.layoutBottombar.bottomButtons.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
         cameraFragmentBinding.layoutViewfinder.setTimermodel(timerFrameCountViewModel.getTimerFrameCountModel());
+        // associating AuxButtonsModel with layout
+        cameraFragmentBinding.setAuxmodel(auxButtonsViewModel.getAuxButtonsModel());
     }
-
+    @HunterDebug
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
         this.mCameraUIView = new CameraUIViewImpl();
         this.mCameraUIEventsListener = new CameraUIController();
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
-        this.mSwipe = new Swipe(this);
-        this.captureController = new CaptureController(activity, new CameraEventsListenerImpl());
+        this.captureController = new CaptureController(activity, processExecutorService, new CameraEventsListenerImpl());
+        this.manualModeConsole.addParamObserver(captureController.getParamController());
         PhotonCamera.setCaptureController(captureController);
-        PhotonCamera.setManualMode(ManualMode.getInstance(activity));
+        captureController.isDualSession = supportedDevice.specific.specificSetting.isDualSessionSupported;
+        this.mSwipe = new Swipe(this);
+        initSettingsBar();
+    }
+
+    private void initSettingsBar() {
+        settingsBarEntryProvider.createEntries();
+        settingsBarEntryProvider.addObserver(mCameraUIEventsListener);
+        settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+    }
+
+    private void updateSettingsBar(){
+        settingsBarEntryProvider.updateAllEntries();
+        settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+        this.mCameraUIView.refresh(CaptureController.isProcessing);
     }
 
     @Override
@@ -236,32 +293,33 @@ public class CameraFragment extends Fragment {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
-
+    @HunterDebug
     @Override
     public void onResume() {
         super.onResume();
+        updateSettingsBar();
         mSwipe.init();
-        PhotonCamera.getSensors().register();
-        PhotonCamera.getGravity().register();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
-        burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst);
-
-        cameraFragmentViewModel.updateGalleryThumb();
+        AsyncTask.execute(() -> {
+            PhotonCamera.getGyro().register();
+            PhotonCamera.getGravity().register();
+            burstPlayer = MediaPlayer.create(activity, R.raw.sound_burst2);
+            endPlayer = MediaPlayer.create(activity,R.raw.sound_end);
+            cameraFragmentViewModel.updateGalleryThumb(null);
+        });
         cameraFragmentViewModel.onResume();
-
+        auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
         captureController.startBackgroundThread();
         captureController.resumeCamera();
         initTouchFocus();
-
-        PhotonCamera.getSupportedDevice().loadCheck();
+        manualModeConsole.onResume();
     }
 
     private void initTouchFocus() {
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
             textureView.post(() -> {
-                Point size = new Point(textureView.getWidth(), textureView.getHeight());
-                mTouchFocus = TouchFocus.initialise(captureController, focusCircle, size);
+                mTouchFocus = new TouchFocus(captureController,focusCircle,textureView);
             });
         }
     }
@@ -269,25 +327,59 @@ public class CameraFragment extends Fragment {
     @Override
     public void onPause() {
         PhotonCamera.getGravity().unregister();
-        PhotonCamera.getSensors().unregister();
+        PhotonCamera.getGyro().unregister();
         PhotonCamera.getSettings().saveID();
         captureController.closeCamera();
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
         mCameraUIEventsListener.onPause();
+        auxButtonsViewModel.setAuxButtonListener(null);
         burstPlayer.release();
+        endPlayer.release();
+        mSwipe.SwipeDown();
+        manualModeConsole.onPause();
         super.onPause();
+    }
+
+    @Override
+    public boolean onBackPressed() {
+        boolean handleBack = false;
+        if (cameraFragmentViewModel.isSettingsBarVisible()) {
+            cameraFragmentViewModel.setSettingsBarVisible(false);
+            handleBack = true;
+        }
+        if (manualModeConsole.isPanelVisible()) {
+            mSwipe.SwipeDown();
+            handleBack = true;
+        }
+        return handleBack;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+//        Log.d(TAG, "onDestroy() called");
         try {
             captureController.stopBackgroundThread();
         } catch (Exception e) {
             e.printStackTrace();
         }
         getParentFragmentManager().beginTransaction().remove(CameraFragment.this).commitAllowingStateLoss();
+        for (Future<?> taskResult : captureController.taskResults) {
+            try {
+                taskResult.get(); //wait for all tasks to complete
+            } catch (ExecutionException | InterruptedException ignored) {
+            }
+        }
+        settingsBarEntryProvider.removeObserver(mCameraUIEventsListener);
+        cameraFragmentBinding = null;
+        mCameraUIView.destroy();
+        mCameraUIView = null;
+        mCameraUIEventsListener = null;
+        manualModeConsole.onDestroy();
+        PhotonCamera.setCaptureController(captureController = null);
+        processExecutorService.shutdown();
+        Log.d(TAG, "onDestroy() finished");
     }
 
     @SuppressLint("DefaultLocale")
@@ -295,7 +387,7 @@ public class CameraFragment extends Fragment {
         surfaceView.post(() -> {
             mTouchFocus.setState(result.get(CaptureResult.CONTROL_AF_STATE));
             if (PreferenceKeys.isAfDataOn()) {
-                IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1);
+                IsoExpoSelector.ExpoPair expoPair = IsoExpoSelector.GenerateExpoPair(-1, captureController);
                 LinkedHashMap<String, String> stringMap = new LinkedHashMap<>();
                 stringMap.put("AF_MODE", getResultFieldName("CONTROL_AF_MODE_", result.get(CaptureResult.CONTROL_AF_MODE)));
                 stringMap.put("AF_TRIGGER", getResultFieldName("CONTROL_AF_TRIGGER_", result.get(CaptureResult.CONTROL_AF_TRIGGER)));
@@ -307,12 +399,14 @@ public class CameraFragment extends Fragment {
 //            stringMap.put("EXPOSURE_TIME_CR", String.format(Locale.ROOT,"%.5f",result.get(CaptureResult.SENSOR_EXPOSURE_TIME).doubleValue()/1E9)+ "s");
                 stringMap.put("ISO", String.valueOf(expoPair.iso));
 //            stringMap.put("ISO_CR", String.valueOf(result.get(CaptureResult.SENSOR_SENSITIVITY)));
-                stringMap.put("Shakeness", String.valueOf(PhotonCamera.getSensors().getShakiness()));
+                stringMap.put("Shakiness", String.valueOf(PhotonCamera.getGyro().getShakiness()));
+                stringMap.put("TripodShakiness", String.valueOf(PhotonCamera.getGyro().tripodShakiness));
+                stringMap.put("Tripod", String.valueOf(PhotonCamera.getGyro().getTripod()));
                 stringMap.put("FrameNumber", String.valueOf(result.getFrameNumber()));
                 float[] temp = new float[3];
-                temp[0] = PhotonCamera.getCaptureController().mPreviewTemp[0].floatValue();
-                temp[1] = PhotonCamera.getCaptureController().mPreviewTemp[1].floatValue();
-                temp[2] = PhotonCamera.getCaptureController().mPreviewTemp[2].floatValue();
+                temp[0] = captureController.mPreviewTemp[0].floatValue();
+                temp[1] = captureController.mPreviewTemp[1].floatValue();
+                temp[2] = captureController.mPreviewTemp[2].floatValue();
                 stringMap.put("White Point", String.format("%.3f %.3f %.3f", temp[0], temp[1], temp[2]));
                 MeteringRectangle[] afRect = result.get(CaptureResult.CONTROL_AF_REGIONS);
                 stringMap.put("AF_RECT", Arrays.deepToString(afRect));
@@ -344,25 +438,29 @@ public class CameraFragment extends Fragment {
 
     private RectF getScreenRectFromMeteringRect(MeteringRectangle meteringRectangle) {
         if (captureController.mImageReaderPreview == null) return new RectF();
-        float left = (((float) meteringRectangle.getY() / captureController.mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
-        float top = (((float) meteringRectangle.getX() / captureController.mImageReaderPreview.getWidth()) * (surfaceView.getHeight()));
-        float width = (((float) meteringRectangle.getHeight() / captureController.mImageReaderPreview.getHeight()) * (surfaceView.getWidth()));
-        float height = (((float) meteringRectangle.getWidth() / captureController.mImageReaderPreview.getWidth()) * (surfaceView.getHeight()));
+        float left = (((float) meteringRectangle.getY() / captureController.mImageReaderPreview.getHeight()) * (textureView.getWidth()));
+        float top = (((float) meteringRectangle.getX() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
+        float width = (((float) meteringRectangle.getHeight() / captureController.mImageReaderPreview.getHeight()) * (textureView.getWidth()));
+        float height = (((float) meteringRectangle.getWidth() / captureController.mImageReaderPreview.getWidth()) * (textureView.getHeight()));
+        //left = textureView.getWidth() - left;
         return new RectF(
-                left, //Left
+                //meteringRectangle.getY()-left, //Left
+                textureView.getWidth()-left-width,//Right
                 top,  //Top
-                left + width,//Right
+                //meteringRectangle.getY() - (left + width),//Right
+                textureView.getWidth()-left,
                 top + height //Bottom
         );
     }
 
     private String getResultFieldName(String prefix, Integer value) {
+        if(value == null) return "";
         for (Field f : this.metadataFields)
             if (f.getName().startsWith(prefix)) {
                 try {
                     if (f.getInt(f) == value)
                         return f.getName().replace(prefix, "").concat("(" + value + ")");
-                } catch (IllegalAccessException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -389,7 +487,7 @@ public class CameraFragment extends Fragment {
 
     /**
      * Returns the ConstraintLayout object after adjusting the LayoutParams of Views contained in it.
-     * Adjusts the relative position of layout_topbar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
+     * Adjusts the relative position of layout_top-bar and camera_container (= viewfinder + rest of the buttons excluding layout_topbar)
      * depending on the aspect ratio of device.
      * This is done in order to re-organise the camera layout for long displays (having aspect ratio > 16:9)
      *
@@ -401,20 +499,17 @@ public class CameraFragment extends Fragment {
         ConstraintLayout camera_container = activity_layout.findViewById(R.id.camera_container);
         ConstraintLayout.LayoutParams camera_containerLP = (ConstraintLayout.LayoutParams) camera_container.getLayoutParams();
         if (aspectRatio > 16f / 9f) {
-            camera_containerLP.height = WRAP_CONTENT;
-//            showToast(String.valueOf(aspectRatio));
+            DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+            float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
+            float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+
+            float dpmargin = (dpHeight - (dpWidth / 9f * 16f));
             ConstraintLayout.LayoutParams layout_topbarLP = ((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.layout_topbar).getLayoutParams());
-            layout_topbarLP.bottomToTop = R.id.camera_container;    //sets the bottom constraint of layout_topbar to top of camera_container
-            if (aspectRatio > 2) {                  //for ratios even greater than 18:9
-                layout_topbarLP.topToTop = -1;      //resets/removes the top constraint of topbar
-            } else if (aspectRatio == 2) {          //for ratio 18:9
-                camera_containerLP.topToTop = -1;   //resets/removes the top constraint of camera_container
-                camera_containerLP.topToBottom = R.id.layout_topbar;    //constraints the top of cameracontainer to bottom of layout_topbar
-            }
-            if (((ConstraintLayout.LayoutParams) activity_layout.findViewById(R.id.texture).getLayoutParams()).dimensionRatio.equals("H,3:4")) {  //if viewfinder ratio is 3:4
-                ConstraintLayout.LayoutParams layout_viewfinderLP = (ConstraintLayout.LayoutParams) camera_container.findViewById(R.id.layout_viewfinder).getLayoutParams();
-                layout_viewfinderLP.bottomToTop = R.id.layout_bottombar;    //set the bottom of layout_viewfinder to top of layout_bottombar
-            }
+
+            layout_topbarLP.topMargin = (int) dpmargin;
+            camera_containerLP.bottomMargin = (int) dpmargin;
+            camera_containerLP.topToTop = -1;
+            camera_containerLP.topToBottom = R.id.layout_topbar;
         }
         return activity_layout;
     }
@@ -432,30 +527,24 @@ public class CameraFragment extends Fragment {
     }
 
     public void initCameraIDLists(CameraManager cameraManager) {
-        CameraManager2 manager2 = new CameraManager2(cameraManager, PhotonCamera.getSettingsManager());
-        this.mAllCameraIds = manager2.getCameraIdList();
-        this.mBackCameraIDs = manager2.getBackIDsSet();
-        this.mFrontCameraIDs = manager2.getFrontIDsSet();
-        this.mFocalLengthAperturePairList = manager2.mFocalLengthAperturePairList;
+        CameraManager2 manager2 = new CameraManager2(cameraManager, settingsManager);
+        this.mCameraLensDataMap = manager2.getCameraLensDataMap();
     }
 
     public String cycler(String savedCameraID) {
-        if (mBackCameraIDs.contains(savedCameraID)) {
+        if (Objects.requireNonNull(mCameraLensDataMap.get(savedCameraID)).getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
             sActiveBackCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mFrontCameraIDs, mFocalLengthAperturePairList, sActiveFrontCamId);
             return sActiveFrontCamId;
         } else {
             sActiveFrontCamId = savedCameraID;
-            this.mCameraUIView.setAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, sActiveBackCamId);
             return sActiveBackCamId;
         }
     }
 
-    public void triggerMediaScanner(File imageToSave) {
+    public void triggerMediaScanner(Uri imageUri) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        Uri contentUri = Uri.fromFile(imageToSave);
 //        Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(imageToSave)).scaleBy(0.1f).decode();
-        mediaScanIntent.setData(contentUri);
+        mediaScanIntent.setData(imageUri);
         if (activity != null)
             activity.sendBroadcast(mediaScanIntent);
     }
@@ -490,6 +579,25 @@ public class CameraFragment extends Fragment {
         if (surfaceView != null) {
             surfaceView.invalidate();
         }
+    }
+
+    private void showNotification(String processName) {
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(activity, NOTIFICATION_CHANNEL_ID);
+        NotificationChannel channel = new NotificationChannel
+                (NOTIFICATION_CHANNEL_ID, "NotificationChannel", NotificationManager.IMPORTANCE_LOW);
+        notificationManager.createNotificationChannel(channel);
+        notificationBuilder
+                .setSmallIcon(R.drawable.ic_round_photo_camera_24)
+                .setContentTitle(activity.getString(R.string.app_name))
+                .setContentText(activity.getString(R.string.processing_processname, processName))
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setProgress(0, 0, true);
+        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    private void stopNotification() {
+        notificationManager.cancel(NOTIFICATION_ID);
     }
 
     //*****************************************************************************************************************
@@ -536,11 +644,11 @@ public class CameraFragment extends Fragment {
          * Implementation of {@link ProcessingEventsListener}
          */
         @Override
-        public void onProcessingStarted(Object obj) {
-            logD("onProcessingStarted: " + obj);
+        public void onProcessingStarted(String processName) {
+            logD("onProcessingStarted: " + processName + " Processing Started");
             mCameraUIView.setProcessingProgressBarIndeterminate(true);
-            mCameraUIView.activateShutterButton(false);
-
+            mCameraUIView.activateShutterButton(true);
+            showNotification(processName);
         }
 
         @Override
@@ -552,17 +660,19 @@ public class CameraFragment extends Fragment {
             logD("onProcessingFinished: " + obj);
             mCameraUIView.setProcessingProgressBarIndeterminate(false);
             mCameraUIView.activateShutterButton(true);
+            stopNotification();
         }
 
         @Override
         public void notifyImageSavedStatus(boolean saved, Path savedFilePath) {
             if (saved) {
+                Uri imageUri = null;
                 if (savedFilePath != null) {
-                    triggerMediaScanner(savedFilePath.toFile());
-                    logD("ImageSaved: " + savedFilePath.toString());
+                    triggerMediaScanner(imageUri = Uri.fromFile(savedFilePath.toFile()));
+                    logD("ImageSaved: " + savedFilePath);
 //                    showSnackBar("ImageSaved: " + savedFilePath.toString());
                 }
-                cameraFragmentViewModel.updateGalleryThumb();
+                cameraFragmentViewModel.updateGalleryThumb(imageUri);
             } else {
                 logE("ImageSavingError");
                 showSnackBar("ImageSavingError");
@@ -592,11 +702,19 @@ public class CameraFragment extends Fragment {
             textureView.post(() -> textureView.setAlpha(0.5f));
         }
 
+        private long prevPlayTime = 0;
         @Override
         public void onFrameCaptureStarted(Object o) {
-            burstPlayer.seekTo(0);
+            long seekDelay = 50;
+            if(prevPlayTime + seekDelay < System.currentTimeMillis()){
+                prevPlayTime = System.currentTimeMillis();
+                burstPlayer.seekTo(0);
+            }
         }
 
+        @Override
+        public void onBurstPrepared(Object o) {
+        }
         @Override
         public void onFrameCaptureProgressed(Object o) {
         }
@@ -614,9 +732,13 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onCaptureSequenceCompleted(Object o) {
+            if (PreferenceKeys.isCameraSoundsOn()) {
+                endPlayer.start();
+            }
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
             textureView.post(() -> textureView.setAlpha(1f));
+            mCameraUIView.activateShutterButton(true);
         }
 
         @Override
@@ -631,6 +753,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
+            auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
         }
 
         @Override
@@ -641,10 +764,11 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
-            mCameraUIView.initAuxButtons(mBackCameraIDs, mFocalLengthAperturePairList, mFrontCameraIDs);
+            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
-            PhotonCamera.getManualMode().init();
+            manualModeConsole.init(activity, characteristics);
+            manualModeConsole.onResume();
         }
 
         @Override
@@ -664,8 +788,8 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
-        public void onRequestTriggerMediaScanner(File file) {
-            triggerMediaScanner(file);
+        public void onRequestTriggerMediaScanner(Uri fileUri) {
+            triggerMediaScanner(fileUri);
         }
     }
 
@@ -680,16 +804,13 @@ public class CameraFragment extends Fragment {
      */
     private final class CameraUIViewImpl implements CameraUIView {
         private static final String TAG = "CameraUIView";
-        private final LayoutMainTopbarBinding topbar;
-        private final LayoutBottombuttonsBinding bottombuttons;
         private final ProgressBar mCaptureProgressBar;
         private final ImageButton mShutterButton;
         private final ProgressBar mProcessingProgressBar;
-        private final LinearLayout mAuxGroupContainer;
         private final HorizontalPicker mModePicker;
+        private LayoutMainTopbarBinding topbar;
+        private LayoutBottombuttonsBinding bottombuttons;
         private CameraUIEventsListener uiEventsListener;
-        private HashMap<Integer, String> auxButtonsMap;
-        private float baseF = 0.f;
 
         private CameraUIViewImpl() {
             this.topbar = cameraFragmentBinding.layoutTopbar;
@@ -698,7 +819,6 @@ public class CameraFragment extends Fragment {
             this.mProcessingProgressBar = bottombuttons.processingProgressBar;
             this.mShutterButton = bottombuttons.shutterButton;
             this.mModePicker = cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
-            this.mAuxGroupContainer = cameraFragmentBinding.auxButtonsContainer;
             this.initListeners();
             this.initModeSwitcher();
         }
@@ -709,11 +829,10 @@ public class CameraFragment extends Fragment {
         }
 
         private void initModeSwitcher() {
-            this.mModePicker.setValues(CameraMode.names());
+            this.mModePicker.setValues(Arrays.stream(CameraMode.nameIds()).map(activity::getString).toArray(String[]::new));
             this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
             this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
             this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
-            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
         }
 
         @Override
@@ -734,103 +853,84 @@ public class CameraFragment extends Fragment {
             switch (mode) {
                 case VIDEO:
                     this.topbar.setEisVisible(true);
+                    //cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
+                    this.topbar.setFpsVisible(true);
+                    this.topbar.setTimerVisible(false);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
+                    this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                    cameraFragmentBinding.getRoot().setBackgroundResource(android.R.color.black);
+                    break;
                 case UNLIMITED:
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(false);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
                 case PHOTO:
+                case MOTION:
                 default:
                     this.topbar.setEisVisible(true);
                     this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
                 case NIGHT:
                     this.topbar.setEisVisible(false);
-                    this.topbar.setFpsVisible(false);
+                    this.topbar.setFpsVisible(true);
                     this.topbar.setTimerVisible(true);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
+                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
                     this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
                     break;
             }
+            toggleConstraints(mode);
         }
 
+        private void toggleConstraints(CameraMode mode) {
+            if (displayAspectRatio <= 16f / 9f) {
+                ConstraintLayout.LayoutParams camera_containerLP =
+                        (ConstraintLayout.LayoutParams) cameraFragmentBinding
+                                .textureHolder
+                                .findViewById(R.id.camera_container)
+                                .getLayoutParams();
+                switch (mode){
+                    case VIDEO:
+                        camera_containerLP.topToTop = R.id.textureHolder;
+                        camera_containerLP.topToBottom = -1;
+                        break;
+                    case UNLIMITED:
+                    case PHOTO:
+                    case MOTION:
+                    case NIGHT:
+                        camera_containerLP.topToTop = -1;
+                        camera_containerLP.topToBottom = R.id.layout_topbar;
+                }
+
+            }
+        }
         @Override
         public void refresh(boolean processing) {
             cameraFragmentBinding.invalidateAll();
+            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
             this.resetCaptureProgressBar();
             if (!processing) {
                 this.activateShutterButton(true);
                 this.setProcessingProgressBarIndeterminate(false);
             }
-        }
-
-        @Override
-        public void initAuxButtons(Set<String> backCameraIdsList, Map<String, Pair<Float, Float>> Focals, Set<String> frontCameraIdsList) {
-            String savedCameraID = PreferenceKeys.getCameraID();
-            for (String id : backCameraIdsList) {
-                if (this.baseF == 0.f) {
-                    this.baseF = Focals.get(id).first;
-                }
-            }
-            if (this.mAuxGroupContainer.getChildCount() == 0) {
-                if (backCameraIdsList.contains(savedCameraID)) {
-                    this.setAuxButtons(backCameraIdsList, Focals, savedCameraID);
-                } else if (frontCameraIdsList.contains(savedCameraID)) {
-                    this.setAuxButtons(frontCameraIdsList, Focals, savedCameraID);
-                }
-            }
-        }
-
-        @SuppressLint("DefaultLocale")
-        @Override
-        public void setAuxButtons(Set<String> idsList, Map<String, Pair<Float, Float>> Focals, String active) {
-            this.mAuxGroupContainer.removeAllViews();
-            if (idsList.size() > 1) {
-                Locale.setDefault(Locale.US);
-                this.auxButtonsMap = new HashMap<>();
-                for (String id : idsList) {
-                    this.addToAuxGroupButtons(id, String.format("%.1fx",
-                            ((Focals.get(id).first / this.baseF) - 0.049)).replace(".0", ""));
-                }
-                View.OnClickListener auxButtonListener = this::onAuxButtonClick;
-                for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
-                    Button b = (Button) this.mAuxGroupContainer.getChildAt(i);
-                    b.setOnClickListener(auxButtonListener);
-                    if (active.equals(auxButtonsMap.get(b.getId()))) {
-                        b.setSelected(true);
-                    }
-                }
-                this.mAuxGroupContainer.setVisibility(View.VISIBLE);
-            } else {
-                this.mAuxGroupContainer.setVisibility(View.GONE);
-            }
-        }
-
-        private void onAuxButtonClick(View view) {
-            for (int i = 0; i < this.mAuxGroupContainer.getChildCount(); i++) {
-                this.mAuxGroupContainer.getChildAt(i).setSelected(false);
-            }
-            view.setSelected(true);
-            this.uiEventsListener.onAuxButtonClicked(this.auxButtonsMap.get(view.getId()));
-        }
-
-        private void addToAuxGroupButtons(String cameraId, String name) {
-            Button b = new Button(this.mAuxGroupContainer.getContext());
-            int m = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_internal_margin);
-            int s = (int) this.mAuxGroupContainer.getContext().getResources().getDimension(R.dimen.aux_button_size);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(s, s);
-            lp.setMargins(m, m, m, m);
-            b.setLayoutParams(lp);
-            b.setText(name);
-            b.setTextAppearance(R.style.AuxButtonText);
-            b.setBackgroundResource(R.drawable.aux_button_background);
-            b.setStateListAnimator(null);
-            b.setTransformationMethod(null);
-            int buttonId = View.generateViewId();
-            b.setId(buttonId);
-            this.auxButtonsMap.put(buttonId, cameraId);
-            this.mAuxGroupContainer.addView(b);
         }
 
         @Override
@@ -862,11 +962,18 @@ public class CameraFragment extends Fragment {
         @Override
         public void showFlashButton(boolean flashAvailable) {
             this.topbar.setFlashVisible(flashAvailable);
+            cameraFragmentBinding.settingsBar.setChildVisibility(R.id.flash_entry_layout, flashAvailable ? View.VISIBLE : GONE);
         }
 
         @Override
         public void setCameraUIEventsListener(CameraUIEventsListener cameraUIEventsListener) {
             this.uiEventsListener = cameraUIEventsListener;
+        }
+
+        @Override
+        public void destroy() {
+            topbar = null;
+            bottombuttons = null;
         }
     }
 
@@ -879,11 +986,13 @@ public class CameraFragment extends Fragment {
      * <p>
      * Responsible for converting user inputs into actions
      */
-    private final class CameraUIController implements CameraUIView.CameraUIEventsListener {
+    private final class CameraUIController implements CameraUIView.CameraUIEventsListener,
+            Observer<TopBarSettingsData<?, ?>>, AuxButtonsLayout.AuxButtonListener {
         private static final String TAG = "CameraUIController";
         private CountDownTimer countdownTimer;
         private View shutterButton;
 
+        @SuppressLint("NonConstantResourceId")
         @Override
         public void onClick(View view) {
             switch (view.getId()) {
@@ -891,6 +1000,7 @@ public class CameraFragment extends Fragment {
                     shutterButton = view;
                     switch (PhotonCamera.getSettings().selectedMode) {
                         case PHOTO:
+                        case MOTION:
                         case NIGHT:
                             if (view.isHovered()) resetTimer();
                             else startTimer();
@@ -936,40 +1046,47 @@ public class CameraFragment extends Fragment {
                 case R.id.eis_toggle_button:
                     PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
                     showSnackBar(getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
+                    updateSettingsBar();
                     break;
 
                 case R.id.fps_toggle_button:
                     PreferenceKeys.setFpsPreview(!PreferenceKeys.isFpsPreviewOn());
                     showSnackBar(getString(R.string.fps_60_toggle_text) + ':' + onOff(PreferenceKeys.isFpsPreviewOn()));
+                    updateSettingsBar();
                     break;
 
                 case R.id.quad_res_toggle_button:
                     PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
                     showSnackBar(getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
                     this.restartCamera();
+                    updateSettingsBar();
                     break;
 
                 case R.id.flip_camera_button:
                     view.animate().rotationBy(180).setDuration(450).start();
                     textureView.animate().rotationBy(360).setDuration(450).start();
-                    PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
+                    //PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
+                    setID(cycler(PreferenceKeys.getCameraID()));
                     this.restartCamera();
                     break;
                 case R.id.grid_toggle_button:
                     PreferenceKeys.setGridValue((PreferenceKeys.getGridValue() + 1) % view.getResources().getStringArray(R.array.vf_grid_entryvalues).length);
                     view.setSelected(PreferenceKeys.getGridValue() != 0);
                     invalidateSurfaceView();
+                    updateSettingsBar();
                     break;
 
                 case R.id.flash_button:
                     PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 4); //cycles in 0,1,2,3
                     ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
-                    captureController.setPreviewAEModeRebuild();
+                    captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
+                    updateSettingsBar();
                     break;
 
                 case R.id.countdown_timer_button:
                     PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
                     ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
+                    updateSettingsBar();
                     break;
             }
         }
@@ -997,23 +1114,27 @@ public class CameraFragment extends Fragment {
         @Override
         public void onAuxButtonClicked(String id) {
             Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
-            PreferenceKeys.setCameraID(String.valueOf(id));
+            setID(id);
             this.restartCamera();
 
         }
 
+        private void setID(String input){
+            PreferenceKeys.setCameraID(String.valueOf(input));
+        }
         @Override
         public void onCameraModeChanged(CameraMode cameraMode) {
             PreferenceKeys.setCameraModeOrdinal(cameraMode.ordinal());
             Log.d(TAG, "onCameraModeChanged() called with: cameraMode = [" + cameraMode + "]");
             switch (cameraMode) {
                 case PHOTO:
+                case MOTION:
                 case NIGHT:
                 case UNLIMITED:
                 default:
                     break;
                 case VIDEO:
-                    PreferenceKeys.setCameraModeOrdinal(CameraMode.PHOTO.ordinal()); //since Video Mode is broken at the moment
+                    PreferenceKeys.setCameraModeOrdinal(CameraMode.VIDEO.ordinal());
                     break;
             }
             this.restartCamera();
@@ -1038,6 +1159,58 @@ public class CameraFragment extends Fragment {
             this.shutterButton.setActivated(false);
             this.shutterButton.setClickable(false);
             captureController.takePicture();
+        }
+
+        @Override
+        public void onChanged(TopBarSettingsData<?, ?> topBarSettingsData) {
+            if (topBarSettingsData != null && topBarSettingsData.getType() != null && topBarSettingsData.getValue() != null) {
+                if (topBarSettingsData.getType() instanceof SettingType) {
+                    SettingType type = (SettingType) topBarSettingsData.getType();
+                    Object value = topBarSettingsData.getValue();
+                    switch (type) {
+                        case FLASH:
+                            PreferenceKeys.setAeMode((Integer) value); //cycles in 0,1,2,3
+                            captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
+                            cameraFragmentBinding.layoutTopbar.flashButton.setFlashValueState((Integer) value);
+                            break;
+                        case HDRX:
+                            PreferenceKeys.setHdrX(value.equals(1));
+                            if (value.equals(1))
+                                CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
+                            else
+                                CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
+                            this.restartCamera();
+                            break;
+                        case QUAD:
+                            PreferenceKeys.setQuadBayer(value.equals(1));
+                            this.restartCamera();
+                            break;
+                        case GRID:
+                            PreferenceKeys.setGridValue((Integer) value);
+                            invalidateSurfaceView();
+                            break;
+                        case FPS_60:
+                            PreferenceKeys.setFpsPreview(value.equals(1));
+                            break;
+                        case TIMER:
+                            PreferenceKeys.setCountdownTimerIndex((Integer) value);
+                            cameraFragmentBinding.layoutTopbar.countdownTimerButton.setTimerIconState((Integer) value);
+                            break;
+                        case EIS:
+                            PreferenceKeys.setEisPhoto(value.equals(1));
+                            break;
+                        case RAW:
+                            PreferenceKeys.setSaveRaw(value.equals(1));
+                            break;
+                        case BATTERY_SAVER:
+                            PreferenceKeys.setBatterySaver(value.equals(1));
+                            break;
+
+                    }
+                    cameraFragmentBinding.layoutTopbar.invalidateAll();
+                }
+            }
+
         }
     }
 }

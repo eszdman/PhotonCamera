@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
-import android.util.Log;
 
 import androidx.annotation.StringRes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -46,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
+        COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -57,10 +58,9 @@ public class PreferenceKeys {
     public static void initialise(SettingsManager settingsManager) {
         preferenceKeys = new PreferenceKeys(settingsManager);
     }
-
+    @HunterDebug
     public static void setDefaults(Context context) {
         SettingsManager settingsManager = preferenceKeys.settingsManager;
-        CameraManager2 cameraManager2 = new CameraManager2((CameraManager) context.getSystemService(CAMERA_SERVICE), settingsManager);
         Resources resources = context.getResources();
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
@@ -76,12 +76,8 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
 
-        Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
-        map.keySet().removeAll(COMMON_KEYS);
-        String json = GSON.toJson(map);
-        for (String cameraId : cameraManager2.getCameraIdList()) { //Makes a copy of default settings for each camera
-            settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
-        }
+
+
         settingsManager.addListener((settingsManager1, key) -> {
             if (isPerLensSettingsOn()) {
                 if (key.equals(Key.CAMERA_ID.mValue)) {
@@ -92,8 +88,16 @@ public class PreferenceKeys {
                 }
             }
             PhotonCamera.getSettings().loadCache();
-            Log.d(TAG, key + " : changed!");
+            //Log.d(TAG, key + " : changed!");
         });
+    }
+    public static void addIds(String[] ids){
+        SettingsManager settingsManager = preferenceKeys.settingsManager;
+        Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
+        map.keySet().removeAll(COMMON_KEYS); String json = GSON.toJson(map);
+        for (String cameraId : ids) { //Makes a copy of default settings for each camera
+            settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
+        }
     }
 
     private static void saveJsonForCamera(String cameraID) {
@@ -125,6 +129,9 @@ public class PreferenceKeys {
         map.put("orange", R.style.OrangeTheme);
         map.put("green", R.style.GreenTheme);
         map.put("eszdman", R.style.EszdmanTheme);
+        map.put("pink", R.style.PinkTheme);
+        map.put("cyan", R.style.CyanTheme);
+        map.put("teal", R.style.TealTheme);
 
         SettingsManager sm = preferenceKeys.settingsManager;
 
@@ -178,6 +185,20 @@ public class PreferenceKeys {
 
     public static boolean isSaveRawOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
+    }
+
+    public static boolean isBatterySaverOn(){
+        return getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
+    }
+    public static boolean isAspect169On(){
+        return getBool(Key.KEY_WIDE169);
+    }
+
+    public static void setBatterySaver(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ENERGY_SAVING,value);
+    }
+    public static void setSaveRaw(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW,value);
     }
 
     public static boolean isRoundEdgeOn() {
@@ -331,15 +352,14 @@ public class PreferenceKeys {
     public enum Key {
         KEY_PREF_VERSION(R.string._pref_version),
 
-        KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
         KEY_ENABLE_SYSTEM_NR(R.string.pref_enable_system_nr_key),
         KEY_SAVE_PER_LENS_SETTINGS(R.string.pref_save_per_lens_settings),
         KEY_DISABLE_ALIGNINIG(R.string.pref_disable_aligning_key),
         KEY_SHOW_WATERMARK(R.string.pref_show_watermark_key),
         KEY_ENERGY_SAVING(R.string.pref_energy_safe_key),
+        KEY_WIDE169(R.string.pref_wide169_key),
         KEY_ENHANCED_PROCESSING(R.string.pref_enhanced_processing_key),
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
-        KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
@@ -347,15 +367,15 @@ public class PreferenceKeys {
         KEY_LUMA_NR_SEEKBAR(R.string.pref_luma_nr_seekbar_key),
         KEY_COMPRESSOR_SEEKBAR(R.string.pref_compressor_seekbar_key),
         KEY_NOISESTR_SEEKBAR(R.string.pref_noise_seekbar_key),
+        KEY_MERGE_SEEKBAR(R.string.pref_merge_seekbar_key),
         KEY_GAIN_SEEKBAR(R.string.pref_gain_seekbar_key),
         KEY_SHADOWS_SEEKBAR(R.string.pref_shadows_seekbar_key),
         KEY_FRAME_COUNT(R.string.pref_frame_count_key),
         KEY_CONTRAST_SEEKBAR(R.string.pref_contrast_seekbar_key),
         KEY_SHARPNESS_SEEKBAR(R.string.pref_sharpness_seekbar_key),
+        KEY_EXPOCOMPENSATE_SEEKBAR(R.string.pref_expocompensation_seekbar_key),
         KEY_SATURATION_SEEKBAR(R.string.pref_saturation_seekbar_key),
         KEY_ALIGN_METHOD(R.string.pref_align_method_key),
-        KEY_CFA(R.string.pref_cfa_key),
-        KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
         KEY_TELEGRAM(R.string.pref_telegram_channel_key),
         KEY_CONTRIBUTORS(R.string.pref_contributors_key),
         KEY_THEME(R.string.pref_theme_key),
@@ -364,6 +384,15 @@ public class PreferenceKeys {
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_COUNTDOWN_TIMER(R.string.pref_countdown_timer_key),
+        /**
+         * Enhanced settings keys
+         */
+        KEY_PREVIEW_RESOLUTION(R.string.pref_preview_resolution_key),////TODO add preview resolution selector
+        KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
+        KEY_SAVE_RAW(R.string.pref_save_raw_key),
+        KEY_CFA(R.string.pref_cfa_key),
+        KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
+
         /**
          * Other Keys
          */
@@ -381,7 +410,7 @@ public class PreferenceKeys {
         ALL_CAMERA_IDS_KEY(R.string.all_camera_ids),
         FRONT_IDS_KEY(R.string.front_camera_ids),
         BACK_IDS_KEY(R.string.back_camera_ids),
-        FOCAL_IDS_KEY(R.string.all_camera_focals),
+        ALL_CAMERA_LENS_KEY(R.string.all_camera_lens),
         CAMERA_COUNT_KEY(R.string.all_camera_count),
 
         /* SupportedDevice keys */

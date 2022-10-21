@@ -52,5 +52,6 @@ public class TimerButton extends AppCompatButton {
                 timer_10s = true;
                 break;
         }
+        refreshDrawableState();
     }
 }

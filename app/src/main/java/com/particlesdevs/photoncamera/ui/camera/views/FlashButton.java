@@ -56,5 +56,6 @@ public class FlashButton extends AppCompatButton {
                 flash_on = true;
                 break;
         }
+        refreshDrawableState();
     }
 }

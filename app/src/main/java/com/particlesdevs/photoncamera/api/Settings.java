@@ -7,23 +7,26 @@ import static android.hardware.camera2.CaptureRequest.NOISE_REDUCTION_MODE_OFF;
 public class Settings {
     private final String TAG = "Settings";
     //Preferences
-    public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
+
     public int frameCount;
     public int lumenCount;
     public int chromaCount;
     public boolean enhancedProcess;
     public boolean watermark;
     public boolean energySaving;
+    public boolean aspect169;
     public boolean DebugData;
     public boolean roundEdge;
     public boolean align;
     public boolean hdrx;
     public boolean hdrxNR;
+    public double exposureCompensation;
     public double saturation;
     public double sharpness;
     public double contrastMpy = 1.0;
     public int contrastConst = 0;//TODO
     public double noiseRstr;
+    public double mergeStrength;
     public double compressor;
     public double gain;
     public double shadows;
@@ -36,9 +39,12 @@ public class Settings {
     public boolean fpsPreview;
     public int alignAlgorithm;
     public String mCameraID;
-    public CameraMode selectedMode;
     public float[] toneMap;
     public float[] gamma;
+
+    //Camera direct related
+    public int noiseReduction = NOISE_REDUCTION_MODE_OFF;
+    public CameraMode selectedMode;
 
     public void loadCache() {
         noiseReduction = PreferenceKeys.isSystemNrOn();
@@ -49,6 +55,7 @@ public class Settings {
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
         energySaving = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
+        aspect169 = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_WIDE169);
         DebugData = PreferenceKeys.isAfDataOn();
         roundEdge = PreferenceKeys.isRoundEdgeOn();
         sharpness = PreferenceKeys.getSharpnessValue();
@@ -56,8 +63,10 @@ public class Settings {
 //        contrastConst = get(contrastConst, "ContrastConst");///////TODO
 //        saturation = get(saturation, "Saturation");
         saturation = PreferenceKeys.getSaturationValue();
+        exposureCompensation = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_EXPOCOMPENSATE_SEEKBAR);
         compressor = PreferenceKeys.getCompressorValue();
         noiseRstr = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR);
+        mergeStrength = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_MERGE_SEEKBAR);
         gain = PreferenceKeys.getGainValue();
         shadows = PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_SHADOWS_SEEKBAR);
         hdrx = PreferenceKeys.isHdrxNrOn();

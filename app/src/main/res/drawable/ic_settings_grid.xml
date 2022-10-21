@@ -1,11 +1,16 @@
-<!-- drawable/grid.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+        android:height="24.0dip"
+        android:width="24.0dip"
         android:tint="?colorControlNormal"
-        android:height="24dp"
-        android:width="24dp"
-        android:viewportWidth="24"
-        android:viewportHeight="24">
-    <path
-            android:fillColor="@android:color/white"
-            android:pathData="M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z"/>
+        android:viewportWidth="52.0"
+        android:viewportHeight="52.0">
+    <group>
+        <clip-path android:pathData="M0,0h52v52h-52z" />
+        <path
+                android:fillColor="#ff000000"
+                android:pathData="M49.923,15.79a1.207,1.207 0,0 0,1.207 -1.207h0a1.208,1.208 0,0 0,-1.207 -1.207L38.253,13.376v-11.668a1.207,1.207 0,0 0,-1.207 -1.207,1.207 1.207,0 0,0 -1.207,1.207v11.668h-20.42v-11.668a1.207,1.207 0,0 0,-1.207 -1.207,1.207 1.207,0 0,0 -1.207,1.207v11.668h-11.668a1.207,1.207 0,0 0,-1.207 1.207h0a1.207,1.207 0,0 0,1.207 1.207h11.668v20.42h-11.668a1.208,1.208 0,0 0,-1.206 1.208,1.207 1.207,0 0,0 1.206,1.206h11.668v11.668a1.207,1.207 0,0 0,1.207 1.207,1.207 1.207,0 0,0 1.207,-1.207v-11.668h20.42v11.668a1.207,1.207 0,0 0,1.207 1.207,1.207 1.207,0 0,0 1.207,-1.207v-11.668h11.669a1.207,1.207 0,0 0,1.208 -1.206,1.207 1.207,0 0,0 -1.206,-1.208L38.253,36.21v-20.42ZM35.842,36.21L15.423,36.21v-20.42h20.419Z"
+                android:strokeColor="#ff000000"
+                android:strokeWidth="1.0" />
+    </group>
 </vector>

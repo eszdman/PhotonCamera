@@ -2,24 +2,22 @@ package com.particlesdevs.photoncamera.ui.camera.viewmodel;
 
 import android.app.Application;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Process;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+import com.hunter.library.debug.HunterDebug;
+import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
+import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
-import com.particlesdevs.photoncamera.util.FileManager;
-
-import java.io.File;
-import java.util.List;
-
-import rapid.decoder.BitmapDecoder;
-import rapid.decoder.Quality;
 
 /**
  * Class get used to update the Models binded to the ui
@@ -33,6 +31,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
 
+
     public CameraFragmentViewModel(@NonNull Application application) {
         super(application);
         cameraFragmentModel = new CameraFragmentModel();
@@ -45,6 +44,7 @@ public class CameraFragmentViewModel extends AndroidViewModel {
 
     public void onResume() {
         mCustomOrientationEventListener.enable();
+        cameraFragmentModel.setSettingsBarVisibility(false);
     }
 
     public void onPause() {
@@ -83,23 +83,48 @@ public class CameraFragmentViewModel extends AndroidViewModel {
             }
         };
     }
-
-    public void updateGalleryThumb() {
-        List<File> allFiles = FileManager.getAllImageFiles();
-        if (allFiles.isEmpty())
-            return;
-        File lastImage = allFiles.get(0);
-        HandlerThread t = new HandlerThread("ThumbnailUpdater", Process.THREAD_PRIORITY_BACKGROUND);
-        t.start();
-        if (lastImage != null) {
-            new Handler(t.getLooper()).post(() -> {
-                Bitmap bitmap = BitmapDecoder.from(Uri.fromFile(lastImage))
-                        .quality(Quality.LOWEST_OPAQUE)
-                        .scaleBy(0.1f)
-                        .decode();
-                cameraFragmentModel.setBitmap(bitmap);
-                t.quitSafely();
-            });
+    @HunterDebug
+    public void updateGalleryThumb(@Nullable Uri uri) {
+        Uri lastImageUri = uri;
+        if (lastImageUri == null) {
+            ImageFile lastImage = GalleryFileOperations.fetchLatestImage(getApplication().getContentResolver());
+            if (lastImage != null) {
+                lastImageUri = lastImage.getFileUri();
+            }
         }
+        if (lastImageUri != null) {
+            Glide.with(getApplication())
+                    .asBitmap()
+                    .load(lastImageUri)
+                    .override(200)
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            cameraFragmentModel.setBitmap(resource);
+                        }
+
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                        }
+                    });
+        }
+    }
+
+    public void setScreenAspectRatio(float aspectRatio){
+        cameraFragmentModel.setScreenAspectRatio(aspectRatio);
+    }
+
+    public boolean isSettingsBarVisible() {
+        return cameraFragmentModel.isSettingsBarVisibility();
+    }
+
+    public void setSettingsBarVisible(boolean visible) {
+        cameraFragmentModel.setSettingsBarVisibility(visible);
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
     }
 }

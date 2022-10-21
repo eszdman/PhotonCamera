@@ -1,19 +1,15 @@
 <resources>
     <string name="version_summary" translatable="false">v%1$s\n%2$s</string>
-    <string name="manual_mode_auto" translatable="false">Auto</string>
-    <string name="manual_mode_manual" translatable="false">Manual</string>
-    <string name="manual_mode_fixed" translatable="false">Fixed</string>
-    <string name="iso" translatable="false">"ISO: "</string>
+    <string name="iso" translatable="false">"ISO "</string>
     <string name="icon_string" translatable="false">Icon</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
-    <string name="app_name" translatable="false">Photon Camera</string>
+    <string name="app_name" translatable="false">PhotonCamera</string>
     <string name="device_support" translatable="false">PhotonCamera Pro</string>
     <string name="request_permission">This app needs camera permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
-    <string name="luma_nr_count">Luma NR Count</string>
-    <string name="frame_count">Frame Count</string>
+    <string name="luma_nr_count">Luminance Noise Reduction Strength</string>
+    <string name="frame_count">HDR Frame Count</string>
     <string name="disable_aligning">Disable Aligning</string>
-    <string name="turn_on_system_nr">Turn On System NR</string>
     <string name="chroma_nr_count">Chroma NR Count</string>
     <string name="enhanced_processing">Enhanced Processing</string>
     <string name="settings">Settings</string>
@@ -24,18 +20,20 @@
     <string name="contrmul">Contrast Multiply</string>
     <string name="contrconst">Constant</string>
     <string name="saturation">Saturation</string>
-    <string name="jpg">JPG</string>
+    <string name="expocompensation">Exposure Compensation</string>
+    <string name="jpg">JPEG</string>
     <string name="hdrx">HDRX</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>
-    <string name="raw">Save Stacked RAW + JPG</string>
+    <string name="noise_merge_str">Noise Merge Strength</string>
+    <string name="raw">Save RAW + JPEG</string>
     <string name="turn_on_round_edges">Enable Round Edges</string>
     <string name="enable_remosaic">Enable Remosaic</string>
     <string name="general">General</string>
     <string name="telegram">Telegram Group ↗</string>
-    <string name="hdrxNR">HDRX Noise Reduction</string>
-    <string name="turn_on_watermark">Enable Watermark</string>
+    <string name="hdrxNR">Noise Reduction</string>
+    <string name="turn_on_watermark">Watermark</string>
     <string name="sure_delete">Are you sure to delete this image?</string>
     <string name="sure_delete_multiple">Are you sure to delete %1$s image(s)? %2$s will be cleared.</string>
     <string name="cancel">Cancel</string>
@@ -43,27 +41,27 @@
     <string name="image_deleted">Image Deleted</string>
     <string name="close">Close</string>
     <string name="unknown">Unknown</string>
-    <string name="resolution">"Resolution: "</string>
-    <string name="size">"File Size: "</string>
-    <string name="device">"Device: "</string>
-    <string name="date">"Date: "</string>
-    <string name="exposure_time">"Exposure Time: "</string>
-    <string name="aperture">"Aperture: "</string>
-    <string name="flength">"Focal Length: "</string>
+    <string name="resolution">"Resolution "</string>
+    <string name="size">"File Size "</string>
+    <string name="device">"Device "</string>
+    <string name="date">"Date "</string>
+    <string name="exposure_time">"Exposure "</string>
+    <string name="aperture">"Aperture "</string>
+    <string name="flength">"Focal Length "</string>
     <string name="info">Info</string>
-    <string name="filename">"File Name: "</string>
-    <string name="turn_on_afdata">Show AF Data</string>
+    <string name="filename">"File Name "</string>
+    <string name="turn_on_afdata">Show Debug Data</string>
     <string name="histogram">Histogram</string>
     <string name="export_settings">Export Settings</string>
     <string name="import_settings">Import Settings</string>
     <string name="pref_show_grid_title">Show Grid</string>
-    <string name="cfa">CFA Pattern</string>
+    <string name="cfa">Bayer Filter Pattern</string>
     <string name="align_method">Align Method</string>
-    <string name="pref_save_per_lens_string">Save Per Lens Settings</string>
+    <string name="pref_save_per_lens_string">Per Lens Settings</string>
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
-    <string name="energy_saving">Battery saving</string>
+    <string name="energy_saving">Battery Saver</string>
     <string name="theme">Theme</string>
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
@@ -74,15 +72,18 @@
     <string name="theme_accent_red">Red</string>
     <string name="theme_accent_orange">Orange</string>
     <string name="theme_accent_green">Green</string>
+    <string name="theme_accent_pink">Pink</string>
+    <string name="theme_accent_cyan">Cyan</string>
+    <string name="theme_accent_teal">Teal</string>
     <string name="show_gradient">Show Gradient Background</string>
     <string name="unprocessed_raw">Unprocessed RAW</string>
     <string name="frame_count_summary">Number of image frames to be stacked</string>
-    <string name="photon_camera_summary">An Open Source Android Camera with\n Enhanced Image Processing</string>
+    <string name="photon_camera_summary">An Open-Source Android Camera with Enhanced Image Processing</string>
     <string name="version_title">Version</string>
     <string name="contributors_title">Contributors ↗</string>
     <string name="eis_toggle_text">Image Stabilization</string>
-    <string name="fps_60_toggle_text">60 FPS Preview</string>
-    <string name="quad_bayer_toggle_text">Quad Bayer Res(48/64MP)</string>
+    <string name="fps_60_toggle_text">Frame rate</string>
+    <string name="quad_bayer_toggle_text">Quad Bayer Res. (48/64 MP)</string>
     <string name="backup_restore">Backup/Restore Settings</string>
     <string name="reset">Reset All</string>
     <string name="reset_preferences_warning">This will reset all settings to their default values. Continue?</string>
@@ -93,15 +94,34 @@
     <string name="device_unsupport">Warning: Unsupported device</string>
     <string name="af_mode">Auto Focus Mode</string>
     <string name="long_press_to_deselect">Long press button to deselect all</string>
-    <string name="multiple_deleted_success">%1$s File(s) Deleted! %2$s Cleared.</string>
+    <string name="multiple_deleted_success">%1$s file(s) deleted! %2$s cleared.</string>
     <string name="supported_devices">Supported Devices</string>
     <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
     <string name="this_device">Your Device - %1$s</string>
-    <string name="sync_on">Sync On</string>
-    <string name="sync_off">Sync Off</string>
+    <string name="sync_on">Sync. On</string>
+    <string name="sync_off">Sync. Off</string>
     <string name="mode_unlimited">Unlimited</string>
+    <string name="mode_motion">Motion</string>
     <string name="mode_photo">Photo</string>
     <string name="mode_night">Night</string>
     <string name="mode_video">Video</string>
+    <string name="countdown_timer">Countdown Timer</string>
+    <string name="flash">Flash</string>
+    <string name="torch">Torch</string>
+    <string name="on">On</string>
+    <string name="auto">Auto</string>
+    <string name="t_3s">3s</string>
+    <string name="t_10s">10s</string>
+    <string name="raw_string" translatable="false">RAW</string>
+    <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
+    <string name="jpg_only">JPEG Only</string>
+    <string name="off">Off</string>
+    <string name="golden_ratio">Golden Ratio</string>
+    <string name="diag_triangle">Diag. Triangles</string>
+    <string name="three_x3" translatable="false">3x3</string>
+    <string name="four_x4" translatable="false">4x4</string>
+    <string name="processing_processname">Processing %1$s...</string>
+    <string name="turn_on_system_nr">System Noise Reduction</string>
+    <string name="wide169" translatable="false">16:9</string>
 
 </resources>

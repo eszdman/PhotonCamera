@@ -5,21 +5,21 @@ import android.util.Log;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.processing.UnlimitedProcessor;
+import com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLOneScript;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 
-import static com.particlesdevs.photoncamera.processing.UnlimitedProcessor.unlimitedCounter;
+import static com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor.unlimitedCounter;
 
 public class AverageRaw extends GLOneScript {
     GLTexture in1,in2, first,second,stack,finalTex;
     private GLProg glProg;
     int used = 1;
     public AverageRaw(Point size, String name) {
-        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16)), R.raw.average, name);
+        super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16)), "average", name);
     }
     float[] wpoints;
     public void Init(){
@@ -93,7 +93,7 @@ public class AverageRaw extends GLOneScript {
         }
     }
     private void AverageStack(){
-        glProg.useProgram(R.raw.averageff);
+        glProg.useAssetProgram("averageff");
         glProg.setTexture("InputBuffer",GetAlterIn());
         glProg.setTexture("InputBuffer2", stack);
         glProg.setVar("unlimitedcount",Math.min(cnt2,250));
@@ -113,7 +113,7 @@ public class AverageRaw extends GLOneScript {
     public void FinalScript(){
         AverageStack();
         glProg = glOne.glProgram;
-        glProg.useProgram(R.raw.medianfilterhotpixeltoraw);
+        glProg.useProgram("medianfilterhotpixeltoraw");
         glProg.setVar("CfaPattern",PhotonCamera.getParameters().cfaPattern);
         Log.d(Name,"CFAPattern:"+PhotonCamera.getParameters().cfaPattern);
         glProg.setTexture("InputBuffer",stack);

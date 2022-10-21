@@ -41,6 +41,8 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -65,6 +67,7 @@ public class HorizontalPicker extends View {
     private static final int SELECTOR_ADJUSTMENT_DURATION_MILLIS = 800;
     private final int overscrollDistance;
     private final PickerTouchHelper touchHelper;
+    private final Vibration vibration;
     /**
      * Determines speed during touch scrolling.
      */
@@ -115,7 +118,7 @@ public class HorizontalPicker extends View {
 
     public HorizontalPicker(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-
+        vibration = PhotonCamera.getVibration();
         // create the selector wheel paint
         TextPaint paint = new TextPaint();
         paint.setAntiAlias(true);
@@ -568,11 +571,10 @@ public class HorizontalPicker extends View {
     private void selectItem() {
         // post to the UI Thread to avoid potential interference with the OpenGL Thread
         if (onItemClicked != null) {
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    onItemClicked.onItemClicked(getSelectedItem());
-                }
+
+            post(() -> {
+                vibration.Click();
+                onItemClicked.onItemClicked(getSelectedItem());
             });
         }
 
@@ -823,7 +825,7 @@ public class HorizontalPicker extends View {
     private void adjustToNearestItemX() {
 
         int x = getScrollX();
-        int item = Math.round(x / (itemWidth + dividerSize * 1f));
+        int item = Math.round(x / (itemWidth + dividerSize));
 
         if (item < 0) {
             item = 0;
@@ -871,12 +873,7 @@ public class HorizontalPicker extends View {
         startMarqueeIfNeeded();
         // post to the UI Thread to avoid potential interference with the OpenGL Thread
         if (onItemSelected != null) {
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    onItemSelected.onItemSelected(getPositionFromCoordinates(getScrollX()));
-                }
-            });
+            post(() -> onItemSelected.onItemSelected(getPositionFromCoordinates(getScrollX())));
         }
     }
 

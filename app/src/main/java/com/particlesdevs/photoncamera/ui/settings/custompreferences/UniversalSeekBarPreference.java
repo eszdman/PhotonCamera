@@ -8,10 +8,13 @@ import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
 
 import java.util.Locale;
 
@@ -21,6 +24,7 @@ import java.util.Locale;
 public class UniversalSeekBarPreference extends Preference implements SeekBar.OnSeekBarChangeListener {
     private static final String TAG = "UnivSeekBarPref";
     private static final boolean isLoggingOn = false;
+    private final Vibration vibration;
     private final float mMin, mMax;
     private final boolean isFloat, showSeekBarValue;
     private float mStepPerUnit;
@@ -33,6 +37,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
         super(context, attrs, defStyleAttr, defStyleRes);
         TypedArray a = context.obtainStyledAttributes(
                 attrs, R.styleable.UniversalSeekBarPreference, defStyleAttr, defStyleRes);
+        vibration = PhotonCamera.getVibration();
         mMax = a.getFloat(R.styleable.UniversalSeekBarPreference_maxValue, 100.0f);
         mMin = a.getFloat(R.styleable.UniversalSeekBarPreference_minValue, 0.0f);
         mStepPerUnit = a.getFloat(R.styleable.UniversalSeekBarPreference_stepPerUnit, 1.0f);
@@ -61,7 +66,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
     }
 
     @Override
-    public void onBindViewHolder(PreferenceViewHolder holder) {
+    public void onBindViewHolder(@NonNull PreferenceViewHolder holder) {
 //        log("onBindViewHolder");
         super.onBindViewHolder(holder);
         holder.setDividerAllowedAbove(false);
@@ -74,6 +79,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        if(fromUser) vibration.Tick();
         if (fromUser) {
             set(progress);
         }

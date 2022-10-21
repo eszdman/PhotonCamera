@@ -20,13 +20,30 @@ import java.lang.reflect.Field;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
 import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE;
+import static android.hardware.camera2.CameraCharacteristics.TONEMAP_AVAILABLE_TONE_MAP_MODES;
 import static android.hardware.camera2.CameraCharacteristics.TONEMAP_MAX_CURVE_POINTS;
+import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_DISABLED;
+import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_HDR;
+import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_FAST;
+import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.SHADING_MODE_FAST;
+import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_HIGH_QUALITY;
+import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_PRESET_CURVE;
+import static android.hardware.camera2.CaptureRequest.CONTROL_SCENE_MODE;
+import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
 import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
+import static android.hardware.camera2.CaptureRequest.STATISTICS_HOT_PIXEL_MAP_MODE;
+import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
+import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
 import static android.hardware.camera2.CaptureResult.COLOR_CORRECTION_GAINS;
 import static android.hardware.camera2.CaptureResult.COLOR_CORRECTION_TRANSFORM;
 import static android.hardware.camera2.CaptureResult.SENSOR_DYNAMIC_BLACK_LEVEL;
 import static android.hardware.camera2.CaptureResult.SENSOR_NEUTRAL_COLOR_POINT;
+import static android.hardware.camera2.CaptureResult.SHADING_MODE;
+import static android.hardware.camera2.CaptureResult.TONEMAP_CURVE;
 
 @SuppressWarnings("ALL")
 public class Camera2ApiAutoFix {
@@ -45,6 +62,7 @@ public class Camera2ApiAutoFix {
     public static void Init() {
         Camera2ApiAutoFix fix = new Camera2ApiAutoFix(CaptureController.mCameraCharacteristics);
         fix.ExposureTime();
+        fix.ExposureCompensation();
     }
 
     public static void Apply() {
@@ -102,6 +120,10 @@ public class Camera2ApiAutoFix {
             Range nrange = new Range(exprange.getLower(), (long) (ExposureIndex.sec * 5.2));
             CameraReflectionApi.set(SENSOR_INFO_EXPOSURE_TIME_RANGE, nrange);
         }
+    }
+    private void ExposureCompensation(){
+        Range nrange = new Range(-24, 24);
+        CameraReflectionApi.set(CONTROL_AE_COMPENSATION_RANGE,nrange);
     }
 
     public static void patchWL(CameraCharacteristics characteristics,

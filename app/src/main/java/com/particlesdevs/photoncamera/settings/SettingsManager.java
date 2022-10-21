@@ -24,6 +24,7 @@ import android.util.Size;
 import androidx.preference.PreferenceManager;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -330,6 +331,10 @@ public class SettingsManager {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         return preferences.getStringSet(key.mValue, defaultValue);
     }
+    public ArrayList<String> getArrayList(String scope, String key, Set<String> defaultValue) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        return new ArrayList<>(preferences.getStringSet(key, defaultValue));
+    }
 
     /**
      * Retrieve a setting's value as a String, using the default value
@@ -506,6 +511,10 @@ public class SettingsManager {
         SharedPreferences preferences = getPreferencesFromScope(scope);
         preferences.edit().putStringSet(key.mValue, value).apply();
     }
+    public void set(String scope, String key, ArrayList<String> value) {
+        SharedPreferences preferences = getPreferencesFromScope(scope);
+        preferences.edit().putStringSet(key, new HashSet<>(value)).apply();
+    }
 
     public void setInitial(String scope, PreferenceKeys.Key key, boolean value) {
         if (!isSet(scope, key)) {
@@ -560,7 +569,7 @@ public class SettingsManager {
     }
 
     /**
-     * Check whether a settings's value is currently set to the
+     * Check whether a setting's value is currently set to the
      * default value.
      */
     public boolean isDefault(String scope, PreferenceKeys.Key key) {

@@ -14,4 +14,7 @@ public class BaseActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
     }
+    public interface BackPressedListener{
+        boolean onBackPressed();
+    }
 }

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_grid_on"
-          android:state_selected="true" />
-    <item android:drawable="@drawable/ic_grid_off"
-          android:state_selected="false"/>
-</selector>
+<inset android:inset="@dimen/topbar_button_inset"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <selector>
+        <item android:state_selected="true" android:drawable="@drawable/ic_grid_on" />
+        <item android:state_selected="false" android:drawable="@drawable/ic_grid_off" />
+    </selector>
+</inset>

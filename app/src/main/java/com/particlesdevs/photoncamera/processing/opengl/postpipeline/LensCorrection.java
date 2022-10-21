@@ -13,7 +13,7 @@ import java.nio.FloatBuffer;
 public class LensCorrection extends Node {
 
     public LensCorrection() {
-        super(R.raw.lenscorrection, "LensCorrection");
+        super("lenscorrection", "LensCorrection");
     }
 
     @Override

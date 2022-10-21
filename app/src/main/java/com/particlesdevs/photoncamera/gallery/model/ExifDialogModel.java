@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.gallery.model;
 
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+import androidx.databinding.library.baseAdapters.BR;
 
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
@@ -23,7 +24,6 @@ public class ExifDialogModel extends BaseObservable {
     private String miniText;
     private Histogram.HistogramModel histogramModel;
 
-    @Bindable
     public String getMiniText() {
         return miniText;
     }
@@ -32,7 +32,6 @@ public class ExifDialogModel extends BaseObservable {
         this.miniText = miniText;
     }
 
-    @Bindable
     public String getTitle() {
         return title;
     }
@@ -41,7 +40,6 @@ public class ExifDialogModel extends BaseObservable {
         this.title = title;
     }
 
-    @Bindable
     public String getRes() {
         return res;
     }
@@ -50,7 +48,6 @@ public class ExifDialogModel extends BaseObservable {
         this.res = res;
     }
 
-    @Bindable
     public String getRes_mp() {
         return res_mp;
     }
@@ -59,7 +56,6 @@ public class ExifDialogModel extends BaseObservable {
         this.res_mp = res_mp;
     }
 
-    @Bindable
     public String getDevice() {
         return device;
     }
@@ -68,7 +64,6 @@ public class ExifDialogModel extends BaseObservable {
         this.device = device;
     }
 
-    @Bindable
     public String getFile_size() {
         return file_size;
     }
@@ -77,7 +72,6 @@ public class ExifDialogModel extends BaseObservable {
         this.file_size = file_size;
     }
 
-    @Bindable
     public String getDate() {
         return date;
     }
@@ -86,7 +80,6 @@ public class ExifDialogModel extends BaseObservable {
         this.date = date;
     }
 
-    @Bindable
     public String getExposure() {
         return exposure;
     }
@@ -95,7 +88,6 @@ public class ExifDialogModel extends BaseObservable {
         this.exposure = exposure;
     }
 
-    @Bindable
     public String getIso() {
         return iso;
     }
@@ -104,7 +96,6 @@ public class ExifDialogModel extends BaseObservable {
         this.iso = iso;
     }
 
-    @Bindable
     public String getFnum() {
         return fnum;
     }
@@ -113,7 +104,6 @@ public class ExifDialogModel extends BaseObservable {
         this.fnum = fnum;
     }
 
-    @Bindable
     public String getFocal() {
         return focal;
     }
@@ -129,6 +119,6 @@ public class ExifDialogModel extends BaseObservable {
 
     public void setHistogramModel(Histogram.HistogramModel histogramModel) {
         this.histogramModel = histogramModel;
-        notifyChange();
+        notifyPropertyChanged(BR.histogramModel);
     }
 }

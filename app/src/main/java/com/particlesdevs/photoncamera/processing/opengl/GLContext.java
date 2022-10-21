@@ -19,15 +19,28 @@ import static android.opengl.EGL14.eglGetDisplay;
 import static android.opengl.EGL14.eglInitialize;
 import static android.opengl.EGL14.eglMakeCurrent;
 import static android.opengl.EGL14.eglTerminate;
+import static android.opengl.GLES20.GL_COLOR_ATTACHMENT0;
+import static android.opengl.GLES20.GL_RENDERBUFFER;
+import static android.opengl.GLES20.glBindFramebuffer;
+import static android.opengl.GLES20.glBindRenderbuffer;
+import static android.opengl.GLES20.glFramebufferRenderbuffer;
+import static android.opengl.GLES20.glGenFramebuffers;
+import static android.opengl.GLES20.glGenRenderbuffers;
+import static android.opengl.GLES20.glRenderbufferStorage;
+import static android.opengl.GLES30.GL_DRAW_FRAMEBUFFER;
+import static android.opengl.GLES30.GL_RGBA8;
 
 public class GLContext implements AutoCloseable {
     private EGLDisplay mDisplay;
     private EGLContext mContext;
     private EGLSurface mSurface;
     public GLProg mProgram;
+    public final int[] bindFB = new int[1];
+    public final int[] bindRB = new int[1];
 
     public GLContext(int surfaceWidth, int surfaceHeight) {
         createContext(surfaceWidth,surfaceHeight);
+
     }
     public void createContext(int surfaceWidth, int surfaceHeight){
         int[] major = new int[2];

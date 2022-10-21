@@ -1,19 +1,24 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
-apply plugin: 'com.google.firebase.firebase-perf'
-
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'hunter-debug'
 android {
+    signingConfigs {
+        debug {
+            storeFile file('../key/PcamLeak.jks')
+            storePassword 'photoncamera'
+            keyPassword 'photoncamera'
+            keyAlias 'key0'
+        }
+    }
     def versionPropsFile = file('version.properties')
     def versionBuild
-    compileSdkVersion 30
+    compileSdkVersion 33
     buildToolsVersion '30.0.3'
-    lintOptions {
-        abortOnError false
-    }
 
     buildFeatures {
         dataBinding true
+        mlModelBinding true
     }
 
     if (versionPropsFile.canRead()) {
@@ -39,13 +44,16 @@ android {
     defaultConfig {
         applicationId 'com.particlesdevs.photoncamera'
         minSdkVersion 26
-        targetSdkVersion 30
+        //Waiting for api 32 sources
+        //noinspection OldTargetApi
+        targetSdkVersion 33
         versionCode versionBuild
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
         }
-        versionName '0.72'
+        versionName '0.85'
+        proguardFiles
     }
 
     gradle.taskGraph.whenReady { taskGraph ->
@@ -71,8 +79,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             jniDebuggable = true
             zipAlignEnabled = true
-            debuggable true
-            renderscriptDebuggable true
         }
     }
 
@@ -80,6 +86,10 @@ android {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
     }
+    lint {
+        abortOnError false
+    }
+    namespace 'com.particlesdevs.photoncamera'
     applicationVariants.all {
         variant -> variant.outputs.all {
             outputFileName = "PhotonCamera-${versionName}${versionBuild}-${variant.name}.apk"
@@ -89,39 +99,45 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    implementation 'com.google.android.gms:play-services-basement:17.5.0'
-
+    implementation project(path: ':circularbarlib')
     implementation 'de.hdodenhof:circleimageview:3.1.0'
-    implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
-    implementation 'androidx.preference:preference:1.1.1'
-    implementation 'org.jetbrains:annotations:16.0.1'
-    implementation 'androidx.exifinterface:exifinterface:1.3.2'
-    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.preference:preference-ktx:1.2.0'
+    implementation 'org.jetbrains:annotations:23.0.0'
+    implementation 'androidx.exifinterface:exifinterface:1.3.4'
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.ChickenHook:RestrictionBypass:2.2'
-    implementation 'com.github.bumptech.glide:glide:4.11.0'
-    implementation 'com.aparapi:aparapi:2.0.0'
-    implementation 'com.google.firebase:firebase-analytics:18.0.1'
-    implementation 'com.google.firebase:firebase-config:20.0.2'
-    implementation 'com.google.firebase:firebase-crashlytics:17.3.0'
-    implementation 'com.google.firebase:firebase-perf:19.1.0'
-    implementation 'com.google.firebase:firebase-core:18.0.1'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation 'com.github.bumptech.glide:glide:4.14.2'
+    implementation project(path: ':photonbypass')
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.2'
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.4.2'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.10.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.14.2'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'rapid.decoder:library:0.3.0'
     implementation 'rapid.decoder:jpeg-decoder:0.3.0'
     implementation 'rapid.decoder:png-decoder:0.3.0'
-    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.google.code.gson:gson:2.9.1'
     // Navigation Component
-    implementation "androidx.navigation:navigation-fragment:2.3.2"
-    implementation "androidx.navigation:navigation-ui:2.3.2"
+    implementation "androidx.navigation:navigation-fragment-ktx:2.5.2"
+    implementation "androidx.navigation:navigation-ui-ktx:2.5.2"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'com.google.android.material:material:1.8.0-alpha01'
+    implementation "androidx.core:core-ktx:1.9.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     //Leak Canary
     //Use this lib to detect memory leaks when debugging
     //debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.6'
+    implementation 'com.quinn.hunter:hunter-debug-library:1.2.0'
+
+}
+repositories {
+    mavenCentral()
+}
+debugHunterExt {
+    runVariant = 'ALWAYS'  //'DEBUG', 'RELEASE', 'ALWAYS', 'NEVER', The 'ALWAYS' is default value
 }

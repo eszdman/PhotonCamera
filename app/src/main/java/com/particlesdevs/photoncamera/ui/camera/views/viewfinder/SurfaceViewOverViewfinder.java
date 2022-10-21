@@ -65,6 +65,9 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
             case 3:
                 drawGoldenRatio(canvas);
                 break;
+            case 4:
+                drawSuperDiag(canvas);
+                break;
             default:
                 break;
         }
@@ -98,6 +101,15 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         canvas.drawLine(gr * w / (1 + gr), 0, gr * w / (1 + gr), h, whitePaint);
         canvas.drawLine(0, h / (1 + gr), w, h / (1 + gr), whitePaint);
         canvas.drawLine(0, gr * h / (1 + gr), w, gr * h / (1 + gr), whitePaint);
+    }
+
+    private void drawSuperDiag(Canvas canvas) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        //float gr = (float) goldenRatio(1, 1);
+        canvas.drawLine(0, 0, w, h, whitePaint);
+        canvas.drawLine(w/3.f, h/3.f, w, 0, whitePaint);
+        canvas.drawLine(2.f*w/3.f, 2.f*h/3.f, 0, h, whitePaint);
     }
 
     private double goldenRatio(double a, double b) {

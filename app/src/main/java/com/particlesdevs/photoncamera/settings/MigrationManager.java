@@ -4,7 +4,7 @@ import android.content.SharedPreferences;
 
 public class MigrationManager {
     private static final PreferenceKeys.Key KEY_PREF_VERSION = PreferenceKeys.Key.KEY_PREF_VERSION;
-    private final static int PREFERENCES_VERSION = 2; //this value should be incremented whenever the preferences need to be reset
+    private final static int PREFERENCES_VERSION = 4; //this value should be incremented whenever the preferences need to be reset
     public static boolean readAgain = false;
 
     public static void migrate(SettingsManager settingsManager) {

@@ -11,7 +11,7 @@
     <item>
         <shape android:shape="oval">
             <corners android:radius="20dp"/>
-            <solid android:color="@android:color/transparent"/>
+            <solid android:color="#00000000"/>
             <size android:height="@dimen/aux_button_size" android:width="@dimen/aux_button_size"/>
         </shape>
     </item>

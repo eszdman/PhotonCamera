@@ -43,7 +43,7 @@ public class ParseExif {
     public static ExifData parse(CaptureResult result) {
         ExifData data = new ExifData();
 
-        int rotation = PhotonCamera.getParameters().cameraRotation;
+        int rotation = PhotonCamera.getCaptureController().cameraRotation;
         String TAG = "ParseExif";
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
@@ -66,6 +66,7 @@ public class ParseExif {
         int isonum = 100;
         if (iso != null) isonum = (int) (iso * IsoExpoSelector.getMPY());
         Log.d(TAG, "sensivity:" + isonum);
+        isonum = Math.min(65535,isonum);
 
         data.SENSITIVITY_TYPE = String.valueOf(ExifInterface.SENSITIVITY_TYPE_ISO_SPEED);
         data.PHOTOGRAPHIC_SENSITIVITY = String.valueOf(isonum);
@@ -113,12 +114,11 @@ public class ParseExif {
         return inter;
     }
 
-    public static int getOrientation() {
-        int rotation = PhotonCamera.getGravity().getCameraRotation();
+    public static int getOrientation(int cameraRotation) {
         Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
         Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
         int orientation = ORIENTATION_NORMAL;
-        switch (rotation) {
+        switch (cameraRotation) {
             case 90:
                 orientation = ExifInterface.ORIENTATION_ROTATE_90;
                 break;

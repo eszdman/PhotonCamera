@@ -8,13 +8,14 @@
     <string name="pref_theme_category_key" translatable="false">pref_theme_category_key</string>
     <string name="pref_category_about_key" translatable="false">pref_category_about_key</string>
 
-
+    <string name="pref_preview_resolution_key" translatable="false">pref_show_afdata_key</string>
     <string name="pref_show_afdata_key" translatable="false">pref_show_afdata_key</string>
     <string name="pref_enable_system_nr_key" translatable="false">pref_enable_system_nr_key</string>
     <string name="pref_save_per_lens_settings" translatable="false">pref_save_per_lens_settings</string>
     <string name="pref_disable_aligning_key" translatable="false">pref_disable_aligning_key</string>
     <string name="pref_show_watermark_key" translatable="false">pref_show_watermark_key</string>
     <string name="pref_energy_safe_key" translatable="false">pref_energy_safe_key</string>
+    <string name="pref_wide169_key" translatable="false">pref_wide169_key</string>
     <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
     <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
     <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>
@@ -25,12 +26,14 @@
     <string name="pref_luma_nr_seekbar_key" translatable="false">pref_luma_nr_seekbar_key</string>
     <string name="pref_compressor_seekbar_key" translatable="false">pref_compressor_seekbar_key</string>
     <string name="pref_noise_seekbar_key" translatable="false">pref_noise_seekbar_key</string>
+    <string name="pref_merge_seekbar_key" translatable="false">pref_merge_seekbar_key</string>
     <string name="pref_gain_seekbar_key" translatable="false">pref_gain_seekbar_key</string>
     <string name="pref_shadows_seekbar_key" translatable="false">pref_shadows_seekbar_key</string>
     <string name="pref_frame_count_key" translatable="false">pref_frame_count_key</string>
     <string name="pref_contrast_seekbar_key" translatable="false">pref_contrast_seekbar_key</string>
     <string name="pref_sharpness_seekbar_key" translatable="false">pref_sharpness_seekbar_key</string>
     <string name="pref_saturation_seekbar_key" translatable="false">pref_saturation_seekbar_key</string>
+    <string name="pref_expocompensation_seekbar_key" translatable="false">pref_expocompensation_seekbar_key</string>
     <string name="pref_align_method_key" translatable="false">pref_align_method_key</string>
     <string name="pref_cfa_key" translatable="false">pref_cfa_key</string>
     <string name="pref_remosaic_key" translatable="false">pref_remosaic_key</string>
@@ -54,12 +57,13 @@
     <string name="all_camera_ids" translatable="false">all_camera_ids</string>
     <string name="front_camera_ids" translatable="false">front_camera_ids</string>
     <string name="back_camera_ids" translatable="false">back_camera_ids</string>
-    <string name="all_camera_focals" translatable="false">all_camera_focals</string>
+    <string name="all_camera_lens" translatable="false">all_camera_lens</string>
     <string name="all_camera_count" translatable="false">all_camera_count</string>
 
     <string name="_cameras" translatable="false">_cameras</string>
     <string name="_devices" translatable="false">_devices</string>
     <string name="all_devices_names" translatable="false">all_devices_names</string>
+    <string name="all_devices_specific" translatable="false">all_devices_specific</string>
     <string name="pref_this_device_key" translatable="false">pref_this_device_key</string>
     <string name="_per_lens" translatable="false">_per_lens</string>
 

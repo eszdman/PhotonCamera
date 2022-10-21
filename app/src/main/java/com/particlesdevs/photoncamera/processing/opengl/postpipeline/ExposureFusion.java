@@ -12,7 +12,7 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 public class ExposureFusion extends Node {
 
     public ExposureFusion(String name) {
-        super(0, name);
+        super("", name);
     }
     @Override
     public void Compile() {}
@@ -23,7 +23,7 @@ public class ExposureFusion extends Node {
     }
 
     GLTexture expose(GLTexture in, float str){
-        glProg.useProgram(R.raw.expose);
+        glProg.useAssetProgram("expose");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
@@ -36,7 +36,7 @@ public class ExposureFusion extends Node {
         //return out;
     }
     GLTexture expose2(GLTexture in, float str){
-        glProg.useProgram(R.raw.expose);
+        glProg.useAssetProgram("expose");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
@@ -46,7 +46,7 @@ public class ExposureFusion extends Node {
         return basePipeline.main2;
     }
     GLTexture unexpose(GLTexture in,float str){
-        glProg.useProgram(R.raw.unexpose);
+        glProg.useAssetProgram("unexpose");
         glProg.setTexture("InputBuffer",in);
         glProg.setVar("factor", str);
         glProg.setVar("neutralPoint", basePipeline.mParameters.whitePoint);
@@ -70,7 +70,7 @@ public class ExposureFusion extends Node {
         GLUtils.Pyramid highExpo = glUtils.createPyramid(levelcount,0, expose(in,fact2));
         GLUtils.Pyramid normalExpo = glUtils.createPyramid(levelcount,0, expose2(in,(float)(1.0f)));
         //in.close();
-        glProg.useProgram(R.raw.fusion);
+        glProg.useAssetProgram("fusion");
         glProg.setVar("useUpsampled",0);
         int ind = normalExpo.gauss.length - 1;
         GLTexture wip = new GLTexture(normalExpo.gauss[ind]);
@@ -87,7 +87,7 @@ public class ExposureFusion extends Node {
                 //Log.d("ExposureFusion","Before:"+upsampleWip.mSize+" point:"+normalExpo.sizes[i]);
                 GLTexture upsampleWip = wip;
                 Log.d(Name,"upsampleWip:"+upsampleWip.mSize);
-                glProg.useProgram(R.raw.fusion);
+                glProg.useAssetProgram("fusion");
 
                 glProg.setTexture("upsampled", upsampleWip);
                 glProg.setVar("useUpsampled", 1);

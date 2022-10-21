@@ -1,22 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-        android:orientation="vertical"
+<LinearLayout xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="?android:scrollbarSize"
         android:paddingEnd="?android:scrollbarSize"
         xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
->
-    <TextView android:textSize="@dimen/camera_settings_preference_font_size"
-              android:textAlignment="gravity"
-              android:textStyle="bold"
-              android:textColor="?colorAccent"
-              android:gravity="start|center"
-              android:id="@android:id/title"
-              android:layout_width="match_parent"
-              android:layout_height="@dimen/preference_category_text_height"
-              android:paddingStart="@dimen/camera_settings_icon_size"
-              android:paddingEnd="@dimen/camera_settings_icon_size"
-              tools:text="Preference Category"/>
+        android:orientation="horizontal">
+
+    <ImageView
+            android:layout_gravity="center|top"
+            android:id="@android:id/icon"
+            android:layout_width="@dimen/camera_settings_icon_size"
+            android:layout_height="@dimen/camera_settings_icon_size"
+            android:layout_marginTop="@dimen/camera_settings_entry_margin"
+            android:layout_marginStart="@dimen/camera_settings_entry_margin"
+            tools:src="@drawable/ic_focus"
+            android:contentDescription="@string/icon_string" />
+
+    <TextView
+            android:textSize="@dimen/camera_settings_preference_font_size"
+            android:textStyle="bold"
+            android:textAlignment="gravity"
+            android:textColor="?colorAccent"
+            android:gravity="start|center"
+            android:id="@android:id/title"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/preference_category_text_height"
+            android:paddingStart="@dimen/camera_settings_icon_size"
+            android:paddingEnd="@dimen/camera_settings_icon_size"
+            tools:text="Preference Category" />
 </LinearLayout>

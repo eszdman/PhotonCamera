@@ -11,7 +11,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 
 
 public class HotPixelRemoval extends GLOneScript {
-    public HotPixelRemoval(Point size, int rid, String name) {
+    public HotPixelRemoval(Point size, String rid, String name) {
         super(size, new GLCoreBlockProcessing(size,new GLFormat(GLFormat.DataType.UNSIGNED_16)), rid, name);
     }
     @Override

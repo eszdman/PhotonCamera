@@ -1,41 +1,46 @@
 package com.particlesdevs.photoncamera.ui.camera.binding;
 
+import android.util.DisplayMetrics;
 import android.view.View;
-
 import android.view.ViewGroup;
+import android.widget.CheckedTextView;
 
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.BindingAdapter;
-import com.particlesdevs.photoncamera.manual.KnobView;
-import com.particlesdevs.photoncamera.manual.Rotation;
+
+import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
+import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
 
 /**
- * class to handel custom bindings that should get applied when a model change
+ * Class to handle custom bindings that should get applied when a model change
+ * <p>
+ * Created by KillerInk on 02/Oct/2020
+ * Modified by Vibhor
  */
 public class CustomBinding {
 
-    //handel the rotation that should get applied when the CameraFragmentModels rotation change
-    //the view item must add bindRotate="@{uimodel}"/>
+    /**
+     * Handle the rotation that should get applied when the CameraFragmentModels rotation change
+     * the view item must add attribute 'bindRotate="@{uimodel}"'
+     *
+     * @param view  any view that needs to be rotated
+     * @param model the cameraFragmentModel
+     */
     @BindingAdapter("bindRotate")
     public static void rotateView(View view, CameraFragmentModel model) {
         if (model != null)
             view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
     }
 
-    //handle the rotation that should get applied to "@+id/knobView" when the CameraFragmentModel's rotation changes
-    //the ui item must add bindKnobRotate="@{uimodel}"/>
-    @BindingAdapter("bindKnobRotate")
-    public static void rotateKnobView(KnobView view, CameraFragmentModel model) {
-        if (model != null) {
-            int orientation = model.getOrientation();
-            view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
-        }
-    }
-
     /**
      * Handle the rotation that should get applied to any ViewGroup when the CameraFragmentModels rotation change
      * Only the children views within the ViewGroup will rotate.
      * the ui item must add bindViewGroupChildrenRotate="@{uimodel}"
+     *
+     * @param viewGroup the container ViewGroup
+     * @param model     the cameraFragmentModel
      */
     @BindingAdapter("bindViewGroupChildrenRotate")
     public static void rotateAuxButtons(ViewGroup viewGroup, CameraFragmentModel model) {
@@ -47,10 +52,86 @@ public class CustomBinding {
         }
     }
 
-    @BindingAdapter("selected")
+    /**
+     * Change the selected state of any view
+     *
+     * @param view     the target view
+     * @param selected whether selected
+     */
+    @BindingAdapter("android:selected")
     public static void setSelected(View view, Boolean selected) {
         if (selected != null && view != null) {
             view.setSelected(selected);
+        }
+    }
+
+    /**
+     * Selects/unselects the children of the target {@link ViewGroup} here {@link R.id#buttons_container}.
+     * Only the child with given view id will be selected and rest of children will get unselected.
+     *
+     * @param viewGroup the target ViewGroup
+     * @param viewID    id of the {@link CheckedTextView} to be checked
+     */
+    @BindingAdapter("selectViewIdInViewGroup")
+    public static void selectViewIdInViewGroup(ViewGroup viewGroup, int viewID) {
+        if (viewGroup != null) {
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                viewGroup.getChildAt(i).setSelected(viewGroup.getChildAt(i).getId() == viewID);
+            }
+        }
+    }
+
+    @BindingAdapter("settingsBarVisibility")
+    public static void toggleSettingsBarVisibility(ViewGroup viewGroup, boolean visible) {
+        if (viewGroup != null)
+            if (visible)
+                viewGroup.post(() -> {
+                    viewGroup.animate().setDuration(200).alpha(1).translationY(0).scaleX(1).scaleY(1).start();
+                    viewGroup.setVisibility(View.VISIBLE);
+                });
+            else
+                viewGroup.post(() -> viewGroup.animate().setDuration(200).alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
+                        .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.INVISIBLE))
+                        .start());
+    }
+
+    @BindingAdapter("setAuxButtonModel")
+    public static void setAuxButtonModel(AuxButtonsLayout layout, AuxButtonsModel auxButtonsModel) {
+        if (auxButtonsModel != null)
+            layout.setAuxButtonsModel(auxButtonsModel);
+    }
+
+    @BindingAdapter("setActiveId")
+    public static void setActiveCameraId(AuxButtonsLayout layout, String cameraId) {
+        if (cameraId != null)
+            layout.setActiveId(cameraId);
+    }
+
+    @BindingAdapter("layoutMarginTop")
+    public static void setLayoutMarginTop(View view, float margin) {
+        ViewGroup.MarginLayoutParams layoutParams = ((ViewGroup.MarginLayoutParams) view.getLayoutParams());
+        layoutParams.topMargin = (int) margin;
+        view.setLayoutParams(layoutParams);
+    }
+
+    @BindingAdapter("adjustCameraContainer")
+    public static void adjustCameraContainer(ConstraintLayout cameraContainer, float displayAspectRatio) {
+        if (displayAspectRatio <= 16f / 9) {
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) cameraContainer.getLayoutParams();
+            params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.topToBottom = ConstraintLayout.LayoutParams.UNSET;
+        }
+    }
+
+    @BindingAdapter("adjustTopBar")
+    public static void adjustTopBar(View topbar, float displayAspectRatio) {
+        if (displayAspectRatio > 16f / 9) {
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) topbar.getLayoutParams();
+            DisplayMetrics displayMetrics = topbar.getResources().getDisplayMetrics();
+            float dpHeight = displayMetrics.heightPixels / displayMetrics.density;
+            float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+            float dpmargin = (dpHeight - (dpWidth / 9f * 16f));
+            params.topMargin = (int) dpmargin;
         }
     }
 }

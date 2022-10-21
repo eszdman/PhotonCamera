@@ -16,8 +16,14 @@
                 app:enterAnim="@anim/animate_slide_up_enter"
                 app:exitAnim="@anim/animate_slide_up_exit"
                 app:popEnterAnim="@anim/animate_slide_down_enter"
-                app:popExitAnim="@anim/animate_slide_down_exit"
-                />
+                app:popExitAnim="@anim/animate_slide_down_exit" />
+        <action
+                android:id="@+id/action_imageViewerFragment_to_imageCompareFragment"
+                app:destination="@id/imageCompareFragment"
+                app:enterAnim="@anim/animate_slide_up_enter"
+                app:exitAnim="@anim/animate_slide_up_exit"
+                app:popEnterAnim="@anim/animate_slide_down_enter"
+                app:popExitAnim="@anim/animate_slide_down_exit" />
     </fragment>
     <fragment
             android:id="@+id/imageLibraryFragment"

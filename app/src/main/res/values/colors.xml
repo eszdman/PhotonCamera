@@ -3,7 +3,8 @@
     <color name="colorPrimary">#212121</color>
     <color name="colorPrimaryColored">#6594ff</color>
     <color name="colorPrimaryDark">#000000</color>
-    <color name="colorAccent">#9575CD</color>
+    <color name="colorAccent">@color/md_deep_purple_400</color>
+    <color name="colorPrimaryContainer">@color/md_deep_purple_400_dark</color>
     <color name="GreyDis">#555555</color>
     <color name="BlueDis">#4b7ae6</color>
     <color name="Blue">#6594ff</color>
@@ -18,8 +19,6 @@
     <color name="panel_transparency">#40000000</color>
     <color name="transparent_focus_circle">#20000000</color>
     <color name="white">#FFFFFF</color>
-    <color name="manual_icon_text">@color/white</color>
-    <color name="manual_icon_text_selected">@color/white</color>
     <color name="aux_container_color">#99000000</color>
     <color name="grid_thumbnail_background">#AAAAAA</color>
 </resources>

@@ -2,4 +2,39 @@
 <resources>
     <item name="manualimpl" type="id"/>
     <item name="manual_palette" type="id"/>
+    <item name="hdrx_off_button" type="id"/>
+    <item name="hdrx_on_button" type="id"/>
+    <item name="quad_on_button" type="id"/>
+    <item name="quad_off_button" type="id"/>
+    <item name="torch_button" type="id"/>
+    <item name="flash_odd_button" type="id"/>
+    <item name="flash_auto_button" type="id"/>
+    <item name="flash_on_button" type="id"/>
+    <item name="fps60_off_button" type="id"/>
+    <item name="fps60_on_button" type="id"/>
+    <item name="timer_off_button" type="id"/>
+    <item name="timer3s_button" type="id"/>
+    <item name="timer10s_button" type="id"/>
+    <item name="hdrx_entry_layout" type="id"/>
+    <item name="flash_entry_layout" type="id"/>
+    <item name="grid_entry_layout" type="id"/>
+    <item name="quad_entry_layout" type="id"/>
+    <item name="timer_entry_layout" type="id"/>
+    <item name="fps_entry_layout" type="id"/>
+    <item name="grid_off_button" type="id"/>
+    <item name="grid_33_button" type="id"/>
+    <item name="grid_44_button" type="id"/>
+    <item name="grid_gr_button" type="id"/>
+    <item name="grid_dt_button" type="id"/>
+    <item name="settings_bar_scroll_view" type="id"/>
+    <item name="settings_bar_settings_button_container" type="id"/>
+    <item name="eis_entry_layout" type="id"/>
+    <item name="eis_off_button" type="id"/>
+    <item name="eis_on_button" type="id"/>
+    <item name="saveraw_entry_layout" type="id"/>
+    <item name="raw_off_button" type="id"/>
+    <item name="raw_on_button" type="id"/>
+    <item name="btsvr_on_button" type="id"/>
+    <item name="btsvr_off_button" type="id"/>
+    <item name="batterysaver_entry_layout" type="id"/>
 </resources>

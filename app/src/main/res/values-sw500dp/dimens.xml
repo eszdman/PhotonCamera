@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="topbar_padding">15dp</dimen>
+    <dimen name="topbar_padding">0dp</dimen>
     <dimen name="topbar_icon_size">35dp</dimen>
     <dimen name="viewfinder_top_padding">0dp</dimen>
     <dimen name="bottombar_padding">25dp</dimen>
@@ -11,4 +11,5 @@
     <dimen name="mode_chip_side_margin">10dp</dimen>
     <dimen name="focus_circle_size">100dp</dimen>
     <dimen name="mode_chip_text_size">17sp</dimen>
+    <dimen name="topbar_button_inset">15dp</dimen>
 </resources>

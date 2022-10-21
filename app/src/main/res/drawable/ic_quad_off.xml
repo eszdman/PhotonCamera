@@ -1,8 +1,11 @@
-<!-- drawable/view_grid_outline.xml -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-android:height="24dp"
-android:width="24dp"
-android:viewportWidth="24"
-android:viewportHeight="24">
-<path android:fillColor="#fff" android:pathData="M3 11H11V3H3M5 5H9V9H5M13 21H21V13H13M15 15H19V19H15M3 21H11V13H3M5 15H9V19H5M13 3V11H21V3M19 9H15V5H19Z" />
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="24.0dip" android:width="24.0dip" android:viewportWidth="52.0" android:viewportHeight="52.0"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <group>
+        <clip-path android:pathData="M0,0h52v52h-52z" />
+        <path android:fillColor="#00000000" android:pathData="M6.112,2L16.623,2A4.112,4.112 0,0 1,20.735 6.112L20.735,16.623A4.112,4.112 0,0 1,16.623 20.735L6.112,20.735A4.112,4.112 0,0 1,2 16.623L2,6.112A4.112,4.112 0,0 1,6.112 2z" android:strokeColor="#ffffffff" android:strokeWidth="4.0" />
+        <path android:fillColor="#00000000" android:pathData="M35.377,2L45.888,2A4.112,4.112 0,0 1,50 6.112L50,16.623A4.112,4.112 0,0 1,45.888 20.735L35.377,20.735A4.112,4.112 0,0 1,31.265 16.623L31.265,6.112A4.112,4.112 0,0 1,35.377 2z" android:strokeColor="#ffffffff" android:strokeWidth="4.0" />
+        <path android:fillColor="#00000000" android:pathData="M6.112,31.265L16.623,31.265A4.112,4.112 0,0 1,20.735 35.377L20.735,45.888A4.112,4.112 0,0 1,16.623 50L6.112,50A4.112,4.112 0,0 1,2 45.888L2,35.377A4.112,4.112 0,0 1,6.112 31.265z" android:strokeColor="#ffffffff" android:strokeWidth="4.0" />
+        <path android:fillColor="#00000000" android:pathData="M35.377,31.265L45.888,31.265A4.112,4.112 0,0 1,50 35.377L50,45.888A4.112,4.112 0,0 1,45.888 50L35.377,50A4.112,4.112 0,0 1,31.265 45.888L31.265,35.377A4.112,4.112 0,0 1,35.377 31.265z" android:strokeColor="#ffffffff" android:strokeWidth="4.0" />
+    </group>
 </vector>

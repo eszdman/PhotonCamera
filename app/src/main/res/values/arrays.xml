@@ -20,13 +20,16 @@
     </string-array>
     <string-array name="alignset_entries">
         <item>PCam CPU</item>
-        <item>PCam GPU</item>
-        <item>NightCam GPU(not working)</item>
+        <item>PCam Hybrid</item>
+    </string-array>
+    <string-array name="location_geotag_entryValues">
+        <item>Off</item>
+        <item>High Accuracy</item>
+        <item>Network</item>
     </string-array>
     <string-array name="alignset_entryValues">
         <item>0</item>
         <item>1</item>
-        <item>2</item>
     </string-array>
     <string-array name="theme_entries">
         <item>@string/theme_follow_system</item>
@@ -45,6 +48,9 @@
         <item>@string/theme_accent_red</item>
         <item>@string/theme_accent_orange</item>
         <item>@string/theme_accent_green</item>
+        <item>@string/theme_accent_pink</item>
+        <item>@string/theme_accent_cyan</item>
+        <item>@string/theme_accent_teal</item>
     </string-array>
     <string-array name="theme_accent_entryValues">
         <item>default</item>
@@ -53,6 +59,9 @@
         <item>red</item>
         <item>orange</item>
         <item>green</item>
+        <item>pink</item>
+        <item>cyan</item>
+        <item>teal</item>
     </string-array>
     <string-array name="af_mode_entries">
         <item>Continuous Picture</item>
@@ -63,16 +72,18 @@
         <item>1</item>
     </string-array>
     <string-array name="vf_grid_entries">
-        <item>Off</item>
-        <item>3x3</item>
-        <item>4x4</item>
-        <item>Golden Ratio</item>
+        <item>@string/off</item>
+        <item>@string/three_x3</item>
+        <item>@string/four_x4</item>
+        <item>@string/golden_ratio</item>
+        <item>@string/diag_triangle</item>
     </string-array>
     <string-array name="vf_grid_entryvalues">
         <item>0</item>
         <item>1</item>
         <item>2</item>
         <item>3</item>
+        <item>4</item>
     </string-array>
     <integer-array name="countdowntimer_entryvalues">
         <item>0</item>

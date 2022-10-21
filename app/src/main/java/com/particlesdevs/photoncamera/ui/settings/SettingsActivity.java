@@ -8,14 +8,14 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-
 import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
@@ -23,9 +23,9 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
-import com.google.firebase.analytics.FirebaseAnalytics;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.hunter.library.debug.HunterDebug;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
@@ -37,20 +37,22 @@ import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPrefere
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
 
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.TimeZone;
 
 import static com.particlesdevs.photoncamera.settings.PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY;
 import static com.particlesdevs.photoncamera.settings.PreferenceKeys.SCOPE_GLOBAL;
 
 public class SettingsActivity extends BaseActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
     public static boolean toRestartApp;
-    private FirebaseAnalytics mFirebaseAnalytics;
-
+    @HunterDebug
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        getDelegate().setLocalNightMode(PreferenceKeys.getThemeValue());
         super.onCreate(savedInstanceState);
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-        AppCompatDelegate.setDefaultNightMode(PreferenceKeys.getThemeValue());
         setContentView(R.layout.activity_settings);
         getSupportFragmentManager()
                 .beginTransaction()
@@ -63,9 +65,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     public void back(View view) {
         onBackPressed();
     }
-
+    @HunterDebug
     @Override
-    public boolean onPreferenceStartScreen(PreferenceFragmentCompat preferenceFragmentCompat,
+    public boolean onPreferenceStartScreen(@NonNull PreferenceFragmentCompat preferenceFragmentCompat,
                                            PreferenceScreen preferenceScreen) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(R.anim.animate_slide_left_enter, R.anim.animate_slide_left_exit
@@ -83,7 +85,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     @Override
     public void onBackPressed() {
         if (toRestartApp) {
-            PhotonCamera.restartApp();
+            PhotonCamera.restartApp(this);
         }
         super.onBackPressed();
     }
@@ -94,6 +96,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private SettingsManager mSettingsManager;
         private Context mContext;
         private View mRootView;
+        private SupportedDevice supportedDevice;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -104,9 +107,10 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         public void onCreate(@Nullable Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             activity = getActivity();
-            mSettingsManager = new SettingsManager(getContext());
             mContext = getContext();
-            getPreferenceScreen().getSharedPreferences()
+            mSettingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
+            supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
+            Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
                     .registerOnSharedPreferenceChangeListener(this);
             showHideHdrxSettings();
             setFramesSummary();
@@ -120,6 +124,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
         }
 
+        @NonNull
         @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (container != null) container.removeAllViews();
@@ -131,21 +136,21 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onViewCreated(view, savedInstanceState);
             mRootView = view;
         }
-
+        @HunterDebug
         @Override
         public void onResume() {
-            super.onResume();
             Toolbar toolbar = activity.findViewById(R.id.settings_toolbar);
-            toolbar.setTitle(getPreferenceScreen().getTitle());
-            setHdrxTitle();
-            checkEszdTheme();
-            setTelegramPref();
-            setGithubPref();
-            setBackupPref();
-            setRestorePref();
-            setSupportedDevices();
-            setProTitle();
-            setThisDevice();
+                toolbar.setTitle(getPreferenceScreen().getTitle());
+                setHdrxTitle();
+                checkEszdTheme();
+                setTelegramPref();
+                setGithubPref();
+                setBackupPref();
+                setRestorePref();
+                setSupportedDevices();
+                setProTitle();
+                setThisDevice();
+            super.onResume();
         }
 
         @Override
@@ -155,16 +160,19 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
 
         private void setTelegramPref() {
-            Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
-            if (myPref != null)
-                myPref.setOnPreferenceClickListener(preference -> {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
-                    startActivity(browserIntent);
-                    return true;
-                });
+            AsyncTask.execute(()-> {
+                Preference myPref = findPreference(PreferenceKeys.Key.KEY_TELEGRAM.mValue);
+                if (myPref != null)
+                    myPref.setOnPreferenceClickListener(preference -> {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/photon_camera_channel"));
+                        startActivity(browserIntent);
+                        return true;
+                    });
+            });
         }
 
         private void setGithubPref() {
+            AsyncTask.execute(()-> {
             Preference github = findPreference(PreferenceKeys.Key.KEY_CONTRIBUTORS.mValue);
             if (github != null)
                 github.setOnPreferenceClickListener(preference -> {
@@ -172,9 +180,11 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     startActivity(browserIntent);
                     return true;
                 });
+            });
         }
 
         private void setRestorePref() {
+                AsyncTask.execute(()-> {
             Preference restorePref = findPreference(mContext.getString(R.string.pref_restore_preferences_key));
             if (restorePref != null) {
                 restorePref.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -183,33 +193,40 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     return true;
                 });
             }
+          });
         }
 
         private void setBackupPref() {
-            Preference backupPref = findPreference(mContext.getString(R.string.pref_backup_preferences_key));
-            if (backupPref != null) {
-                backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
-                    String backupResult = BackupRestoreUtil.backupSettings(mContext, newValue.toString());
-                    Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
-                    return true;
-                });
-            }
+            AsyncTask.execute(()-> {
+                Preference backupPref = findPreference(mContext.getString(R.string.pref_backup_preferences_key));
+                if (backupPref != null) {
+                    backupPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                        String backupResult = BackupRestoreUtil.backupSettings(mContext, newValue.toString());
+                        Snackbar.make(mRootView, backupResult, Snackbar.LENGTH_LONG).show();
+                        return true;
+                    });
+                }
+           });
         }
-
+        @HunterDebug
         private void setSupportedDevices() {
-            Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
-            if (preference != null) {
-                preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
-                        ALL_DEVICES_NAMES_KEY, Collections.singleton(mContext.getString(R.string.list_not_loaded)))
-                        .stream().map(s -> s + "\n").reduce("\n", String::concat)));
-            }
+            AsyncTask.execute(()-> {
+                Preference preference = findPreference(PreferenceKeys.Key.ALL_DEVICES_NAMES_KEY.mValue);
+                if (preference != null) {
+                    preference.setSummary((mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue,
+                            ALL_DEVICES_NAMES_KEY, Collections.singleton(mContext.getString(R.string.list_not_loaded)))
+                            .stream().map(s -> s + "\n").reduce("\n", String::concat)));
+                }
+           });
         }
 
         private void setProTitle() {
-            Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
-            if (preference != null && PhotonCamera.getSupportedDevice().isSupportedDevice()) {
-                preference.setTitle(R.string.device_support);
-            }
+                AsyncTask.execute(()-> {
+                    Preference preference = findPreference(mContext.getString(R.string.pref_about_key));
+                    if (preference != null && supportedDevice.isSupportedDevice()) {
+                        preference.setTitle(R.string.device_support);
+                    }
+            });
         }
 
         private void setThisDevice() {
@@ -290,33 +307,36 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
 
         private void setVersionDetails() {
-            Preference about = findPreference(mContext.getString(R.string.pref_version_key));
-            if (about != null) {
-                try {
-                    PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
-                    String versionName = packageInfo.versionName;
-                    long versionCode = packageInfo.versionCode;
+            AsyncTask.execute(() -> {
+                Preference about = findPreference(mContext.getString(R.string.pref_version_key));
+                if (about != null) {
+                    try {
+                        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                        String versionName = packageInfo.versionName;
+                        long versionCode = packageInfo.versionCode;
 
-                    Date date = new Date(packageInfo.lastUpdateTime);
-                    SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
-                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                        Date date = new Date(packageInfo.lastUpdateTime);
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm:ss z", Locale.US);
+                        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-                    about.setSummary(mContext.getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
+                        about.setSummary(mContext.getString(R.string.version_summary, versionName + "." + versionCode, sdf.format(date)));
 
-                } catch (PackageManager.NameNotFoundException e) {
-                    e.printStackTrace();
+                    } catch (PackageManager.NameNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
                 }
+            });
 
-            }
         }
 
         @Override
-        public boolean onPreferenceTreeClick(Preference preference) {
+        public boolean onPreferenceTreeClick(@NonNull Preference preference) {
             return true;
         }
 
         @Override
-        public void onDisplayPreferenceDialog(Preference preference) {
+        public void onDisplayPreferenceDialog(@NonNull Preference preference) {
             if (preference instanceof ResetPreferences) {
                 DialogFragment dialogFragment = ResetPreferences.Dialog.newInstance(preference);
                 dialogFragment.setTargetFragment(this, 0);

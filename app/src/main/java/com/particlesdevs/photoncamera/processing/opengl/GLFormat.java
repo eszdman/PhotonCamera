@@ -13,6 +13,7 @@ import static android.opengl.GLES30.GL_R16UI;
 import static android.opengl.GLES30.GL_R32F;
 import static android.opengl.GLES30.GL_R32I;
 import static android.opengl.GLES30.GL_R32UI;
+import static android.opengl.GLES30.GL_R8;
 import static android.opengl.GLES30.GL_R8I;
 import static android.opengl.GLES30.GL_R8UI;
 import static android.opengl.GLES30.GL_RED;
@@ -24,6 +25,7 @@ import static android.opengl.GLES30.GL_RG16UI;
 import static android.opengl.GLES30.GL_RG32F;
 import static android.opengl.GLES30.GL_RG32I;
 import static android.opengl.GLES30.GL_RG32UI;
+import static android.opengl.GLES30.GL_RG8;
 import static android.opengl.GLES30.GL_RG8I;
 import static android.opengl.GLES30.GL_RG8UI;
 import static android.opengl.GLES30.GL_RGB;
@@ -33,6 +35,7 @@ import static android.opengl.GLES30.GL_RGB16UI;
 import static android.opengl.GLES30.GL_RGB32F;
 import static android.opengl.GLES30.GL_RGB32I;
 import static android.opengl.GLES30.GL_RGB32UI;
+import static android.opengl.GLES30.GL_RGB8;
 import static android.opengl.GLES30.GL_RGB8I;
 import static android.opengl.GLES30.GL_RGB8UI;
 import static android.opengl.GLES30.GL_RGBA;
@@ -42,6 +45,7 @@ import static android.opengl.GLES30.GL_RGBA16UI;
 import static android.opengl.GLES30.GL_RGBA32F;
 import static android.opengl.GLES30.GL_RGBA32I;
 import static android.opengl.GLES30.GL_RGBA32UI;
+import static android.opengl.GLES30.GL_RGBA8;
 import static android.opengl.GLES30.GL_RGBA8I;
 import static android.opengl.GLES30.GL_RGBA8UI;
 import static android.opengl.GLES30.GL_RGBA_INTEGER;
@@ -50,10 +54,11 @@ import static android.opengl.GLES30.GL_RG_INTEGER;
 import static android.opengl.GLES30.GL_SHORT;
 import static android.opengl.GLES30.GL_UNSIGNED_BYTE;
 import static android.opengl.GLES30.GL_UNSIGNED_INT;
+import static android.opengl.GLES30.GL_UNSIGNED_INT_24_8;
 import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 
 public class GLFormat {
-    final int mChannels;
+    public final int mChannels;
     final DataType mFormat;
     public int filter = GL_NEAREST;
     public int wrap = GL_CLAMP_TO_EDGE;
@@ -70,9 +75,10 @@ public class GLFormat {
         UNSIGNED_16(9, 2),
         UNSIGNED_32(10, 4),
         UNSIGNED_64(11, 8),
-        BOOLEAN(12, 1);
+        BOOLEAN(12, 1),
+        SIMPLE_8(13, 1);
         final int mID;
-        final int mSize;
+        public final int mSize;
 
         DataType(int id, int size) {
             mID = id;
@@ -91,16 +97,29 @@ public class GLFormat {
         mFormat = format;
         mChannels = 1;
     }
+    public Bitmap.Config getBufferedImageConfig() {
+        switch (mFormat) {
+            case NONE:
+                break;
+            case FLOAT_16:
+            case FLOAT_32:
+            case UNSIGNED_16:
+            case UNSIGNED_8:
+            case SIGNED_8:
+            case SIMPLE_8:
+                return Bitmap.Config.ARGB_8888;
+        }
+        return Bitmap.Config.ARGB_8888;
+    }
 
     public GLFormat(DataType format, int channels) {
         mFormat = format;
         mChannels = channels;
     }
-
     public int getGLFormatInternal() {
         switch (mFormat) {
             case NONE:
-                break;
+                return -1;
             case FLOAT_16:
                 switch (mChannels) {
                     case 1:
@@ -167,6 +186,17 @@ public class GLFormat {
                     case 4:
                         return GL_RGBA8I;
                 }
+            case SIMPLE_8:
+                switch (mChannels) {
+                    case 1:
+                        return GL_R8;
+                    case 2:
+                        return GL_RG8;
+                    case 3:
+                        return GL_RGB8;
+                    case 4:
+                        return GL_RGBA8;
+                }
             case SIGNED_16:
                 switch (mChannels) {
                     case 1:
@@ -193,22 +223,6 @@ public class GLFormat {
         return 0;
     }
 
-    public Bitmap.Config getBitmapConfig() {
-        switch (mFormat) {
-            case NONE:
-                break;
-            case FLOAT_16:
-                return Bitmap.Config.RGBA_F16;
-            case FLOAT_32:
-            case UNSIGNED_16:
-                return Bitmap.Config.HARDWARE;
-            case UNSIGNED_8:
-                return Bitmap.Config.ARGB_8888;
-            case SIGNED_8:
-                return Bitmap.Config.ARGB_8888;
-        }
-        return Bitmap.Config.ARGB_8888;
-    }
 
     public int getGLFormatExternal() {
         switch (mFormat) {
@@ -218,6 +232,7 @@ public class GLFormat {
             case FLOAT_32:
             case FLOAT_64:
             case SIGNED_8:
+            case SIMPLE_8:
             case UNSIGNED_8:
                 switch (mChannels) {
                     case 1:
@@ -263,6 +278,8 @@ public class GLFormat {
                 return GL_UNSIGNED_INT;
             case SIGNED_8:
                 return GL_BYTE;
+            case SIMPLE_8:
+                return GL_UNSIGNED_BYTE;
             case SIGNED_16:
                 return GL_SHORT;
             case SIGNED_32:
@@ -304,6 +321,7 @@ public class GLFormat {
                         return "uvec4";
                 }
             case SIGNED_8:
+            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
@@ -352,6 +370,7 @@ public class GLFormat {
             case UNSIGNED_64:
                 return "uint";
             case SIGNED_8:
+            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
@@ -367,6 +386,7 @@ public class GLFormat {
             case FLOAT_16:
                 return "sampler2D";
             case SIGNED_8:
+            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
@@ -380,7 +400,6 @@ public class GLFormat {
         return "sampler2D";
     }
 
-    @androidx.annotation.NonNull
     @Override
     public String toString() {
         return "GLFormat{" +

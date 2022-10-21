@@ -13,7 +13,7 @@ import static android.opengl.GLES20.GL_LINEAR;
 public class BinnedDemosaic extends Node {
 
     public BinnedDemosaic() {
-        super(R.raw.demosaicpbinned, "BinnedDemosaicing");
+        super("demosaicpbinned", "BinnedDemosaicing");
     }
 
     @Override
