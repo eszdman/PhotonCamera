@@ -56,6 +56,17 @@ public final class CameraManager2 {
             if (!isLoaded()) {
                 if(ids == null)
                     scanAllCameras(cameraManager);
+                else {
+                    for (int id : ids) {
+                        try {
+                            CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(id));
+                            CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(id), cameraCharacteristics);
+                            mAllCameraIDsSet.add(String.valueOf(id));
+                            mCameraLensDataMap.put(String.valueOf(id), cameraLensData);
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
                 //Override ID detection
                 save();
             } else {
@@ -70,6 +81,7 @@ public final class CameraManager2 {
                 CameraLensData cameraLensData = createNewCameraLensData(String.valueOf(num), cameraCharacteristics);
                 mAllCameraIDsSet.add(String.valueOf(num));
                 mCameraLensDataMap.put(String.valueOf(num), cameraLensData);
+                findLensZoomFactor(mCameraLensDataMap);
             } catch (Exception ignored) {
             }
         }
