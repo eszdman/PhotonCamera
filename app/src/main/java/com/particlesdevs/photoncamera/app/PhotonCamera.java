@@ -45,10 +45,6 @@ import com.particlesdevs.photoncamera.util.AssetLoader;
 import com.particlesdevs.photoncamera.util.ObjectLoader;
 import com.particlesdevs.photoncamera.util.log.ActivityLifecycleMonitor;
 
-import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.TensorFlowLite;
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

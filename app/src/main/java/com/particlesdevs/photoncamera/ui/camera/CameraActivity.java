@@ -37,10 +37,13 @@ public class CameraActivity extends BaseActivity {
 
     private static final int CODE_REQUEST_PERMISSIONS = 1;
     private static final String[] PERMISSIONS = {
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA,
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.INTERNET
+    };
+    private static final String[] PERMISSIONS2 = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
     };
     private static int requestCount;
 
@@ -64,6 +67,8 @@ public class CameraActivity extends BaseActivity {
             requestPermission(); //First Permission request
     }
     private void requestPermission() {
+        requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS);
+        
         if (SDK_INT >= Build.VERSION_CODES.R) {
             ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
@@ -80,9 +85,12 @@ public class CameraActivity extends BaseActivity {
                 startActivityIntent.launch(intent);
 //                startActivityForResult(intent, 2296);
             }
+            //String[] perms = {Manifest.permission.MANAGE_EXTERNAL_STORAGE};
+            //requestPermissions(perms, CODE_REQUEST_PERMISSIONS+1);
+        } else {
+            //below android 11
+            requestPermissions(PERMISSIONS2, CODE_REQUEST_PERMISSIONS+1);
         }
-        //below android 11
-        requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS);
     }
 
     private boolean hasAllPermissions() { //checks if permissions have already been granted

@@ -1,4 +1,4 @@
-include ':photonbypass'
 rootProject.name='PhotonCamera'
 include ':app'
 include ':circularbarlib'
+include ':photonbypass'
