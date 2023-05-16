@@ -32,7 +32,12 @@ public class DebugClient {
     private boolean mRun = false;
     public DebugClient(String ip, String port){
         new Thread(() -> {
-            try {
+            receiveMessageFromServer(ip, port);
+        }).start();
+    }
+
+    private void receiveMessageFromServer(String ip, String port) {
+        try {
             mRun = true;
             Log.d("TCP Client", "Connecting...");
             InetAddress serverAddr = InetAddress.getByName(ip);
@@ -40,32 +45,30 @@ public class DebugClient {
             Socket socket = new Socket(serverAddr, Integer.parseInt(port));
 
             try {
-
-                //sends the message to the server
-                mBufferOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-
-                mBufferOut.println("PhotonCamera Connected!");
-
-                //receives the message which the server sends back
-                mBufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-
-                //in this while the client listens for the messages sent by the server
-                while (mRun) {
-
-                    mServerMessage = mBufferIn.readLine();//0x0a
-                    if (mServerMessage != null) {
-                        //call the method messageReceived from MyActivity class
-                        ParseControl(mServerMessage);
-
-                    }
-
-                }
-
-                } catch (Exception e){e.printStackTrace();}
-            } catch (IOException e) {e.printStackTrace();}
-        }).start();
+                sendMessage(socket);
+                receiveMessage(socket);
+            } catch (Exception e){e.printStackTrace();}
+        } catch (IOException e) {e.printStackTrace();}
     }
+
+    private void receiveMessage(Socket socket) throws IOException {
+        //receives the message which the server sends back
+        mBufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        //in this while the client listens for the messages sent by the server
+        while (mRun) {
+            mServerMessage = mBufferIn.readLine();//0x0a
+            if (mServerMessage != null) {
+                //call the method messageReceived from MyActivity class
+                ParseControl(mServerMessage);
+            }
+        }
+    }
+    private void sendMessage(Socket socket) throws IOException {
+        //sends the message to the server
+        mBufferOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+        mBufferOut.println("PhotonCamera Connected!");
+    }
+
     private void setKey(CaptureRequest.Builder builder,CaptureRequest.Key<?> key, String type, String value){
         switch (type){
             case "LONG":{
