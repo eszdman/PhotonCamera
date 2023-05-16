@@ -102,11 +102,29 @@ public class Utilities {
         wallPaint.setARGB(255, (int)(rgb[0]*255.f/max), (int)(rgb[1]*255.f/max), (int)(rgb[2]*255.f/max));
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
-    public static void drawArray(float[] input, Bitmap output){
+
+    private static float findMaxValue(float[] data) {
         float max = 0.f;
-        for(float ccur : input)
-            if(ccur > max)
-                max = ccur;
+        for (float value : data) {
+            if (value > max) {
+                max = value;
+            }
+        }
+        return max;
+    }
+
+    private static float findMaxValue(int[] data) {
+        float max = 0.f;
+        for (float value : data) {
+            if (value > max) {
+                max = value;
+            }
+        }
+        return max;
+    }
+
+    public static void drawArray(float[] input, Bitmap output){
+        float max = findMaxValue(input);
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -132,9 +150,7 @@ public class Utilities {
         canvas.drawPath(wallPath, wallPaint);
     }
     public static void drawArray(int[] input, Bitmap output){
-        float max = 0.f;
-        for(float ccur : input)
-            if(ccur > max) max = ccur;
+        float max = findMaxValue(input);
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -164,10 +180,7 @@ public class Utilities {
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
 
-        float max = 0.f;
-        for(float ccur : r)
-            if(ccur > max)
-                max = ccur;
+        float max = findMaxValue(r);
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
