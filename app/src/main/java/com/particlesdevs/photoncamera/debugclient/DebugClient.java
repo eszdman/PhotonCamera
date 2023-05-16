@@ -9,6 +9,8 @@ import android.util.Log;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -92,8 +94,7 @@ public class DebugClient {
         }
     }
     private String getObjectString(Object input){
-        Class<?> clasObj = input.getClass();
-        String name = clasObj.getName();
+        String name = getClassName(input);
         switch (name) {
             case "[B": {
                 return (Arrays.toString((byte[]) input));
@@ -136,6 +137,14 @@ public class DebugClient {
             }
         }
     }
+
+    @NotNull
+    private static String getClassName(Object input) {
+        Class<?> clasObj = input.getClass();
+        String name = clasObj.getName();
+        return name;
+    }
+
     private String previewKeyValue(CaptureResult.Key<?> key) {
         Object obj = CaptureController.mPreviewCaptureResult.get(key);
         return getObjectString(obj);
