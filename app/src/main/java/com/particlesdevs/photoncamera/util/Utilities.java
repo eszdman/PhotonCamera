@@ -202,10 +202,7 @@ public class Utilities {
         wallPath.lineTo(r.length * xInterval, height);
         canvas.drawPath(wallPath, wallPaint);
 
-        max = 0.f;
-        for(float ccur : g)
-            if(ccur > max)
-                max = ccur;
+        max = findMaxValue(g);
         xInterval = ((float) width / ((float) g.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 255, 0);
@@ -218,10 +215,7 @@ public class Utilities {
         wallPath.lineTo(g.length * xInterval, height);
         canvas.drawPath(wallPath, wallPaint);
 
-        max = 0.f;
-        for(float ccur : b)
-            if(ccur > max)
-                max = ccur;
+        max = findMaxValue(b);
         xInterval = ((float) width / ((float) b.length + 1));
         wallPath = new Path();
         wallPaint.setARGB(255, 0, 0, 255);
