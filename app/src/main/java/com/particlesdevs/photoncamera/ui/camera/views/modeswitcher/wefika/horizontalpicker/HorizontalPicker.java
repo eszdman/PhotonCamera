@@ -116,8 +116,8 @@ public class HorizontalPicker extends View {
         this(context, attrs, R.attr.horizontalPickerStyle);
     }
 
-    public HorizontalPicker(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
+    public HorizontalPicker(Context context, AttributeSet attributeSet, int defStyle) {
+        super(context, attributeSet, defStyle);
         vibration = PhotonCamera.getVibration();
         // create the selector wheel paint
         TextPaint paint = new TextPaint();
@@ -125,8 +125,8 @@ public class HorizontalPicker extends View {
         paint.setTypeface(context.getResources().getFont(R.font.open_sans));
         textPaint = paint;
 
-        TypedArray a = context.getTheme().obtainStyledAttributes(
-                attrs,
+        TypedArray typedArray = context.getTheme().obtainStyledAttributes(
+                attributeSet,
                 R.styleable.HorizontalPicker,
                 defStyle, 0
         );
@@ -136,48 +136,28 @@ public class HorizontalPicker extends View {
         int sideItems = this.sideItems;
 
         try {
-            textColor = a.getColorStateList(R.styleable.HorizontalPicker_android_textColor);
+            textColor = typedArray.getColorStateList(R.styleable.HorizontalPicker_android_textColor);
             if (textColor == null) {
                 textColor = ColorStateList.valueOf(0xFF000000);
             }
 
-            values = a.getTextArray(R.styleable.HorizontalPicker_values);
-            ellipsize = a.getInt(R.styleable.HorizontalPicker_android_ellipsize, ellipsize);
-            marqueeRepeatLimit = a.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
-            dividerSize = a.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
-            sideItems = a.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
-            selectedTextColor = a.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
-            float textSize = a.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
+            values = typedArray.getTextArray(R.styleable.HorizontalPicker_values);
+            ellipsize = typedArray.getInt(R.styleable.HorizontalPicker_android_ellipsize, ellipsize);
+            marqueeRepeatLimit = typedArray.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
+            dividerSize = typedArray.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
+            sideItems = typedArray.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
+            selectedTextColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
+            float textSize = typedArray.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
             }
         } finally {
-            a.recycle();
+            typedArray.recycle();
         }
 
-        switch (ellipsize) {
-            case 1:
-                setEllipsize(TextUtils.TruncateAt.START);
-                break;
-            case 2:
-                setEllipsize(TextUtils.TruncateAt.MIDDLE);
-                break;
-            case 3:
-                setEllipsize(TextUtils.TruncateAt.END);
-                break;
-            case 4:
-                setEllipsize(TextUtils.TruncateAt.MARQUEE);
-                break;
-        }
+        selectEllipsize(ellipsize);
 
-        Paint.FontMetricsInt fontMetricsInt = textPaint.getFontMetricsInt();
-        boringMetrics = new BoringLayout.Metrics();
-        boringMetrics.ascent = fontMetricsInt.ascent;
-        boringMetrics.bottom = fontMetricsInt.bottom;
-        boringMetrics.descent = fontMetricsInt.descent;
-        boringMetrics.leading = fontMetricsInt.leading;
-        boringMetrics.top = fontMetricsInt.top;
-        boringMetrics.width = itemWidth;
+        setBorginMetrics();
 
         setWillNotDraw(false);
 
@@ -185,6 +165,10 @@ public class HorizontalPicker extends View {
         adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
 
         // initialize constants
+        initializeConstants(context, values, sideItems);
+    }
+
+    private void initializeConstants(Context context, CharSequence[] values, int sideItems) {
         ViewConfiguration configuration = ViewConfiguration.get(context);
         touchSlop = configuration.getScaledTouchSlop();
         mMinimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
@@ -201,7 +185,34 @@ public class HorizontalPicker extends View {
         ViewCompat.setAccessibilityDelegate(this, touchHelper);
         leftEdgeEffect = new EdgeEffect(context);
         rightEdgeEffect = new EdgeEffect(context);
+    }
 
+    private void setBorginMetrics() {
+        Paint.FontMetricsInt fontMetricsInt = textPaint.getFontMetricsInt();
+        boringMetrics = new BoringLayout.Metrics();
+        boringMetrics.ascent = fontMetricsInt.ascent;
+        boringMetrics.bottom = fontMetricsInt.bottom;
+        boringMetrics.descent = fontMetricsInt.descent;
+        boringMetrics.leading = fontMetricsInt.leading;
+        boringMetrics.top = fontMetricsInt.top;
+        boringMetrics.width = itemWidth;
+    }
+
+    private void selectEllipsize(int ellipsize) {
+        switch (ellipsize) {
+            case 1:
+                setEllipsize(TextUtils.TruncateAt.START);
+                break;
+            case 2:
+                setEllipsize(TextUtils.TruncateAt.MIDDLE);
+                break;
+            case 3:
+                setEllipsize(TextUtils.TruncateAt.END);
+                break;
+            case 4:
+                setEllipsize(TextUtils.TruncateAt.MARQUEE);
+                break;
+        }
     }
 
     @Override
