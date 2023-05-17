@@ -157,6 +157,7 @@ public class Utilities {
 
     public static void drawArray(float[] input, Bitmap output){
         float max = findMaxValue(input);
+
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -167,11 +168,13 @@ public class Utilities {
         canvas.drawRect(0, 0, width, height, wallPaint);
         canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
         canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+
         drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
     }
 
     public static void drawArray(int[] input, Bitmap output){
         float max = findMaxValue(input);
+
         int width = output.getWidth();
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
@@ -182,6 +185,7 @@ public class Utilities {
         canvas.drawRect(0, 0, width, height, wallPaint);
         canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
         canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+
         drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
     }
     public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
@@ -195,6 +199,7 @@ public class Utilities {
         canvas.drawRect(0, 0, width, height, wallPaint);
         canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
         canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+
         drawGraph(r, width, height, findMaxValue(r), wallPaint, canvas, 255, 0, 0);
         drawGraph(g, width, height, findMaxValue(g), wallPaint, canvas, 0, 255, 0);
         drawGraph(b, width, height, findMaxValue(b), wallPaint, canvas, 0, 0, 255);
@@ -242,7 +247,6 @@ public class Utilities {
 
         max = findMaxValue(g);
         drawGraph(g, width, height, max, wallPaint, canvas, 0, 255, 0);
-
 
         max = findMaxValue(b);
         drawGraph(b, width, height, max, wallPaint, canvas, 0, 0, 255);
