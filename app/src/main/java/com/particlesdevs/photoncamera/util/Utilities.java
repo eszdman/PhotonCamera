@@ -235,10 +235,6 @@ public class Utilities {
         int height = output.getHeight();
         Canvas canvas = new Canvas(output);
 
-        float max = findMaxValue(r);
-        max = findMaxValue(g);
-        max = findMaxValue(b);
-
         Paint wallPaint = new Paint();
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
@@ -247,6 +243,7 @@ public class Utilities {
         canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
         canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
 
+        float max = findMaxValue(r);
         drawGraph(r, width, height, max, wallPaint, canvas, 255, 0, 0);
 
         max = findMaxValue(g);
