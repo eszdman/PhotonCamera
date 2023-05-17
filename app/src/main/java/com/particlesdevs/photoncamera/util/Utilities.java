@@ -212,14 +212,8 @@ public class Utilities {
         return k;
     }
     public static float linearRegressionC(float[] input){
-        float k = 0.f;
+        float k = linearRegressionK(input);
         float cnt = 0.f;
-        for(int i = 1; i<input.length;i++){
-            float x = (float)(i)/input.length;
-            k+=input[i]/x;
-            cnt+=1.f;
-        }
-        k/=cnt;
         float c = 0.f;
         cnt = 0.f;
         for(int i = 1; i<input.length;i++){
