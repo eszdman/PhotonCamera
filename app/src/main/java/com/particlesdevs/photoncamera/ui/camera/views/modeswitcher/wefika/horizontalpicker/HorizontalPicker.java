@@ -164,7 +164,6 @@ public class HorizontalPicker extends View {
         flingScrollerX = new OverScroller(context);
         adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
 
-        // initialize constants
         initializeConstants(context, values, sideItems);
     }
 
