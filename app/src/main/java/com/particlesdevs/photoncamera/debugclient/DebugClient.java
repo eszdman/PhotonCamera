@@ -72,27 +72,14 @@ public class DebugClient {
     }
 
     private void setKey(CaptureRequest.Builder builder,CaptureRequest.Key<?> key, String type, String value){
-        switch (type){
-            case "LONG":{
-                builder.set((CaptureRequest.Key<Long>)key,Long.parseLong(value));
-            }
-            case "INTEGER":{
-                builder.set((CaptureRequest.Key<Integer>)key,Integer.parseInt(value));
-            }
-            case "STRING":{
-                builder.set((CaptureRequest.Key<String>)key,value);
-            }
-            case "FLOAT":{
-                builder.set((CaptureRequest.Key<Float>)key,Float.parseFloat(value));
-            }
-            case "DOUBLE":{
-                builder.set((CaptureRequest.Key<Double>)key,Double.parseDouble(value));
-            }
-            break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + type);
+        try {
+            requestKeyType keySet = requestKeyType.createKeyType(builder, key, type, value);
+            keySet.setKey();
+        }catch (Exception e){
+            e.toString();
         }
     }
+
     private String getObjectString(Object input){
         String name = getClassName(input);
         switch (name) {
