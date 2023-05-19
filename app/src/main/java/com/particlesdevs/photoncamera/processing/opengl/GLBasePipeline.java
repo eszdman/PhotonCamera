@@ -1,14 +1,24 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.particlesdevs.photoncamera.api.Settings;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.util.FileManager;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -66,11 +76,11 @@ public class GLBasePipeline implements AutoCloseable {
             return main1;
         }
     }
-    public void startTimeMeasure() {
+    public void startT() {
         timeStart = System.currentTimeMillis();
     }
 
-    public void endTimeMeasure(String Name) {
+    public void endT(String Name) {
         Log.d("Pipeline", "Node:" + Name + " elapsed:" + (System.currentTimeMillis() - timeStart) + " ms");
     }
 
@@ -96,18 +106,35 @@ public class GLBasePipeline implements AutoCloseable {
     public GLImage runAll() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
-            prepareNode(Nodes.get(i),i);
-            startTimeMeasure();
+            Nodes.get(i).mProp = mProp;
+            Nodes.get(i).BeforeCompile();
+            Nodes.get(i).Compile();
+            Nodes.get(i).BeforeRun();
+            if (i == Nodes.size() - 1) {
+                lastR();
+            }
+            startT();
             Nodes.get(i).Run();
-            endTimeMeasure(Nodes.get(i).Name);
+            endT(Nodes.get(i).Name);
             if (i != Nodes.size() - 1) {
-                drawProgramTexture(Nodes.get(i));
+                if(!glint.glProgram.closed) {
+                    glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
+                    glint.glProgram.closed = true;
+                }
             }
             Nodes.get(i).AfterRun();
         }
-        closeTextures();
+        if(texnum == 1){
+            if (main2 != null) main2.close();
+        }else {
+            if (main1 != null) main1.close();
+        }
         glint.glProcessing.drawBlocksToOutput();
-        closeTextures();
+        if(texnum == 1){
+            if (main1 != null) main1.close();
+        }else {
+            if (main2 != null) main2.close();
+        }
         if (main3 != null) main3.close();
         glint.glProgram.close();
         Nodes.clear();
@@ -117,48 +144,41 @@ public class GLBasePipeline implements AutoCloseable {
     public ByteBuffer runAllRaw() {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
-            prepareNode(Nodes.get(i),i);
-            startTimeMeasure();
+            Nodes.get(i).mProp = mProp;
+            Nodes.get(i).BeforeCompile();
+            Nodes.get(i).Compile();
+            Nodes.get(i).BeforeRun();
+            if (i == Nodes.size() - 1) {
+                lastR();
+            }
+            startT();
             Nodes.get(i).Run();
             if (i != Nodes.size() - 1) {
                 Log.d(TAG, "i:" + i + " size:" + Nodes.size());
-                drawProgramTexture(Nodes.get(i));
+                if(!glint.glProgram.closed) {
+                    glint.glProgram.drawBlocks(Nodes.get(i).GetProgTex());
+                    glint.glProgram.closed = true;
+                }
             }
             Nodes.get(i).AfterRun();
-            endTimeMeasure(Nodes.get(i).Name);
+            endT(Nodes.get(i).Name);
         }
-        drawProgramTexture(Nodes.get(Nodes.size() - 1));
-        closeTextures();
-        glint.glProcessing.drawBlocksToOutput();
-        closeTextures();
-        if (main3 != null) main3.close();
-        Nodes.clear();
-        return glint.glProcessing.mOutBuffer;
-    }
-
-    private void drawProgramTexture(Node node) {
-        if(!glint.glProgram.closed) {
-            glint.glProgram.drawBlocks(node.GetProgTex());
-            glint.glProgram.closed = true;
-        }
-    }
-
-    private void prepareNode(Node node, int index) {
-        node.mProp = mProp;
-        node.BeforeCompile();
-        node.Compile();
-        node.BeforeRun();
-        if (index == Nodes.size() - 1) {
-            lastR();
-        }
-    }
-
-    private void closeTextures() {
-        if (texnum == 1) {
+        glint.glProgram.drawBlocks(Nodes.get(Nodes.size() - 1).GetProgTex());
+        if(texnum == 1){
             if (main2 != null) main2.close();
-        } else {
+        }else {
             if (main1 != null) main1.close();
         }
+        glint.glProcessing.drawBlocksToOutput();
+        if(texnum == 1){
+            if (main1 != null) main1.close();
+        }else {
+            if (main2 != null) main2.close();
+        }
+        if (main3 != null) main3.close();
+        glint.glProgram.close();
+        Nodes.clear();
+        return glint.glProcessing.mOutBuffer;
     }
 
     @Override
