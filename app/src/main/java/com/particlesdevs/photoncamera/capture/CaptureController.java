@@ -639,16 +639,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
-    private Size getCameraOutputSize(Size[] in) {
-        Arrays.sort(in, new CompareSizesByArea());
-        List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= ResolutionSolution.highRes) {
-            target = sizes.get(s);
-            return target;
-        } else {
-            if (sizes.size() > 1) {
-                target = sizes.get(s - 1);
+    private Size getCameraOutputSize(Size[] sizes) {
+        if (sizes.length > 0) {
+            Arrays.sort(sizes, new CompareSizesByArea());
+
+            int largestSizeIdx = sizes.length - 1;
+            int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+
+            if (largestSizeArea <= ResolutionSolution.highRes) {
+                target = sizes[largestSizeIdx];
+                return target;
+            } else if (sizes.length > 1) {
+                target = sizes[largestSizeIdx - 1];
                 return target;
             }
         }
