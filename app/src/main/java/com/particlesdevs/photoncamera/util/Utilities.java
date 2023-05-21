@@ -103,6 +103,23 @@ public class Utilities {
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
 
+    private static Paint setWallPaint(Paint wallPaint){
+        wallPaint.setAntiAlias(true);
+        wallPaint.setStyle(Paint.Style.STROKE);
+        wallPaint.setARGB(100, 255, 255, 255);
+        return wallPaint;
+    }
+    private static Canvas drawCanvas(Bitmap output, Paint wallPaint){
+        int width = output.getWidth();
+        int height = output.getHeight();
+        Canvas canvas = new Canvas(output);
+        canvas.drawRect(0, 0, width, height, wallPaint);
+        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
+        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        return canvas;
+    }
+
+
     private static float findMaxValue(float[] data) {
         float max = 0.f;
         for (float value : data) {
@@ -160,14 +177,9 @@ public class Utilities {
 
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
 
         drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
     }
@@ -177,28 +189,18 @@ public class Utilities {
 
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
 
         drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
     }
     public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
 
         drawGraph(r, width, height, findMaxValue(r), wallPaint, canvas, 255, 0, 0);
         drawGraph(g, width, height, findMaxValue(g), wallPaint, canvas, 0, 255, 0);
@@ -232,15 +234,9 @@ public class Utilities {
     public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
-
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
 
         float max = findMaxValue(r);
         drawGraph(r, width, height, max, wallPaint, canvas, 255, 0, 0);
