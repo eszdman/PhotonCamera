@@ -611,13 +611,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         List<Size> bigEnough = new ArrayList<>();
         // Collect the supported resolutions that are smaller than the preview Surface
         List<Size> notBigEnough = new ArrayList<>();
-        int w = aspectRatio.getWidth();
-        int h = aspectRatio.getHeight();
+        int targetWidth = aspectRatio.getWidth();
+        int targetHeight = aspectRatio.getHeight();
         for (Size option : choices) {
-            if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
-                    option.getHeight() == option.getWidth() * h / w) {
-                if (option.getWidth() >= textureViewWidth &&
-                        option.getHeight() >= textureViewHeight) {
+            int width = option.getWidth();
+            int height = option.getHeight();
+            boolean isAspectRatioMatching = (height * targetWidth == width * targetHeight);
+
+            if (width <= maxWidth && height <= maxHeight && isAspectRatioMatching) {
+                if (width >= textureViewWidth && height >= textureViewHeight) {
                     bigEnough.add(option);
                 } else {
                     notBigEnough.add(option);
@@ -625,11 +627,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
 
-        // Pick the smallest of those big enough. If there is no one big enough, pick the
-        // largest of those not big enough.
-        if (bigEnough.size() > 0) {
+        // Pick the smallest of those big enough.
+        // If there is no one big enough, pick the largest of those not big enough.
+        if (!bigEnough.isEmpty()) {
             return Collections.min(bigEnough, new CompareSizesByArea());
-        } else if (notBigEnough.size() > 0) {
+        } else if (!notBigEnough.isEmpty()) {
             return Collections.max(notBigEnough, new CompareSizesByArea());
         } else {
             Log.e(TAG, "Couldn't find any suitable preview size");
