@@ -103,23 +103,6 @@ public class Utilities {
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
 
-    private static Paint setWallPaint(Paint wallPaint){
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        return wallPaint;
-    }
-    private static Canvas drawCanvas(Bitmap output, Paint wallPaint){
-        int width = output.getWidth();
-        int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
-        return canvas;
-    }
-
-
     private static float findMaxValue(float[] data) {
         float max = 0.f;
         for (float value : data) {
@@ -138,6 +121,22 @@ public class Utilities {
             }
         }
         return max;
+    }
+
+    private static Paint setWallPaint(Paint wallPaint){
+        wallPaint.setAntiAlias(true);
+        wallPaint.setStyle(Paint.Style.STROKE);
+        wallPaint.setARGB(100, 255, 255, 255);
+        return wallPaint;
+    }
+    private static Canvas drawCanvas(Bitmap output, Paint wallPaint){
+        int width = output.getWidth();
+        int height = output.getHeight();
+        Canvas canvas = new Canvas(output);
+        canvas.drawRect(0, 0, width, height, wallPaint);
+        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
+        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        return canvas;
     }
 
     private static void drawGraph(int[] data, int width, int height, float max, Paint paint, Canvas canvas, int r, int g, int b) {
