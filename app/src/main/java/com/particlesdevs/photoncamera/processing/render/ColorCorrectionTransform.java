@@ -53,38 +53,23 @@ public class ColorCorrectionTransform {
             case "MATRIX": {
                 in.nextLine();
                 for (int i = 0; i < 3; i++) {
-                    String[] inp = in.nextLine().split(",");
-                    matrix[i * 3] = Float.parseFloat(inp[0]);
-                    matrix[i * 3 + 1] = Float.parseFloat(inp[1]);
-                    matrix[i * 3 + 2] = Float.parseFloat(inp[2]);
+                    readLineToMatrix(in, matrix, i*3);
                 }
                 break;
             }
             case "MATRIXES": {
                 correctionMode = CorrectionMode.MATRIXES;
                 in.nextLine();
-                String[] inp = in.nextLine().split(",");
-                p1[0] = Float.parseFloat(inp[0]);
-                p1[1] = Float.parseFloat(inp[1]);
-                p1[2] = Float.parseFloat(inp[2]);
+                readLineToMatrix(in, p1, 0);
                 in.nextLine();
                 for (int i = 0; i < 3; i++) {
-                    inp = in.nextLine().split(",");
-                    matrix[i * 3] = Float.parseFloat(inp[0]);
-                    matrix[i * 3 + 1] = Float.parseFloat(inp[1]);
-                    matrix[i * 3 + 2] = Float.parseFloat(inp[2]);
+                    readLineToMatrix(in, matrix, i*3);
                 }
                 in.nextLine();
-                inp = in.nextLine().split(",");
-                p2[0] = Float.parseFloat(inp[0]);
-                p2[1] = Float.parseFloat(inp[1]);
-                p2[2] = Float.parseFloat(inp[2]);
+                readLineToMatrix(in, p2, 0);
                 in.nextLine();
                 for (int i = 0; i < 3; i++) {
-                    inp = in.nextLine().split(",");
-                    matrix2[i * 3] = Float.parseFloat(inp[0]);
-                    matrix2[i * 3 + 1] = Float.parseFloat(inp[1]);
-                    matrix2[i * 3 + 2] = Float.parseFloat(inp[2]);
+                    readLineToMatrix(in, matrix2, i*3);
                 }
                 break;
             }
@@ -99,6 +84,13 @@ public class ColorCorrectionTransform {
                 cubes[0].FillCube(in, false);
                 break;
             }
+        }
+    }
+
+    private void readLineToMatrix(Scanner in, float[] resultMatrix, int matrixIndex) {
+        String[] inp = in.nextLine().split(",");
+        for(int i=0; i<3;i++) {
+            resultMatrix[matrixIndex+i] = Float.parseFloat(inp[i]);
         }
     }
 }
