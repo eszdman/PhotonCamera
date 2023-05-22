@@ -19,7 +19,7 @@ public abstract class CustomOrientationEventListener extends OrientationEventLis
     }
 
     // For expressing the process of determining the range of angles more clearly
-    public boolean isBetween(int orientation, int value, int ROTATION) {
+    public boolean orientationPosition(int orientation, int value, int ROTATION) {
         int angleThreshold = 20;
         if (orientation < 20 || orientation >= 340)
             return orientation >= (360 + value - angleThreshold) || orientation < (value + angleThreshold) && rotation != ROTATION;
@@ -40,16 +40,16 @@ public abstract class CustomOrientationEventListener extends OrientationEventLis
         int ROTATION_270 = 4;
 
         // Express the process of determining the range of angles more clearly
-        if (isBetween(orientation, 0, ROTATION_0)) {
+        if (orientationPosition(orientation, 0, ROTATION_0)) {
             currentOrientation = Surface.ROTATION_0;
             rotation = ROTATION_0;
-        } else if (isBetween(orientation, 90, ROTATION_90)) {
+        } else if (orientationPosition(orientation, 90, ROTATION_90)) {
             currentOrientation = Surface.ROTATION_90;
             rotation = ROTATION_90;
-        } else if (isBetween(orientation, 180, ROTATION_180)) {
+        } else if (orientationPosition(orientation, 180, ROTATION_180)) {
             currentOrientation = Surface.ROTATION_180;
             rotation = ROTATION_180;
-        } else if (isBetween(orientation, 270, ROTATION_270)) {
+        } else if (orientationPosition(orientation, 270, ROTATION_270)) {
             currentOrientation = Surface.ROTATION_270;
             rotation = ROTATION_270;
         }
