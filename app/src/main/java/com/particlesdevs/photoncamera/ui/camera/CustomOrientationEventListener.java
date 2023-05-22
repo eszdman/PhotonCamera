@@ -18,32 +18,42 @@ public abstract class CustomOrientationEventListener extends OrientationEventLis
         this.context = context;
     }
 
+    // For expressing the process of determining the range of angles more clearly
+    public boolean isBetween(int orientation, int value, int ROTATION) {
+        int angleThreshold = 20;
+        if (orientation < 20 || orientation >= 340)
+            return orientation >= (360 + value - angleThreshold) || orientation < (value + angleThreshold) && rotation != ROTATION;
+        else
+            return orientation >= (value - angleThreshold) && orientation < (value + angleThreshold) && rotation != ROTATION;
+    }
+
     @Override
     public void onOrientationChanged(int orientation) {
 
         if (android.provider.Settings.System.getInt(context.getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, 0) == 0) // 0 = Auto Rotate Disabled
             return;
         int currentOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
-        int ROTATION_O = 1;
+
+        int ROTATION_0 = 1;
         int ROTATION_90 = 2;
         int ROTATION_180 = 3;
         int ROTATION_270 = 4;
-        if (orientation >= 340 || orientation < 20 && rotation != ROTATION_O) {
-            currentOrientation = Surface.ROTATION_0;
-            rotation = ROTATION_O;
 
-        } else if (orientation >= 70 && orientation < 110 && rotation != ROTATION_90) {
+        // Express the process of determining the range of angles more clearly
+        if (isBetween(orientation, 0, ROTATION_0)) {
+            currentOrientation = Surface.ROTATION_0;
+            rotation = ROTATION_0;
+        } else if (isBetween(orientation, 90, ROTATION_90)) {
             currentOrientation = Surface.ROTATION_90;
             rotation = ROTATION_90;
-
-        } else if (orientation >= 160 && orientation < 200 && rotation != ROTATION_180) {
+        } else if (isBetween(orientation, 180, ROTATION_180)) {
             currentOrientation = Surface.ROTATION_180;
             rotation = ROTATION_180;
-
-        } else if (orientation >= 250 && orientation < 290 && rotation != ROTATION_270) {
+        } else if (isBetween(orientation, 270, ROTATION_270)) {
             currentOrientation = Surface.ROTATION_270;
             rotation = ROTATION_270;
         }
+
 
         if (prevOrientation != currentOrientation && orientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
             prevOrientation = currentOrientation;
