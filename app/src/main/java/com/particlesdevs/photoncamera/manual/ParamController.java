@@ -114,20 +114,20 @@ public class ParamController implements Observer {
     }
 
     @Override
-    public void update(Observable o, Object arg) {
-        if (o != null && arg != null) {
-            ManualParamModel model = (ManualParamModel) o;
+    public void update(Observable observable, Object object) {
+        if (observable != null && object != null) {
+            ManualParamModel model = (ManualParamModel) observable;
             manualParamModel = model;
-            if (arg.equals(ManualParamModel.ID_ISO)) {
+            if (object.equals(ManualParamModel.ID_ISO)) {
                 setISO((int) model.getCurrentISOValue(), model.getCurrentExposureValue());
             }
-            if (arg.equals(ManualParamModel.ID_EV)) {
+            if (object.equals(ManualParamModel.ID_EV)) {
                 setEV((int) model.getCurrentEvValue());
             }
-            if (arg.equals(ManualParamModel.ID_SHUTTER)) {
+            if (object.equals(ManualParamModel.ID_SHUTTER)) {
                 setShutter((long) model.getCurrentExposureValue(), (int) model.getCurrentISOValue());
             }
-            if (arg.equals(ManualParamModel.ID_FOCUS)) {
+            if (object.equals(ManualParamModel.ID_FOCUS)) {
                 setFocus((float) model.getCurrentFocusValue());
             }
         }
