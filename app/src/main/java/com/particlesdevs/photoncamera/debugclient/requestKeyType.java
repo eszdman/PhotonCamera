@@ -6,29 +6,28 @@ public interface requestKeyType {
     static requestKeyType createKeyType(CaptureRequest.Builder builder, CaptureRequest.Key<?> key, String type, String value) {
         switch (type){
             case "LONG":{
-                return (requestKeyType) new requestKeyLong(builder, key, value);
+                return new requestKeyLong(builder, key, value);
             }
             case "INTEGER":{
-                return (requestKeyType) new requestKeyInterger(builder, key, value);
+                return new requestKeyInteger(builder, key, value);
             }
             case "STRING":{
-                return (requestKeyType) new requestKeyString(builder, key, value);
+                return new requestKeyString(builder, key, value);
             }
             case "FLOAT":{
-                return (requestKeyType) new requestKeyFloat(builder, key, value);
+                return new requestKeyFloat(builder, key, value);
             }
             case "DOUBLE":{
-                return (requestKeyType) new requestKeyDouble(builder, key, value);
+                return new requestKeyDouble(builder, key, value);
             }
-            break;
             default:
                 throw new IllegalStateException("Unexpected value: " + type);
         }
     }
 
-    void setKey();
+    public void setKey();
 }
-public class requestKeyLong{
+class requestKeyLong implements requestKeyType{
     private CaptureRequest.Builder builder;
     private CaptureRequest.Key<?> key;
     String value;
@@ -38,26 +37,26 @@ public class requestKeyLong{
         this.value = value;
     }
     @Override
-    void setKey(){
+    public void setKey(){
         builder.set((CaptureRequest.Key<Long>) key,Long.parseLong(value));
     }
 }
-public class requestKeyInterger{
+class requestKeyInteger implements requestKeyType{
     private CaptureRequest.Builder builder;
     private CaptureRequest.Key<?> key;
     String value;
-    public requestKeyInterger(CaptureRequest.Builder builder,CaptureRequest.Key<?> key,String value){
+    public requestKeyInteger(CaptureRequest.Builder builder,CaptureRequest.Key<?> key,String value){
         this.builder = builder;
         this.key = key;
         this.value = value;
     }
     @Override
-    void setKey(){
+    public void setKey(){
         builder.set((CaptureRequest.Key<Integer>) key,Integer.parseInt(value));
     }
 }
 
-public class requestKeyString{
+class requestKeyString implements requestKeyType{
     private CaptureRequest.Builder builder;
     private CaptureRequest.Key<?> key;
     String value;
@@ -67,11 +66,11 @@ public class requestKeyString{
         this.value = value;
     }
     @Override
-    void setKey(){
+    public void setKey(){
         builder.set((CaptureRequest.Key<String>) key, value);
     }
 }
-public class requestKeyFloat{
+class requestKeyFloat implements requestKeyType{
     private CaptureRequest.Builder builder;
     private CaptureRequest.Key<?> key;
     String value;
@@ -81,11 +80,11 @@ public class requestKeyFloat{
         this.value = value;
     }
     @Override
-    void setKey(){
+    public void setKey(){
         builder.set((CaptureRequest.Key<Float>) key,Float.parseFloat(value));
     }
 }
-public class requestKeyDouble{
+class requestKeyDouble implements requestKeyType{
     private CaptureRequest.Builder builder;
     private CaptureRequest.Key<?> key;
     String value;
@@ -95,7 +94,7 @@ public class requestKeyDouble{
         this.value = value;
     }
     @Override
-    void setKey(){
+    public void setKey(){
         builder.set((CaptureRequest.Key<Double>) key,Double.parseDouble(value));
 
     }
