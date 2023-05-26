@@ -36,7 +36,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
-import android.hardware.camera2.params.InputConfiguration;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
@@ -555,14 +554,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.processExecutor = processExecutor;
         this.paramController = new ParamController(this);
 
-        this.fillInCameraCharateristics();
+        this.fillInCameraCharacteristics();
     }
 
     /**
      * Fills in {@link CaptureController#mCameraCharacteristicsMap} that is used in
      * {@link CaptureController#UpdateCameraCharacteristics}.
      */
-    private void fillInCameraCharateristics() {
+    private void fillInCameraCharacteristics() {
         try {
             String[] cameraIds = mCameraManager2.getCameraIdList();
             for (String cameraId : cameraIds) {
