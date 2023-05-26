@@ -172,18 +172,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
-
-    private Map<String, CameraCharacteristics> mCameraCharacteristicsMap = new HashMap<>();
-    public static CameraCharacteristics mCameraCharacteristics;
-    public static CaptureResult mCaptureResult;
-
-    public static CaptureResult mPreviewCaptureResult;
-    public static CaptureRequest mPreviewCaptureRequest;
-    public static int mPreviewTargetFormat = PREVIEW_FORMAT;
-    public boolean isDualSession = true;
-    private static int mTargetFormat = RAW_FORMAT;
-    private final ParamController paramController;
-
+    
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
@@ -204,6 +193,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
     }
+
+    private Map<String, CameraCharacteristics> mCameraCharacteristicsMap = new HashMap<>();
+    public static CameraCharacteristics mCameraCharacteristics;
+    public static CaptureResult mCaptureResult;
+
+    public static CaptureResult mPreviewCaptureResult;
+    public static CaptureRequest mPreviewCaptureRequest;
+    public static int mPreviewTargetFormat = PREVIEW_FORMAT;
+    public boolean isDualSession = true;
+    private static int mTargetFormat = RAW_FORMAT;
+    private final ParamController paramController;
 
     public final boolean mFlashEnabled = false;
     private CameraEventsListener cameraEventsListener;
