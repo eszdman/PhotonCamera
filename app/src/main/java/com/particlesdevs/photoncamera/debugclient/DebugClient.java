@@ -1,13 +1,10 @@
 package com.particlesdevs.photoncamera.debugclient;
 
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
-import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 
 import org.jetbrains.annotations.NotNull;
@@ -21,9 +18,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 public class DebugClient {
@@ -74,7 +69,7 @@ public class DebugClient {
 
     public static void setKey(CaptureRequest.Builder builder,CaptureRequest.Key<?> key, String type, String value){
         try {
-            requestKeyType keySet = requestKeyType.createKeyType(builder, key, type, value);
+            RequestKeyType keySet = RequestKeyType.createKeyType(builder, key, type, value);
             keySet.setKey();
         }catch (Exception e){
             e.toString();
