@@ -282,15 +282,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //taskResults.removeIf(Future::isDone); //remove already completed results
             //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
             //taskResults.add(result);
-            if(PhotonCamera.getSettings().frameCount != 1){
+            if(PhotonCamera.getSettings().frameCount != 1) {
                 taskResults.removeIf(Future::isDone); //remove already completed results
                 Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
                 taskResults.add(result);
             }
-                else
-                    AsyncTask.execute(() -> {
-                        mImageSaver.initProcess(reader);
-                    });
+            else {
+                AsyncTask.execute(() -> mImageSaver.initProcess(reader));
+            }
         }
 
     };
@@ -355,60 +354,72 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         private void process(CaptureResult result) {
             debugCallback.process();
             switch (mState) {
-                case STATE_PREVIEW: {
-                    // We have nothing to do when the camera preview is working normally.
-                    //Log.v(TAG, "PREVIEW");
+                case STATE_PREVIEW:
+                    previewProcess();
                     break;
-                }
-                case STATE_WAITING_LOCK: {
-                    //Log.v(TAG, "WAITING_LOCK");
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    // If we haven't finished the pre-capture sequence but have hit our maximum
-                    // wait timeout, too bad! Begin capture anyway.
-                    if (hitTimeoutLocked()) {
-                        Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
-                    if (afState == null) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-                        // CONTROL_AE_STATE can be null on some devices
-                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                        if (aeState == null ||
-                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            mState = STATE_PICTURE_TAKEN;
-                            captureStillPicture();
-                        } else {
-                            runPreCaptureSequence();
-                        }
-                    }
+                case STATE_WAITING_LOCK:
+                    waitingLockProcess(result);
                     break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    Log.v(TAG, "WAITING_PRECAPTURE");
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    if (paramController.isManualMode())
-                        mState = STATE_WAITING_NON_PRECAPTURE;
+                case STATE_WAITING_PRECAPTURE:
+                    waitingPrecaptureProcess(result);
                     break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
+                case STATE_WAITING_NON_PRECAPTURE:
+                    waitingNonPrecaptureProcess(result);
                     break;
+            }
+        }
+
+        private void previewProcess() {
+            // We have nothing to do when the camera preview is working normally.
+            //Log.v(TAG, "PREVIEW");
+        }
+
+        private void waitingLockProcess(CaptureResult result) {
+            //Log.v(TAG, "WAITING_LOCK");
+            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+            // If we haven't finished the pre-capture sequence but have hit our maximum
+            // wait timeout, too bad! Begin capture anyway.
+            if (hitTimeoutLocked()) {
+                Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
+            }
+            if (afState == null) {
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
+            } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                    CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                // CONTROL_AE_STATE can be null on some devices
+                Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                if (aeState == null ||
+                        aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                    mState = STATE_PICTURE_TAKEN;
+                    captureStillPicture();
+                } else {
+                    runPreCaptureSequence();
                 }
+            }
+        }
+
+        private void waitingPrecaptureProcess(CaptureResult result) {
+            Log.v(TAG, "WAITING_PRECAPTURE");
+            // CONTROL_AE_STATE can be null on some devices
+            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+            if (aeState == null ||
+                    aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
+                    aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                mState = STATE_WAITING_NON_PRECAPTURE;
+            }
+            if (paramController.isManualMode())
+                mState = STATE_WAITING_NON_PRECAPTURE;
+        }
+
+        private void waitingNonPrecaptureProcess(CaptureResult result) {
+            // CONTROL_AE_STATE can be null on some devices
+            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+            if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
             }
         }
 
@@ -431,7 +442,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (exposure != null) mPreviewExposureTime = (long) exposure;
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
-            mPreviewTemp = mTemp;
             if (mTemp != null) mPreviewTemp = mTemp;
             if (mPreviewTemp == null) {
                 mPreviewTemp = new Rational[3];
