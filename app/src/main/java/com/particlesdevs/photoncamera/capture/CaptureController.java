@@ -611,13 +611,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         List<Size> bigEnough = new ArrayList<>();
         // Collect the supported resolutions that are smaller than the preview Surface
         List<Size> notBigEnough = new ArrayList<>();
-        int w = aspectRatio.getWidth();
-        int h = aspectRatio.getHeight();
+        int targetWidth = aspectRatio.getWidth();
+        int targetHeight = aspectRatio.getHeight();
         for (Size option : choices) {
-            if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
-                    option.getHeight() == option.getWidth() * h / w) {
-                if (option.getWidth() >= textureViewWidth &&
-                        option.getHeight() >= textureViewHeight) {
+            int width = option.getWidth();
+            int height = option.getHeight();
+            boolean isAspectRatioMatching = (height * targetWidth == width * targetHeight);
+
+            if (width <= maxWidth && height <= maxHeight && isAspectRatioMatching) {
+                if (width >= textureViewWidth && height >= textureViewHeight) {
                     bigEnough.add(option);
                 } else {
                     notBigEnough.add(option);
@@ -625,11 +627,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
 
-        // Pick the smallest of those big enough. If there is no one big enough, pick the
-        // largest of those not big enough.
-        if (bigEnough.size() > 0) {
+        // Pick the smallest of those big enough.
+        // If there is no one big enough, pick the largest of those not big enough.
+        if (!bigEnough.isEmpty()) {
             return Collections.min(bigEnough, new CompareSizesByArea());
-        } else if (notBigEnough.size() > 0) {
+        } else if (!notBigEnough.isEmpty()) {
             return Collections.max(notBigEnough, new CompareSizesByArea());
         } else {
             Log.e(TAG, "Couldn't find any suitable preview size");
@@ -637,48 +639,51 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
-    private Size getCameraOutputSize(Size[] in) {
-        Arrays.sort(in, new CompareSizesByArea());
-        List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= ResolutionSolution.highRes) {
-            target = sizes.get(s);
-            return target;
-        } else {
-            if (sizes.size() > 1) {
-                target = sizes.get(s - 1);
+    private Size getCameraOutputSize(Size[] sizes) {
+        if (sizes.length > 0) {
+            Arrays.sort(sizes, new CompareSizesByArea());
+
+            int largestSizeIdx = sizes.length - 1;
+            int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+
+            if (largestSizeArea <= ResolutionSolution.highRes) {
+                target = sizes[largestSizeIdx];
+                return target;
+            } else if (sizes.length > 1) {
+                target = sizes[largestSizeIdx - 1];
                 return target;
             }
         }
         return null;
     }
 
-    private Size getCameraOutputSize(Size[] in, Size mPreviewSize) {
-        if (in == null) return mPreviewSize;
-        Arrays.sort(in, new CompareSizesByArea());
-        List<Size> sizes = new ArrayList<>(Arrays.asList(in));
-        int s = sizes.size() - 1;
-        if (sizes.get(s).getWidth() * sizes.get(s).getHeight() <= ResolutionSolution.highRes || PhotonCamera.getSettings().QuadBayer) {
-            target = sizes.get(s);
+    private Size getCameraOutputSize(Size[] sizes, Size previewSize) {
+        if (sizes == null || sizes.length == 0) return previewSize;
+
+        Arrays.sort(sizes, new CompareSizesByArea());
+        int largestSizeIdx = sizes.length - 1;
+        int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+
+        if (largestSizeArea <= ResolutionSolution.highRes || PhotonCamera.getSettings().QuadBayer) {
+            target = sizes[largestSizeIdx];
             if (PhotonCamera.getSettings().QuadBayer) {
-                Rect pre = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
-                if (pre == null) return target;
-                Rect act = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-                if (act == null) return target;
-                double k = (double) (target.getHeight()) / act.bottom;
-                mul(pre, k);
-                mul(act, k);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, act);
-                CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, pre);
+                Rect preCorrectionActiveArraySize = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                Rect activeArraySize = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+
+                if (preCorrectionActiveArraySize != null && activeArraySize != null) {
+                    double k = (double) (target.getHeight()) / activeArraySize.bottom;
+                    mul(preCorrectionActiveArraySize, k);
+                    mul(activeArraySize, k);
+                    CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, activeArraySize);
+                    CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, preCorrectionActiveArraySize);
+                }
             }
             return target;
-        } else {
-            if (sizes.size() > 1) {
-                target = sizes.get(s - 1);
-                return target;
-            }
+        } else if (sizes.length > 1) {
+            target = sizes[largestSizeIdx - 1];
+            return target;
         }
-        return mPreviewSize;
+        return previewSize;
     }
 
     /**
