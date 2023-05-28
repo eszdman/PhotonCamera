@@ -102,124 +102,95 @@ public class Utilities {
         wallPaint.setARGB(255, (int)(rgb[0]*255.f/max), (int)(rgb[1]*255.f/max), (int)(rgb[2]*255.f/max));
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
+
+    private static float[] convertToFloatArray(int[] input) {
+        float[] floatArray = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            floatArray[i] = (float) input[i];
+        }
+        return floatArray;
+    }
+
+    private static float findMaxValue(float[] data) {
+        float max = 0.f;
+        for (float value : data) {
+            if (value > max) {
+                max = value;
+            }
+        }
+        return max;
+    }
+
+    private static Paint setWallPaint(Paint wallPaint){
+        wallPaint.setAntiAlias(true);
+        wallPaint.setStyle(Paint.Style.STROKE);
+        wallPaint.setARGB(100, 255, 255, 255);
+        return wallPaint;
+    }
+    private static Canvas drawCanvas(Bitmap output, Paint wallPaint){
+        int width = output.getWidth();
+        int height = output.getHeight();
+        Canvas canvas = new Canvas(output);
+        canvas.drawRect(0, 0, width, height, wallPaint);
+        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
+        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
+        return canvas;
+    }
+
+    private static void drawGraph(float[] data, int width, int height, float max, Paint paint, Canvas canvas, int r, int g, int b) {
+        float xInterval = ((float) width / ((float) data.length + 1));
+        Path path = new Path();
+        paint.setARGB(255, r, g, b);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER));
+        paint.setStyle(Paint.Style.FILL);
+        path.reset();
+        path.moveTo(0, height);
+        for (int j = 0; j < data.length; j++) {
+            float value = ((data[j]) * ((float) (height) / max));
+            path.lineTo(j * xInterval, height - value);
+        }
+        path.lineTo(data.length * xInterval, height);
+        canvas.drawPath(path, paint);
+    }
+
     public static void drawArray(float[] input, Bitmap output){
-        float max = 0.f;
-        for(float ccur : input)
-            if(ccur > max)
-                max = ccur;
+        float max = findMaxValue(input);
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
-        float xInterval = ((float) width / ((float) input.length + 1));
-        Path wallPath = new Path();
-        wallPaint.setARGB(255, 255, 255, 255);
-        wallPaint.setXfermode(porterDuffXfermode);
-        wallPaint.setStyle(Paint.Style.FILL);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < input.length; j++) {
-            float value = (((float) input[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(input.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
+        drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
     }
+
     public static void drawArray(int[] input, Bitmap output){
-        float max = 0.f;
-        for(float ccur : input)
-            if(ccur > max) max = ccur;
-        int width = output.getWidth();
-        int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
-        Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
-        float xInterval = ((float) width / ((float) input.length + 1));
-        Path wallPath = new Path();
-        wallPaint.setARGB(255, 255, 255, 255);
-        wallPaint.setXfermode(porterDuffXfermode);
-        wallPaint.setStyle(Paint.Style.FILL);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < input.length; j++) {
-            float value = (((float) input[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(input.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
+        float[] input_float = convertToFloatArray(input);
+        drawArray(input_float, output);
     }
-    public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
+
+    public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
         int width = output.getWidth();
         int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
-
-        float max = 0.f;
-        for(float ccur : r)
-            if(ccur > max)
-                max = ccur;
         Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
-        float xInterval = ((float) width / ((float) r.length + 1));
-        Path wallPath = new Path();
-        wallPaint.setARGB(255, 255, 0, 0);
-        wallPaint.setXfermode(porterDuffXfermode);
-        wallPaint.setStyle(Paint.Style.FILL);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < r.length; j++) {
-            float value = (((float) r[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(r.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
+        wallPaint = setWallPaint(wallPaint);
+        Canvas canvas = drawCanvas(output, wallPaint);
 
-        max = 0.f;
-        for(float ccur : g)
-            if(ccur > max)
-                max = ccur;
-        xInterval = ((float) width / ((float) g.length + 1));
-        wallPath = new Path();
-        wallPaint.setARGB(255, 0, 255, 0);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < g.length; j++) {
-            float value = (((float) g[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(g.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
+        float max = findMaxValue(r);
+        drawGraph(r, width, height, max, wallPaint, canvas, 255, 0, 0);
 
-        max = 0.f;
-        for(float ccur : b)
-            if(ccur > max)
-                max = ccur;
-        xInterval = ((float) width / ((float) b.length + 1));
-        wallPath = new Path();
-        wallPaint.setARGB(255, 0, 0, 255);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < b.length; j++) {
-            float value = (((float) b[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(b.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
+        max = findMaxValue(g);
+        drawGraph(g, width, height, max, wallPaint, canvas, 0, 255, 0);
+
+        max = findMaxValue(b);
+        drawGraph(b, width, height, max, wallPaint, canvas, 0, 0, 255);
+
+    }
+
+    public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
+        float[] r_float = convertToFloatArray(r);
+        float[] g_float = convertToFloatArray(g);
+        float[] b_float = convertToFloatArray(b);
+        drawArray(r_float, g_float, b_float, output);
     }
 
     public static float linearRegressionK(float[] input){
@@ -234,14 +205,8 @@ public class Utilities {
         return k;
     }
     public static float linearRegressionC(float[] input){
-        float k = 0.f;
+        float k = linearRegressionK(input);
         float cnt = 0.f;
-        for(int i = 1; i<input.length;i++){
-            float x = (float)(i)/input.length;
-            k+=input[i]/x;
-            cnt+=1.f;
-        }
-        k/=cnt;
         float c = 0.f;
         cnt = 0.f;
         for(int i = 1; i<input.length;i++){
@@ -252,75 +217,7 @@ public class Utilities {
         c/=cnt;
         return c;
     }
-    public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
-        int width = output.getWidth();
-        int height = output.getHeight();
-        Canvas canvas = new Canvas(output);
 
-        float max = 0.f;
-        for(float ccur : r)
-            if(ccur > max)
-                max = ccur;
-        for(float ccur : g)
-            if(ccur > max)
-                max = ccur;
-        for(float ccur : b)
-            if(ccur > max)
-                max = ccur;
-        Paint wallPaint = new Paint();
-        wallPaint.setAntiAlias(true);
-        wallPaint.setStyle(Paint.Style.STROKE);
-        wallPaint.setARGB(100, 255, 255, 255);
-        canvas.drawRect(0, 0, width, height, wallPaint);
-        canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
-        canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
-        float xInterval = ((float) width / ((float) r.length + 1));
-        Path wallPath = new Path();
-        wallPaint.setARGB(255, 255, 0, 0);
-        wallPaint.setXfermode(porterDuffXfermode);
-        wallPaint.setStyle(Paint.Style.FILL);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < r.length; j++) {
-            float value = (((float) r[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(r.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
-
-        max = 0.f;
-        for(float ccur : g)
-            if(ccur > max)
-                max = ccur;
-        xInterval = ((float) width / ((float) g.length + 1));
-        wallPath = new Path();
-        wallPaint.setARGB(255, 0, 255, 0);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < g.length; j++) {
-            float value = (((float) g[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(g.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
-
-        max = 0.f;
-        for(float ccur : b)
-            if(ccur > max)
-                max = ccur;
-        xInterval = ((float) width / ((float) b.length + 1));
-        wallPath = new Path();
-        wallPaint.setARGB(255, 0, 0, 255);
-        wallPath.reset();
-        wallPath.moveTo(0, height);
-        for (int j = 0; j < b.length; j++) {
-            float value = (((float) b[j]) * ((float) (height) / max));
-            wallPath.lineTo(j * xInterval, height - value);
-        }
-        wallPath.lineTo(b.length * xInterval, height);
-        canvas.drawPath(wallPath, wallPaint);
-
-    }
     public static float[] interpolateArr(float[] in, int requiredSize){
         float[] output = new float[requiredSize];
         ArrayList<Float> mY,mx;

@@ -802,7 +802,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
      * <p>
      * It gets instantiated in {@link CameraFragment#onViewCreated(View, Bundle)}
      */
-    private final class CameraUIViewImpl implements CameraUIView {
+    //tk: non final
+    private class CameraUIViewImpl implements CameraUIView{
         private static final String TAG = "CameraUIView";
         private final ProgressBar mCaptureProgressBar;
         private final ImageButton mShutterButton;
@@ -811,6 +812,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         private LayoutMainTopbarBinding topbar;
         private LayoutBottombuttonsBinding bottombuttons;
         private CameraUIEventsListener uiEventsListener;
+        private CameraModeState currentState;
 
         private CameraUIViewImpl() {
             this.topbar = cameraFragmentBinding.layoutTopbar;
@@ -821,6 +823,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             this.mModePicker = cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
             this.initListeners();
             this.initModeSwitcher();
+            this.currentState = new PhotoMotionModeState(); //init mode
         }
 
         private void initListeners() {
@@ -843,61 +846,27 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             });
         }
 
-        private void switchToMode(CameraMode cameraMode) {
-            this.reConfigureModeViews(cameraMode);
-            this.uiEventsListener.onCameraModeChanged(cameraMode);
-        }
 
-        private void reConfigureModeViews(CameraMode mode) {
-            Log.d(TAG, "Current Mode:" + mode.name());
-            switch (mode) {
+        private void switchToMode(CameraMode cameraMode) {
+            Log.d(TAG, "Current Mode:" + cameraMode.name());
+            switch (cameraMode) {
                 case VIDEO:
-                    this.topbar.setEisVisible(true);
-                    //cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
-                    this.topbar.setFpsVisible(true);
-                    this.topbar.setTimerVisible(false);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
-                    this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
-                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
-                    cameraFragmentBinding.getRoot().setBackgroundResource(android.R.color.black);
+                    currentState = new VideoModeState();
                     break;
                 case UNLIMITED:
-                    this.topbar.setFpsVisible(true);
-                    this.topbar.setTimerVisible(false);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
-                    this.mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
-                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
-                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
+                    currentState = new UnlimitedModeState();
                     break;
                 case PHOTO:
                 case MOTION:
-                default:
-                    this.topbar.setEisVisible(true);
-                    this.topbar.setFpsVisible(true);
-                    this.topbar.setTimerVisible(true);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
-                    this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
-                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
-                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
+                    currentState = new PhotoMotionModeState();
                     break;
                 case NIGHT:
-                    this.topbar.setEisVisible(false);
-                    this.topbar.setFpsVisible(true);
-                    this.topbar.setTimerVisible(true);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
-                    cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
-                    this.mShutterButton.setBackgroundResource(R.drawable.roundbutton);
-                    cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
-                    cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(),R.attr.cameraFragmentBackground));
+                    currentState = new NightModeState();
                     break;
             }
-            toggleConstraints(mode);
+
+            currentState.reConfigureModeViews(cameraMode);
+            uiEventsListener.onCameraModeChanged(cameraMode);
         }
 
         private void toggleConstraints(CameraMode mode) {
@@ -925,7 +894,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void refresh(boolean processing) {
             cameraFragmentBinding.invalidateAll();
-            this.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
+            currentState.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
             this.resetCaptureProgressBar();
             if (!processing) {
                 this.activateShutterButton(true);
@@ -975,6 +944,74 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             topbar = null;
             bottombuttons = null;
         }
+
+        public class VideoModeState extends CameraUIViewImpl implements CameraModeState {
+            @Override
+            public void reConfigureModeViews(CameraMode mode) {
+                topbar.setEisVisible(true);
+                // cameraUIView.cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
+                topbar.setFpsVisible(true);
+                topbar.setTimerVisible(false);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
+                mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                cameraFragmentBinding.getRoot().setBackgroundResource(android.R.color.black);
+
+                toggleConstraints(mode);
+            }
+        }
+        //
+        public class UnlimitedModeState extends CameraUIViewImpl implements CameraModeState {
+            @Override
+            public void reConfigureModeViews(CameraMode mode) {
+                topbar.setFpsVisible(true);
+                topbar.setTimerVisible(false);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
+                mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+                cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(), R.attr.cameraFragmentBackground));
+
+                toggleConstraints(mode);
+            }
+        }
+        //
+        public class PhotoMotionModeState extends CameraUIViewImpl implements CameraModeState {
+            @Override
+            public void reConfigureModeViews(CameraMode mode) {
+                topbar.setEisVisible(true);
+                topbar.setFpsVisible(true);
+                topbar.setTimerVisible(true);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
+                mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(), R.attr.cameraFragmentBackground));
+
+                toggleConstraints(mode);
+            }
+        }
+
+        public class NightModeState extends CameraUIViewImpl implements CameraModeState {
+            @Override
+            public void reConfigureModeViews(CameraMode mode) {
+                topbar.setEisVisible(false);
+                topbar.setFpsVisible(true);
+                topbar.setTimerVisible(true);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
+                cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
+                mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+                cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(requireActivity(), R.attr.cameraFragmentBackground));
+
+                toggleConstraints(mode);
+            }
+        }
+
     }
 
     //*****************************************************************************************************************
