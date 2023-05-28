@@ -4,20 +4,21 @@ import android.hardware.camera2.CaptureRequest;
 
 public interface RequestKeyType {
     static RequestKeyType createKeyType(CaptureRequest.Builder builder, CaptureRequest.Key<?> key, String type, String value) {
-        switch (type){
-            case "LONG":{
+        TypeEnum typeEnum = TypeEnum.valueOf(type);
+        switch (typeEnum){
+            case LONG:{
                 return new RequestKeyLong(builder, key, value);
             }
-            case "INTEGER":{
+            case INTEGER:{
                 return new RequestKeyInteger(builder, key, value);
             }
-            case "STRING":{
+            case STRING:{
                 return new RequestKeyString(builder, key, value);
             }
-            case "FLOAT":{
+            case FLOAT:{
                 return new RequestKeyFloat(builder, key, value);
             }
-            case "DOUBLE":{
+            case DOUBLE:{
                 return new RequestKeyDouble(builder, key, value);
             }
             default:
