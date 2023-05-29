@@ -86,6 +86,8 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewMod
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -1232,45 +1234,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if(surface == null)
                 surface = new Surface(texture);
             // We set up a CaptureRequest.Builder with the output Surface.
-            mPreviewRequestBuilder = null;
-            if (mIsRecordingVideo) {
-                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            } else {
-                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            }
-            mPreviewRequestBuilder.addTarget(surface);
-            mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
-            mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
-            if (mIsRecordingVideo) {
-                mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
-                mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-                if (PreferenceKeys.isEisPhotoOn()) {
-                    mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
-                }
-            }
-            mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
-            mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
+            setCaptureRequestBuilder();
 
             // Here, we create a CameraCaptureSession for camera preview.
+            List<Surface> surfaces = configureSurfaces(isBurstSession);
 
-            List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-            if (isDualSession) {
-                if (isBurstSession) {
-                    surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-                }
-                if (mTargetFormat == mPreviewTargetFormat) {
-                    surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-                }
-            } else {
-                surfaces = Arrays.asList(surface,
-                        mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-            }
-            if (mIsRecordingVideo) {
-                setUpMediaRecorder();
-                surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
-                mPreviewRequestBuilder.addTarget(mMediaRecorder.getSurface());
-            }
-            CameraCaptureSession.StateCallback stateCallback = new CameraCaptureSession.StateCallback() {
+            CameraCaptureSession.StateCallback stateCallback =
+                    new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     // The camera is already closed
@@ -1327,10 +1297,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     showToast("Session onConfigureFailed");
                 }
             };
+
             ArrayList<OutputConfiguration> outputConfigurations = new ArrayList<>();
             for (Surface surfacei : surfaces) {
                 outputConfigurations.add(new OutputConfiguration(surfacei));
             }
+
             if (mIsRecordingVideo) {
                 //InputConfiguration inputConfiguration = new InputConfiguration(mImageReaderPreview.getWidth(),mImageReaderPreview.getHeight(),ImageFormat.YUV_420_888);
                 //CameraReflectionApi.createCustomCaptureSession(mCameraDevice,inputConfiguration,outputConfigurations,61444,stateCallback,null);
@@ -1341,6 +1313,49 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @NotNull
+    private List<Surface> configureSurfaces(boolean isBurstSession) {
+        List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+        if (isDualSession) {
+            if (isBurstSession) {
+                surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+            }
+            if (mTargetFormat == mPreviewTargetFormat) {
+                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+            }
+        } else {
+            surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+        }
+        if (mIsRecordingVideo) {
+            setUpMediaRecorder();
+            surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
+            mPreviewRequestBuilder.addTarget(mMediaRecorder.getSurface());
+        }
+        return surfaces;
+    }
+
+    private void setCaptureRequestBuilder() throws CameraAccessException {
+        mPreviewRequestBuilder = null;
+        if (mIsRecordingVideo) {
+            mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+        } else {
+            mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+        }
+
+        mPreviewRequestBuilder.addTarget(surface);
+        mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
+        mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
+        if (mIsRecordingVideo) {
+            mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+            mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+            if (PreferenceKeys.isEisPhotoOn()) {
+                mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
+            }
+        }
+        mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
+        mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
     }
 
     private void showToast(String msg) {
