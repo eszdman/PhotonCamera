@@ -11,14 +11,25 @@ public class Debugger {
     public DebugClient debugClient;
     public Debugger(){
         File debugClientSettings = new File(FileManager.sPHOTON_TUNING_DIR,"DebugClient.txt");
-        if(debugClientSettings.exists()){
+        String[] ipPort = readDebugClientFile();
+        makeDebugClient(ipPort[0],ipPort[1]);
+    }
+    private String[] readDebugClientFile(){
+        File debugClientSettings = new File(FileManager.sPHOTON_TUNING_DIR,"DebugClient.txt");
+        if(debugClientSettings.exists()) {
             try {
                 BufferedReader bufferedReader = new BufferedReader(new FileReader(debugClientSettings));
                 String[] ipPort = bufferedReader.readLine().split(":");
-                debugClient = new DebugClient(ipPort[0],ipPort[1]);
+                return ipPort;
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        return null;
+    }
+
+    private void makeDebugClient(String ip, String port){
+        debugClient = new DebugClient(ip, port);
     }
 }
