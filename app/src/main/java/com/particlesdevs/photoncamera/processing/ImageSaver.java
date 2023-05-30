@@ -32,6 +32,8 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.particlesdevs.photoncamera.processing.ImageSaverSelector.getImageSaver;
+
 public class ImageSaver {
     /**
      * Image frame buffer
@@ -57,8 +59,7 @@ public class ImageSaver {
             return;
         int format = mImage.getFormat();
         imageReader = mReader;
-        ImageSaverSelector imageSaverSelector =  new ImageSaverSelector(format, implementation);
-        implementation = imageSaverSelector.SelectedImageSaver();
+        implementation = getImageSaver(format, implementation);
         implementation.addImage(mImage);
     }
 

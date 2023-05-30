@@ -5,15 +5,7 @@ import android.util.Log;
 
 public class ImageSaverSelector {
     private static final String TAG = "ImageSaverSelector";
-    private int format;
-    private SaverImplementation saverImplementation;
-    ImageSaverSelector(int format, SaverImplementation saverImplementation) {
-        this.format = format;
-        this.saverImplementation = saverImplementation;
-        ImageSaverSelect();
-    }
-
-    private void ImageSaverSelect() {
+    public static SaverImplementation getImageSaver(int format, SaverImplementation saverImplementation) {
         switch (format) {
             case ImageFormat.JPEG:
                 saverImplementation = new JPEGSaver(saverImplementation.processingEventsListener);
@@ -32,9 +24,6 @@ public class ImageSaverSelector {
                 Log.e(TAG, "Cannot save image, unexpected image format:" + format);
                 break;
         }
-    }
-
-    public SaverImplementation SelectedImageSaver() {
         return saverImplementation;
     }
 }
