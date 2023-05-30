@@ -118,13 +118,20 @@ public class HorizontalPicker extends View {
 
     public HorizontalPicker(Context context, AttributeSet attributeSet, int defStyle) {
         super(context, attributeSet, defStyle);
-        vibration = PhotonCamera.getVibration();
-        // create the selector wheel paint
-        TextPaint paint = new TextPaint();
-        paint.setAntiAlias(true);
-        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
-        textPaint = paint;
 
+        ViewConfiguration configuration = ViewConfiguration.get(context);
+        vibration = PhotonCamera.getVibration();
+        touchSlop = configuration.getScaledTouchSlop();
+        mMinimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
+        maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity()
+                / SELECTOR_MAX_FLING_VELOCITY_ADJUSTMENT;
+        overscrollDistance = configuration.getScaledOverscrollDistance();
+        touchHelper = new PickerTouchHelper(this);
+        boringMetrics = new BoringLayout.Metrics();
+
+        // create the selector wheel paint
+        textPaint = getTextPaint(context);
+        
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(
                 attributeSet,
                 R.styleable.HorizontalPicker,
@@ -167,20 +174,19 @@ public class HorizontalPicker extends View {
         initializeConstants(context, values, sideItems);
     }
 
-    private void initializeConstants(Context context, CharSequence[] values, int sideItems) {
-        ViewConfiguration configuration = ViewConfiguration.get(context);
-        touchSlop = configuration.getScaledTouchSlop();
-        mMinimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
-        maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity()
-                / SELECTOR_MAX_FLING_VELOCITY_ADJUSTMENT;
-        overscrollDistance = configuration.getScaledOverscrollDistance();
+    private static TextPaint getTextPaint(Context context) {
+        TextPaint paint = new TextPaint();
+        paint.setAntiAlias(true);
+        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
+        return paint;
+    }
 
+    private void initializeConstants(Context context, CharSequence[] values, int sideItems) {
         previousScrollerX = Integer.MIN_VALUE;
 
         setValues(values);
         setSideItems(sideItems);
 
-        touchHelper = new PickerTouchHelper(this);
         ViewCompat.setAccessibilityDelegate(this, touchHelper);
         leftEdgeEffect = new EdgeEffect(context);
         rightEdgeEffect = new EdgeEffect(context);
@@ -188,7 +194,6 @@ public class HorizontalPicker extends View {
 
     private void setBorginMetrics() {
         Paint.FontMetricsInt fontMetricsInt = textPaint.getFontMetricsInt();
-        boringMetrics = new BoringLayout.Metrics();
         boringMetrics.ascent = fontMetricsInt.ascent;
         boringMetrics.bottom = fontMetricsInt.bottom;
         boringMetrics.descent = fontMetricsInt.descent;
