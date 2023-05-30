@@ -130,11 +130,8 @@ public class HorizontalPicker extends View {
         boringMetrics = new BoringLayout.Metrics();
 
         // create the selector wheel paint
-        TextPaint paint = new TextPaint();
-        paint.setAntiAlias(true);
-        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
-        textPaint = paint;
-
+        textPaint = getTextPaint(context);
+        
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(
                 attributeSet,
                 R.styleable.HorizontalPicker,
@@ -175,6 +172,13 @@ public class HorizontalPicker extends View {
         adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
 
         initializeConstants(context, values, sideItems);
+    }
+
+    private static TextPaint getTextPaint(Context context) {
+        TextPaint paint = new TextPaint();
+        paint.setAntiAlias(true);
+        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
+        return paint;
     }
 
     private void initializeConstants(Context context, CharSequence[] values, int sideItems) {
