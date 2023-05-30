@@ -31,64 +31,6 @@ public class DefaultSaver extends SaverImplementation {
         this.mUnlimitedProcessor = new UnlimitedProcessor(processingEventsListener);
     }
 
-    public void addRAW16(Image image) {
-        if (PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED) {
-            mUnlimitedProcessor.unlimitedCycle(image);
-        } else {
-            Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
-            image.getFormat();
-            IMAGE_BUFFER.add(image);
-        }
-    }
-
-    public void addJPEG(Image image) {
-        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-        try {
-            IMAGE_BUFFER.add(image);
-            byte[] bytes = new byte[buffer.remaining()];
-            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
-                Path jpgPath = ImagePath.newJPGFilePath();
-                buffer.duplicate().get(bytes);
-                Files.write(jpgPath, bytes);
-
-//                hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
-//                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
-//                        () -> clearImageReader(mReader));
-
-                IMAGE_BUFFER.clear();
-            }
-            if (PhotonCamera.getSettings().frameCount == 1) {
-                Path jpgPath = ImagePath.newJPGFilePath();
-                IMAGE_BUFFER.clear();
-                buffer.get(bytes);
-                Files.write(jpgPath, bytes);
-                image.close();
-                processingEventsListener.onProcessingFinished("JPEG: Single Frame, Not Processed!");
-                processingEventsListener.notifyImageSavedStatus(true, jpgPath);
-            }
-        } catch (IOException | NullPointerException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addYUV(Image image) {
-        Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
-        IMAGE_BUFFER.add(image);
-        if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
-
-//            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
-//                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
-//                        () -> clearImageReader(mReader));
-
-            IMAGE_BUFFER.clear();
-        }
-        if (PhotonCamera.getSettings().frameCount == 1) {
-            IMAGE_BUFFER.clear();
-            processingEventsListener.onProcessingFinished("YUV: Single Frame, Not Processed!");
-
-        }
-    }
-
     @HunterDebug
     public void runRaw(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
         super.runRaw(imageReader, characteristics, captureResult, burstShakiness, cameraRotation);

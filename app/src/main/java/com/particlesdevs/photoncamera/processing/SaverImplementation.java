@@ -37,13 +37,8 @@ public class SaverImplementation {
     public SaverImplementation(ProcessingEventsListener processingEventsListener){
         this.processingEventsListener = processingEventsListener;
     }
-    public void addJPEG(Image image){
-        image.close();
-    }
-    public void addYUV(Image image){
-        image.close();
-    }
-    public void addRAW16(Image image){
+
+    public void addImage(Image image) {
         image.close();
     }
 
