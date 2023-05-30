@@ -36,7 +36,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.ColorSpaceTransform;
-import android.hardware.camera2.params.InputConfiguration;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
@@ -86,6 +85,8 @@ import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.util.log.Logger;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -173,18 +174,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray DEFAULT_ORIENTATIONS = new SparseIntArray();
     private static final SparseIntArray INVERSE_ORIENTATIONS = new SparseIntArray();
-
-    private Map<String, CameraCharacteristics> mCameraCharacteristicsMap = new HashMap<>();
-    public static CameraCharacteristics mCameraCharacteristics;
-    public static CaptureResult mCaptureResult;
-
-    public static CaptureResult mPreviewCaptureResult;
-    public static CaptureRequest mPreviewCaptureRequest;
-    public static int mPreviewTargetFormat = PREVIEW_FORMAT;
-    public boolean isDualSession = true;
-    private static int mTargetFormat = RAW_FORMAT;
-    private final ParamController paramController;
-
+    
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
@@ -205,6 +195,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
     }
+
+    private Map<String, CameraCharacteristics> mCameraCharacteristicsMap = new HashMap<>();
+    public static CameraCharacteristics mCameraCharacteristics;
+    public static CaptureResult mCaptureResult;
+
+    public static CaptureResult mPreviewCaptureResult;
+    public static CaptureRequest mPreviewCaptureRequest;
+    public static int mPreviewTargetFormat = PREVIEW_FORMAT;
+    public boolean isDualSession = true;
+    private static int mTargetFormat = RAW_FORMAT;
+    private final ParamController paramController;
 
     public final boolean mFlashEnabled = false;
     private CameraEventsListener cameraEventsListener;
@@ -283,15 +284,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //taskResults.removeIf(Future::isDone); //remove already completed results
             //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
             //taskResults.add(result);
-            if(PhotonCamera.getSettings().frameCount != 1){
+            if(PhotonCamera.getSettings().frameCount != 1) {
                 taskResults.removeIf(Future::isDone); //remove already completed results
                 Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
                 taskResults.add(result);
             }
-                else
-                    AsyncTask.execute(() -> {
-                        mImageSaver.initProcess(reader);
-                    });
+            else {
+                AsyncTask.execute(() -> mImageSaver.initProcess(reader));
+            }
         }
 
     };
@@ -356,60 +356,72 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         private void process(CaptureResult result) {
             debugCallback.process();
             switch (mState) {
-                case STATE_PREVIEW: {
-                    // We have nothing to do when the camera preview is working normally.
-                    //Log.v(TAG, "PREVIEW");
+                case STATE_PREVIEW:
+                    previewProcess();
                     break;
-                }
-                case STATE_WAITING_LOCK: {
-                    //Log.v(TAG, "WAITING_LOCK");
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    // If we haven't finished the pre-capture sequence but have hit our maximum
-                    // wait timeout, too bad! Begin capture anyway.
-                    if (hitTimeoutLocked()) {
-                        Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
-                    if (afState == null) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-                        // CONTROL_AE_STATE can be null on some devices
-                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                        if (aeState == null ||
-                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            mState = STATE_PICTURE_TAKEN;
-                            captureStillPicture();
-                        } else {
-                            runPreCaptureSequence();
-                        }
-                    }
+                case STATE_WAITING_LOCK:
+                    waitingLockProcess(result);
                     break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    Log.v(TAG, "WAITING_PRECAPTURE");
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    if (paramController.isManualMode())
-                        mState = STATE_WAITING_NON_PRECAPTURE;
+                case STATE_WAITING_PRECAPTURE:
+                    waitingPrecaptureProcess(result);
                     break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
+                case STATE_WAITING_NON_PRECAPTURE:
+                    waitingNonPrecaptureProcess(result);
                     break;
+            }
+        }
+
+        private void previewProcess() {
+            // We have nothing to do when the camera preview is working normally.
+            //Log.v(TAG, "PREVIEW");
+        }
+
+        private void waitingLockProcess(CaptureResult result) {
+            //Log.v(TAG, "WAITING_LOCK");
+            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+            // If we haven't finished the pre-capture sequence but have hit our maximum
+            // wait timeout, too bad! Begin capture anyway.
+            if (hitTimeoutLocked()) {
+                Log.w(TAG, "Timed out waiting for pre-capture sequence to complete.");
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
+            }
+            if (afState == null) {
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
+            } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                    CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                // CONTROL_AE_STATE can be null on some devices
+                Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                if (aeState == null ||
+                        aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                    mState = STATE_PICTURE_TAKEN;
+                    captureStillPicture();
+                } else {
+                    runPreCaptureSequence();
                 }
+            }
+        }
+
+        private void waitingPrecaptureProcess(CaptureResult result) {
+            Log.v(TAG, "WAITING_PRECAPTURE");
+            // CONTROL_AE_STATE can be null on some devices
+            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+            if (aeState == null ||
+                    aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
+                    aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                mState = STATE_WAITING_NON_PRECAPTURE;
+            }
+            if (paramController.isManualMode())
+                mState = STATE_WAITING_NON_PRECAPTURE;
+        }
+
+        private void waitingNonPrecaptureProcess(CaptureResult result) {
+            // CONTROL_AE_STATE can be null on some devices
+            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+            if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                mState = STATE_PICTURE_TAKEN;
+                captureStillPicture();
             }
         }
 
@@ -432,7 +444,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (exposure != null) mPreviewExposureTime = (long) exposure;
             if (iso != null) mPreviewIso = (int) iso;
             if (focus != null) mFocus = (float) focus;
-            mPreviewTemp = mTemp;
             if (mTemp != null) mPreviewTemp = mTemp;
             if (mPreviewTemp == null) {
                 mPreviewTemp = new Rational[3];
@@ -555,14 +566,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         this.processExecutor = processExecutor;
         this.paramController = new ParamController(this);
 
-        this.fillInCameraCharateristics();
+        this.fillInCameraCharacteristics();
     }
 
     /**
      * Fills in {@link CaptureController#mCameraCharacteristicsMap} that is used in
      * {@link CaptureController#UpdateCameraCharacteristics}.
      */
-    private void fillInCameraCharateristics() {
+    private void fillInCameraCharacteristics() {
         try {
             String[] cameraIds = mCameraManager2.getCameraIdList();
             for (String cameraId : cameraIds) {
@@ -1223,45 +1234,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if(surface == null)
                 surface = new Surface(texture);
             // We set up a CaptureRequest.Builder with the output Surface.
-            mPreviewRequestBuilder = null;
-            if (mIsRecordingVideo) {
-                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
-            } else {
-                mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            }
-            mPreviewRequestBuilder.addTarget(surface);
-            mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
-            mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
-            if (mIsRecordingVideo) {
-                mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
-                mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-                if (PreferenceKeys.isEisPhotoOn()) {
-                    mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
-                }
-            }
-            mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
-            mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
+            setCaptureRequestBuilder();
 
             // Here, we create a CameraCaptureSession for camera preview.
+            List<Surface> surfaces = configureSurfaces(isBurstSession);
 
-            List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-            if (isDualSession) {
-                if (isBurstSession) {
-                    surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-                }
-                if (mTargetFormat == mPreviewTargetFormat) {
-                    surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-                }
-            } else {
-                surfaces = Arrays.asList(surface,
-                        mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-            }
-            if (mIsRecordingVideo) {
-                setUpMediaRecorder();
-                surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
-                mPreviewRequestBuilder.addTarget(mMediaRecorder.getSurface());
-            }
-            CameraCaptureSession.StateCallback stateCallback = new CameraCaptureSession.StateCallback() {
+            CameraCaptureSession.StateCallback stateCallback =
+                    new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     // The camera is already closed
@@ -1318,10 +1297,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     showToast("Session onConfigureFailed");
                 }
             };
+
             ArrayList<OutputConfiguration> outputConfigurations = new ArrayList<>();
             for (Surface surfacei : surfaces) {
                 outputConfigurations.add(new OutputConfiguration(surfacei));
             }
+
             if (mIsRecordingVideo) {
                 //InputConfiguration inputConfiguration = new InputConfiguration(mImageReaderPreview.getWidth(),mImageReaderPreview.getHeight(),ImageFormat.YUV_420_888);
                 //CameraReflectionApi.createCustomCaptureSession(mCameraDevice,inputConfiguration,outputConfigurations,61444,stateCallback,null);
@@ -1332,6 +1313,49 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @NotNull
+    private List<Surface> configureSurfaces(boolean isBurstSession) {
+        List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+        if (isDualSession) {
+            if (isBurstSession) {
+                surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+            }
+            if (mTargetFormat == mPreviewTargetFormat) {
+                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
+            }
+        } else {
+            surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+        }
+        if (mIsRecordingVideo) {
+            setUpMediaRecorder();
+            surfaces = Arrays.asList(surface, mMediaRecorder.getSurface());
+            mPreviewRequestBuilder.addTarget(mMediaRecorder.getSurface());
+        }
+        return surfaces;
+    }
+
+    private void setCaptureRequestBuilder() throws CameraAccessException {
+        mPreviewRequestBuilder = null;
+        if (mIsRecordingVideo) {
+            mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
+        } else {
+            mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+        }
+
+        mPreviewRequestBuilder.addTarget(surface);
+        mPreviewMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
+        mPreviewAFMode = mPreviewRequestBuilder.get(CONTROL_AF_MODE);
+        if (mIsRecordingVideo) {
+            mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+            mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+            if (PreferenceKeys.isEisPhotoOn()) {
+                mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE, CONTROL_VIDEO_STABILIZATION_MODE_ON);
+            }
+        }
+        mPreviewMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
+        mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
     }
 
     private void showToast(String msg) {
