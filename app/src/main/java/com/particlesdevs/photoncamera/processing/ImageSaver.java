@@ -57,25 +57,9 @@ public class ImageSaver {
             return;
         int format = mImage.getFormat();
         imageReader = mReader;
-
-        switch (format) {
-            case ImageFormat.JPEG:
-                implementation.addJPEG(mImage);
-                break;
-
-            case ImageFormat.YUV_420_888:
-                implementation.addYUV(mImage);
-                break;
-
-            //case ImageFormat.RAW10:
-            case ImageFormat.RAW_SENSOR:
-                implementation.addRAW16(mImage);
-                break;
-
-            default:
-                Log.e(TAG, "Cannot save image, unexpected image format:" + format);
-                break;
-        }
+        ImageSaverSelector imageSaverSelector =  new ImageSaverSelector(format, implementation);
+        implementation = imageSaverSelector.SelectedImageSaver();
+        implementation.addImage(mImage);
     }
 
     public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
