@@ -131,7 +131,7 @@ public class HorizontalPicker extends View {
 
         // create the selector wheel paint
         textPaint = getTextPaint(context);
-
+        
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(
                 attributeSet,
                 R.styleable.HorizontalPicker,
