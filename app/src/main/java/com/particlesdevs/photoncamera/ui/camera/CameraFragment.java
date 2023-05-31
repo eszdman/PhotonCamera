@@ -90,10 +90,7 @@ import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.AuxButtonsViewModel;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
 import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
 import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
 import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
@@ -162,6 +159,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
     private SettingsBarEntryProvider settingsBarEntryProvider;
+    private SettingsBarEntryProviderFactory settingsBarEntryProviderFactory;
     private ManualModeConsole manualModeConsole;
     private float displayAspectRatio;
 
@@ -221,7 +219,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
-        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
+        settingsBarEntryProvider = new SettingsBarEntryProviderFactory().getSettingsBarEntryProvider(this, SettingsBarEntryProviderFactory.SettingsBarEntryProviderID.V1);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
