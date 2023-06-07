@@ -10,8 +10,10 @@ import java.io.IOException;
 public class Debugger {
     public DebugClient debugClient;
     public Debugger(){
-        File debugClientSettings = new File(FileManager.sPHOTON_TUNING_DIR,"DebugClient.txt");
         String[] ipPort = readDebugClientFile();
+        if (ipPort ==null){
+            return;
+        }
         makeDebugClient(ipPort[0],ipPort[1]);
     }
     private String[] readDebugClientFile(){
