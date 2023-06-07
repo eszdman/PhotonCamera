@@ -103,17 +103,15 @@ public class Utilities {
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
 
-    private static float findMaxValue(float[] data) {
-        float max = 0.f;
-        for (float value : data) {
-            if (value > max) {
-                max = value;
-            }
+    private static float[] convertToFloatArray(int[] input) {
+        float[] floatArray = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            floatArray[i] = (float) input[i];
         }
-        return max;
+        return floatArray;
     }
 
-    private static float findMaxValue(int[] data) {
+    private static float findMaxValue(float[] data) {
         float max = 0.f;
         for (float value : data) {
             if (value > max) {
@@ -139,71 +137,50 @@ public class Utilities {
         return canvas;
     }
 
-    private static void drawGraph(int[] data, int width, int height, float max, Paint paint, Canvas canvas, int r, int g, int b) {
-        float xInterval = ((float) width / ((float) data.length + 1));
-        Path path = new Path();
-        paint.setARGB(255, r, g, b);
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER));
-        paint.setStyle(Paint.Style.FILL);
-        path.reset();
-        path.moveTo(0, height);
-        for (int j = 0; j < data.length; j++) {
-            float value = (((float) data[j]) * ((float) (height) / max));
-            path.lineTo(j * xInterval, height - value);
-        }
-        path.lineTo(data.length * xInterval, height);
-        canvas.drawPath(path, paint);
-    }
-
-    private static void drawGraph(float[] data, int width, int height, float max, Paint paint, Canvas canvas, int r, int g, int b) {
-        float xInterval = ((float) width / ((float) data.length + 1));
-        Path path = new Path();
-        paint.setARGB(255, r, g, b);
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_OVER));
-        paint.setStyle(Paint.Style.FILL);
-        path.reset();
-        path.moveTo(0, height);
-        for (int j = 0; j < data.length; j++) {
-            float value = ((data[j]) * ((float) (height) / max));
-            path.lineTo(j * xInterval, height - value);
-        }
-        path.lineTo(data.length * xInterval, height);
-        canvas.drawPath(path, paint);
-    }
-
     public static void drawArray(float[] input, Bitmap output){
         float max = findMaxValue(input);
-
         int width = output.getWidth();
         int height = output.getHeight();
         Paint wallPaint = new Paint();
         wallPaint = setWallPaint(wallPaint);
         Canvas canvas = drawCanvas(output, wallPaint);
 
-        drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
+        graphDrawerClass graphDrawer = new graphDrawerClass();
+        graphDrawer.setStrategy(new drawGraphDefault());
+        graphDrawer.drawGraph(input, width, height, max, wallPaint, canvas);
     }
 
     public static void drawArray(int[] input, Bitmap output){
-        float max = findMaxValue(input);
-
-        int width = output.getWidth();
-        int height = output.getHeight();
-        Paint wallPaint = new Paint();
-        wallPaint = setWallPaint(wallPaint);
-        Canvas canvas = drawCanvas(output, wallPaint);
-
-        drawGraph(input, width, height, max, wallPaint, canvas, 255, 255, 255);
+        float[] input_float = convertToFloatArray(input);
+        drawArray(input_float, output);
     }
-    public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
+
+    public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
         int width = output.getWidth();
         int height = output.getHeight();
         Paint wallPaint = new Paint();
         wallPaint = setWallPaint(wallPaint);
         Canvas canvas = drawCanvas(output, wallPaint);
+        graphDrawerClass graphDrawer = new graphDrawerClass();
 
-        drawGraph(r, width, height, findMaxValue(r), wallPaint, canvas, 255, 0, 0);
-        drawGraph(g, width, height, findMaxValue(g), wallPaint, canvas, 0, 255, 0);
-        drawGraph(b, width, height, findMaxValue(b), wallPaint, canvas, 0, 0, 255);
+        graphDrawer.setStrategy(new drawGraphRGB(255, 0, 0));
+        float max = findMaxValue(r);
+        graphDrawer.drawGraph(r, width, height, max, wallPaint, canvas);
+
+        graphDrawer.setStrategy(new drawGraphRGB(0, 255, 0));
+        max = findMaxValue(g);
+        graphDrawer.drawGraph(g, width, height, max, wallPaint, canvas);
+
+        graphDrawer.setStrategy(new drawGraphRGB(0, 0, 255));
+        max = findMaxValue(b);
+        graphDrawer.drawGraph(b, width, height, max, wallPaint, canvas);
+    }
+
+    public static void drawArray(int[] r,int[] g,int[] b, Bitmap output){
+        float[] r_float = convertToFloatArray(r);
+        float[] g_float = convertToFloatArray(g);
+        float[] b_float = convertToFloatArray(b);
+        drawArray(r_float, g_float, b_float, output);
     }
 
     public static float linearRegressionK(float[] input){
@@ -230,23 +207,7 @@ public class Utilities {
         c/=cnt;
         return c;
     }
-    public static void drawArray(float[] r,float[] g,float[] b, Bitmap output){
-        int width = output.getWidth();
-        int height = output.getHeight();
-        Paint wallPaint = new Paint();
-        wallPaint = setWallPaint(wallPaint);
-        Canvas canvas = drawCanvas(output, wallPaint);
 
-        float max = findMaxValue(r);
-        drawGraph(r, width, height, max, wallPaint, canvas, 255, 0, 0);
-
-        max = findMaxValue(g);
-        drawGraph(g, width, height, max, wallPaint, canvas, 0, 255, 0);
-
-        max = findMaxValue(b);
-        drawGraph(b, width, height, max, wallPaint, canvas, 0, 0, 255);
-
-    }
     public static float[] interpolateArr(float[] in, int requiredSize){
         float[] output = new float[requiredSize];
         ArrayList<Float> mY,mx;

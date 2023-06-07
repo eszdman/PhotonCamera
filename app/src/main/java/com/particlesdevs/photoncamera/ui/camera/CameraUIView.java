@@ -53,14 +53,5 @@ public interface CameraUIView {
 
     void destroy();
 
-    /**
-     * Interface which listens to input events from User
-     */
-    interface CameraUIEventsListener {
-        void onClick(View v);
 
-        void onCameraModeChanged(CameraMode cameraMode);
-
-        void onPause();
-    }
 }

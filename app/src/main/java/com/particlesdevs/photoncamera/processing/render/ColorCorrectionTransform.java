@@ -18,7 +18,7 @@ public class ColorCorrectionTransform {
     public CorrectionMode correctionMode = CorrectionMode.MATRIX;
     ;
     public ColorCorrectionCube[] cubes;
-    public float[] p1, p2;
+    public float[] point1, point2;
     public float[] matrix;
     public float[] matrix2;
 
@@ -28,14 +28,14 @@ public class ColorCorrectionTransform {
         cubes[1] = new ColorCorrectionCube();
         matrix = new float[9];
         matrix2 = new float[9];
-        p1 = new float[3];
-        p2 = new float[3];
+        point1 = new float[3];
+        point2 = new float[3];
     }
 
-    public float[] combineMatrix(float[] wp) {
-        float combineK = (wp[0] + wp[1]) / wp[2];
-        combineK -= ((p2[0] + p2[1]) / p2[2]);
-        combineK *= 1.0 / (((p1[0] + p1[1]) / p1[2]) - ((p2[0] + p2[1]) / p2[2]));
+    public float[] combineMatrix(float[] whitePoint) {
+        float combineK = (whitePoint[0] + whitePoint[1]) / whitePoint[2];
+        combineK -= ((point2[0] + point2[1]) / point2[2]);
+        combineK *= 1.0 / (((point1[0] + point1[1]) / point1[2]) - ((point2[0] + point2[1]) / point2[2]));
         float[] outp = new float[9];
         for (int i = 0; i < 9; i++) {
             outp[i] = matrix2[i] * (1.f - combineK) + matrix[i] * combineK;
@@ -60,13 +60,13 @@ public class ColorCorrectionTransform {
             case "MATRIXES": {
                 correctionMode = CorrectionMode.MATRIXES;
                 in.nextLine();
-                readLineToMatrix(in, p1, 0);
+                readLineToMatrix(in, point1, 0);
                 in.nextLine();
                 for (int i = 0; i < 3; i++) {
                     readLineToMatrix(in, matrix, i*3);
                 }
                 in.nextLine();
-                readLineToMatrix(in, p2, 0);
+                readLineToMatrix(in, point2, 0);
                 in.nextLine();
                 for (int i = 0; i < 3; i++) {
                     readLineToMatrix(in, matrix2, i*3);
