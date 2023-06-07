@@ -80,7 +80,12 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
+import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
+import com.particlesdevs.photoncamera.ui.camera.views.FlashButton;
+import com.particlesdevs.photoncamera.ui.camera.views.TimerButton;
+import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -142,6 +147,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
     private SettingsBarEntryProvider settingsBarEntryProvider;
+    private SettingsBarEntryProviderFactory settingsBarEntryProviderFactory;
     private ManualModeConsole manualModeConsole;
     public float displayAspectRatio;
 
@@ -201,7 +207,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
-        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProviderVer1.class);
+        settingsBarEntryProvider = new SettingsBarEntryProviderFactory().getSettingsBarEntryProvider(this, SettingsBarEntryProviderFactory.SettingsBarEntryProviderID.V1);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
