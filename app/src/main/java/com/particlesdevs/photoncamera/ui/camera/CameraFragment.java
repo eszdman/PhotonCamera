@@ -80,10 +80,7 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.AuxButtonsViewModel;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.SettingsBarEntryProvider;
-import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
+import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -204,7 +201,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
-        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
+        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProviderVer1.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
