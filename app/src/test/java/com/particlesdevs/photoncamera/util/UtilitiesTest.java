@@ -6,13 +6,20 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class UtilitiesTest {
-
     @Test
     public void testConvertToFloatArray() {
         int[] input = {1, 2, 3, 4, 5};
         float[] expected = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
         float[] result = Utilities.convertToFloatArray(input);
         assertArrayEquals(expected, result);
+    }
+
+    @Test
+    public void testFindMaxValue() {
+        float[] input = {1.2f, 2.5f, 7.2f, 3.7f, 12.3f, 5.9f};
+        float expectResult = 12.3f;
+        float result = Utilities.findMaxValue(input);
+        assertEquals(expectResult, result, 0.001f);
     }
 
     @Test
@@ -44,9 +51,5 @@ public class UtilitiesTest {
         // valid result
         assertEquals(expectedC, result, 0.001f);
     }
-
-
-
-
 
 }
