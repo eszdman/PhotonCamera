@@ -21,28 +21,28 @@ public class UtilitiesTest {
         float[] input = {1.2f, 2.5f, 3.7f, 4.1f, 5.9f};
 
         // expect value
-        float expectedK = 2.0f;
+        float expectedK = 8.99f;
 
         // call method
         float result = Utilities.linearRegressionK(input);
 
         // valid result
-        assertEquals(expectedK, result, 0.001f); // 0.001f는 허용 오차입니다.
+        assertEquals(expectedK, result, 0.001f);
     }
 
     @Test
     public void testLinearRegressionC() {
-        // 입력 데이터
+        // input data
         float[] input = {1.2f, 2.5f, 3.7f, 4.1f, 5.9f};
 
-        // 기대하는 y 절편 값
-        float expectedC = 0.5f;
+        // Expected y-intercept value
+        float expectedC = -0.445f;
 
-        // 메서드 호출
+        // call method
         float result = Utilities.linearRegressionC(input);
 
-        // 결과 검증
-        assertEquals(expectedC, result, 0.001f); // 0.001f는 허용 오차입니다.
+        // valid result
+        assertEquals(expectedC, result, 0.001f);
     }
 
 

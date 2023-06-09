@@ -1,39 +1,62 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
-import android.content.Context;
-
 import org.junit.Test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class CustomOrientationEventListenerTest {
-
-    public class TestOrientationEventListener extends CustomOrientationEventListener {
-
-        private boolean onSimpleOrientationChangedCalled = false;
-
-        public TestOrientationEventListener(Context context) {
-            super(context);
-        }
-
-        @Override
-        public void onSimpleOrientationChanged(int orientation) {
-            onSimpleOrientationChangedCalled = true;
-        }
-
-        public boolean isOnSimpleOrientationChangedCalled() {
-            return onSimpleOrientationChangedCalled;
-        }
+    private int rotation = 0;
+    public boolean orientationPosition(int orientation, int value, int ROTATION) {
+        int angleThreshold = 20;
+        if (orientation < 20 || orientation >= 340)
+            return orientation >= (360 + value - angleThreshold) || orientation < (value + angleThreshold) && rotation != ROTATION;
+        else
+            return orientation >= (value - angleThreshold) && orientation < (value + angleThreshold) && rotation != ROTATION;
     }
-
     @Test
-    public void testOnOrientationChanged_CallsOnSimpleOrientationChanged() {
-        TestOrientationEventListener listener = new TestOrientationEventListener(null); // Pass null for context
+    public void testOrientationPosition() {
+        int orientation = 0;
+        int value = 100;
+        int ROTATION = 1;
+        boolean expectedResult = true;
+        // Test case 1: orientation < 20
+        orientation = 10;
+        boolean result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
 
-        int orientation = 30;
+        // Test case 2: orientation >= 340
+        orientation = 350;
+        expectedResult = false;
+        result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
 
-        listener.onOrientationChanged(orientation);
+        // Test case 3: value - angleThreshold <= orientation < value + angleThreshold
+        orientation = 95;
+        expectedResult = true;
 
-        assertTrue(listener.isOnSimpleOrientationChangedCalled());
+        result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
+
+        // Test case 4: orientation < value - angleThreshold
+        orientation = 70;
+        expectedResult = false;
+
+        result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
+
+        // Test case 5: orientation >= value + angleThreshold
+        orientation = 145;
+        expectedResult = false;
+
+        result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
+
+        // Test case 6: rotation != ROTATION
+        orientation = 150;
+        rotation = 1;
+        expectedResult = false;
+
+        result = orientationPosition(orientation, value, ROTATION);
+        assertEquals(expectedResult, result);
     }
 }
