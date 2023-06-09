@@ -9,7 +9,6 @@ import static org.junit.Assert.*;
 
 public class CustomOrientationEventListenerTest {
     private int rotation = 0;
-    private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
 
     public boolean orientationPosition(int orientation, int value, int ROTATION) {
         int angleThreshold = 20;
