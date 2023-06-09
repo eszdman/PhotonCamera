@@ -3,14 +3,7 @@ package com.particlesdevs.photoncamera.util;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Point;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
+import android.graphics.*;
 import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 
@@ -18,7 +11,6 @@ import androidx.annotation.ColorInt;
 import androidx.core.content.res.ResourcesCompat;
 
 import com.particlesdevs.photoncamera.processing.ImagePath;
-import com.particlesdevs.photoncamera.processing.ImageSaver;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -103,7 +95,7 @@ public class Utilities {
         canvas.drawRect(height, width*0.50f, height-32, width*0.50f+32.f, wallPaint);
     }
 
-    private static float[] convertToFloatArray(int[] input) {
+    static float[] convertToFloatArray(int[] input) {
         float[] floatArray = new float[input.length];
         for (int i = 0; i < input.length; i++) {
             floatArray[i] = (float) input[i];
@@ -111,7 +103,7 @@ public class Utilities {
         return floatArray;
     }
 
-    private static float findMaxValue(float[] data) {
+    static float findMaxValue(float[] data) {
         float max = 0.f;
         for (float value : data) {
             if (value > max) {
@@ -121,7 +113,7 @@ public class Utilities {
         return max;
     }
 
-    private static Paint setWallPaint(Paint wallPaint){
+    static Paint setWallPaint(Paint wallPaint){
         wallPaint.setAntiAlias(true);
         wallPaint.setStyle(Paint.Style.STROKE);
         wallPaint.setARGB(100, 255, 255, 255);
