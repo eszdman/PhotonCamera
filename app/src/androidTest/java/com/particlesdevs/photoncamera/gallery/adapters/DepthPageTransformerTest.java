@@ -46,4 +46,16 @@ public class DepthPageTransformerTest {
             assertEquals(expected, view.getAlpha());
         }
     }
+    // (0, 1]
+    @Test
+    public void testVEC3(){
+        float[] positions = {0.1f, 1f};
+        float[] expected = {1-positions[0], 1-positions[1]};
+
+        for(int i=0; i< positions.length; i++){
+            depthPageTransformer.transformPage(view, positions[i]);
+            assertEquals(expected[i], view.getAlpha());
+        }
+    }
 }
+gg
