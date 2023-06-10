@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,5 +58,18 @@ public class DepthPageTransformerTest {
             assertEquals(expected[i], view.getAlpha());
         }
     }
+    // (1, +Infinity]
+    @Test
+    public void testVEC4(){
+        float position = 2;
+        depthPageTransformer.transformPage(view, position);
+        assertEquals(0f, view.getAlpha());
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        depthPageTransformer = null;
+        view = null;
+    }
+
 }
-gg
