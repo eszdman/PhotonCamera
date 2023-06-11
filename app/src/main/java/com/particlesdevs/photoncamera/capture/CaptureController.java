@@ -87,6 +87,7 @@ import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewV
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.TestOnly;
 
 import java.io.File;
 import java.io.IOException;
@@ -651,18 +652,42 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     private Size getCameraOutputSize(Size[] sizes) {
-        if (sizes.length > 0) {
-            Arrays.sort(sizes, new CompareSizesByArea());
+        if (sizes != null) {
+            if (sizes.length > 0) {
+                Arrays.sort(sizes, new CompareSizesByArea());
 
-            int largestSizeIdx = sizes.length - 1;
-            int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+                int largestSizeIdx = sizes.length - 1;
+                int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
 
-            if (largestSizeArea <= ResolutionSolution.highRes) {
-                target = sizes[largestSizeIdx];
-                return target;
-            } else if (sizes.length > 1) {
-                target = sizes[largestSizeIdx - 1];
-                return target;
+                if (largestSizeArea <= ResolutionSolution.highRes) {
+                    target = sizes[largestSizeIdx];
+                    return target;
+                } else if (sizes.length > 1) {
+                    target = sizes[largestSizeIdx - 1];
+                    return target;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * For test method {@link CaptureController#getCameraOutputSize(Size[])}
+     */
+    @TestOnly
+    private static Size getCameraOutputSizeTest(Size[] sizes) {
+        if (sizes != null) {
+            if (sizes.length > 0) {
+                Arrays.sort(sizes, new CompareSizesByArea());
+
+                int largestSizeIdx = sizes.length - 1;
+                int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+
+                if (largestSizeArea <= ResolutionSolution.highRes) {
+                    return sizes[largestSizeIdx];
+                } else if (sizes.length > 1) {
+                    return sizes[largestSizeIdx - 1];
+                }
             }
         }
         return null;
@@ -693,6 +718,41 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         } else if (sizes.length > 1) {
             target = sizes[largestSizeIdx - 1];
             return target;
+        }
+        return previewSize;
+    }
+
+    /**
+     * For test method {@link CaptureController#getCameraOutputSize(Size[], Size)}
+     */
+    @TestOnly
+    private Size getCameraOutputSizeTest(Size[] sizes, Size previewSize) {
+        if (sizes == null || sizes.length == 0) return previewSize;
+
+        Size temp = null;
+
+        Arrays.sort(sizes, new CompareSizesByArea());
+        int largestSizeIdx = sizes.length - 1;
+        int largestSizeArea = sizes[largestSizeIdx].getWidth() * sizes[largestSizeIdx].getHeight();
+
+        if (largestSizeArea <= ResolutionSolution.highRes || PhotonCamera.getSettings().QuadBayer) {
+            temp = sizes[largestSizeIdx];
+            if (PhotonCamera.getSettings().QuadBayer) {
+                Rect preCorrectionActiveArraySize = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+                Rect activeArraySize = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+
+                if (preCorrectionActiveArraySize != null && activeArraySize != null) {
+                    double k = (double) (temp.getHeight()) / activeArraySize.bottom;
+                    mul(preCorrectionActiveArraySize, k);
+                    mul(activeArraySize, k);
+                    CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, activeArraySize);
+                    CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, preCorrectionActiveArraySize);
+                }
+            }
+            return temp;
+        } else if (sizes.length > 1) {
+            temp = sizes[largestSizeIdx - 1];
+            return temp;
         }
         return previewSize;
     }
