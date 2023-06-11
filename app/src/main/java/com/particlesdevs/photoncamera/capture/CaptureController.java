@@ -726,7 +726,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * For test method {@link CaptureController#getCameraOutputSize(Size[], Size)}
      */
     @TestOnly
-    private Size getCameraOutputSizeTest(Size[] sizes, Size previewSize) {
+    private static Size getCameraOutputSizeTest(Size[] sizes, Size previewSize) {
         if (sizes == null || sizes.length == 0) return previewSize;
 
         Size temp = null;
@@ -743,8 +743,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
                 if (preCorrectionActiveArraySize != null && activeArraySize != null) {
                     double k = (double) (temp.getHeight()) / activeArraySize.bottom;
-                    mul(preCorrectionActiveArraySize, k);
-                    mul(activeArraySize, k);
+                    mulForTest(preCorrectionActiveArraySize, k);
+                    mulForTest(activeArraySize, k);
                     CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE, activeArraySize);
                     CameraReflectionApi.set(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE, preCorrectionActiveArraySize);
                 }
@@ -1919,6 +1919,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     private void mul(Rect in, double k) {
+        in.bottom *= k;
+        in.left *= k;
+        in.right *= k;
+        in.top *= k;
+    }
+
+    @TestOnly
+    private static void mulForTest(Rect in, double k) {
         in.bottom *= k;
         in.left *= k;
         in.right *= k;
