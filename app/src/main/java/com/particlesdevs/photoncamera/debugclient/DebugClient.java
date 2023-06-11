@@ -34,7 +34,8 @@ public class DebugClient {
         }).start();
     }
 
-    private void receiveMessageFromServer(String ip, String port) {
+
+    void receiveMessageFromServer(String ip, String port) {
         try {
             mRun = true;
             Log.d("TCP Client", "Connecting...");
@@ -49,7 +50,7 @@ public class DebugClient {
         } catch (IOException e) {e.printStackTrace();}
     }
 
-    private void receiveMessage(Socket socket) throws IOException {
+    void receiveMessage(Socket socket) throws IOException {
         //receives the message which the server sends back
         mBufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         //in this while the client listens for the messages sent by the server
@@ -143,7 +144,7 @@ public class DebugClient {
     //PREVIEW_KEYS_PRINT
     //DEBUG_SHOT
     CaptureRequest.Builder captureRequestBuilder = null;
-    private void ParseControl(String mServerMessage){
+    void ParseControl(String mServerMessage){
         /*
         String[] commands = mServerMessage.split(":");
 
