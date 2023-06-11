@@ -206,8 +206,8 @@ public class CaptureControllerTest {
      */
     @Test
     public void testGetCameraOutputSize_withOneParameter() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method methodChooseOptimalSize = CaptureController.class.getDeclaredMethod("getCameraOutputSizeTest", Size[].class);
-        methodChooseOptimalSize.setAccessible(true);
+        Method methodGetCameraOutputSize = CaptureController.class.getDeclaredMethod("getCameraOutputSizeTest", Size[].class);
+        methodGetCameraOutputSize.setAccessible(true);
 
         // Test case 1: normal
         {
@@ -231,7 +231,7 @@ public class CaptureControllerTest {
                     sizes1
             };
 
-            Size result1 = (Size) methodChooseOptimalSize.invoke(null, args1);
+            Size result1 = (Size) methodGetCameraOutputSize.invoke(null, args1);
             Size expected1 = Mockito.mock(Size.class);
             Mockito.when(expected1.getWidth()).thenReturn(1920);
             Mockito.when(expected1.getHeight()).thenReturn(1080);
@@ -263,7 +263,7 @@ public class CaptureControllerTest {
                     sizes2
             };
 
-            Size result2 = (Size) methodChooseOptimalSize.invoke(null, args2);
+            Size result2 = (Size) methodGetCameraOutputSize.invoke(null, args2);
             Size expected2 = Mockito.mock(Size.class);
             Mockito.when(expected2.getWidth()).thenReturn(1920);
             Mockito.when(expected2.getHeight()).thenReturn(1080);
@@ -286,9 +286,58 @@ public class CaptureControllerTest {
                     sizes3
             };
 
-            Size result3 = (Size) methodChooseOptimalSize.invoke(null, args3);
+            Size result3 = (Size) methodGetCameraOutputSize.invoke(null, args3);
 
             assertNull(result3);
+        }
+    }
+
+    /**
+     * Purpose: test method getCameraOutputSize(Size[], Size) with line coverage
+     * @TestCase1 - for normal
+     *   Input: sizes {(1980, 1080), (1280, 720), (1600, 900)} - Expected: (1920, 1080)
+     * Note: This test may fail as it appears to be a static test, but the method requires the app to be turned on.
+     */
+    @Test
+    public void testGetCameraOutputSize_withTwoParameter() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method methodGetCameraOutputSize = CaptureController.class.getDeclaredMethod("getCameraOutputSizeTest", Size[].class, Size.class);
+        methodGetCameraOutputSize.setAccessible(true);
+
+        // Test case 1: normal
+        {
+            Size choices0 = Mockito.mock(Size.class);
+            Mockito.when(choices0.getWidth()).thenReturn(1920);
+            Mockito.when(choices0.getHeight()).thenReturn(1080);
+            Size choices1 = Mockito.mock(Size.class);
+            Mockito.when(choices1.getWidth()).thenReturn(1280);
+            Mockito.when(choices1.getHeight()).thenReturn(720);
+            Size choices2 = Mockito.mock(Size.class);
+            Mockito.when(choices2.getWidth()).thenReturn(1600);
+            Mockito.when(choices2.getHeight()).thenReturn(900);
+
+            Size[] sizes = {
+                    choices0,
+                    choices1,
+                    choices2
+            };
+            Size previewSize = Mockito.mock(Size.class);
+            Mockito.when(previewSize.getWidth()).thenReturn(1280);
+            Mockito.when(previewSize.getHeight()).thenReturn(720);
+
+
+            Object args[] = new Object[]{
+                    sizes,
+                    previewSize
+            };
+
+            Size result = (Size) methodGetCameraOutputSize.invoke(null, args);
+            Size expected = Mockito.mock(Size.class);
+            Mockito.when(expected.getWidth()).thenReturn(1920);
+            Mockito.when(expected.getHeight()).thenReturn(1080);
+
+            assertEquals(result.getHeight(), expected.getHeight());
+            assertEquals(result.getWidth(), expected.getWidth());
+
         }
     }
 }
