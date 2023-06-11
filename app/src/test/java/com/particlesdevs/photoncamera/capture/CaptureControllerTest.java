@@ -1,12 +1,11 @@
 package com.particlesdevs.photoncamera.capture;
 
-import android.util.Size;
 
-import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
+import android.util.Size;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
+
 import org.mockito.Mockito;
 
 import java.lang.reflect.InvocationTargetException;
@@ -15,10 +14,10 @@ import java.lang.reflect.Method;
 import static org.junit.Assert.*;
 
 public class CaptureControllerTest {
-    CameraFragment cameraFragment;
-    @org.junit.Before
+
+    @Before
     public void setUp() throws Exception {
-        cameraFragment = CameraFragment.newInstance();
+
     }
 
     /**
@@ -37,8 +36,6 @@ public class CaptureControllerTest {
      */
     @Test
     public void testChooseOptimalSize() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, NullPointerException {
-        CaptureController captureController = cameraFragment.getCaptureController();
-
         Method methodChooseOptimalSize = CaptureController.class.getDeclaredMethod("chooseOptimalSize", Size[].class, int.class, int.class, int.class, int.class, Size.class);
         methodChooseOptimalSize.setAccessible(true);
 
@@ -70,7 +67,7 @@ public class CaptureControllerTest {
                     aspectRatio1
             };
 
-            Size result1 = (Size) methodChooseOptimalSize.invoke(captureController, args1);
+            Size result1 = (Size) methodChooseOptimalSize.invoke(null, args1);
             Size expected1 = Mockito.mock(Size.class);
             Mockito.when(expected1.getWidth()).thenReturn(1920);
             Mockito.when(expected1.getHeight()).thenReturn(1080);
@@ -114,7 +111,7 @@ public class CaptureControllerTest {
                     aspectRatio2
             };
 
-            Size result2 = (Size) methodChooseOptimalSize.invoke(captureController, args2);
+            Size result2 = (Size) methodChooseOptimalSize.invoke(null, args2);
             Size expected2 = Mockito.mock(Size.class);
             Mockito.when(expected2.getWidth()).thenReturn(1600);
             Mockito.when(expected2.getHeight()).thenReturn(900);
@@ -154,7 +151,7 @@ public class CaptureControllerTest {
                     aspectRatio3,
             };
 
-            Size result3 = (Size) methodChooseOptimalSize.invoke(captureController, args3);
+            Size result3 = (Size) methodChooseOptimalSize.invoke(null, args3);
             Size expected3 = Mockito.mock(Size.class);
             Mockito.when(expected3.getWidth()).thenReturn(1600);
             Mockito.when(expected3.getHeight()).thenReturn(900);
@@ -189,7 +186,7 @@ public class CaptureControllerTest {
                     aspectRatio4,
             };
 
-            Size result4 = (Size) methodChooseOptimalSize.invoke(captureController, args4);
+            Size result4 = (Size) methodChooseOptimalSize.invoke(null, args4);
             Size expected4 = Mockito.mock(Size.class);
             Mockito.when(expected4.getWidth()).thenReturn(2560);
             Mockito.when(expected4.getHeight()).thenReturn(1440);
@@ -198,5 +195,100 @@ public class CaptureControllerTest {
         }
     }
 
+    /**
+     * Purpose: test method getCameraOutputSize(Size[]) with line coverage
+     * @TestCase1 - for normal
+     *   Input: sizes {(1980, 1080), (1280, 720), (1600, 900)}-Expected: (1920, 1080)
+     * @TestCase2 - for largest Size > highResolution
+     *   Input: sizes {(1980, 1080), (1280, 720), (8000, 4500)}-Expected: (1920, 1080)
+     * @TestCase3 - for input size == 1 and largest size > highResolution
+     *   Input: sizes {(8000, 4500)}-Expected: null
+     */
+    @Test
+    public void testGetCameraOutputSize_withOneParameter() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method methodChooseOptimalSize = CaptureController.class.getDeclaredMethod("getCameraOutputSizeTest", Size[].class);
+        methodChooseOptimalSize.setAccessible(true);
 
+        // Test case 1: normal
+        {
+            Size choices1_0 = Mockito.mock(Size.class);
+            Mockito.when(choices1_0.getWidth()).thenReturn(1920);
+            Mockito.when(choices1_0.getHeight()).thenReturn(1080);
+            Size choices1_1 = Mockito.mock(Size.class);
+            Mockito.when(choices1_1.getWidth()).thenReturn(1280);
+            Mockito.when(choices1_1.getHeight()).thenReturn(720);
+            Size choices1_2 = Mockito.mock(Size.class);
+            Mockito.when(choices1_2.getWidth()).thenReturn(1600);
+            Mockito.when(choices1_2.getHeight()).thenReturn(900);
+
+            Size[] sizes1 = {
+                    choices1_0,
+                    choices1_1,
+                    choices1_2
+            };
+
+            Object args1[] = new Object[]{
+                    sizes1
+            };
+
+            Size result1 = (Size) methodChooseOptimalSize.invoke(null, args1);
+            Size expected1 = Mockito.mock(Size.class);
+            Mockito.when(expected1.getWidth()).thenReturn(1920);
+            Mockito.when(expected1.getHeight()).thenReturn(1080);
+
+            assertEquals(result1.getHeight(), expected1.getHeight());
+            assertEquals(result1.getWidth(), expected1.getWidth());
+
+        }
+
+        // Test case 2: largest Size > highResolution
+        {
+            Size choices2_0 = Mockito.mock(Size.class);
+            Mockito.when(choices2_0.getWidth()).thenReturn(1920);
+            Mockito.when(choices2_0.getHeight()).thenReturn(1080);
+            Size choices2_1 = Mockito.mock(Size.class);
+            Mockito.when(choices2_1.getWidth()).thenReturn(1280);
+            Mockito.when(choices2_1.getHeight()).thenReturn(720);
+            Size choices2_2 = Mockito.mock(Size.class);
+            Mockito.when(choices2_2.getWidth()).thenReturn(8000);
+            Mockito.when(choices2_2.getHeight()).thenReturn(4500);
+
+            Size[] sizes2 = {
+                    choices2_0,
+                    choices2_1,
+                    choices2_2
+            };
+
+            Object args2[] = new Object[]{
+                    sizes2
+            };
+
+            Size result2 = (Size) methodChooseOptimalSize.invoke(null, args2);
+            Size expected2 = Mockito.mock(Size.class);
+            Mockito.when(expected2.getWidth()).thenReturn(1920);
+            Mockito.when(expected2.getHeight()).thenReturn(1080);
+
+            assertEquals(result2.getHeight(), expected2.getHeight());
+            assertEquals(result2.getWidth(), expected2.getWidth());
+        }
+
+        // Test case 2: input size == 1 and largest size > highResolution
+        {
+            Size choices3_0 = Mockito.mock(Size.class);
+            Mockito.when(choices3_0.getWidth()).thenReturn(8000);
+            Mockito.when(choices3_0.getHeight()).thenReturn(4500);
+
+            Size[] sizes3 = {
+                    choices3_0
+            };
+
+            Object args3[] = new Object[]{
+                    sizes3
+            };
+
+            Size result3 = (Size) methodChooseOptimalSize.invoke(null, args3);
+
+            assertNull(result3);
+        }
+    }
 }
