@@ -147,7 +147,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private SettingsManager settingsManager;
     private SupportedDevice supportedDevice;
     private SettingsBarEntryProvider settingsBarEntryProvider;
-    private SettingsBarEntryProviderFactory settingsBarEntryProviderFactory;
     private ManualModeConsole manualModeConsole;
     public float displayAspectRatio;
 
@@ -207,7 +206,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
-        settingsBarEntryProvider = new SettingsBarEntryProviderFactory().getSettingsBarEntryProvider(this, SettingsBarEntryProviderFactory.SettingsBarEntryProviderID.V1);
+        settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
         textureView = cameraFragmentBinding.layoutViewfinder.texture;
