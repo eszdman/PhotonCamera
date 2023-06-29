@@ -1,13 +1,13 @@
 package com.particlesdevs.photoncamera.debugclient;
 
-import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
-import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -18,9 +18,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.ShortBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 public class DebugClient {
@@ -32,7 +30,13 @@ public class DebugClient {
     private boolean mRun = false;
     public DebugClient(String ip, String port){
         new Thread(() -> {
-            try {
+            receiveMessageFromServer(ip, port);
+        }).start();
+    }
+
+
+    void receiveMessageFromServer(String ip, String port) {
+        try {
             mRun = true;
             Log.d("TCP Client", "Connecting...");
             InetAddress serverAddr = InetAddress.getByName(ip);
@@ -40,57 +44,41 @@ public class DebugClient {
             Socket socket = new Socket(serverAddr, Integer.parseInt(port));
 
             try {
-
-                //sends the message to the server
-                mBufferOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-
-                mBufferOut.println("PhotonCamera Connected!");
-
-                //receives the message which the server sends back
-                mBufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-
-                //in this while the client listens for the messages sent by the server
-                while (mRun) {
-
-                    mServerMessage = mBufferIn.readLine();//0x0a
-                    if (mServerMessage != null) {
-                        //call the method messageReceived from MyActivity class
-                        ParseControl(mServerMessage);
-
-                    }
-
-                }
-
-                } catch (Exception e){e.printStackTrace();}
-            } catch (IOException e) {e.printStackTrace();}
-        }).start();
+                sendMessage(socket);
+                receiveMessage(socket);
+            } catch (Exception e){e.printStackTrace();}
+        } catch (IOException e) {e.printStackTrace();}
     }
-    private void setKey(CaptureRequest.Builder builder,CaptureRequest.Key<?> key, String type, String value){
-        switch (type){
-            case "LONG":{
-                builder.set((CaptureRequest.Key<Long>)key,Long.parseLong(value));
+
+    void receiveMessage(Socket socket) throws IOException {
+        //receives the message which the server sends back
+        mBufferIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        //in this while the client listens for the messages sent by the server
+        while (mRun) {
+            mServerMessage = mBufferIn.readLine();//0x0a
+            if (mServerMessage != null) {
+                //call the method messageReceived from MyActivity class
+                ParseControl(mServerMessage);
             }
-            case "INTEGER":{
-                builder.set((CaptureRequest.Key<Integer>)key,Integer.parseInt(value));
-            }
-            case "STRING":{
-                builder.set((CaptureRequest.Key<String>)key,value);
-            }
-            case "FLOAT":{
-                builder.set((CaptureRequest.Key<Float>)key,Float.parseFloat(value));
-            }
-            case "DOUBLE":{
-                builder.set((CaptureRequest.Key<Double>)key,Double.parseDouble(value));
-            }
-            break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + type);
         }
     }
-    private String getObjectString(Object input){
-        Class<?> clasObj = input.getClass();
-        String name = clasObj.getName();
+    private void sendMessage(Socket socket) throws IOException {
+        //sends the message to the server
+        mBufferOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+        mBufferOut.println("PhotonCamera Connected!");
+    }
+
+    public static void setKey(CaptureRequest.Builder builder,CaptureRequest.Key<?> key, String type, String value){
+        try {
+            RequestKeyType keySet = RequestKeyType.createKeyType(builder, key, type, value);
+            keySet.setKey();
+        }catch (Exception e){
+            e.toString();
+        }
+    }
+
+    public static String getObjectString(Object input){
+        String name = getClassName(input);
         switch (name) {
             case "[B": {
                 return (Arrays.toString((byte[]) input));
@@ -133,7 +121,15 @@ public class DebugClient {
             }
         }
     }
-    private String previewKeyValue(CaptureResult.Key<?> key) {
+
+    @NotNull
+    private static String getClassName(Object input) {
+        Class<?> clasObj = input.getClass();
+        String name = clasObj.getName();
+        return name;
+    }
+
+    public static String previewKeyValue(CaptureResult.Key<?> key) {
         Object obj = CaptureController.mPreviewCaptureResult.get(key);
         return getObjectString(obj);
     }
@@ -148,7 +144,8 @@ public class DebugClient {
     //PREVIEW_KEYS_PRINT
     //DEBUG_SHOT
     CaptureRequest.Builder captureRequestBuilder = null;
-    private void ParseControl(String mServerMessage){
+    void ParseControl(String mServerMessage){
+        /*
         String[] commands = mServerMessage.split(":");
 
         CaptureController controller = PhotonCamera.getCaptureController();
@@ -157,115 +154,14 @@ public class DebugClient {
         List<CameraCharacteristics.Key<?>> keys = CaptureController.mCameraCharacteristics.getKeys();
         List<CaptureResult.Key<?>> resultKeys = CaptureController.mPreviewCaptureResult.getKeys();
         //DebugParameters debugParameters = PhotonCamera.getDebugger().debugParameters;
-        switch (commands[0]){
-            case "CHARACTERISTICS_KEY":{
-                Log.v("DebugClient","KeyRequired:"+commands[1]);
-                for(CameraCharacteristics.Key<?> key : keys){
+        */
 
-                    Log.v("DebugClient","GetKey:"+key.getName());
-                    if(commands[1].equals(key.getName())){
-                        Log.v("DebugClient","GotKey");
-                        mBufferOut.println(CaptureController.mCameraCharacteristics.get(key).toString());
-                        return;
-                    }
-                }
-                break;
-            }
-            case "CHARACTERISTICS_KEYS":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CameraCharacteristics.Key<?> key : keys){
-                    keysStr.append(key.getName());
-                    keysStr.append("\n");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "CAPTURE_KEYS":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CaptureRequest.Key<?> key : captureKeys){
-                    keysStr.append(key.getName());
-                    keysStr.append("\n");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "BUILDER_CREATE":{
-                captureRequestBuilder = controller.getDebugCaptureRequestBuilder();
-                if(captureRequestBuilder == null)
-                    mBufferOut.println("Error at creating builder!");
-                mBufferOut.println("Builder created");
-                return;
-            }
-            case "BUILDER_SET":{
-                CaptureRequest.Key<?> requestKey = null;
-                for(CaptureRequest.Key<?> key : captureKeys){
-                    if(key.getName().equals(commands[1])) requestKey = key;
-                }
-                if(requestKey == null) {
-                    mBufferOut.println("Request key is null");
-                    return;
-                }
-                setKey(captureRequestBuilder,requestKey,commands[2],commands[3]);
-                return;
-            }
-            case "PREVIEW_KEY":{
-                CaptureResult.Key<?> resultKey = null;
-                for(CaptureResult.Key<?> key : resultKeys){
-                    if(key.getName().equals(commands[1])) resultKey = key;
-                }
-                if(resultKey == null) {
-                    mBufferOut.println("Result key is null");
-                    return;
-                }
-                mBufferOut.println(previewKeyValue(resultKey));
-                return;
-            }
-            case "PREVIEW_KEYS":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CaptureResult.Key<?> key : resultKeys){
-                    keysStr.append(key.getName());
-                    keysStr.append(" ");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "PREVIEW_REQUEST_KEYS":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CaptureRequest.Key<?> key : captureRequestKeys){
-                    keysStr.append(key.getName());
-                    keysStr.append(" ");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "PREVIEW_REQUEST_KEYS_PRINT":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CaptureRequest.Key<?> key : captureRequestKeys){
-                    keysStr.append(key.getName());
-                    keysStr.append("=");
-                    keysStr.append(getObjectString(CaptureController.mPreviewCaptureRequest.get(key)));
-                    keysStr.append(" ");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "PREVIEW_KEYS_PRINT":{
-                StringBuilder keysStr = new StringBuilder();
-                for(CaptureResult.Key<?> key : resultKeys){
-                    keysStr.append(key.getName());
-                    keysStr.append("=");
-                    keysStr.append(previewKeyValue(key));
-                    keysStr.append(" ");
-                }
-                mBufferOut.println(keysStr.toString());
-                return;
-            }
-            case "DEBUG_SHOT":{
-                controller.runDebug(captureRequestBuilder);
-                break;
-            }
-        }
+        Command control = Command.getInstance(mServerMessage);
+        control.command();
+
     }
+
+
     public void sendRaw(Image input){
         int width = input.getPlanes()[0].getRowStride() /
                 input.getPlanes()[0].getPixelStride();

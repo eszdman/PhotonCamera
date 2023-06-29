@@ -116,17 +116,24 @@ public class HorizontalPicker extends View {
         this(context, attrs, R.attr.horizontalPickerStyle);
     }
 
-    public HorizontalPicker(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
-        vibration = PhotonCamera.getVibration();
-        // create the selector wheel paint
-        TextPaint paint = new TextPaint();
-        paint.setAntiAlias(true);
-        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
-        textPaint = paint;
+    public HorizontalPicker(Context context, AttributeSet attributeSet, int defStyle) {
+        super(context, attributeSet, defStyle);
 
-        TypedArray a = context.getTheme().obtainStyledAttributes(
-                attrs,
+        ViewConfiguration configuration = ViewConfiguration.get(context);
+        vibration = PhotonCamera.getVibration();
+        touchSlop = configuration.getScaledTouchSlop();
+        mMinimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
+        maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity()
+                / SELECTOR_MAX_FLING_VELOCITY_ADJUSTMENT;
+        overscrollDistance = configuration.getScaledOverscrollDistance();
+        touchHelper = new PickerTouchHelper(this);
+        boringMetrics = new BoringLayout.Metrics();
+
+        // create the selector wheel paint
+        textPaint = getTextPaint(context);
+        
+        TypedArray typedArray = context.getTheme().obtainStyledAttributes(
+                attributeSet,
                 R.styleable.HorizontalPicker,
                 defStyle, 0
         );
@@ -136,25 +143,66 @@ public class HorizontalPicker extends View {
         int sideItems = this.sideItems;
 
         try {
-            textColor = a.getColorStateList(R.styleable.HorizontalPicker_android_textColor);
+            textColor = typedArray.getColorStateList(R.styleable.HorizontalPicker_android_textColor);
             if (textColor == null) {
                 textColor = ColorStateList.valueOf(0xFF000000);
             }
 
-            values = a.getTextArray(R.styleable.HorizontalPicker_values);
-            ellipsize = a.getInt(R.styleable.HorizontalPicker_android_ellipsize, ellipsize);
-            marqueeRepeatLimit = a.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
-            dividerSize = a.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
-            sideItems = a.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
-            selectedTextColor = a.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
-            float textSize = a.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
+            values = typedArray.getTextArray(R.styleable.HorizontalPicker_values);
+            ellipsize = typedArray.getInt(R.styleable.HorizontalPicker_android_ellipsize, ellipsize);
+            marqueeRepeatLimit = typedArray.getInt(R.styleable.HorizontalPicker_android_marqueeRepeatLimit, marqueeRepeatLimit);
+            dividerSize = typedArray.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
+            sideItems = typedArray.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
+            selectedTextColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
+            float textSize = typedArray.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
             }
         } finally {
-            a.recycle();
+            typedArray.recycle();
         }
 
+        selectEllipsize(ellipsize);
+
+        setBorginMetrics();
+
+        setWillNotDraw(false);
+
+        flingScrollerX = new OverScroller(context);
+        adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
+
+        initializeConstants(context, values, sideItems);
+    }
+
+    private static TextPaint getTextPaint(Context context) {
+        TextPaint paint = new TextPaint();
+        paint.setAntiAlias(true);
+        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
+        return paint;
+    }
+
+    private void initializeConstants(Context context, CharSequence[] values, int sideItems) {
+        previousScrollerX = Integer.MIN_VALUE;
+
+        setValues(values);
+        setSideItems(sideItems);
+
+        ViewCompat.setAccessibilityDelegate(this, touchHelper);
+        leftEdgeEffect = new EdgeEffect(context);
+        rightEdgeEffect = new EdgeEffect(context);
+    }
+
+    private void setBorginMetrics() {
+        Paint.FontMetricsInt fontMetricsInt = textPaint.getFontMetricsInt();
+        boringMetrics.ascent = fontMetricsInt.ascent;
+        boringMetrics.bottom = fontMetricsInt.bottom;
+        boringMetrics.descent = fontMetricsInt.descent;
+        boringMetrics.leading = fontMetricsInt.leading;
+        boringMetrics.top = fontMetricsInt.top;
+        boringMetrics.width = itemWidth;
+    }
+
+    private void selectEllipsize(int ellipsize) {
         switch (ellipsize) {
             case 1:
                 setEllipsize(TextUtils.TruncateAt.START);
@@ -169,39 +217,6 @@ public class HorizontalPicker extends View {
                 setEllipsize(TextUtils.TruncateAt.MARQUEE);
                 break;
         }
-
-        Paint.FontMetricsInt fontMetricsInt = textPaint.getFontMetricsInt();
-        boringMetrics = new BoringLayout.Metrics();
-        boringMetrics.ascent = fontMetricsInt.ascent;
-        boringMetrics.bottom = fontMetricsInt.bottom;
-        boringMetrics.descent = fontMetricsInt.descent;
-        boringMetrics.leading = fontMetricsInt.leading;
-        boringMetrics.top = fontMetricsInt.top;
-        boringMetrics.width = itemWidth;
-
-        setWillNotDraw(false);
-
-        flingScrollerX = new OverScroller(context);
-        adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
-
-        // initialize constants
-        ViewConfiguration configuration = ViewConfiguration.get(context);
-        touchSlop = configuration.getScaledTouchSlop();
-        mMinimumFlingVelocity = configuration.getScaledMinimumFlingVelocity();
-        maximumFlingVelocity = configuration.getScaledMaximumFlingVelocity()
-                / SELECTOR_MAX_FLING_VELOCITY_ADJUSTMENT;
-        overscrollDistance = configuration.getScaledOverscrollDistance();
-
-        previousScrollerX = Integer.MIN_VALUE;
-
-        setValues(values);
-        setSideItems(sideItems);
-
-        touchHelper = new PickerTouchHelper(this);
-        ViewCompat.setAccessibilityDelegate(this, touchHelper);
-        leftEdgeEffect = new EdgeEffect(context);
-        rightEdgeEffect = new EdgeEffect(context);
-
     }
 
     @Override
