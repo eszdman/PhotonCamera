@@ -9,6 +9,7 @@ xiaomi:apollo
 xiaomi:laurel_sprout
 xiaomi:laurus
 xiaomi:thor
+xiaomi:ishtar
 oneplus:oneplus7
 oneplus:oneplus7t
 oneplus:oneplus7tpro
