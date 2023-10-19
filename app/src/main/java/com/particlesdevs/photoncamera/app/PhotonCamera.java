@@ -232,7 +232,7 @@ public class PhotonCamera extends Application {
 
         mSettingsManager = new SettingsManager(this);
         mSupportedDevice = new SupportedDevice(mSettingsManager);
-        //mSupportedDevice.loadCheck();
+        mSupportedDevice.loadCheck();
 
         MigrationManager.migrate(mSettingsManager);
 
