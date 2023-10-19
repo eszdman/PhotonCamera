@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.camera2.CameraManager;
+import android.util.Log;
 
 import androidx.annotation.StringRes;
 
@@ -14,6 +15,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -92,11 +94,16 @@ public class PreferenceKeys {
         });
     }
     public static void addIds(String[] ids){
-        SettingsManager settingsManager = preferenceKeys.settingsManager;
-        Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
-        map.keySet().removeAll(COMMON_KEYS); String json = GSON.toJson(map);
-        for (String cameraId : ids) { //Makes a copy of default settings for each camera
-            settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
+        if(ids != null) {
+            SettingsManager settingsManager = preferenceKeys.settingsManager;
+            Log.d(TAG, "Added IDS:" + Arrays.toString(ids));
+            settingsManager.setDefaults(Key.CAMERA_ID, ids[0], ids);
+            Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
+            map.keySet().removeAll(COMMON_KEYS);
+            String json = GSON.toJson(map);
+            for (String cameraId : ids) { //Makes a copy of default settings for each camera
+                settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
+            }
         }
     }
 

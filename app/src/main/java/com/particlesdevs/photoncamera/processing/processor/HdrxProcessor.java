@@ -98,6 +98,7 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
         long startTime = System.currentTimeMillis();
+        Log.d(TAG, "ApplyHdrX() mImageFramesToProcess.size():" + mImageFramesToProcess.size());
         int width = mImageFramesToProcess.get(0).getPlanes()[0].getRowStride() /
                 mImageFramesToProcess.get(0).getPlanes()[0].getPixelStride();
         int height = mImageFramesToProcess.get(0).getHeight();
@@ -234,27 +235,43 @@ public class HdrxProcessor extends ProcessorBase {
             Wrapper.outputBuffer(output);
             Wrapper.processFrame(NoiseS, NoiseO, 1.5f, 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
+            if (saveRAW){
+                for (int i = 1; i < images.size(); i++) {
+                    images.get(i).image.close();
+                }
+            } else {
+                for (int i = 0; i < images.size(); i++) {
+                    images.get(i).image.close();
+                }
+            }
         } else {
             WrapperGPU.loadInterpolatedGainMap(interpolateGainMap.Output);
             WrapperGPU.outputBuffer(output);
+            Log.d(TAG, "Packing");
+            WrapperGPU.packImages();
+            Log.d(TAG, "Packed");
+            if (saveRAW){
+                for (int i = 1; i < images.size(); i++) {
+                    images.get(i).image.close();
+                }
+            } else {
+                for (int i = 0; i < images.size(); i++) {
+                    images.get(i).image.close();
+                }
+            }
             WrapperGPU.processFrame(NoiseS, NoiseO, 0.004f + (NoiseS + NoiseO), 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
                     , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
         }
         float[] oldBL = processingParameters.blackLevel.clone();
 
-        //Black shot fix
-        images.get(0).image.getPlanes()[0].getBuffer().position(0);
-        images.get(0).image.getPlanes()[0].getBuffer().put(output);
-        images.get(0).image.getPlanes()[0].getBuffer().position(0);
-        for (int i = 1; i < images.size(); i++) {
-            //if ((i == 3 || i == 2) && IsoExpoSelector.HDR)
-            //    continue;
-            images.get(i).image.close();
-        }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
 
         if (saveRAW) {
             int patchWL = (int) FAKE_WL;
+            //Black shot fix
+            images.get(0).image.getPlanes()[0].getBuffer().position(0);
+            images.get(0).image.getPlanes()[0].getBuffer().put(output);
+            images.get(0).image.getPlanes()[0].getBuffer().position(0);
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
             /*if(!debugAlignment && parameters.hasGainMap) {
@@ -282,9 +299,8 @@ public class HdrxProcessor extends ProcessorBase {
             parameters.blackLevel[1] -= bl;
             parameters.blackLevel[2] -= bl;
             parameters.blackLevel[3] = 0.f;*/
-
-            ;
-        } /*else {
+        }
+        /*else {
             if(!debugAlignment) {
                 parameters.mapSize = new Point(1,1);
                 parameters.gainMap = new float[]{1.f,1.f,1.f,1.f};
@@ -297,7 +313,7 @@ public class HdrxProcessor extends ProcessorBase {
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;
 
-        Bitmap img = pipeline.Run(images.get(0).image.getPlanes()[0].getBuffer(), PhotonCamera.getParameters());
+        Bitmap img = pipeline.Run((ByteBuffer) output.position(0), PhotonCamera.getParameters());
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
         processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
@@ -309,7 +325,9 @@ public class HdrxProcessor extends ProcessorBase {
         processingEventsListener.notifyImageSavedStatus(imageSaved, jpgFile);
 
         pipeline.close();
-        images.get(0).image.close();
+
+        if(saveRAW)
+            images.get(0).image.close();
         callback.onFinished();
     }
 

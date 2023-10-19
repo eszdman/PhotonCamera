@@ -27,6 +27,8 @@ poco:surya
 redmi:galahad
 realme:rmx1931l1
 samsung:x1s
+samsung:dm3
+samsung:dm3q
 motorola:sofiar
 lge:flashlm
 lge:flashlmdd

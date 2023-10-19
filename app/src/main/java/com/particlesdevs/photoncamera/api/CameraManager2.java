@@ -51,8 +51,17 @@ public final class CameraManager2 {
      */
     public CameraManager2(CameraManager cameraManager, SettingsManager settingsManager) {
         this.mSettingsManager = settingsManager;
+
+        //Spinlock waiting for specific manager
+        for(int i =0; i<100; i++){
+            if(PhotonCamera.getSpecific().isLoaded) break;
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException ignored) {}
+        }
         SpecificSetting sp = PhotonCamera.getSpecific().specificSetting;
         int[] ids = sp.cameraIDS;
+        Log.d("CameraManager2", "Loaded ids:"+ Arrays.toString(ids));
             if (!isLoaded()) {
                 if(ids == null)
                     scanAllCameras(cameraManager);
@@ -66,6 +75,7 @@ public final class CameraManager2 {
                         } catch (Exception ignored) {
                         }
                     }
+                    findLensZoomFactor(mCameraLensDataMap);
                 }
                 //Override ID detection
                 save();

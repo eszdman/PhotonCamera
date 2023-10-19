@@ -50,6 +50,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -222,7 +223,6 @@ public class PhotonCamera extends Application {
     }
     private void initModules() {
 
-
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mGravity = new Gravity(sensorManager);
 
@@ -231,6 +231,8 @@ public class PhotonCamera extends Application {
         mVibration = new Vibration(this);
 
         mSettingsManager = new SettingsManager(this);
+        mSupportedDevice = new SupportedDevice(mSettingsManager);
+        //mSupportedDevice.loadCheck();
 
         MigrationManager.migrate(mSettingsManager);
 
@@ -240,7 +242,6 @@ public class PhotonCamera extends Application {
 
         mParameters = new Parameters();
         mPreviewParameters = new PreviewParameters();
-        mSupportedDevice = new SupportedDevice(mSettingsManager);
         mAssetLoader = new AssetLoader(this);
         mRS = RenderScript.create(this);
         mDebugger = new Debugger();

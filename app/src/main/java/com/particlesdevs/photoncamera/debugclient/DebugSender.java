@@ -24,13 +24,13 @@ public class DebugSender extends SaverImplementation {
         IMAGE_BUFFER.add(image);
     }
 
-    public void runRaw(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
-        super.runRaw(imageReader,characteristics,captureResult,burstShakiness,cameraRotation);
+    public void runRaw(int imageFormat, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
+        super.runRaw(imageFormat,characteristics,captureResult,burstShakiness,cameraRotation);
         Log.d("DebugSender","RunDebug sender");
         PhotonCamera.getDebugger().debugClient.sendRaw(IMAGE_BUFFER.get(0));
         processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
         IMAGE_BUFFER.clear();
-        clearImageReader(imageReader);
+        //clearImageReader(imageReader);
     }
 
 }

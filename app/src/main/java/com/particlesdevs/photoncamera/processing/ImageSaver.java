@@ -42,33 +42,55 @@ public class ImageSaver {
     private static final String TAG = "ImageSaver";
 
     public SaverImplementation implementation;
-    private ImageReader imageReader;
+    private int imageFormat;
+    private int frameCounter = 0;
+    private int desiredFrameCount = 0;
+    public boolean newBurst = false;
+
+    public void setFrameCount(int desiredFrameCount){
+        this.desiredFrameCount = desiredFrameCount;
+    }
     public ImageSaver(ProcessingEventsListener processingEventsListener) {
         implementation = new DefaultSaver(processingEventsListener);
     }
 
     public void initProcess(ImageReader mReader) {
-        Log.v(TAG, "initProcess() : called from \"" + Thread.currentThread().getName() + "\" Thread");
-        Image mImage;
-        try {
-            mImage = mReader.acquireNextImage();
-        } catch (Exception ignored) {
-            return;
+        if((frameCounter < desiredFrameCount) || desiredFrameCount == -1) {
+            Log.v(TAG, "initProcess() : called from \"" + Thread.currentThread().getName() + "\" Thread");
+            Image mImage;
+            try {
+                mImage = mReader.acquireNextImage();
+            } catch (Exception ignored) {
+                return;
+            }
+            if (mImage == null)
+                return;
+            int format = mImage.getFormat();
+            imageFormat = mReader.getImageFormat();
+            implementation = getImageSaver(format, implementation);
+            implementation.frameCount = desiredFrameCount;
+            implementation.newBurst = newBurst;
+            implementation.addImage(mImage);
+        } else {
+            Image mImage;
+            try {
+                mImage = mReader.acquireNextImage();
+            } catch (Exception ignored) {
+                return;
+            }
+            if (mImage == null)
+                return;
+            mImage.close();
         }
-        if (mImage == null)
-            return;
-        int format = mImage.getFormat();
-        imageReader = mReader;
-        implementation = getImageSaver(format, implementation);
-        implementation.addImage(mImage);
+        frameCounter++;
     }
 
     public void runRaw(CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
-        implementation.runRaw(imageReader,characteristics,captureResult,burstShakiness,cameraRotation);
+        implementation.runRaw(imageFormat,characteristics,captureResult,burstShakiness,cameraRotation);
     }
 
     public void unlimitedStart(CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
-        implementation.unlimitedStart(imageReader,characteristics,captureResult,cameraRotation);
+        implementation.unlimitedStart(imageFormat,characteristics,captureResult,cameraRotation);
     }
 
     public void unlimitedEnd() {

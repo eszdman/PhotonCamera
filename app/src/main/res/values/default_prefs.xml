@@ -20,7 +20,7 @@
     <bool name="pref_fps_preview_default">false</bool>
     <bool name="pref_hdrx_mode_default">true</bool>
     <string name="pref_ae_mode_default" translatable="false">1</string>
-    <string name="pref_camera_mode_default" translatable="false">1</string>
+    <string name="pref_camera_mode_default" translatable="false">2</string>
 
     <string name="camera_id_default" translatable="false">0</string>
     <string name="tonemap_default" translatable="false">[0f, 0.0036874f, 0.00740041f, 0.0111387f, 0.0149021f, 0.0186902f, 0.0225028f,
@@ -58,14 +58,14 @@
     <string name="pref_framecount_default" translatable="false">30</string>
     <string name="pref_chroma_seekbar_default" translatable="false">12</string>
     <string name="pref_luma_seekbar_default" translatable="false">12</string>
-    <string name="pref_sharpness_seekbar_default" translatable="false">0.50</string>
+    <string name="pref_sharpness_seekbar_default" translatable="false">0.20</string>
     <string name="pref_saturation_seekbar_default" translatable="false">1.0</string>
     <string name="pref_expocompensation_seekbar_default" translatable="false">0.0</string>
     <string name="pref_gain_seekbar_default" translatable="false">0.0</string>
     <string name="pref_noise_seekbar_default" translatable="false">0.0</string>
-    <string name="pref_noise_merge_seekbar_default" translatable="false">0.0</string>
+    <string name="pref_noise_merge_seekbar_default" translatable="false">2.0</string>
     <string name="pref_compressor_seekbar_default" translatable="false">1.0</string>
-    <string name="pref_align_method_default" translatable="false">0</string>
+    <string name="pref_align_method_default" translatable="false">1</string>
     <string name="pref_cfa_default_value" translatable="false">-1</string>
     <string name="pref_theme_default_value" translatable="false">-1</string>
     <string name="pref_theme_accent_default_value" translatable="false">default</string>

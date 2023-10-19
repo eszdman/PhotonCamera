@@ -76,6 +76,7 @@ import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.debugclient.DebugSender;
 import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
+import com.particlesdevs.photoncamera.processing.SaverImplementation;
 import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
@@ -86,6 +87,7 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewMod
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
+import org.jetbrains.annotations.Async;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 
@@ -110,6 +112,7 @@ import java.util.concurrent.TimeUnit;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_TRIGGER_CANCEL;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_TRIGGER_IDLE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_VIDEO_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.FLASH_MODE_TORCH;
@@ -204,7 +207,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public static CaptureResult mPreviewCaptureResult;
     public static CaptureRequest mPreviewCaptureRequest;
     public static int mPreviewTargetFormat = PREVIEW_FORMAT;
-    public boolean isDualSession = true;
+    public boolean isDualSession = false;
     private static int mTargetFormat = RAW_FORMAT;
     private final ParamController paramController;
 
@@ -289,6 +292,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 taskResults.removeIf(Future::isDone); //remove already completed results
                 Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
                 taskResults.add(result);
+                //mBackgroundHandler.post(() -> mImageSaver.initProcess(reader));
+                //AsyncTask.execute(() -> mImageSaver.initProcess(reader));
             }
             else {
                 AsyncTask.execute(() -> mImageSaver.initProcess(reader));
@@ -505,6 +510,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // This method is called when the camera is opened.  We start camera preview here.
             mCameraOpenCloseLock.release();
             mCameraDevice = cameraDevice;
+            mImageSaver = new ImageSaver(cameraEventsListener);
             createCameraPreviewSession(false);
         }
 
@@ -532,6 +538,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         @Override
         public void onSurfaceTextureAvailable(@NonNull SurfaceTexture texture, int width, int height) {
+            Log.d(TAG,"ID:" + mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID));
             Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
                     mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
                     PhotonCamera.getSettings().selectedMode);
@@ -973,7 +980,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 mOnYuvImageAvailableListener, mBackgroundHandler);
 
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(),
-                mTargetFormat, PhotonCamera.getSettings().frameCount + 3);
+                mTargetFormat, PhotonCamera.getSettings().frameCount);
         mImageReaderRaw.setOnImageAvailableListener(
                 mOnRawImageAvailableListener, mBackgroundHandler);
         try {
@@ -1162,6 +1169,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mImageReaderPreview.setOnImageAvailableListener(mOnYuvImageAvailableListener, mBackgroundHandler);
         mBufferSize = getPreviewOutputSize(mTextureView.getDisplay(),characteristics,PhotonCamera.getSettings().selectedMode);
 
+        if(mImageReaderRaw != null)
+            mImageReaderRaw.close();
         mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, PhotonCamera.getSettings().frameCount + 3);
         mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
         // Find out if we need to swap dimension to get the preview size relative to sensor
@@ -1447,16 +1456,30 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * finished.
      */
     private void unlockFocus() {
-        // Reset the auto-focus trigger
-        //mCaptureSession.stopRepeating();
-        CameraReflectionApi.set(mPreviewInputRequest, CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-        //mCaptureSession.capture(mPreviewRequest, mCaptureCallback,
-        //        mBackgroundHandler);
-        // After this, the camera will go back to the normal state of preview.
-        mState = STATE_PREVIEW;
-        rebuildPreviewBuilder();
-        //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback,
-        //        mBackgroundHandler);
+        try {
+            // Reset the auto-focus trigger
+            //mCaptureSession.stopRepeating();
+            //mCaptureSession.abortCaptures();
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                    CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            rebuildPreviewBuilderOneShot();
+            reset3Aparams();
+            /*mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                    CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
+                    mBackgroundHandler);
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                    CameraMetadata.CONTROL_AF_TRIGGER_START);
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
+                    mBackgroundHandler);*/
+            // After this, the camera will go back to the normal state of preview.
+            mState = STATE_PREVIEW;
+            rebuildPreviewBuilder();
+            //mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback,
+            //        mBackgroundHandler);
+        }catch(Exception e){
+            Log.d(TAG, "unlockFocus:"+e);
+        }
     }
     public CaptureRequest.Builder getDebugCaptureRequestBuilder(){
         final CaptureRequest.Builder captureBuilder;
@@ -1495,7 +1518,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
             mMeasuredFrameCnt = 0;
-            mImageSaver = new ImageSaver(cameraEventsListener);
             mImageSaver.implementation = new DebugSender(cameraEventsListener);
 
             cameraEventsListener.onBurstPrepared(null);
@@ -1546,8 +1568,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.v("BurstCounter", "CaptureSequenceCompleted! FrameCount:" + finalFrameCount);
                     Log.v("BurstCounter", "CaptureSequenceCompleted! LastFrameNumber:" + lastFrameNumber);
                     Log.d(TAG, "SequenceCompleted");
+                    mBackgroundHandler.postDelayed(() -> {
+                        while(mImageSaver.implementation.IMAGE_BUFFER.size() > PhotonCamera.getSettings().frameCount/2) {
+                            try {
+                                Thread.sleep(1);
+                            } catch (InterruptedException ignored) {}
+                        }
+                        cameraEventsListener.onCaptureSequenceCompleted(null);
+                    }, 100);
                     mMeasuredFrameCnt = finalFrameCount;
-                    cameraEventsListener.onCaptureSequenceCompleted(null);
                     burst = false;
                     //Surface texture related
                     activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
@@ -1556,7 +1585,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     else
                         createCameraPreviewSession(false);
                     taskResults.removeIf(Future::isDone); //remove already completed results
-                    Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
+                    Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation));
                     taskResults.add(result);
                 }
             };
@@ -1586,10 +1615,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             float focus = mFocus;
             //this.mCaptureSession.stopRepeating();
-            if (mTargetFormat != mPreviewTargetFormat)
+            if(isDualSession) {
+                if (mTargetFormat != mPreviewTargetFormat)
+                    captureBuilder.addTarget(mImageReaderRaw.getSurface());
+                else
+                    captureBuilder.addTarget(mImageReaderPreview.getSurface());
+            } else {
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());
-            else
-                captureBuilder.addTarget(mImageReaderPreview.getSurface());
+                captureBuilder.addTarget(surface);
+            }
             Camera2ApiAutoFix.applyEnergySaving();
             cameraRotation = PhotonCamera.getGravity().getCameraRotation(mSensorOrientation);
 
@@ -1624,10 +1658,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
 
-            if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung"))) {
+            if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung")) && isDualSession) {
                 //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
                 captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
+            }
+            if(!isDualSession){
+                captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
             }
 
 
@@ -1638,23 +1675,30 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             rebuildPreviewBuilder();*/
 
             IsoExpoSelector.useTripod = PhotonCamera.getGyro().getTripod();
-            long[] times = new long[frameCount];
-            for (int i = 0; i < frameCount; i++) {
-                IsoExpoSelector.setExpo(captureBuilder, i, this);
-                times[i] = IsoExpoSelector.lastSelectedExposure;
-                captures.add(captureBuilder.build());
-            }
+
             if (frameCount == -1) {
                 for (int i = 0; i < IsoExpoSelector.patternSize; i++) {
                     IsoExpoSelector.setExpo(captureBuilder, i, this);
                     captures.add(captureBuilder.build());
                 }
-            } else
+            } else {
+                long[] times = new long[frameCount];
+                for (int i = 0; i < frameCount; i++) {
+                    IsoExpoSelector.setExpo(captureBuilder, i, this);
+                    times[i] = IsoExpoSelector.lastSelectedExposure;
+                    captures.add(captureBuilder.build());
+                }
                 PhotonCamera.getGyro().PrepareGyroBurst(times, BurstShakiness);
+            }
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
             //img
             Log.d(TAG, "FrameCount:" + frameCount);
+            mImageSaver = new ImageSaver(cameraEventsListener);
+            mImageSaver.setFrameCount(frameCount);
 //            final int[] burstcount = {0, 0, frameCount};
+            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                mImageReaderRaw.discardFreeBuffers();
+            }*/
             Log.d(TAG, "CaptureStarted!");
 
             final long[] baseFrameNumber = {0};
@@ -1662,7 +1706,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
             mMeasuredFrameCnt = 0;
-            mImageSaver = new ImageSaver(cameraEventsListener);
 
             cameraEventsListener.onBurstPrepared(null);
             this.CaptureCallback = new CameraCaptureSession.CaptureCallback() {
@@ -1712,46 +1755,82 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
                     int finalFrameCount = (int) (lastFrameNumber - baseFrameNumber[0]);
                     Log.v("BurstCounter", "CaptureSequenceCompleted! FrameCount:" + finalFrameCount);
+                    Log.d("DefaultSaver", "CaptureSequenceCompleted! FrameCount:" + finalFrameCount);
                     Log.v("BurstCounter", "CaptureSequenceCompleted! LastFrameNumber:" + lastFrameNumber);
                     Log.d(TAG, "SequenceCompleted");
                     mMeasuredFrameCnt = finalFrameCount;
                     cameraEventsListener.onCaptureSequenceCompleted(null);
                     burst = false;
-                    if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
                     //unlockFocus();
                     //Surface texture related
-                    activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
-                    if (!isDualSession)
-                        unlockFocus();
-                    else
+                    //activity.runOnUiThread(() -> UpdateCameraCharacteristics(PhotonCamera.getSettings().mCameraID));
+
+                    //if (!isDualSession)
+                    //    unlockFocus();
+                    //else
                         createCameraPreviewSession(false);
-                    PhotonCamera.getGyro().CompleteSequence();
-                    taskResults.removeIf(Future::isDone); //remove already completed results
+                    if(maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteSequence();
+
                     if (PhotonCamera.getSettings().selectedMode != CameraMode.UNLIMITED) {
-                        Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, BurstShakiness, cameraRotation));
-                        taskResults.add(result);
+                        //processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation));
+                        /*taskResults.removeIf(Future::isDone); //remove already completed results
+                        Future<?> result =processExecutor.submit(() -> {
+                            while (PhotonCamera.getGyro().capturingNumber < finalFrameCount){
+                                try {
+                                    Thread.sleep(1);
+                                } catch (InterruptedException ignored) {
+                                }
+                            }
+                            if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
+                            mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation);
+                        });
+                        //Future<?> result = processExecutor.submit(() -> mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation));
+                        taskResults.add(result);*/
+                        mBackgroundHandler.post(() -> {
+                                    while (PhotonCamera.getGyro().capturingNumber < finalFrameCount){
+                                        try {
+                                            Thread.sleep(1);
+                                        } catch (InterruptedException ignored) {
+                                        }
+                                    }
+                                    if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
+                                    mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation);
+                                });
+                        /*AsyncTask.execute(
+                                () -> {
+                                    while (PhotonCamera.getGyro().capturingNumber < finalFrameCount){
+                                        try {
+                                            Thread.sleep(1);
+                                        } catch (InterruptedException ignored) {
+                                        }
+                                    }
+                                    if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CompleteGyroBurst();
+                                    mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation);
+                                }
+                        );*/
+                        //mBackgroundHandler.post(() -> {mImageSaver.runRaw(mCameraCharacteristics, mCaptureResult, new ArrayList<>(BurstShakiness), cameraRotation);});
                     }
                 }
             };
-
             //mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
             burst = true;
             Camera2ApiAutoFix.ApplyBurst();
-            if (isDualSession)
-                createCameraPreviewSession(true);
-            else {
+            //if (isDualSession)
+            //    createCameraPreviewSession(true);
+            //else {
+            //mCaptureSession.stopRepeating();
+            //mCaptureSession.abortCaptures();
                 switch (PhotonCamera.getSettings().selectedMode) {
-                    case NIGHT:
                     case UNLIMITED:
                         mCaptureSession.setRepeatingBurst(captures, CaptureCallback, null);
                         break;
+                    case NIGHT:
                     case PHOTO:
                     case MOTION:
                         mCaptureSession.captureBurst(captures, CaptureCallback, null);
                         break;
                 }
-            }
-
+            //}
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -1947,6 +2026,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (mTextureView == null)
                 mTextureView = new AutoFitPreviewView(activity);
             if (mTextureView.isAvailable()) {
+                Log.d(TAG,"ID:"+mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID));
                 Size optimal = getPreviewOutputSize(mTextureView.getDisplay(),
                         mCameraCharacteristicsMap.get(PhotonCamera.getSettings().mCameraID),
                         PhotonCamera.getSettings().selectedMode);

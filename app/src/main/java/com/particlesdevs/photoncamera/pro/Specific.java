@@ -19,6 +19,8 @@ import static com.particlesdevs.photoncamera.util.FileManager.sPHOTON_TUNING_DIR
 
 public class Specific {
     private static final String TAG = "Specific";
+
+    public boolean isLoaded = false;
     public SpecificSetting specificSetting = new SpecificSetting();
     public float[] blackLevel;
     private final SettingsManager mSettingsManager;
@@ -47,16 +49,18 @@ public class Specific {
         return inputStr;
     }
     public void loadSpecific(){
-        boolean loaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded",false);
+        isLoaded = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded",false);
         boolean exists = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_exists",true);
+        Log.d("Specific", "loaded: "+isLoaded+ " exists: " + exists);
         if(exists) {
-            if (!loaded) {
+            if (!isLoaded) {
                 try {
-                    Set<String> mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
+                    //Set<String> mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
                     //BufferedReader indevice = HttpLoader.readURL("https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/SupportedList.txt");
-                    boolean specificExists = mSupportedDevicesSet.contains(SupportedDevice.THIS_DEVICE);
-                    mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_exists", specificExists);
-                    if (!specificExists) return;
+                    //boolean specificExists = mSupportedDevicesSet.contains(SupportedDevice.THIS_DEVICE);
+                    //Log.d("Specific", "specificExists: "+specificExists);
+                    //mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_exists", specificExists);
+                    //if (!specificExists) return;
                     ArrayList<String> inputStr;
 
                     String device = Build.BRAND.toLowerCase() + "/" + Build.DEVICE.toLowerCase();
@@ -82,6 +86,7 @@ public class Specific {
                                 break;
                             }
                             case "cameraIDS": {
+                                Log.d("Specific", "Camera IDs Loaded: "+caseS[1]);
                                 String[] ids = caseS[1].replace("{", "").replace("}", "").split(",");
                                 specificSetting.cameraIDS = new int[ids.length];
                                 for(int i =0; i<specificSetting.cameraIDS.length;i++){
@@ -93,12 +98,15 @@ public class Specific {
                         }
                     }
                     mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_loaded", true);
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    Log.e(TAG,e.toString());
+                }
             } else {
                 specificSetting.isDualSessionSupported = mSettingsManager.getBoolean(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", specificSetting.isDualSessionSupported);
             }
             saveSpecific();
         }
+        isLoaded = true;
     }
     private void saveSpecific(){
         mSettingsManager.set(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, "specific_is_dual_session", specificSetting.isDualSessionSupported);

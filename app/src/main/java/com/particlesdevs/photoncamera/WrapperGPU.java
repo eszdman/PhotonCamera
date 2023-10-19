@@ -37,6 +37,8 @@ public class WrapperGPU {
      * @param bufferptr Image buffer.
      */
     public static native void loadFrame(ByteBuffer bufferptr, float Exposure);
+
+    public static native void packImages();
     public static native void loadFrameAlignments(ByteBuffer bufferptr, float Exposure);
 
     public static native void loadInterpolatedGainMap(ByteBuffer GainMap);

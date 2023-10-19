@@ -1,8 +1,10 @@
 package com.particlesdevs.photoncamera.processing;
 
 import android.media.Image;
+import android.os.AsyncTask;
 import android.util.Log;
 
+import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
@@ -18,6 +20,11 @@ public class RAW16Saver extends DefaultSaver{
         } else {
             Log.d(TAG, "start buffer size:" + IMAGE_BUFFER.size());
             image.getFormat();
+                /*while (bufferLock){
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException ignored) {}
+                }*/
             IMAGE_BUFFER.add(image);
         }
     }

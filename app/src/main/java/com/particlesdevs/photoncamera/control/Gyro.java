@@ -94,7 +94,7 @@ public class Gyro {
     }
 
     long[] capturingTimes;
-    int capturingNumber = 0;
+    public int capturingNumber = 0;
     boolean integrate = false;
     float x,y,z;
     private ArrayList<GyroBurst> BurstShakiness;

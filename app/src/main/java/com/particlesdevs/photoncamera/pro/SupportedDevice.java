@@ -33,16 +33,17 @@ public class SupportedDevice {
 
     public SupportedDevice(SettingsManager manager) {
         mSettingsManager = manager;
+        sensorSpecifics = new SensorSpecifics();
+        specific = new Specific(mSettingsManager);
     }
     @HunterDebug
     public void loadCheck() {
-        sensorSpecifics = new SensorSpecifics();
-        specific = new Specific(mSettingsManager);
         new Thread(() -> {
             try {
                 if (checkedCount < 1) {
                     loadSupportedDevicesList();
                     isSupported();
+                    specific.loadSpecific();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -50,10 +51,7 @@ public class SupportedDevice {
             if (!loaded && mSettingsManager.isSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY))
                 mSupportedDevicesSet = mSettingsManager.getStringSet(PreferenceKeys.Key.DEVICES_PREFERENCE_FILE_NAME.mValue, ALL_DEVICES_NAMES_KEY, null);
         }).start();
-
-        if (checkedCount < 2) {
-            specific.loadSpecific();
-        }
+        Log.d(TAG, "Checked count:"+checkedCount);
         new Thread(() -> sensorSpecifics.loadSpecifics(mSettingsManager)).start();
     }
 

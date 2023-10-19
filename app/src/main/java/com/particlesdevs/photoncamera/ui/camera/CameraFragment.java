@@ -29,6 +29,7 @@ import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.RectF;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
@@ -183,7 +184,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         notificationManager = NotificationManagerCompat.from(activity);
         settingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
         supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
-        supportedDevice.loadCheck();
     }
     @HunterDebug
     @Override
@@ -632,7 +632,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         public void onProcessingStarted(String processName) {
             logD("onProcessingStarted: " + processName + " Processing Started");
             mCameraUIView.setProcessingProgressBarIndeterminate(true);
-            mCameraUIView.activateShutterButton(true);
+            //mCameraUIView.activateShutterButton(true);
             showNotification(processName);
         }
 
@@ -646,6 +646,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             mCameraUIView.setProcessingProgressBarIndeterminate(false);
             mCameraUIView.activateShutterButton(true);
             stopNotification();
+
         }
 
         @Override
@@ -684,7 +685,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void onCaptureStillPictureStarted(Object o) {
             mCameraUIView.setCaptureProgressBarOpacity(1.0f);
-            textureView.post(() -> textureView.setAlpha(0.5f));
+            textureView.post(() -> textureView.setAlpha(0.8f));
         }
 
         private long prevPlayTime = 0;
@@ -723,7 +724,6 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();
             textureView.post(() -> textureView.setAlpha(1f));
-            mCameraUIView.activateShutterButton(true);
         }
 
         @Override

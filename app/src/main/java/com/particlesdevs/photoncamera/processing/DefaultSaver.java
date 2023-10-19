@@ -4,6 +4,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import com.hunter.library.debug.HunterDebug;
@@ -19,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 public class DefaultSaver extends SaverImplementation {
     private static final String TAG = "DefaultSaver";
@@ -32,18 +34,21 @@ public class DefaultSaver extends SaverImplementation {
     }
 
     @HunterDebug
-    public void runRaw(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
-        super.runRaw(imageReader, characteristics, captureResult, burstShakiness, cameraRotation);
+    public void runRaw(int imageFormat, CameraCharacteristics characteristics, CaptureResult captureResult, ArrayList<GyroBurst> burstShakiness, int cameraRotation) {
+        super.runRaw(imageFormat, characteristics, captureResult, burstShakiness, cameraRotation);
         //Wait for one frame at least.
-        Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
-        while (IMAGE_BUFFER.size() < 1){
+        Log.d(TAG, "Acquiring:" + IMAGE_BUFFER.size());
+        while (bufferLock){}
+        //newBurst = true;
+        while (IMAGE_BUFFER.size() < frameCount){
             try {
-
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        bufferLock = true;
+        Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
         if (PhotonCamera.getSettings().frameCount == 1) {
             Path dngFile = ImagePath.newDNGFilePath();
             Log.d(TAG, "Size:" + IMAGE_BUFFER.size());
@@ -52,6 +57,7 @@ public class DefaultSaver extends SaverImplementation {
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             processingEventsListener.onProcessingFinished("Saved Unprocessed RAW");
             IMAGE_BUFFER.clear();
+            bufferLock = false;
             return;
         }
         Path dngFile = ImagePath.newDNGFilePath();
@@ -72,23 +78,40 @@ public class DefaultSaver extends SaverImplementation {
                 PhotonCamera.getSettings().rawSaver,
                 PhotonCamera.getSettings().selectedMode
         );
+        ArrayList<Image> slicedBuffer = new ArrayList<>();
+        ArrayList<Image> imagebuffer = new ArrayList<>();
+        for(int i =0; i<frameCount;i++){
+            slicedBuffer.add(IMAGE_BUFFER.get(i));
+        }
+        for(int i = frameCount; i<IMAGE_BUFFER.size();i++){
+            imagebuffer.add(IMAGE_BUFFER.get(i));
+        }
+        IMAGE_BUFFER.clear();
+        IMAGE_BUFFER = imagebuffer;
+        bufferLock = false;
+
+        Log.d(TAG,"moving images");
+        //Log.d(TAG,"moved images:"+slicedBuffer.size());
+        AsyncTask.execute(() -> {
         hdrxProcessor.start(
                 dngFile,
                 jpgFile,
                 ParseExif.parse(captureResult),
                 burstShakiness,
-                IMAGE_BUFFER,
-                imageReader.getImageFormat(),
+                slicedBuffer,
+                imageFormat,
                 cameraRotation,
                 characteristics,
                 captureResult,
                 processingCallback
         );
-        IMAGE_BUFFER.clear();
+        slicedBuffer.clear();
+        });
+
     }
 
-    public void unlimitedStart(ImageReader imageReader, CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
-        super.unlimitedStart(imageReader, characteristics, captureResult, cameraRotation);
+    public void unlimitedStart(int imageFormat, CameraCharacteristics characteristics, CaptureResult captureResult, int cameraRotation) {
+        super.unlimitedStart(imageFormat, characteristics, captureResult, cameraRotation);
         Path dngFile = ImagePath.newDNGFilePath();
         Path jpgFile = ImagePath.newJPGFilePath();
 
