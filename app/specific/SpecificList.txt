@@ -1,6 +1,7 @@
 xiaomi:dipper
 xiaomi:thor
 xiaomi:ishtar
+poco:alioth
 oneplus:guacamole
 oneplus:guacamoles
 oneplus:guacamoleb

@@ -1658,14 +1658,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
 
+            /*
             if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung")) && isDualSession) {
                 //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
                 captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
-            }
-            if(!isDualSession){
-                captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
-            }
+            }*/
+            //if(!isDualSession){
+            //    captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
+            //}
 
 
 

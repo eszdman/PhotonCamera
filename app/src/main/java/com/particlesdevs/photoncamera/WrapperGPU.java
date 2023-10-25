@@ -46,5 +46,8 @@ public class WrapperGPU {
     public static native void outputBuffer(ByteBuffer outputBuffer);
     public static native void processFrame(float NoiseS, float NoiseO,float Smooth, float ElFactor, float BLr,float BLg,float BLb, float WLFactor,
     float wpR,float wpG, float wpB,int CfaPattern);
+
+    public static native void processFrameBayerShift(float NoiseS, float NoiseO, float BLr,float BLg,float BLb, float WLFactor,
+                                           float wpR,float wpG, float wpB,int CfaPattern);
     public static native ByteBuffer processFrameAlignments();
 }

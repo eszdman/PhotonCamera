@@ -19,6 +19,7 @@ import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.ImageFrameDeblur;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
+import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.InterpolateGainMap;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
@@ -92,8 +93,6 @@ public class HdrxProcessor extends ProcessorBase {
     private void ApplyHdrX() {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
-
-        boolean debugAlignment = (alignAlgorithm > 0);
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
@@ -208,7 +207,7 @@ public class HdrxProcessor extends ProcessorBase {
             //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
             Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer +
                     " mpy:" + mpy + " wl:" + ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
-            if (!debugAlignment) {
+            if (alignAlgorithm == 0) {
                 Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
             } else {
                 WrapperGPU.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
@@ -228,9 +227,12 @@ public class HdrxProcessor extends ProcessorBase {
         interpolateGainMap.Run();
         interpolateGainMap.close();
 
-
-        output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
-        if (!debugAlignment) {
+        if(alignAlgorithm != 2) {
+            output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity());
+        } else {
+            output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity()*3);
+        }
+        if (alignAlgorithm == 0) {
             Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
             Wrapper.outputBuffer(output);
             Wrapper.processFrame(NoiseS, NoiseO, 1.5f, 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
@@ -240,13 +242,15 @@ public class HdrxProcessor extends ProcessorBase {
                     images.get(i).image.close();
                 }
             } else {
-                for (int i = 0; i < images.size(); i++) {
+                for (int i = 1; i < images.size(); i++) {
                     images.get(i).image.close();
                 }
             }
         } else {
             WrapperGPU.loadInterpolatedGainMap(interpolateGainMap.Output);
+
             WrapperGPU.outputBuffer(output);
+
             Log.d(TAG, "Packing");
             WrapperGPU.packImages();
             Log.d(TAG, "Packed");
@@ -255,33 +259,36 @@ public class HdrxProcessor extends ProcessorBase {
                     images.get(i).image.close();
                 }
             } else {
-                for (int i = 0; i < images.size(); i++) {
+                for (int i = 1; i < images.size(); i++) {
                     images.get(i).image.close();
                 }
             }
-            WrapperGPU.processFrame(NoiseS, NoiseO, 0.004f + (NoiseS + NoiseO), 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
-                    , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
+            if(alignAlgorithm == 1) {
+                WrapperGPU.processFrame(NoiseS, NoiseO, 0.004f + (NoiseS + NoiseO), 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
+                        , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
+            } else {
+                WrapperGPU.processFrameBayerShift(NoiseS,NoiseO,0.f, 0.f, 0.f,
+                        processingParameters.whiteLevel, processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2],
+                        processingParameters.cfaPattern);
+            }
         }
         float[] oldBL = processingParameters.blackLevel.clone();
 
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
-
-        if (saveRAW) {
-            int patchWL = (int) FAKE_WL;
-            //Black shot fix
+        //Black shot fix
+        ByteBuffer result = null;
+        if(alignAlgorithm != 2) {
             images.get(0).image.getPlanes()[0].getBuffer().position(0);
             images.get(0).image.getPlanes()[0].getBuffer().put(output);
             images.get(0).image.getPlanes()[0].getBuffer().position(0);
+            result = images.get(0).image.getPlanes()[0].getBuffer();
+        } else {
+            result = output;
+        }
+        if (saveRAW && alignAlgorithm != 2) {
+            int patchWL = (int) FAKE_WL;
 
             Camera2ApiAutoFix.patchWL(characteristics, captureResult, patchWL);
-            /*if(!debugAlignment && parameters.hasGainMap) {
-                NonIdealRaw nonIdealRaw = new NonIdealRaw(new Point(width,height));
-                nonIdealRaw.parameters = parameters;
-                nonIdealRaw.inp = images.get(0).image.getPlanes()[0].getBuffer();
-                nonIdealRaw.prevmap = interpolateGainMap.Output;
-                nonIdealRaw.Run();
-                nonIdealRaw.close();
-            }*/
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, images.get(0).image,
                     characteristics, captureResult, cameraRotation);
 
@@ -301,7 +308,7 @@ public class HdrxProcessor extends ProcessorBase {
             parameters.blackLevel[3] = 0.f;*/
         }
         /*else {
-            if(!debugAlignment) {
+            if(alignAlgorithm == 0) {
                 parameters.mapSize = new Point(1,1);
                 parameters.gainMap = new float[]{1.f,1.f,1.f,1.f};
             }
@@ -313,7 +320,7 @@ public class HdrxProcessor extends ProcessorBase {
         pipeline.lowFrame = lowexp;
         pipeline.highFrame = highexp;
 
-        Bitmap img = pipeline.Run((ByteBuffer) output.position(0), PhotonCamera.getParameters());
+        Bitmap img = pipeline.Run(result, PhotonCamera.getParameters());
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
         processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
@@ -326,8 +333,8 @@ public class HdrxProcessor extends ProcessorBase {
 
         pipeline.close();
 
-        if(saveRAW)
-            images.get(0).image.close();
+        //if(saveRAW)
+        images.get(0).image.close();
         callback.onFinished();
     }
 

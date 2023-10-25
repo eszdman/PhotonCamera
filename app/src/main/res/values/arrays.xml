@@ -19,8 +19,8 @@
         <item>-2</item>
     </string-array>
     <string-array name="alignset_entries">
-        <item>PCam CPU</item>
-        <item>PCam Hybrid</item>
+        <item>PCam Old</item>
+        <item>PCam New</item>
     </string-array>
     <string-array name="location_geotag_entryValues">
         <item>Off</item>

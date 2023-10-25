@@ -7,6 +7,7 @@ uniform vec3 neutralPoint;
 out vec4 result;
 uniform int yOffset;
 #define DH (0.0)
+#define RGBLAYOUT 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 float gammaEncode(float x) {
     return sqrt(x);
@@ -24,10 +25,18 @@ void main() {
     xyY.z = sigmoid(xyY.z, 0.9f);
     result = xyYtoXYZ(xyY);*/
     vec4 inp;
+    #if RGBLAYOUT == 1
+    inp.r = dot(texelFetch(InputBuffer, xyCenter, 0).rgb,vec3(1.0));
+    inp.g = dot(texelFetch(InputBuffer, xyCenter+ivec2(1,0), 0).rgb,vec3(1.0));
+    inp.b = dot(texelFetch(InputBuffer, xyCenter+ivec2(0,1), 0).rgb,vec3(1.0));
+    inp.a = dot(texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).rgb,vec3(1.0));
+    #else
     inp.r = texelFetch(InputBuffer, xyCenter, 0).r;
     inp.g = texelFetch(InputBuffer, xyCenter+ivec2(1,0), 0).r;
     inp.b = texelFetch(InputBuffer, xyCenter+ivec2(0,1), 0).r;
     inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
+    #endif
+
     inp = clamp(inp,vec4(0.0001),neutralPoint.rggb);
     if(factor > 1.0){
         float br2 = inp.r+inp.g+inp.b+inp.a;

@@ -29,8 +29,15 @@ public class Bayer2Float extends Node {
     public void Run() {
         PostPipeline postPipeline = (PostPipeline) basePipeline;
         Point rawSize = basePipeline.mParameters.rawSize;
-        GLTexture in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
-                ((PostPipeline) (basePipeline)).stackFrame, GL_NEAREST, GL_MIRRORED_REPEAT);
+
+        GLTexture in;
+        if(basePipeline.mSettings.alignAlgorithm != 2) {
+            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
+                    ((PostPipeline) (basePipeline)).stackFrame, GL_NEAREST, GL_MIRRORED_REPEAT);
+        } else {
+            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 3),
+                    ((PostPipeline) (basePipeline)).stackFrame, GL_NEAREST, GL_MIRRORED_REPEAT);
+        }
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 BufferUtils.getFrom(basePipeline.mParameters.gainMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
 
@@ -47,6 +54,7 @@ public class Bayer2Float extends Node {
         glProg.setDefine("BLG", BL[1]);
         glProg.setDefine("BLB", BL[2]);
         glProg.setDefine("QUAD", basePipeline.mSettings.cfaPattern == -2);
+        glProg.setDefine("RGBLAYOUT",basePipeline.mSettings.alignAlgorithm == 2);
         glProg.useAssetProgram("tofloat");
         glProg.setTexture("InputBuffer", in);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);

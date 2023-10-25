@@ -129,7 +129,9 @@ public class PostPipeline extends GLBasePipeline {
                 //if(PhotonCamera.getSettings().hdrxNR) {
                 //add(new ESD3DBayerCS());
                 //}
-                add(new Demosaic2());
+                if(mSettings.alignAlgorithm != 2) {
+                    add(new Demosaic2());
+                }
 
                 //add(new ImpulsePixelFilter());
                 break;
