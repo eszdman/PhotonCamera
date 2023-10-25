@@ -24,7 +24,7 @@ oneplus:guacamoles
 oneplus:guacamoleb
 poco:vayu
 poco:surya
-poco:alioth
+xiaomi:alioth
 redmi:galahad
 realme:rmx1931l1
 samsung:x1s
