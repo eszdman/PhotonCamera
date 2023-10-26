@@ -1395,7 +1395,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
             }
         } else {
-            surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+           if(Build.BRAND.equalsIgnoreCase("samsung")){
+                surfaces = Arrays.asList(surface, mImageReaderRaw.getSurface());
+            } else {
+                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
+            }
         }
         if (mIsRecordingVideo) {
             setUpMediaRecorder();
@@ -1658,12 +1662,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             IsoExpoSelector.HDR = false;
             Log.d(TAG, "HDR:" + IsoExpoSelector.HDR);
 
-            /*
-            if (!(focus == 0.0 && Build.DEVICE.equalsIgnoreCase("samsung")) && isDualSession) {
+
+            if ((!(focus == 0.0 && Build.BRAND.equalsIgnoreCase("samsung"))) && isDualSession) {
                 //captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CONTROL_AF_MODE_OFF);
                 captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
                 captureBuilder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focus);
-            }*/
+            }
             //if(!isDualSession){
             //    captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CONTROL_AF_TRIGGER_IDLE);
             //}
