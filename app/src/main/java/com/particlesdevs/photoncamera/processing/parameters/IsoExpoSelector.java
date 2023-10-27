@@ -111,6 +111,7 @@ public class IsoExpoSelector {
         if (step%patternSize == 0 && HDR) {
             //pair.layerMpy = 1.5f+(float)Math.abs(Math.random())*1.0f;
             //pair.layerMpy = 1.f/1.5f;
+            pair.layerMpy = 1.f;
             pair.ExpoCompensateLowerExpo(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.Normal;
         }

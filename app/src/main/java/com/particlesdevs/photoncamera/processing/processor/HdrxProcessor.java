@@ -210,7 +210,7 @@ public class HdrxProcessor extends ProcessorBase {
             if (alignAlgorithm == 0) {
                 Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
             } else {
-                WrapperGPU.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
+                WrapperGPU.loadFrame(images.get(i).buffer, mpy);
             }
         }
 
@@ -272,6 +272,7 @@ public class HdrxProcessor extends ProcessorBase {
                         processingParameters.cfaPattern);
             }
         }
+        interpolateGainMap.Output.clear();
         float[] oldBL = processingParameters.blackLevel.clone();
 
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");

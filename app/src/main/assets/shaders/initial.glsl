@@ -352,7 +352,7 @@ void main() {
     float minG,maxG;
     float minImg, maxImg;
     ivec2 xy2 = xy/2;
-
+        /*
     tempV = getGain(vec2(0,-1));
     minG = tempV;
     maxG = tempV;
@@ -383,16 +383,29 @@ void main() {
     maxImg = max(tempV,maxImg);
     tempV = texelFetch(InputBuffer, xy+ivec2(1,0), 0).g;
     minImg = min(tempV,minImg);
-    maxImg = max(tempV,maxImg);
-
+    maxImg = max(tempV,maxImg);*/
+    float brInitial = 0.f;
+    float brCorrected = 0.f;
+    float blurInitial = 0.f;
+    float blurCorrected = 0.f;
+    for(int i = -1; i<=2;i++){
+        for(int j = -1; j<=2;j++){
+            blurInitial += texelFetch(InputBuffer, xy+ivec2(i,j), 0).g;
+            blurCorrected += texelFetch(InputBuffer, xy+ivec2(i,j), 0).g*getGain(vec2(ivec2(i,j)));
+        }
+    }
+    float detail = texelFetch(InputBuffer, xy, 0).g-blurInitial;
+    float brightening = blurCorrected/(blurInitial+EPS);
+    float corrected = blurCorrected + detail*brightening;
+    tonemapGain =  corrected/(texelFetch(InputBuffer, xy, 0).g+EPS);
     //tonemapGain = texture(FusionMap, (gl_FragCoord.xy)/vec2(INSIZE)).r;
     //tonemapGain = getGain(vec2(0.0,0.0));
     //if(tonemapGain > 0.0){
     //    tonemapGain = 1.0/tonemapGain;
     //} else tonemapGain = -tonemapGain;
-    float mixG = (sRGB.g-minImg+0.001)/(maxImg-minImg+0.001);
-    mixG = clamp(mixG,0.0,1.0);
-    tonemapGain = mix(maxG,minG,mixG);
+    //float mixG = (sRGB.g-minImg+0.001)/(maxImg-minImg+0.001);
+    //mixG = clamp(mixG,0.0,1.0);
+    //tonemapGain = mix(maxG,minG,mixG);
     tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(sRGB.g,0.0)).r);
     #endif
 
