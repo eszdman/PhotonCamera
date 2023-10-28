@@ -27,6 +27,11 @@ float lum(in vec4 color) {
     return length(color.xyz);
 }
 
+float atan2(in float y, in float x) {
+bool s = (abs(x) > abs(y));
+return mix(PI/2.0 - atan(x,y), atan(y,x), s);
+}
+
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -34,7 +39,7 @@ void main() {
     float noisefactor = texture(NoiseMap, vec2(xy)/vec2(INSIZE)).g;
     {
         vec3 final_colour = vec3(0.0);
-        float sigX = 3.5;
+        float sigX = 2.5;
         float sigY = sqrt(noisefactor*NOISES + NOISEO);
         //sigY = max(0.01,sigY);
         //create the 1-D kernel
@@ -57,7 +62,7 @@ void main() {
         dxy/=sum;
         dxyabs/=sum;
 
-        float angle = atan(dxy.x,dxy.y);
+        float angle = atan2(dxy.x,dxy.y) + 3.14f/2.f;
         vec3 cc;
         float factor;
         float sino = sin(angle);
@@ -81,7 +86,7 @@ void main() {
             for (int j=-KSIZE; j <= KSIZE; ++j)
             {
                 cc = vec3(texelFetch(InputBuffer, xy+ivec2(i,j), 0).rgb);
-                factor = pdf((cc-cin)/sigY)/
+                factor = pdf((cc-cin)/sigY)*
                 fastExp(
                 (a*float(i*i) +
                 2.0*b*float(i*j) +
