@@ -62,9 +62,9 @@ void main() {
     W = mix(SHARPMIN,SHARPMAX,W);
     W*=-strength/ksum;
 
-    float W2 = 1.0-pdf((Output.g/ksum - center.g)/N);
-    W*=W2;
-    W = max(W,-0.90/ksum);
+    //float W2 = 1.0-pdf((Output.g/ksum - center.g)/N);
+    //W*=W2;
+    //W = max(W,-0.90/ksum);
     Output = (Output*W - center.g*W*ksum)/(W*ksum + 1.0) + center.rgb;
     Output = clamp(Output,0.0,1.0);
 }

@@ -162,6 +162,7 @@ public class PostPipeline extends GLBasePipeline {
         //add(new ChromaticFlow());
 
         add(new Sharpen2());
+        //add(new Sharpen("sharpen33"));
 
         add(new RotateWatermark(getRotation()));
     }
