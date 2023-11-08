@@ -25,6 +25,9 @@ out vec3 Output;
 #else
 out float Output;
 #endif
+
+
+
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy) - ivec2(OFFSET);
     ivec2 fact = (xy)%2;
@@ -36,6 +39,8 @@ void main() {
     float balance;
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(RawSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
+    gains.rgb /= dot(gains.rgb,vec3(1.0/3.0));
+    gains.rgb = vec3(1.f);
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     #if RGBLAYOUT == 1
     //Output = vec3(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).rgb)/float(whitelevel);

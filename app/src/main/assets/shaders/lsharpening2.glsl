@@ -27,11 +27,11 @@ void main() {
     float avr = 0.0;
     for(int i = -2; i<=2;i++){
         for(int j = -2; j<=2;j++){
-            vec4 temp = texelFetch(InputBuffer, mirrorCoords2(xy+ivec2(i,j), ivec2(INSIZE)), 0);
-            edges[(i+2)*5 + j + 2] = temp.g;
-            MIN = min(temp.g,MIN);
-            MAX = max(temp.g,MAX);
-            avr+=temp.g;
+            float temp = dot(texelFetch(InputBuffer, mirrorCoords2(xy+ivec2(i,j), ivec2(INSIZE)), 0).rgb,vec3(0.1,0.8,0.1));
+            edges[(i+2)*5 + j + 2] = temp;
+            MIN = min(temp,MIN);
+            MAX = max(temp,MAX);
+            avr+=temp;
         }
     }
     avr/=25.0;
@@ -65,6 +65,6 @@ void main() {
     //float W2 = 1.0-pdf((Output.g/ksum - center.g)/N);
     //W*=W2;
     //W = max(W,-0.90/ksum);
-    Output = (Output*W - center.g*W*ksum)/(W*ksum + 1.0) + center.rgb;
+    Output = (Output*W - dot(center.rgb,vec3(0.1,0.8,0.1))*W*ksum)/(W*ksum + 1.0) + center.rgb;
     Output = clamp(Output,0.0,1.0);
 }

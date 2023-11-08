@@ -20,6 +20,7 @@ vec4 reinhard_extended(vec4 v, float max_white)
     vec4 numerator = v * (vec4(1.0f) + (v / vec4(max_white * max_white)));
     return numerator / (vec4(1.0f) + v);
 }
+
 float stddev(vec3 XYZ) {
     float avg = (XYZ.r + XYZ.g + XYZ.b) / 3.;
     vec3 diff = XYZ - avg;
@@ -65,6 +66,8 @@ void main() {
     result.g = stddev(v3);
 
     v3 = brIn(inp,STRHIGH);
+
+
     br = luminocity(v3);
     br = gammaEncode(clamp(br-DH,0.0,1.0));
     result.b = br;

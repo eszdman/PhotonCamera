@@ -251,7 +251,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         glProg.setTexture("GammaCurve",GammaTexture);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("IntenseCurve",interpolatedCurve);
-        //glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
+        glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         //glProg.setVar("toneMapCoeffs", Converter.CUSTOM_ACR3_TONEMAP_CURVE_COEFFS);
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         glProg.setVar("intermediateToSRGB",cct);
@@ -265,5 +265,6 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         //glProg.setVar("saturation",0.f);
         //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
         WorkingTexture = basePipeline.getMain();
+        //((PostPipeline)basePipeline).GainMap.close();
     }
 }

@@ -6,6 +6,8 @@ uniform sampler2D NoiseMap;
 uniform ivec2 size;
 uniform vec2 mapsize;
 uniform int yOffset;
+uniform float noiseS;
+uniform float noiseO;
 out vec4 Output;
 
 #define SIGMA 10.0
@@ -23,24 +25,38 @@ out vec4 Output;
 #define INTENSE 1.0
 #define PI 3.1415926535897932384626433832795
 #import gaussian
+float normpdf(in float x, in float sigma)
+{
+return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
+}
+float normpdf3(in vec3 v, in float sigma)
+{
+return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
+}
+float normpdf2(in vec2 v, in float sigma)
+{
+return 0.39894*exp(-0.5*dot(v,v)/(sigma*sigma))/sigma;
+}
+
 float lum(in vec4 color) {
     return length(color.xyz);
 }
 
 float atan2(in float y, in float x) {
 bool s = (abs(x) > abs(y));
-return mix(PI/2.0 - atan(x,y), atan(y,x), s);
+return mix(PI/2.0 - atan(x,y+0.00001), atan(y,x+0.00001), s);
 }
 
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
     vec3 cin = vec3(texelFetch(InputBuffer, xy, 0).rgb);
-    float noisefactor = texture(NoiseMap, vec2(xy)/vec2(INSIZE)).g;
+    float noisefactor = dot(cin,vec3(0.1,0.8,0.1));
     {
         vec3 final_colour = vec3(0.0);
         float sigX = 2.5;
-        float sigY = sqrt(noisefactor*NOISES + NOISEO);
+        float sigY = (noisefactor*noisefactor*NOISES + NOISEO + 0.0000001);
+        //float sigY = 1.0;
         //sigY = max(0.01,sigY);
         //create the 1-D kernel
         float Z = 0.0;
@@ -49,10 +65,10 @@ void main() {
         float sum = 0.0001;
         vec2 baseGrad = texelFetch(GradBuffer, xy, 0).rg;
         for (int i=-KSIZE; i <= KSIZE; i++){
-            float k0 = pdf(float(i)/sigX);
+            float k0 = normpdf(float(i),sigX);
             for (int j=-KSIZE; j <= KSIZE; j++){
                 vec2 temp = texelFetch(GradBuffer, xy+ivec2(i,j), 0).rg;
-                float k = pdf(float(j)/sigX)*k0*pdf((temp-baseGrad)/sigY);
+                float k = normpdf(float(j),sigX)*k0*normpdf2((temp-baseGrad),1.0);
                 temp *= k;
                 dxy+=temp;
                 dxyabs+=abs(temp);
@@ -62,7 +78,7 @@ void main() {
         dxy/=sum;
         dxyabs/=sum;
 
-        float angle = atan2(dxy.x,dxy.y) + 3.14f/2.f;
+        float angle = atan2(dxy.x,dxy.y);
         vec3 cc;
         float factor;
         float sino = sin(angle);
@@ -73,9 +89,9 @@ void main() {
         float pwrful = clamp(length(dxy)*2.5,0.0,1.0);
         vec2 sigo = vec2(3.5*1.5*(1.0 + pwrful),3.5/(4.35*(1.0 + pwrful)));
         //Improve energy
-        sigo*=min(sqrt(sigY)*15.1,1.0);
+        //sigo*=min(sqrt(sigY)*15.1,1.0);
         sigo*=sigo;
-        sigo*=1.0+sigY;
+        //sigo*=1.0+sigY;
 
         float a = (coso)/(2.0*sigo.x) + (sino)/(2.0*sigo.y);
         float b = -(sin2o)/(4.0*sigo.x) + (sin2o)/(4.0*sigo.y);
@@ -86,8 +102,10 @@ void main() {
             for (int j=-KSIZE; j <= KSIZE; ++j)
             {
                 cc = vec3(texelFetch(InputBuffer, xy+ivec2(i,j), 0).rgb);
-                factor = pdf((cc-cin)/sigY)*
-                fastExp(
+                float diff = length(abs(cc-cin));
+                factor = //normpdf3((cc-cin),sigY)*
+                (1.0-diff*diff/(diff*diff + sigY)) *
+                pdf(
                 (a*float(i*i) +
                 2.0*b*float(i*j) +
                 c*float(j*j))

@@ -83,6 +83,7 @@ public class PostPipeline extends GLBasePipeline {
             noiseS = 0.f;
         }
         noiseO = Math.max(noiseO, Float.MIN_NORMAL);
+        noiseS = Math.max(noiseS, Float.MIN_NORMAL);
         Point rawSliced = parameters.rawSize;
         if (PhotonCamera.getSettings().aspect169) {
             if (rawSliced.x > rawSliced.y) {
@@ -144,7 +145,8 @@ public class PostPipeline extends GLBasePipeline {
         if (PhotonCamera.getSettings().hdrxNR) {
             if (nightMode)
                 add(new Wavelet());
-            add(new ESD3D());
+            add(new ESD3D(false));
+            add(new ESD3D(true));
         }
 
         //add(new AWB());

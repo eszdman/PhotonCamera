@@ -26,7 +26,7 @@ public class GLBasePipeline implements AutoCloseable {
     private long timeStart;
     private static final String TAG = "BasePipeline";
     private final int[] bind = new int[1];
-    public GLTexture main1,main2,main3,main4;
+    public GLTexture main1,main2,main3,main4, main5;
     public Settings mSettings;
     public Parameters mParameters;
     public Properties mProp;

@@ -94,6 +94,6 @@ public class Bayer2Float extends Node {
         ((PostPipeline) basePipeline).GainMap = GainMapTex;
         glProg.closed = true;
         in.close();
-        GainMapTex.close();
+        //GainMapTex.close();
     }
 }
