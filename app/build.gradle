@@ -131,9 +131,6 @@ dependencies {
     implementation project(path: ':photonbypass')
     annotationProcessor 'com.github.bumptech.glide:compiler:4.14.2'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
-    implementation 'rapid.decoder:library:0.3.0'
-    implementation 'rapid.decoder:jpeg-decoder:0.3.0'
-    implementation 'rapid.decoder:png-decoder:0.3.0'
     implementation 'com.google.code.gson:gson:2.10.1'
     // Navigation Component
     implementation "androidx.navigation:navigation-fragment-ktx:2.8.4"
