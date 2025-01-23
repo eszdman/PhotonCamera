@@ -8,8 +8,6 @@ import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.util.Log;
 
-import com.particlesdevs.photoncamera.Wrapper;
-import com.particlesdevs.photoncamera.WrapperAl;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
@@ -249,32 +247,6 @@ public class HdrxProcessor extends ProcessorBase {
         NoiseS = (float) Math.max(NoiseS * noisempy, Float.MIN_NORMAL);
         NoiseO = (float) Math.max(NoiseO * noisempy, Float.MIN_NORMAL);
         FrameNumberSelector.frameCount = cnt;
-        if (alignAlgorithm == 0) {
-            Wrapper.init(width, height, cnt);
-        } else {
-            WrapperAl.init(width, height, cnt);
-        }
-
-        if (alignAlgorithm != 0){
-            WrapperAl.loadFrame(images.get(selected).buffer, 1.f);
-        }
-        for (int i = 0; i < cnt; i++) {
-            float mpy = minMpy / images.get(i).pair.layerMpy;
-            //if (images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Normal)
-            //    mpy = 1.f;
-            //if(images.get(i).pair.curlayer == IsoExpoSelector.ExpoPair.exposureLayer.Low) mpy = 1.f;
-            Log.d(TAG, "Load: i: " + i + " expo layer:" + images.get(i).pair.curlayer +
-                    " mpy:" + mpy + " wl:" + ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
-            if (alignAlgorithm == 0) {
-                Wrapper.loadFrame(images.get(i).buffer, ((FAKE_WL) / processingParameters.whiteLevel) * mpy);
-            } else {
-                if(i == selected) {
-                    Log.d(TAG, "Base frame:" + i);
-                    continue;
-                }
-                WrapperAl.loadFrame(images.get(i).buffer, mpy);
-            }
-        }
 
         Log.d(TAG, "White Level:" + processingParameters.whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
@@ -299,45 +271,16 @@ public class HdrxProcessor extends ProcessorBase {
         } else {
             output = ByteBuffer.allocateDirect(images.get(0).buffer.capacity()*3);
         }
-        if (alignAlgorithm == 0) {
-            Wrapper.loadInterpolatedGainMap(interpolateGainMap.Output);
-            Wrapper.outputBuffer(output);
-            Wrapper.processFrame(NoiseS, NoiseO, 1.5f, 1, 0.f, 0.f, 0.f, processingParameters.whiteLevel
-                    , processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
+
+        if(alignAlgorithm == 1) {
+            PyramidMerging pyramidMerging = new PyramidMerging(new Point(width, height), images, output);
+            pyramidMerging.parameters = processingParameters;
+            pyramidMerging.Run();
+            pyramidMerging.close();
+            output.clear();
+            output = pyramidMerging.Output;
             for (int i = 1; i < images.size(); i++) {
                 images.get(i).image.close();
-            }
-        } else {
-            WrapperAl.loadInterpolatedGainMap(interpolateGainMap.Output);
-
-            WrapperAl.outputBuffer(output);
-
-            Log.d(TAG, "Packing");
-            WrapperAl.packImages();
-            Log.d(TAG, "Packed");
-            if(alignAlgorithm != 1) {
-                for (int i = 1; i < images.size(); i++) {
-                    images.get(i).image.close();
-                }
-            }
-            if(alignAlgorithm == 1) {
-                float bl = processingParameters.blackLevel[0]+processingParameters.blackLevel[1]+processingParameters.blackLevel[2]+processingParameters.blackLevel[3];
-                WrapperAl.processFrame(NoiseS, NoiseO, 0.004f + (NoiseS + NoiseO), 1,
-                        processingParameters.blackLevel[0], (processingParameters.blackLevel[1]+processingParameters.blackLevel[2])/2.f, processingParameters.blackLevel[3], processingParameters.whiteLevel,
-                        processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2], processingParameters.cfaPattern);
-                PyramidMerging pyramidMerging = new PyramidMerging(new Point(width, height), images, output);
-                pyramidMerging.parameters = processingParameters;
-                pyramidMerging.Run();
-                pyramidMerging.close();
-                output.clear();
-                output = pyramidMerging.Output;
-                for (int i = 1; i < images.size(); i++) {
-                    images.get(i).image.close();
-                }
-            } else {
-                WrapperAl.processFrameBayerShift(NoiseS,NoiseO,0.f, 0.f, 0.f,
-                        processingParameters.whiteLevel, processingParameters.whitePoint[0], processingParameters.whitePoint[1], processingParameters.whitePoint[2],
-                        processingParameters.cfaPattern);
             }
         }
         //interpolateGainMap.Output.clear();
