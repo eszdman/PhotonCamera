@@ -1645,7 +1645,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     captureBuilder.addTarget(mImageReaderPreview.getSurface());
             } else {
                 captureBuilder.addTarget(mImageReaderRaw.getSurface());
-                captureBuilder.addTarget(surface);
+                //captureBuilder.addTarget(surface);
             }
             Camera2ApiAutoFix.applyEnergySaving();
             cameraRotation = PhotonCamera.getGravity().getCameraRotation(mSensorOrientation);
