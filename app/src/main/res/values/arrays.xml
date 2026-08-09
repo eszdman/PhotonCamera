@@ -26,7 +26,6 @@
         <item>Characteristics</item>
         <item>Capture</item>
     </string-array>
-
     <string-array name="focuspeakset_entries">
         <item>Off</item>
         <item>On</item>
@@ -144,5 +143,25 @@
         <item>3840x2160</item>
         <item>1920x1080</item>
         <item>1280x720</item>
+    </string-array>
+    <string-array name="exposure_balance_entries">
+        <item>0.25x (Max SNR Bias)</item>
+        <item>0.50x (High SNR Bias)</item>
+        <item>0.75x (Slight SNR Bias)</item>
+        <item>1.00x (Balanced / Default)</item>
+        <item>1.33x (Slight Speed Bias)</item>
+        <item>1.50x (High Speed Bias)</item>
+        <item>2.00x (Extreme Speed Bias)</item>
+        <item>3.00x (Max Speed Bias)</item>
+    </string-array>
+    <string-array name="exposure_balance_entryValues">
+        <item>0.25</item>
+        <item>0.5</item>
+        <item>0.75</item>
+        <item>1.0</item>
+        <item>1.33</item>
+        <item>1.5</item>
+        <item>2.0</item>
+        <item>3.0</item>
     </string-array>
 </resources>

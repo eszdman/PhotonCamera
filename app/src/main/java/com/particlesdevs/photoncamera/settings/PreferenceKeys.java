@@ -76,7 +76,7 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
-
+        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.25", "0.5", "0.75", "1.0", "1.33", "1.5", "2.0", "3.0"});
 
 
         settingsManager.addListener((settingsManager1, key) -> {
@@ -303,6 +303,10 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_FOCUS_PEAK);
     }
 
+    public static float getExposureBalanceMultiplier() {
+        return preferenceKeys.settingsManager.getFloat(SCOPE_GLOBAL, Key.KEY_EXPOSURE_BALANCE_MULTIPLIER);
+    }
+
     public static int getPreviewFormatValue() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_PREVIEW_FORMAT);
     }
@@ -464,6 +468,7 @@ public class PreferenceKeys {
         KEY_ALIGN_METHOD(R.string.pref_align_method_key),
         KEY_COLOR_METHOD(R.string.pref_color_method_key),
         KEY_FOCUS_PEAK(R.string.pref_peak_method_key),
+        KEY_EXPOSURE_BALANCE_MULTIPLIER(R.string.pref_exposure_balance_key),
         KEY_PREVIEW_FORMAT(R.string.pref_preview_format_key),
         KEY_TELEGRAM(R.string.pref_telegram_channel_key),
         KEY_CONTRIBUTORS(R.string.pref_contributors_key),

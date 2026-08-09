@@ -145,6 +145,12 @@ public class IsoExpoSelector {
             // pair.UseIso(Math.max(pair.isoanalog/6.0,101)); // Replaced by applyShutterPriorityCurve
         }
 
+        // Apply dynamic exposure balance shifting (shutter/ISO priority)
+        float mult = PhotonCamera.getSettings().exposureBalanceMultiplier;
+        if (mult != 1.0f) {
+            pair.applyExposureBalance(mult);
+        }
+
         double currentManExp = captureController.getParamController().getCurrentExposureValue();
         double currentManISO = captureController.getParamController().getCurrentISOValue();
         pair.exposure = currentManExp != 0 ? (long) currentManExp : pair.exposure;
@@ -497,6 +503,55 @@ public class IsoExpoSelector {
                     " dynamicCap=" + ExposureIndex.sec2string(ExposureIndex.time2sec(dynamicCap)) +
                     " -> exposure=" + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)) +
                     " iso=" + iso);
+        }
+
+        /**
+         * Shifts the exposure balance by the given multiplier k (shutter/ISO trade-off).
+         * A multiplier > 1.0 reduces shutter duration and increases ISO (freezing motion).
+         * A multiplier < 1.0 increases shutter duration and reduces ISO (cleaner image).
+         *
+         * Uses a Backtracking Clamping algorithm: if one of the parameters hits a physical 
+         * sensor limit, the other parameter is dynamically recalculated to maintain the 
+         * exact target exposure energy (brightness), maximizing user preference safely.
+         *
+         * @param k the multiplier to adjust balance
+         */
+        public void applyExposureBalance(double k) {
+            // 1. Save the target exposure energy (brightness) before shifting
+            double targetEnergy = (double) exposure * iso;
+
+            // 2. Apply the theoretical shift
+            exposure = (long) (exposure / k);
+            iso = (int) (iso * k);
+
+            // 3. ISO limits check with backtracking to exposure
+            double isoHighNormalized = isohigh * (100.0 / isolow);
+            if (iso > isoHighNormalized) {
+                iso = (int) Math.round(isoHighNormalized);
+                // ISO is maxed out; we must make the shutter slower to preserve brightness
+                exposure = (long) (targetEnergy / iso);
+            } else if (iso < 100) {
+                iso = 100;
+                // ISO is at minimum; we must make the shutter faster to preserve brightness
+                exposure = (long) (targetEnergy / iso);
+            }
+
+            // 4. Exposure limits check with backtracking to ISO
+            if (exposure > exposurehigh) {
+                exposure = exposurehigh;
+                // Shutter cannot be longer; we must raise ISO to preserve brightness
+                iso = (int) (targetEnergy / exposure);
+            } else if (exposure < exposurelow) {
+                exposure = exposurelow;
+                // Shutter cannot be faster; we must lower ISO to preserve brightness
+                iso = (int) (targetEnergy / exposure);
+            }
+
+            // 5. Final safety clamps for rounding errors
+            if (iso > isoHighNormalized) iso = (int) Math.round(isoHighNormalized);
+            if (iso < 100) iso = 100;
+            if (exposure > exposurehigh) exposure = exposurehigh;
+            if (exposure < exposurelow) exposure = exposurelow;
         }
 
         /**
