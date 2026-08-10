@@ -525,7 +525,8 @@ public class IsoExpoSelector {
             iso = (int) (iso * k);
 
             // 3. ISO limits check with backtracking to exposure
-            double isoHighNormalized = isohigh * (100.0 / isolow);
+            double maxPhysicalIso = Math.min((double) isohigh, (double) PhotonCamera.getSettings().exposureBalanceIsoLimit);
+            double isoHighNormalized = maxPhysicalIso * (100.0 / isolow);
             if (iso > isoHighNormalized) {
                 iso = (int) Math.round(isoHighNormalized);
                 // ISO is maxed out; we must make the shutter slower to preserve brightness

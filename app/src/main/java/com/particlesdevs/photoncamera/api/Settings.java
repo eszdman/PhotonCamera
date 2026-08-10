@@ -45,6 +45,7 @@ public class Settings {
     public int focusPeak;
     public int previewFormat;
     public float exposureBalanceMultiplier;
+    public int exposureBalanceIsoLimit;
     public String mCameraID;
     public float[] toneMap;
     public float[] gamma;
@@ -91,6 +92,7 @@ public class Settings {
         focusPeak = PreferenceKeys.getFocusPeakValue();
         previewFormat = PreferenceKeys.getPreviewFormatValue();
         exposureBalanceMultiplier = PreferenceKeys.getExposureBalanceMultiplier();
+        exposureBalanceIsoLimit = PreferenceKeys.getExposureBalanceIsoLimit();
         selectedMode = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
         toneMap = parseToneMapArray();
         gamma = parseGammaArray();

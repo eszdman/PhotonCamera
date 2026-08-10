@@ -76,8 +76,8 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
-        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.50", "0.59", "0.71", "0.84", "1.00", "1.19", "1.41", "1.68", "2.00"});
-
+        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.25", "0.35", "0.50", "0.71", "1.00", "1.41", "2.00", "2.83", "4.00"});
+        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_ISO_LIMIT, "999999", new String[]{"400", "800", "1200", "1600", "2400", "3200", "4800", "6400", "9600", "12800", "999999"});
 
         settingsManager.addListener((settingsManager1, key) -> {
             // Guard against null key (can happen during preference restore)
@@ -307,6 +307,10 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getFloat(SCOPE_GLOBAL, Key.KEY_EXPOSURE_BALANCE_MULTIPLIER);
     }
 
+    public static int getExposureBalanceIsoLimit() {
+        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_EXPOSURE_BALANCE_ISO_LIMIT);
+    }
+
     public static int getPreviewFormatValue() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_PREVIEW_FORMAT);
     }
@@ -469,6 +473,7 @@ public class PreferenceKeys {
         KEY_COLOR_METHOD(R.string.pref_color_method_key),
         KEY_FOCUS_PEAK(R.string.pref_peak_method_key),
         KEY_EXPOSURE_BALANCE_MULTIPLIER(R.string.pref_exposure_balance_key),
+        KEY_EXPOSURE_BALANCE_ISO_LIMIT(R.string.pref_exposure_balance_iso_limit_key),
         KEY_PREVIEW_FORMAT(R.string.pref_preview_format_key),
         KEY_TELEGRAM(R.string.pref_telegram_channel_key),
         KEY_CONTRIBUTORS(R.string.pref_contributors_key),

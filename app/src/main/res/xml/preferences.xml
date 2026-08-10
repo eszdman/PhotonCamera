@@ -376,6 +376,16 @@
                 android:entryValues="@array/exposure_balance_entryValues"
                 android:defaultValue="1.0"
                 />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_exposure_balance_iso_limit_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/exposure_balance_iso_limit"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/exposure_balance_iso_limit_entries"
+                android:entryValues="@array/exposure_balance_iso_limit_entryValues"
+                android:defaultValue="999999"
+                />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="@string/pref_horizon"

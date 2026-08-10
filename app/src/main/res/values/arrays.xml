@@ -145,25 +145,51 @@
         <item>1280x720</item>
     </string-array>
     <string-array name="exposure_balance_entries">
-        <item>0.50x (Max SNR Bias)</item>
-        <item>0.59x (High SNR Bias)</item>
-        <item>0.71x (Medium SNR Bias)</item>
-        <item>0.84x (Slight SNR Bias)</item>
+        <item>0.25x (Max SNR Bias)</item>
+        <item>0.35x (High SNR Bias)</item>
+        <item>0.50x (Medium SNR Bias)</item>
+        <item>0.71x (Slight SNR Bias)</item>
         <item>1.00x (Balanced / Default)</item>
-        <item>1.19x (Slight Speed Bias)</item>
-        <item>1.41x (Medium Speed Bias)</item>
-        <item>1.68x (High Speed Bias)</item>
-        <item>2.00x (Max Speed Bias)</item>
+        <item>1.41x (Slight Speed Bias)</item>
+        <item>2.00x (Medium Speed Bias)</item>
+        <item>2.83x (High Speed Bias)</item>
+        <item>4.00x (Max Speed Bias)</item>
     </string-array>
     <string-array name="exposure_balance_entryValues">
+        <item>0.25</item>
+        <item>0.35</item>
         <item>0.50</item>
-        <item>0.59</item>
         <item>0.71</item>
-        <item>0.84</item>
         <item>1.00</item>
-        <item>1.19</item>
         <item>1.41</item>
-        <item>1.68</item>
         <item>2.00</item>
+        <item>2.83</item>
+        <item>4.00</item>
+    </string-array>
+    <string-array name="exposure_balance_iso_limit_entries">
+        <item>400</item>
+        <item>800</item>
+        <item>1200</item>
+        <item>1600</item>
+        <item>2400</item>
+        <item>3200</item>
+        <item>4800</item>
+        <item>6400</item>
+        <item>9600</item>
+        <item>12800</item>
+        <item>Unlimited (Sensor Max)</item>
+    </string-array>
+    <string-array name="exposure_balance_iso_limit_entryValues">
+        <item>400</item>
+        <item>800</item>
+        <item>1200</item>
+        <item>1600</item>
+        <item>2400</item>
+        <item>3200</item>
+        <item>4800</item>
+        <item>6400</item>
+        <item>9600</item>
+        <item>12800</item>
+        <item>999999</item>
     </string-array>
 </resources>

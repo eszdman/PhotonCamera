@@ -63,7 +63,10 @@
     <string name="focus_peaking_auto">Auto</string>
     <string name="pref_exposure_balance_key" translatable="false">pref_exposure_balance_key</string>
     <string name="exposure_balance">Exposure Balance</string>
-    <string name="exposure_balance_summary">Shift balance between shutter speed and ISO. Photo &amp; Night modes only</string>
+    <string name="exposure_balance_summary">Shift balance between shutter speed and ISO. Photo and Night modes only</string>
+    <string name="pref_exposure_balance_iso_limit_key" translatable="false">pref_exposure_balance_iso_limit_key</string>
+    <string name="exposure_balance_iso_limit">Exposure Balance ISO Limit</string>
+    <string name="exposure_balance_iso_limit_summary">Limit the maximum sensitivity allowed when shifting exposure balance</string>
     <string name="show_horizon_on_preview">Show horizon on preview</string>
     <string name="preview_format">Preview Format</string>
     <string name="pref_save_per_lens_string">Per Lens Settings</string>
