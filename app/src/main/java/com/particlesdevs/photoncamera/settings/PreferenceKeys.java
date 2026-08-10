@@ -76,7 +76,7 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
-        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.25", "0.5", "0.75", "1.0", "1.33", "1.5", "2.0", "3.0"});
+        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.50", "0.59", "0.71", "0.84", "1.00", "1.19", "1.41", "1.68", "2.00"});
 
 
         settingsManager.addListener((settingsManager1, key) -> {

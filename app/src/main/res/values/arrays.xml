@@ -145,23 +145,25 @@
         <item>1280x720</item>
     </string-array>
     <string-array name="exposure_balance_entries">
-        <item>0.25x (Max SNR Bias)</item>
-        <item>0.50x (High SNR Bias)</item>
-        <item>0.75x (Slight SNR Bias)</item>
+        <item>0.50x (Max SNR Bias)</item>
+        <item>0.59x (High SNR Bias)</item>
+        <item>0.71x (Medium SNR Bias)</item>
+        <item>0.84x (Slight SNR Bias)</item>
         <item>1.00x (Balanced / Default)</item>
-        <item>1.33x (Slight Speed Bias)</item>
-        <item>1.50x (High Speed Bias)</item>
-        <item>2.00x (Extreme Speed Bias)</item>
-        <item>3.00x (Max Speed Bias)</item>
+        <item>1.19x (Slight Speed Bias)</item>
+        <item>1.41x (Medium Speed Bias)</item>
+        <item>1.68x (High Speed Bias)</item>
+        <item>2.00x (Max Speed Bias)</item>
     </string-array>
     <string-array name="exposure_balance_entryValues">
-        <item>0.25</item>
-        <item>0.5</item>
-        <item>0.75</item>
-        <item>1.0</item>
-        <item>1.33</item>
-        <item>1.5</item>
-        <item>2.0</item>
-        <item>3.0</item>
+        <item>0.50</item>
+        <item>0.59</item>
+        <item>0.71</item>
+        <item>0.84</item>
+        <item>1.00</item>
+        <item>1.19</item>
+        <item>1.41</item>
+        <item>1.68</item>
+        <item>2.00</item>
     </string-array>
 </resources>
