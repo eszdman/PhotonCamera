@@ -77,8 +77,7 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
         settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_MULTIPLIER, "1.0", new String[]{"0.25", "0.35", "0.50", "0.71", "1.00", "1.41", "2.00", "2.83", "4.00"});
-        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_ISO_LIMIT, "999999", new String[]{"400", "800", "1200", "1600", "2400", "3200", "4800", "6400", "9600", "12800", "999999"});
-
+        settingsManager.setDefaults(Key.KEY_EXPOSURE_BALANCE_ISO_LIMIT, "-1", new String[]{"400", "800", "1200", "1600", "2400", "3200", "4800", "6400", "9600", "12800", "-2", "-1"});
         settingsManager.addListener((settingsManager1, key) -> {
             // Guard against null key (can happen during preference restore)
             if (key == null) {

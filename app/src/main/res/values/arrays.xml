@@ -177,6 +177,7 @@
         <item>6400</item>
         <item>9600</item>
         <item>12800</item>
+        <item>Max Analog ISO</item>
         <item>Unlimited (Sensor Max)</item>
     </string-array>
     <string-array name="exposure_balance_iso_limit_entryValues">
@@ -190,6 +191,7 @@
         <item>6400</item>
         <item>9600</item>
         <item>12800</item>
-        <item>999999</item>
+        <item>-2</item>
+        <item>-1</item>
     </string-array>
 </resources>

@@ -384,7 +384,7 @@
                 android:icon="@drawable/ic_saturation"
                 android:entries="@array/exposure_balance_iso_limit_entries"
                 android:entryValues="@array/exposure_balance_iso_limit_entryValues"
-                android:defaultValue="999999"
+                android:defaultValue="-2"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:layout="@layout/preference_with_margin"
