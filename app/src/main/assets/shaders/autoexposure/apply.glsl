@@ -50,4 +50,10 @@ void main() {
     //Output.rgb = reinhard_extended(inp.rgb * mpy, mpy);
     Output.rgb = tonemap(mix(inp.rgb,sqrt(inp.rgb), applyGammaMix), mpy);
     Output.rgb = mix(Output.rgb,Output.rgb * Output.rgb, applyGammaMix);
+    // The alpha channel carries the pre-tonemap linear HDR luminance written by
+    // Initial. It is passed through unchanged (the exposure multiplier must NOT
+    // be divided out): the gain map stage compares the linear HDR against the
+    // displayed base and emits a positive boost only where the SDR compressed
+    // the scene, so shadows/mids keep the SDR look.
+    Output.a = inp.a;
 }

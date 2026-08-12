@@ -7,7 +7,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import com.particlesdevs.photoncamera.api.ParseExif;
-import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
@@ -16,6 +15,7 @@ import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -132,8 +132,15 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
         imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
-        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
-                ImageSaver.JPG_QUALITY, exifData);
+        boolean imageSaved;
+        if (PreferenceKeys.isUltraHdrOn() && pipeline.gainMapResult != null) {
+            imageSaved = ImageSaver.Util.saveBitmapAsUltraHdrJPG(imageFile, bitmap,
+                    pipeline.gainMapResult.gainMapJpeg, pipeline.gainMapResult.maxContentBoost,
+                    pipeline.gainMapResult.minContentBoost, ImageSaver.JPG_QUALITY, exifData);
+        } else {
+            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
+                    ImageSaver.JPG_QUALITY, exifData);
+        }
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);
 

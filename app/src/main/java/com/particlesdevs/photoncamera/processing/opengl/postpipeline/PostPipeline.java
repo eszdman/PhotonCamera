@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.os.Build;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.api.CameraMode;
@@ -17,13 +18,17 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
 import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapResult;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Allocator;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class PostPipeline extends GLBasePipeline {
+    private static final int GAIN_MAP_JPEG_QUALITY = 100;
     public ByteBuffer stackFrame;
     public ByteBuffer lowFrame;
     public ByteBuffer highFrame;
@@ -38,6 +43,15 @@ public class PostPipeline extends GLBasePipeline {
     float AecCorr = 1.f;
     float fusionGain = 1.f;
     float softLight = 1.f;
+
+    public boolean ultraHdrEnabled = false;
+    public boolean hdrLinearValid = false;
+    public Initial initialNode;
+    public Bitmap gainMapBitmap;
+    public Point gainMapSize;
+    public float gainMapMaxBoost;
+    public float gainMapMinBoost;
+    public GainMapResult gainMapResult;
 
     public PostPipeline() {
         super("PostPipeline");
@@ -80,6 +94,21 @@ public class PostPipeline extends GLBasePipeline {
     public Bitmap Run(ByteBuffer inBuffer, Parameters parameters) {
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
+        // Live preference read: the cached Settings object is refreshed via a
+        // preference listener, but reading the preference directly guarantees
+        // the Ultra HDR toggle is honoured on the very next capture.
+        ultraHdrEnabled = PreferenceKeys.isUltraHdrOn()
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
+        hdrLinearValid = false;
+        gainMapBitmap = null;
+        gainMapSize = null;
+        gainMapMaxBoost = 0.0f;
+        gainMapMinBoost = 1.0f;
+        gainMapResult = null;
+        if (PreferenceKeys.isUltraHdrOn()) {
+            Log.d("PostPipeline", "UltraHDR enabled=" + ultraHdrEnabled + " sdk="
+                    + Build.VERSION.SDK_INT);
+        }
         workSize = new Point(mParameters.rawSize.x, mParameters.rawSize.y);
         NoiseModeler modeler = mParameters.noiseModeler;
         noiseS = modeler.computeModel[0].first.floatValue() +
@@ -131,8 +160,52 @@ public class PostPipeline extends GLBasePipeline {
         GLImage resImg = runAll();
         Bitmap res = resImg.getBufferedImage();
         Allocator.free(resImg.byteBuffer);
+        buildGainMapResult();
         GLTexture.closeAll();
         return res;
+    }
+
+    private void buildGainMapResult() {
+        if (gainMapBitmap == null || gainMapSize == null) {
+            if (ultraHdrEnabled) {
+                Log.d("PostPipeline", "UltraHDR: no gain map data (hdrLinearValid="
+                        + hdrLinearValid + ")");
+            }
+            return;
+        }
+        try {
+            float maxBoost = gainMapMaxBoost;
+            if (maxBoost <= 0.0f) {
+                Log.d("PostPipeline", "UltraHDR: no gain map data, skipping gain map");
+                gainMapBitmap.recycle();
+                gainMapBitmap = null;
+                return;
+            }
+            float minBoost = gainMapMinBoost;
+            Bitmap gainMap = gainMapBitmap;
+            gainMapBitmap = null;
+            ByteArrayOutputStream jpegStream = new ByteArrayOutputStream(1 << 20);
+            if (!gainMap.compress(Bitmap.CompressFormat.JPEG, GAIN_MAP_JPEG_QUALITY, jpegStream)) {
+                Log.e("PostPipeline", "UltraHDR gain map JPEG compression failed");
+                gainMap.recycle();
+                gainMapSize = null;
+                return;
+            }
+            gainMap.recycle();
+            gainMapResult = new GainMapResult(jpegStream.toByteArray(), maxBoost, minBoost);
+            Log.d("PostPipeline", "UltraHDR gain map generated: " + gainMapSize.x + "x"
+                    + gainMapSize.y + " jpeg=" + gainMapResult.gainMapJpeg.length
+                    + "B maxContentBoost=" + maxBoost + " minContentBoost=" + minBoost);
+        } catch (Exception e) {
+            Log.e("PostPipeline", "UltraHDR gain map processing failed: "
+                    + Log.getStackTraceString(e));
+            gainMapResult = null;
+        }
+        if (gainMapBitmap != null) {
+            gainMapBitmap.recycle();
+            gainMapBitmap = null;
+        }
+        gainMapSize = null;
     }
 
     private void BuildDefaultPipeline() {
@@ -202,9 +275,14 @@ public class PostPipeline extends GLBasePipeline {
         //add(new AWB());
         //add(new Equalization());
 
-        add(new Initial());
+        initialNode = new Initial();
+        add(initialNode);
 
         add(new AutoExposure());
+
+        if (ultraHdrEnabled) {
+            add(new GainMapGenerator());
+        }
 
 
         //add(new GlobalToneMapping());

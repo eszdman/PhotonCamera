@@ -245,7 +245,9 @@ public class GLTexture implements AutoCloseable {
     @Override
     public void close() {
         glDeleteTextures(1,new int[]{mTextureID},0);
-        ids[mTextureID] = false;
+        if (mTextureID >= 0 && mTextureID < ids.length) {
+            ids[mTextureID] = false;
+        }
         //Log.d("GLTexture","close ID:"+mTextureID);
         if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
     }

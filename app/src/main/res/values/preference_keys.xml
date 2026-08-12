@@ -24,6 +24,7 @@
     <string name="pref_wide169_key" translatable="false">pref_wide169_key</string>
     <string name="pref_binning_key" translatable="false">pref_binning_key</string>
     <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
+    <string name="pref_ultra_hdr_key" translatable="false">pref_ultra_hdr_key</string>
     <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
     <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>
     <string name="pref_show_roundedge_key" translatable="false">pref_show_roundedge_key</string>

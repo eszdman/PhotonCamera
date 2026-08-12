@@ -43,6 +43,10 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         //TonemapCoeffs.close();
     }
     private boolean lutLoaded = false;
+    private boolean lutEnabled = false;
+    private ColorCorrectionTransform.CorrectionMode cctMode;
+    private float[][] cctCube;
+    private float[] cctMatrix;
 
     @Override
     public void Compile() {}
@@ -113,6 +117,9 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     
     @Override
     public void Run() {
+        PostPipeline postPipeline = (PostPipeline) basePipeline;
+        glProg.setDefine("ULTRAHDR", postPipeline.ultraHdrEnabled);
+        postPipeline.hdrLinearValid = enable;
         if (!enable) {
             WorkingTexture = super.previousNode.WorkingTexture;
             return;
@@ -257,26 +264,20 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         glProg.setDefine("SHADOWS", (float) basePipeline.mSettings.shadows);
         glProg.setDefine("VIGNETTE", vignetteCorrection);
         glProg.setDefine("LTMMIX", ltmMix);
-        float[][] cube = null;
-        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+        cctMode = basePipeline.mParameters.CCT.correctionMode;
+        cctCube = null;
+        if(cctMode == ColorCorrectionTransform.CorrectionMode.CUBES || cctMode == ColorCorrectionTransform.CorrectionMode.CUBE){
             glProg.setDefine("CCT", 1);
             if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
-            cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
+                cctCube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
             else
-                cube = basePipeline.mParameters.CCT.cubes[0].cube;
+                cctCube = basePipeline.mParameters.CCT.cubes[0].cube;
         }
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
-        glProg.useAssetProgram("initial");
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
-            glProg.setVar("CUBE0",cube[0]);
-            glProg.setVar("CUBE1",cube[1]);
-            glProg.setVar("CUBE2",cube[2]);
-        }
-        float[] cct = basePipeline.mParameters.CCT.matrix;
-        if(mode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
-            cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
-            Log.d(Name,"CCT:"+ Arrays.toString(cct));
+        cctMatrix = basePipeline.mParameters.CCT.matrix;
+        if(cctMode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
+            cctMatrix = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
+            Log.d(Name,"CCT:"+ Arrays.toString(cctMatrix));
         }
         float[] gamma = new float[1024];
         for (int i = 0; i < gamma.length; i++) {
@@ -286,10 +287,9 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         GammaTexture = new GLTexture(gamma.length,1,
                 new GLFormat(GLFormat.DataType.FLOAT_16),BufferUtils.getFrom(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
-        boolean loaded = false;
+        lutEnabled = customlut.exists();
         if(customlut.exists()){
             lutbm = new GLImage(customlut);
-            glProg.setDefine("LUT",true);
             lutLoaded = true;
         } else {
             try {
@@ -301,37 +301,117 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         }
         if(lutLoaded) {
             lut = new GLTexture(lutbm, GL_LINEAR, GL_CLAMP_TO_EDGE, 0);
-            glProg.setTexture("LookupTable", lut);
         }
-        if(postLut != null) glProg.setTexture("PostLut",postLut);
         if (basePipeline.mParameters.HSVMap != null) {
             HSVTexture = new GLTexture(new Point(basePipeline.mParameters.HSVMapSize[1], basePipeline.mParameters.HSVMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.HSVMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
-            glProg.setTexture("HSVMap", HSVTexture);
         }
         if (basePipeline.mParameters.LookMap != null) {
             LookupTexture = new GLTexture(new Point(basePipeline.mParameters.LookMapSize[2] * basePipeline.mParameters.LookMapSize[1], basePipeline.mParameters.LookMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.LookMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
+        WorkingTexture = basePipeline.getMain();
+        bindShaderProgram();
+        glProg.drawBlocks(WorkingTexture);
+        glProg.closed = true;
+    }
+
+    /**
+     * Issues the shader defines and binds all programs/textures/uniforms for
+     * the current initial.glsl variant. Defines are consumed and the texture
+     * unit cache is cleared by every program switch, so this must be called
+     * before the program is drawn.
+     */
+    private void bindShaderProgram() {
+        glProg.setDefine("ULTRAHDR", ((PostPipeline) basePipeline).ultraHdrEnabled);
+        glProg.setDefine("GAMMAX1", gammax1);
+        glProg.setDefine("GAMMAX2", gammax2);
+        glProg.setDefine("GAMMAX3", gammax3);
+        glProg.setDefine("TONEMAPX1", tonemapx1);
+        glProg.setDefine("TONEMAPX2", tonemapx2);
+        glProg.setDefine("TONEMAPX3", tonemapx3);
+        glProg.setDefine("SATURATIONCONST", saturationConst);
+        glProg.setDefine("SATURATIONGAUSS", saturationGauss);
+        glProg.setDefine("SATURATIONRED", saturationRed);
+        glProg.setDefine("NOISEO", basePipeline.noiseO);
+        glProg.setDefine("NOISES", basePipeline.noiseS);
+        glProg.setDefine("EPS", eps);
+
+        if (postlut != null && postlut.exists()) {
+            glProg.setDefine("POSTLUT", true);
+            int lutBase = (int) (0.1f + Math.pow(lutbm.size.x, 1.0 / 3.0));
+            glProg.setDefine("POSTLUTSIZETILES", (float) lutBase);
+            glProg.setDefine("POSTLUTSIZE", (float) (lutBase * lutBase));
+        }
+
+        glProg.setDefine("FUSIONGAIN", ((PostPipeline) basePipeline).fusionGain);
+
+        float sat = (float) basePipeline.mSettings.saturation;
+        if (basePipeline.mSettings.cfaPattern == 4) {
+            sat = 0.f;
+        }
+        glProg.setDefine("SATURATION2", sat);
+        glProg.setDefine("SATURATION", sat * highersatmpy);
+
+        float green = ((((PostPipeline) basePipeline).analyzedBL[0] + ((PostPipeline) basePipeline).analyzedBL[2] + 0.0002f) / 2.f) /
+                (((PostPipeline) basePipeline).analyzedBL[1] + 0.0001f);
+        if (green > 0.0f && green < 1.7f) {
+            float tcor = (green + 1.f) / 2.f;
+            glProg.setDefine("TINT", tcor);
+            glProg.setDefine("TINT2", ((1.f / tcor + 1.f) / 2.f));
+        }
+        float[] WP = basePipeline.mParameters.whitePoint;
+        float minP = (WP[0] + WP[1] + WP[2]) / 3.f;
+        if (lutEnabled) {
+            glProg.setDefine("LUT", true);
+        }
+        if (basePipeline.mParameters.HSVMap != null) {
+            glProg.setDefine("USE_HSV", 1);
+        }
+        if (basePipeline.mParameters.LookMap != null) {
+            glProg.setDefine("LOOKUP", 1);
+        }
+        glProg.setDefine("MINP", minP);
+        glProg.setDefine("NEUTRALPOINT", WP);
+        glProg.setDefine("INSIZE", basePipeline.workSize);
+        glProg.setDefine("CONTRAST", (float) basePipeline.mSettings.contrastMpy);
+        glProg.setDefine("SHADOWS", (float) basePipeline.mSettings.shadows);
+        glProg.setDefine("VIGNETTE", vignetteCorrection);
+        glProg.setDefine("LTMMIX", ltmMix);
+        if (cctMode == ColorCorrectionTransform.CorrectionMode.CUBES
+                || cctMode == ColorCorrectionTransform.CorrectionMode.CUBE) {
+            glProg.setDefine("CCT", 1);
+        }
+        if (((PostPipeline) basePipeline).FusionMap != null) {
+            glProg.setDefine("FUSION", 1);
+        }
+        glProg.useAssetProgram("initial");
+        if (cctCube != null) {
+            glProg.setVar("CUBE0", cctCube[0]);
+            glProg.setVar("CUBE1", cctCube[1]);
+            glProg.setVar("CUBE2", cctCube[2]);
+        }
+        if (lutLoaded) {
+            glProg.setTexture("LookupTable", lut);
+        }
+        if (postLut != null) {
+            glProg.setTexture("PostLut", postLut);
+        }
+        if (HSVTexture != null) {
+            glProg.setTexture("HSVMap", HSVTexture);
+        }
+        if (LookupTexture != null) {
             glProg.setTexture("LookMap", LookupTexture);
         }
-        //glProg.setTexture("TonemapTex",TonemapCoeffs);
-        glProg.setTexture("GammaCurve",GammaTexture);
-        glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
-        glProg.setTexture("IntenseCurve",interpolatedCurve);
-        glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
-        glProg.setVar("toneMapCoeffs", -2.f+2.f*toneMix, 3.f-3.f*toneMix, toneMix, 0.f);
-        Log.d(Name,"sensorToIntermediate: "+ Arrays.toString(basePipeline.mParameters.sensorToProPhoto));
-        glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
-        Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
-        glProg.setVar("intermediateToSRGB",cct);
-        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
-        Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
-        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
-                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
-        //glProg.setVar("neutralPoint",WP);
-        //Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
-        //glProg.setVar("saturation0",sat);
-        //glProg.setVar("saturation",0.f);
-        //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
-        WorkingTexture = basePipeline.getMain();
-        //((PostPipeline)basePipeline).GainMap.close();
+        glProg.setTexture("GammaCurve", GammaTexture);
+        glProg.setTexture("InputBuffer", super.previousNode.WorkingTexture);
+        glProg.setTexture("IntenseCurve", interpolatedCurve);
+        glProg.setTexture("GainMap", ((PostPipeline) basePipeline).GainMap);
+        glProg.setVar("toneMapCoeffs", -2.f + 2.f * toneMix, 3.f - 3.f * toneMix, toneMix, 0.f);
+        glProg.setVar("sensorToIntermediate", basePipeline.mParameters.sensorToProPhoto);
+        glProg.setVar("intermediateToSRGB", cctMatrix);
+        if (((PostPipeline) basePipeline).FusionMap != null) {
+            glProg.setTexture("FusionMap", ((PostPipeline) basePipeline).FusionMap);
+        }
+        glProg.setVar("activeSize", 2, 2, basePipeline.mParameters.sensorPix.right - basePipeline.mParameters.sensorPix.left - 2,
+                basePipeline.mParameters.sensorPix.bottom - basePipeline.mParameters.sensorPix.top - 2);
     }
 }

@@ -11,7 +11,6 @@ import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.ParseExif;
-import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
@@ -22,6 +21,7 @@ import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipelin
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.Allocator;
 
 import java.nio.ByteBuffer;
@@ -303,8 +303,15 @@ public class HdrxProcessor extends ProcessorBase {
         }
         imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
         //Saves the final bitmap
-        boolean imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
-                ImageSaver.JPG_QUALITY, exifData);
+        boolean imageSaved;
+        if (PreferenceKeys.isUltraHdrOn() && pipeline.gainMapResult != null) {
+            imageSaved = ImageSaver.Util.saveBitmapAsUltraHdrJPG(imageFile, img,
+                    pipeline.gainMapResult.gainMapJpeg, pipeline.gainMapResult.maxContentBoost,
+                    pipeline.gainMapResult.minContentBoost, ImageSaver.JPG_QUALITY, exifData);
+        } else {
+            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
+                    ImageSaver.JPG_QUALITY, exifData);
+        }
 
         try {
             processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);

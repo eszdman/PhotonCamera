@@ -188,6 +188,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             
             filterPreferencesByMode();
             showHideHdrxSettings();
+            gateUltraHdrSetting();
             setFramesSummary();
             setVersionDetails();
             setHdrxTitle();
@@ -315,6 +316,12 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
             else
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
+        }
+
+        private void gateUltraHdrSetting() {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                removePreferenceFromScreen(mContext.getString(R.string.pref_ultra_hdr_key));
+            }
         }
 
         @NonNull

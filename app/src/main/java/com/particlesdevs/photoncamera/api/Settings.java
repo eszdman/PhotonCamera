@@ -13,6 +13,7 @@ public class Settings {
     public int lumenCount;
     public int chromaCount;
     public boolean enhancedProcess;
+    public boolean ultraHdr;
     public boolean watermark;
     public boolean energySaving;
     public boolean aspect169;
@@ -59,6 +60,7 @@ public class Settings {
         lumenCount = PreferenceKeys.getLumaNrValue();
         chromaCount = PreferenceKeys.getChromaNrValue();
         enhancedProcess = PreferenceKeys.isEnhancedProcessionOn();
+        ultraHdr = PreferenceKeys.isUltraHdrOn();
         watermark = PreferenceKeys.isShowWatermarkOn();
         energySaving = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
         aspect169 = PreferenceKeys.getBool(PreferenceKeys.Key.KEY_WIDE169);

@@ -29,7 +29,7 @@ uniform mat3 CUBE0;
 uniform mat3 CUBE1;
 uniform mat3 CUBE2;
 #endif
-out vec3 Output;
+out vec4 Output;
 //#define x1 2.8114
 //#define x2 -3.5701
 //#define x3 1.6807
@@ -57,6 +57,7 @@ out vec3 Output;
 #define EPS (0.0008)
 #define FUSIONGAIN 1.0
 #define FUSION 0
+#define ULTRAHDR 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MINP 1.0
 #define NOISEO 0.0
@@ -382,7 +383,7 @@ float reinhard_extended(float v, float max_white){
     return numerator / (float(1.0f) + v);
 }
 
-vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
+vec3 applyColorSpace(vec3 pRGB, float tonemapGain, float gainsVal, out float linearLum){
     vec3 neutralPoint = vec3(NEUTRALPOINT);
     //pRGB = clamp(reinhard_extended(pRGB*tonemapGain,max(1.0,tonemapGain)), vec3(0.0), neutralPoint);
     #if CCT == 0
@@ -402,6 +403,7 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
     }
     #endif
     pRGB = corr*sensorToIntermediate*(pRGB*neutralPoint);
+    linearLum = luminocity(pRGB);
     vec3 pHSV = rgb2hsl(pRGB);
     #if USE_HSV == 1
 
@@ -420,7 +422,6 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
     float vignetteFactor = (br*br/(br*br+noise*noise))*VIGNETTE;
     gainsVal = mix(float(1.0), gainsVal, 1.0);
     //br = clamp(reinhard_extended(br*gainsVal,max(1.0,gainsVal)),0.0,1.0);
-    //br = clamp(reinhard_extended(br*tonemapGain,max(1.0,tonemapGain)),0.0,1.0);
     pRGB = clamp(pRGB*mix(tonemapGain,1.0,LTMMIX), 0.0,1.0);
     //pRGB = clamp(reinhard_extended(pRGB*tonemapGain,max(1.0,tonemapGain)),vec3(0.0),vec3(1.0));
 
@@ -566,7 +567,8 @@ void main() {
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(textureSize(InputBuffer, 0)));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal = dot(gains.rgb,vec3(1.0/3.0));
-    sRGB = applyColorSpace(sRGB,tonemapGain, gainsVal);
+    float linearLum = 0.0;
+    sRGB = applyColorSpace(sRGB, tonemapGain, gainsVal, linearLum);
     //sRGB = vec3(tonemapGain);
     #if LUT == 1
     //sRGB = lookup(sRGB);
@@ -580,11 +582,16 @@ void main() {
     //sat2*=br;
     sRGB = saturate(sRGB,SATURATION2,SATURATION);
     sRGB = contrastSin(sRGB,mix(CONTRAST+SHADOWS, CONTRAST, luminocity(sRGB)));
-    //float noiseO = (NOISEO*NOISEO)*0.25;
-    //noiseO = min(noiseO,0.25);
-    //Output = clamp((sRGB-noiseO)/(vec3(1.0)-noiseO),0.0,1.0);
-    Output = clamp(sRGB,0.0,1.0);
+    #if ULTRAHDR == 1
+     // The alpha channel carries the pre-tonemap linear HDR luminance. The gain
+     // map stage compares it against the displayed base in linear sRGB space;
+     // only positive differences recover compressed highlights. Shadows and
+     // neutral regions remain unchanged by the gain map.
+    Output = vec4(clamp(sRGB,0.0,1.0), linearLum);
+    #else
+    Output = vec4(clamp(sRGB,0.0,1.0), 0.0);
+    #endif
     #if POSTLUT == 1
-        Output = postlookup(Output);
+        Output.rgb = postlookup(Output.rgb);
     #endif
 }

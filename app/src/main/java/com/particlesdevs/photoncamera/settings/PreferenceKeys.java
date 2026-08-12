@@ -44,6 +44,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
+        COMMON_KEYS.add(Key.KEY_ULTRA_HDR.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -72,6 +73,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ULTRA_HDR, false);
 
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
@@ -215,6 +217,10 @@ public class PreferenceKeys {
 
     public static boolean isEnhancedProcessionOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_ENHANCED_PROCESSING);
+    }
+
+    public static boolean isUltraHdrOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_ULTRA_HDR);
     }
 
     public static boolean isHdrxNrOn() {
@@ -445,6 +451,7 @@ public class PreferenceKeys {
         KEY_WIDE169(R.string.pref_wide169_key),
         KEY_BINNING(R.string.pref_binning_key),
         KEY_ENHANCED_PROCESSING(R.string.pref_enhanced_processing_key),
+        KEY_ULTRA_HDR(R.string.pref_ultra_hdr_key),
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),

@@ -15,6 +15,7 @@ import androidx.exifinterface.media.ExifInterface;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrJpegWriter;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -126,6 +127,47 @@ public class ImageSaver {
                 img.recycle();
                 ExifInterface inter = ParseExif.setAllAttributes(fileToSave.toFile(), exifData);
                 inter.saveAttributes();
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        /**
+         * Saves the processed image as an Ultra HDR (ISO 21496-1) JPEG:
+         * the base bitmap plus EXIF are written exactly like
+         * {@link #saveBitmapAsJPG}, then the gain map JPEG is embedded into
+         * the container (XMP + MPF + ISO 21496-1 APP2 segments).
+         */
+        public static boolean saveBitmapAsUltraHdrJPG(Path fileToSave, Bitmap img,
+                                                      byte[] gainMapJpeg,
+                                                      float maxContentBoost,
+                                                      float minContentBoost,
+                                                      int jpgQuality,
+                                                      ParseExif.ExifData exifData) {
+            if (img == null || gainMapJpeg == null || gainMapJpeg.length == 0) {
+                return false;
+            }
+            exifData.COMPRESSION = String.valueOf(jpgQuality);
+            try {
+                OutputStream outputStream = Files.newOutputStream(fileToSave);
+                img.compress(Bitmap.CompressFormat.JPEG, jpgQuality, outputStream);
+                outputStream.flush();
+                outputStream.close();
+                img.recycle();
+                ExifInterface inter = ParseExif.setAllAttributes(fileToSave.toFile(), exifData);
+                inter.saveAttributes();
+                try {
+                    boolean embedded = UltraHdrJpegWriter.write(fileToSave, gainMapJpeg,
+                            maxContentBoost, minContentBoost);
+                    if (!embedded) {
+                        Log.e(TAG, "UltraHDR gain map embedding failed, saved plain JPEG");
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "UltraHDR gain map embedding failed, saved plain JPEG: "
+                            + Log.getStackTraceString(e));
+                }
                 return true;
             } catch (IOException e) {
                 e.printStackTrace();
