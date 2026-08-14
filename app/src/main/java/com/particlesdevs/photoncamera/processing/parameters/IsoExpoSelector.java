@@ -147,7 +147,8 @@ public class IsoExpoSelector {
 
         // Apply dynamic exposure balance shifting (shutter/ISO priority)
         float mult = PhotonCamera.getSettings().exposureBalanceMultiplier;
-        if (mult != 1.0f) {
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        if (mult != 1.0f && (mode == CameraMode.PHOTO || mode == CameraMode.NIGHT)) {
             pair.applyExposureBalance(mult);
         }
 

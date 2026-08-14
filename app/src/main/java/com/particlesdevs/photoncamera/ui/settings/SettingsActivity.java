@@ -194,6 +194,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             
             filterPreferencesByMode();
             showHideHdrxSettings();
+            showHideOisSettings();
             setFramesSummary();
             setVersionDetails();
             setHdrxTitle();
@@ -391,6 +392,24 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
             else
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
+        }
+
+        private void showHideOisSettings() {
+            try {
+                android.hardware.camera2.CameraManager manager = (android.hardware.camera2.CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+                if (manager != null) {
+                    android.hardware.camera2.CameraCharacteristics characteristics = manager.getCameraCharacteristics(PreferenceKeys.getCameraID());
+                    int[] stabilizationModes = characteristics.get(android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+                    boolean hasOis = (stabilizationModes != null && stabilizationModes.length > 1);
+
+                    Preference oisPref = findPreference(mContext.getString(R.string.pref_ois_mode_key));
+                    if (oisPref != null) {
+                        oisPref.setVisible(hasOis);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("SettingsActivity", "Error checking OIS support", e);
+            }
         }
 
         @NonNull

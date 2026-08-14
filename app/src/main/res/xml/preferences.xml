@@ -386,6 +386,16 @@
                 android:entryValues="@array/exposure_balance_iso_limit_entryValues"
                 android:defaultValue="-2"
                 />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_ois_mode_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/ois_mode"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/ois_mode_entries"
+                android:entryValues="@array/ois_mode_entryValues"
+                android:defaultValue="0"
+                />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="@string/pref_horizon"

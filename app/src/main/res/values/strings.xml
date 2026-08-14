@@ -67,6 +67,9 @@
     <string name="pref_exposure_balance_iso_limit_key" translatable="false">pref_exposure_balance_iso_limit_key</string>
     <string name="exposure_balance_iso_limit">Exposure Balance ISO Limit</string>
     <string name="exposure_balance_iso_limit_summary">Limit the maximum sensitivity allowed when shifting exposure balance</string>
+    <string name="pref_ois_mode_key" translatable="false">pref_ois_mode_key</string>
+    <string name="ois_mode">OIS Mode</string>
+    <string name="ois_mode_summary">Controls optical stabilization. Auto mode disables OIS on a tripod and in Unlimited to prevent drift</string>
     <string name="show_horizon_on_preview">Show horizon on preview</string>
     <string name="preview_format">Preview Format</string>
     <string name="pref_save_per_lens_string">Per Lens Settings</string>
