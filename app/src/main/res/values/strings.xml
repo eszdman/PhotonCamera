@@ -14,7 +14,6 @@
     <string name="chroma_nr_count">Chroma NR Count</string>
     <string name="enhanced_processing">Enhanced Processing</string>
     <string name="settings">Settings</string>
-
     <string name="comp">Compressor</string>
     <string name="gain">Gain</string>
     <string name="shadows">Shadows</string>
@@ -62,6 +61,15 @@
     <string name="color_method">Color Method</string>
     <string name="focus_peaking">Focus Peaking</string>
     <string name="focus_peaking_auto">Auto</string>
+    <string name="pref_exposure_balance_key" translatable="false">pref_exposure_balance_key</string>
+    <string name="exposure_balance">Exposure Balance</string>
+    <string name="exposure_balance_summary">Shift balance between shutter speed and ISO. Photo and Night modes only</string>
+    <string name="pref_exposure_balance_iso_limit_key" translatable="false">pref_exposure_balance_iso_limit_key</string>
+    <string name="exposure_balance_iso_limit">Exposure Balance ISO Limit</string>
+    <string name="exposure_balance_iso_limit_summary">Limit the maximum sensitivity allowed when shifting exposure balance</string>
+    <string name="pref_ois_mode_key" translatable="false">pref_ois_mode_key</string>
+    <string name="ois_mode">OIS Mode</string>
+    <string name="ois_mode_summary">Controls optical stabilization. Auto mode disables OIS on a tripod and in Unlimited to prevent drift</string>
     <string name="show_horizon_on_preview">Show horizon on preview</string>
     <string name="preview_format">Preview Format</string>
     <string name="pref_save_per_lens_string">Per Lens Settings</string>
@@ -111,7 +119,8 @@
     <string name="long_press_to_deselect">Long press button to deselect all</string>
     <string name="multiple_deleted_success">%1$s file(s) deleted! %2$s cleared.</string>
     <string name="supported_devices">Supported Devices</string>
-    <string name="list_not_loaded" translatable="false"><![CDATA[<list not loaded>]]></string>
+    <string name="list_not_loaded" translatable="false">
+        <![CDATA[<list not loaded>]]></string>
     <string name="fetch_configurations">Fetch Configurations</string>
     <string name="fetch_configurations_summary">Download device-specific tuning from the network and update cached settings</string>
     <string name="advanced">Advanced</string>
@@ -149,14 +158,12 @@
     <string name="gallery_folders">Gallery Folders</string>
     <string name="options">Options</string>
     <string name="session_on_configure_failed">System session configuration failed try changing preview format</string>
-    
     <!-- Bracketing mode strings -->
     <string name="exposure_bracketing">Exposure Bracketing</string>
     <string name="bracketing_off">Off (1x)</string>
     <string name="bracketing_normal">Normal (1x, 4x)</string>
     <string name="bracketing_high">High (1x, 8x)</string>
     <string name="pref_bracketing_key" translatable="false">pref_bracketing_mode_key</string>
-    
     <!-- Video Settings -->
     <string name="video_settings">Video Settings</string>
     <string name="raw_video_settings">Raw Video Settings</string>
@@ -170,10 +177,8 @@
     <string name="video_res_4k" translatable="false">3840x2160 (4K)</string>
     <string name="video_res_fhd" translatable="false">1920x1080 (Full HD)</string>
     <string name="video_res_hd" translatable="false">1280x720 (HD)</string>
-    
     <!-- Storage Access Framework folder picker -->
     <string name="select_dcim_folder_hint">Select the DCIM folder for saving photos</string>
-
     <!-- Permission rationale dialogs -->
     <string name="ok">OK</string>
     <string name="perm_open_settings">Open Settings</string>

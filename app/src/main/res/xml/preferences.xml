@@ -366,6 +366,36 @@
                 android:entryValues="@array/focuspeakset_entryValues"
                 android:defaultValue="@string/pref_focus_peak_default"
                 />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_exposure_balance_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/exposure_balance"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/exposure_balance_entries"
+                android:entryValues="@array/exposure_balance_entryValues"
+                android:defaultValue="1.0"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_exposure_balance_iso_limit_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/exposure_balance_iso_limit"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/exposure_balance_iso_limit_entries"
+                android:entryValues="@array/exposure_balance_iso_limit_entryValues"
+                android:defaultValue="-2"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_ois_mode_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/ois_mode"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/ois_mode_entries"
+                android:entryValues="@array/ois_mode_entryValues"
+                android:defaultValue="0"
+                />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="@string/pref_horizon"
