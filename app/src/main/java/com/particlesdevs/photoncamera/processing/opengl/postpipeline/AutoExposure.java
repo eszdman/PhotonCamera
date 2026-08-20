@@ -57,7 +57,12 @@
         histogram.Rc = true;
         histogram.Gc = true;
         histogram.Bc = true;
-        int[][] result = histogram.Compute(previousNode.WorkingTexture);
+        int[][] result;
+        try {
+            result = histogram.Compute(previousNode.WorkingTexture);
+        } finally {
+            histogram.close();
+        }
         int histNormR = 0;
         int histNormG = 0;
         int histNormB = 0;
@@ -79,8 +84,20 @@
         glProg.useAssetProgram("autoexposure/apply");
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
 
+        if (cnt <= 0 || !Float.isFinite(sum) || sum <= 0.0f) {
+            Log.d(Name, "Skipping auto exposure: histogram has no positive samples");
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
         float avg = sum / cnt;
         float mpy = (histSize / 256.0f) * target / avg;
+        if (!Float.isFinite(mpy) || mpy <= 0.0f) {
+            Log.d(Name, "Skipping auto exposure: invalid multiplier " + mpy);
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
 
         sum = 0;
         int cnt2 = 0;
@@ -138,7 +155,19 @@
             normR += (val * (1.0f + (val / (mpy * mpy))))/(1.0f + val);
         }
         Log.d("AutoExposure", "Reinhard normalizer:" + normR + " normL:" + normL + " base Mpy:" + mpy);
+        if (!Float.isFinite(normR) || normR <= 0.0f || !Float.isFinite(normL)) {
+            Log.d(Name, "Skipping auto exposure: invalid Reinhard normalizer");
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
         mpy *= normL / normR;
+        if (!Float.isFinite(mpy) || mpy <= 0.0f) {
+            Log.d(Name, "Skipping auto exposure: invalid normalized multiplier " + mpy);
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
 
         whiteMax *= mpy;
         Log.d("AutoExposure", "Reinhard white max (top 0.5%): " + whiteMax);

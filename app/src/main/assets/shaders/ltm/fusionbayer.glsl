@@ -21,10 +21,15 @@ out vec4 result;
 #import gaussian
 #import interpolation
 float laplace(sampler2D tex, vec4 mid, ivec2 xyCenter) {
-    vec4 left = texelFetch(tex, xyCenter - ivec2(1, 0), 0),
-    right = texelFetch(tex, xyCenter + ivec2(1, 0), 0),
-    top = texelFetch(tex, xyCenter - ivec2(0, 1), 0),
-    bottom = texelFetch(tex, xyCenter + ivec2(0, 1), 0);
+    ivec2 size = textureSize(tex, 0);
+    ivec2 leftPos = clamp(xyCenter - ivec2(1, 0), ivec2(0), size - ivec2(1));
+    ivec2 rightPos = clamp(xyCenter + ivec2(1, 0), ivec2(0), size - ivec2(1));
+    ivec2 topPos = clamp(xyCenter - ivec2(0, 1), ivec2(0), size - ivec2(1));
+    ivec2 bottomPos = clamp(xyCenter + ivec2(0, 1), ivec2(0), size - ivec2(1));
+    vec4 left = texelFetch(tex, leftPos, 0),
+    right = texelFetch(tex, rightPos, 0),
+    top = texelFetch(tex, topPos, 0),
+    bottom = texelFetch(tex, bottomPos, 0);
 
     return distance(4.f * mid, left + right + top + bottom);
 }

@@ -425,7 +425,14 @@ public class ExposureFusionBayer2 extends Node {
 
 
         SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
-        SplineInterpolator splineInterpolatorShadows = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
+        ArrayList<Float> shadowX = new ArrayList<>();
+        ArrayList<Float> shadowY = new ArrayList<>();
+        for (int i = 0; i < curvePointsCount; i++) {
+            shadowX.add(shadowCurveX[i]);
+            shadowY.add(shadowCurveY[i]);
+        }
+        SplineInterpolator splineInterpolatorShadows =
+                SplineInterpolator.createMonotoneCubicSpline(shadowX, shadowY);
         float[] interpolatedCurveArr = new float[1024];
         float[] interpolatedCurveShadowsArr = new float[1024];
         for(int i =0 ;i<interpolatedCurveArr.length;i++){
@@ -475,7 +482,9 @@ public class ExposureFusionBayer2 extends Node {
 
         //overexposure*=overExposeMpy;
         overexposure = Math2.mix(1.f,overexposure,overExposeMpy);
+        overexposure = Math2.mix(1.f, overexposure, overExposeMaxFusion);
         underexposure*=underExposeMpy;
+        underexposure = Math2.mix(underexposure, 1.f, underExposeMinFusion);
         overexposure = Math.min(fusionExpoHighLimit,overexposure);
         underexposure = Math.max(fusionExpoLowLimit,underexposure);
 
@@ -524,7 +533,12 @@ public class ExposureFusionBayer2 extends Node {
 
             glProg.setTexture("upsampled", upsampleWip);
             glProg.setVar("useUpsampled", 1);
-            glProg.setVar("blendMpy",1.0f+dehazing-dehazing*((float)i)/(normalExpo.laplace.length-1.f));
+            // The finest Laplacian carries the one-texel even/odd phase pattern
+            // of the pyramid upsampling; amplifying it here paints a grid on
+            // fine detail. Keep the dehazing boost only at coarser levels.
+            float blendMpy = (i == 0) ? 1.0f
+                    : 1.0f + dehazing - dehazing * ((float) i) / (normalExpo.laplace.length - 1.f);
+            glProg.setVar("blendMpy", blendMpy);
             glProg.setVar("level",i);
             glProg.setVar("upscaleIn",1.0f/normalExpo.sizes[i].x, 1.0f/normalExpo.sizes[i].y);
             glProg.setVar("gauss", gaussSize);
@@ -552,7 +566,6 @@ public class ExposureFusionBayer2 extends Node {
 
         }
         //previousNode.WorkingTexture.close();
-        normalExpo.gauss[ind].close();
         //highExpo.gauss[ind].close();
         basePipeline.main1.mSize.x = initialSize.x;
         basePipeline.main1.mSize.y = initialSize.y;

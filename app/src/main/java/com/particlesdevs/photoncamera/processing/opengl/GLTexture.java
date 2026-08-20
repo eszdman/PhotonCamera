@@ -26,6 +26,9 @@ public class GLTexture implements AutoCloseable {
     public final GLFormat mFormat;
     private static boolean[] ids = new boolean[256];
     private static int[] textures = new int[256];
+    private static GLTexture[] owners = new GLTexture[256];
+    private int trackingSlot = -1;
+    private boolean closed = false;
     public GLTexture(GLTexture in,GLFormat format) {
         this(in.mSize,new GLFormat(format),null,in.mFormat.filter,in.mFormat.wrap,0);
     }
@@ -78,21 +81,8 @@ public class GLTexture implements AutoCloseable {
         int[] TexID = new int[1];
         glGenTextures(1,TexID,0);
         Log.d("GLTexture","TexID:"+TexID[0] + " Size:"+mSize.x+"x"+mSize.y + " Format:"+mFormat.getGLFormatInternal() + " Filter:"+textureFilter + " Wrapper:"+textureWrapper);
-        for(int i = 1; i<ids.length;i++){
-            if(!ids[i]){
-                Log.d("GLTexture","get:"+i);
-                if(count < i){
-                    count = i;
-                    //glGenTextures(1,TexID,0);
-                }
-                //TexID[0] = i;
-                textures[i] = TexID[0];
-                ids[i] = true;
-                break;
-            }
-        }
-
         mTextureID = TexID[0];
+        registerTexture();
         //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
@@ -117,20 +107,8 @@ public class GLTexture implements AutoCloseable {
         int[] TexID = new int[1];
         glGenTextures(1,TexID,0);
         Log.d("GLTexture","TexID:"+TexID[0]);
-        for(int i = 1; i<ids.length;i++){
-            if(!ids[i]){
-                Log.d("GLTexture","get:"+i);
-                if(count < i){
-                    count = i;
-                    //glGenTextures(1,TexID,0);
-                }
-                //TexID[0] = i;
-                textures[i] = TexID[0];
-                ids[i] = true;
-                break;
-            }
-        }
         mTextureID = TexID[0];
+        registerTexture();
         //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
@@ -156,6 +134,23 @@ public class GLTexture implements AutoCloseable {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mFormat.filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mFormat.wrap);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mFormat.wrap);
+    }
+
+    private void registerTexture() {
+        for (int i = 1; i < ids.length; i++) {
+            if (!ids[i]) {
+                trackingSlot = i;
+                textures[i] = mTextureID;
+                owners[i] = this;
+                ids[i] = true;
+                if (count < i) {
+                    count = i;
+                }
+                Log.d("GLTexture", "get:" + i);
+                return;
+            }
+        }
+        Log.e("GLTexture", "Texture tracking capacity exhausted for ID " + mTextureID);
     }
     public void Bufferize(){
         if(!isBuffered) {
@@ -236,7 +231,17 @@ public class GLTexture implements AutoCloseable {
         for(int i =0; i<ids.length;i++){
             if(ids[i]) {
                 glDeleteTextures(1,new int[]{textures[i]},0);
+                if (owners[i] != null) {
+                    if (owners[i].isBuffered) {
+                        glDeleteBuffers(1, new int[]{owners[i].mBuffer}, 0);
+                    }
+                    owners[i].closed = true;
+                    owners[i].trackingSlot = -1;
+                    owners[i].isBuffered = false;
+                }
                 ids[i] = false;
+                textures[i] = 0;
+                owners[i] = null;
             }
         }
         count = 0;
@@ -244,9 +249,21 @@ public class GLTexture implements AutoCloseable {
 
     @Override
     public void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
         glDeleteTextures(1,new int[]{mTextureID},0);
-        ids[mTextureID] = false;
+        if (trackingSlot >= 0 && trackingSlot < ids.length) {
+            ids[trackingSlot] = false;
+            textures[trackingSlot] = 0;
+            owners[trackingSlot] = null;
+            trackingSlot = -1;
+        }
         //Log.d("GLTexture","close ID:"+mTextureID);
-        if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
+        if(isBuffered) {
+            glDeleteBuffers(1,new int[]{mBuffer},0);
+            isBuffered = false;
+        }
     }
 }

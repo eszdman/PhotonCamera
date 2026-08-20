@@ -127,12 +127,19 @@ public class PostPipeline extends GLBasePipeline {
         // Inject tunable values for PostPipeline (since it doesn't extend Node)
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
         
-        BuildDefaultPipeline();
-        GLImage resImg = runAll();
-        Bitmap res = resImg.getBufferedImage();
-        Allocator.free(resImg.byteBuffer);
-        GLTexture.closeAll();
-        return res;
+        try {
+            BuildDefaultPipeline();
+            GLImage resImg = runAll();
+            Bitmap res;
+            try {
+                res = resImg.getBufferedImage();
+            } finally {
+                Allocator.free(resImg.byteBuffer);
+            }
+            return res;
+        } finally {
+            GLTexture.closeAll();
+        }
     }
 
     private void BuildDefaultPipeline() {

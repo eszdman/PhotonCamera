@@ -97,7 +97,9 @@ void main() {
     inp.a = texelFetch(InputBuffer, xyCenter+ivec2(1,1), 0).r;
     vec4 gains = textureBicubicHardware(GainMap, vec2(xyCenter)/vec2(textureSize(InputBuffer, 0)));
     inp *= (gains.r + gains.g + gains.b + gains.a) / 4.0;
-    //inp /= neutral.rggb;
+    // Normalize the four Bayer planes before calculating exposure weights.
+    // Without this, white-point differences are interpreted as brightness.
+    inp /= max(neutral.rggb, vec4(1e-6));
     inp = clamp(inp, vec4(0.0), vec4(1.0));
     //inp = clamp(inp,vec4(0.0001),vec3(NEUTRALPOINT).rggb)/vec3(NEUTRALPOINT).rggb;
 
@@ -116,16 +118,16 @@ void main() {
     br = luminocity(v3);
     br = gammaEncode(br);
     //br = mix(br,gammaEncode(br),clamp(br-1.0,0.0,0.6));
-    result.g = clamp((br),0.0,1.0);
+    result.g = clamp(br,0.0,highLim);
     v3 = brIn(inp,mix(STRHIGH,1.0,0.5));
     br = luminocity(v3);
     br = gammaEncode(br);
     //br = mix(br,gammaEncode(br),clamp(br-1.0,0.0,0.6));
-    result.b = clamp((br),0.0,1.0);
+    result.b = clamp(br,0.0,highLim);
     v3 = brIn(inp,mix(STRHIGH,1.0,0.25));
     br = luminocity(v3);
     br = gammaEncode(br);
     //br = mix(br,gammaEncode(br),clamp(br-1.0,0.0,0.6));
-    result.a = clamp((br),0.0,1.0);
+    result.a = clamp(br,0.0,highLim);
     result /= 4.0;
 }

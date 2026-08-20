@@ -114,10 +114,12 @@ vec4 textureBicubicHardware(sampler2D sampler, vec2 texCoords){
     vec4 s = vec4(xcubic.xz + xcubic.yw, ycubic.xz + ycubic.yw);
     vec4 offset = c + vec4 (xcubic.yw, ycubic.yw) / s;
     offset *= invTexSize.xxyy;
-    vec4 sample0 = texture(sampler, offset.xz);
-    vec4 sample1 = texture(sampler, offset.yz);
-    vec4 sample2 = texture(sampler, offset.xw);
-    vec4 sample3 = texture(sampler, offset.yw);
+    // Bicubic taps extend beyond the image at the border. Clamp each tap
+    // explicitly because texture wrap state is not guaranteed by callers.
+    vec4 sample0 = texture(sampler, clamp(offset.xz, vec2(0.0), vec2(1.0)));
+    vec4 sample1 = texture(sampler, clamp(offset.yz, vec2(0.0), vec2(1.0)));
+    vec4 sample2 = texture(sampler, clamp(offset.xw, vec2(0.0), vec2(1.0)));
+    vec4 sample3 = texture(sampler, clamp(offset.yw, vec2(0.0), vec2(1.0)));
     float sx = s.x / (s.x + s.y);
     float sy = s.z / (s.z + s.w);
     return mix(
