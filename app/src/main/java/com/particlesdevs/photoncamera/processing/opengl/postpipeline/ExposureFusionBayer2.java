@@ -483,7 +483,9 @@ public class ExposureFusionBayer2 extends Node {
 
         //overexposure*=overExposeMpy;
         overexposure = Math2.mix(1.f,overexposure,overExposeMpy);
+        overexposure = Math2.mix(1.f, overexposure, overExposeMaxFusion);
         underexposure*=underExposeMpy;
+        underexposure = Math2.mix(underexposure, 1.f, underExposeMinFusion);
         overexposure = Math.min(fusionExpoHighLimit,overexposure);
         underexposure = Math.max(fusionExpoLowLimit,underexposure);
 
