@@ -127,6 +127,41 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    /**
+     * Streams the rendered tiles directly into {@code sink}'s pixel memory
+     * (a software ARGB_8888 bitmap wrapped via {@link Allocator#wrapBitmap}),
+     * skipping every intermediate full-frame buffer. The per-tile program
+     * replay (viewport + yOffset) is identical to {@link #drawBlocksToOutput()}.
+     */
+    public void drawBlocksToOutput(Bitmap sink) {
+        ByteBuffer wrapped = Allocator.wrapBitmap(sink);
+        if (wrapped == null) {
+            throw new IllegalStateException("Failed to lock bitmap pixels for direct output");
+        }
+        try {
+            glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+            GLProg program = super.mProgram;
+            GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLDrawParams.TileSize);
+            int[] row = new int[2];
+            while (divider.nextBlock(row)) {
+                int y = row[0];
+                int height = row[1];
+                glViewport(0, 0, mOutWidth, height);
+                checkEglError("glViewport");
+                program.setVar("yOffset", y);
+                program.draw();
+                checkEglError("program");
+                wrapped.position(y * mOutWidth * 4);
+                wrapped.limit((y + height) * mOutWidth * 4);
+                glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), wrapped);
+                checkEglError("glReadPixels");
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        } finally {
+            Allocator.unlockBitmap(sink);
+        }
+    }
+
 
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat) {
         return drawBlocksToOutput(size,glFormat, GLDrawParams.Allocate.Heap);

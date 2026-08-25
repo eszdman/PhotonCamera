@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import com.particlesdevs.photoncamera.util.Log;
 
@@ -149,6 +150,21 @@ public class GLBasePipeline implements AutoCloseable {
     }
 
     public GLImage runAll() {
+        runAllInternal(null);
+        return glint.glProcessing.mOut;
+    }
+
+    /**
+     * Runs the node chain and streams the final render directly into
+     * {@code sink}'s pixel memory (software ARGB_8888), avoiding any
+     * intermediate full-frame output buffer. Returns {@code sink}.
+     */
+    public Bitmap runAll(Bitmap sink) {
+        runAllInternal(sink);
+        return sink;
+    }
+
+    private void runAllInternal(Bitmap sink) {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
             prepareNode(Nodes.get(i),i);
@@ -165,7 +181,11 @@ public class GLBasePipeline implements AutoCloseable {
         }else {
             if (main1 != null) main1.close();
         }
-        glint.glProcessing.drawBlocksToOutput();
+        if (sink != null) {
+            glint.glProcessing.drawBlocksToOutput(sink);
+        } else {
+            glint.glProcessing.drawBlocksToOutput();
+        }
         if(texnum == 1){
             if (main1 != null) main1.close();
         }else {
@@ -174,7 +194,6 @@ public class GLBasePipeline implements AutoCloseable {
         if (main3 != null) main3.close();
         glint.glProgram.close();
         Nodes.clear();
-        return glint.glProcessing.mOut;
     }
 
     public ByteBuffer runAllRaw() {

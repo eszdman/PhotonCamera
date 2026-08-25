@@ -5,6 +5,7 @@
 #include <jni.h>
 #include <malloc.h>
 #include <string.h>
+#include <android/bitmap.h>
 #include "android/log.h"
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "Allocator", __VA_ARGS__)
@@ -297,4 +298,39 @@ Java_com_particlesdevs_photoncamera_util_Allocator_getMemoryCount(JNIEnv *env, j
     // Return the current memory count
     LOGD("Current memory count: %ld MB", (memoryCount/1024)/1024);
     return memoryCount;
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_wrapBitmap(JNIEnv *env, jclass clazz,
+                                                             jobject bitmap) {
+    // Wrap a software ARGB_8888 bitmap's pixel memory in a direct ByteBuffer
+    // so GL readback can target it without any intermediate full-frame buffer.
+    AndroidBitmapInfo info;
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) {
+        LOGD("wrapBitmap: AndroidBitmap_getInfo failed");
+        return nullptr;
+    }
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+        LOGD("wrapBitmap: unsupported format %d", info.format);
+        return nullptr;
+    }
+    if (info.stride != (uint32_t)(info.width * 4)) {
+        LOGD("wrapBitmap: unsupported stride %u for width %u", info.stride, info.width);
+        return nullptr;
+    }
+    void *pixels = nullptr;
+    if (AndroidBitmap_lockPixels(env, bitmap, &pixels) != ANDROID_BITMAP_RESULT_SUCCESS ||
+        pixels == nullptr) {
+        LOGD("wrapBitmap: lockPixels failed");
+        return nullptr;
+    }
+    return env->NewDirectByteBuffer(pixels, (jlong) info.stride * info.height);
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_unlockBitmap(JNIEnv *env, jclass clazz,
+                                                               jobject bitmap) {
+    return AndroidBitmap_unlockPixels(env, bitmap) == ANDROID_BITMAP_RESULT_SUCCESS;
 }

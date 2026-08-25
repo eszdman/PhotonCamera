@@ -194,8 +194,11 @@ public class PostPipeline extends GLBasePipeline {
             GLDrawParams.TileSize = 256;
         }
         GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8, 4);
-        GLImage output = new GLImage(rotatedSize, format, false);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, output, format, GLDrawParams.Allocate.Direct);
+        // The final bitmap is allocated up-front and the render is streamed
+        // straight into its pixels: no intermediate full-frame native buffer
+        // (~258 MB at 64 MP) and no extra copies.
+        Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y, Bitmap.Config.ARGB_8888);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None);
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
@@ -204,29 +207,7 @@ public class PostPipeline extends GLBasePipeline {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
 
         BuildDefaultPipeline();
-        GLImage resImg = runAll();
-        Bitmap res = resImg.getBufferedImage();
-        // Ownership of the Direct malloc is transferred to this scope.
-        // glFinish ensures Adreno has completed the glReadPixels copy before
-        // we free the underlying malloc; then detach from glProcessing to
-        // avoid pipeline.close() touching freed memory (Direct buffers are
-        // intentionally leaked in GLCoreBlockProcessing.close for safety).
-        try {
-            GLES30.glFinish();
-        } catch (Exception ignored) {}
-        ByteBuffer resBuf = resImg.byteBuffer;
-        resImg.byteBuffer = null;
-        if (glint != null && glint.glProcessing != null) {
-            if (glint.glProcessing.mOut == resImg) {
-                glint.glProcessing.mOut = null;
-            }
-            if (glint.glProcessing.mOutBuffer == resBuf) {
-                glint.glProcessing.mOutBuffer = null;
-            }
-        }
-        if (resBuf != null) {
-            Allocator.free(resBuf);
-        }
+        res = runAll(res);
 
         // The linear scene buffer was already snapshotted to CPU from inside
         // Initial.Run (before closeAll claims the textures), so the
