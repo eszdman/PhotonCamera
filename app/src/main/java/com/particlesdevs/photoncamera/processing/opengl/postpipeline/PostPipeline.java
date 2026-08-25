@@ -86,11 +86,13 @@ public class PostPipeline extends GLBasePipeline {
      */
     public boolean captureDemosaic = false;
     private boolean mCaptured = false;
+    /** Whether {@link #demosaicLinear} holds packed half-floats instead of 32-bit floats. */
+    private boolean demosaicLinearHalfFloat = false;
     /**
      * CPU copy of the post-demosaic linear buffer (survives GLTexture.closeAll).
-     * Backed by a native {@link Allocator} malloc - at 50 MP this snapshot is
-     * ~768 MB (16 B/pixel), far above the Java heap growth limit, so it must
-     * not be a Java-accounted direct ByteBuffer. Must be freed via
+     * Backed by a native {@link Allocator} malloc and stored as packed
+     * half-floats when the driver allows (the source texture is RGBA16F, so
+     * nothing is lost) - 8 B/pixel, ~515 MB at 64 MP. Must be freed via
      * {@link #releaseDemosaicLinear()}.
      */
     public ByteBuffer demosaicLinear;
@@ -242,19 +244,25 @@ public class PostPipeline extends GLBasePipeline {
     /** Called from Initial.Run (first pass) to keep the linear scene buffer. */
     public void captureDemosaicLinear(GLTexture tex) {
         if (mCaptured || demosaicLinear != null) return;
-        // FLOAT_16 textures are read back as GL_FLOAT (4 B/channel, RGBA),
-        // i.e. 16 B/pixel: ~768 MB at 50 MP - above the Java heap growth
-        // limit, so the snapshot is allocated in native memory instead
-        // (same backing as the pipeline's other large I/O buffers).
-        int size = tex.mSize.x * tex.mSize.y * 4 * 4;
-        ByteBuffer buf = Allocator.allocate(size);
-        if (buf == null) {
-            Log.e("PostPipeline", "Linear scene snapshot allocation of " + size + " B failed; Ultra HDR will fall back to SDR");
-            return;
-        }
         tex.BindBuffer();
-        tex.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_16, 4), buf);
-        buf.rewind();
+        // The source texture is RGBA16F, so a packed GL_HALF_FLOAT transfer
+        // stores the identical bits at half the memory of a GL_FLOAT readback
+        // (~515 MB vs ~1030 MB at 64 MP). Backed by native memory either way;
+        // fall back to 32-bit floats if the driver refuses the packed type.
+        ByteBuffer buf = tex.textureBufferHalfFloat();
+        if (buf != null) {
+            demosaicLinearHalfFloat = true;
+        } else {
+            int size = tex.mSize.x * tex.mSize.y * 4 * 4;
+            buf = Allocator.allocate(size);
+            if (buf == null) {
+                Log.e("PostPipeline", "Linear scene snapshot allocation of " + size + " B failed; Ultra HDR will fall back to SDR");
+                return;
+            }
+            tex.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_16, 4), buf);
+            buf.rewind();
+            demosaicLinearHalfFloat = false;
+        }
         demosaicLinear = buf;
         demosaicLinearSize = new Point(tex.mSize.x, tex.mSize.y);
         mCaptured = true;
@@ -297,7 +305,7 @@ public class PostPipeline extends GLBasePipeline {
      * @param scale total log2 range of the encoding; must equal {@link GainMapComputer#SCALE}
      * @return the encoded RGBA8 gain map plus its dimensions, downsample and scale
      */
-    public GainMapRaw RunHDRGainMap(ByteBuffer inBuffer, Parameters parameters, Bitmap sdr, int down, float scale) {
+    public GainMapRaw RunHDRGainMap(Parameters parameters, Bitmap sdr, int down, float scale) {
         if (demosaicLinear == null || demosaicLinearSize == null) {
             throw new IllegalStateException("Linear buffer missing; Run() must complete first with ultraHdr enabled");
         }
@@ -335,7 +343,6 @@ public class PostPipeline extends GLBasePipeline {
         // it before GLTexture re-creation caused SEGV_MAPERR on waffle/Adreno.
         // The leaked context is reclaimed at final pipeline.close().
         glint = new GLInterface(glproc);
-        stackFrame = inBuffer;
         glint.parameters = parameters;
 
         // Defensive: the measured linear buffer must match the pipeline input size,
@@ -348,11 +355,36 @@ public class PostPipeline extends GLBasePipeline {
 
         GLTexture gainTex = null;
         try {
-            demosaicLinear.rewind();
-            GLTexture linTex = new GLTexture(demosaicLinearSize,
-                    new GLFormat(GLFormat.DataType.FLOAT_16, 4), demosaicLinear);
-            GLImage sdrImage = new GLImage(sdr);
-            GLTexture sdrTex = new GLTexture(sdrImage);
+            GLTexture linTex;
+            if (demosaicLinearHalfFloat) {
+                linTex = new GLTexture(demosaicLinearSize,
+                        new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+                linTex.loadHalfFloat(demosaicLinear);
+            } else {
+                linTex = new GLTexture(demosaicLinearSize,
+                        new GLFormat(GLFormat.DataType.FLOAT_16, 4), demosaicLinear);
+            }
+            // The snapshot is only needed until it is resident on the GPU.
+            releaseDemosaicLinear();
+
+            // Off-heap staging for the base image upload: GLImage(Bitmap)
+            // would allocate a Java-accounted direct copy of the whole bitmap
+            // (~258 MB at 64 MP).
+            GLTexture sdrTex;
+            ByteBuffer sdrStaging = Allocator.allocate(sdr.getByteCount());
+            if (sdrStaging != null) {
+                try {
+                    sdr.copyPixelsToBuffer(sdrStaging);
+                    sdrStaging.rewind();
+                    sdrTex = new GLTexture(new Point(sdr.getWidth(), sdr.getHeight()),
+                            new GLFormat(GLFormat.DataType.SIMPLE_8, 4), sdrStaging, GL_LINEAR, GL_CLAMP_TO_EDGE);
+                } finally {
+                    Allocator.free(sdrStaging);
+                }
+            } else {
+                GLImage sdrImage = new GLImage(sdr);
+                sdrTex = new GLTexture(sdrImage);
+            }
 
             // Lens-shading GainMap for flat-fielding the scene plane (see sceneluma.glsl).
             // Must match the map used on the SDR path (Initial / tofloat) so the ratio
@@ -428,15 +460,27 @@ public class PostPipeline extends GLBasePipeline {
             prog.draw();
             checkGlError("gain-map comparison draw");
 
-            ByteBuffer gm = outTex.textureBuffer(new GLFormat(GLFormat.DataType.SIMPLE_8, 4), false);
-            gm.position(0);
-            Bitmap gmBmp = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
-            gmBmp.copyPixelsFromBuffer(gm);
-
+            // Release the GPU resources before the CPU-side bitmap work.
             sdrTex.close();
-            linTex.close();
             lTex.close();
+            linTex.close();
+
+            // Off-heap staging for the readback: a heap ByteBuffer here would
+            // be Java-accounted (~258 MB at 64 MP).
+            ByteBuffer gm = Allocator.allocate(gw * gh * 4);
+            final boolean gmNative = gm != null;
+            if (!gmNative) gm = ByteBuffer.allocate(gw * gh * 4);
+            Bitmap gmBmp;
+            try {
+                outTex.textureBuffer(new GLFormat(GLFormat.DataType.SIMPLE_8, 4), gm);
+                gm.rewind();
+                gmBmp = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
+                gmBmp.copyPixelsFromBuffer(gm);
+            } finally {
+                if (gmNative) Allocator.free(gm);
+            }
             outTex.close();
+
             if (gainTex != null) {
                 try { gainTex.close(); } catch (Exception ignored) {}
                 gainTex = null;

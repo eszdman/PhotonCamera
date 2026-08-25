@@ -18,6 +18,7 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -134,10 +135,16 @@ public class UnlimitedProcessor extends ProcessorBase {
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(unlimitedBuffer, parameters);
 
+        // The stacked RAW frame is dead once it has been rendered - free it
+        // before the memory-heavy Ultra HDR gain-map pass (it previously
+        // leaked entirely).
+        Allocator.free(unlimitedBuffer);
+        unlimitedBuffer = null;
+
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
             try {
-                gm = pipeline.RunHDRGainMap(unlimitedBuffer, parameters, bitmap,
+                gm = pipeline.RunHDRGainMap(parameters, bitmap,
                         GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e("UnlimitedProcessor", "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);

@@ -2,7 +2,9 @@ package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.opengl.GLES30;
 import android.opengl.GLUtils;
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import androidx.annotation.NonNull;
@@ -205,6 +207,36 @@ public class GLTexture implements AutoCloseable {
         glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), buffer);
         return buffer;
     }
+
+    /**
+     * Half-float readback from a FLOAT_16 texture: stores the exact bits the
+     * GPU already holds, at half the size of a GL_FLOAT transfer (8 vs
+     * 16 B/pixel for RGBA). The buffer is backed by native memory
+     * ({@link Allocator}); returns {@code null} on allocation failure or if
+     * the driver refuses the packed transfer.
+     */
+    public ByteBuffer textureBufferHalfFloat() {
+        ByteBuffer buffer = Allocator.allocate(mSize.x * mSize.y * 4 * 2);
+        if (buffer == null) return null;
+        while (GLES30.glGetError() != GLES30.GL_NO_ERROR) {} // clear stale errors
+        glReadPixels(0, 0, mSize.x, mSize.y, GLES30.GL_RGBA, GLES30.GL_HALF_FLOAT, buffer);
+        int err = GLES30.glGetError();
+        if (err != GLES30.GL_NO_ERROR) {
+            Log.d("GLTexture", "HALF_FLOAT readback failed: 0x" + Integer.toHexString(err));
+            Allocator.free(buffer);
+            return null;
+        }
+        buffer.rewind();
+        return buffer;
+    }
+
+    /** Uploads packed half-float pixel data into this FLOAT_16 texture. */
+    public void loadHalfFloat(Buffer pixels) {
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y,
+                mFormat.getGLFormatExternal(), GLES30.GL_HALF_FLOAT, pixels);
+    }
+
     public Bitmap toBitmap(){
         ByteBuffer buffer = textureBuffer(mFormat);
         Bitmap bmp = Bitmap.createBitmap(mSize.x, mSize.y, Bitmap.Config.ARGB_8888);

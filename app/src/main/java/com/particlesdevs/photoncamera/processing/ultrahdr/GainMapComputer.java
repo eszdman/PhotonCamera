@@ -75,32 +75,29 @@ public final class GainMapComputer {
             throw new IllegalArgumentException("Empty gain map: " + sw + "x" + sh);
         }
 
-        final int[] in = new int[sw * sh];
-        src.getPixels(in, 0, sw, 0, 0, sw, sh);
+        // Streamed band-by-band over the source bitmap: peak CPU memory is
+        // one source row plus one gain-map row instead of several full-image
+        // arrays (multi-hundred MB at full resolution). Two passes are needed
+        // because the requantization range depends on the global maximum.
+        final int[] row = new int[sw];
+        final long[] sums = new long[gw];
+        final int[] counts = new int[gw];
+        final float[] bandBoost = new float[gw];
 
-        // Decode v -> logBoost over the fixed encode range, box-averaging in log
-        // domain (geometric mean of per-pixel gains - robust to outliers).
-        final float[] logBoost = new float[gw * gh];
+        // Pass 1: box-average per map pixel - decoding v to logBoost happens
+        // per band, averaging in log domain (geometric mean of gains, robust
+        // to outliers) - while tracking the global maximum.
         float maxBoost = Float.NEGATIVE_INFINITY;
-        for (int gy = 0; gy < gh; gy++) {
-            final int y0 = gy * down;
-            final int y1 = Math.min(y0 + down, sh);
-            for (int gx = 0; gx < gw; gx++) {
-                final int x0 = gx * down;
-                final int x1 = Math.min(x0 + down, sw);
-                float sum = 0f;
-                int count = 0;
-                for (int y = y0; y < y1; y++) {
-                    final int row = y * sw;
-                    for (int x = x0; x < x1; x++) {
-                        final int r = (in[row + x] >> 16) & 0xFF;
-                        sum += r;
-                        count++;
-                    }
+        resetAccumulators(sums, counts);
+        for (int y = 0; y < sh; y++) {
+            src.getPixels(row, 0, sw, 0, y, sw, 1);
+            accumulateRow(row, sums, counts, gw, down);
+            if ((y + 1) % down == 0 || y == sh - 1) {
+                finishBand(sums, counts, bandBoost, scale, gw);
+                for (int gx = 0; gx < gw; gx++) {
+                    if (bandBoost[gx] > maxBoost) maxBoost = bandBoost[gx];
                 }
-                final float lb = (sum / (count * 255f)) * scale;
-                logBoost[gy * gw + gx] = lb;
-                if (lb > maxBoost) maxBoost = lb;
+                resetAccumulators(sums, counts);
             }
         }
 
@@ -114,17 +111,49 @@ public final class GainMapComputer {
         final float gMax = maxBoost + Math.max(maxBoost * RANGE_PAD_FRACTION, MIN_RANGE);
         final float range = gMax - gMin;
 
+        // Pass 2: identical walk, requantizing with the final range and
+        // emitting completed gain-map rows straight into the output bitmap.
         final Bitmap out = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
-        final int[] pixels = new int[gw * gh];
-        for (int i = 0; i < logBoost.length; i++) {
-            float vNorm = (logBoost[i] - gMin) / range;
-            if (vNorm < 0f) vNorm = 0f;
-            else if (vNorm > 1f) vNorm = 1f;
-            final int byteVal = Math.round(vNorm * 255.0f);
-            pixels[i] = (0xFF << 24) | (byteVal << 16) | (byteVal << 8) | byteVal;
+        final int[] outRow = new int[gw];
+        resetAccumulators(sums, counts);
+        for (int y = 0, gy = 0; y < sh; y++) {
+            src.getPixels(row, 0, sw, 0, y, sw, 1);
+            accumulateRow(row, sums, counts, gw, down);
+            if ((y + 1) % down == 0 || y == sh - 1) {
+                finishBand(sums, counts, bandBoost, scale, gw);
+                for (int gx = 0; gx < gw; gx++) {
+                    float vNorm = (bandBoost[gx] - gMin) / range;
+                    if (vNorm < 0f) vNorm = 0f;
+                    else if (vNorm > 1f) vNorm = 1f;
+                    final int byteVal = Math.round(vNorm * 255.0f);
+                    outRow[gx] = (0xFF << 24) | (byteVal << 16) | (byteVal << 8) | byteVal;
+                }
+                out.setPixels(outRow, 0, gw, 0, gy, gw, 1);
+                gy++;
+                resetAccumulators(sums, counts);
+            }
         }
-        out.setPixels(pixels, 0, gw, 0, 0, gw, gh);
 
         return new Result(out, gMin, gMax);
+    }
+
+    private static void resetAccumulators(long[] sums, int[] counts) {
+        java.util.Arrays.fill(sums, 0L);
+        java.util.Arrays.fill(counts, 0);
+    }
+
+    /** Accumulates one source row's red bytes into their gain-map blocks. */
+    private static void accumulateRow(int[] row, long[] sums, int[] counts, int gw, int down) {
+        for (int x = 0; x < row.length; x++) {
+            final int gx = Math.min(x / down, gw - 1);
+            sums[gx] += (row[x] >> 16) & 0xFF;
+            counts[gx]++;
+        }
+    }
+
+    private static void finishBand(long[] sums, int[] counts, float[] outBoost, float scale, int gw) {
+        for (int gx = 0; gx < gw; gx++) {
+            outBoost[gx] = (sums[gx] / (counts[gx] * 255f)) * scale;
+        }
     }
 }

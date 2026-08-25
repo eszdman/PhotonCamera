@@ -299,18 +299,20 @@ public class HdrxProcessor extends ProcessorBase {
 
         Bitmap img = pipeline.Run(output, processingParameters);
 
+        // The merged RAW frame is dead once it has been rendered - free it
+        // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
+        Allocator.free(output);
+        output = null;
+
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
-            // Must run before the raw frame buffer is freed.
             try {
-                gm = pipeline.RunHDRGainMap(output, processingParameters, img,
+                gm = pipeline.RunHDRGainMap(processingParameters, img,
                         GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e(TAG, "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }
         }
-
-        Allocator.free(output);
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
         try {
