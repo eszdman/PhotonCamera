@@ -137,7 +137,11 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("BrBuffer",br);
         glProg.setVar("factor", str);
-        GLFormat format = new GLFormat(in.mFormat);
+        // ltm/fusionmap writes a vec2 (gain in R, 0 in G) and every consumer
+        // samples only the red channel, so RG16F carries everything - half
+        // the memory of the inherited RGBA16F (~64 MB saved at 64 MP, held
+        // from fusion until Initial completes).
+        GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 2);
         format.filter = GL_LINEAR;
         format.wrap = GL_CLAMP_TO_EDGE;
         GLTexture out = new GLTexture(in,format);
