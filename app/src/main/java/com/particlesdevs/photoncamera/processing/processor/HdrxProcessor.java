@@ -308,7 +308,7 @@ public class HdrxProcessor extends ProcessorBase {
         if (PhotonCamera.getSettings().ultraHdr) {
             try {
                 gm = pipeline.RunHDRGainMap(processingParameters, img,
-                        GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
+                        GainMapComputer.computeScaleDown(processingParameters.rawSize), GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e(TAG, "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }

@@ -145,7 +145,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         if (PhotonCamera.getSettings().ultraHdr) {
             try {
                 gm = pipeline.RunHDRGainMap(parameters, bitmap,
-                        GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
+                        GainMapComputer.computeScaleDown(parameters.rawSize), GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e("UnlimitedProcessor", "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }

@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.ultrahdr;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
 
 /**
  * Normalises the GPU-encoded gain map produced by PostPipeline's
@@ -30,8 +31,23 @@ public final class GainMapComputer {
      * ISO 21496-1 decode reproduces the HDR rendition exactly.
      */
     public static final float DECODE_OFFSET = 1.0f / 64.0f;
-    /** Downsample factor per axis (gain map is 1/SCALE_DOWN^2 the pixels). */
+    /**
+     * Downsample factor per axis for fixed use cases; prefer
+     * {@link #computeScaleDown(Point)} for resolution-adaptive captures.
+     */
     public static final int SCALE_DOWN = 1;
+
+    /**
+     * Adaptive gain-map/scene-luma scale: full resolution up to 16 MP, above
+     * that the raw megapixels over 16 rounded to the nearest integer
+     * (50.3 MP -> 3, 64 MP -> 4). Captures at or below 16 MP keep the exact
+     * full-resolution path.
+     */
+    public static int computeScaleDown(Point rawSize) {
+        double mp = (double) rawSize.x * (double) rawSize.y / 1_000_000.0;
+        if (mp <= 16.0) return 1;
+        return (int) Math.round(mp / 16.0);
+    }
     // Pad so extreme pixels don't sit exactly on the metadata endpoints.
     private static final float RANGE_PAD_FRACTION = 0.02f;
     private static final float MIN_RANGE = 1e-3f;

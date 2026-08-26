@@ -386,8 +386,17 @@ public class PostPipeline extends GLBasePipeline {
                         BufferUtils.getFrom(new float[]{1f, 1f, 1f, 1f}), GL_LINEAR, GL_CLAMP_TO_EDGE);
             }
 
-            // Scene-luma plane at full resolution, pixel-aligned with the base.
-            GLTexture lTex = new GLTexture(new Point(rotatedSize.x, rotatedSize.y),
+            // sdrTex is the actual stored base that the gain map will modify.
+            // Use its dimensions as the authoritative output coordinate space.
+            final Point sdrSize = sdrTex.mSize;
+
+            // Ceiling division preserves the complete source extent, including
+            // partial right/bottom blocks for non-divisible dimensions.
+            int gw = Math.max(1, (sdrSize.x + down - 1) / down);
+            int gh = Math.max(1, (sdrSize.y + down - 1) / down);
+
+            // Scene luma is reduced directly onto the final gain-map grid.
+            GLTexture lTex = new GLTexture(new Point(gw, gh),
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4));
             lTex.BufferLoad();
 
@@ -399,11 +408,36 @@ public class PostPipeline extends GLBasePipeline {
             prog.setVar("mirror", parameters.mirror ? 1 : 0);
             prog.setVar("cropSize", cropSize);
             prog.setVar("rawSize", mParameters.rawSize);
+            prog.setVar("uLinFullSize", sdrSize.x, sdrSize.y);
+            prog.setVar("uLinGridSize", gw, gh);
             GLES30.glDisable(GLES30.GL_SCISSOR_TEST);
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, lTex.mBuffer);
-            GLES30.glViewport(0, 0, rotatedSize.x, rotatedSize.y);
+            GLES30.glViewport(0, 0, gw, gh);
             prog.draw();
             checkGlError("scene-luma draw");
+
+            // Preserve the original full-resolution SDR texture at down == 1.
+            // This keeps the established <=16 MP path unchanged. At reduced
+            // resolutions, create a matched linear-light reduction instead of
+            // a GL_LINEAR blit, since the footprint will not match lTex.
+            GLTexture sdrSmall;
+            if (down == 1) {
+                sdrSmall = sdrTex;
+            } else {
+                sdrSmall = new GLTexture(new Point(gw, gh),
+                        new GLFormat(GLFormat.DataType.FLOAT_16, 4));
+                sdrSmall.BufferLoad();
+
+                sdrTex.Bufferize();
+                prog.useAssetProgram("ultrahdr/downsample_sdr");
+                prog.setTexture("InputBuffer", sdrTex);
+                prog.setVar("uGridSize", gw, gh);
+                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sdrSmall.mBuffer);
+                GLES30.glViewport(0, 0, gw, gh);
+                prog.draw();
+                checkGlError("Ultra HDR SDR matched downsample draw");
+                sdrTex.close();
+            }
 
             // Anchor: medians of the rendering and of the scene plane. Median
             // (not top-percentile) anchoring is required - with large blown
@@ -416,7 +450,7 @@ public class PostPipeline extends GLBasePipeline {
             GLHistogram hist = new GLHistogram(prog, histSize);
             try {
                 lMed = Math.max(histogramMedian(hist.Compute(lTex), histSize), 1e-4f);
-                float sMedDisp = histogramMedian(hist.Compute(sdrTex), histSize);
+                float sMedDisp = histogramMedian(hist.Compute(sdrSmall), histSize);
                 sMedLin = srgbToLinear(sMedDisp);
             } finally {
                 hist.close();
@@ -424,16 +458,14 @@ public class PostPipeline extends GLBasePipeline {
             float anchor = sMedLin / lMed;
             Log.d("PostPipeline", "UltraHDR anchor:" + anchor + " Lmed:" + lMed + " SmedLin:" + sMedLin);
 
-            int gw = Math.max(1, rotatedSize.x / down);
-            int gh = Math.max(1, rotatedSize.y / down);
             GLTexture outTex = new GLTexture(new Point(gw, gh), new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
             outTex.BufferLoad();
 
             prog.useAssetProgram("ultrahdr/gainmap");
-            prog.setTexture("InputBuffer", sdrTex);
+            prog.setTexture("InputBuffer", sdrSmall);
             prog.setTexture("LBuffer", lTex);
             prog.setVar("uAnchor", anchor);
-            prog.setVar("uDown", down);
+            prog.setVar("uDown", 1);
             prog.setVar("uScale", scale);
             prog.setVar("uEps", GainMapComputer.DECODE_OFFSET);
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, outTex.mBuffer);
@@ -442,7 +474,7 @@ public class PostPipeline extends GLBasePipeline {
             checkGlError("gain-map comparison draw");
 
             // Release the GPU resources before the CPU-side bitmap work.
-            sdrTex.close();
+            sdrSmall.close();
             lTex.close();
             linTex.close();
 
@@ -466,7 +498,9 @@ public class PostPipeline extends GLBasePipeline {
                 try { gainTex.close(); } catch (Exception ignored) {}
                 gainTex = null;
             }
-            return new GainMapRaw(gmBmp, gw, gh, down, scale);
+            // The GPU map is already at its final grid, so the box filter
+            // must not run again (down = 1).
+            return new GainMapRaw(gmBmp, gw, gh, 1, scale);
         } finally {
             if (gainTex != null) {
                 try { gainTex.close(); } catch (Exception ignored) {}
