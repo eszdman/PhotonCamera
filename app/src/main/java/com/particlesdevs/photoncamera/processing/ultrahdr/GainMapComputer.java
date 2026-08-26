@@ -129,7 +129,16 @@ public final class GainMapComputer {
 
         // Pass 2: identical walk, requantizing with the final range and
         // emitting completed gain-map rows straight into the output bitmap.
-        final Bitmap out = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
+        //
+        // The adaptive GPU path already supplies a final-grid bitmap
+        // (down == 1). Reuse it when mutable: each source row is read before
+        // that same row is overwritten, so no future input is destroyed.
+        //
+        // A source that still requires CPU downsampling has different output
+        // dimensions and must retain the separate output bitmap.
+        final Bitmap out = src.isMutable() && sw == gw && sh == gh
+                ? src
+                : Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
         final int[] outRow = new int[gw];
         resetAccumulators(sums, counts);
         for (int y = 0, gy = 0; y < sh; y++) {
