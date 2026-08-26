@@ -428,12 +428,15 @@ public class DngCreator {
             throw new RuntimeException("Failed to create DNG data");
         }
 
-        ByteBuffer softbuffer = ByteBuffer.allocate(dngData.capacity());
-        softbuffer.put(dngData);
-        softbuffer.position(0);
-
+        // Stream directly out of the native buffer: a full-size heap copy of
+        // the DNG (~128 MB at 64 MP) would spike memory right after merging.
+        byte[] chunk = new byte[256 * 1024];
         try {
-            outputStream.write(softbuffer.array());
+            while (dngData.hasRemaining()) {
+                int n = Math.min(chunk.length, dngData.remaining());
+                dngData.get(chunk, 0, n);
+                outputStream.write(chunk, 0, n);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write DNG data to output stream", e);
         }
