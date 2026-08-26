@@ -248,9 +248,12 @@ public class GLProg implements AutoCloseable {
         glDispatchCompute(size.x/glComputeLayout.xy.x + x,
                 size.y/glComputeLayout.xy.y + y,
                 z/glComputeLayout.z + z0);
+        // Barriers alone order all GPU-side consumers; CPU readers
+        // (buffer maps, glReadPixels) synchronize themselves. A per-dispatch
+        // glFinish here only serialized the entire pipeline (~85-100 stalls
+        // per shot at high resolution).
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
         glMemoryBarrier(GL_ALL_SHADER_BITS);
-        glFinish();
     }
     public void computeManual(int x,int y, int z) {
         if(!isCompute) {
@@ -258,9 +261,10 @@ public class GLProg implements AutoCloseable {
             return;
         }
         glDispatchCompute(x, y, z);
+        // See the barrier note in computeAuto: no CPU-visible result depends
+        // on a full-queue drain here.
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
         glMemoryBarrier(GL_ALL_SHADER_BITS);
-        glFinish();
     }
 
 
@@ -278,7 +282,8 @@ public class GLProg implements AutoCloseable {
     public void drawBlocks(GLTexture glTexture) {
         glTexture.BufferLoad();
         drawBlocks(glTexture.mSize.x, glTexture.mSize.y);
-        glFinish();
+        // No finish: per-block draws already flush, barriers order the GPU
+        // work, and no caller reads results back on the CPU here.
     }
 
     public void drawBlocks(int w, int h) {
