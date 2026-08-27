@@ -27,6 +27,8 @@
     <string name="hdrx" translatable="false">HDRX</string>
     <string name="ultrahdr">Ultra HDR</string>
     <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass)</string>
+    <string name="ultrahdr_4x">Ultra HDR 4x downscale</string>
+    <string name="ultrahdr_4x_summary">Downscale gain map 4× per axis (16× fewer pixels) to save memory at high resolutions. Off keeps full-resolution gain map for maximum quality.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>

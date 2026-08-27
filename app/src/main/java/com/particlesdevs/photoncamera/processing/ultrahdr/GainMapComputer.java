@@ -38,15 +38,16 @@ public final class GainMapComputer {
     public static final int SCALE_DOWN = 1;
 
     /**
-     * Adaptive gain-map/scene-luma scale: full resolution up to 16 MP, above
-     * that the raw megapixels over 16 rounded to the nearest integer
-     * (50.3 MP -> 3, 64 MP -> 4). Captures at or below 16 MP keep the exact
-     * full-resolution path.
+     * @deprecated Resolution-based scaling removed in favor of explicit
+     * {@code Ultra HDR 4x downscale} toggle. This method now always returns
+     * 1 (full resolution). Kept for API compat; callers should use
+     * {@code PhotonCamera.getSettings().ultraHdr4x ? 4 : 1}.
+     * Previous behavior was adaptive: full res up to 16 MP, above that
+     * raw MP/16 rounded (50.3 MP -> 3, 64 MP -> 4). See revert of 634e996f.
      */
+    @Deprecated
     public static int computeScaleDown(Point rawSize) {
-        double mp = (double) rawSize.x * (double) rawSize.y / 1_000_000.0;
-        if (mp <= 16.0) return 1;
-        return (int) Math.round(mp / 16.0);
+        return 1;
     }
     // Pad so extreme pixels don't sit exactly on the metadata endpoints.
     private static final float RANGE_PAD_FRACTION = 0.02f;

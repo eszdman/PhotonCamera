@@ -60,6 +60,7 @@
     <string name="pref_quad_bayer_key" translatable="false">pref_quad_bayer_key</string>
     <string name="pref_fps_preview_key" translatable="false">pref_fps_preview_key</string>
     <string name="pref_ultrahdr_key" translatable="false">pref_ultrahdr_key</string>
+    <string name="pref_ultrahdr_4x_key" translatable="false">pref_ultrahdr_4x_key</string>
     <string name="camera_id" translatable="false">camera_id</string>
     <string name="tonemap_key" translatable="false">tonemap_key</string>
     <string name="gamma_key" translatable="false">gamma_key</string>
