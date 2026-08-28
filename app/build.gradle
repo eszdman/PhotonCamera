@@ -128,6 +128,8 @@ dependencies {
     implementation "androidx.navigation:navigation-ui-ktx:2.9.7"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
+    // Gallery modernization: ViewPager2 for bounded tiling/HDR (thumbnails via Glide - single loader to keep baseline low on 4GB)
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
     //Google Material
     implementation 'com.google.android.material:material:1.13.0'
     implementation "androidx.core:core-ktx:1.18.0"
