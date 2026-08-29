@@ -70,6 +70,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
+import com.particlesdevs.photoncamera.processing.render.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
@@ -1220,6 +1221,37 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         zoomController.setActiveLens(PhotonCamera.getSettings().mCameraID);
     }
 
+    /**
+     * Applies the In-Sensor Zoom (ISZ) CaptureRequest key when the currently
+     * active camera id is an ISZ virtual lens. The key makes the physical sensor
+     * perform the zoom in-sensor; the zoom ratio is informational only (it only
+     * composes the displayed zoom factor) so no crop is applied here.
+     *
+     * @param builder    the request builder being configured (preview or capture)
+     * @param physicalID the physical camera id for the session
+     */
+    private void applyIszIfActive(CaptureRequest.Builder builder, String physicalID) {
+        try {
+            String cameraId = PhotonCamera.getSettings().mCameraID;
+            if (builder == null || cameraId == null || !CameraManager2.isIszVirtual(cameraId)) return;
+            int sensorId = -1;
+            try {
+                sensorId = Integer.parseInt(physicalID);
+            } catch (NumberFormatException ignored) {
+                return;
+            }
+            SpecificSettingSensor isz = PhotonCamera.getSpecificSensor().getIszForSensor(sensorId);
+            if (isz == null || isz.iszKey == null) return;
+            // Apply a copy so the shared SensorSpecifics config is not mutated.
+            VendorTagUtils.TunableKey key = new VendorTagUtils.TunableKey(
+                    isz.iszKey.type, isz.iszKey.name, VendorTagUtils.TunableKey.classForValueType(isz.iszKey.valueType), isz.iszKey.parseValue());
+            Log.d(TAG, "Applying ISZ key " + key.name + " = " + key.value + " (" + key.valueType + ") for sensor " + sensorId);
+            VendorTagUtils.applyTunableKeys(builder, Collections.singletonList(key), physicalID);
+        } catch (Exception e) {
+            Log.d(TAG, "applyIszIfActive: " + Log.getStackTraceString(e));
+        }
+    }
+
     /** Reads the max digital zoom for a (possibly composite) camera id. */
     private float readMaxDigitalZoom(String cameraId) {
         String physical = cameraId;
@@ -1860,6 +1892,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         applyAeMeteringRegions(mPreviewRequestBuilder);
                         Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                         VendorTagUtils.builderSessionApply(mPreviewRequestBuilder, false, useMaximumResolutionKey, physicalID);
+                        applyIszIfActive(mPreviewRequestBuilder, physicalID);
                         //if(isZslMode()){
                             try {
                                 mPreviewRequestBuilder.set(CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE, CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE_ON);
@@ -2451,6 +2484,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 applyAeMeteringRegions(captureBuilder);
             }
             VendorTagUtils.builderSessionApply(captureBuilder, true, useMaximumResolutionKey, physicalID);
+            applyIszIfActive(captureBuilder, physicalID);
             try {
                 captureBuilder.set(CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE, CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE_ON);
             } catch (Exception e) {
