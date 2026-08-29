@@ -27,6 +27,53 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocate(JNIEnv *env, jclass 
     return buffer;
 }
 
+// Copies a rectangular sub-region of a 2D image row by row. Supports an
+// arbitrary XY offset (unlike allocateAndCopy which only shifts a single
+// contiguous run), so an in-place digital-zoom crop can be taken directly
+// from a RAW buffer that has stride padding.
+//
+// cropWidthBytes  - number of bytes to copy per output row (cropWidth * bpp)
+// cropHeight      - number of rows to copy
+// originBuffer    - source ByteBuffer (full frame)
+// row_stride      - source row stride in bytes
+// offset          - byte offset to the crop's top-left corner
+//
+// Output is tightly packed: cropWidthBytes * cropHeight (no padding).
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCrop(JNIEnv *env, jclass clazz,
+                                                                      jint cropWidthBytes,
+                                                                      jint cropHeight,
+                                                                      jobject originBuffer,
+                                                                      jint row_stride,
+                                                                      jint offset) {
+    int output_size = cropWidthBytes * cropHeight;
+    void* allocation = malloc(output_size);
+    jobject buffer = env->NewDirectByteBuffer(allocation, output_size);
+    if (buffer == nullptr) {
+        LOGD("allocateAndCopyCrop: failed to allocate output");
+        free(allocation);
+        return nullptr;
+    }
+    void* ptr = env->GetDirectBufferAddress(originBuffer);
+    if (ptr == nullptr) {
+        LOGD("allocateAndCopyCrop: failed to get direct buffer address of originBuffer");
+        free(allocation);
+        return nullptr;
+    }
+    uint8_t* src = static_cast<uint8_t*>(ptr) + offset;
+    uint8_t* dst = static_cast<uint8_t*>(allocation);
+    for (int row = 0; row < cropHeight; row++) {
+        memcpy(dst + (uint64_t)row * cropWidthBytes,
+               src + (uint64_t)row * row_stride,
+               cropWidthBytes);
+    }
+    memoryCount += output_size;
+    LOGD("allocateAndCopyCrop: %dx%d, memory %ld MB",
+         cropWidthBytes, cropHeight, (memoryCount / 1024) / 1024);
+    return buffer;
+}
+
 extern "C"
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "MemoryLeak"
@@ -210,6 +257,79 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvertBinning
     memoryCount += output_size;
     LOGD("allocateAndCopyConvertBinning: %dx%d -> %dx%d, memory %ld MB",
          width, height, out_width, out_height, (memoryCount / 1024) / 1024);
+    return buffer;
+}
+
+// Applies Bayer-aware 2x2 sum binning on a cropped region of a RAW16 buffer.
+// Equivalent to allocateAndCopyCrop followed by binning, but done in a single
+// pass (only the cropped region is binned). offset points to the crop's
+// top-left; cropWidth/cropHeight are the crop dimensions (full, un-binned).
+// Output is (cropWidth/2)*(cropHeight/2)*sizeof(uint16_t).
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCropBinning(JNIEnv *env, jclass clazz,
+                                                                              jint cropWidth, jint cropHeight,
+                                                                              jobject originBuffer,
+                                                                              jint row_stride, jint offset) {
+    int out_width  = cropWidth  / 2;
+    int out_height = cropHeight / 2;
+    int output_size = out_width * out_height * (int)sizeof(uint16_t);
+    if (out_width <= 0 || out_height <= 0) {
+        LOGD("allocateAndCopyCropBinning: invalid crop %dx%d", cropWidth, cropHeight);
+        return nullptr;
+    }
+
+    auto* allocation = static_cast<uint16_t*>(malloc(output_size));
+    jobject buffer = env->NewDirectByteBuffer(allocation, output_size);
+    if (buffer == nullptr) {
+        LOGD("allocateAndCopyCropBinning: failed to allocate output");
+        free(allocation);
+        return nullptr;
+    }
+
+    void* ptr = env->GetDirectBufferAddress(originBuffer);
+    if (ptr == nullptr) {
+        LOGD("allocateAndCopyCropBinning: failed to get buffer address");
+        free(allocation);
+        return nullptr;
+    }
+
+    const uint8_t* src = static_cast<const uint8_t*>(ptr) + offset;
+    auto* rowA = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));
+    auto* rowB = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));
+    if (rowA == nullptr || rowB == nullptr) {
+        LOGD("allocateAndCopyCropBinning: failed to allocate row buffers");
+        free(rowA);
+        free(rowB);
+        free(allocation);
+        return nullptr;
+    }
+    for (int oy = 0; oy < out_height; oy++) {
+        int blockStartRow = (oy / 2) * 4;
+        int dr    = oy % 2;
+        int inRow  = blockStartRow + dr;
+        int inRow2 = (inRow + 2 < cropHeight) ? inRow + 2 : cropHeight - 1;
+        memcpy(rowA, src + inRow  * row_stride, cropWidth * sizeof(uint16_t));
+        memcpy(rowB, src + inRow2 * row_stride, cropWidth * sizeof(uint16_t));
+        uint16_t* outRow = allocation + oy * out_width;
+        for (int ox = 0; ox < out_width; ox++) {
+            int blockStartCol = (ox / 2) * 4;
+            int dc    = ox % 2;
+            int inCol  = blockStartCol + dc;
+            int inCol2 = (inCol + 2 < cropWidth) ? inCol + 2 : cropWidth - 1;
+
+            uint32_t sum = (uint32_t)rowA[inCol] + (uint32_t)rowA[inCol2]
+                         + (uint32_t)rowB[inCol] + (uint32_t)rowB[inCol2];
+            outRow[ox] = (uint16_t)(sum > 65535u ? 65535u : sum);
+        }
+    }
+
+    free(rowA);
+    free(rowB);
+
+    memoryCount += output_size;
+    LOGD("allocateAndCopyCropBinning: %dx%d -> %dx%d, memory %ld MB",
+         cropWidth, cropHeight, out_width, out_height, (memoryCount / 1024) / 1024);
     return buffer;
 }
 

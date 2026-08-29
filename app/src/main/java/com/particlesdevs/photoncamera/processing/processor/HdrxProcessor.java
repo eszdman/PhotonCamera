@@ -119,6 +119,13 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         Parameters processingParameters = new Parameters();
         processingParameters.FillConstParameters(characteristics, new Point(width, height));
+        // Reflect any digital-zoom crop origin so sensor-relative metadata
+        // (active array, principal point) matches the cropped buffer.
+        ImageFrame first = mImageFramesToProcess.get(0);
+        processingParameters.setCropDetails(first.cropOriginX, first.cropOriginY);
+        if (first.fullWidth > 0 && first.fullHeight > 0) {
+            processingParameters.setFullRawSize(first.fullWidth, first.fullHeight);
+        }
         // sort by timestamp first
         mImageFramesToProcess.sort(Comparator.comparingLong(ImageFrame::getTimestamp));
         double minExpo = exposures.get(mImageFramesToProcess.get(0).getTimestamp());

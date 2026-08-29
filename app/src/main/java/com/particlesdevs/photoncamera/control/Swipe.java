@@ -5,6 +5,7 @@ import com.particlesdevs.photoncamera.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ScaleGestureDetector;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -22,6 +23,7 @@ public class Swipe {
     private final CameraFragment cameraFragment;
     private final CaptureController captureController;
     private GestureDetector gestureDetector;
+    private ScaleGestureDetector scaleDetector;
     private ManualModeConsole manualModeConsole;
     private CameraFragmentViewModel cameraFragmentViewModel;
     private ImageView ocManual;
@@ -96,23 +98,56 @@ public class Swipe {
                 return false;
             }
         });
-        View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
+        scaleDetector = new ScaleGestureDetector(cameraFragment.getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                // Ignore pinch while a burst/processing is active or the manual
+                // panel is open, to avoid fighting the manual controls.
+                if (manualModeConsole.isPanelVisible() || CaptureController.isProcessing) {
+                    return true;
+                }
+                float current = captureController.getZoomRatio();
+                float newZoom = current * detector.getScaleFactor();
+                // The crop is always centered (the HAL's CONTROL_ZOOM_RATIO, and
+                // therefore the preview, zooms to sensor center), so pass the
+                // centered focal point to keep the saved JPEG/RAW matching the
+                // viewfinder exactly.
+                captureController.setZoom(newZoom, 0.5f, 0.5f);
+                cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                return true;
+            }
+        });
+        View.OnTouchListener touchListener = (view, motionEvent) -> {
+            boolean handled = gestureDetector.onTouchEvent(motionEvent);
+            // Feed the same events to the scale detector so pinch-to-zoom works
+            // alongside tap-to-focus / swipe.
+            if (scaleDetector != null) {
+                scaleDetector.onTouchEvent(motionEvent);
+                handled |= scaleDetector.isInProgress();
+            }
+            return handled;
+        };
         View holder = cameraFragment.findViewById(R.id.textureHolder);
         Log.d(TAG, "input:" + holder);
         if (holder != null) holder.setOnTouchListener(touchListener);
     }
 
-    private void startTouchToFocus(MotionEvent event) {
+    private RectF getViewfinderRect() {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
         ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
         FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
-        RectF viewfinderRect = new RectF(
+        return new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container
                 layout_viewfinder.getRight(), //right edge of viewfinder
                 layout_viewfinder.getBottom() + camera_container.getY() //bottom edge of viewfinder + y position of camera_container
         );
+    }
+
+    private void startTouchToFocus(MotionEvent event) {
+        ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
+        RectF viewfinderRect = getViewfinderRect();
         // Interface.getCameraFragment().showToast(previewRect.toString()+"\nCurX"+event.getX()+"CurY"+event.getY());
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();

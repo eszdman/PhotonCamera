@@ -152,4 +152,47 @@ public class CustomBinding {
             }
         }
     }
+
+    /**
+     * Updates the on-screen zoom indicator (a {@link android.widget.TextView})
+     * from the live zoom ratio, and hides it entirely at 1.0x.
+     */
+    @BindingAdapter("zoomIndicator")
+    public static void setZoomIndicator(android.widget.TextView view, float zoomRatio) {
+        if (view == null) return;
+        view.setTag(R.id.zoom_ratio_tag, zoomRatio);
+        if (Math.abs(zoomRatio - 1.0f) > 0.0001f && !isHiddenBySettings(view)) {
+            view.setText(String.format(java.util.Locale.US, "%.1fx", zoomRatio));
+            view.setVisibility(View.VISIBLE);
+        } else {
+            view.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Hides the zoom indicator along with the lens switcher when the floating
+     * settings bar is opened.
+     */
+    @BindingAdapter("hideZoomIndicator")
+    public static void setZoomIndicatorHidden(android.widget.TextView view, boolean hidden) {
+        if (view == null) return;
+        view.setTag(R.id.zoom_hidden_tag, hidden);
+        hideOrShowZoom(view);
+    }
+
+    private static boolean isHiddenBySettings(android.widget.TextView view) {
+        Object tag = view.getTag(R.id.zoom_hidden_tag);
+        return tag instanceof Boolean && (Boolean) tag;
+    }
+
+    private static void hideOrShowZoom(android.widget.TextView view) {
+        Object ratioTag = view.getTag(R.id.zoom_ratio_tag);
+        float ratio = ratioTag instanceof Float ? (Float) ratioTag : 1.0f;
+        boolean hidden = isHiddenBySettings(view);
+        if (Math.abs(ratio - 1.0f) > 0.0001f && !hidden) {
+            view.setVisibility(View.VISIBLE);
+        } else {
+            view.setVisibility(View.GONE);
+        }
+    }
 }

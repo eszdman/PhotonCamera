@@ -182,6 +182,10 @@ public class ImageSaver {
             Parameters parameters = new Parameters();
 
             parameters.FillConstParameters(characteristics, new Point(image.width, image.height));
+            parameters.setCropDetails(image.cropOriginX, image.cropOriginY);
+            if (image.fullWidth > 0 && image.fullHeight > 0) {
+                parameters.setFullRawSize(image.fullWidth, image.fullHeight);
+            }
             int iso = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
             parameters.FillDynamicParameters(captureResult, null, iso);
             parameters.cameraRotation = cameraRotation;

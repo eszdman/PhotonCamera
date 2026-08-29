@@ -1209,6 +1209,18 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
             auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
+            // Feed the physical-lens model into the zoom controller so pinch can
+            // switch lenses and zoom below 1.0x (ultra-wide).
+            updateZoomLensModel();
+        }
+
+        private void updateZoomLensModel() {
+            if (captureController == null || mCameraLensDataMap == null) return;
+            CameraLensData active = mCameraLensDataMap.get(PreferenceKeys.getCameraID());
+            int facing = active != null
+                    ? active.getFacing()
+                    : CameraCharacteristics.LENS_FACING_BACK;
+            captureController.configureZoomLenses(mCameraLensDataMap, facing);
         }
 
         @Override
@@ -1224,6 +1236,18 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             surfaceView.clear();
             if (mViewfinderHudView != null) mViewfinderHudView.clear();
             auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
+            if (captureController != null) {
+                if (captureController.isZoomDrivenLensSwitch()) {
+                    // The zoom target changed because a lens switch occurred. Preserve
+                    // the effective zoom so the new lens continues where the user left
+                    // off, re-expressing any crop on the new sensor.
+                    captureController.clearZoomDrivenLensSwitch();
+                } else {
+                    // A manual lens/camera switch invalidates the existing crop.
+                    captureController.resetZoom();
+                }
+                cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+            }
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
             manualModeConsole.setPreserveManualWb(PreferenceKeys.isPreserveManualWbOn());

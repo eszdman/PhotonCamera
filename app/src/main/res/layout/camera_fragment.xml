@@ -85,6 +85,31 @@
                     hideAuxButtons="@{uimodel.settingsBarVisibility}"
                     android:layout_marginBottom="6dp" />
 
+            <!--    Block 1.3b-->
+            <!--    Digital zoom indicator: sits vertically above the lens switcher,
+                    right-aligned with it and sharing its background -->
+            <TextView
+                    android:id="@+id/zoom_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/aux_container_background"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:layout_marginBottom="@dimen/aux_container_margin"
+                    android:textColor="@color/black_white_selectable"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    tools:text="1.5x"
+                    tools:visibility="visible"
+                    bindRotate="@{uimodel}"
+                    zoomIndicator="@{uimodel.zoomRatio}"
+                    hideZoomIndicator="@{uimodel.settingsBarVisibility}"
+                    app:layout_constraintBottom_toTopOf="@+id/aux_buttons_container"
+                    app:layout_constraintEnd_toEndOf="@+id/aux_buttons_container" />
+
             <!--    Block 1.4-->
             <!--   includes the Layout resource of Manual Mode palette-->
             <include
