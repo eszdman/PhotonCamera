@@ -76,7 +76,7 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     }
 
     private static String getAuxButtonName(float zoomFactor) {
-        return String.format(Locale.US, "%.1fx", (zoomFactor - 0.049)).replace(".0", "");
+        return String.format(Locale.US, "%.1fx", zoomFactor).replace(".0", "");
     }
 
     public void setAuxButtonsModel(AuxButtonsModel auxButtonsModel) {
