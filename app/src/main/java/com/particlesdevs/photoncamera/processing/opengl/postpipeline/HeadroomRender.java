@@ -63,6 +63,12 @@ public class HeadroomRender extends Node {
         float sceneWhite = Math.max(1.0f,
                 Math.min(sceneWhiteMax, headroomScale * displayGain));
 
+        // Scene (pre-exposure) luma that this tonemapping maps to SDR display
+        // white: the curve reaches 1.0 at exposed = sceneWhite, i.e. raw =
+        // sceneWhite / displayGain. The gain-map pass anchors on this so the
+        // recoverable highlight headroom is pushed exactly above scene white.
+        pipeline.sceneWhiteRaw = sceneWhite / displayGain;
+
         // Matrix-only color: plain matrix for CUBE/CUBES modes (cubes skipped).
         float[] intermediateToSRGB = basePipeline.mParameters.CCT.matrix;
         if (basePipeline.mParameters.CCT.correctionMode
