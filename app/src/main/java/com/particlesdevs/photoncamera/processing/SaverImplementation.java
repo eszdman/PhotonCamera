@@ -52,14 +52,17 @@ public class SaverImplementation {
         // because both derive from this single ImageFrame.
         CaptureController captureController = PhotonCamera.getCaptureController();
         if (captureController != null && captureController.zoomController.isZoomed()) {
+            int logicalW = image.getWidth();
+            int logicalH = image.getHeight();
             ZoomController.CropRegion cropRegion =
-                    captureController.zoomController.computeCropRegion(width, height);
-            boolean useZoomCrop = cropRegion.width < width || cropRegion.height < height;
+                    captureController.zoomController.computeCropRegion(logicalW, logicalH);
+            boolean useZoomCrop = cropRegion.width < logicalW || cropRegion.height < logicalH;
             if (useZoomCrop) {
                 ImageFrame frame = ImageFrame.fromCrop(
                         image.getPlanes()[0].getBuffer(), image.getFormat(),
-                        width, height, rowStride, pixelStride, cropRegion,
+                        logicalW, logicalH, rowStride, pixelStride, cropRegion,
                         PhotonCamera.getSettings().binning);
+                if (frame == null) return null;
                 frame.timestamp = image.getTimestamp();
                 return frame;
             }
@@ -79,11 +82,14 @@ public class SaverImplementation {
                 capacity = rowStride * height;
             }
         }
-        Allocator.binning = PhotonCamera.getSettings().binning;
-        ImageFrame frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, rowStride, offset, capacity);
+        boolean doBinning = PhotonCamera.getSettings().binning;
+        ImageFrame frame;
+        synchronized (Allocator.class) {
+            Allocator.binning = doBinning;
+            frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, rowStride, offset, capacity);
+        }
         frame.timestamp = image.getTimestamp();
-
-        if (Allocator.binning) {
+        if (doBinning) {
             frame.width = width / 2;
             frame.height = height / 2;
         } else {

@@ -8,7 +8,7 @@ public class Allocator{
         System.loadLibrary("allocator");
     }
 
-    public static boolean binning = false;
+    public static volatile boolean binning = false;
 
     public native static ByteBuffer allocate(int capacity);
 

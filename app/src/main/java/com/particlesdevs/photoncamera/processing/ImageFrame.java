@@ -90,16 +90,22 @@ public class ImageFrame {
         if (cropW <= 0 || cropH <= 0) {
             return new ImageFrame(in, format, srcWidth, rowStride, 0, in.capacity());
         }
-        // Keep crop dims even so a 2x2 Bayer binning (which halves them) never
-        // produces an odd size, which the demosaicers require to be even.
         left = cropW % 2 == 0 ? left : Math.max(0, left + 1);
         top = cropH % 2 == 0 ? top : Math.max(0, top + 1);
         right = left + (cropW % 2 == 0 ? cropW : cropW - 1);
         bottom = top + (cropH % 2 == 0 ? cropH : cropH - 1);
         cropW = right - left;
         cropH = bottom - top;
+        if (format == 0x25 || binning) {
+            cropW &= ~3;
+            cropH &= ~3;
+            if (cropW < 4) cropW = 4;
+            if (cropH < 4) cropH = 4;
+            left &= ~3;
+            top &= ~3;
+        }
 
-        Allocator.binning = binning;
+        synchronized (Allocator.class) { Allocator.binning = binning; }
         ByteBuffer direct;
         if (format == 0x25) {
             // RAW10 packed (4 px = 5 bytes): align to 4-pixel groups.
@@ -120,7 +126,7 @@ public class ImageFrame {
                 direct = Allocator.allocateAndCopyCrop(cropW * 2, cropH, in, rowStride, shift);
             }
         }
-        if (direct == null) direct = Allocator.allocateAndCopy(in.capacity(), in, 0);
+        if (direct == null) return null;
         direct.position(0);
 
         ImageFrame frame = new ImageFrame();
@@ -148,8 +154,7 @@ public class ImageFrame {
         Rect rect = new Rect(crop.originX, crop.originY,
                 crop.originX + crop.width, crop.originY + crop.height);
         ImageFrame frame = fromCrop(in, format, srcWidth, srcHeight, rowStride, pixelStride, rect, binning);
-        frame.cropOriginX = crop.originX;
-        frame.cropOriginY = crop.originY;
+        if (frame == null) return null;
         frame.fullWidth = crop.fullWidth;
         frame.fullHeight = crop.fullHeight;
         return frame;

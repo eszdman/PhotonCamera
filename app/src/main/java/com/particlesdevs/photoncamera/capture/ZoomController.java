@@ -62,15 +62,15 @@ public class ZoomController {
     private float snapWindow = DEFAULT_SNAP_WINDOW;
 
     /** Effective zoom seen by the user / gesture; the state-machine input. */
-    private float targetZoom = MIN_ZOOM;
+    private volatile float targetZoom = MIN_ZOOM;
     /** Index into {@link #lensesAsc} of the currently active lens. */
-    private int activeLensIndex = -1;
+    private volatile int activeLensIndex = -1;
     /** Digital crop (>= 1.0) applied to the active lens. */
-    private float digitalZoom = MIN_ZOOM;
+    private volatile float digitalZoom = MIN_ZOOM;
 
     /** Normalized pinch focus point in [0,1] within the active array frame. */
-    private float focusX = 0.5f;
-    private float focusY = 0.5f;
+    private volatile float focusX = 0.5f;
+    private volatile float focusY = 0.5f;
 
     // Comparator: ascending native zoom (ultra-wide first, tele last).
     private static final Comparator<LensEntry> ASC_BY_NATIVE =

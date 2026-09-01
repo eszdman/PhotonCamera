@@ -188,6 +188,9 @@ public class GLTexture implements AutoCloseable {
     }
 
     public void textureBuffer(GLFormat outputFormat,ByteBuffer output) {
+        int need = mSize.x * mSize.y * outputFormat.mFormat.mSize * outputFormat.mChannels;
+        if (output.capacity() < need) throw new IllegalArgumentException("textureBuffer under-capacity " + output.capacity() + " < " + need);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), output);
     }
 

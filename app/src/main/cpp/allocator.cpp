@@ -61,6 +61,13 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCrop(JNIEnv *e
         free(allocation);
         return nullptr;
     }
+    jlong cap = env->GetDirectBufferCapacity(originBuffer);
+    if (offset < 0 || cropWidthBytes < 0 || cropHeight < 0 || row_stride <= 0 ||
+        (int64_t)offset + (int64_t)(cropHeight - 1) * row_stride + cropWidthBytes > cap) {
+        LOGD("allocateAndCopyCrop: bounds violation cap=%lld offset=%d row_stride=%d crop=%dx%d oob", (long long)cap, offset, row_stride, cropWidthBytes, cropHeight);
+        free(allocation);
+        return nullptr;
+    }
     uint8_t* src = static_cast<uint8_t*>(ptr) + offset;
     uint8_t* dst = static_cast<uint8_t*>(allocation);
     for (int row = 0; row < cropHeight; row++) {
@@ -130,7 +137,12 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvert(JNIEnv
         free(allocation);
         return nullptr;
     }
-
+    jlong cap = env->GetDirectBufferCapacity(originBuffer);
+    if (offset < 0 || height <= 0 || (int64_t)offset + (int64_t)height * row_stride > cap) {
+        LOGD("allocateAndCopyConvert: bounds violation cap=%lld offset=%d row_stride=%d h=%d", (long long)cap, offset, row_stride, height);
+        free(allocation);
+        return nullptr;
+    }
     uint8_t* input = static_cast<uint8_t*>(ptr) + offset;
     uint16_t* output = allocation;
 
@@ -237,7 +249,12 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvertBinning
         free(allocation);
         return nullptr;
     }
-
+    jlong cap2 = env->GetDirectBufferCapacity(originBuffer);
+    if (offset < 0 || height <= 0 || (int64_t)offset + (int64_t)height * row_stride > cap2) {
+        LOGD("allocateAndCopyConvertBinning: bounds violation cap=%lld offset=%d row_stride=%d h=%d", (long long)cap2, offset, row_stride, height);
+        free(allocation);
+        return nullptr;
+    }
     // Decode entire RAW10 image into a packed uint16 buffer (no row padding)
     int full_size = width * height * (int)sizeof(uint16_t);
     auto* decoded = static_cast<uint16_t*>(malloc(full_size));
@@ -294,6 +311,12 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCropBinning(JN
         return nullptr;
     }
 
+    jlong cap = env->GetDirectBufferCapacity(originBuffer);
+    if (offset < 0 || (int64_t)offset + (int64_t)(cropHeight - 1) * row_stride + cropWidth * sizeof(uint16_t) > cap) {
+        LOGD("allocateAndCopyCropBinning: bounds violation cap=%lld offset=%d row_stride=%d crop=%dx%d", (long long)cap, offset, row_stride, cropWidth, cropHeight);
+        free(allocation);
+        return nullptr;
+    }
     const uint8_t* src = static_cast<const uint8_t*>(ptr) + offset;
     auto* rowA = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));
     auto* rowB = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));

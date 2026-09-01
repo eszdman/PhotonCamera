@@ -31,6 +31,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public GLImage mOut = null;
     public Point shift = new Point(0,0);
     private final int mOutWidth, mOutHeight;
+    private final int mTileSize;
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;
     private final GLFormat mglFormat;
@@ -59,11 +60,12 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
     public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         super(size.x, GLDrawParams.TileSize);
+        mTileSize = GLDrawParams.TileSize;
         allocation = alloc;
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
@@ -79,11 +81,12 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
     public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat,ByteBuffer output) {
         super(size.x, GLDrawParams.TileSize);
+        mTileSize = GLDrawParams.TileSize;
         output.position(0);
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocate(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
@@ -96,8 +99,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
 
     public void drawBlocksToOutput() {
         glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
         GLProg program = super.mProgram;
-        GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLDrawParams.TileSize);
+        GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
         int[] row = new int[2];
         mOutBuffer.position(0);
         mBlockBuffer.position(0);
@@ -112,7 +116,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             mBlockBuffer.position(0);
             glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), mBlockBuffer);
             checkEglError("glReadPixels");
-            if (height < GLDrawParams.TileSize) {
+            if (height < mTileSize) {
                 // This can only happen 2 times at edges
                 byte[] data = new byte[mOutWidth * height * mglFormat.mFormat.mSize * mglFormat.mChannels];
                 mBlockBuffer.get(data);
@@ -140,8 +144,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         }
         try {
             glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+            GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
             GLProg program = super.mProgram;
-            GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLDrawParams.TileSize);
+            GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
             int[] row = new int[2];
             while (divider.nextBlock(row)) {
                 int y = row[0];
@@ -179,8 +184,14 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,ByteBuffer mOutBuffer) {
         glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
         checkEglError("glBindFramebuffer");
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        int bytes = glFormat.mFormat.mSize * glFormat.mChannels;
+        int need = size.x * mTileSize * bytes;
+        if (mBlockBuffer == null || mBlockBuffer.capacity() < need) {
+            mBlockBuffer = ByteBuffer.allocateDirect(need);
+        }
         GLProg program = super.mProgram;
-        GLBlockDivider divider = new GLBlockDivider(size.y, GLDrawParams.TileSize);
+        GLBlockDivider divider = new GLBlockDivider(size.y, mTileSize);
         int[] row = new int[2];
         ByteBuffer mBlockBuffert = mBlockBuffer;
         mOutBuffer.position(0);
@@ -196,14 +207,13 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             mBlockBuffert.position(0);
             glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffert);
             checkEglError("glReadPixels");
-            if (height < GLDrawParams.TileSize) {
-                // This can only happen 2 times at edges
+            if (height < mTileSize) {
                 byte[] data = new byte[size.x * height * glFormat.mFormat.mSize * glFormat.mChannels];
                 mBlockBuffert.get(data);
                 mOutBuffer.put(data);
             } else {
                 int lim = mBlockBuffert.limit();
-                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels));
+                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * mTileSize * glFormat.mFormat.mSize * glFormat.mChannels));
                 mBlockBuffert.limit(lim);
             }
         }

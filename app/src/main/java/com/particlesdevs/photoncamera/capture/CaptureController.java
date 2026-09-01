@@ -1143,7 +1143,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * @param builder the request builder to modify (preview or still capture)
      */
     public void applyZoom(CaptureRequest.Builder builder) {
+        applyZoom(builder, true);
+    }
+
+    public void applyZoom(CaptureRequest.Builder builder, boolean isPreview) {
         if (builder == null) return;
+        if (!isPreview) {
+            return;
+        }
         CameraCharacteristics chars = mCameraCharacteristics;
         if (chars == null) return;
         Rect activeArray = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -2277,7 +2284,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (isoVal != null) previewISO = isoVal.doubleValue();
         }
         final double exposureVal = previewExpTime * previewISO;
-
+        boolean doZoomCrop = zoomController.isZoomed();
         // Copy selected Images to ImageFrames only now (on shutter press)
         List<ImageFrame> selected = new ArrayList<>();
         for (int i = skip; i < rawImages.size(); i++) {
@@ -2293,12 +2300,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
             // Digital zoom crop (crops both JPEG and RAW/DNG on the ZSL path).
             ImageFrame frame;
-            if (zoomController.isZoomed()) {
+            if (doZoomCrop) {
+                int logicalW = img.getWidth();
+                int logicalH = img.getHeight();
                 frame = ImageFrame.fromCrop(
                         img.getPlanes()[0].getBuffer(), img.getFormat(),
-                        width, height, rowStride, pixelStride,
-                        zoomController.computeCropRegion(width, height),
+                        logicalW, logicalH, rowStride, pixelStride,
+                        zoomController.computeCropRegion(logicalW, logicalH),
                         PhotonCamera.getSettings().binning);
+                if (frame == null) { img.close(); continue; }
                 frame.timestamp = img.getTimestamp();
                 img.close();
                 mExposures.put(frame.timestamp, exposureVal);
@@ -2313,14 +2323,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 offset = rowStride * offsetH;
                 bufCapacity = rowStride * height;
             }
-            Allocator.binning = PhotonCamera.getSettings().binning;
-            frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(),
-                    width, rowStride, offset, bufCapacity);
+            boolean doBinning2 = PhotonCamera.getSettings().binning;
+            synchronized (com.particlesdevs.photoncamera.util.Allocator.class) {
+                Allocator.binning = doBinning2;
+                frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(), width, rowStride, offset, bufCapacity);
+            }
             frame.timestamp = img.getTimestamp();
-
             frame.width = width;
             frame.height = height;
-            if(PhotonCamera.getSettings().binning) {
+            if(doBinning2) {
                 frame.width/= 2;
                 frame.height/= 2;
             }
@@ -2476,7 +2487,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation(mSensorOrientation));
-            applyZoom(captureBuilder);
+            applyZoom(captureBuilder, false);
             if (mTouchFocus != null && mTouchFocus.isTouchFocus) {
                 captureBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_REGIONS));
                 captureBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_REGIONS));

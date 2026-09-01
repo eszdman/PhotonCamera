@@ -175,31 +175,29 @@ public class PostPipeline extends GLBasePipeline {
     public Bitmap Run(ByteBuffer inBuffer, Parameters parameters) {
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
-        workSize = new Point(mParameters.rawSize.x, mParameters.rawSize.y);
+        Point rawSliced = parameters.rawSize;
+        cropSize = new Point(parameters.rawSize);
+        boolean zoomed = PhotonCamera.getCaptureController() != null
+                && PhotonCamera.getCaptureController().zoomController.isZoomed();
+        if (PhotonCamera.getSettings().aspect169 && !zoomed) {
+            if (rawSliced.x > rawSliced.y) {
+                rawSliced = new Point(rawSliced.x & ~3, (rawSliced.x * 9 / 16) & ~3);
+            } else {
+                rawSliced = new Point((rawSliced.y * 9 / 16) & ~3, rawSliced.y & ~3);
+            }
+            if (rawSliced.x < 4) rawSliced.x = 4;
+            if (rawSliced.y < 4) rawSliced.y = 4;
+            cropSize = new Point(rawSliced);
+        }
+        workSize = new Point(cropSize.x, cropSize.y);
         computeNoise(parameters);
         captureDemosaic = mSettings.ultraHdr;
         mCaptured = false;
         linearDisplayGain = 1.0f;
         sceneWhiteRaw = 0f;
-        // Drop any stale reference from a previous run; the texture itself is
-        // reclaimed by GLTexture.closeAll().
-        exposureCurve = null;
         adaptiveWhitePoint = 1.0f;
         rawClipLevel = 1.0f;
-        Point rawSliced = parameters.rawSize;
-        cropSize = new Point(parameters.rawSize);
-        // If the buffer was already cropped by digital zoom, the 16:9 re-crop
-        // must be skipped — the crop region is already the final output size.
-        boolean zoomed = PhotonCamera.getCaptureController() != null
-                && PhotonCamera.getCaptureController().zoomController.isZoomed();
-        if (PhotonCamera.getSettings().aspect169 && !zoomed) {
-            if (rawSliced.x > rawSliced.y) {
-                rawSliced = new Point(rawSliced.x, rawSliced.x * 9 / 16);
-            } else {
-                rawSliced = new Point(rawSliced.y * 9 / 16, rawSliced.y);
-            }
-            cropSize =  new Point(rawSliced);
-        }
+        exposureCurve = null;
         Point rotatedSize = getRotatedCoords(rawSliced);
         if (PhotonCamera.getSettings().energySaving || mParameters.rawSize.x * mParameters.rawSize.y < ResolutionSolution.smallRes) {
             GLDrawParams.TileSize = 8;
@@ -305,21 +303,23 @@ public class PostPipeline extends GLBasePipeline {
         }
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
-        workSize = new Point(mParameters.rawSize.x, mParameters.rawSize.y);
-        computeNoise(parameters);
-        captureDemosaic = false;
         Point rawSliced = parameters.rawSize;
         cropSize = new Point(parameters.rawSize);
         boolean zoomed = PhotonCamera.getCaptureController() != null
                 && PhotonCamera.getCaptureController().zoomController.isZoomed();
         if (PhotonCamera.getSettings().aspect169 && !zoomed) {
             if (rawSliced.x > rawSliced.y) {
-                rawSliced = new Point(rawSliced.x, rawSliced.x * 9 / 16);
+                rawSliced = new Point(rawSliced.x & ~3, (rawSliced.x * 9 / 16) & ~3);
             } else {
-                rawSliced = new Point(rawSliced.y * 9 / 16, rawSliced.y);
+                rawSliced = new Point((rawSliced.y * 9 / 16) & ~3, rawSliced.y & ~3);
             }
-            cropSize =  new Point(rawSliced);
+            if (rawSliced.x < 4) rawSliced.x = 4;
+            if (rawSliced.y < 4) rawSliced.y = 4;
+            cropSize = new Point(rawSliced);
         }
+        workSize = new Point(cropSize.x, cropSize.y);
+        computeNoise(parameters);
+        captureDemosaic = false;
         Point rotatedSize = getRotatedCoords(rawSliced);
         // The gain map must be pixel-aligned with the stored SDR base; any
         // size/orientation mismatch displaces the boost field from the scene.
