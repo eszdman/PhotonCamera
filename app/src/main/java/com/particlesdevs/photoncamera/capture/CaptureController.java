@@ -1268,7 +1268,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         CameraCharacteristics chars = mCameraCharacteristicsMap.get(physical);
         if (chars == null) return 1f;
         Float max = chars.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
-        return max != null && max > 0f ? max : 1f;
+        return max != null && max > 0f ? Math.max(max, 20f) : 20f;
     }
 
     /** Handles a physical lens switch requested by the zoom controller. */
