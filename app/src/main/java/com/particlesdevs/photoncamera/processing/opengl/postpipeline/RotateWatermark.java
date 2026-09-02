@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
+import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 
 import com.particlesdevs.photoncamera.util.Log;
@@ -84,10 +85,15 @@ public class RotateWatermark extends Node {
         } else {
             glProg.setVar("mirror", 0);
         }
-        glProg.setVar("cropSize",((PostPipeline)basePipeline).cropSize);
-        glProg.setVar("rawSize",basePipeline.mParameters.rawSize);
-        Log.d(Name,"Crop size:"+((PostPipeline)basePipeline).cropSize);
-        Log.d(Name,"Raw size:"+basePipeline.mParameters.rawSize);
+        // The rotate shader positions samples with (rawSize - cropSize)
+        // offsets, which assumed cropSize == crop-buffer size. Since
+        // UpscaleCrop expands crops to full-frame size in place, both must
+        // describe the actual rotate-input texture (which always matches the
+        // pre-rotation output size), so every offset is 0 and the mirror
+        // branches operate on full dimensions.
+        Point rotInSize = previousNode.WorkingTexture.mSize;
+        glProg.setVar("cropSize", rotInSize);
+        glProg.setVar("rawSize", rotInSize);
 
     }
 }

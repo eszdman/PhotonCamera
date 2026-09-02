@@ -153,6 +153,17 @@ public class PostPipeline extends GLBasePipeline {
     )
     String tonePipeline = "curve";
 
+    @Tunable(
+        title = "Upscale sharpen scale",
+        description = "Scales Sharpen2 and CaptureSharpening strength for cropped (upscaled) captures; unsharp masks tuned for native detail overshoot on interpolated pixels, while the kernelnet reconstruction provides structure-aware acutance",
+        category = "Upscale",
+        min = 0.0f,
+        max = 1.0f,
+        defaultValue = 0.4f,
+        step = 0.05f
+    )
+    float upscaleSharpenScale = 0.4f;
+
     private void computeNoise(Parameters parameters) {
         NoiseModeler modeler = parameters.noiseModeler;
         noiseS = modeler.computeModel[0].first.floatValue() +
@@ -236,6 +247,11 @@ public class PostPipeline extends GLBasePipeline {
     public java.nio.FloatBuffer kernelParams;
     /** Size of {@link #kernelParams}. */
     public android.graphics.Point kernelParamsSize;
+    /** Worker thread running the single-frame KernelNet inference, started by KernelNetPrep and collected by UpscaleCrop; may be null. */
+    public Thread kernelNetSingleThread;
+    /** Result of the single-frame KernelNet inference; null until/unless it completes successfully. */
+    public java.util.concurrent.atomic.AtomicReference<com.particlesdevs.photoncamera.processing.ml.KernelNetResult> kernelNetSingleResult =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     /** Called from Initial.Run (first pass) to keep the linear scene buffer. */
     public void captureDemosaicLinear(GLTexture tex) {
@@ -659,6 +675,7 @@ public class PostPipeline extends GLBasePipeline {
     private void BuildDefaultPipeline() {
         boolean nightMode = PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT;
         add(new Bayer2Float());
+        add(new KernelNetPrep());
         // add(new ExposureFusionBayer2());
         switch (PhotonCamera.getSettings().cfaPattern) {
             case -2: {
@@ -711,11 +728,15 @@ public class PostPipeline extends GLBasePipeline {
                 add(new Initial());
             }
         }
+        // Crops expand to the full-frame output size BEFORE the local-contrast
+        // and sharpening passes, so those run at output resolution like any
+        // other shot - otherwise their crop-resolution halos get magnified by
+        // the zoom factor and read as pixelation along edges.
+        add(new UpscaleCrop());
         add(new LocalLaplacian2());
         add(new CaptureSharpening());
         add(new CorrectingFlow());
         add(new Sharpen2());
-        add(new UpscaleCrop());
         add(new RotateWatermark(getRotation()));
     }
 }

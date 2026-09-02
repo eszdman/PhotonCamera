@@ -45,7 +45,7 @@ public class Sharpen2 extends Node {
     @Override
     public void Run() {
         glProg.setDefine("INTENSE",denoiseActivity);
-        glProg.setDefine("INSIZE",basePipeline.mParameters.rawSize);
+        glProg.setDefine("INSIZE",previousNode.WorkingTexture.mSize);
         glProg.setDefine("SHARPSIZE",sharpSize);
         glProg.setDefine("SHARPMIN",sharpMin);
         glProg.setDefine("SHARPMAX",sharpMax);
@@ -54,6 +54,11 @@ public class Sharpen2 extends Node {
         glProg.useAssetProgram("sharpening/lsharpening3");
         glProg.setVar("size", sharpSize);
         float sharpness = Math.max(PreferenceKeys.getSharpnessValue(), 0.0f);
+        if (basePipeline.mParameters.isCropped) {
+            // Unsharp masks tuned for native detail overshoot on interpolated
+            // pixels; the kernelnet reconstruction carries the acutance here.
+            sharpness *= ((PostPipeline) basePipeline).upscaleSharpenScale;
+        }
         glProg.setVar("strength", sharpness);
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         glProg.setTexture("BlurBuffer",previousNode.WorkingTexture);

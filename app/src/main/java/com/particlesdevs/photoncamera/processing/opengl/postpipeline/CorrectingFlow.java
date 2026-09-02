@@ -104,7 +104,7 @@ public class CorrectingFlow extends Node {
         float[] correction = basePipeline.mParameters.sensorSpecifics.aberrationCorrection;
         //correctingFlowRG = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,4), FloatBuffer.wrap(parsedFlowRG),GL_LINEAR, GL_CLAMP_TO_EDGE);
         //correctingFlowB = new GLTexture(FlowXY,new GLFormat(GLFormat.DataType.FLOAT_16,2), FloatBuffer.wrap(parsedFlowB),GL_LINEAR, GL_CLAMP_TO_EDGE);
-        glProg.setDefine("SIZE",basePipeline.mParameters.rawSize);
+        glProg.setDefine("SIZE",previousNode.WorkingTexture.mSize);
         glProg.setDefine("C", correction[0],correction[1]);
         glProg.setDefine("RC",correction[2],correction[3]);
         glProg.setDefine("GC",correction[4],correction[5]);

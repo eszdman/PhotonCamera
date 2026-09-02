@@ -81,6 +81,31 @@ public final class KernelNetNcnnProcessor {
         return new Result(outBuf, outW, outH);
     }
 
+    /**
+     * Converts a channel-major (s1, s2, rho) parameter map into interleaved
+     * RGBA floats (s1, s2, rho, 1) per texel, ready for a RGBA16F texture
+     * upload. Returns null when the result is null.
+     */
+    public static float[] toInterleavedRGBA(KernelNetResult result) {
+        if (result == null) return null;
+        int w = result.width();
+        int h = result.height();
+        int plane = w * h;
+        FloatBuffer params = result.asFloatBuffer();
+        float[] rgba = new float[plane * 4];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int i = y * w + x;
+                int o = i * 4;
+                rgba[o] = params.get(i);                 // s1
+                rgba[o + 1] = params.get(plane + i);     // s2
+                rgba[o + 2] = params.get(2 * plane + i); // rho
+                rgba[o + 3] = 1.0f;
+            }
+        }
+        return rgba;
+    }
+
     /** Close the native ncnn net. Safe to call multiple times. */
     public void close() {
         if (nativeHandle != 0) {

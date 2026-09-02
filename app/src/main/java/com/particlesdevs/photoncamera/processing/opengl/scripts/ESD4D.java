@@ -1067,19 +1067,7 @@ public class ESD4D extends GLOneScript {
         if (result == null) return null;
         int w = result.width();
         int h = result.height();
-        int plane = w * h;
-        FloatBuffer params = result.asFloatBuffer();
-        float[] rgba = new float[plane * 4];
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int i = y * w + x;
-                int o = i * 4;
-                rgba[o] = params.get(i);                 // s1
-                rgba[o + 1] = params.get(plane + i);     // s2
-                rgba[o + 2] = params.get(2 * plane + i); // rho
-                rgba[o + 3] = 1.0f;
-            }
-        }
+        float[] rgba = KernelNetNcnnProcessor.toInterleavedRGBA(result);
         GLTexture map = new GLTexture(new Point(w, h), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
         map.loadData(FloatBuffer.wrap(rgba));
         // The unpacked fp32 params are exactly what the post pipeline needs;
