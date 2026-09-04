@@ -32,6 +32,7 @@
     <dimen name="camera_preference_about_padding">10dp</dimen>
     <dimen name="aux_button_size">35dp</dimen>
     <dimen name="aux_button_internal_margin">3dp</dimen>
+    <dimen name="lens_zoom_slider_width">180dp</dimen>
     <dimen name="capture_progress_circle_size">150dp</dimen>
     <dimen name="camera_switch_button_size">@dimen/gallery_button_size</dimen>
     <dimen name="standard_0">0dp</dimen>

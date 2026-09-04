@@ -57,6 +57,7 @@
     <string name="pref_af_mode_key" translatable="false">pref_af_mode_key</string>
     <string name="pref_hdrx_key" translatable="false">pref_hdrx_key</string>
     <string name="pref_eis_photo_key" translatable="false">pref_eis_photo_key</string>
+    <string name="pref_zoom_lock_key" translatable="false">pref_zoom_lock_key</string>
     <string name="pref_quad_bayer_key" translatable="false">pref_quad_bayer_key</string>
     <string name="pref_fps_preview_key" translatable="false">pref_fps_preview_key</string>
     <string name="pref_ultrahdr_key" translatable="false">pref_ultrahdr_key</string>

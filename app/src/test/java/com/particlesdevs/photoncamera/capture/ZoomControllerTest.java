@@ -190,6 +190,81 @@ public class ZoomControllerTest {
         assertFalse(fresh.isZoomed());
     }
 
+    // --- lens-switch lock (zoom stays on the active lens) ---
+
+    @Test
+    public void lockedZoomInStaysOnLens() {
+        zoom.setLensSwitchLocked(true);
+        zoom.setTargetZoom(2.0f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(2.0f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(2.0f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void lockedZoomClampsAtLensMaxDigital() {
+        zoom.setLensSwitchLocked(true);
+        // Main native 1.0 with max digital 8.0: 100x clamps to 8x, no switch.
+        zoom.setTargetZoom(100f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(8.0f, zoom.getZoomRatio(), 1e-4f);
+    }
+
+    @Test
+    public void lockedZoomOutClampsAtLensNative() {
+        zoom.setLensSwitchLocked(true);
+        zoom.setTargetZoom(0.1f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(1.0f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void lockedRangeIsActiveLensWindow() {
+        zoom.setLensSwitchLocked(true);
+        assertEquals(1.0f, zoom.getMinZoom(), 1e-4f);
+        assertEquals(8.0f, zoom.getMaxZoom(), 1e-4f);
+    }
+
+    @Test
+    public void lockedSnapIgnoresOtherLenses() {
+        zoom.setLensSwitchLocked(true);
+        // 3.06 would snap to tele 3.1 unlocked; locked it must stay on main.
+        zoom.setTargetZoom(3.06f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(3.06f, zoom.getZoomRatio(), 1e-4f);
+    }
+
+    @Test
+    public void unlockingRestoresSwitching() {
+        zoom.setLensSwitchLocked(true);
+        zoom.setTargetZoom(3.1f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        zoom.setLensSwitchLocked(false);
+        zoom.setTargetZoom(3.1f, 0.5f, 0.5f);
+        assertEquals("tele", switchedTo);
+    }
+
+    @Test
+    public void manualLensChangeReanchorsLockedWindow() {
+        zoom.setLensSwitchLocked(true);
+        zoom.setTargetZoom(3.1f, 0.5f, 0.5f); // digital crop on main, no switch
+        assertEquals("main", zoom.getActiveLensId());
+        // A manual pill tap reopens the camera, re-anchoring the active lens.
+        zoom.setActiveLens("tele");
+        assertEquals(3.1f, zoom.getMinZoom(), 1e-4f);
+        assertEquals(3.1f * 3.0f, zoom.getMaxZoom(), 1e-4f);
+        // Further zooming stays on tele now.
+        zoom.setTargetZoom(9.0f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("tele", zoom.getActiveLensId());
+        assertEquals(9.0f, zoom.getZoomRatio(), 1e-4f);
+    }
+
     // --- pure crop math (unchanged semantics) ---
 
     @Test

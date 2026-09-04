@@ -61,6 +61,15 @@ public class ZoomController {
     private LensSwitchListener lensSwitchListener;
     private float snapWindow = DEFAULT_SNAP_WINDOW;
 
+    /**
+     * When true, pinch/slider zoom never triggers a physical lens switch:
+     * the effective zoom is clamped to the active lens's own
+     * {@code [native, native * maxDigital]} window. Manual lens switches via
+     * the lens pill still work (they reopen the camera, which re-anchors the
+     * active lens). Defaults to false (auto-switch).
+     */
+    private boolean lensSwitchLocked;
+
     /** Effective zoom seen by the user / gesture; the state-machine input. */
     private volatile float targetZoom = MIN_ZOOM;
     /** Index into {@link #lensesAsc} of the currently active lens. */
@@ -85,6 +94,14 @@ public class ZoomController {
 
     public void setSnapWindow(float snapWindow) {
         this.snapWindow = Math.max(0f, snapWindow);
+    }
+
+    public void setLensSwitchLocked(boolean locked) {
+        this.lensSwitchLocked = locked;
+    }
+
+    public boolean isLensSwitchLocked() {
+        return lensSwitchLocked;
     }
 
     /** Replaces the lens set for the active facing (already sorted after here). */
@@ -134,6 +151,18 @@ public class ZoomController {
     public String setTargetZoom(float effectiveZoom, float focusX, float focusY) {
         this.focusX = clamp(focusX, 0.0f, 1.0f);
         this.focusY = clamp(focusY, 0.0f, 1.0f);
+        if (lensSwitchLocked) {
+            LensEntry active = activeLens();
+            if (active != null) {
+                // Stay on this lens: snap only to its own native zoom, then
+                // clamp into its optical/digital window. Never switches.
+                float max = active.nativeZoom * Math.max(1f, active.maxDigitalZoom);
+                targetZoom = clamp(snapToLens(effectiveZoom, active), active.nativeZoom, max);
+                recomputeDigitalZoom();
+                return null;
+            }
+            // No valid active lens: fall through to the normal path.
+        }
         float clamped = clamp(effectiveZoom, getMinZoom(), getMaxZoom());
         targetZoom = snapToDetent(clamped);
 
@@ -170,15 +199,29 @@ public class ZoomController {
 
     /** Minimum achievable effective zoom (native zoom of the widest lens). */
     public float getMinZoom() {
+        if (lensSwitchLocked) {
+            LensEntry active = activeLens();
+            if (active != null) return active.nativeZoom;
+        }
         if (lensesAsc.isEmpty()) return MIN_ZOOM;
         return lensesAsc.get(0).nativeZoom;
     }
 
     /** Maximum achievable effective zoom (native * maxDigital of the strongest lens). */
     public float getMaxZoom() {
+        if (lensSwitchLocked) {
+            LensEntry active = activeLens();
+            if (active != null) return active.nativeZoom * Math.max(1f, active.maxDigitalZoom);
+        }
         if (lensesAsc.isEmpty()) return MIN_ZOOM;
         LensEntry last = lensesAsc.get(lensesAsc.size() - 1);
         return last.nativeZoom * Math.max(1f, last.maxDigitalZoom);
+    }
+
+    /** The currently active lens entry, or {@code null} if none is anchored yet. */
+    private LensEntry activeLens() {
+        if (activeLensIndex < 0 || activeLensIndex >= lensesAsc.size()) return null;
+        return lensesAsc.get(activeLensIndex);
     }
 
     public boolean isZoomed() {
@@ -246,13 +289,26 @@ public class ZoomController {
         float best = effective;
         float bestDist = Float.MAX_VALUE;
         for (LensEntry lens : lensesAsc) {
-            float dist = Math.abs(effective - lens.nativeZoom);
-            if (dist <= snapWindow * lens.nativeZoom && dist < bestDist) {
+            float snapped = snapToLens(effective, lens);
+            float dist = Math.abs(effective - snapped);
+            if (dist < bestDist && snapped != effective) {
                 bestDist = dist;
-                best = lens.nativeZoom;
+                best = snapped;
             }
         }
         return best;
+    }
+
+    /**
+     * Snaps to the given lens's native zoom when within the relative detent
+     * window, otherwise returns the input unchanged.
+     */
+    private float snapToLens(float effective, LensEntry lens) {
+        float dist = Math.abs(effective - lens.nativeZoom);
+        if (dist <= snapWindow * lens.nativeZoom) {
+            return lens.nativeZoom;
+        }
+        return effective;
     }
 
     /**

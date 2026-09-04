@@ -27,6 +27,16 @@ public class Swipe {
     private ManualModeConsole manualModeConsole;
     private CameraFragmentViewModel cameraFragmentViewModel;
     private ImageView ocManual;
+    private ZoomGestureListener zoomGestureListener;
+
+    /** Notified on every handled pinch-to-zoom movement (used to reveal the zoom slider). */
+    public interface ZoomGestureListener {
+        void onZoomGesture();
+    }
+
+    public void setZoomGestureListener(ZoomGestureListener listener) {
+        this.zoomGestureListener = listener;
+    }
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -114,6 +124,7 @@ public class Swipe {
                 // viewfinder exactly.
                 captureController.setZoom(newZoom, 0.5f, 0.5f);
                 cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                if (zoomGestureListener != null) zoomGestureListener.onZoomGesture();
                 return true;
             }
         });
@@ -193,9 +204,15 @@ public class Swipe {
         if (manualModeConsole.isPanelVisible()) {
             ocManual.animate().rotation(0).setDuration(250).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
-            captureController.reset3Aparams();
-            manualModeConsole.setPanelVisibility(false);
+            // Capture before the resets below clear the values: if no knob was
+            // touched, there is nothing to re-apply and the preview session can
+            // be left alone, making close as cheap as open.
+            boolean hadManualChanges = manualModeConsole.getManualParamModel().isManualMode();
             manualModeConsole.retractAllKnobs();
+            manualModeConsole.setPanelVisibility(false);
+            if (hadManualChanges) {
+                captureController.reset3Aparams();
+            }
         } else {
             cameraFragmentViewModel.setSettingsBarVisible(true);
         }

@@ -1199,6 +1199,25 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         return zoomController.getZoomRatio();
     }
 
+    /** Minimum effective zoom of the active facing's lens set. */
+    public float getMinZoom() {
+        return zoomController.getMinZoom();
+    }
+
+    /** Maximum effective zoom of the active facing's lens set. */
+    public float getMaxZoom() {
+        return zoomController.getMaxZoom();
+    }
+
+    /** True when zoom is locked to the current lens (no auto lens-switch on zoom). */
+    public boolean isLensSwitchLocked() {
+        return zoomController.isLensSwitchLocked();
+    }
+
+    public void setLensSwitchLocked(boolean locked) {
+        zoomController.setLensSwitchLocked(locked);
+    }
+
     public void resetZoom() {
         zoomController.resetToActiveLensNative();
         if (mPreviewRequestBuilder != null) {

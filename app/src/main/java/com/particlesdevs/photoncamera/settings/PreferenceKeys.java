@@ -46,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
+        COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -63,6 +64,7 @@ public class PreferenceKeys {
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ULTRAHDR, resources.getBoolean(R.bool.pref_ultrahdr_default));
@@ -351,6 +353,15 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, value);
     }
 
+    /** True when zoom is locked to the current lens (no auto lens-switch on zoom). */
+    public static boolean isZoomLockOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK);
+    }
+
+    public static void setZoomLock(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, value);
+    }
+
     public static int getFpsMode() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW);
     }
@@ -528,6 +539,7 @@ public class PreferenceKeys {
          */
         KEY_HDRX(R.string.pref_hdrx_key),
         KEY_EIS_PHOTO(R.string.pref_eis_photo_key),
+        KEY_ZOOM_LOCK(R.string.pref_zoom_lock_key),
         KEY_QUAD_BAYER(R.string.pref_quad_bayer_key),
         KEY_FPS_PREVIEW(R.string.pref_fps_preview_key),
         KEY_ULTRAHDR(R.string.pref_ultrahdr_key),
