@@ -206,6 +206,16 @@ public class GLPreview extends GLSurfaceView {
         requestRender();
     }
 
+    /**
+     * Begins settle tracking for an ISZ lens-switch mask (freezes the
+     * presented frame until the sensor settles, then resumes live rendering
+     * on its own). Safe to call before the renderer exists (layout editor):
+     * no-op then.
+     */
+    public void beginPreviewSettleTracking() {
+        if (mRenderer != null) mRenderer.beginSettleTracking();
+    }
+
     public boolean isAvailable() {
         return surfaceReady && mRenderer != null && mRenderer.getmSTexture() != null;
     }

@@ -1298,6 +1298,27 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         restartCamera();
     }
 
+    /**
+     * Masks the physical sensor's readout-mode switch when changing onto an
+     * ISZ virtual lens: the presented frame stays frozen while newly arrived
+     * frames are latched-and-dropped on the GL thread until the sensor has
+     * settled, then live rendering resumes on its own. The pipeline is never
+     * gated, so this mask cannot stall or wedge the preview; a tracking flag
+     * left over with no frames is inert and reset by the next arm.
+     *
+     * <p>Arms only for genuine lens changes onto a virtual lens (zoom-driven
+     * or manual). Everything else leaves any in-flight tracking to finish (or
+     * reset) on its own.
+     */
+    private void armOrCancelIszTransition() {
+        String targetId = PhotonCamera.getSettings().mCameraID;
+        boolean switchingLens = zoomDrivenLensSwitch
+                || (targetId != null && !targetId.equals(zoomController.getActiveLensId()));
+        if (targetId != null && CameraManager2.isIszVirtual(targetId) && switchingLens && mTextureView != null) {
+            mTextureView.beginPreviewSettleTracking();
+        }
+    }
+
     public boolean isZoomDrivenLensSwitch() {
         return zoomDrivenLensSwitch;
     }
@@ -1409,6 +1430,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         Log.d(TAG, "restartCamera() called from \"" + Thread.currentThread().getName() + "\" Thread");
+        armOrCancelIszTransition();
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
         if (paramController != null) {
             paramController.onCameraChanged();

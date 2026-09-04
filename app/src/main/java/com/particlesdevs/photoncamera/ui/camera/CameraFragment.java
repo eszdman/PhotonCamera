@@ -1255,16 +1255,23 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         @Override
         public void onCameraRestarted() {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            // Same-sensor ISZ transitions keep the overlay (grid/HUD stay
+            // valid); everything else wipes it for a fresh lens.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
             mCameraUIView.refresh(CaptureController.isProcessing);
             mTouchFocus.resetFocusCircle();
         }
 
         @Override
         public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            // See onCameraRestarted: the overlay survives same-sensor ISZ entry.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
             auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
             if (captureController != null) {
                 if (captureController.isZoomDrivenLensSwitch()) {
