@@ -40,11 +40,11 @@ void main() {
 #define DC(q) (cb ? D0(q) : D1(q))
     float wtnw = 1.0 / (EPS + abs(DC(s + ivec2(-1, -1)) - DC(s + ivec2(1, 1))) + abs(DC(s + ivec2(-1, -1)) - DC(s + ivec2(-3, -3))) + abs(DC(s + ivec2(1, 1)) - DC(s + ivec2(-3, -3))));
     float wtne = 1.0 / (EPS + abs(DC(s + ivec2(1, -1)) - DC(s + ivec2(-1, 1))) + abs(DC(s + ivec2(1, -1)) - DC(s + ivec2(3, -3))) + abs(DC(s + ivec2(-1, 1)) - DC(s + ivec2(3, -3))));
-    float wtsw = 1.0 / (EPS + abs(DC(s + ivec2(-1, 1)) - DC(s + ivec2(1, -1))) + abs(DC(s + ivec2(-1, 1)) - DC(s + ivec2(3, 3))) + abs(DC(s + ivec2(1, -1)) - DC(s + ivec2(-3, -3))));
-    float wtse = 1.0 / (EPS + abs(DC(s + ivec2(1, 1)) - DC(s + ivec2(-1, -1))) + abs(DC(s + ivec2(1, 1)) - DC(s + ivec2(-3, -3))) + abs(DC(s + ivec2(-1, -1)) - DC(s + ivec2(3, 3))));
+    float wtsw = 1.0 / (EPS + abs(DC(s + ivec2(-1, 1)) - DC(s + ivec2(1, -1))) + abs(DC(s + ivec2(-1, 1)) - DC(s + ivec2(3, 3))) + abs(DC(s + ivec2(1, -1)) - DC(s + ivec2(-3, 3))));
+    float wtse = 1.0 / (EPS + abs(DC(s + ivec2(1, 1)) - DC(s + ivec2(-1, -1))) + abs(DC(s + ivec2(1, 1)) - DC(s + ivec2(-3, 3))) + abs(DC(s + ivec2(-1, -1)) - DC(s + ivec2(3, 3))));
     float val = (wtnw * (1.325 * DC(s + ivec2(-1, -1)) - 0.175 * DC(s + ivec2(-3, -3)) - 0.075 * DC(s + ivec2(-3, -1)) - 0.075 * DC(s + ivec2(-1, -3)))
-               + wtne * (1.325 * DC(s + ivec2(1, -1)) - 0.175 * DC(s + ivec2(3, -3)) - 0.075 * DC(s + ivec2(3, -1)) - 0.075 * DC(s + ivec2(1, 3)))
-               + wtsw * (1.325 * DC(s + ivec2(-1, 1)) - 0.175 * DC(s + ivec2(-3, 3)) - 0.075 * DC(s + ivec2(-3, 1)) - 0.075 * DC(s + ivec2(-1, 3)))
+               + wtne * (1.325 * DC(s + ivec2(1, -1)) - 0.175 * DC(s + ivec2(3, -3)) - 0.075 * DC(s + ivec2(3, -1)) - 0.075 * DC(s + ivec2(1, 1)))
+               + wtsw * (1.325 * DC(s + ivec2(-1, 1)) - 0.175 * DC(s + ivec2(-3, 3)) - 0.075 * DC(s + ivec2(-3, 1)) - 0.075 * DC(s + ivec2(-1, -1)))
                + wtse * (1.325 * DC(s + ivec2(1, 1)) - 0.175 * DC(s + ivec2(3, 3)) - 0.075 * DC(s + ivec2(3, 1)) - 0.075 * DC(s + ivec2(1, 3)))) / (wtnw + wtne + wtsw + wtse);
 #undef DC
     if (cb) {

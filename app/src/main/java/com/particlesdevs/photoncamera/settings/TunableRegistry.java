@@ -1,5 +1,7 @@
 package com.particlesdevs.photoncamera.settings;
 
+import com.particlesdevs.photoncamera.processing.opengl.postpipeline.Bayer2Float;
+
 /**
  * Single source of truth for all classes that carry {@code @Tunable} annotations.
  * Add or remove entries here; {@link TunableSettingsManager} and the settings UI
@@ -15,7 +17,8 @@ public final class TunableRegistry {
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline.class,
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.ESD3D2.class,
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.AutoExposureCurve.class,
-        com.particlesdevs.photoncamera.processing.opengl.postpipeline.LocalLaplacian.class,
+        com.particlesdevs.photoncamera.processing.opengl.postpipeline.Bayer2Float.class,
+        com.particlesdevs.photoncamera.processing.opengl.postpipeline.LocalLaplacian2.class,
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.Initial.class,
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.LinearExposure.class,
         com.particlesdevs.photoncamera.processing.opengl.postpipeline.HeadroomRender.class,

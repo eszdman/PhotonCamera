@@ -161,7 +161,9 @@ void main() {
     br = mix(dot(cin,vec3(0.25,0.5,0.25)),br,LUMA);
     vec3 resColour = final_colour2/Z2;
     resColour /= max(1e-6,dot(resColour,vec3(0.25,0.5,0.25)));
-    resColour = clamp(resColour*br,0.0,1.0);
+    // no upper clamp: inpaint-opposed reconstruction emits scene-referred
+    // values above 1.0 that must survive the denoise
+    resColour = max(resColour*br,0.0);
     Output = vec4(resColour,1.0);
     //Output = vec4(final_colour/Z,1.0);
     //}

@@ -1,6 +1,8 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Point;
+
+import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -28,6 +30,13 @@ public class Bayer2Float extends Node {
     }
     boolean testPattern = false;
     int testPatternIndex = 2;
+    @Tunable(title = "Inpaint Opposed Highlights", description = "Enable inpainting of opposed highlights to reconstruct chrominance",
+            category = "Bayer2Float", min = 0, max = 1, defaultValue = 1, step = 1)
+    boolean hlInpaintOpposed;
+
+    @Tunable(title = "Highlight Clip", description = "Scale of the highlight clip level for inpainting",
+            category = "Bayer2Float", min = 0.1f, max = 4.0f, defaultValue = 1.0f, step = 0.1f)
+    float hlClip;
     @Override
     public void AfterRun(){
         if(testPattern && testPatternIndex == 0) {
@@ -52,6 +61,36 @@ public class Bayer2Float extends Node {
         }
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 BufferUtils.getFrom(basePipeline.mParameters.gainMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
+        float[] hlChroma = null;
+        if (hlInpaintOpposed && basePipeline.mParameters.cfaPattern != 4) {
+            startT();
+            try {
+                hlChroma = OpposedGL.compute(glProg, in, rawSize, basePipeline.mParameters.cfaPattern,
+                        basePipeline.mSettings.alignAlgorithm == 2,
+                        basePipeline.mParameters.whiteLevel, basePipeline.mParameters.blackLevel,
+                        basePipeline.mParameters.whitePoint, OpposedGL.CLIP_MAGIC * hlClip);
+            } catch (Exception e) {
+                Log.d(Name, "InpaintOpposed failed, disabling:" + Log.getStackTraceString(e));
+                hlChroma = null;
+            }
+            if (hlChroma != null) {
+                endT("InpaintOpposed chroma");
+                Log.d(Name, "InpaintOpposed chrominance:" + hlChroma[0] + "," + hlChroma[1] + "," + hlChroma[2]);
+                // The reconstruction emits scene-referred values above 1.0 -
+                // up to the white-balanced clip extent. Tell downstream nodes
+                // (Amaze's saturation bounding) where the real clip level sits
+                // so reconstructed photosites are not treated as clipped data.
+                float clipLevel = 1.0f;
+                float[] wp = basePipeline.mParameters.whitePoint;
+                if (wp != null) {
+                    for (int c = 0; c < 3; c++) {
+                        if (wp[c] > 0.f && wp[c] < 1.f) clipLevel = Math.max(clipLevel, 1.f / wp[c]);
+                    }
+                }
+                postPipeline.rawClipLevel = clipLevel;
+                Log.d(Name, "InpaintOpposed clip level:" + clipLevel);
+            }
+        }
 
         if (PhotonCamera.getSettings().aspect169) {
             if (rawSize.x > rawSize.y) {
@@ -69,6 +108,8 @@ public class Bayer2Float extends Node {
         glProg.setDefine("RGBLAYOUT",basePipeline.mSettings.alignAlgorithm == 2);
         glProg.setDefine("TESTPATTERN",testPattern);
         glProg.setDefine("TP", testPatternIndex);
+        glProg.setDefine("HLRECON", hlChroma != null);
+        if (hlChroma != null) glProg.setDefine("HLCLIP", OpposedGL.CLIP_MAGIC * hlClip);
         glProg.useAssetProgram("Bayer2Float/tofloat");
         glProg.setTexture("InputBuffer", in);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
@@ -94,6 +135,7 @@ public class Bayer2Float extends Node {
             basePipeline.mParameters.blackLevel[i] /= basePipeline.mParameters.whiteLevel * postPipeline.regenerationSense;
         }
         glProg.setVar("blackLevel", basePipeline.mParameters.blackLevel);
+        if (hlChroma != null) glProg.setVar("Chrominance", hlChroma);
         Log.d(Name, "CfaPattern:" + basePipeline.mParameters.cfaPattern);
         postPipeline.regenerationSense = 10.f;
         int minimal = -1;

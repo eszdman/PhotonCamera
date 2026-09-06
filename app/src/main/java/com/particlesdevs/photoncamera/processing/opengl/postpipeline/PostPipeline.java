@@ -50,6 +50,24 @@ public class PostPipeline extends GLBasePipeline {
      * Initial.AfterRun. Null when the curve-based AE node did not run.
      */
     public GLTexture exposureCurve;
+    /**
+     * Adaptive white point scalar produced by {@link AutoExposureCurve}: the
+     * linear position of the measured scene white above display white on HDR
+     * scenes (>= 1.0; 1.0 when whites already sit at display white). Passed by
+     * {@link Initial} to initial.glsl, which divides its input by it so whites
+     * anchor at 1.0 before the SDR tone chain - the AE estimates its exposure
+     * curve on the same divided domain.
+     */
+    public float adaptiveWhitePoint = 1.0f;
+    /**
+     * Effective clip level of the CFA buffer produced by Bayer2Float: 1.0
+     * when nothing is reconstructed, otherwise the white-balanced clip
+     * extent (1/min(whitePoint)) that the inpaint-opposed reconstruction can
+     * emit. Downstream nodes that treat values above the clip level as
+     * clipped sensor data (Amaze's saturation bounding) read this instead of
+     * assuming 1.0, so reconstructed photosites are interpolated normally.
+     */
+    public float rawClipLevel = 1.0f;
     public ArrayList<Bitmap> debugData = new ArrayList<>();
     public ArrayList<ImageFrame> SAGAIN;
     public Point cropSize;
@@ -120,8 +138,8 @@ public class PostPipeline extends GLBasePipeline {
         title = "Tone Pipeline",
         description = "Curve: AutoExposureCurve bakes an exposure curve consumed by Initial; Sky: linear-histogram exposure + log-headroom tone mapping; Off: no tone/color stage",
         category = "Color & Tone",
-        entries = {"Curve (exposure curve into Initial)", "Sky (Headroom)", "Off (linear passthrough)"},
-        entryValues = {"curve", "sky", "off"}
+        entries = {"Curve (exposure curve into Initial)", "Sky (Headroom)", "New (simplified)", "Off (linear passthrough)"},
+        entryValues = {"curve", "sky", "new", "off"}
     )
     String tonePipeline = "curve";
 
@@ -155,6 +173,8 @@ public class PostPipeline extends GLBasePipeline {
         // Drop any stale reference from a previous run; the texture itself is
         // reclaimed by GLTexture.closeAll().
         exposureCurve = null;
+        adaptiveWhitePoint = 1.0f;
+        rawClipLevel = 1.0f;
         Point rawSliced = parameters.rawSize;
         cropSize = new Point(parameters.rawSize);
         if (PhotonCamera.getSettings().aspect169) {
@@ -545,9 +565,13 @@ public class PostPipeline extends GLBasePipeline {
             // pass (one full-res draw less than the former
             // Initial + AutoExposure pair).
             add(new AutoExposureCurve());
-            add(new Initial());
+            if ("new".equals(tonePipeline)) {
+                add(new ModernInitial());
+            } else {
+                add(new Initial());
+            }
         }
-        add(new LocalLaplacian());
+        add(new LocalLaplacian2());
         add(new CaptureSharpening());
         add(new CorrectingFlow());
         add(new Sharpen2());

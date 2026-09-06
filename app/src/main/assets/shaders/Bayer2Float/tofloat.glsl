@@ -30,6 +30,12 @@ uniform int MinimalInd;
 #define WHITE 0.7
 #define OFFSET 0,0
 #define USEGAIN 1
+// inpaint-opposed highlight reconstruction (port of darktable's
+// _process_opposed): clipped photosites are inpainted from their opposed
+// colours; Chrominance is the global per-channel offset measured on the
+// unclipped ring around clipped areas (see OpposedChroma.java)
+#define HLRECON 0
+#define HLCLIP 0.987
 #import interpolation
 
 vec3 hue2rgb(float h) {
@@ -46,6 +52,47 @@ vec3 hue2rgb(float h) {
 out vec3 Output;
 #else
 out float Output;
+#endif
+
+#if HLRECON == 1
+uniform vec3 Chrominance;
+
+// channel (0=R,1=G,2=B) of the raw photosite p, same anchoring as main()
+int hlFcol(ivec2 p) {
+    ivec2 ph = ivec2(CfaPattern % 2, CfaPattern / 2);
+    ivec2 f = (QUAD == 1) ? (((p - ph * 2) / 2) & 1) : ((p - ph) & 1);
+    return (f.x + f.y == 1) ? 1 : (f.x == 0 ? 0 : 2);
+}
+
+// normalized white-balanced value of a raw sample, same space as OpposedChroma
+float hlNorm(uint rv, int c) {
+    vec3 lvl = vec3(blackLevel.r, (blackLevel.g + blackLevel.b) / 2.0, blackLevel.a);
+    return max(0.0, (float(rv) / float(whitelevel) - lvl[c]) / (1.0 - lvl[c]) / whitePoint[c]);
+}
+
+// opposed-colour estimate for channel c from the 3x3 photosite neighbourhood
+// centred on p, averaged in cube-root space
+float hlRefavg(ivec2 p, int c) {
+    ivec2 lo = max(p - ivec2(1), ivec2(0));
+    ivec2 hi = min(p + ivec2(1), RawSize - ivec2(1));
+    float sum[3];
+    float cnt[3];
+    sum[0] = sum[1] = sum[2] = 0.0;
+    cnt[0] = cnt[1] = cnt[2] = 0.0;
+    for (int dy = lo.y; dy <= hi.y; dy++) {
+        for (int dx = lo.x; dx <= hi.x; dx++) {
+            int cc = hlFcol(ivec2(dx, dy));
+            float v = hlNorm(texelFetch(InputBuffer, ivec2(dx, dy), 0).x, cc);
+            sum[cc] += v;
+            cnt[cc] += 1.0;
+        }
+    }
+    float m0 = cnt[0] > 0.0 ? pow(sum[0] / cnt[0], 1.0 / 3.0) : 0.0;
+    float m1 = cnt[1] > 0.0 ? pow(sum[1] / cnt[1], 1.0 / 3.0) : 0.0;
+    float m2 = cnt[2] > 0.0 ? pow(sum[2] / cnt[2], 1.0 / 3.0) : 0.0;
+    float opp = c == 0 ? 0.5 * (m1 + m2) : (c == 1 ? 0.5 * (m0 + m2) : 0.5 * (m0 + m1));
+    return opp * opp * opp;
+}
 #endif
 
 
@@ -69,29 +116,50 @@ void main() {
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     #if RGBLAYOUT == 1
     //Output = vec3(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).rgb)/(float(whitelevel));
-    Output = vec3(texelFetch(InputBuffer, (xy), 0).rgb)/(float(whitelevel));
-    Output = gains.rgb*(Output-level.rgb)/(vec3(1.0)-level.rgb);
+    vec3 hlRGB = vec3(texelFetch(InputBuffer, (xy), 0).rgb)/(float(whitelevel));
+    hlRGB = (hlRGB - level.rgb)/(vec3(1.0)-level.rgb);
+    #if HLRECON == 1
+    {
+        vec3 u = max(hlRGB, vec3(0.0));
+        vec3 roots = pow(u, vec3(1.0/3.0));
+        vec3 opp = vec3(0.5*(roots.g+roots.b), 0.5*(roots.r+roots.b), 0.5*(roots.r+roots.g));
+        vec3 rec = max(u, opp*opp*opp + Chrominance);
+        hlRGB = mix(u, rec, step(vec3(HLCLIP), u));
+    }
+    #endif
+    Output = gains.rgb*hlRGB;
     #else
     vec3 col = vec3(0.0);
+    float levelC;
+    float gainC;
+    int ci;
     if(fact.x+fact.y == 1){
             col.g = 1.0;
             balance = whitePoint.g;
-            Output = float(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).x)/(float(whitelevel));
-            Output = gains.g*(Output-level.g-BLG)/(1.0-level.g);
+            ci = 1; levelC = level.g; gainC = gains.g;
         } else {
             if(fact.x == 0){
                 col.r = 1.0;
                 balance = whitePoint.r;
-                Output = float(texelFetch(InputBuffer, (xy), 0).x)/(float(whitelevel));
-                Output = gains.r*(Output-level.r-BLR)/(1.0-level.r);
+                ci = 0; levelC = level.r; gainC = gains.r;
             } else {
                 col.b = 1.0;
                 balance = whitePoint.b;
-                Output = float(texelFetch(InputBuffer, (xy), 0).x)/(float(whitelevel));
-                Output = gains.b*(Output-level.b-BLB)/(1.0-level.b);
+                ci = 2; levelC = level.b; gainC = gains.b;
             }
         }
-    Output = clamp(Output/balance,0.0,1.0);
+    Output = float(texelFetch(InputBuffer, (xy), 0).x)/(float(whitelevel));
+    float hlVal = (Output - levelC)/(1.0-levelC)/balance;
+    #if HLRECON == 1
+    if (hlVal >= HLCLIP) {
+        // inpaint the clipped photosite from its opposed colours; the value
+        // stays scene-referred and may exceed 1.0 instead of clipping
+        Output = gainC * max(hlVal, hlRefavg(xy, ci) + Chrominance[ci]);
+    } else
+    #endif
+    {
+        Output = clamp(gainC * hlVal, 0.0, 1.0);
+    }
     #endif
     #if TESTPATTERN == 1
         ivec2 diag = ivec2(xy.x+xy.y,xy.x-xy.y);

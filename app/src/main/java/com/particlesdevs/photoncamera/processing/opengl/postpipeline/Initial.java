@@ -331,7 +331,10 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
         glProg.setVar("intermediateToSRGB",cct);
         if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
-        if(((PostPipeline)basePipeline).exposureCurve != null) glProg.setTexture("ExposureCurve",((PostPipeline)basePipeline).exposureCurve);
+        if(((PostPipeline)basePipeline).exposureCurve != null) {
+            glProg.setTexture("ExposureCurve",((PostPipeline)basePipeline).exposureCurve);
+            glProg.setVar("adaptiveWhitePoint", ((PostPipeline)basePipeline).adaptiveWhitePoint);
+        }
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
         glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
                 basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);

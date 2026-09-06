@@ -7,6 +7,11 @@ uniform sampler2D LookupTable;
 uniform sampler2D FusionMap;
 uniform sampler2D IntenseCurve;
 uniform sampler2D ExposureCurve;
+// Adaptive white point measured by AutoExposureCurve: the linear position of
+// scene white above display white on HDR scenes (1.0 = whites already at
+// display white). Dividing the input by it anchors whites at 1.0; the AE
+// estimates its curve on the same divided domain.
+uniform float adaptiveWhitePoint;
 uniform sampler2D GainMap;
 uniform sampler2D HSVMap;
 uniform sampler2D PostLut;
@@ -636,6 +641,13 @@ void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy = mirrorCoords(xy,activeSize);
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
+    #if EXPOCURVE == 1
+    // Adaptive white point: divide the input by the measured scene white so
+    // whites anchor at 1.0 before the SDR tone chain. Without it the chain's
+    // clamps (applyColorSpace, the final output clamp) destroy the over-range
+    // highlight detail before the exposure curve could fold it in.
+    sRGB /= adaptiveWhitePoint;
+    #endif
     vec3 t;
     //float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
 
@@ -678,6 +690,20 @@ void main() {
     vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(textureSize(InputBuffer, 0)));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal = dot(gains.rgb,vec3(1.0/3.0));
+    #if EXPOCURVE == 1
+    // AutoExposureCurve response baked into a 1D LUT: gamma lift -> gain ->
+    // extended Reinhard -> gamma lift -> adaptive highlight shoulder (the
+    // former AutoExposure pass, fused). Applied min/max through the curve with
+    // the mid channel interpolated in between (see applyExposureCurve).
+    //sRGB.rgb = applyExposureCurve((sRGB.rgb));
+    //sRGB *= sRGB;
+    float br2 = luminocity(sRGB.rgb);
+    sRGB.rgb /= br2 + 1e-3;
+    //br2 = sqrt(br2);
+    br2 = sampleExposureCurve(br2);
+    //br2 *= br2;
+    sRGB.rgb *= br2;
+    #endif
     sRGB = applyColorSpace(sRGB,tonemapGain, gainsVal);
     //sRGB = vec3(tonemapGain);
     #if LUT == 1
@@ -701,11 +727,6 @@ void main() {
     #if POSTLUT == 1
         Output = postlookup(Output);
     #endif
-    #if EXPOCURVE == 1
-    // AutoExposureCurve response baked into a 1D LUT: gamma lift -> gain ->
-    // extended Reinhard -> gamma lift -> adaptive highlight shoulder (the
-    // former AutoExposure pass, fused). Applied min/max through the curve with
-    // the mid channel interpolated in between (see applyExposureCurve).
-    Output.rgb = applyExposureCurve(Output.rgb);
-    #endif
+
+
 }
