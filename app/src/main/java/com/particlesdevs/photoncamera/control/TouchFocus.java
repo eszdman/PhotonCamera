@@ -12,6 +12,7 @@ import android.util.Size;
 import android.view.Display;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
@@ -20,6 +21,7 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
+import com.particlesdevs.photoncamera.ui.camera.views.SpotWbIndicatorView;
 import com.particlesdevs.photoncamera.util.Log;
 
 /**
@@ -109,14 +111,28 @@ public class TouchFocus {
     private final CaptureController captureController;
     private final GLPreview textureView;
     private final View focusCircleView;
+    private final View spotWbIndicatorView;
+    private int currentOrientation = 0;
     private final Runnable hideFocusCircleRunnable = this::hideFocusCircleView;
+    private final Runnable hideSpotWbRunnable = this::hideSpotWbIndicatorView;
     public volatile boolean isTouchFocus = false;
-    private final OnTouchListener focusListener = (v, event) -> {
-        v.performClick();
+
+    public TouchFocus(CaptureController captureController, View focusCircle, View spotWbIndicator, GLPreview textureView) {
+        this.captureController = captureController;
+        this.focusCircleView = focusCircle;
+        this.spotWbIndicatorView = spotWbIndicator;
+        this.textureView = textureView;
+        if (focusCircleView != null) {
+            focusCircleView.setClickable(false);
+            focusCircleView.setFocusable(false);
+        }
+        if (spotWbIndicatorView != null) {
+            spotWbIndicatorView.setClickable(false);
+            spotWbIndicatorView.setFocusable(false);
+        }
         resetFocusCircle();
-        setInitialAFAE();
-        return true;
-    };
+        resetSpotWbIndicator();
+    }
 
     private final Object seqLock = new Object();
     private int seqState = SEQ_IDLE;
@@ -164,12 +180,63 @@ public class TouchFocus {
     private Runnable timeoutRunnable;
     private boolean timeoutOnBackground;
 
-    public TouchFocus(CaptureController captureController, View focusCircle, GLPreview textureView) {
-        this.captureController = captureController;
-        this.focusCircleView = focusCircle;
-        this.textureView = textureView;
-        focusCircleView.setOnTouchListener(focusListener);
-        resetFocusCircle();
+
+    /**
+     * Executes Live Spot WB measurement on Long Press.
+     * Displays a dedicated sampling reticle with "WB" label and handles real-time error feedback.
+     */
+    public void processSpotWb(float fx, float fy) {
+        if (textureView == null || captureController == null) return;
+
+        // 1. Tactile haptic feedback
+        textureView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+
+        // 2. Position, animate and reset dedicated Spot WB indicator box to measuring state
+        if (spotWbIndicatorView != null) {
+            spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
+            spotWbIndicatorView.post(() -> showSpotWbIndicator(fx, fy));
+        }
+
+        // 3. Measure True Linear RAW Spot WB directly using canonical field-of-view ratio
+        SpotWhiteBalanceHelper.measureSpotWbRaw(
+                textureView,
+                captureController,
+                fx, fy,
+                new SpotWhiteBalanceHelper.SpotWbCallback() {
+                    @Override
+                    public void onSpotWbMeasured(int kelvin, String tintStr) {
+                        if (spotWbIndicatorView != null) {
+                            spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
+                            spotWbIndicatorView.postDelayed(hideSpotWbRunnable, 2000);
+                        }
+                    }
+
+                    @Override
+                    public void onSpotWbFailed(String reason) {
+                        if (spotWbIndicatorView != null) {
+                            spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
+                            if (spotWbIndicatorView instanceof SpotWbIndicatorView) {
+                                ((SpotWbIndicatorView) spotWbIndicatorView).setErrorState(reason);
+                            }
+                            spotWbIndicatorView.postDelayed(hideSpotWbRunnable, 1500);
+                        }
+                    }
+                }
+        );
+    }
+
+    private void showSpotWbIndicator(float fx, float fy) {
+        if (spotWbIndicatorView == null) return;
+        if (spotWbIndicatorView instanceof SpotWbIndicatorView) {
+            ((SpotWbIndicatorView) spotWbIndicatorView).setMeasuringState();
+            ((SpotWbIndicatorView) spotWbIndicatorView).setOrientation(currentOrientation);
+        }
+        spotWbIndicatorView.setX(fx - spotWbIndicatorView.getMeasuredWidth() / 2.0f);
+        spotWbIndicatorView.setY(fy - spotWbIndicatorView.getMeasuredHeight() / 2.0f);
+        spotWbIndicatorView.setVisibility(View.VISIBLE);
+        spotWbIndicatorView.animate().scaleX(1.25f).scaleY(1.25f).setDuration(150)
+                .withEndAction(() -> spotWbIndicatorView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start())
+                .start();
     }
 
     public void processTouchToFocus(float fx, float fy) {
@@ -211,6 +278,16 @@ public class TouchFocus {
 
     private void setInitialAFAE() {
         captureController.reset3Aparams();
+    }
+
+    /**
+     * Updates current device orientation and forwards it to the Spot WB indicator.
+     */
+    public void setOrientation(int orientation) {
+        this.currentOrientation = orientation;
+        if (spotWbIndicatorView instanceof SpotWbIndicatorView) {
+            ((SpotWbIndicatorView) spotWbIndicatorView).setOrientation(orientation);
+        }
     }
 
     // ------------------------------------------------------------------ mapping
@@ -777,6 +854,31 @@ public class TouchFocus {
                         focusCircleView.setScaleY(1f);
                         focusCircleView.setScaleX(1f);
                         focusCircleView.setAlpha(1f);
+                    })
+                    .start();
+        }
+    }
+
+    //Thread safe
+    //call when spot WB indicator needs to be hidden immediately
+    public void resetSpotWbIndicator() {
+        if (spotWbIndicatorView != null) {
+            spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
+            spotWbIndicatorView.post(hideSpotWbRunnable);
+        }
+    }
+
+    //Must be run on UI Thread
+    private void hideSpotWbIndicatorView() {
+        if (spotWbIndicatorView != null && spotWbIndicatorView.getVisibility() == View.VISIBLE) {
+            spotWbIndicatorView.animate().alpha(0f).scaleX(1.4f).scaleY(1.4f).setDuration(120)
+                    .withEndAction(() -> {
+                        spotWbIndicatorView.setVisibility(View.GONE);
+                        spotWbIndicatorView.setX((float) textureView.getWidth() / 2.f);
+                        spotWbIndicatorView.setY((float) textureView.getHeight() / 2.f);
+                        spotWbIndicatorView.setScaleX(1f);
+                        spotWbIndicatorView.setScaleY(1f);
+                        spotWbIndicatorView.setAlpha(1f);
                     })
                     .start();
         }

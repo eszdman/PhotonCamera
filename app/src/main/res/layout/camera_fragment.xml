@@ -112,7 +112,7 @@
                     app:layout_constraintBottom_toTopOf="@id/layout_bottombar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="-10dp" />
 
             <!--    Block 1.6-->
             <!--    includes the Layout resource of BottomBar-->

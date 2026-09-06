@@ -54,6 +54,19 @@
                     app:layout_constraintTop_toTopOf="@id/texture"
                     tools:visibility="visible"/>
 
+            <com.particlesdevs.photoncamera.ui.camera.views.SpotWbIndicatorView
+                    android:id="@+id/spotWbIndicator"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:visibility="invisible"
+                    android:color="@color/focus_circle_color"
+                    android:thickness="1.5dp"
+                    app:layout_constraintBottom_toBottomOf="@id/texture"
+                    app:layout_constraintEnd_toEndOf="@id/texture"
+                    app:layout_constraintStart_toStartOf="@id/texture"
+                    app:layout_constraintTop_toTopOf="@id/texture"
+                    tools:visibility="visible"/>
+
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
                     android:layout_width="0dp"
                     android:layout_height="0dp"
@@ -73,6 +86,15 @@
                 app:layout_constraintBottom_toBottomOf="@+id/texture"
                 app:layout_constraintStart_toStartOf="@+id/texture"
                 app:layout_constraintEnd_toEndOf="@+id/texture" />
+
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView
+                android:id="@+id/viewfinder_hud_view"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="@id/texture"
+                app:layout_constraintEnd_toEndOf="@id/texture"
+                app:layout_constraintStart_toStartOf="@id/texture"
+                app:layout_constraintTop_toTopOf="@id/texture" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!--Capture Progress circle-->

@@ -57,10 +57,15 @@ public class Swipe {
             }
 
             @Override
-            public boolean onSingleTapUp(MotionEvent e) {
+            public boolean onSingleTapConfirmed(MotionEvent e) {
                 cameraFragmentViewModel.setSettingsBarVisible(false);
                 startTouchToFocus(e);
-                return false;
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                startSpotWb(e);
             }
 
             @Override
@@ -114,6 +119,26 @@ public class Swipe {
             float translateY = event.getY() - camera_container.getTop();
             if (manualModeConsole.getManualParamModel().getCurrentFocusValue() == ManualParamModel.FOCUS_AUTO)
                 cameraFragment.getTouchFocus().processTouchToFocus(translateX, translateY);
+        }
+    }
+
+    private void startSpotWb(MotionEvent event) {
+        // Dispatches long-press coordinates to TouchFocus for Spot WB measurement
+        ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
+        FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
+        if (camera_container == null || layout_viewfinder == null || cameraFragment.getTouchFocus() == null) {
+            return;
+        }
+        RectF viewfinderRect = new RectF(
+                layout_viewfinder.getLeft(),
+                camera_container.getY(),
+                layout_viewfinder.getRight(),
+                layout_viewfinder.getBottom() + camera_container.getY()
+        );
+        if (viewfinderRect.contains(event.getX(), event.getY())) {
+            float translateX = event.getX() - camera_container.getLeft();
+            float translateY = event.getY() - camera_container.getTop();
+            cameraFragment.getTouchFocus().processSpotWb(translateX, translateY);
         }
     }
 

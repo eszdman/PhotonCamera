@@ -41,7 +41,7 @@ public class Converter {
             0.000000f, 0.000000f, 1.211968f
     };
     private static final int NO_ILLUMINANT = -1;
-    private static final SparseIntArray sStandardIlluminates = new SparseIntArray();
+    public static final SparseIntArray sStandardIlluminates = new SparseIntArray();
     /**
      * The D50 whitepoint coordinates in CIE XYZ colorspace.
      */
@@ -51,16 +51,24 @@ public class Converter {
 
     static {
         sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT, 6504);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D65, 6504);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D50, 5003);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D55, 5503);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D75, 7504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_FLUORESCENT, 4230);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_TUNGSTEN, 2856);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_FLASH, 5500);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_FINE_WEATHER, 5500);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_CLOUDY_WEATHER, 6500);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_SHADE, 7500);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT_FLUORESCENT, 6430);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAY_WHITE_FLUORESCENT, 5000);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_COOL_WHITE_FLUORESCENT, 4230);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_WHITE_FLUORESCENT, 3450);
         sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_A, 2856);
         sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_B, 4874);
         sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_STANDARD_C, 6774);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_DAYLIGHT_FLUORESCENT, 6430);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_COOL_WHITE_FLUORESCENT, 4230);
-        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_WHITE_FLUORESCENT, 3450);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D55, 5503);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D65, 6504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D75, 7504);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_D50, 5003);
+        sStandardIlluminates.append(CameraMetadata.SENSOR_REFERENCE_ILLUMINANT1_ISO_STUDIO_TUNGSTEN, 3200);
     }
 
     /**
@@ -100,11 +108,15 @@ public class Converter {
         float[] referenceNeutral = new float[3];
         map(inverseInterpolatedCC, cameraNeutral, /*out*/referenceNeutral);
         if (DEBUG) Log.d(TAG, "Reference neutral: " + Arrays.toString(referenceNeutral));
-        float maxNeutral = Math.max(Math.max(referenceNeutral[0], referenceNeutral[1]),
-                referenceNeutral[2]);
-        float[] D = new float[]{maxNeutral / referenceNeutral[0], 0, 0,
-                0, maxNeutral / referenceNeutral[1], 0,
-                0, 0, maxNeutral / referenceNeutral[2]};
+        
+        float refN0 = Math.max(referenceNeutral[0], 1e-6f);
+        float refN1 = Math.max(referenceNeutral[1], 1e-6f);
+        float refN2 = Math.max(referenceNeutral[2], 1e-6f);
+        float maxNeutral = Math.max(Math.max(refN0, refN1), refN2);
+        
+        float[] D = new float[]{maxNeutral / refN0, 0, 0,
+                0, maxNeutral / refN1, 0,
+                0, 0, maxNeutral / refN2};
         if (DEBUG) Log.d(TAG, "Reference Neutral Diagonal: " + Arrays.toString(D));
         float[] intermediate = new float[9];
         float[] intermediate2 = new float[9];
@@ -165,6 +177,8 @@ public class Converter {
             Log.d(TAG, "XYZtoCamera2: " + Arrays.toString(XYZToCamera2));
             Log.d(TAG, "Finding interpolation factor, initial guess 0.5...");
         }
+        
+        double[] xy = new double[2];
         // Iteratively guess xy value, find new CCT, and update interpolation factor.
         int loopLimit = 30;
         int count = 0;
@@ -176,8 +190,7 @@ public class Converter {
                         "Cannot invert XYZ to Camera matrix, input matrices are invalid." + Arrays.toString(interpolationXYZToCamera) + " " + Arrays.toString(interpolationXYZToCameraInverse));
             }
             map(interpolationXYZToCameraInverse, cameraNeutral, /*out*/neutralGuess);
-            double[] xy = calculateCIExyCoordinates(neutralGuess[0], neutralGuess[1],
-                    neutralGuess[2]);
+            calculateCIExyCoordinates(neutralGuess[0], neutralGuess[1], neutralGuess[2], /*out*/xy);
             double colorTemperature = calculateColorTemperature(xy[0], xy[1]);
             if (colorTemperature <= lower) {
                 interpolationFactor = 1;
@@ -219,11 +232,24 @@ public class Converter {
      * @param Z the CIE XYZ Z coordinate.
      * @return the [x, y] chromaticity coordinates as doubles.
      */
-    private static double[] calculateCIExyCoordinates(double X, double Y, double Z) {
-        double[] ret = new double[]{0, 0};
-        ret[0] = X / (X + Y + Z);
-        ret[1] = Y / (X + Y + Z);
+    public static double[] calculateCIExyCoordinates(double X, double Y, double Z) {
+        double[] ret = new double[]{0.0, 0.0};
+        calculateCIExyCoordinates(X, Y, Z, ret);
         return ret;
+    }
+
+    /**
+     * In-place allocation-free calculation of CIE 1931 x,y chromaticity coordinates.
+     */
+    public static void calculateCIExyCoordinates(double X, double Y, double Z, /*out*/double[] outXy) {
+        double sum = X + Y + Z;
+        if (sum <= 1e-9) {
+            outXy[0] = 0.3127; // D65 fallback
+            outXy[1] = 0.3290;
+            return;
+        }
+        outXy[0] = X / sum;
+        outXy[1] = Y / sum;
     }
 
     /**
@@ -238,8 +264,12 @@ public class Converter {
      * @param y y chromaticity component.
      * @return the CCT associated with this chromaticity coordinate.
      */
-    private static double calculateColorTemperature(double x, double y) {
-        double n = (x - 0.332) / (y - 0.1858);
+    public static double calculateColorTemperature(double x, double y) {
+        double denom = y - 0.1858;
+        if (Math.abs(denom) < 1e-9) {
+            denom = (denom < 0) ? -1e-9 : 1e-9;
+        }
+        double n = (x - 0.332) / denom;
         return -449 * Math.pow(n, 3) + 3525 * Math.pow(n, 2) - 6823.3 * n + 5520.33;
     }
 
@@ -249,7 +279,7 @@ public class Converter {
      * @param m      matrix to invert.
      * @param output set the output to be the inverse of m.
      */
-    private static boolean invert(float[] m, /*out*/float[] output) {
+    public static boolean invert(float[] m, /*out*/float[] output) {
         double a00 = m[0];
         double a01 = m[1];
         double a02 = m[2];
@@ -291,7 +321,7 @@ public class Converter {
      * @param input  3 dimensional vector to map.
      * @param output 3 dimensional vector result.
      */
-    private static void map(float[] matrix, float[] input, /*out*/float[] output) {
+    public static void map(float[] matrix, float[] input, /*out*/float[] output) {
         output[0] = input[0] * matrix[0] + input[1] * matrix[1] + input[2] * matrix[2];
         output[1] = input[0] * matrix[3] + input[1] * matrix[4] + input[2] * matrix[5];
         output[2] = input[0] * matrix[6] + input[1] * matrix[7] + input[2] * matrix[8];
@@ -310,11 +340,11 @@ public class Converter {
         output[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
     }
 
-    private static double lerp(double a, double b, double f) {
+    public static double lerp(double a, double b, double f) {
         return (a * (1.0f - f)) + (b * f);
     }
 
-    private static void lerp(float[] a, float[] b, double f, /*out*/float[] result) {
+    public static void lerp(float[] a, float[] b, double f, /*out*/float[] result) {
         for (int i = 0; i < 9; i++) {
             result[i] = (float) lerp(a[i], b[i], f);
         }

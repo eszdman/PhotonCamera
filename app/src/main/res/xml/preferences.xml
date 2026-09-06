@@ -114,6 +114,14 @@
                 app:defaultValue="false"
 
                 />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_preserve_manual_wb_key"
+                android:defaultValue="false"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/preserve_manual_wb"
+                android:summary=""
+                android:icon="@drawable/ic_multi_lens"
+                />
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

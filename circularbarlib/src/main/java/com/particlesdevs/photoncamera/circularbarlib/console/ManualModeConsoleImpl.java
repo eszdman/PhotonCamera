@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.circularbarlib.control.models.FocusModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.IsoModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.ManualModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.ShutterModel;
+import com.particlesdevs.photoncamera.circularbarlib.control.models.WbModel;
 import com.particlesdevs.photoncamera.circularbarlib.model.KnobModel;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
 import com.particlesdevs.photoncamera.circularbarlib.ui.ViewObserver;
@@ -38,8 +39,9 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     private final ManualModeModel manualModeModel;
     private final KnobModel knobModel;
     private final ManualParamModel manualParamModel = new ManualParamModel();
-    private ManualModel<?> mfModel, isoModel, expoTimeModel, evModel, selectedModel;
+    private ManualModel<?> mfModel, isoModel, expoTimeModel, evModel, wbModel, selectedModel;
     private ViewObserver viewObserver;
+    private boolean preserveManualWb = false;
 
     private ManualModeConsoleImpl() {
         this.manualModeModel = new ManualModeModel();
@@ -125,6 +127,7 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
 
     private void addKnobs(Context context, CameraCharacteristics cameraCharacteristics) {
         CameraProperties cameraProperties = new CameraProperties(cameraCharacteristics);
+        double preservedWb = (this.preserveManualWb) ? manualParamModel.getCurrentWbValue() : ManualParamModel.WB_AUTO;
         manualParamModel.reset();
         Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         mfModel = new FocusModel(context, cameraCharacteristics, cameraProperties.focusRange, manualParamModel,
@@ -137,6 +140,20 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
                 manualModeModel::setIsoText, v);
         expoTimeModel = new ShutterModel(context, cameraCharacteristics, cameraProperties.expRange, manualParamModel,
                 manualModeModel::setExposureText, v);
+        wbModel = new WbModel(context, cameraCharacteristics, null, manualParamModel,
+                manualModeModel::setWbText, v);
+
+        // Restore manual White Balance temperature across camera lenses if enabled
+        if (preservedWb != ManualParamModel.WB_AUTO) {
+            for (KnobItemInfo item : wbModel.getKnobInfoList()) {
+                if (Math.abs(item.value - preservedWb) < 0.1) {
+                    wbModel.onSelectedKnobItemChanged(item);
+                    manualModeModel.setWbText(item.text);
+                    break;
+                }
+            }
+        }
+
         knobModel.setKnobVisible(false);
         manualModeModel.setCheckedTextViewId(-1);
     }
@@ -145,7 +162,7 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     public void setPanelVisibility(boolean visible) {
         manualModeModel.setManualPanelVisible(visible);
         if (!visible) {
-            manualParamModel.reset();
+            manualParamModel.reset(this.preserveManualWb);
         }
     }
 
@@ -169,6 +186,7 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         manualModeModel.setEvTextClicked(v -> setListeners(v, evModel));
         manualModeModel.setExposureTextClicked(v -> setListeners(v, expoTimeModel));
         manualModeModel.setIsoTextClicked(v -> setListeners(v, isoModel));
+        manualModeModel.setWbTextClicked(v -> setListeners(v, wbModel));
     }
 
     private void setListeners(View view, ManualModel<?> model) {
@@ -191,12 +209,19 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
             expoTimeModel.setAutoTxt();
         if (isoModel != null)
             isoModel.setAutoTxt();
+        if (wbModel != null) {
+            if (!this.preserveManualWb || manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO) {
+                wbModel.setAutoTxt();
+            }
+        }
     }
 
     @Override
     public void retractAllKnobs() {
         knobModel.setKnobVisible(false);
-        knobModel.setKnobResetCalled(true);
+        if (!this.preserveManualWb || manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO || !(selectedModel instanceof WbModel)) {
+            knobModel.setKnobResetCalled(true);
+        }
         selectedModel = null;
         if (mfModel != null)
             mfModel.resetModel();
@@ -206,6 +231,8 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
             isoModel.resetModel();
         if (evModel != null)
             evModel.resetModel();
+        if (wbModel != null && (!this.preserveManualWb || manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO))
+            wbModel.resetModel();
         manualModeModel.setCheckedTextViewId(-1);
     }
 
@@ -219,9 +246,41 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         if (mfModel == null) {
             return false;
         }
-        KnobItemInfo currentInfo = mfModel
-                .getCurrentInfo();
+        KnobItemInfo currentInfo = mfModel.getCurrentInfo();
         return currentInfo != null && currentInfo.value != ManualParamModel.FOCUS_AUTO;
+    }
+
+    @Override
+    public void setPreserveManualWb(boolean preserve) {
+        this.preserveManualWb = preserve;
+    }
+
+    @Override
+    public void setManualWbValue(double kelvinValue) {
+        if (wbModel == null) {
+            manualParamModel.setCurrentWbValue(kelvinValue);
+            return;
+        }
+
+        // 1. Locate the matching knob item for the measured Kelvin value
+        KnobItemInfo matchedItem = null;
+        for (KnobItemInfo item : wbModel.getKnobInfoList()) {
+            if (Math.abs(item.value - kelvinValue) < 0.1) {
+                matchedItem = item;
+                break;
+            }
+        }
+
+        // 2. Synchronize WbModel, manual bar text, and active KnobView wheel rotation
+        if (matchedItem != null) {
+            wbModel.onSelectedKnobItemChanged(matchedItem);
+            manualModeModel.setWbText(matchedItem.text);
+            if (selectedModel == wbModel) {
+                knobModel.setManualModel(wbModel);
+            }
+        } else {
+            manualParamModel.setCurrentWbValue(kelvinValue);
+        }
     }
 
     private void setModelToKnob(int viewId, ManualModel<?> modelToKnob) {

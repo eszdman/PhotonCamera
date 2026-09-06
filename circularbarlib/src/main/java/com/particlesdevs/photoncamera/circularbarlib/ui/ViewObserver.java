@@ -30,6 +30,7 @@ public class ViewObserver implements Observer {
     private final TextView expOption;
     private final TextView evOption;
     private final TextView focusOption;
+    private final TextView wbOption;
     private final List<TextView> textViews;
     private final OrientationEventListener orientationEventListener;
     private final LinearLayout buttonsContainer;
@@ -45,7 +46,8 @@ public class ViewObserver implements Observer {
         expOption = findViewById(R.id.exposure_option_tv);
         evOption = findViewById(R.id.ev_option_tv);
         focusOption = findViewById(R.id.focus_option_tv);
-        textViews = Arrays.asList(isoOption, evOption, expOption, focusOption);
+        wbOption = findViewById(R.id.wb_option_tv);
+        textViews = Arrays.asList(isoOption, evOption, expOption, focusOption, wbOption);
         orientationEventListener = new OrientationEventListener(activity.getBaseContext()) {
             private static final int ROT_DUR = 350;
             private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
@@ -131,6 +133,9 @@ public class ViewObserver implements Observer {
                     case FOCUS_TEXT:
                         focusOption.setText(manualModeModel.getFocusText());
                         break;
+                    case WB_TEXT:
+                        wbOption.setText(manualModeModel.getWbText());
+                        break;
                     case EV_LISTENER:
                         evOption.setOnClickListener(manualModeModel.getEvTextClicked());
                         break;
@@ -142,6 +147,9 @@ public class ViewObserver implements Observer {
                         break;
                     case ISO_LISTENER:
                         isoOption.setOnClickListener(manualModeModel.getIsoTextClicked());
+                        break;
+                    case WB_LISTENER:
+                        wbOption.setOnClickListener(manualModeModel.getWbTextClicked());
                         break;
                     case SELECTED_TV:
                         View v = findViewById(manualModeModel.getSelectedTextViewId());

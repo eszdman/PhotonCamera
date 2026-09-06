@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.parameters;
 
+import android.content.Context;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraMetadata;
@@ -13,6 +14,8 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.api.VendorTagUtils;
+import com.particlesdevs.photoncamera.settings.SensorConfigPreferenceGenerator;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -70,13 +73,13 @@ public class IsoExpoSelector {
         builder.set(CaptureRequest.SENSOR_SENSITIVITY, (int)pair.iso);
         lastSelectedExposure = pair.exposure;
     }
-    private static double mpy1 = 1.0;
     public static ExpoPair GenerateExpoPair(int step, CaptureController captureController) {
         ExpoPair pair = new ExpoPair(captureController.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
                 captureController.mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
         double compensation = Math.pow(2.0,PhotonCamera.getSettings().exposureCompensation);
         pair.normalizeiso100();
         pair.ExpoCompensateLower(1.0/compensation);
+        double mpy1;
         if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
         {
             mpy1 = 7000.0;
@@ -167,8 +170,12 @@ public class IsoExpoSelector {
             }
         }
 
-        double currentManExp = captureController.getParamController().getCurrentExposureValue();
-        double currentManISO = captureController.getParamController().getCurrentISOValue();
+        double currentManExp = 0.0;
+        double currentManISO = 0.0;
+        if (captureController != null && captureController.getParamController() != null) {
+            currentManExp = captureController.getParamController().getCurrentExposureValue();
+            currentManISO = captureController.getParamController().getCurrentISOValue();
+        }
 
         if (currentManExp != 0) {
             pair.exposure = (long) currentManExp;
@@ -201,7 +208,7 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLowerExpo(2.f);
             pair.ExpoCompensateLower(1.f/2.f);
         }*/
-        if (step%patternSize == 0 && HDR) {
+        if (step % patternSize == 0 && HDR) {
             // Set multiplier based on bracketing mode (0=Off, 1=Normal, 2=High)
             int bracketingMode = PreferenceKeys.getBracketingMode();
             pair.layerMpy = 1.f;
@@ -222,15 +229,8 @@ public class IsoExpoSelector {
             } else {
                 pair.curlayer = ExpoPair.exposureLayer.Normal;
             }
-        }
-        if ((step%patternSize == 1) && HDR) {
+        } else if (HDR) {
             pair.layerMpy = 1.f;
-            pair.ExpoCompensateLowerExpo2(1.0 / pair.layerMpy);
-            pair.curlayer = ExpoPair.exposureLayer.Normal;
-        }
-        if (step%patternSize == 2 && HDR) {
-            pair.layerMpy = 1.f;
-            pair.ExpoCompensateLowerExpo2(1.0 / pair.layerMpy);
             pair.curlayer = ExpoPair.exposureLayer.Normal;
         }
 
@@ -249,8 +249,16 @@ public class IsoExpoSelector {
         return pair;
     }
 
+    private static <T> T getCameraCharacteristic(CameraCharacteristics.Key<T> key, T defaultValue) {
+        CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
+        if (characteristics == null) return defaultValue;
+        T value = characteristics.get(key);
+        return value != null ? value : defaultValue;
+    }
+
     public static double getMPY() {
-        return 100.0 / getISOLOW();
+        int isoLow = getISOLOW();
+        return (isoLow > 0) ? (100.0 / isoLow) : 1.0;
     }
 
     private static int mpyIso(int in) {
@@ -258,11 +266,8 @@ public class IsoExpoSelector {
     }
 
     private static int getISOHIGH() {
-        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
-        if (key == null) return 3200;
-        else {
-            return (int) ((Range) (key)).getUpper();
-        }
+        Range<Integer> range = getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE, null);
+        return range != null ? range.getUpper() : 3200;
     }
 
     public static int getISOHIGHExt() {
@@ -270,18 +275,12 @@ public class IsoExpoSelector {
     }
 
     private static int getISOLOW() {
-        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE);
-        if (key == null) return 100;
-        else {
-            return (int) ((Range) (key)).getLower();
-        }
+        Range<Integer> range = getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE, null);
+        return (range != null && range.getLower() > 0) ? range.getLower() : 100;
     }
+
     public static int getISOAnalog() {
-        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
-        if (key == null) return 100;
-        else {
-            return (int)(key);
-        }
+        return getCameraCharacteristic(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY, 100);
     }
 
     public static int getISOLOWExt() {
@@ -289,19 +288,13 @@ public class IsoExpoSelector {
     }
 
     public static long getEXPHIGH() {
-        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
-        if (key == null) return ExposureIndex.sec;
-        else {
-            return (long) ((Range) (key)).getUpper();
-        }
+        Range<Long> range = getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE, null);
+        return range != null ? range.getUpper() : ExposureIndex.sec;
     }
 
     public static long getEXPLOW() {
-        Object key = CaptureController.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE);
-        if (key == null) return ExposureIndex.sec / 1000;
-        else {
-            return (long) ((Range) (key)).getLower();
-        }
+        Range<Long> range = getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE, null);
+        return range != null ? range.getLower() : (ExposureIndex.sec / 1000);
     }
 
     private static double getDynamicScalingFactor() {
@@ -378,17 +371,11 @@ public class IsoExpoSelector {
                 efl = (36.0f / sensorSize.getWidth()) * fl;
             }
 
-            // Explicit and safe OIS capability check
-            boolean hasHardwareOis = false;
-            int[] oisModes = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-            if (oisModes != null) {
-                for (int mode : oisModes) {
-                    if (mode == CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON) {
-                        hasHardwareOis = true;
-                        break;
-                    }
-                }
-            }
+            // Explicit and safe OIS capability check via unified VendorTagUtils
+            Context context = PhotonCamera.getSettingsManagerStatic() != null
+                    ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
+            String physicalId = SensorConfigPreferenceGenerator.toPhysicalId(PhotonCamera.getSettings().mCameraID);
+            boolean hasHardwareOis = VendorTagUtils.isOisSupported(context, characteristics, physicalId);
 
             if (hasHardwareOis) {
                 oisActive = (captureController == null || captureController.oisMode != 2);
@@ -450,55 +437,65 @@ public class IsoExpoSelector {
             isoanalog = pair.isoanalog;
         }
 
+        public double normalizedIsoHigh() {
+            return (isolow > 0) ? isohigh * (100.0 / isolow) : isohigh;
+        }
+
+        public double normalizedIsoLow() {
+            return 100.0;
+        }
+
         public void normalizeiso100() {
-            double mpy = 100.0 / isolow;
-            iso *= mpy;
-            isoanalog *=mpy;
+            double mpy = (isolow > 0) ? (100.0 / isolow) : 1.0;
+            iso = (int) Math.round(iso * mpy);
+            isoanalog = (int) Math.round(isoanalog * mpy);
         }
 
         public void denormalizeSystem() {
-            double div = 100.0 / isolow;
-            iso /= div;
-            isoanalog /=div;
+            double div = (isolow > 0) ? (100.0 / isolow) : 1.0;
+            iso = (int) Math.round(iso / div);
+            isoanalog = (int) Math.round(isoanalog / div);
         }
         public float normalizedIso(){
             return (float)iso/isoanalog;
         }
+        
         public void normalize() {
-            double div = 100.0 / isolow;
-            if (iso / div > isohigh) iso = isohigh;
-            if (iso / div < isolow) iso = isolow;
+            double isoHigh = normalizedIsoHigh();
+            if (iso > isoHigh) iso = (int) Math.round(isoHigh);
+            if (iso < 100) iso = 100;
             if (exposure > exposurehigh) exposure = exposurehigh;
             if (exposure < exposurelow) exposure = exposurelow;
         }
 
         public boolean normalizeCheck() {
-            double div = 100.0 / isolow;
-            boolean wrongparams = false;
-            if (iso / div > isohigh) wrongparams = true;
-            if (iso / div < isolow) wrongparams = true;
-            if (exposure > exposurehigh) wrongparams = true;
-            if (exposure < exposurelow) wrongparams = true;
-            return wrongparams;
+            double isoHigh = normalizedIsoHigh();
+            return iso > isoHigh
+                    || iso < 100
+                    || exposure > exposurehigh
+                    || exposure < exposurelow;
         }
 
-        public void normalizeISO(){
-            double div = 100.0 / isolow;
-            if (iso / div > isohigh) {
-                double mpy = (iso / div) / isohigh;
+        public void normalizeISO() {
+            double isoHigh = normalizedIsoHigh();
+            if (iso > isoHigh) {
+                double mpy = (double) iso / isoHigh;
                 exposure = (long) (exposure * mpy);
-                iso = isohigh;
+                iso = (int) Math.round(isoHigh);
             }
         }
 
         public void ExpoCompensateLower(double k) {
-            iso /= k;
+            int origIso = iso;
+            long origExposure = exposure;
+
+            iso = (int) Math.round(iso / k);
             normalizeISO();
             if (normalizeCheck()) {
-                iso *= k;
-                exposure /= k;
+                iso = origIso;
+                exposure = (long) Math.round(origExposure / k);
                 if (normalizeCheck()) {
-                    exposure *= k;
+                    exposure = origExposure;
                     layerMpy = 1.f;
                 }
             }
@@ -579,7 +576,7 @@ public class IsoExpoSelector {
             // even when snapToCleanIso has to fall back to the sensor's true ISO ceiling.
             if (exposure > effectiveCap) exposure = effectiveCap;
             if (exposure < exposurelow) exposure = exposurelow;
-            double isoHighNormalized = isohigh * (100.0 / isolow);
+            double isoHighNormalized = normalizedIsoHigh();
             if (iso > isoHighNormalized) iso = (int) Math.round(isoHighNormalized);
             if (iso < MIN_ISO_NORMALIZED) iso = MIN_ISO_NORMALIZED;
 
@@ -596,7 +593,7 @@ public class IsoExpoSelector {
             if (isoLimit == -4) return Math.max(100.0, (double) isoanalog / 4.0);
             if (isoLimit == -3) return Math.max(100.0, (double) isoanalog / 2.0);
             if (isoLimit == -2) return (double) isoanalog;
-            if (isoLimit == -1) return (double) isohigh * (100.0 / isolow);
+            if (isoLimit == -1) return normalizedIsoHigh();
             return Math.min((double) isohigh, (double) isoLimit) * (100.0 / isolow);
         }
 
@@ -607,6 +604,44 @@ public class IsoExpoSelector {
             if (shutterLimitSec == -2.0f) return getAutoSafeShutterNs(cc);
             if (shutterLimitSec > 0.0f) return (long) (shutterLimitSec * ExposureIndex.sec);
             return exposurehigh;
+        }
+
+        /**
+         * Resolves the optimal ISO and Shutter pair when exposure exceeds maxExposure:
+         * 1. Snap UP: if within 10% shutter loss, raises to clean analog ISO and shortens shutter (100% energy).
+         * 2. Snap DOWN: if within 5% brightness drop, lowers to clean analog ISO at maxExposure.
+         * 3. Fallback: unquantized continuous sensor ISO (100% energy preservation).
+         */
+        private void applyHeadroomAwareQuantization(double targetEnergy, long minExposure, long maxExposure, double maxIso, int isoLimit) {
+            // 1. Calculate required continuous ISO strictly relative to maxExposure ceiling
+            double continuousIso = targetEnergy / (double) maxExposure;
+            long isoDown = snapToCleanIso(continuousIso, false);
+            long isoUp = snapToCleanIso(continuousIso, true);
+
+            // 2. Try snapping UP to higher clean ISO (shortens shutter, 100% energy)
+            double shutterAtIsoUp = targetEnergy / (double) isoUp;
+            if ((double) isoUp <= maxIso && shutterAtIsoUp >= (double) minExposure && (shutterAtIsoUp >= (double) maxExposure * 0.90)) {
+                iso = (int) isoUp;
+                exposure = (long) Math.round(shutterAtIsoUp);
+                return;
+            }
+
+            // 3. Try snapping DOWN to lower clean ISO (holds maxExposure, loses < 5% brightness)
+            if (isoDown <= continuousIso && (double) isoDown >= continuousIso * 0.95 && isoDown >= 100 && (double) isoDown <= maxIso) {
+                iso = (int) isoDown;
+                exposure = maxExposure;
+                return;
+            }
+
+            // 4. Fallback: exact unquantized sensor gain (100% energy preservation)
+            double boundedIso = Math.max(100.0, Math.min(maxIso, continuousIso));
+            iso = (int) Math.ceil(boundedIso);
+            exposure = (long) Math.round(Math.max((double) minExposure, Math.min((double) maxExposure, targetEnergy / (double) iso)));
+
+            // Set ISO limit flag if continuous required ISO exceeded user ceiling
+            if (isoLimit != -1 && continuousIso > maxIso) {
+                isIsoLimited = true;
+            }
         }
 
         /**
@@ -630,9 +665,10 @@ public class IsoExpoSelector {
             // 1. Save target exposure energy
             double targetEnergy = (double) exposure * iso;
 
-            // 2. Apply theoretical shift
-            exposure = (long) (exposure / k);
-            iso = (int) (iso * k);
+            // 2. Apply theoretical shift (bypassed on tripod to prioritize maximum light gathering)
+            double effectiveK = useTripod ? 1.0 : k;
+            exposure = (long) (exposure / effectiveK);
+            iso = (int) (iso * effectiveK);
 
             // 3. Resolve bounds using helper methods
             double isoHighNormalized = resolveIsoLimit(isoLimit);
@@ -651,14 +687,14 @@ public class IsoExpoSelector {
 
             // 5. Exposure limits check with clean ISO snapping down
             if (exposure > effectiveExposureHigh) {
-                exposure = effectiveExposureHigh;
-                if ((shutterLimitSec > 0.0f || shutterLimitSec == -2.0f) && !useTripod) isShutterLimited = true;
-                double continuousIso = targetEnergy / exposure;
-                iso = (int) snapToCleanIso(continuousIso, false);
+                applyHeadroomAwareQuantization(targetEnergy, exposurelow, effectiveExposureHigh, isoHighNormalized, isoLimit);
+                if (exposure >= effectiveExposureHigh && (shutterLimitSec > 0.0f || shutterLimitSec == -2.0f) && !useTripod) {
+                    isShutterLimited = true;
+                }
             } else if (exposure < exposurelow) {
                 exposure = exposurelow;
-                double continuousIso = targetEnergy / exposure;
-                iso = (int) snapToCleanIso(continuousIso, false);
+                double continuousIso = targetEnergy / (double) exposure;
+                iso = (int) Math.ceil(Math.max(100.0, Math.min(isoHighNormalized, continuousIso)));
             }
 
             // 6. Final safety clamps
@@ -695,18 +731,20 @@ public class IsoExpoSelector {
          * @return snapped clean normalized ISO value
          */
         private long snapToCleanIso(double targetIso, boolean snapUp) {
-            double isoHighNormalized = isohigh * (100.0 / isolow);
-            double isoAnalogNormalized = isoanalog * (100.0 / isolow);
+            double isoHighNormalized = normalizedIsoHigh();
+            double isoAnalogNormalized = isoanalog;
 
             double[] ladder = new double[16];
             int n = 0;
             for (double rung = MIN_ISO_NORMALIZED; rung <= isoHighNormalized && n < 14; rung *= CLEAN_ISO_STEP_FACTOR) {
                 ladder[n++] = rung;
             }
-            if (isoAnalogNormalized > MIN_ISO_NORMALIZED && isoAnalogNormalized < isoHighNormalized) {
+            if (isoAnalogNormalized > MIN_ISO_NORMALIZED && isoAnalogNormalized < isoHighNormalized && !containsRung(ladder, n, isoAnalogNormalized)) {
                 ladder[n++] = isoAnalogNormalized;
             }
-            ladder[n++] = isoHighNormalized; // true sensor ceiling, always available as a last resort
+            if (!containsRung(ladder, n, isoHighNormalized)) {
+                ladder[n++] = isoHighNormalized; // true sensor ceiling, always available as a last resort
+            }
             java.util.Arrays.sort(ladder, 0, n);
 
             if (snapUp) {
@@ -727,39 +765,52 @@ public class IsoExpoSelector {
             }
         }
 
+        private boolean containsRung(double[] ladder, int count, double value) {
+            for (int i = 0; i < count; i++) {
+                if (Math.abs(ladder[i] - value) < 0.01) return true;
+            }
+            return false;
+        }
+
         private static double log2(double x) {
             return Math.log(x) / Math.log(2.0);
         }
 
         public void ExpoCompensateLowerExpo(double k) {
-            iso /= k;
+            int origIso = iso;
+            long origExposure = exposure;
+
+            iso = (int) Math.round(origIso / k);
             if (normalizeCheck()) {
-                iso *= k;
-                exposure /= k;
-                if(normalizeCheck()){
-                    exposure *= k;
-                    exposure /= Math.sqrt(k);
-                    iso /= Math.sqrt(k);
+                iso = origIso;
+                exposure = (long) Math.round(origExposure / k);
+                if (normalizeCheck()) {
+                    double sqrtK = Math.sqrt(k);
+                    exposure = (long) Math.round(origExposure / sqrtK);
+                    iso = (int) Math.round(origIso / sqrtK);
                     if (normalizeCheck()) {
-                        exposure *= Math.sqrt(k);
-                        iso *= Math.sqrt(k);
+                        exposure = origExposure;
+                        iso = origIso;
                     }
                 }
             }
         }
 
         public boolean ExpoCompensateLowerExpo2(double k) {
-            exposure /= k;
+            long origExposure = exposure;
+            int origIso = iso;
+
+            exposure = (long) Math.round(origExposure / k);
             if (normalizeCheck()) {
-                exposure *= k;
-                iso /= k;
-                if(normalizeCheck()){
-                    iso *= k;
-                    iso /= Math.sqrt(k);
-                    exposure /= Math.sqrt(k);
+                exposure = origExposure;
+                iso = (int) Math.round(origIso / k);
+                if (normalizeCheck()) {
+                    double sqrtK = Math.sqrt(k);
+                    iso = (int) Math.round(origIso / sqrtK);
+                    exposure = (long) Math.round(origExposure / sqrtK);
                     if (normalizeCheck()) {
-                        iso *= Math.sqrt(k);
-                        exposure *= Math.sqrt(k);
+                        iso = origIso;
+                        exposure = origExposure;
                     }
                 }
             }
@@ -771,47 +822,69 @@ public class IsoExpoSelector {
         }
 
         public void UseIso(double isoUsed) {
-            double k = iso / isoUsed;
+            if (isoUsed <= 0) return;
+            int origIso = iso;
+            long origExposure = exposure;
+
+            double k = (double) iso / isoUsed;
             ReduceIso(k);
             if (normalizeCheck()) {
-                iso *= (double) (exposure) / exposurehigh;
+                iso = (int) Math.round((double) origIso * origExposure / exposurehigh);
                 exposure = exposurehigh;
                 if (normalizeCheck()) {
-                    iso = isohigh;
+                    double isoHigh = normalizedIsoHigh();
+                    if (iso > isoHigh) iso = (int) Math.round(isoHigh);
+                    if (iso < 100) iso = 100;
+                    if (exposure > exposurehigh) exposure = exposurehigh;
+                    if (exposure < exposurelow) exposure = exposurelow;
                 }
             }
         }
 
         public void ReduceIso() {
+            int origIso = iso;
+            long origExposure = exposure;
             ReduceIso(2.0);
             if (normalizeCheck()) {
-                ReduceIso(1.0 / 2);
+                iso = origIso;
+                exposure = origExposure;
             }
         }
 
         public void ReduceIso(double k) {
-            iso /= k;
-            exposure *= k;
+            iso = (int) Math.round(iso / k);
+            exposure = (long) Math.round(exposure * k);
         }
 
         public void ReduceExpo() {
+            int origIso = iso;
+            long origExposure = exposure;
             ReduceExpo(2.0);
-            if (normalizeCheck()) ReduceExpo(1.0 / 2);
+            if (normalizeCheck()) {
+                iso = origIso;
+                exposure = origExposure;
+            }
         }
 
         public void ReduceExpo(double k) {
             Log.d(TAG, "ExpoReducing iso:" + iso + " expo:" + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
-            iso *= k;
-            exposure /= k;
+            iso = (int) Math.round(iso * k);
+            exposure = (long) Math.round(exposure / k);
             Log.d(TAG, "ExpoReducing done iso:" + iso + " expo:" + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
         }
 
         public void FixedExpo(double expo) {
             long expol = ExposureIndex.sec2time(expo);
+            if (expol <= 0) return;
+            int origIso = iso;
+            long origExposure = exposure;
             double k = (double) exposure / expol;
             ReduceExpo(k);
             Log.d(TAG, "ExpoFixating iso:" + iso + " expo:" + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)));
-            if (normalizeCheck()) ReduceExpo(1 / k);
+            if (normalizeCheck()) {
+                iso = origIso;
+                exposure = origExposure;
+            }
         }
 
         public String ExposureString() {

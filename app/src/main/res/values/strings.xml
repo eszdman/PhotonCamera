@@ -65,6 +65,9 @@
     <string name="color_method">Color Method</string>
     <string name="focus_peaking">Focus Peaking</string>
     <string name="focus_peaking_auto">Auto</string>
+    <string name="pref_preserve_manual_wb_key" translatable="false">pref_preserve_manual_wb_key</string>
+    <string name="preserve_manual_wb">Preserve Manual WB</string>
+    <string name="preserve_manual_wb_summary">Keep manual white balance color temperature when switching camera lenses</string>
     <string name="show_horizon_on_preview">Show horizon on preview</string>
     <string name="preview_format">Preview Format</string>
     <string name="pref_save_per_lens_string">Per Lens Settings</string>

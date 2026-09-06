@@ -40,6 +40,7 @@ import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.camera2.params.RggbChannelVector;
 import android.media.CamcorderProfile;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
@@ -84,6 +85,7 @@ import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
+import com.particlesdevs.photoncamera.processing.parameters.ColorTemperatureConverter;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SensorConfigInjector;
 import com.particlesdevs.photoncamera.settings.annotations.SensorConfig;
@@ -350,6 +352,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private final Object mZslBufferLock = new Object();
     private volatile boolean mZslCapturing = false;
 
+    public interface RawFrameCallback {
+        void onRawFrameAvailable(@NonNull Image image, CaptureResult result);
+    }
+    private volatile RawFrameCallback mPendingRawMeteringCallback = null;
+
     private final ImageReader.OnImageAvailableListener mOnYuvImageAvailableListener
             = new ImageReader.OnImageAvailableListener() {
         @Override
@@ -368,6 +375,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         @Override
         public void onImageAvailable(ImageReader reader) {
+            RawFrameCallback cb = mPendingRawMeteringCallback;
+            if (cb != null) {
+                mPendingRawMeteringCallback = null;
+                Image img = reader.acquireNextImage();
+                if (img != null) {
+                    cb.onRawFrameAvailable(img, mPreviewCaptureResult);
+                }
+                return;
+            }
             //dequeueAndSaveImage(mRawResultQueue, mRawImageReader);
             //mImageSaver.mImage = reader.acquireNextImage();
 //            Message msg = new Message();
@@ -579,6 +595,32 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mFlashed = state != null && state == CaptureResult.FLASH_STATE_PARTIAL || state == CaptureResult.FLASH_STATE_FIRED;
             mPreviewCaptureResult = result;
             mPreviewCaptureRequest = request;
+
+            RggbChannelVector halGains = result.get(CaptureResult.COLOR_CORRECTION_GAINS);
+            ColorSpaceTransform halTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+            Integer halAwb = result.get(CaptureResult.CONTROL_AWB_MODE);
+            Integer halColorMode = result.get(CaptureResult.COLOR_CORRECTION_MODE);
+            Rational[] halNeutralPoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+
+            /** Spawning dozens of temp arrays and strings 60 fps puts a lot of pressure on the Android GC, 
+                and on weaker chips it can cause viewfinder hiccups over time.
+                
+            int estimatedKelvin = ColorTemperatureConverter.neutralPointToKelvin(halNeutralPoint);
+
+            if (paramController == null || paramController.WB == 0) {
+                Log.d("WB_COMPARE_DEBUG", "[AUTO AWB] Scene Estimated K=" + estimatedKelvin
+                        + " | GAINS=" + halGains
+                        + " | TRANSFORM=" + halTransform
+                        + " | NEUTRAL_POINT=" + Arrays.toString(halNeutralPoint));
+            } else {
+                Log.d("WB_COMPARE_DEBUG", "[MANUAL WB Target=" + paramController.WB + "K] (HAL Measured K=" + estimatedKelvin + ")"
+                        + " | GAINS=" + halGains
+                        + " | TRANSFORM=" + halTransform
+                        + " | NEUTRAL_POINT=" + Arrays.toString(halNeutralPoint));
+            }
+            */
+
+            VendorTagUtils.resultSessionApply(result, physicalID);
             process(result);
             if (mTouchFocus != null) {
                 mTouchFocus.onCaptureResult(result);
@@ -1189,6 +1231,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void restartCamera() {
         Log.d(TAG, "restartCamera() called from \"" + Thread.currentThread().getName() + "\" Thread");
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
+        if (paramController != null) {
+            paramController.onCameraChanged();
+        }
         mCameraOpening.set(false); // the device is closed below before reopening
         try {
             mCameraOpenCloseLock.acquire();
@@ -1485,6 +1530,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         PhotonCamera.getSpecificSensor().selectSpecifics(Integer.parseInt(cameraId));
         CameraCharacteristics characteristics = this.mCameraCharacteristicsMap.get(cameraId);
         mCameraCharacteristics = characteristics;
+        if (paramController != null) {
+            paramController.onCameraChanged();
+        }
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
         StreamConfigurationMap map = null;
@@ -2208,10 +2256,43 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "Focus:" + focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
 
-            int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-            if (stabilizationModes != null && stabilizationModes.length > 1) {
+            if (VendorTagUtils.isOisSupported(activity, mCameraCharacteristics, physicalID)) {
                 Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
                 applyOisMode(captureBuilder, true);//Fix ois bugs for preview and burst
+            }
+
+            if (paramController != null && paramController.WB != 0) {
+                int wbVal = paramController.WB;
+                if (wbVal >= 2000) {
+                    RggbChannelVector gains;
+                    ColorSpaceTransform transform;
+
+                    if (paramController.isSpotWb && paramController.spotGains != null) {
+                        gains = paramController.spotGains;
+                        transform = (paramController.spotTransform != null)
+                                ? paramController.spotTransform
+                                : ColorTemperatureConverter.createColorTransform(wbVal, mCameraCharacteristics);
+
+                        Log.d("WB_RESULT_DEBUG", "captureStillPicture Spot WB Set: Kelvin=" + wbVal
+                                + " | Tint=" + paramController.spotTintStr
+                                + " | Measured Gains=" + gains
+                                + " | Transform=" + transform);
+                    } else {
+                        gains = ColorTemperatureConverter.kelvinToRggb(wbVal, mCameraCharacteristics);
+                        transform = ColorTemperatureConverter.createColorTransform(wbVal, mCameraCharacteristics);
+
+                        Log.d("WB_RESULT_DEBUG", "captureStillPicture Manual WB Set: Kelvin=" + wbVal
+                                + " | Gains=" + gains
+                                + " | Transform=" + transform);
+                    }
+
+                    captureBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF);
+                    captureBuilder.set(CaptureRequest.COLOR_CORRECTION_MODE, CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX);
+                    captureBuilder.set(CaptureRequest.COLOR_CORRECTION_GAINS, gains);
+                    if (transform != null) {
+                        captureBuilder.set(CaptureRequest.COLOR_CORRECTION_TRANSFORM, transform);
+                    }
+                }
             }
 
             for (int i = 0; i < 3; i++) {
@@ -2360,6 +2441,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.v("BurstCounter", "CaptureCompleted! FrameCount:" + frameCount);
                     Object time = result.get(CaptureResult.SENSOR_TIMESTAMP);
                     Log.d(TAG, "Timestamp:" + time);
+                    if (paramController != null && paramController.WB != 0) {
+                        RggbChannelVector stillGains = result.get(CaptureResult.COLOR_CORRECTION_GAINS);
+                        ColorSpaceTransform stillTransform = result.get(CaptureResult.COLOR_CORRECTION_TRANSFORM);
+                        Integer stillAwb = result.get(CaptureResult.CONTROL_AWB_MODE);
+                        Rational[] stillNeutralPoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+
+                        Log.d("WB_RESULT_DEBUG", "Still Picture HAL Result: AWB=" + stillAwb
+                                + " | GAINS=" + stillGains
+                                + " | TRANSFORM=" + stillTransform
+                                + " | NEUTRAL_POINT=" + Arrays.toString(stillNeutralPoint));
+                    }
                     if (time != null) {
                         // get exposure multiply ISO and exposure time
                         Object isoKey = result.get(CaptureResult.SENSOR_SENSITIVITY);
@@ -2835,8 +2927,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * @param isStillCapture true if configuring a still capture request, false for preview stream
      */
     private void applyOisMode(CaptureRequest.Builder builder, boolean isStillCapture) {
-        int[] stabilizationModes = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-        if (stabilizationModes != null && stabilizationModes.length > 1) {
+        if (VendorTagUtils.isOisSupported(activity, mCameraCharacteristics, physicalID)) {
             int oisMode = this.oisMode;
             if (oisMode == 2) {
                 // Always Off
@@ -2860,6 +2951,68 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
                 }
             }
+        }
+    }
+
+    /**
+     * Captures a single linear RAW frame for spot metering without triggering the photo save pipeline.
+     * Guarded against buffer contention and fully non-blocking in continuous ZSL mode.
+     */
+    public void captureSingleRawForMetering(RawFrameCallback callback) {
+        if (mCameraDevice == null || mCaptureSession == null || mImageReaderRaw == null) {
+            return;
+        }
+        // 1. Safety guard: reject measurement if camera is busy capturing or processing HDR bursts
+        if (isProcessing || burst || mZslCapturing) {
+            Log.w(TAG, "captureSingleRawForMetering: camera pipeline busy, skipping measurement");
+            return;
+        }
+
+        // 2. In ZSL mode, RAW frames stream continuously: intercept the next streaming frame with 0ms freeze
+        if (isZslMode()) {
+            mPendingRawMeteringCallback = callback;
+            return;
+        }
+
+        // 3. Non-ZSL mode (Photo / Night): submit isolated single-shot RAW capture preserving live AF/AE lock
+        try {
+            CaptureRequest.Builder builder;
+            if (mPreviewRequestBuilder != null) {
+                // Inherit exact live 3A state (locked AF mode, lens distance, regions, OIS) to avoid resetting focus
+                builder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                
+                Integer afMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_MODE);
+                if (afMode != null) builder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
+                
+                Float focusDist = mPreviewRequestBuilder.get(CaptureRequest.LENS_FOCUS_DISTANCE);
+                if (focusDist != null) builder.set(CaptureRequest.LENS_FOCUS_DISTANCE, focusDist);
+
+                MeteringRectangle[] afRegs = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_REGIONS);
+                if (afRegs != null) builder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegs);
+
+                MeteringRectangle[] aeRegs = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_REGIONS);
+                if (aeRegs != null) builder.set(CaptureRequest.CONTROL_AE_REGIONS, aeRegs);
+
+                Integer aeMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_MODE);
+                if (aeMode != null) builder.set(CaptureRequest.CONTROL_AE_MODE, aeMode);
+            } else {
+                builder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            }
+
+            builder.addTarget(mImageReaderRaw.getSurface());
+
+            if (mPreviewExposureTime > 0) {
+                builder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, mPreviewExposureTime);
+            }
+            if (mPreviewIso > 0) {
+                builder.set(CaptureRequest.SENSOR_SENSITIVITY, mPreviewIso);
+            }
+
+            mPendingRawMeteringCallback = callback;
+            mCaptureSession.capture(builder.build(), null, mBackgroundHandler);
+        } catch (Exception e) {
+            mPendingRawMeteringCallback = null;
+            Log.e(TAG, "captureSingleRawForMetering failed: " + e.getMessage());
         }
     }
 

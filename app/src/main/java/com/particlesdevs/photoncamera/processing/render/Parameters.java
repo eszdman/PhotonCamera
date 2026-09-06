@@ -15,6 +15,7 @@ import android.os.Environment;
 import com.particlesdevs.photoncamera.settings.annotations.SensorConfig;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
+import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Rational;
 import android.util.SizeF;
 
@@ -295,7 +296,29 @@ public class Parameters {
                 Log.d(TAG, "Error retrieving lens shading map, disabling gain map: " + Log.getStackTraceString(e));
             }
             hotPixels = result.get(CaptureResult.STATISTICS_HOT_PIXEL_MAP);
-            ReCalcColor(false, result);
+
+            // Populate custom White Balance neutral point directly from the frame's CaptureRequest metadata
+            Integer awbMode = (request != null) ? request.get(CaptureRequest.CONTROL_AWB_MODE) : null;
+            RggbChannelVector gains = (request != null) ? request.get(CaptureRequest.COLOR_CORRECTION_GAINS) : null;
+
+            if (awbMode != null && awbMode == CaptureRequest.CONTROL_AWB_MODE_OFF && gains != null) {
+                float gAvg = (gains.getGreenEven() + gains.getGreenOdd()) / 2.0f;
+                if (Float.isNaN(gAvg) || gAvg <= 1e-4f) {
+                    gAvg = 1.0f;
+                }
+                float rGain = Math.max(gains.getRed(), 1e-4f);
+                float bGain = Math.max(gains.getBlue(), 1e-4f);
+                if (Float.isNaN(rGain)) rGain = 1.0f;
+                if (Float.isNaN(bGain)) bGain = 1.0f;
+
+                customNeutral = new float[]{ gAvg / rGain, 1.0f, gAvg / bGain };
+                Log.d("WB_RAW_DEBUG", "FillDynamicParameters Manual: awbMode=" + awbMode
+                        + " | Request Gains=" + gains
+                        + " | Derived customNeutral=" + Arrays.toString(customNeutral));
+                ReCalcColor(true, result);
+            } else {
+                ReCalcColor(false, result);
+            }
         }
         if (!usedDynamic)
             if (level != null) {
@@ -337,12 +360,15 @@ public class Parameters {
     public void ReCalcColor(boolean customNeutr, CaptureResult result) {
         CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
         Rational[] neutralR = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
-        if (!customNeutr)
+        if (!customNeutr) {
             for (int i = 0; i < neutralR.length; i++) {
                 whitePoint[i] = neutralR[i].floatValue();
             }
-        else {
+            Log.d("WB_RAW_DEBUG", "ReCalcColor AUTO: HAL SENSOR_NEUTRAL_COLOR_POINT=" + Arrays.toString(neutralR)
+                    + " -> whitePoint=" + Arrays.toString(whitePoint));
+        } else {
             whitePoint = customNeutral;
+            Log.d("WB_RAW_DEBUG", "ReCalcColor MANUAL: Using customNeutral -> whitePoint=" + Arrays.toString(whitePoint));
         }
         int ref1 = characteristics.get(CameraCharacteristics.SENSOR_REFERENCE_ILLUMINANT1);
         int ref2;

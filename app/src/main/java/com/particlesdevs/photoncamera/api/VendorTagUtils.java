@@ -1,16 +1,26 @@
 package com.particlesdevs.photoncamera.api;
 
+import android.content.Context;
 import android.annotation.SuppressLint;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 
 import com.particlesdevs.photoncamera.util.Log;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.settings.TunableKeyManager;
 
 import java.lang.reflect.Array;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class VendorTagUtils {
     private static final String TAG = "VendorTagUtils";
+    private static final Set<String> verifiedOisSensors = ConcurrentHashMap.newKeySet();
+
     private static boolean isSupported(CaptureRequest.Builder builder,
                                        CaptureRequest.Key<?> key) {
         boolean supported = true;
@@ -238,6 +248,72 @@ public class VendorTagUtils {
         if(useMaximumResolutionKey) {
             builder.set(CaptureRequest.SENSOR_PIXEL_MODE, CaptureRequest.SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION);
         }
-        com.particlesdevs.photoncamera.settings.TunableKeyManager.applyTunableKeys(builder, physicalId);
+        TunableKeyManager.applyTunableKeys(builder, physicalId);
     }
+
+    /**
+     * Inspects dynamic metadata from preview/capture result and caches confirmed hardware features
+     * (such as active OIS mode) into system flags for the given physical sensor.
+     * Uses an in-memory set to ensure inspection, logging, and disk writes happen only once per sensor.
+     *
+     * @param result     the CaptureResult from preview or capture frame
+     * @param physicalId physical camera ID
+     */
+    public static void resultSessionApply(CaptureResult result, String physicalId) {
+        if (result == null || physicalId == null || physicalId.isEmpty()) return;
+        if (verifiedOisSensors.contains(physicalId)) return;
+
+        try {
+            Integer oisMode = result.get(CaptureResult.LENS_OPTICAL_STABILIZATION_MODE);
+            if (oisMode != null) {
+                if (oisMode == 1) {
+                    Context context = PhotonCamera.getSettingsManagerStatic() != null
+                            ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
+                    if (context != null && !TunableKeyManager.getSystemFlag(context, physicalId, "ois_supported", false)) {
+                        TunableKeyManager.setSystemFlag(context, physicalId, "ois_supported", true);
+                    }
+                    Log.d(TAG, "Sensor " + physicalId + " OIS confirmed (mode = 1) -> cached to system flags");
+                } else {
+                    Log.d(TAG, "Sensor " + physicalId + " OIS is not active (mode = " + oisMode + ")");
+                }
+            }
+            // Mark sensor verified once metadata is read (prevents repeat execution and log spam for all sensors)
+            verifiedOisSensors.add(physicalId);
+        } catch (Exception e) {
+            Log.w(TAG, "Error inspecting CaptureResult for sensor " + physicalId, e);
+        }
+    }
+
+    /**
+     * Universal check whether hardware Optical Image Stabilization (OIS) is supported
+     * for the specified physical camera sensor.
+     * Checks static CameraCharacteristics (looking for LENS_OPTICAL_STABILIZATION_MODE_ON)
+     * and falls back to persistent system flags verified from preview CaptureResult.
+     *
+     * @param context    application or activity context
+     * @param chars      CameraCharacteristics (if already loaded in RAM, or null to query CameraManager)
+     * @param physicalId physical camera ID
+     * @return true if hardware OIS is confirmed available and working
+     */
+    public static boolean isOisSupported(Context context, CameraCharacteristics chars, String physicalId) {
+        if (chars == null && context != null && physicalId != null && !physicalId.isEmpty()) {
+            try {
+                CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+                if (manager != null) {
+                    chars = manager.getCameraCharacteristics(physicalId);
+                }
+            } catch (Exception ignored) {}
+        }
+        if (chars != null) {
+            int[] modes = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
+            if (modes != null) {
+                for (int mode : modes) {
+                    if (mode == CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return TunableKeyManager.getSystemFlag(context, physicalId, "ois_supported", false);
+    }    
 }

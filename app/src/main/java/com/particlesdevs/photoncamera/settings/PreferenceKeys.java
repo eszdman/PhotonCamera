@@ -32,6 +32,7 @@ public class PreferenceKeys {
     static {
         COMMON_KEYS.add(Key.CAMERA_ID.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_PER_LENS_SETTINGS.mValue);
+        COMMON_KEYS.add(Key.KEY_PRESERVE_MANUAL_WB.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_AF_DATA.mValue);
         COMMON_KEYS.add(Key.KEY_THEME_ACCENT.mValue);
         COMMON_KEYS.add(Key.KEY_THEME.mValue);
@@ -222,6 +223,10 @@ public class PreferenceKeys {
 
     public static boolean isPerLensSettingsOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_PER_LENS_SETTINGS);
+    }
+
+    public static boolean isPreserveManualWbOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_PRESERVE_MANUAL_WB);
     }
 
     public static boolean isEnhancedProcessionOn() {
@@ -461,6 +466,7 @@ public class PreferenceKeys {
 
         KEY_ENABLE_SYSTEM_NR(R.string.pref_enable_system_nr_key),
         KEY_SAVE_PER_LENS_SETTINGS(R.string.pref_save_per_lens_settings),
+        KEY_PRESERVE_MANUAL_WB(R.string.pref_preserve_manual_wb_key),
         KEY_DISABLE_ALIGNINIG(R.string.pref_disable_aligning_key),
         KEY_SHOW_WATERMARK(R.string.pref_show_watermark_key),
         KEY_ENERGY_SAVING(R.string.pref_energy_safe_key),

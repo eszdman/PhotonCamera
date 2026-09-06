@@ -19,10 +19,12 @@ public class ManualModeModel extends Observable {
     private String exposureText;
     private String isoText;
     private String evText;
+    private String wbText;
     private View.OnClickListener focusTextClicked;
     private View.OnClickListener exposureTextClicked;
     private View.OnClickListener evTextClicked;
     private View.OnClickListener isoTextClicked;
+    private View.OnClickListener wbTextClicked;
     private boolean manualPanelVisible;
     private int selectedTextViewId;
 
@@ -80,6 +82,15 @@ public class ManualModeModel extends Observable {
         notifyObservers(ManualModelFields.ISO_LISTENER);
     }
 
+    public View.OnClickListener getWbTextClicked() {
+        return wbTextClicked;
+    }
+
+    public void setWbTextClicked(View.OnClickListener wbTextClicked) {
+        this.wbTextClicked = wbTextClicked;
+        notifyObservers(ManualModelFields.WB_LISTENER);
+    }
+
     public String getFocusText() {
         return focusText;
     }
@@ -117,6 +128,15 @@ public class ManualModeModel extends Observable {
         notifyObservers(ManualModelFields.EV_TEXT);
     }
 
+    public String getWbText() {
+        return wbText;
+    }
+
+    public void setWbText(String wbText) {
+        this.wbText = wbText;
+        notifyObservers(ManualModelFields.WB_TEXT);
+    }
+
     @Override
     public void notifyObservers(Object arg) {
         setChanged();
@@ -124,6 +144,6 @@ public class ManualModeModel extends Observable {
     }
 
     public enum ManualModelFields {
-        FOCUS_TEXT, EXP_TEXT, ISO_TEXT, EV_TEXT, PANEL_VISIBILITY, SELECTED_TV, FOCUS_LISTENER, EXP_LISTENER, EV_LISTENER, ISO_LISTENER
+        FOCUS_TEXT, EXP_TEXT, ISO_TEXT, EV_TEXT, WB_TEXT, PANEL_VISIBILITY, SELECTED_TV, FOCUS_LISTENER, EXP_LISTENER, EV_LISTENER, ISO_LISTENER, WB_LISTENER
     }
 }

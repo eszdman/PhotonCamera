@@ -345,15 +345,16 @@ public class SensorConfigPreferenceGenerator {
         SensorConfig annotation = info.annotation;
         String prefKey = "pref_sensorconfig_" + sensorId + "_" + info.fieldName.toLowerCase();
 
-        // Heal preference type in background if corrupted by config import
-        ensureStringPreference(context, prefKey);
-
         if (annotation.entries().length > 0 && annotation.entryValues().length > 0) {
+            // Heal preference type in background if corrupted by config import
+            ensureStringPreference(context, prefKey);
             addListPreference(context, category, prefKey, info);
             return;
         }
 
         if (annotation.step() == 0f) {
+            // Heal preference type in background if corrupted by config import
+            ensureStringPreference(context, prefKey);
             addFreeTextPreference(context, category, prefKey, info);
             return;
         }
@@ -474,17 +475,14 @@ public class SensorConfigPreferenceGenerator {
 
     /**
      * Checks if the physical camera sensor supports hardware Optical Image Stabilization (OIS).
+     * Delegates to {@link VendorTagUtils#isOisSupported(Context, android.hardware.camera2.CameraCharacteristics, String)}.
      */
     private static boolean isOisSupported(Context context, String sensorId) {
-        try {
-            android.hardware.camera2.CameraManager manager = (android.hardware.camera2.CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-            if (manager != null) {
-                android.hardware.camera2.CameraCharacteristics chars = manager.getCameraCharacteristics(sensorId);
-                int[] modes = chars.get(android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-                return modes != null && modes.length > 1;
-            }
-        } catch (Exception ignored) {
+        if (VendorTagUtils.isOisSupported(context, null, sensorId)) {
+            Log.d(TAG, "Sensor " + sensorId + " OIS is supported");
+            return true;
         }
+        Log.d(TAG, "Sensor " + sensorId + " OIS is NOT supported");
         return false;
     }
 

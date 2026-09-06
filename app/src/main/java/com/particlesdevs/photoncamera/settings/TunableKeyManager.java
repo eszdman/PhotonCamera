@@ -64,4 +64,53 @@ public class TunableKeyManager {
         VendorTagUtils.applyTunableKeys(builder, keys, physicalId);
         saveKeys(context, physicalId, keys);
     }
+
+    /**
+     * Universal check whether a tunable key is supported or holds an expected value
+     * in SharedPreferences for the given sensor.
+     *
+     * @param context       the application or preference context
+     * @param sensorId      physical camera ID
+     * @param keyName       name of the vendor tag / key (e.g. "android.lens.opticalStabilizationMode")
+     * @param expectedValue expected string value (e.g. "1"), or null if only checking support
+     * @return true if the key exists and is either marked supported or matches expectedValue
+     */
+    public static boolean hasKey(Context context, String sensorId, String keyName, String expectedValue) {
+        if (context == null || sensorId == null || keyName == null) return false;
+        List<VendorTagUtils.TunableKey> keys = loadKeys(context, sensorId);
+        for (VendorTagUtils.TunableKey key : keys) {
+            if (key != null && keyName.equalsIgnoreCase(key.name)) {
+                if (key.supported) {
+                    return true;
+                }
+                if (expectedValue != null && expectedValue.equalsIgnoreCase(key.value)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String getSystemFlagKey(String sensorId, String flagName) {
+        return "pref_sysflag_" + sensorId + "_" + flagName;
+    }
+
+    /**
+     * Universal method to save a hidden system boolean flag for a given sensor.
+     * Isolated from user tunable keys.
+     */
+    public static void setSystemFlag(Context context, String sensorId, String flagName, boolean value) {
+        if (context == null || sensorId == null || flagName == null || flagName.isEmpty()) return;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        prefs.edit().putBoolean(getSystemFlagKey(sensorId, flagName), value).apply();
+    }
+
+    /**
+     * Universal method to read a hidden system boolean flag for a given sensor.
+     */
+    public static boolean getSystemFlag(Context context, String sensorId, String flagName, boolean defaultValue) {
+        if (context == null || sensorId == null || flagName == null || flagName.isEmpty()) return defaultValue;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        return prefs.getBoolean(getSystemFlagKey(sensorId, flagName), defaultValue);
+    }
 }

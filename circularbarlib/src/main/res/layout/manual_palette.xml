@@ -95,5 +95,21 @@
             android:textColor="@color/manual_text_color"
             android:textSize="15sp"
             tools:text="NULL" />
+
+        <TextView
+            android:id="@+id/wb_option_tv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:drawableBottom="@drawable/manual_control_icon_wb"
+            android:drawableTint="@color/manual_text_color"
+            android:paddingTop="5dp"
+            android:paddingBottom="6dp"
+            android:textAlignment="center"
+            android:textAppearance="@style/BoldTextWithShadow"
+            android:textColor="@color/manual_text_color"
+            android:textSize="15sp"
+            tools:text="NULL" />
     </LinearLayout>
 </RelativeLayout>
