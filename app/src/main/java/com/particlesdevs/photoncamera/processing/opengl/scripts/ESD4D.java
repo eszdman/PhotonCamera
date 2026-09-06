@@ -1,6 +1,5 @@
 package com.particlesdevs.photoncamera.processing.opengl.scripts;
 
-import android.content.Context;
 import android.graphics.Point;
 import android.util.Pair;
 
@@ -304,11 +303,11 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "FlowNet optical flow alignment", category = "Merge", description = "Align burst frames with the FlowNet dense optical flow model (ncnn) instead of the block pyramid", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean useNcnnFlow;
 
-    @Tunable(title = "Optical flow refinement", category = "Merge", description = "Brute-force half-texel diagonal refinement on the green quincunx in the merge combine pass (exact sample pairs, no interpolation, immune to brightness offsets between frames); the winning sub-texel offset warps the final mix tap - greens exact on the quincunx, R/B phase-dithered so the accumulator averages their chroma alias (moire) away across frames; comb weights stay full vec4 over exact whole-texel taps so the dither never modulates them (no temporal blink, chroma excess still steers the weight for demosaicing)", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean enableFlowRefinement;
+    //@Tunable(title = "Optical flow refinement", category = "Merge", description = "Brute-force half-texel diagonal refinement on the green quincunx in the merge combine pass (exact sample pairs, no interpolation, immune to brightness offsets between frames); the winning sub-texel offset warps the final mix tap - greens exact on the quincunx, R/B phase-dithered so the accumulator averages their chroma alias (moire) away across frames; comb weights stay full vec4 over exact whole-texel taps so the dither never modulates them (no temporal blink, chroma excess still steers the weight for demosaicing)", min = 0, max = 1, step = 1, defaultValue = 1)
+    //boolean enableFlowRefinement;
 
-    @Tunable(title = "Flow refinement max shift", category = "Merge", description = "Unused by the brute-force diagonal refinement (candidates are fixed at half a texel); kept for settings compatibility", min = 1.0f, max = 4.0f, step = 1.0f, defaultValue = 2.0f)
-    float flowRefineMaxDisp;
+    //@Tunable(title = "Flow refinement max shift", category = "Merge", description = "Unused by the brute-force diagonal refinement (candidates are fixed at half a texel); kept for settings compatibility", min = 1.0f, max = 4.0f, step = 1.0f, defaultValue = 2.0f)
+    //float flowRefineMaxDisp;
 
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
@@ -466,7 +465,7 @@ public class ESD4D extends GLOneScript {
     public void Run() {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
         Log.d("ESD4D", "Noise multiplier: " + noiseMpy);
-        Log.d("ESD4D", "Optical flow refinement: " + enableFlowRefinement + " maxShift: " + flowRefineMaxDisp);
+        //Log.d("ESD4D", "Optical flow refinement: " + enableFlowRefinement + " maxShift: " + flowRefineMaxDisp);
         glUtils = new GLUtils(glOne.glProcessing);
 
         float minExp = 1.f;
@@ -790,7 +789,7 @@ public class ESD4D extends GLOneScript {
         parameters.noiseModeler.setAdaptiveMpy(adaptiveNMpy);
         double noisempy = Math.pow(2.0, PhotonCamera.getSettings().mergeStrength);
         //double noiseMin = 1.0/(double)parameters.whiteLevel;
-        double noiseMin = 1e-6;
+        double noiseMin = 1e-10;
         kernelSigma = (float) Math.sqrt(noiseS * 0.5 + noiseO);
         // Pre-inflation noise model for the optical-flow significance gate
         // (noiseS/noiseO below are merge-strength inflated).
@@ -969,13 +968,13 @@ public class ESD4D extends GLOneScript {
             }
 
             glProg.setLayout(tile, tile, 1);
-            glProg.useAssetProgram("merge/mergeCombineWeight0", true);
+            glProg.useAssetProgram("merge/mergeCombineWeight1", true);
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
             glProg.setTexture("kernelsMap", kernelsMap);
             // Optical flow refinement: brute-force diagonal candidate wins
             // only when it beats the zero offset beyond the shader's gates.
-            glProg.setVar("enableFlow", enableFlowRefinement ? 1 : 0);
+            //glProg.setVar("enableFlow", enableFlowRefinement ? 1 : 0);
             glProg.setVar("flowNoiseS", rawNoiseS);
             glProg.setVar("flowNoiseO", rawNoiseO);
             glProg.setTextureCompute("inTexture", base, false);
@@ -1046,7 +1045,7 @@ public class ESD4D extends GLOneScript {
      */
     public KernelNetResult runKernelNetInference(float sigma) {
         if (brightMapCPU == null || brightMapCPUSize == null) return null;
-        Context ctx = PhotonCamera.getAppContext();
+        var ctx = PhotonCamera.getAppContext();
         if (ctx == null) return null;
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(ctx);
         try {
