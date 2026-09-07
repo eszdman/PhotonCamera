@@ -56,17 +56,6 @@ public class ESD4D extends GLOneScript {
 
     @Override
     public void Compile(){}
-    private int baseCnt = 0;
-
-    private GLTexture getBase(){
-        if(baseCnt == 0){
-            baseCnt++;
-            return baseAlter;
-        } else {
-            baseCnt = 0;
-            return base;
-        }
-    }
     float noiseS;
     float noiseO;
     GLBuffer hotPixelBuffer;
@@ -878,7 +867,7 @@ public class ESD4D extends GLOneScript {
         boolean firstWeightedMerge = true;
         if (nightWeightedMerge) {
             temporalWeights = new GLTexture(packedSize,
-                    new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    new GLFormat(GLFormat.DataType.FLOAT_32, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
         }
         //Log.d("ESD4D", "alignment size: " + aSize.x + " " + aSize.y);
         Log.d("ESD4D", "alignment size: " + parameters.alignmentSize.x + " " + parameters.alignmentSize.y);
@@ -995,7 +984,11 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("flowNoiseO", rawNoiseO);
             glProg.setTextureCompute("inTexture", base, false);
             glProg.setTextureCompute("diffTexture", baseDiff, false);
-            base = getBase();
+            // Keep source and destination distinct: the combine shader reads
+            // an 11x11 neighborhood. In-place writes race with other workgroups.
+            GLTexture previousBase = base;
+            base = baseAlter;
+            baseAlter = previousBase;
             glProg.setTextureCompute("outTexture", base, true);
             glProg.setVar("noiseS", noiseS);
             glProg.setVar("noiseO", noiseO);

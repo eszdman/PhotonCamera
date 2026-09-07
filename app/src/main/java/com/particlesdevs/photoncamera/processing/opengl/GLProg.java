@@ -167,6 +167,7 @@ public class GLProg implements AutoCloseable {
      * @return An OpenGL handle to the shader.
      */
     public int compileShader(final int shaderType, final String shaderSource) {
+        String compilerLog = "glCreateShader returned 0";
         int shaderHandle = glCreateShader(shaderType);
         if (shaderHandle != 0) {
             // Pass in the shader source.
@@ -178,13 +179,14 @@ public class GLProg implements AutoCloseable {
             glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, compileStatus,0);
             // If the compilation failed, delete the shader.
             if (compileStatus[0] == 0) {
-                Log.e(TAG, "Error compiling shader: " + glGetShaderInfoLog(shaderHandle));
+                compilerLog = glGetShaderInfoLog(shaderHandle);
+                Log.e(TAG, "Error compiling shader: " + compilerLog);
                 glDeleteShader(shaderHandle);
                 shaderHandle = 0;
             }
         }
         if (shaderHandle == 0) {
-            throw new RuntimeException("Error creating shader. Program:" + shaderSource);
+            throw new RuntimeException("Error creating shader: " + compilerLog + "\nProgram:" + shaderSource);
         }
         return shaderHandle;
     }

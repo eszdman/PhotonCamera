@@ -10,7 +10,8 @@ layout(rgba16f, binding = 1) uniform highp readonly image2D diffTexture;
 layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;
 #define NIGHT_WEIGHTED 0
 #if NIGHT_WEIGHTED
-layout(rgba16f, binding = 3) uniform highp image2D temporalWeights;
+// GLSL ES 3.10 permits read/write float images only with r32f.
+layout(r32f, binding = 3) uniform highp image2D temporalWeights;
 uniform int firstWeightedMerge;
 #endif
 #define TILE 2
