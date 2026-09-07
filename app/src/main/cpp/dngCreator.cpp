@@ -531,8 +531,10 @@ public:
                 gainMaps[3].left = 0;
                 break;
         }
-        int activeX = (xmax - xmin) - 1;
-        int activeY = (ymax - ymin) - 1;
+        // DNG GainMap rectangles use exclusive Bottom/Right bounds, matching
+        // Android Rect and the DNG ActiveArea written for the RAW buffer.
+        const int activeX = xmax - xmin;
+        const int activeY = ymax - ymin;
         gainMaps[0].bottom = activeY;
         gainMaps[0].right = activeX;
         gainMaps[1].bottom = activeY;

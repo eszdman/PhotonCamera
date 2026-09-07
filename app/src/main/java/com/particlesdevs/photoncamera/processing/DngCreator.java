@@ -501,13 +501,17 @@ public class DngCreator {
         setCFAPattern(parameters.cfaPattern);
         setOrientation(parameters.cameraRotation/90);
         // setGainMap takes Cartesian bounds (xmin, ymin, xmax, ymax), while
-        // Rect stores them as (left, top, right, bottom). Keeping those axes
-        // aligned is required for a valid DNG GainMap opcode rectangle.
+        // Rect stores them as (left, top, right, bottom). The DNG writer uses
+        // exclusive bottom/right bounds, matching the RAW plane. Some HALs
+        // report the active-array right/bottom as inclusive, so derive the
+        // extent from rawSize rather than copying those edges verbatim.
+        final int gainMapRight = parameters.sensorPix.left + parameters.rawSize.x;
+        final int gainMapBottom = parameters.sensorPix.top + parameters.rawSize.y;
         setGainMap(parameters.gainMap,
                    parameters.sensorPix.left,
                    parameters.sensorPix.top,
-                   parameters.sensorPix.right,
-                   parameters.sensorPix.bottom,
+                   gainMapRight,
+                   gainMapBottom,
                    parameters.mapSize.x,
                    parameters.mapSize.y);
     }
