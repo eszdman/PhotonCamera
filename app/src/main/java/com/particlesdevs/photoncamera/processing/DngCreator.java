@@ -500,11 +500,14 @@ public class DngCreator {
         setAsShotNeutral(toDouble(parameters.whitePoint));
         setCFAPattern(parameters.cfaPattern);
         setOrientation(parameters.cameraRotation/90);
+        // setGainMap takes Cartesian bounds (xmin, ymin, xmax, ymax), while
+        // Rect stores them as (left, top, right, bottom). Keeping those axes
+        // aligned is required for a valid DNG GainMap opcode rectangle.
         setGainMap(parameters.gainMap,
-                   parameters.sensorPix.top,
                    parameters.sensorPix.left,
-                   parameters.sensorPix.bottom,
+                   parameters.sensorPix.top,
                    parameters.sensorPix.right,
+                   parameters.sensorPix.bottom,
                    parameters.mapSize.x,
                    parameters.mapSize.y);
     }
