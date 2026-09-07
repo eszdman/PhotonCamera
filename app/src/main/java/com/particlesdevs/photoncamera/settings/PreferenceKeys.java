@@ -244,6 +244,18 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
     }
 
+    /** True when the current Save mode renders the still as HEIC. */
+    public static boolean isHeicSave() {
+        int v = isSaveRaw();
+        return v == 3 || v == 4;
+    }
+
+    /** True when the current Save mode writes a DNG (RAW+JPEG, RAW, RAW+HEIC). */
+    public static boolean isRawSave() {
+        int v = isSaveRaw();
+        return v == 1 || v == 2 || v == 4;
+    }
+
     public static boolean isBatterySaverOn(){
         return getBool(PreferenceKeys.Key.KEY_ENERGY_SAVING);
     }

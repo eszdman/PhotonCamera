@@ -150,7 +150,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
             Future<?> existing = pendingHeaderTasks.get(pos);
             if (existing != null && !existing.isDone()) continue;
             Future<?> f = GALLERY_EXECUTOR.submit(() -> {
-                boolean candidate = UltraHdrGalleryUtil.isUltraHdrJpeg(context.getApplicationContext(), galleryItemList.get(pos).getFile().getFileUri());
+                boolean candidate = UltraHdrGalleryUtil.isUltraHdrImage(context.getApplicationContext(), galleryItemList.get(pos).getFile().getFileUri());
                 CustomSSIV view = activeViews.get(pos);
                 Runnable update = () -> {
                     pendingHeaderTasks.remove(pos);
@@ -701,7 +701,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
             return;
         }
         Future<?> f = GALLERY_EXECUTOR.submit(() -> {
-            boolean candidate = UltraHdrGalleryUtil.isUltraHdrJpeg(ctx, galleryItemList.get(position).getFile().getFileUri());
+            boolean candidate = UltraHdrGalleryUtil.isUltraHdrImage(ctx, galleryItemList.get(position).getFile().getFileUri());
             scaleImageView.post(() -> {
                 if (!hdrRequested[position] || !inBounds(position)) return;
                 hdrRequested[position] = false;

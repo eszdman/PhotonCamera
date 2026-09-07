@@ -29,7 +29,7 @@
     <string name="jpg" translatable="false">JPEG</string>
     <string name="hdrx" translatable="false">HDRX</string>
     <string name="ultrahdr">Ultra HDR</string>
-    <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass)</string>
+    <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
     <string name="ultrahdr_4x">Ultra HDR 4x downscale</string>
     <string name="ultrahdr_4x_summary">Downscale gain map 4× per axis (16× fewer pixels) to save memory at high resolutions. Off keeps full-resolution gain map for maximum quality.</string>
     <string name="sharpness">Sharpness</string>
@@ -147,6 +147,8 @@
     <string name="t_10s">10s</string>
     <string name="raw_string" translatable="false">RAW</string>
     <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
+    <string name="raw_plus_heic" translatable="false">RAW + HEIC</string>
+    <string name="heic_only" translatable="false">HEIC</string>
     <string name="jpg_only" translatable="false">JPEG</string>
     <string name="off">Off</string>
     <string name="golden_ratio">Golden Ratio</string>

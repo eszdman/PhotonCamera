@@ -117,6 +117,9 @@ dependencies {
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'org.jetbrains:annotations:26.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
+    // HEIC still-image encode (SDR base + gain map payloads). API 28+, needs
+    // hardware HEVC encoder at runtime — see HeicSupport capability gate.
+    implementation 'androidx.heifwriter:heifwriter:1.1.0'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.bumptech.glide:glide:5.0.5'

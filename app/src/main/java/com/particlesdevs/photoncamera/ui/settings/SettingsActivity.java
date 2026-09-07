@@ -193,6 +193,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             }
             
             filterPreferencesByMode();
+            filterSaveFormatEntries();
             showHideHdrxSettings();
             setFramesSummary();
             setVersionDetails();
@@ -391,6 +392,49 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
             else
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
+        }
+
+        /**
+         * Hides the HEIC save-format entries on devices without HEIC encode
+         * (API &lt;28 or no HEVC encoder) and migrates a stale stored value
+         * back to its JPEG counterpart so it can never be selected there.
+         */
+        private void filterSaveFormatEntries() {
+            if (com.particlesdevs.photoncamera.processing.encoder.HeicSupport.isHeicEncodeSupported()) {
+                return;
+            }
+            try {
+                androidx.preference.ListPreference pref = findPreference(
+                        mContext.getString(R.string.pref_save_raw_key));
+                if (pref == null) {
+                    return;
+                }
+                CharSequence[] entries = pref.getEntries();
+                CharSequence[] values = pref.getEntryValues();
+                if (entries == null || values == null || entries.length != values.length) {
+                    return;
+                }
+                java.util.List<CharSequence> keptEntries = new java.util.ArrayList<>();
+                java.util.List<CharSequence> keptValues = new java.util.ArrayList<>();
+                for (int i = 0; i < values.length; i++) {
+                    String v = String.valueOf(values[i]);
+                    if ("3".equals(v) || "4".equals(v)) {
+                        continue;
+                    }
+                    keptEntries.add(entries[i]);
+                    keptValues.add(values[i]);
+                }
+                pref.setEntries(keptEntries.toArray(new CharSequence[0]));
+                pref.setEntryValues(keptValues.toArray(new CharSequence[0]));
+                String current = String.valueOf(pref.getValue());
+                if ("3".equals(current)) {
+                    pref.setValue("0");
+                } else if ("4".equals(current)) {
+                    pref.setValue("1");
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "filterSaveFormatEntries failed", e);
+            }
         }
 
         @NonNull

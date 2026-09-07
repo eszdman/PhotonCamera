@@ -35,8 +35,7 @@ public class Settings {
     public double gain;
     public double shadows;
     public int rawSaver;
-    public boolean QuadBayer;
-    public int cfaPattern;
+    public boolean QuadBayer;    public int cfaPattern;
     public int theme;
     public boolean remosaic;//TODO
     public boolean eisPhoto;
@@ -102,6 +101,19 @@ public class Settings {
 
     public void saveID() {
         PreferenceKeys.setCameraID(mCameraID);
+    }
+
+    /** Save-mode helpers — single 5-option list, see ImageFormatConfig. */
+    public boolean isHeicSave() {
+        return rawSaver == 3 || rawSaver == 4;
+    }
+
+    public boolean isRawSave() {
+        return rawSaver == 1 || rawSaver == 2 || rawSaver == 4;
+    }
+
+    public boolean isRawOnly() {
+        return rawSaver == 2;
     }
 
     float[] parseToneMapArray() {

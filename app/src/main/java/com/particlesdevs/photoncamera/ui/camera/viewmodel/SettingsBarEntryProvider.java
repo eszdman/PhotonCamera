@@ -129,7 +129,9 @@ public class SettingsBarEntryProvider extends ViewModel {
         saveRawEntry.addSettingsBarButtonModels(
                 SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, R.string.jpg_only, 0, saveRawEntry),
                 SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, R.string.raw_plus_jpg, 1, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.raw_only_button, R.drawable.ic_raw, R.string.raw_string, 2, saveRawEntry)
+                SettingsBarButtonModel.newButtonModel(R.id.raw_only_button, R.drawable.ic_raw, R.string.raw_string, 2, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.heic_button, R.drawable.ic_raw_off, R.string.heic_only, 3, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.heic_raw_button, R.drawable.ic_raw, R.string.raw_plus_heic, 4, saveRawEntry)
         );
     }
 
@@ -192,13 +194,23 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     private void updateEntry(SettingsBarEntryModel entry, int value) {
+        boolean matched = false;
         for (SettingsBarButtonModel buttonModel : entry.getSettingsBarButtonModels()) {
             if (buttonModel.getButtonValue() == value) {
                 buttonModel.setSelected(true);
                 entry.setStateTextStringId(buttonModel.getButtonStateNameStringId());
+                matched = true;
             } else {
                 buttonModel.setSelected(false);
             }
+        }
+        // Defense-in-depth: an unknown persisted value must never leave the
+        // state label unset (setText(0) crashes). Fall back to the first button.
+        if (!matched && entry.getSettingsBarButtonModels() != null
+                && entry.getSettingsBarButtonModels().length > 0) {
+            SettingsBarButtonModel first = entry.getSettingsBarButtonModels()[0];
+            first.setSelected(true);
+            entry.setStateTextStringId(first.getButtonStateNameStringId());
         }
     }
 

@@ -61,6 +61,15 @@ public final class UltraHdrGalleryUtil {
      * the ISO 21496-1 APP2 segment. Never decodes image data.
      */
     public static boolean isUltraHdrJpeg(Context context, Uri uri) {
+        return isUltraHdrImage(context, uri);
+    }
+
+    /**
+     * Format-agnostic Ultra HDR detection: JPEG (APP1 XMP / APP2 MPF /
+     * ISO 21496-1) or HEIF (gain-map XMP / {@code auxC} ISO URN /
+     * {@code hdr-gain-map} namespace). Never decodes image data.
+     */
+    public static boolean isUltraHdrImage(Context context, Uri uri) {
         try (InputStream in = context.getContentResolver().openInputStream(uri)) {
             if (in == null) {
                 return false;
@@ -71,6 +80,9 @@ public final class UltraHdrGalleryUtil {
             while (total < buffer.length
                     && (read = in.read(buffer, total, buffer.length - total)) > 0) {
                 total += read;
+            }
+            if (isHeifHeader(buffer, total)) {
+                return containsHeifGainMapMarkers(buffer, total);
             }
             return containsUltraHdrMarkers(buffer, total);
         } catch (IOException e) {
@@ -122,6 +134,30 @@ public final class UltraHdrGalleryUtil {
             pos += 2 + segmentLength;
         }
         return false;
+    }
+
+    /**
+     * Scans a HEIF header for Ultra HDR gain-map signatures: the
+     * {@code hdr-gain-map} XMP namespace or the ISO 21496-1 {@code auxC} URN
+     * written by the manual HEIF mux. Never decodes image data.
+     */
+    public static boolean containsHeifGainMapMarkers(byte[] data, int length) {
+        if (data == null || length < 12) {
+            return false;
+        }
+        if (!isHeifHeader(data, length)) {
+            return false;
+        }
+        return indexOf(data, 0, length, HDRGM_NS) >= 0
+                || indexOf(data, 0, length, ISO_NS) >= 0;
+    }
+
+    static boolean isHeifHeader(byte[] data, int length) {
+        if (data == null || length < 12) {
+            return false;
+        }
+        // size(4) + 'ftyp'(4) + major_brand(4); brands: heic/heix/hevc/hevx/mif1/msf1.
+        return data[4] == 'f' && data[5] == 't' && data[6] == 'y' && data[7] == 'p';
     }
 
     /**

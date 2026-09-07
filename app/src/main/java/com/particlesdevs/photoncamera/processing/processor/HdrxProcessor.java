@@ -18,16 +18,17 @@ import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.ImageFrameDeblur;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
+import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
+import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
+import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
-import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.util.Allocator;
 
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -285,11 +286,12 @@ public class HdrxProcessor extends ProcessorBase {
             images.get(0).buffer = null;
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
-        if ((saveRAW >= 1) && alignAlgorithm != 2) {
+        int saveMode = ImageFormatConfig.normalize(saveRAW);
+        if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, output,
                     processingParameters);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-            if (saveRAW == 2) {
+            if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
                 callback.onFinished();
                 Allocator.free(output);
@@ -328,25 +330,17 @@ public class HdrxProcessor extends ProcessorBase {
         catch (Exception e){
             Log.d(TAG,"Error in processingEventsListener.onProcessingFinished:"+Log.getStackTraceString(e));
         }
-        imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
-        boolean imageSaved;
-        if (PhotonCamera.getSettings().ultraHdr && gm != null) {
-            try {
-                GainMapComputer.Result res = GainMapComputer.compute(gm.bitmap, gm.down, gm.scale);
-                byte[] uhdr = UltraHdrEncoder.encode(img, res, exifData);
-                Files.write(imageFile, uhdr);
-                img.recycle();
-                imageSaved = true;
-            } catch (Exception e) {
-                Log.e(TAG, "Ultra HDR encode failed, falling back to SDR JPEG", e);
-                imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
-                        ImageSaver.JPG_QUALITY, exifData);
-            }
-        } else {
-            //Saves the final bitmap
-            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
-                    ImageSaver.JPG_QUALITY, exifData);
+        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
+        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
+            Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
+            useHeic = false;
         }
+        imageFile = Paths.get(imageFile.toAbsolutePath()
+                + (useHeic ? ".heic" : ".jpg"));
+        StillEncoder.Result still = StillEncoder.encodeStill(
+                imageFile, img, gm, exifData, useHeic);
+        boolean imageSaved = still.saved;
+        imageFile = still.file;
 
         try {
             processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);

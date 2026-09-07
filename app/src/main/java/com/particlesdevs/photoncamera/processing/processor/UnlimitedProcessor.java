@@ -10,6 +10,9 @@ import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
+import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
+import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
+import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
@@ -17,12 +20,11 @@ import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
-import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
+import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -116,7 +118,8 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         IncreaseWLBL(parameters);
 
-        if (saveRAW >= 1) {
+        int saveMode = ImageFormatConfig.normalize(saveRAW);
+        if (ImageFormatConfig.savesRaw(saveMode)) {
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
             unlimitedBuffer.position(0);
@@ -124,7 +127,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, unlimitedBuffer, parameters);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-            if (saveRAW == 2) {
+            if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("Unlimited RAW Processing Finished");
                 callback.onFinished();
                 return;
@@ -152,24 +155,16 @@ public class UnlimitedProcessor extends ProcessorBase {
         }
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
-        imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
-        boolean imageSaved;
-        if (PhotonCamera.getSettings().ultraHdr && gm != null) {
-            try {
-                GainMapComputer.Result res = GainMapComputer.compute(gm.bitmap, gm.down, gm.scale);
-                byte[] uhdr = UltraHdrEncoder.encode(bitmap, res, exifData);
-                Files.write(imageFile, uhdr);
-                bitmap.recycle();
-                imageSaved = true;
-            } catch (Exception e) {
-                Log.e("UnlimitedProcessor", "Ultra HDR encode failed, falling back to SDR JPEG", e);
-                imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
-                        ImageSaver.JPG_QUALITY, exifData);
-            }
-        } else {
-            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
-                    ImageSaver.JPG_QUALITY, exifData);
+        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
+        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
+            Log.e("UnlimitedProcessor", "HEIC save mode on unsupported device; JPEG fallback");
+            useHeic = false;
         }
+        imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
+        StillEncoder.Result still = StillEncoder.encodeStill(
+                imageFile, bitmap, gm, exifData, useHeic);
+        boolean imageSaved = still.saved;
+        imageFile = still.file;
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);
 
