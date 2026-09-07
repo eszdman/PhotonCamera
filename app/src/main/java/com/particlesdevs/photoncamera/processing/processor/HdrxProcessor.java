@@ -22,6 +22,7 @@ import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipelin
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
+import com.particlesdevs.photoncamera.processing.parameters.NightReferenceSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.util.Allocator;
@@ -134,7 +135,10 @@ public class HdrxProcessor extends ProcessorBase {
         }
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ImageFrame frame = mImageFramesToProcess.get(i);
-            frame.frameGyro = BurstShakiness.get(i%BurstShakiness.size()); // cyclic for safety
+            // Incomplete sequences cannot safely be associated by index. Do
+            // not recycle another frame's measurements or divide by zero.
+            frame.frameGyro = BurstShakiness.size() == mImageFramesToProcess.size()
+                    && BurstShakiness.get(i) != null ? BurstShakiness.get(i) : new GyroBurst(0);
             //frame.image = mImageFramesToProcess.get(i);
             //Log.d(TAG,"Timestamp:"+frame.image.getTimestamp());
             //frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
@@ -165,6 +169,24 @@ public class HdrxProcessor extends ProcessorBase {
         imageFrameDeblur.firstFrameGyro = images.get(0).frameGyro.clone();
         for (int i = 0; i < images.size(); i++)
             imageFrameDeblur.processDeblurPosition(images.get(i));
+        if (cameraMode == CameraMode.NIGHT) {
+            double[] frameExposures = new double[images.size()];
+            float[] shake = new float[images.size()];
+            for (int i = 0; i < images.size(); i++) {
+                ImageFrame frame = images.get(i);
+                frameExposures[i] = exposures.get(frame.timestamp);
+                shake[i] = frame.frameGyro.samples > 0
+                        ? frame.frameGyro.shakiness : Float.NaN;
+            }
+            int reference = NightReferenceSelector.select(frameExposures, shake);
+            ImageFrame selectedFrame = images.remove(reference);
+            images.add(0, selectedFrame);
+            // Keep alternates in capture order. Their useful regions still
+            // contribute; the existing local merge gates reject disagreement.
+            // Whole-frame shake rejection loses valid static regions and SNR.
+            Log.d(TAG, "Night reference=" + selectedFrame.number
+                    + " shake=" + shake[reference] + " retained=" + images.size());
+        } else {
         if (mImageFramesToProcess.size() >= 3)
             images.sort((img1, img2) -> Float.compare(img1.frameGyro.shakiness, img2.frameGyro.shakiness));
         double unluckypickiness = 1.05;
@@ -250,6 +272,7 @@ public class HdrxProcessor extends ProcessorBase {
             images.set(selected, frame);
         }
         selected = 0;
+        }
 
 
 

@@ -29,6 +29,11 @@ public class IsoExpoSelector {
     public static ArrayList<ExpoPair> pairs = new ArrayList<>();
     public static ArrayList<ExpoPair> fullpairs = new ArrayList<>();
     public static long lastSelectedExposure = 0;
+    private static ArrayList<ExpoPair> nightCapturePlan;
+
+    public static void setNightCapturePlan(ArrayList<ExpoPair> plan) {
+        nightCapturePlan = plan;
+    }
 
     // ---- Shutter-Priority / Dynamic Low-Light AE Curve ----
     // Instead of letting stock 3A pick a fast shutter + high ISO, we keep the SAME
@@ -63,7 +68,16 @@ public class IsoExpoSelector {
                 "expo time:" + ExposureIndex.sec2string(ExposureIndex.time2sec(captureController.mPreviewExposureTime)) +
                 " iso:" + captureController.mPreviewIso+ " analog:"+getISOAnalog());
         if(step == 0) fullpairs.clear();
-        ExpoPair pair = GenerateExpoPair(step,captureController);
+        ExpoPair pair;
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT
+                && nightCapturePlan != null && step >= 0 && step < nightCapturePlan.size()) {
+            pair = nightCapturePlan.get(step);
+            if (step == 0) pairs.clear();
+            if (pairs.size() < patternSize) pairs.add(pair);
+            if (step == nightCapturePlan.size() - 1) nightCapturePlan = null;
+        } else {
+            pair = GenerateExpoPair(step,captureController);
+        }
         fullpairs.add(pair);
         Log.v(TAG, "IsoSelected:" + pair.iso +
                 " ExpoSelected:" + ExposureIndex.sec2string(ExposureIndex.time2sec(pair.exposure)) + " sec step:" + step + " HDR:" + HDR + " total exposure:" + ExposureIndex.time2sec(pair.exposure)*pair.iso);
@@ -74,6 +88,25 @@ public class IsoExpoSelector {
         lastSelectedExposure = pair.exposure;
     }
     public static ExpoPair GenerateExpoPair(int step, CaptureController captureController) {
+        return generateExpoPair(step, captureController, true);
+    }
+
+    /** Evaluate a burst slot without modifying the recorded capture pairs. */
+    public static ExpoPair previewExpoPair(int step, CaptureController captureController) {
+        return generateExpoPair(step, captureController, false);
+    }
+
+    private static ExpoPair generateExpoPair(int step, CaptureController captureController,
+                                              boolean recordPair) {
+        return generateExpoPair(step, captureController, recordPair, 1.0);
+    }
+
+    public static ExpoPair previewNightPair(CaptureController controller, double ratio) {
+        return generateExpoPair(-1, controller, false, ratio);
+    }
+
+    private static ExpoPair generateExpoPair(int step, CaptureController captureController,
+                                              boolean recordPair, double nightRatio) {
         ExpoPair pair = new ExpoPair(captureController.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
                 captureController.mPreviewIso, getISOLOW(), getISOHIGH(),getISOAnalog());
         double compensation = Math.pow(2.0,PhotonCamera.getSettings().exposureCompensation);
@@ -214,7 +247,22 @@ public class IsoExpoSelector {
             pair.ExpoCompensateLowerExpo(2.f);
             pair.ExpoCompensateLower(1.f/2.f);
         }*/
-        if (step % patternSize == 0 && HDR) {
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
+            // Actual longer integration only: preserve manual controls and never
+            // synthesize a bracket by increasing ISO at the shutter ceiling.
+            if (HDR && nightRatio > 1 && currentManExp == 0 && currentManISO == 0) {
+                long limit = Math.min(capEnd, pair.exposurehigh);
+                if (!useTripod) limit = Math.min(limit, pair.resolveShutterLimit(
+                        captureController.exposureBalanceShutterLimit, captureController));
+                long original = pair.exposure;
+                long longer = Math.min(limit, (long) (original * nightRatio));
+                if (longer >= original * 1.5) {
+                    pair.exposure = longer;
+                    pair.layerMpy = (float) ((double) longer / original);
+                    pair.curlayer = ExpoPair.exposureLayer.High;
+                }
+            }
+        } else if (step % patternSize == 0 && HDR) {
             // Set multiplier based on bracketing mode (0=Off, 1=Normal, 2=High)
             int bracketingMode = PreferenceKeys.getBracketingMode();
             pair.layerMpy = 1.f;
@@ -256,7 +304,7 @@ public class IsoExpoSelector {
             //HDR = true;
         }
 
-        if(step != -1) {
+        if(recordPair && step != -1) {
             if (step == 0) pairs.clear();
             if (pairs.size() < patternSize) {
                 Log.d(TAG, "Added pair:" + pairs.size());

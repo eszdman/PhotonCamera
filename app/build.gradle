@@ -39,7 +39,9 @@ android {
 
     defaultConfig {
         compileSdk 36
-        applicationId 'com.particlesdevs.photoncamera'
+        // Deliberately distinct from the production PhotonCamera package so
+        // this Night-mode build installs beside it with separate app data.
+        applicationId 'com.particlesdevs.photoncamera.night'
         minSdkVersion 26
         targetSdkVersion 35
         versionCode versionBuild
@@ -96,7 +98,7 @@ android {
     namespace 'com.particlesdevs.photoncamera'
     applicationVariants.all {
         variant -> variant.outputs.all {
-            outputFileName = "PhotonCamera-${versionName}${versionBuild}-${variant.name}.apk"
+            outputFileName = "PhotonCamera-Night-${versionName}${versionBuild}-${variant.name}.apk"
         }
     }
     testOptions {

@@ -4,7 +4,7 @@
     <string name="iso" translatable="false">"ISO "</string>
     <string name="icon_string" translatable="false">Icon</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
-    <string name="app_name" translatable="false">PhotonCamera</string>
+    <string name="app_name" translatable="false">PhotonCamera Night</string>
     <string name="gallery_name" translatable="false">PGallery</string>
     <string name="device_support" translatable="false">PhotonCamera Pro</string>
     <string name="request_permission">이 앱을 사용하려면 카메라 권한이 필요합니다.</string>

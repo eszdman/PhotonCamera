@@ -269,6 +269,9 @@ public class ESD4D extends GLOneScript {
     GLTexture baseDiff;
     GLTexture base;
     GLTexture baseAlter;
+    // Per-quad accepted temporal weight. Read/write is safe: each invocation
+    // accesses only its own texel and computeAuto supplies the inter-pass barrier.
+    GLTexture temporalWeights;
     //GLTexture;
     GLTexture brightMap;
     /** CPU copy of brightMap (float32 grayscale luma in [0,1]) set by {@link #exportBrightMap()}. */
@@ -870,6 +873,13 @@ public class ESD4D extends GLOneScript {
         float cnt1 = 2.0f;
 
         float cnt2 = 1.0f;
+        boolean nightWeightedMerge = PhotonCamera.getSettings().selectedMode
+                == com.particlesdevs.photoncamera.api.CameraMode.NIGHT;
+        boolean firstWeightedMerge = true;
+        if (nightWeightedMerge) {
+            temporalWeights = new GLTexture(packedSize,
+                    new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
         //Log.d("ESD4D", "alignment size: " + aSize.x + " " + aSize.y);
         Log.d("ESD4D", "alignment size: " + parameters.alignmentSize.x + " " + parameters.alignmentSize.y);
         float maxBlack = Math.max(blackLevel[0], Math.max(blackLevel[1], Math.max(blackLevel[2], blackLevel[3])));
@@ -968,7 +978,13 @@ public class ESD4D extends GLOneScript {
             }
 
             glProg.setLayout(tile, tile, 1);
+            glProg.setDefine("NIGHT_WEIGHTED", nightWeightedMerge ? 1 : 0);
             glProg.useAssetProgram("merge/mergeCombineWeight1", true);
+            if (nightWeightedMerge) {
+                glProg.setTextureCompute("temporalWeights", temporalWeights,
+                        android.opengl.GLES31.GL_READ_WRITE);
+                glProg.setVar("firstWeightedMerge", firstWeightedMerge ? 1 : 0);
+            }
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
             glProg.setTexture("kernelsMap", kernelsMap);
@@ -999,6 +1015,7 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(base.mSize, 1);
+            firstWeightedMerge = false;
             endT();
         }
 
@@ -1091,6 +1108,10 @@ public class ESD4D extends GLOneScript {
 
     @Override
     public void AfterRun() {
+        if (temporalWeights != null) {
+            temporalWeights.close();
+            temporalWeights = null;
+        }
         if(hotPixelBuffer != null) hotPixelBuffer.close();
         inputAlter.close();
         alter.close();

@@ -8,6 +8,11 @@ uniform highp sampler2D kernelsMap;
 layout(rgba16f, binding = 0) uniform highp readonly image2D inTexture;
 layout(rgba16f, binding = 1) uniform highp readonly image2D diffTexture;
 layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;
+#define NIGHT_WEIGHTED 0
+#if NIGHT_WEIGHTED
+layout(rgba16f, binding = 3) uniform highp image2D temporalWeights;
+uniform int firstWeightedMerge;
+#endif
 #define TILE 2
 #define CONCAT 1
 uniform float weight;
@@ -49,6 +54,7 @@ vec4 robustWeight(vec4 w){
 #define NOISE_EPS 1e-10
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(xy, imageSize(outTexture)))) return;
     vec4 kernelParams = texture(kernelsMap, vec2(xy) / vec2(2.0 * vec2(textureSize(kernelsMap, 0)))).rgba;
     float s1 = max(kernelParams.x, EPS);
     float s2 = max(kernelParams.y, EPS);
@@ -74,7 +80,7 @@ void main() {
             ivec2 offset = ivec2(i, j);
             ///vec4 neighborDiff = imageLoad(diffTexture, xy + offset);
             //vec4 neighborBayer = getBayerVec((xy + offset) * 2, inTex);
-            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
+            vec4 neighborBayer = imageLoad(inTexture, clamp(xy + offset, ivec2(0), imageSize(inTexture) - 1));
             //exposure1 += neighborDiff;
             exposure2 += neighborBayer;
         }
@@ -88,8 +94,8 @@ void main() {
             ivec2 offset = ivec2(i, j);
             // Local-translation assumption: the block selected at the center
             // applies to the whole combine window.
-            vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
-            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
+            vec4 neighborDiff = imageLoad(diffTexture, clamp(xy + offset + flow, ivec2(0), imageSize(diffTexture) - 1));
+            vec4 neighborBayer = imageLoad(inTexture, clamp(xy + offset, ivec2(0), imageSize(inTexture) - 1));
             //if(any(greaterThan(neighborDiff, vec4(exposure*0.99)))) {
             //    continue; // skip overexposed pixels
             //}
@@ -124,6 +130,18 @@ void main() {
     if(any(greaterThan(diff, vec4(exposure*0.80))) && exposure < 0.95) {
         comb = vec4(0.0); // skip overexposed pixels
     }
+#if NIGHT_WEIGHTED
+    // Store the weighted mean in the existing base ping-pong textures and
+    // its denominator here. This is algebraically sum(w*x)/sum(w), without
+    // a second full-size numerator buffer. The reference contributes one.
+    float previousWeight = 1.0;
+    if (firstWeightedMerge == 0) previousWeight = imageLoad(temporalWeights, xy).r;
+    float acceptedWeight = clamp(comb.r, 0.0, 1.0);
+    float totalWeight = previousWeight + acceptedWeight;
+    imageStore(outTexture, xy, mix(base, diff, acceptedWeight / totalWeight));
+    imageStore(temporalWeights, xy, vec4(totalWeight));
+#else
     imageStore(outTexture, xy, mix(base, diff, weight * comb));
+#endif
     //imageStore(outTexture, xy, localDiff2/Z); // blur test(check kernels)
 }
