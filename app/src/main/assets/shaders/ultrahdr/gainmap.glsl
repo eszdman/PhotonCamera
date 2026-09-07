@@ -32,7 +32,8 @@ uniform float uEps;
 
 out vec4 Output;
 
-#define GAINSHADOWFLOOR 0.02
+#define GAINSHADOWFLOOR_LO 0.03
+#define GAINSHADOWFLOOR_HI 0.50
 #define lum709(x) dot(x, vec3(0.2126, 0.7152, 0.0722))
 
 float srgbToLinear(float c) {
@@ -80,9 +81,11 @@ void main() {
     // never darkened.
     float logBoost = log2(hdrL / sdrL);
 
-    // Fade the boost out in deep blacks so sensor noise is not amplified into
-    // visible shadow grain on HDR displays. Sole tuning constant in this pass.
-    logBoost *= smoothstep(0.0, GAINSHADOWFLOOR, sdrL - uEps);
+    // Fade the boost in with SDR brightness: deep shadows stay identity
+    // (their quotients encode tone-curve toe and local-tonemap darkening,
+    // not real headroom), midtones keep partial gain, highlights get full
+    // gain. Sole tuning constants in this pass.
+    logBoost *= smoothstep(GAINSHADOWFLOOR_LO, GAINSHADOWFLOOR_HI, sdrL - uEps);
 
     // Map into [0,1] across the fixed log2 range [0, uScale], then store as 8-bit.
     float v = clamp(logBoost / uScale, 0.0, 1.0);
