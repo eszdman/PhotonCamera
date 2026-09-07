@@ -133,6 +133,12 @@ public class IsoExpoSelector {
         }
 
         double dynamicFactor = getDynamicScalingFactor();
+        // Stability may shorten Night exposures, but it must never extend the
+        // advertised handheld ceiling. Previously the generic 2.5x upper bound
+        // could turn NIGHT_HANDHELD_CAP_END (1/3s) into ~0.83s.
+        if (!useTripod && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT) {
+            dynamicFactor = Math.min(dynamicFactor, 1.0);
+        }
         capStart = (long) (capStart * dynamicFactor);
         capEnd = (long) (capEnd * dynamicFactor);
 
@@ -232,6 +238,18 @@ public class IsoExpoSelector {
         } else if (HDR) {
             pair.layerMpy = 1.f;
             pair.curlayer = ExpoPair.exposureLayer.Normal;
+        }
+
+        // Bracketing and exposure-balance adjustments happen after the
+        // shutter-priority curve and can lengthen its result. Re-assert the
+        // handheld Night policy as the final automatic-exposure invariant.
+        // Preserve requested exposure energy by raising ISO where possible.
+        // Explicit manual shutter remains an intentional override, as does
+        // tripod mode (which uses the separate tripod exposure policy).
+        if (!useTripod
+                && PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT
+                && currentManExp == 0) {
+            pair.capExposurePreservingEnergy(capEnd);
         }
 
         if (pair.exposure < ExposureIndex.sec / 90 && PhotonCamera.getSettings().eisPhoto) {
@@ -585,6 +603,29 @@ public class IsoExpoSelector {
                     " -> exposure=" + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure)) +
                     " iso=" + iso);
         }        
+
+        /**
+         * Enforces a final shutter ceiling while retaining as much of the
+         * requested exposure energy as the sensor ISO range permits.
+         */
+        public void capExposurePreservingEnergy(long maxExposure) {
+            long effectiveMax = Math.max(exposurelow, Math.min(maxExposure, exposurehigh));
+            if (exposure <= effectiveMax) return;
+
+            double targetEnergy = (double) exposure * iso;
+            double isoHighNormalized = normalizedIsoHigh();
+            double requiredIso = targetEnergy / effectiveMax;
+            iso = (int) Math.ceil(Math.max(MIN_ISO_NORMALIZED,
+                    Math.min(isoHighNormalized, requiredIso)));
+            exposure = effectiveMax;
+            isShutterLimited = true;
+
+            Log.v(TAG, "FinalShutterCap: max="
+                    + ExposureIndex.sec2string(ExposureIndex.time2sec(effectiveMax))
+                    + " -> exposure="
+                    + ExposureIndex.sec2string(ExposureIndex.time2sec(exposure))
+                    + " iso=" + iso);
+        }
 
         /**
          * Resolves the effective normalized ISO ceiling based on the configured limit flag/number.
