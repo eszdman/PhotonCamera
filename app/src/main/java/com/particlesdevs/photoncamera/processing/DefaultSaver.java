@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.processing.processor.UnlimitedProcessor;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.locks.LockSupport;
 
 public class DefaultSaver extends SaverImplementation {
     private static final String TAG = "DefaultSaver";
@@ -30,9 +31,13 @@ public class DefaultSaver extends SaverImplementation {
 
     public void runRaw(int imageFormat, CameraCharacteristics characteristics, CaptureResult captureResult, CaptureRequest captureRequest, ArrayList<GyroBurst> burstShakiness, int cameraRotation, HashMap<Long, Double> exposures) {
         super.runRaw(imageFormat, characteristics, captureResult,captureRequest, burstShakiness, cameraRotation, exposures);
-        //Wait for one frame at least.
+        //Wait for one frame at least. Park (not spin): the producers are
+        //camera threads that don't all notify, so wait/notify would risk a
+        //missed wakeup; parking yields the core with identical semantics.
         Log.d(TAG, "Acquiring:" + IMAGE_BUFFER.size());
-        while (bufferLock || IMAGE_BUFFER.isEmpty()){}
+        while (bufferLock || IMAGE_BUFFER.isEmpty()) {
+            LockSupport.parkNanos(100_000);
+        }
         Log.d(TAG, "Acquired:" + IMAGE_BUFFER.size());
         bufferLock = true;
         Log.d(TAG,"Size:"+IMAGE_BUFFER.size());
