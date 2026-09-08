@@ -62,6 +62,8 @@ public final class UltraHdrHeicEncoder {
             recycleQuietly(gain.gainMap);
             byte[] baseBytes = Files.readAllBytes(baseTmp.toPath());
             byte[] gainBytes = Files.readAllBytes(gainTmp.toPath());
+            Log.d(TAG, "HEIC mux inputs: base=" + (baseBytes.length / 1024)
+                    + "KB gain=" + (gainBytes.length / 1024) + "KB");
             UltraHdrHeicContainer.Inputs in = new UltraHdrHeicContainer.Inputs();
             in.baseHeic = baseBytes;
             in.gainHeic = gainBytes;
@@ -80,6 +82,13 @@ public final class UltraHdrHeicEncoder {
                 Log.e(TAG, "EXIF blob null, HEIC will carry no EXIF");
             }
             byte[] merged = UltraHdrHeicContainer.merge(in);
+            // Inputs served their purpose: release before the write/verify
+            // window so base+gain+merged aren't all heap-resident at once.
+            in.baseHeic = null;
+            in.gainHeic = null;
+            baseBytes = null;
+            gainBytes = null;
+            Log.d(TAG, "HEIC mux output: merged=" + (merged.length / 1024) + "KB");
             try {
                 Files.write(dest, merged);
                 verifyMergedHeic(dest, sdr.getWidth(), sdr.getHeight());
