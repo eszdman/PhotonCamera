@@ -42,6 +42,10 @@ public final class SdrHeicEncoder {
         if (sdr == null || sdr.isRecycled()) {
             throw new IllegalArgumentException("Null/recycled SDR bitmap");
         }
+        if (exif != null) {
+            exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
+            exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
+        }
         byte[] exifPayload = ExifBlob.fromExifData(exif);
         HeifWriter writer = null;
         boolean ok = false;
@@ -57,9 +61,12 @@ public final class SdrHeicEncoder {
             if (exifPayload != null) {
                 try {
                     writer.addExifData(0, exifPayload, 0, exifPayload.length);
+                    Log.d(TAG, "HEIC EXIF attached: " + exifPayload.length + " bytes");
                 } catch (Exception e) {
                     Log.e(TAG, "addExifData failed (non-fatal)", e);
                 }
+            } else {
+                Log.e(TAG, "EXIF blob null, HEIC will carry no EXIF");
             }
             writer.stop(0);
             ok = true;

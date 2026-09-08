@@ -1,5 +1,7 @@
 package com.particlesdevs.photoncamera.processing.encoder;
 
+import com.particlesdevs.photoncamera.util.Log;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -128,7 +130,13 @@ public final class UltraHdrHeicContainer {
         int xmpPrimaryId = nextFresh++;
         int xmpGainId = nextFresh++;
         int exifId = -1;
-        if (in.exifPayload != null) {
+        // The Exif item mirrors the de-facto OEM convention (verified against
+        // a working SDR-HEIC inventory dump): u32 offset + "Exif\0\0" + TIFF
+        // with offset == 6. Readers key off this form; a bare TIFF with
+        // offset 0 is invisible to them. All item creation below keys off
+        // exifItemBytes so bytes and links can never diverge.
+        byte[] exifItemBytes = ExifBlob.heifExifItemBody(in.exifPayload);
+        if (exifItemBytes != null) {
             exifId = nextFresh++;
         }
         // ISO 21496-1 binary metadata as a tmap derived item (dual-encoded
@@ -160,7 +168,10 @@ public final class UltraHdrHeicContainer {
         byte[] xmpPrimary = buildPrimaryXmp(xmpGainPayloadLength(in));
         byte[] xmpGain = buildGainMapXmp(in.gainMapMin, in.gainMapMax, in.hdrCapacityMax);
 
-        // mdat layout: kept base payloads, kept gain payloads, XMP/EXIF.
+        // mdat layout: kept base payloads, then fresh payloads with Exif
+        // first (mirrors OEM metadata-early layout; every structure below
+        // is id-keyed so order carries no semantics, but sequential
+        // scanners meet Exif before any tmap entry).
         // Base keeps original IDs; gain keeps fresh IDs.
         List<byte[]> mdatParts = new ArrayList<>();
         List<Integer> baseOrder = new ArrayList<>(baseKeep);
@@ -168,20 +179,17 @@ public final class UltraHdrHeicContainer {
         for (int id : baseOrder) {
             mdatParts.add(baseKept.get(id));
         }
+        byte[] exifItemPayload = null;
+        if (exifItemBytes != null) {
+            exifItemPayload = exifItemBytes;
+            mdatParts.add(exifItemPayload);
+        }
         for (int fresh : gg.freshOrder) {
             mdatParts.add(gainKept.get(reverseLookup(gg.idRemap, fresh)));
         }
         mdatParts.add(xmpPrimary);
         mdatParts.add(xmpGain);
         mdatParts.add(tmapPayload);
-        byte[] exifItemPayload = null;
-        if (in.exifPayload != null) {
-            ByteBuffer eb = ByteBuffer.allocate(4 + in.exifPayload.length).order(ByteOrder.BIG_ENDIAN);
-            eb.putInt(0);
-            eb.put(in.exifPayload);
-            exifItemPayload = eb.array();
-            mdatParts.add(exifItemPayload);
-        }
 
         // New ipco = base children + gain referenced props + auxC [+ aux ispe].
         List<byte[]> ipcoBoxes = new ArrayList<>();
@@ -217,7 +225,7 @@ public final class UltraHdrHeicContainer {
         // entry + tmap entry (descriptive props) + (XMP/EXIF need none).
         byte[] newIpma = extendIpma(base, baseKeep, gg, gridAssoc, tmapId, tmapPropIdx);
 
-        // New iinf = kept base entries + remapped gain entries + new.
+        // New iinf = kept base entries + Exif + remapped gain entries + new.
         List<byte[]> keptInfe = new ArrayList<>();
         for (int id : baseOrder) {
             byte[] infe = infeBoxFor(base, id);
@@ -226,6 +234,9 @@ public final class UltraHdrHeicContainer {
             }
             keptInfe.add(infe);
         }
+        if (exifItemBytes != null) {
+            keptInfe.add(buildInfeV2(exifId, "Exif", "", null));
+        }
         for (int fresh : gg.freshOrder) {
             keptInfe.add(gg.infeBoxes.get(fresh));
         }
@@ -233,15 +244,15 @@ public final class UltraHdrHeicContainer {
         newInfe.add(buildInfeV2(xmpPrimaryId, "mime", "", XMP_MIME));
         newInfe.add(buildInfeV2(xmpGainId, "mime", "", XMP_MIME));
         newInfe.add(buildInfeV2(tmapId, "tmap", "GMap", null));
-        if (in.exifPayload != null) {
-            newInfe.add(buildInfeV2(exifId, "Exif", "", null));
-        }
         byte[] newIinf = buildIinf(base.iinfPayload, keptInfe, newInfe);
 
         // New iref = kept base refs + remapped gain dimg + auxl/cdsc links,
         // all rebuilt at one version (v1 when base used v1; ids fit u16).
         int outRefVersion = base.irefVersion;
         List<byte[]> extraRefs = new ArrayList<>();
+        if (exifItemBytes != null) {
+            extraRefs.add(buildSingleRef("cdsc", exifId, new int[]{primaryId}, outRefVersion));
+        }
         for (IrefEntry e : gg.dimg) {
             extraRefs.add(buildSingleRef(e.type, e.from,
                     toIntArray(e.to), outRefVersion));
@@ -252,9 +263,6 @@ public final class UltraHdrHeicContainer {
         // tmap derivation inputs: primary first, gain second (reference order).
         extraRefs.add(buildSingleRef("dimg", tmapId,
                 new int[]{primaryId, gainGridNew}, outRefVersion));
-        if (in.exifPayload != null) {
-            extraRefs.add(buildSingleRef("cdsc", exifId, new int[]{primaryId}, outRefVersion));
-        }
         byte[] newIref = extendIref(filterIref(base, baseKeep, outRefVersion), extraRefs,
                 outRefVersion);
 
@@ -288,6 +296,10 @@ public final class UltraHdrHeicContainer {
             extents.add(new Extent(id, cursor, payload.length));
             cursor += payload.length;
         }
+        if (exifItemPayload != null) {
+            extents.add(new Extent(exifId, cursor, exifItemPayload.length));
+            cursor += exifItemPayload.length;
+        }
         for (int fresh : gg.freshOrder) {
             byte[] payload = gainKept.get(reverseLookup(gg.idRemap, fresh));
             extents.add(new Extent(fresh, cursor, payload.length));
@@ -299,9 +311,6 @@ public final class UltraHdrHeicContainer {
         cursor += xmpGain.length;
         extents.add(new Extent(tmapId, cursor, tmapPayload.length));
         cursor += tmapPayload.length;
-        if (exifItemPayload != null) {
-            extents.add(new Extent(exifId, cursor, exifItemPayload.length));
-        }
         byte[] ilocBox = IsoBmff.buildBox("iloc",
                 IsoBmff.fullBoxPayload(0, 0, buildIlocBody(extents)));
 
@@ -317,6 +326,7 @@ public final class UltraHdrHeicContainer {
         byte[] metaBox = IsoBmff.buildBox("meta", IsoBmff.concat(
                 listOf(metaHeader, IsoBmff.concat(metaChildren))));
         byte[] mdatBox = IsoBmff.buildBox("mdat", IsoBmff.concat(mdatParts));
+        logExifSelfCheck(extents, exifId, primaryId, mdatBox, mdatDataStart);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream(
                 (int) (ftypSize + metaBox.length + mdatBox.length));
@@ -330,6 +340,42 @@ public final class UltraHdrHeicContainer {
         return out.toByteArray();
     }
 
+    /**
+     * One-line self-description of the merged Exif item (id, iloc extent,
+     * head bytes, cdsc target) for device-log forensics. Verifies the same
+     * invariants as the unit audit against real bytes.
+     */
+    static void logExifSelfCheck(List<Extent> extents, int exifId, int primaryId,
+            byte[] mdatBox, long mdatDataStart) {
+        try {
+            StringBuilder sb = new StringBuilder("exifself exifId=").append(exifId);
+            for (Extent e : extents) {
+                if (e.itemId != exifId) {
+                    continue;
+                }
+                sb.append(" ext@").append(e.offset).append('+').append(e.length);
+                // mdatBox[8..] is the payload starting at mdatDataStart.
+                long at = e.offset - mdatDataStart + 8;
+                if (at >= 8 && at + 16 <= mdatBox.length) {
+                    sb.append(" head=");
+                    for (int i = 0; i < 16; i++) {
+                        byte v = mdatBox[(int) at + i];
+                        sb.append(Character.forDigit((v >> 4) & 0xF, 16));
+                        sb.append(Character.forDigit(v & 0xF, 16));
+                    }
+                } else {
+                    sb.append(" head=OOB");
+                }
+                sb.append(" cdsc->").append(primaryId);
+            }
+            Log.d("ExifSelf", sb.toString());
+        } catch (Exception e) {
+            Log.e("ExifSelf", "self-check failed: " + e.getMessage());
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Parsed meta helper
     // ------------------------------------------------------------------
     // Parsed meta helper
     // ------------------------------------------------------------------
@@ -365,7 +411,6 @@ public final class UltraHdrHeicContainer {
         List<IsoBmff.Box> ipcoChildren;
         int primaryItemId;
         int maxItemId;
-        int itemCount;
 
         static Meta parse(byte[] metaPayload) {
             if (metaPayload == null || metaPayload.length < 4) {
@@ -410,10 +455,6 @@ public final class UltraHdrHeicContainer {
             }
             int iinfVersion = IsoBmff.fullVersion(iinf.payload);
             int countSize = iinfVersion == 0 ? 2 : 4;
-            int count = iinfVersion == 0
-                    ? IsoBmff.u16(iinf.payload, 4)
-                    : (int) IsoBmff.u32(iinf.payload, 4);
-            m.itemCount = count;
             byte[] entries = new byte[iinf.payload.length - 4 - countSize];
             System.arraycopy(iinf.payload, 4 + countSize, entries, 0, entries.length);
             int maxId = m.primaryItemId;
@@ -654,12 +695,6 @@ public final class UltraHdrHeicContainer {
         return IsoBmff.buildBox("iinf", bb.array());
     }
 
-    static byte[] buildIinf(byte[] baseIinf, byte[] primaryInfeBox, List<byte[]> newEntries) {
-        List<byte[]> kept = new ArrayList<>();
-        kept.add(primaryInfeBox);
-        return buildIinf(baseIinf, kept, newEntries);
-    }
-
     /**
      * Keeps only reference entries fully inside {@code keep} (source and every
      * target); references to dropped items (thumbnails etc.) would otherwise
@@ -875,21 +910,12 @@ public final class UltraHdrHeicContainer {
     }
 
     /**
-     * Walks a v0/v1 iloc for one item's extents (absolute file offsets).
-     * Layout verified against mp4box.js: v1 keeps u16 count/ids and adds a
-     * u16 construction field (low 4 bits) plus optional extent indexes.
-     * Only construction_method 0 (file offsets) is supported; anything else
-     * throws so exotic layouts degrade to SDR HEIC instead of a corrupt mux.
+     * Walks a v0/v1 iloc (layout verified against mp4box.js: v1 keeps u16
+     * count/ids and adds a u16 construction field (low 4 bits) plus optional
+     * extent indexes) and returns extents as (itemId, absolute file offset
+     * for method 0, idat-relative offset for method 1, length, construction).
+     * Method 2+ throws so exotic layouts degrade to SDR HEIC.
      */
-    static List<Extent> ilocExtentsForItem(byte[] ilocPayload, int itemId) {
-        List<Extent> all = ilocExtents(ilocPayload, itemId);
-        if (all.isEmpty()) {
-            throw new IllegalArgumentException("no iloc extents for item " + itemId);
-        }
-        return all;
-    }
-
-    /** Parses all items' extents; when {@code onlyId >= 0} filters to it. */
     static List<Extent> ilocExtents(byte[] ilocPayload, int onlyId) {
         int version = IsoBmff.fullVersion(ilocPayload);
         if (version != 0 && version != 1) {
@@ -1270,6 +1296,7 @@ public final class UltraHdrHeicContainer {
         return g;
     }
 
+
     /** One-line box inventory for mux failure messages / device logs. */
     static String describeHeic(byte[] file) {
         try {
@@ -1309,13 +1336,9 @@ public final class UltraHdrHeicContainer {
                                         : (int) IsoBmff.u32(k.payload, 4))
                                 .append(')');
                     } else if (k.type.equals("iloc")) {
-                        sb.append("(v").append(IsoBmff.fullVersion(k.payload)).append(' ');
-                        sb.append("hex=").append(hex(k.payload, 0,
-                                Math.min(k.payload.length, 96))).append(')');
+                        sb.append("(v").append(IsoBmff.fullVersion(k.payload)).append(')');
                     } else if (k.type.equals("idat")) {
-                        sb.append("(len=").append(k.payload.length).append(" head=")
-                                .append(hex(k.payload, 0,
-                                        Math.min(k.payload.length, 48))).append(')');
+                        sb.append("(len=").append(k.payload.length).append(')');
                     } else if (k.type.equals("iref")) {
                         sb.append('(');
                         try {
@@ -1358,17 +1381,6 @@ public final class UltraHdrHeicContainer {
         } catch (Exception e) {
             return "undescribable:" + e.getMessage();
         }
-    }
-
-    /** Lowercase hex of a slice, for device-log forensics. */
-    static String hex(byte[] data, int offset, int length) {
-        StringBuilder sb = new StringBuilder(Math.max(0, length) * 2);
-        int end = Math.min(data.length, offset + Math.max(0, length));
-        for (int i = Math.max(0, offset); i < end; i++) {
-            sb.append(Character.forDigit((data[i] >> 4) & 0xF, 16));
-            sb.append(Character.forDigit(data[i] & 0xF, 16));
-        }
-        return sb.toString();
     }
 
     // ------------------------------------------------------------------

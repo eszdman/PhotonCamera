@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.particlesdevs.photoncamera.api.ParseExif;
+import com.particlesdevs.photoncamera.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,8 +29,8 @@ public final class ExifBlob {
     private ExifBlob() {}
 
     /**
-     * @return raw EXIF payload ({@code Exif\0\0 + TIFF}) or null when EXIF is
-     * unavailable (caller must proceed without EXIF, never fail the shot).
+     * @return raw EXIF payload ({@code Exif\0\0 + TIFF}) for
+     * {@code HeifWriter.addExifData} (which requires the header), or null.
      */
     public static byte[] fromExifData(ParseExif.ExifData exif) {
         if (exif == null) {
@@ -51,15 +52,70 @@ public final class ExifBlob {
                     inter.saveAttributes();
                 }
                 byte[] stamped = Files.readAllBytes(tmp.toPath());
-                return extractExifPayload(stamped);
+                byte[] payload = extractExifPayload(stamped);
+                if (payload == null) {
+                    Log.e("ExifBlob", "no EXIF APP1 found after stamping");
+                }
+                return payload;
             } finally {
                 // noinspection ResultOfMethodCallIgnored
                 tmp.delete();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("ExifBlob", "fromExifData failed, no EXIF will be written", e);
             return null;
         }
+    }
+
+    /**
+     * @return true when a non-empty TIFF payload can be sliced (cheap
+     * pre-flight for callers that want to log the outcome).
+     */
+    public static boolean hasTiffPayload(byte[] exifPayload) {
+        return tiffPayload(exifPayload) != null;
+    }
+
+    /**
+     * Strips the 6-byte {@code Exif\0\0} header, returning the raw TIFF
+     * payload. Kept for validation/testing; the merge path uses
+     * {@link #heifExifItemBody} (header-preserving OEM convention).
+     *
+     * @return TIFF bytes or null when the input is not an EXIF payload.
+     */
+    public static byte[] tiffPayload(byte[] exifPayload) {
+        if (exifPayload == null || exifPayload.length <= EXIF_HEADER.length + 8) {
+            return null;
+        }
+        for (int i = 0; i < EXIF_HEADER.length; i++) {
+            if (exifPayload[i] != EXIF_HEADER[i]) {
+                return null;
+            }
+        }
+        return Arrays.copyOfRange(exifPayload, EXIF_HEADER.length, exifPayload.length);
+    }
+
+    /**
+     * Builds a HEIF {@code Exif} item body matching the de-facto OEM
+     * convention (verified against a working SDR-HEIC inventory dump):
+     * {@code u32 offset + "Exif\0\0" + TIFF} with offset == 6. Readers key
+     * off this form; a bare TIFF with offset 0 is invisible to them.
+     *
+     * @return item body or null when the input is not an EXIF payload.
+     */
+    public static byte[] heifExifItemBody(byte[] exifPayload) {
+        if (exifPayload == null || exifPayload.length <= EXIF_HEADER.length + 8) {
+            return null;
+        }
+        for (int i = 0; i < EXIF_HEADER.length; i++) {
+            if (exifPayload[i] != EXIF_HEADER[i]) {
+                return null;
+            }
+        }
+        java.nio.ByteBuffer eb = java.nio.ByteBuffer
+                .allocate(4 + exifPayload.length).order(java.nio.ByteOrder.BIG_ENDIAN);
+        eb.putInt(EXIF_HEADER.length);
+        eb.put(exifPayload);
+        return eb.array();
     }
 
     /**

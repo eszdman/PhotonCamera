@@ -38,6 +38,10 @@ public final class UltraHdrEncoder {
      * @return Ultra HDR JPEG bytes
      */
     public static byte[] encode(Bitmap sdr, GainMapComputer.Result gm, ParseExif.ExifData exif) {
+        if (sdr != null && !sdr.isRecycled() && exif != null) {
+            exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
+            exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
+        }
         final byte[] sdrJpeg = compress(sdr, DEFAULT_QUALITY);
         final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
 

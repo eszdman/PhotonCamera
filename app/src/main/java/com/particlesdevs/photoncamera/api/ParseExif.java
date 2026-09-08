@@ -140,6 +140,17 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION, data.EXIF_VERSION);
         inter.setAttribute(TAG_IMAGE_DESCRIPTION, data.IMAGE_DESCRIPTION);
         if (data.WHITE_BALANCE != null) inter.setAttribute(TAG_WHITE_BALANCE, data.WHITE_BALANCE);
+        // Rendered still dimensions (set by encoders from the Bitmap; readers
+        // such as gallery details rely on these, notably for HEIC where
+        // structural dimension fallback is unavailable).
+        if (data.IMAGE_WIDTH != null) {
+            inter.setAttribute(TAG_IMAGE_WIDTH, data.IMAGE_WIDTH);
+            inter.setAttribute(TAG_PIXEL_X_DIMENSION, data.IMAGE_WIDTH);
+        }
+        if (data.IMAGE_LENGTH != null) {
+            inter.setAttribute(TAG_IMAGE_LENGTH, data.IMAGE_LENGTH);
+            inter.setAttribute(TAG_PIXEL_Y_DIMENSION, data.IMAGE_LENGTH);
+        }
         return inter;
     }
 
@@ -178,5 +189,8 @@ public class ParseExif {
         public String PHOTOGRAPHIC_SENSITIVITY;
         public String WHITE_BALANCE;
         public String FRAME_DURATION;
+        /** Rendered still dimensions in pixels; null = do not write. */
+        public String IMAGE_WIDTH;
+        public String IMAGE_LENGTH;
     }
 }

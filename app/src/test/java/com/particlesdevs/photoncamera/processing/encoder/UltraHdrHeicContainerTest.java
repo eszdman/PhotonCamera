@@ -216,7 +216,7 @@ public class UltraHdrHeicContainerTest {
 
     @Test
     public void mergeWithExifHasFiveItems() {
-        byte[] exif = {'E', 'x', 'i', 'f', 0, 0, 1, 2, 3};
+        byte[] exif = {'E', 'x', 'i', 'f', 0, 0, 'I', 'I', 42, 0, 1, 2, 3, 4, 5};
         byte[] out = UltraHdrHeicContainer.merge(inputs(exif));
         List<IsoBmff.Box> top = IsoBmff.parse(out);
         List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
@@ -381,11 +381,16 @@ public class UltraHdrHeicContainerTest {
         UltraHdrHeicContainer.Inputs in = inputs(null);
         String desc = UltraHdrHeicContainer.describeHeic(in.baseHeic);
         assertTrue(desc.contains("ftyp("));
-        assertTrue(desc.contains("iloc(v0 hex="));
-        // Synthetic files have no idat/iref; device files do.
-        assertTrue(UltraHdrHeicContainer.hex(new byte[]{0x27, 0x10}, 0, 2).equals("2710"));
-        assertTrue(UltraHdrHeicContainer.hex(new byte[]{0x27, 0x10}, 0, 99).equals("2710"));
-        assertTrue(UltraHdrHeicContainer.hex(new byte[]{0x27}, 5, 2).equals(""));
+        assertTrue(desc.contains("iloc(v0)"));
+        assertTrue(desc.contains("pitm(primary=1)"));
+        // Synthetic files have no idat/iref/grpl; device files list them.
+        UltraHdrHeicContainer.Inputs grid = inputs(null);
+        grid.baseHeic = gridHeic(bytes(64, (byte) 0xA5), bytes(16, (byte) 0x11));
+        String merged = UltraHdrHeicContainer.describeHeic(
+                UltraHdrHeicContainer.merge(grid));
+        assertTrue(merged.contains("tmap"));
+        assertTrue(merged.contains("dimg"));
+        assertTrue(merged.contains("altr"));
     }
 
     @Test
@@ -777,6 +782,202 @@ public class UltraHdrHeicContainerTest {
         throw new IllegalArgumentException("missing " + type);
     }
 
+    /**
+     * Minimal valid little-endian TIFF: header + IFD0 with Make="Abc" and
+     * Model="Xyz" (both inline, no offset chasing).
+     */
+    private static byte[] minimalTiff() {
+        ByteBuffer bb = ByteBuffer.allocate(38).order(ByteOrder.LITTLE_ENDIAN);
+        bb.put((byte) 'I');
+        bb.put((byte) 'I');
+        bb.putShort((short) 42);
+        bb.putInt(8); // IFD0 offset
+        bb.putShort((short) 2); // entry count
+        bb.putShort((short) 0x010F); // Make
+        bb.putShort((short) 2); // ASCII
+        bb.putInt(4);
+        bb.put("Abc\0".getBytes(StandardCharsets.US_ASCII));
+        bb.putShort((short) 0x0110); // Model
+        bb.putShort((short) 2); // ASCII
+        bb.putInt(4);
+        bb.put("Xyz\0".getBytes(StandardCharsets.US_ASCII));
+        bb.putInt(0); // next IFD
+        return bb.array();
+    }
+
+    private static byte[] exifPayloadOf(byte[] tiff) {
+        byte[] out = new byte[6 + tiff.length];
+        out[0] = 'E';
+        out[1] = 'x';
+        out[2] = 'i';
+        out[3] = 'f';
+        out[4] = 0;
+        out[5] = 0;
+        System.arraycopy(tiff, 0, out, 6, tiff.length);
+        return out;
+    }
+
+    @Test
+    public void exifItemSelfAudit() {
+        // Structural audit of our own Exif item, mirroring the de-facto OEM
+        // form: u32(6) + "Exif\0\0" + TIFF, single cdsc to the primary.
+        byte[] tiff = minimalTiff();
+        UltraHdrHeicContainer.Inputs in = inputs(exifPayloadOf(tiff));
+        byte[] out = UltraHdrHeicContainer.merge(in);
+        List<IsoBmff.Box> top = IsoBmff.parse(out);
+        byte[] mdat = null;
+        long mdatStart = -1;
+        for (IsoBmff.Box b : top) {
+            if (b.type.equals("mdat")) {
+                mdat = b.payload;
+            }
+        }
+        assertTrue(mdat != null);
+        // Locate mdat data start for absolute offsets.
+        long cursor = 0;
+        for (IsoBmff.Box b : top) {
+            int header = 8;
+            if (b.type.equals("mdat")) {
+                mdatStart = cursor + header;
+                break;
+            }
+            cursor += header + b.payload.length;
+        }
+        assertTrue(mdatStart > 0);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
+        // A1: every iloc extent inside mdat.
+        List<UltraHdrHeicContainer.Extent> allExtents = new ArrayList<>();
+        java.util.Set<Integer> iinfIds = new java.util.HashSet<>();
+        int exifId = -1;
+        for (IsoBmff.Box b : kids) {
+            if (b.type.equals("iloc")) {
+                allExtents = UltraHdrHeicContainer.ilocExtents(b.payload, -1);
+            } else if (b.type.equals("iinf")) {
+                int v = IsoBmff.fullVersion(b.payload);
+                int cs = v == 0 ? 2 : 4;
+                byte[] region = new byte[b.payload.length - 4 - cs];
+                System.arraycopy(b.payload, 4 + cs, region, 0, region.length);
+                for (IsoBmff.Box e : IsoBmff.parse(region)) {
+                    int ev = IsoBmff.fullVersion(e.payload);
+                    int id = ev >= 3 ? (int) IsoBmff.u32(e.payload, 4)
+                            : IsoBmff.u16(e.payload, 4);
+                    iinfIds.add(id);
+                    if (IsoBmff.fourcc(e.payload, 8).equals("Exif")) {
+                        exifId = id;
+                    }
+                }
+            }
+        }
+        assertTrue(exifId > 0);
+        assertTrue(!allExtents.isEmpty());
+        for (UltraHdrHeicContainer.Extent e : allExtents) {
+            assertTrue(e.offset >= mdatStart);
+            assertTrue(e.length > 0);
+            assertTrue(e.offset + e.length <= mdatStart + mdat.length);
+        }
+        // A3: every iref from/to id exists in iinf.
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iref")) {
+                continue;
+            }
+            for (UltraHdrHeicContainer.IrefEntry e :
+                    UltraHdrHeicContainer.parseIrefEntries(b.payload,
+                            IsoBmff.fullVersion(b.payload))) {
+                assertTrue(iinfIds.contains(e.from));
+                for (int id : e.to) {
+                    assertTrue(iinfIds.contains(id));
+                }
+            }
+        }
+        // A2+A4+A5: exif extent content, single cdsc to primary, round trip.
+        List<UltraHdrHeicContainer.Extent> exifExtents =
+                UltraHdrHeicContainer.ilocExtents(findBox(kids, "iloc").payload, exifId);
+        assertEquals(1, exifExtents.size());
+        byte[] exifBytes = new byte[(int) exifExtents.get(0).length];
+        System.arraycopy(mdat, (int) (exifExtents.get(0).offset - mdatStart), exifBytes, 0,
+                exifBytes.length);
+        assertEquals(4 + 6 + tiff.length, exifBytes.length);
+        ByteBuffer eb = ByteBuffer.wrap(exifBytes).order(ByteOrder.BIG_ENDIAN);
+        assertEquals(6, eb.getInt()); // offset skips "Exif\0\0", OEM convention
+        assertEquals('E', exifBytes[4] & 0xFF);
+        assertEquals('x', exifBytes[5] & 0xFF);
+        assertEquals('i', exifBytes[6] & 0xFF);
+        assertEquals('f', exifBytes[7] & 0xFF);
+        assertEquals('I', exifBytes[10] & 0xFF);
+        assertEquals('I', exifBytes[11] & 0xFF);
+        assertEquals(42, ByteBuffer.wrap(exifBytes, 12, 2).order(ByteOrder.LITTLE_ENDIAN)
+                .getShort() & 0xFFFF);
+        byte[] roundTripped = new byte[exifBytes.length - 10];
+        System.arraycopy(exifBytes, 10, roundTripped, 0, roundTripped.length);
+        assertArrayEquals(tiff, roundTripped);
+        int cdscCount = 0;
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iref")) {
+                continue;
+            }
+            for (UltraHdrHeicContainer.IrefEntry e :
+                    UltraHdrHeicContainer.parseIrefEntries(b.payload,
+                            IsoBmff.fullVersion(b.payload))) {
+                if (e.type.equals("cdsc") && e.from == exifId) {
+                    cdscCount++;
+                    assertEquals(1, e.to.size());
+                    assertEquals(1, (int) e.to.get(0)); // primary in fixture
+                }
+            }
+        }
+        assertEquals(1, cdscCount);
+    }
+
+    @Test
+    public void exifEntriesPrecedeTmapEntries() {
+        // Sequential scanners meet Exif before any tmap entry (mirrors the
+        // OEM metadata-early layout): Exif infe/iloc/cdsc precede gain, XMP
+        // and tmap entries in iinf, iloc and mdat order.
+        byte[] tiff = minimalTiff();
+        UltraHdrHeicContainer.Inputs in = inputs(exifPayloadOf(tiff));
+        byte[] out = UltraHdrHeicContainer.merge(in);
+        List<IsoBmff.Box> top = IsoBmff.parse(out);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
+        // iinf order: base(1), exif, gain, xmp, xmp, tmap.
+        List<String> types = new ArrayList<>();
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iinf")) {
+                continue;
+            }
+            int v = IsoBmff.fullVersion(b.payload);
+            int cs = v == 0 ? 2 : 4;
+            byte[] region = new byte[b.payload.length - 4 - cs];
+            System.arraycopy(b.payload, 4 + cs, region, 0, region.length);
+            for (IsoBmff.Box e : IsoBmff.parse(region)) {
+                types.add(IsoBmff.fourcc(e.payload, 8));
+            }
+        }
+        assertEquals(java.util.Arrays.asList("hvc1", "Exif", "hvc1", "mime", "mime", "tmap"),
+                types);
+        // iloc/mdat order matches: exif bytes right after the base payload.
+        byte[] mdat = null;
+        for (IsoBmff.Box b : top) {
+            if (b.type.equals("mdat")) {
+                mdat = b.payload;
+            }
+        }
+        assertTrue(mdat != null);
+        int baseLen = 64; // inputs() base payload size
+        assertEquals('E', mdat[baseLen + 4] & 0xFF);
+        assertEquals('I', mdat[baseLen + 10] & 0xFF);
+        // exif cdsc is the first rebuilt ref (kept base refs: none here).
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iref")) {
+                continue;
+            }
+            List<UltraHdrHeicContainer.IrefEntry> entries =
+                    UltraHdrHeicContainer.parseIrefEntries(b.payload,
+                            IsoBmff.fullVersion(b.payload));
+            assertTrue(!entries.isEmpty());
+            assertEquals("cdsc", entries.get(0).type);
+        }
+    }
+
     @Test
     public void boxRelativeIdatOffsetRejected() {
         // A box-relative reading of the grid offset (8 instead of 0) runs
@@ -789,6 +990,47 @@ public class UltraHdrHeicContainerTest {
         } catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().contains("idat"));
         }
+    }
+
+    @Test
+    public void heifExifItemBodyMatchesOemConvention() {
+        byte[] tiff = {'I', 'I', 42, 0, 1, 2, 3, 4, 5};
+        byte[] exif = new byte[6 + tiff.length];
+        exif[0] = 'E';
+        exif[1] = 'x';
+        exif[2] = 'i';
+        exif[3] = 'f';
+        exif[4] = 0;
+        exif[5] = 0;
+        System.arraycopy(tiff, 0, exif, 6, tiff.length);
+        byte[] body = ExifBlob.heifExifItemBody(exif);
+        // u32(6) + "Exif\0\0" + TIFF, exactly the working SDR-HEIC form.
+        assertEquals(4 + exif.length, body.length);
+        assertEquals(6, ByteBuffer.wrap(body).order(ByteOrder.BIG_ENDIAN).getInt());
+        assertEquals('E', body[4] & 0xFF);
+        assertEquals('I', body[10] & 0xFF);
+        assertEquals(null, ExifBlob.heifExifItemBody(null));
+        assertEquals(null, ExifBlob.heifExifItemBody(new byte[]{0, 1, 2}));
+    }
+
+    @Test
+    public void tiffPayloadStripsHeader() {
+        byte[] tiff = {'I', 'I', 42, 0, 1, 2, 3, 4, 5};
+        byte[] exif = new byte[6 + tiff.length];
+        exif[0] = 'E';
+        exif[1] = 'x';
+        exif[2] = 'i';
+        exif[3] = 'f';
+        exif[4] = 0;
+        exif[5] = 0;
+        System.arraycopy(tiff, 0, exif, 6, tiff.length);
+        assertArrayEquals(tiff, ExifBlob.tiffPayload(exif));
+        assertTrue(ExifBlob.hasTiffPayload(exif));
+        // Degenerate inputs fail closed (merge then omits the Exif item).
+        assertEquals(null, ExifBlob.tiffPayload(null));
+        assertEquals(null, ExifBlob.tiffPayload(new byte[]{'E', 'x', 'i', 'f', 0, 0}));
+        assertEquals(null, ExifBlob.tiffPayload(new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8}));
+        assertTrue(!ExifBlob.hasTiffPayload(null));
     }
 
     @Test

@@ -27,14 +27,6 @@ public final class UltraHdrHeicEncoder {
 
     private static final String TAG = "UltraHdrHeicEncoder";
 
-    /**
-     * Forensic switch (default off): when true, a merged file that fails
-     * {@link #verifyMergedHeic} is still kept as the normal output so it can
-     * be opened in other galleries for comparison, instead of falling back
-     * to SDR. Enable temporarily when debugging mux issues on-device.
-     */
-    private static final boolean DEBUG_KEEP_UNVERIFIED_HEIC = false;
-
     private UltraHdrHeicEncoder() {}
 
     /**
@@ -52,6 +44,10 @@ public final class UltraHdrHeicEncoder {
         }
         if (sdr == null || sdr.isRecycled() || gain == null || gain.gainMap == null) {
             throw new IllegalArgumentException("Null/recycled SDR or gain map");
+        }
+        if (exif != null) {
+            exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
+            exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
         File baseTmp = File.createTempFile("uhdr_heic_base_", ".heic");
         File gainTmp = File.createTempFile("uhdr_heic_gain_", ".heic");
@@ -72,20 +68,22 @@ public final class UltraHdrHeicEncoder {
             in.gainMapMax = gain.gainMapMax;
             in.hdrCapacityMax = gain.hdrCapacityMax;
             in.exifPayload = ExifBlob.fromExifData(exif);
+            if (in.exifPayload != null) {
+                Log.d(TAG, "HEIC EXIF blob: " + in.exifPayload.length + " bytes"
+                        + (ExifBlob.hasTiffPayload(in.exifPayload) ? " (TIFF ok)" : " (TIFF BAD)"));
+            } else {
+                Log.e(TAG, "EXIF blob null, HEIC will carry no EXIF");
+            }
             byte[] merged = UltraHdrHeicContainer.merge(in);
             try {
                 Files.write(dest, merged);
                 verifyMergedHeic(dest, sdr.getWidth(), sdr.getHeight());
             } catch (Exception verifyFailed) {
-                if (!DEBUG_KEEP_UNVERIFIED_HEIC) {
-                    try {
-                        Files.deleteIfExists(dest);
-                    } catch (Exception ignored) {
-                    }
-                    throw verifyFailed;
+                try {
+                    Files.deleteIfExists(dest);
+                } catch (Exception ignored) {
                 }
-                Log.e(TAG, "VERIFY FAILED but keeping output for forensics: " + dest,
-                        verifyFailed);
+                throw verifyFailed;
             }
             success = true;
         } finally {

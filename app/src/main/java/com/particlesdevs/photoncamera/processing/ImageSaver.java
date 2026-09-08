@@ -118,6 +118,10 @@ public class ImageSaver {
     public static class Util {
         public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, ParseExif.ExifData exifData) {
             exifData.COMPRESSION = String.valueOf(jpgQuality);
+            if (img != null && !img.isRecycled()) {
+                exifData.IMAGE_WIDTH = String.valueOf(img.getWidth());
+                exifData.IMAGE_LENGTH = String.valueOf(img.getHeight());
+            }
             try {
                 OutputStream outputStream = Files.newOutputStream(fileToSave);
                 img.compress(Bitmap.CompressFormat.JPEG, jpgQuality, outputStream);
