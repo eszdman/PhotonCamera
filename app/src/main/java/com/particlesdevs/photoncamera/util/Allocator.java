@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.util;
 
 import android.graphics.Bitmap;
+import android.os.Debug;
 
 import java.nio.ByteBuffer;
 public class Allocator{
@@ -43,4 +44,21 @@ public class Allocator{
 
     public native static void free(ByteBuffer buffer);
     public native static long getMemoryCount();
+
+    /**
+     * Logs current native memory totals with a pipeline-stage label so peak
+     * usage can be compared across stages, frame counts and resolutions.
+     * Logging only; zero behavior change.
+     *
+     * <p>Two numbers: the Allocator-tracked malloc total (burst buffers,
+     * snapshots, staging) and the whole-process native heap (which also
+     * covers Bitmap pixels and other native allocations that bypass
+     * Allocator). GPU texture (VRAM) usage is tracked by neither.
+     */
+    public static void logStage(String logTag, String stage) {
+        long tracked = getMemoryCount();
+        long heap = Debug.getNativeHeapAllocatedSize();
+        Log.d(logTag, "MemStage[" + stage + "] tracked=" + (tracked / 1048576)
+                + "MB nativeHeap=" + (heap / 1048576) + "MB");
+    }
 }

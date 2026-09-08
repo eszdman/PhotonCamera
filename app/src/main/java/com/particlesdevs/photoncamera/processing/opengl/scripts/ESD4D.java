@@ -1017,6 +1017,7 @@ public class ESD4D extends GLOneScript {
         glOne.glProcessing.drawBlocksToOutput();
         Output = glOne.glProcessing.mOutBuffer;
         AfterRun();
+        com.particlesdevs.photoncamera.util.Allocator.logStage("ESD4D", "post-merge");
     }
 
     /**

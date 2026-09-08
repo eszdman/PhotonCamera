@@ -164,6 +164,8 @@ public class HdrxProcessor extends ProcessorBase {
             ISO += frame.pair.iso;
         }
         ISO /= mImageFramesToProcess.size();
+        Allocator.logStage(TAG, "burst-start frames=" + images.size() + " " + width + "x" + height
+                + " est-inputs=" + (images.size() * (long) width * height * 2 / 1048576) + "MB");
 
         processingParameters.FillDynamicParameters(captureResult, captureRequest,ISO);
         processingParameters.cameraRotation = cameraRotation;
@@ -280,6 +282,7 @@ public class HdrxProcessor extends ProcessorBase {
             for (int i = 0; i < images.size(); i++) {
                 images.get(i).close();
             }
+            Allocator.logStage(TAG, "post-merge");
             IncreaseWLBL(processingParameters);
         } else {
             output = images.get(0).buffer;
@@ -295,7 +298,7 @@ public class HdrxProcessor extends ProcessorBase {
                 processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
                 callback.onFinished();
                 Allocator.free(output);
-                Allocator.getMemoryCount();
+                Allocator.logStage(TAG, "raw-only-exit");
                 return;
             }
         }
@@ -307,11 +310,13 @@ public class HdrxProcessor extends ProcessorBase {
         pipeline.kernelParamsSize = esd4d != null ? esd4d.kernelsMapCPUSize : null;
 
         Bitmap img = pipeline.Run(output, processingParameters);
+        Allocator.logStage(TAG, "post-render");
 
         // The merged RAW frame is dead once it has been rendered - free it
         // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
         Allocator.free(output);
         output = null;
+        Allocator.logStage(TAG, "post-raw-free");
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
@@ -322,6 +327,7 @@ public class HdrxProcessor extends ProcessorBase {
                 Log.e(TAG, "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }
         }
+        Allocator.logStage(TAG, "post-gainmap");
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
         try {
@@ -356,7 +362,7 @@ public class HdrxProcessor extends ProcessorBase {
         }
 
 
-        Allocator.getMemoryCount();
+        Allocator.logStage(TAG, "hdrx-end");
         callback.onFinished();
     }
 

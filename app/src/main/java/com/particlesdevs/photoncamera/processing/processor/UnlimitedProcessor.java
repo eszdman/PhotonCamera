@@ -115,6 +115,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
         averageRaw = null;
+        Allocator.logStage(TAG, "unlimited-start " + parameters.rawSize.x + "x" + parameters.rawSize.y);
 
         IncreaseWLBL(parameters);
 
@@ -129,6 +130,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("Unlimited RAW Processing Finished");
+                Allocator.logStage(TAG, "raw-only-exit");
                 callback.onFinished();
                 return;
             }
@@ -143,6 +145,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         // leaked entirely).
         Allocator.free(unlimitedBuffer);
         unlimitedBuffer = null;
+        Allocator.logStage(TAG, "post-raw-free");
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
@@ -160,6 +163,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             Log.e("UnlimitedProcessor", "HEIC save mode on unsupported device; JPEG fallback");
             useHeic = false;
         }
+        Allocator.logStage(TAG, "post-gainmap");
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
                 imageFile, bitmap, gm, exifData, useHeic);
@@ -170,6 +174,7 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         pipeline.close();
 
+        Allocator.logStage(TAG, "unlimited-end");
         callback.onFinished();
 
     }

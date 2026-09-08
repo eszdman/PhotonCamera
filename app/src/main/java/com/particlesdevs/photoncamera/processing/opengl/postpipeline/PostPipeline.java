@@ -234,6 +234,7 @@ public class PostPipeline extends GLBasePipeline {
 
         BuildDefaultPipeline();
         res = runAll(res);
+        Allocator.logStage("PostPipeline", "post-render");
 
         // The linear scene buffer was already snapshotted to CPU from inside
         // Initial.Run (before closeAll claims the textures), so the
@@ -597,6 +598,7 @@ public class PostPipeline extends GLBasePipeline {
             }
             // The GPU map is already at its final grid, so the box filter
             // must not run again (down = 1).
+            Allocator.logStage("PostPipeline", "post-gainmap-render");
             return new GainMapRaw(gmBmp, gw, gh, 1, scale);
         } finally {
             if (gainTex != null) {
