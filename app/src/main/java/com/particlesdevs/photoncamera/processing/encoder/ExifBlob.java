@@ -26,7 +26,33 @@ public final class ExifBlob {
 
     private static final byte[] EXIF_HEADER = {'E', 'x', 'i', 'f', 0, 0};
 
+    private static volatile byte[] sProxyJpeg;
+
     private ExifBlob() {}
+
+    /**
+     * The 8x8 gray proxy JPEG is constant content: compress once per process
+     * instead of paying a Bitmap alloc + codec init on every HEIC shot.
+     */
+    private static byte[] proxyJpeg() {
+        byte[] cached = sProxyJpeg;
+        if (cached == null) {
+            synchronized (ExifBlob.class) {
+                cached = sProxyJpeg;
+                if (cached == null) {
+                    Bitmap proxy = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888);
+                    proxy.eraseColor(0xFF808080);
+                    ByteArrayOutputStream os = new ByteArrayOutputStream();
+                    // noinspection deprecation — Bitmap.compress path is fine for a proxy.
+                    proxy.compress(Bitmap.CompressFormat.JPEG, 90, os);
+                    proxy.recycle();
+                    cached = os.toByteArray();
+                    sProxyJpeg = cached;
+                }
+            }
+        }
+        return cached;
+    }
 
     /**
      * @return raw EXIF payload ({@code Exif\0\0 + TIFF}) for
@@ -37,13 +63,7 @@ public final class ExifBlob {
             return null;
         }
         try {
-            Bitmap proxy = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888);
-            proxy.eraseColor(0xFF808080);
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            // noinspection deprecation — Bitmap.compress path is fine for a proxy.
-            proxy.compress(Bitmap.CompressFormat.JPEG, 90, os);
-            proxy.recycle();
-            byte[] jpeg = os.toByteArray();
+            byte[] jpeg = proxyJpeg();
             File tmp = File.createTempFile("heic_exif_", ".jpg");
             try {
                 Files.write(tmp.toPath(), jpeg);

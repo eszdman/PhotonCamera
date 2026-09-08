@@ -16,6 +16,8 @@ import de.hdodenhof.circleimageview.BuildConfig;
 public class DngCreator {
     private long nativePtr;
     private static final String TAG = "DngCreator";
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US));
 
     // CFA Pattern constants
     public static final int CFA_PATTERN_RGGB = 0;
@@ -463,8 +465,7 @@ public class DngCreator {
         setSoftware("PhotonCamera v" + BuildConfig.VERSION_NAME+BuildConfig.VERSION_CODE);
         
         // Set current date and time
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
-        setDateTime(dateFormat.format(new Date()));
+        setDateTime(DATE_FORMAT.get().format(new Date()));
         
         // Set noise profile from noise modeler
         if (parameters.noiseModeler != null && parameters.noiseModeler.baseModel != null) {

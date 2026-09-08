@@ -28,7 +28,24 @@ public final class UltraHdrHeicContainer {
     private static final String AUX_TYPE_21496 = "urn:iso:std:iso:ts:21496:-1";
     private static final String XMP_MIME = "application/rdf+xml";
 
+    private static volatile byte[] sAuxCBody;
+
     private UltraHdrHeicContainer() {}
+
+    /** The auxC body is constant per spec: build once per process. */
+    private static byte[] auxCBody() {
+        byte[] cached = sAuxCBody;
+        if (cached == null) {
+            synchronized (UltraHdrHeicContainer.class) {
+                cached = sAuxCBody;
+                if (cached == null) {
+                    cached = buildAuxC(AUX_TYPE_21496);
+                    sAuxCBody = cached;
+                }
+            }
+        }
+        return cached;
+    }
 
     public static final class Inputs {
         public byte[] baseHeic;
@@ -98,7 +115,7 @@ public final class UltraHdrHeicContainer {
             throw new IllegalArgumentException("Gain remap failed: " + e.getMessage()
                     + " gain=" + describeHeic(in.gainHeic), e);
         }
-        byte[] auxC = buildAuxC(AUX_TYPE_21496);
+        byte[] auxC = auxCBody();
         int auxCIndex = basePropCount + gg.propBoxes.size() + 1;
         // The aux (gain grid) entry: original remapped associations + auxC,
         // plus an ispe when the grid carries none.
