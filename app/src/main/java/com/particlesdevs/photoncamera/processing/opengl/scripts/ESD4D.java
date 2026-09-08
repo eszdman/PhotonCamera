@@ -808,6 +808,11 @@ public class ESD4D extends GLOneScript {
         glProg.setTextureCompute("outTexture",brightMap, true);
         glProg.computeAuto(brightMap.mSize, 1);
         exportBrightMap();
+        // GPU copy consumed (the CPU copy feeds inference from here on):
+        // release now instead of AfterRun so it doesn't span alignment +
+        // the merge loop. Nulled; AfterRun null-guards it.
+        brightMap.close();
+        brightMap = null;
         // KernelNet's input derives from the reference frame only, so its
         // inference is independent of the alignment/merge loop below. Run it
         // on a worker thread concurrently with alignment (merge00 / FlowNet /
@@ -882,6 +887,10 @@ public class ESD4D extends GLOneScript {
         // the base index is never loaded there, so release the native copy
         // up-front: it would otherwise outlive the whole merge.
         images.get(0).close();
+
+        // getBase() aliases base onto baseAlter from the first iteration,
+        // orphaning the original base texture; reclaim it post-loop below.
+        final GLTexture mergeBase0 = base;
 
         for (int f = 0; f < images.size(); f++) {
             startT();
@@ -1017,6 +1026,16 @@ public class ESD4D extends GLOneScript {
             endT();
         }
 
+        // Temporal temporaries are dead past this point: merge2o below reads
+        // only base + alignmentTex. Release ~530 MB (64 MP) before the output
+        // readback instead of AfterRun. Fields are nulled and AfterRun
+        // null-guards them, so a stale close can never delete a recycled ID.
+        if (mergeBase0 != base) mergeBase0.close();
+        baseDiff.close(); baseDiff = null;
+        alter.close(); alter = null;
+        inputAlter.close(); inputAlter = null;
+        inputBase.close(); inputBase = null;
+
         float[] bl2 = new float[4];
         for (int i = 0; i < 4; i++) {
             bl2[i] = blNorm[i]*(FAKE_WL / parameters.whiteLevel);
@@ -1111,13 +1130,16 @@ public class ESD4D extends GLOneScript {
     @Override
     public void AfterRun() {
         if(hotPixelBuffer != null) hotPixelBuffer.close();
-        inputAlter.close();
-        alter.close();
-        inputBase.close();
-        baseDiff.close();
+        // baseDiff/alter/inputAlter/inputBase/brightMap may already be
+        // released post-loop (nulled there); guard so a stale close can
+        // never delete a recycled texture ID.
+        if (inputAlter != null) inputAlter.close();
+        if (alter != null) alter.close();
+        if (inputBase != null) inputBase.close();
+        if (baseDiff != null) baseDiff.close();
         base.close();
         baseAlter.close();
-        brightMap.close();
+        if (brightMap != null) brightMap.close();
         result.close();
         if(useNcnnFlow && flowNetAlignment != null) {
             // Closes flowTex (== alignmentTex), so drop the reference to avoid
