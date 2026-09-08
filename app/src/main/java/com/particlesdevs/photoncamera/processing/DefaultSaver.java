@@ -73,11 +73,26 @@ public class DefaultSaver extends SaverImplementation {
         for(int i = frameCount; i<IMAGE_BUFFER.size();i++){
             imagebuffer.add(IMAGE_BUFFER.get(i));
         }
+        // Frames beyond frameCount are never merged: both capture paths
+        // clear() this list before refilling, so anything retained here is
+        // orphaned until GC (or heads the next burst with stale metadata).
+        // Close deterministically instead (~122 MB per frame at 64 MP).
+        // close() is idempotent; the merged set above is untouched.
+        long tailBytes = 0;
+        for (ImageFrame tail : imagebuffer) {
+            if (tail != null && tail.buffer != null) {
+                tailBytes += tail.buffer.capacity();
+                tail.close();
+            }
+        }
+        if (tailBytes > 0) {
+            Log.d(TAG, "Closed tail frames: " + (tailBytes / 1048576) + "MB freed");
+        }
         IMAGE_BUFFER.clear();
         IMAGE_BUFFER = imagebuffer;
         bufferLock = false;
         for(int i =0; i<slicedBuffer.size();i++){
-            if (slicedBuffer.get(i) == null) {
+            if (slicedBuffer.get(i) == null || slicedBuffer.get(i).buffer == null) {
                 slicedBuffer.remove(i);
                 i--;
                 Log.d(TAG, "IMGBufferSize:" + slicedBuffer.size());
