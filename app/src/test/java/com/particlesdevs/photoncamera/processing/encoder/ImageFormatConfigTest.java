@@ -52,6 +52,38 @@ public class ImageFormatConfigTest {
     }
 
     @Test
+    public void resolveCombinesSaveListWithHeicToggle() {
+        // Toggle off: JPEG counterparts.
+        assertEquals(ImageFormatConfig.SAVE_JPEG,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_JPEG, false));
+        assertEquals(ImageFormatConfig.SAVE_RAW_JPEG,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_RAW_JPEG, false));
+        assertEquals(ImageFormatConfig.SAVE_RAW_ONLY,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_RAW_ONLY, false));
+        // Toggle on: JPEG still swaps to HEIC, RAW-only is unaffected.
+        assertEquals(ImageFormatConfig.SAVE_HEIC,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_JPEG, true));
+        assertEquals(ImageFormatConfig.SAVE_HEIC_RAW,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_RAW_JPEG, true));
+        assertEquals(ImageFormatConfig.SAVE_RAW_ONLY,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_RAW_ONLY, true));
+        // Legacy stored HEIC values fold to JPEG counterparts first.
+        assertEquals(ImageFormatConfig.SAVE_JPEG,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_HEIC, false));
+        assertEquals(ImageFormatConfig.SAVE_HEIC,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_HEIC, true));
+        assertEquals(ImageFormatConfig.SAVE_RAW_JPEG,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_HEIC_RAW, false));
+        assertEquals(ImageFormatConfig.SAVE_HEIC_RAW,
+                ImageFormatConfig.resolve(ImageFormatConfig.SAVE_HEIC_RAW, true));
+        // Unknown values fall back to JPEG / HEIC.
+        assertEquals(ImageFormatConfig.SAVE_JPEG,
+                ImageFormatConfig.resolve(99, false));
+        assertEquals(ImageFormatConfig.SAVE_HEIC,
+                ImageFormatConfig.resolve(99, true));
+    }
+
+    @Test
     public void heicSaveModeHelper() {
         HeicSupport.setHeicEncodeSupportedForTest(null);
         assertTrue(HeicSupport.isHeicSaveMode(ImageFormatConfig.SAVE_HEIC));

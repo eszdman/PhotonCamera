@@ -47,6 +47,8 @@ public class SettingsBarEntryProvider extends ViewModel {
     private final SettingsBarEntryModel bracketingEntry = SettingsBarEntryModel.newEntry(R.id.bracketing_entry_layout, R.string.exposure_bracketing, SettingType.BRACKETING);
     private final SettingsBarEntryModel aeMeteringStdEntry = SettingsBarEntryModel.newEntry(R.id.ae_metering_std_entry_layout, R.string.ae_metering_std, SettingType.AE_METERING_STD);
     private final List<SettingsBarEntryModel> allEntries = new ArrayList<>(8);
+    /** Which label set the Save buttons were last built with (JPEG vs HEIC). */
+    private boolean saveLabelsHeic = false;
 
     public SettingsBarEntryProvider() {
 //        allEntries.add(hdrxEntry);
@@ -85,6 +87,12 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(eisEntry, PreferenceKeys.isEisPhotoOn());
         updateEntry(fpsEntry, PreferenceKeys.getFpsMode());
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
+        if (PreferenceKeys.isHeicSave() != saveLabelsHeic) {
+            // Toggle flipped since the buttons were built (e.g. changed in
+            // Settings) — rebuild so JPEG/HEIC labels match. Views are
+            // recreated from these models by addEntries().
+            createSaveRawEntry();
+        }
         updateEntry(saveRawEntry, PreferenceKeys.isSaveRaw());
         updateEntry(batterySaverEntry, PreferenceKeys.isBatterySaverOn());
         updateEntry(bracketingEntry, PreferenceKeys.getBracketingMode());
@@ -126,12 +134,14 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     private void  createSaveRawEntry() {
+        // JPEG mentions swap to HEIC while the Save HEIC toggle is on.
+        saveLabelsHeic = PreferenceKeys.isHeicSave();
+        int stillOnly = saveLabelsHeic ? R.string.heic_only : R.string.jpg_only;
+        int stillPlusRaw = saveLabelsHeic ? R.string.raw_plus_heic : R.string.raw_plus_jpg;
         saveRawEntry.addSettingsBarButtonModels(
-                SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, R.string.jpg_only, 0, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, R.string.raw_plus_jpg, 1, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.raw_only_button, R.drawable.ic_raw, R.string.raw_string, 2, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.heic_button, R.drawable.ic_raw_off, R.string.heic_only, 3, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.heic_raw_button, R.drawable.ic_raw, R.string.raw_plus_heic, 4, saveRawEntry)
+                SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, stillOnly, 0, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, stillPlusRaw, 1, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.raw_only_button, R.drawable.ic_raw, R.string.raw_string, 2, saveRawEntry)
         );
     }
 

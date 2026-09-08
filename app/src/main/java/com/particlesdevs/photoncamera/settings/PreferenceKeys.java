@@ -46,6 +46,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
+        COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
     }
 
@@ -63,6 +64,7 @@ public class PreferenceKeys {
         Resources resources = context.getResources();
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, resources.getBoolean(R.bool.pref_save_heic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
@@ -241,19 +243,28 @@ public class PreferenceKeys {
     }
 
     public static int isSaveRaw() {
-        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
+        int v = preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_SAVE_RAW);
+        // One-time migration for installs that stored the old 5-option Save
+        // values (3 = HEIC, 4 = RAW + HEIC): fold back to the JPEG
+        // counterpart and enable the Save HEIC toggle instead.
+        if (v == 3 || v == 4) {
+            int migrated = (v == 4) ? 1 : 0;
+            preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW, migrated);
+            preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, true);
+            return migrated;
+        }
+        return v;
     }
 
-    /** True when the current Save mode renders the still as HEIC. */
+    /** True when the Save HEIC toggle is on: HEIC is used instead of JPEG. */
     public static boolean isHeicSave() {
-        int v = isSaveRaw();
-        return v == 3 || v == 4;
+        return getBool(Key.KEY_SAVE_HEIC);
     }
 
-    /** True when the current Save mode writes a DNG (RAW+JPEG, RAW, RAW+HEIC). */
+    /** True when the current Save mode writes a DNG (RAW+JPEG, RAW). */
     public static boolean isRawSave() {
         int v = isSaveRaw();
-        return v == 1 || v == 2 || v == 4;
+        return v == 1 || v == 2;
     }
 
     public static boolean isBatterySaverOn(){
@@ -272,6 +283,10 @@ public class PreferenceKeys {
     }
     public static void setSaveRaw(int value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_RAW,value);
+    }
+
+    public static void setHeicSave(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC,value);
     }
 
     public static boolean isRoundEdgeOn() {
@@ -543,6 +558,7 @@ public class PreferenceKeys {
         KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
         KEY_SHOW_HORIZON(R.string.pref_horizon),
         KEY_SAVE_RAW(R.string.pref_save_raw_key),
+        KEY_SAVE_HEIC(R.string.pref_save_heic_key),
         KEY_CFA(R.string.pref_cfa_key),
         KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
 

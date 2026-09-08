@@ -1,10 +1,15 @@
 package com.particlesdevs.photoncamera.processing.encoder;
 
 /**
- * Maps the single "Save" preference to container + RAW behavior.
+ * Maps the "Save" preference plus the "Save HEIC" toggle to container + RAW
+ * behavior.
  *
- * <p>Legacy values {@code 0/1/2} (JPEG / RAW+JPEG / RAW) are kept stable so
- * existing installs don't migrate; HEIC modes append as {@code 3/4}.
+ * <p>"Save" is a 3-option list ({@code 0/1/2}: JPEG / RAW+JPEG / RAW, kept
+ * stable so existing installs don't migrate); the Save HEIC toggle swaps the
+ * JPEG still for HEIC. Legacy values {@code 3/4} (HEIC / RAW+HEIC, briefly
+ * stored by early HEIC builds) are folded back to their JPEG counterparts by
+ * {@link #withoutHeic} — the toggle itself is migrated in
+ * {@code PreferenceKeys.isSaveRaw()}.
  */
 public final class ImageFormatConfig {
 
@@ -59,6 +64,27 @@ public final class ImageFormatConfig {
     /** MIME type for media-scan / gallery intents. */
     public static String stillMimeType(int saveMode) {
         return usesHeic(saveMode) ? "image/heic" : "image/jpeg";
+    }
+
+    /**
+     * Combines the 3-option "Save" value with the Save HEIC toggle into the
+     * effective save mode. RAW-only is unaffected (there is no JPEG still to
+     * swap); legacy HEIC values are folded to JPEG first so a stale stored
+     * value can never enable HEIC on its own.
+     */
+    public static int resolve(int saveMode, boolean heic) {
+        int normalized = withoutHeic(saveMode);
+        if (!heic) {
+            return normalized;
+        }
+        switch (normalized) {
+            case SAVE_JPEG:
+                return SAVE_HEIC;
+            case SAVE_RAW_JPEG:
+                return SAVE_HEIC_RAW;
+            default:
+                return normalized;
+        }
     }
 
     /**

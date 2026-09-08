@@ -27,6 +27,7 @@
     <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
     <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
     <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>
+    <string name="pref_save_heic_key" translatable="false">pref_save_heic_key</string>
     <string name="pref_show_roundedge_key" translatable="false">pref_show_roundedge_key</string>
     <string name="pref_show_grid_key" translatable="false">pref_show_grid_key</string>
     <string name="pref_camera_sounds_key" translatable="false">pref_camera_sounds_key</string>

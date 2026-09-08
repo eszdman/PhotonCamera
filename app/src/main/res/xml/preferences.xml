@@ -241,12 +241,12 @@
                 android:entryValues="@array/raw_mode_entryvalues"
                 android:defaultValue="@string/pref_raw_mode_default_value"/>
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_hdrx_nr_key"
-                android:defaultValue="@bool/pref_hdrx_nr_default"
+                android:key="@string/pref_save_heic_key"
+                android:defaultValue="@bool/pref_save_heic_default"
                 android:layout="@layout/preference_with_margin"
-                android:title="@string/hdrxNR"
-                android:summary=""
-                android:icon="@drawable/ic_gradient_black_24dp"
+                android:title="@string/save_heic"
+                android:summary="@string/save_heic_summary"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_ultrahdr_key"
@@ -263,6 +263,14 @@
                 android:title="@string/ultrahdr_4x"
                 android:summary="@string/ultrahdr_4x_summary"
                 android:icon="@drawable/ic_uhdr_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_hdrx_nr_key"
+                android:defaultValue="@bool/pref_hdrx_nr_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/hdrxNR"
+                android:summary=""
+                android:icon="@drawable/ic_gradient_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
                 android:key="@string/pref_sharpness_seekbar_key"

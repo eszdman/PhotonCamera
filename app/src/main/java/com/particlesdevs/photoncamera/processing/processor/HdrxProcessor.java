@@ -286,7 +286,7 @@ public class HdrxProcessor extends ProcessorBase {
             images.get(0).buffer = null;
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
-        int saveMode = ImageFormatConfig.normalize(saveRAW);
+        int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
         if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, output,
                     processingParameters);

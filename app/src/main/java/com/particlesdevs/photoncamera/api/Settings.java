@@ -35,6 +35,7 @@ public class Settings {
     public double gain;
     public double shadows;
     public int rawSaver;
+    public boolean heicSave;
     public boolean QuadBayer;    public int cfaPattern;
     public int theme;
     public boolean remosaic;//TODO
@@ -81,6 +82,7 @@ public class Settings {
         hdrx = PreferenceKeys.isHdrxNrOn();
         cfaPattern = PreferenceKeys.getCFAValue();
         rawSaver = PreferenceKeys.isSaveRaw();
+        heicSave = PreferenceKeys.isHeicSave();
         remosaic = PreferenceKeys.isRemosaicOn();
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
@@ -103,13 +105,13 @@ public class Settings {
         PreferenceKeys.setCameraID(mCameraID);
     }
 
-    /** Save-mode helpers — single 5-option list, see ImageFormatConfig. */
+    /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */
     public boolean isHeicSave() {
-        return rawSaver == 3 || rawSaver == 4;
+        return heicSave;
     }
 
     public boolean isRawSave() {
-        return rawSaver == 1 || rawSaver == 2 || rawSaver == 4;
+        return rawSaver == 1 || rawSaver == 2;
     }
 
     public boolean isRawOnly() {

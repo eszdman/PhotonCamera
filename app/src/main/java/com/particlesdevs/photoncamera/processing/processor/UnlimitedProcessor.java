@@ -118,7 +118,7 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         IncreaseWLBL(parameters);
 
-        int saveMode = ImageFormatConfig.normalize(saveRAW);
+        int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
         if (ImageFormatConfig.savesRaw(saveMode)) {
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
