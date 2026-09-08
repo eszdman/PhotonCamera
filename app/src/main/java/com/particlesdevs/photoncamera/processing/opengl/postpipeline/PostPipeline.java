@@ -355,10 +355,14 @@ public class PostPipeline extends GLBasePipeline {
                     + " map=" + rotatedSize.x + "x" + rotatedSize.y);
         }
         GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
-        // Dummy output keeps the original driver path (Direct allocation) while
-        // GLImage/GLCoreBlockProcessing null-guards prevent the NPE.
+        // Unbacked dummy output keeps the GLImage/GLCoreBlockProcessing
+        // null-guards happy. Allocate.None skips the full-frame Direct malloc
+        // (~490 MB at 64 MP): this pass never draws into the block
+        // processor's output buffer (readback goes through outTex), so every
+        // GL call below is unchanged. If this pass ever fails, callers fall
+        // back to SDR JPEG as before.
         GLImage output = new GLImage(rotatedSize, format, false);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, output, format, GLDrawParams.Allocate.Direct);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, output, format, GLDrawParams.Allocate.None);
         // Do not destroy the previous EGL context here: PostPipeline historically
         // leaked the first context until final pipeline.close(), and destroying
         // it before GLTexture re-creation caused SEGV_MAPERR on waffle/Adreno.
