@@ -30,6 +30,27 @@ public class GLProg implements AutoCloseable {
     private final GLSquareModel mSquare = new GLSquareModel();
     public int mCurrentProgramActive;
     private final Map<String, Integer> mTextureBinds = new HashMap<>();
+    private int mUniformCacheProgram = 0;
+    private final Map<String, Integer> mUniformCache = new HashMap<>();
+
+    /**
+     * Cached uniform lookup: locations are per-program, so the cache resets
+     * whenever the active program changes. Identical values to uncached
+     * lookups (including -1 for optimized-out uniforms).
+     */
+    private int uniformLocation(String name) {
+        if (mUniformCacheProgram != mCurrentProgramActive) {
+            mUniformCacheProgram = mCurrentProgramActive;
+            mUniformCache.clear();
+        }
+        Integer cached = mUniformCache.get(name);
+        if (cached != null) {
+            return cached;
+        }
+        int addr = glGetUniformLocation(mCurrentProgramActive, name);
+        mUniformCache.put(name, addr);
+        return addr;
+    }
     private Map<String, GLComputeLayout> mComputeLayouts = null;
     private int mNewTextureId;
     public boolean closed = true;
@@ -385,7 +406,7 @@ public class GLProg implements AutoCloseable {
     }
 
     public void setVar(String name, int... vars) {
-        int addr = glGetUniformLocation(mCurrentProgramActive, name);
+        int addr = uniformLocation(name);
         switch (vars.length) {
             case 1:
                 glUniform1i(addr, vars[0]);
@@ -408,7 +429,7 @@ public class GLProg implements AutoCloseable {
     }
 
     public void setVar1(String name, int... vars) {
-        int addr = glGetUniformLocation(mCurrentProgramActive, name);
+        int addr = uniformLocation(name);
         glUniform1iv(addr, vars.length, vars, 0);
         checkEglError("setVar:" + name);
     }
@@ -418,7 +439,7 @@ public class GLProg implements AutoCloseable {
     }
 
     public void setVar(String name, boolean transpose, float... vars) {
-        int address = glGetUniformLocation(mCurrentProgramActive, name);
+        int address = uniformLocation(name);
         switch (vars.length) {
             case 1:
                 glUniform1f(address, vars[0]);
@@ -445,7 +466,7 @@ public class GLProg implements AutoCloseable {
     }
     /** Sets a float array uniform (uniform float name[len]). */
     public void setVarFloats(String name, float... vars) {
-        int address = glGetUniformLocation(mCurrentProgramActive, name);
+        int address = uniformLocation(name);
         glUniform1fv(address, vars.length, vars, 0);
         checkEglError("setVarFloats:" + name);
     }
@@ -455,7 +476,7 @@ public class GLProg implements AutoCloseable {
     }
 
     public void setVarU(String name, int... vars) {
-        int address = glGetUniformLocation(mCurrentProgramActive, name);
+        int address = uniformLocation(name);
         switch (vars.length) {
             case 1:
                 glUniform1ui(address, vars[0]);
