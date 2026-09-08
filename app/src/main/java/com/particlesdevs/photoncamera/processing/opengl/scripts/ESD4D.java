@@ -875,6 +875,13 @@ public class ESD4D extends GLOneScript {
         float maxBlack = Math.max(blackLevel[0], Math.max(blackLevel[1], Math.max(blackLevel[2], blackLevel[3])));
         float minLevel = (float) (1.0/(double)(parameters.whiteLevel-maxBlack));
 
+        // The base frame's pixels are on the GPU now (inputBase upload plus
+        // the FlowNet/Pyramid init uploads above, all synchronous). The loop
+        // below only touches its GPU texture and scalar pair metadata, and
+        // the base index is never loaded there, so release the native copy
+        // up-front: it would otherwise outlive the whole merge.
+        images.get(0).close();
+
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -999,6 +1006,13 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(base.mSize, 1);
+            // This frame's pixels are on the GPU now: inputAlter.loadData()
+            // (and FlowNet's computeFlow()) upload synchronously, and
+            // everything above only touches GPU textures plus scalar pair
+            // metadata afterwards. Release the native copy so peak memory no
+            // longer holds the whole burst through the merge. close() is
+            // idempotent, so HdrxProcessor's post-merge loop stays a safe net.
+            images.get(ind).close();
             endT();
         }
 
