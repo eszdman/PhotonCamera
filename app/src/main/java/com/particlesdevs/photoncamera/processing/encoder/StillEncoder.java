@@ -32,6 +32,26 @@ public final class StillEncoder {
 
     private StillEncoder() {}
 
+    /**
+     * Releases gain-map bitmaps once encoded (compute output and source may
+     * alias when normalized in place; guarded). Never touches sdr: callers
+     * keep it for SDR fallback until their own recycle.
+     */
+    private static void recycleGain(GainMapComputer.Result res, PostPipeline.GainMapRaw gain) {
+        try {
+            if (res != null && res.gainMap != null && !res.gainMap.isRecycled()) {
+                res.gainMap.recycle();
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (gain != null && gain.bitmap != null && !gain.bitmap.isRecycled()) {
+                gain.bitmap.recycle();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     public static final class Result {
         public final boolean saved;
         public final Path file;
@@ -84,13 +104,14 @@ public final class StillEncoder {
             Log.d(TAG, "Ultra HDR gain map available but HEIC gain maps need API 34+; SDR HEIC");
         }
         try {
-            boolean ok = SdrHeicEncoder.encodeToFile(dest, sdr, exif);
-            if (ok) {
+            if (SdrHeicEncoder.encodeToFile(dest, sdr, exif)) {
+                recycleGain(res, gain);
                 return new Result(true, dest);
             }
         } catch (Exception e) {
             Log.e(TAG, "SDR HEIC encode failed: " + Log.getStackTraceString(e));
         }
+        recycleGain(res, gain);
         return encodeJpegSibling(dest, sdr, gain, exif);
     }
 
@@ -101,15 +122,18 @@ public final class StillEncoder {
             return false;
         }
         if (gain != null) {
+            GainMapComputer.Result res = null;
             try {
-                GainMapComputer.Result res = GainMapComputer.compute(
+                res = GainMapComputer.compute(
                         gain.bitmap, gain.down, gain.scale);
                 byte[] uhdr = UltraHdrEncoder.encode(sdr, res, exif);
                 Files.write(dest, uhdr);
                 sdr.recycle();
+                recycleGain(res, gain);
                 return true;
             } catch (Exception e) {
                 Log.e(TAG, "Ultra HDR encode failed, falling back to SDR JPEG", e);
+                recycleGain(res, gain);
             }
         }
         return ImageSaver.Util.saveBitmapAsJPG(dest, sdr, ImageSaver.JPG_QUALITY, exif);
@@ -117,6 +141,8 @@ public final class StillEncoder {
 
     private static Result encodeJpegSibling(Path heicDest, Bitmap sdr,
             PostPipeline.GainMapRaw gain, ParseExif.ExifData exif) {
+        // Sibling encodes SDR only; the gain bitmap is dead here.
+        recycleGain(null, gain);
         if (sdr == null || sdr.isRecycled()) {
             Log.e(TAG, "encodeJpegSibling with null/recycled bitmap; nothing saved");
             return new Result(false, heicDest);
