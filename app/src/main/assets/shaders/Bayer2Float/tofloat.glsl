@@ -1,4 +1,3 @@
-
 precision highp float;
 precision highp usampler2D;
 precision mediump sampler2D;
@@ -38,6 +37,10 @@ uniform int MinimalInd;
 #define HLCLIP 0.987
 #import interpolation
 
+bool isBadFloat(float val) {
+    return (floatBitsToUint(val) & 0x7f800000u) == 0x7f800000u;
+}
+
 vec3 hue2rgb(float h) {
     h = fract(h);
     h *= 6.0;
@@ -60,14 +63,16 @@ uniform vec3 Chrominance;
 // channel (0=R,1=G,2=B) of the raw photosite p, same anchoring as main()
 int hlFcol(ivec2 p) {
     ivec2 ph = ivec2(CfaPattern % 2, CfaPattern / 2);
-    ivec2 f = (QUAD == 1) ? (((p - ph * 2) / 2) & 1) : ((p - ph) & 1);
+    ivec2 f = (QUAD == 1) ? (((p - ph * 2 + 4) / 2) & 1) : ((p - ph + 2) & 1);
     return (f.x + f.y == 1) ? 1 : (f.x == 0 ? 0 : 2);
 }
 
 // normalized white-balanced value of a raw sample, same space as OpposedChroma
 float hlNorm(uint rv, int c) {
-    vec3 lvl = vec3(blackLevel.r, (blackLevel.g + blackLevel.b) / 2.0, blackLevel.a);
-    return max(0.0, (float(rv) / float(whitelevel) - lvl[c]) / (1.0 - lvl[c]) / whitePoint[c]);
+    float lvlC = (c == 0) ? blackLevel.r : ((c == 1) ? (blackLevel.g + blackLevel.b) * 0.5 : blackLevel.a);
+    float wpC  = (c == 0) ? whitePoint.r : ((c == 1) ? whitePoint.g : whitePoint.b);
+    float val  = float(rv) / max(float(whitelevel), 1.0);
+    return max(0.0, (val - lvlC) / max(1.0 - lvlC, 1e-4) / max(wpC, 1e-4));
 }
 
 // opposed-colour estimate for channel c from the 3x3 photosite neighbourhood
@@ -87,9 +92,9 @@ float hlRefavg(ivec2 p, int c) {
             cnt[cc] += 1.0;
         }
     }
-    float m0 = cnt[0] > 0.0 ? pow(sum[0] / cnt[0], 1.0 / 3.0) : 0.0;
-    float m1 = cnt[1] > 0.0 ? pow(sum[1] / cnt[1], 1.0 / 3.0) : 0.0;
-    float m2 = cnt[2] > 0.0 ? pow(sum[2] / cnt[2], 1.0 / 3.0) : 0.0;
+    float m0 = (cnt[0] > 0.0 && sum[0] > 0.0) ? pow(max(sum[0] / cnt[0], 1e-6), 1.0 / 3.0) : 0.0;
+    float m1 = (cnt[1] > 0.0 && sum[1] > 0.0) ? pow(max(sum[1] / cnt[1], 1e-6), 1.0 / 3.0) : 0.0;
+    float m2 = (cnt[2] > 0.0 && sum[2] > 0.0) ? pow(max(sum[2] / cnt[2], 1e-6), 1.0 / 3.0) : 0.0;
     float opp = c == 0 ? 0.5 * (m1 + m2) : (c == 1 ? 0.5 * (m0 + m2) : 0.5 * (m0 + m1));
     return opp * opp * opp;
 }
@@ -108,7 +113,7 @@ void main() {
     #if USEGAIN == 1
     vec4 gains = texture(GainMap, vec2(xy)*vec2(RawInvSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
-    gains.rgb /= dot(gains.rgb,vec3(1.0/3.0));
+    gains.rgb /= max(dot(gains.rgb,vec3(1.0/3.0)), 1e-4);
     #else
     vec3 gains = vec3(1.0);
     #endif
@@ -116,12 +121,12 @@ void main() {
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     #if RGBLAYOUT == 1
     //Output = vec3(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).rgb)/(float(whitelevel));
-    vec3 hlRGB = vec3(texelFetch(InputBuffer, (xy), 0).rgb)/(float(whitelevel));
-    hlRGB = (hlRGB - level.rgb)/(vec3(1.0)-level.rgb);
+    vec3 hlRGB = vec3(texelFetch(InputBuffer, (xy), 0).rgb)/max(float(whitelevel), 1.0);
+    hlRGB = (hlRGB - level.rgb)/max(vec3(1.0)-level.rgb, vec3(1e-4));
     #if HLRECON == 1
     {
         vec3 u = max(hlRGB, vec3(0.0));
-        vec3 roots = pow(u, vec3(1.0/3.0));
+        vec3 roots = mix(vec3(0.0), pow(max(u, vec3(1e-6)), vec3(1.0/3.0)), step(vec3(1e-6), u));
         vec3 opp = vec3(0.5*(roots.g+roots.b), 0.5*(roots.r+roots.b), 0.5*(roots.r+roots.g));
         vec3 rec = max(u, opp*opp*opp + Chrominance);
         hlRGB = mix(u, rec, step(vec3(HLCLIP), u));
@@ -148,13 +153,19 @@ void main() {
                 ci = 2; levelC = level.b; gainC = gains.b;
             }
         }
-    Output = float(texelFetch(InputBuffer, (xy), 0).x)/(float(whitelevel));
-    float hlVal = (Output - levelC)/(1.0-levelC)/balance;
+    Output = float(texelFetch(InputBuffer, (xy), 0).x)/max(float(whitelevel), 1.0);
+
+    balance = max(balance, 1e-4);
+    float denom = max(1.0 - levelC, 1e-4);
+    
+    float hlVal = (Output - levelC) / denom / balance;
+
     #if HLRECON == 1
     if (hlVal >= HLCLIP) {
-        // inpaint the clipped photosite from its opposed colours; the value
-        // stays scene-referred and may exceed 1.0 instead of clipping
-        Output = gainC * max(hlVal, hlRefavg(xy, ci) + Chrominance[ci]);
+        float chromaC = (ci == 0) ? Chrominance.r : ((ci == 1) ? Chrominance.g : Chrominance.b);
+        float ref = hlRefavg(xy, ci);
+        float outVal = gainC * max(hlVal, ref + chromaC);
+        Output = isBadFloat(outVal) ? 1.0 : outVal;
     } else
     #endif
     {
