@@ -159,7 +159,8 @@ public class HdrxProcessor extends ProcessorBase {
                 int ind = Math.max(0,mImageFramesToProcess.size()-2);
                 frame.frameGyro = BurstShakiness.get(ind);
             }*/
-            Log.d(TAG, "Mpy:" + frame.pair.layerMpy);
+            if (PhotonCamera.DEBUG)
+                Log.d(TAG, "Mpy:" + frame.pair.layerMpy);
             images.add(frame);
             ISO += frame.pair.iso;
         }

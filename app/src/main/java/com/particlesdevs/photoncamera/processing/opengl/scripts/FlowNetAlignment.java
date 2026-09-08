@@ -174,8 +174,9 @@ public class FlowNetAlignment implements AutoCloseable {
         }
         flowTex.loadData(FloatBuffer.wrap(rgba));
         long t4 = System.currentTimeMillis();
-        log("flow frame " + ind + ": upload=" + (t1 - startAll) + "ms render=" + (t2 - t1)
-                + "ms inference=" + (t3 - t2) + "ms pack=" + (t4 - t3) + "ms total=" + (t4 - startAll) + "ms");
+        if (PhotonCamera.DEBUG)
+            log("flow frame " + ind + ": upload=" + (t1 - startAll) + "ms render=" + (t2 - t1)
+                    + "ms inference=" + (t3 - t2) + "ms pack=" + (t4 - t3) + "ms total=" + (t4 - startAll) + "ms");
         return flowTex;
     }
 

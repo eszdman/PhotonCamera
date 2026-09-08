@@ -4,9 +4,9 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
-
 import androidx.annotation.NonNull;
 
 import java.nio.Buffer;
@@ -79,7 +79,8 @@ public class GLTexture implements AutoCloseable {
         mFormat.wrap = textureWrapper;
         int[] TexID = new int[1];
         glGenTextures(1,TexID,0);
-        Log.d("GLTexture","TexID:"+TexID[0] + " Size:"+mSize.x+"x"+mSize.y + " Format:"+mFormat.getGLFormatInternal() + " Filter:"+textureFilter + " Wrapper:"+textureWrapper);
+        if (PhotonCamera.DEBUG)
+            Log.d("GLTexture","TexID:"+TexID[0] + " Size:"+mSize.x+"x"+mSize.y + " Format:"+mFormat.getGLFormatInternal() + " Filter:"+textureFilter + " Wrapper:"+textureWrapper);
         for(int i = 1; i<ids.length;i++){
             if(!ids[i]){
                 Log.d("GLTexture","get:"+i);
@@ -118,7 +119,8 @@ public class GLTexture implements AutoCloseable {
         this.mGLFormat = glFormat.getGLFormatInternal();
         int[] TexID = new int[1];
         glGenTextures(1,TexID,0);
-        Log.d("GLTexture","TexID:"+TexID[0]);
+        if (PhotonCamera.DEBUG)
+            Log.d("GLTexture","TexID:"+TexID[0]);
         for(int i = 1; i<ids.length;i++){
             if(!ids[i]){
                 Log.d("GLTexture","get:"+i);

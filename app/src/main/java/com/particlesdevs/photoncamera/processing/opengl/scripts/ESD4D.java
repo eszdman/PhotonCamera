@@ -903,7 +903,8 @@ public class ESD4D extends GLOneScript {
             float exposure = 1.f/frame.pair.layerMpy;
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
-            Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "load:" + frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
             inputAlter.loadData(frame.buffer);
 
             GLTexture flowTex = null;
@@ -968,7 +969,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
 
-            Log.d("ESD4D", "create diff");
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "create diff");
 
             // First combine pass: collect the KernelNet result that has been
             // running concurrently with alignment and this frame's merge00 /
