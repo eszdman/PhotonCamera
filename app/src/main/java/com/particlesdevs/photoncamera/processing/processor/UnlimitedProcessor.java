@@ -130,6 +130,7 @@ public class UnlimitedProcessor extends ProcessorBase {
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("Unlimited RAW Processing Finished");
+                Allocator.free(unlimitedBuffer);
                 Allocator.logStage(TAG, "raw-only-exit");
                 callback.onFinished();
                 return;
