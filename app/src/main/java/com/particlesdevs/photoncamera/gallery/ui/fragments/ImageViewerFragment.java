@@ -83,6 +83,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private int indexToDelete = -1;
     private GalleryViewModel viewModel;
     private ViewPager2.OnPageChangeCallback pageCallback;
+    // Deferred EXIF refresh after swipes: must be cancellable so it never
+    // fires on a detached fragment (requireContext() would throw).
+    private final Runnable exifUpdateRunnable = this::updateExif;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -115,6 +118,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         }
         setClickListeners();
         return fragmentGalleryImageViewerBinding.getRoot();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // The deferred EXIF runnable must not outlive the view: it touches
+        // requireContext() and would crash on a detached fragment.
+        if (viewPager != null) {
+            viewPager.removeCallbacks(exifUpdateRunnable);
+        }
     }
 
     @Override
@@ -221,8 +234,10 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 viewPager.setUserInputEnabled(true);
                 // Re-arm preview preload for the new window so neighbors remain instant.
                 if (adapter != null) adapter.preloadPreviews(position);
-                // Defer heavy Exif/Histogram off critical swipe jank (saves ~48ms)
-                viewPager.postDelayed(ImageViewerFragment.this::updateExif, 120);
+                // Defer heavy Exif/Histogram off critical swipe jank (saves ~48ms).
+                // Re-post (not pile up) so only the settled page refreshes.
+                viewPager.removeCallbacks(exifUpdateRunnable);
+                viewPager.postDelayed(exifUpdateRunnable, 120);
             }
             @Override public void onPageScrollStateChanged(int state) {
                 if (state == ViewPager2.SCROLL_STATE_IDLE && deferredReleasePos != -1) {
@@ -480,7 +495,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     public void resetScaleText() { if (fragmentGalleryImageViewerBinding!=null) fragmentGalleryImageViewerBinding.setScale(""); }
 
     private void updateExif() {
-        if (viewPager == null) return;
+        // May run from a delayed post after navigation; never touch
+        // requireContext() when detached.
+        if (!isAdded() || viewPager == null) return;
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && !galleryItems.isEmpty() && position < galleryItems.size()) {
             GalleryItem galleryItem = galleryItems.get(position);
@@ -502,6 +519,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private boolean isCompareMode() { return mode != null && mode.equalsIgnoreCase(Constants.COMPARE); }
 
     public void handleImagesDeletedCallback(boolean isDeleted) {
+        if (!isAdded()) return;
         if (isDeleted && indexToDelete >= 0) {
             galleryItems.remove(indexToDelete);
             seek_position=indexToDelete;
