@@ -106,6 +106,19 @@ public final class UltraHdrHeicEncoder {
     }
 
     /**
+     * Control flow to abort the full decode once the header is captured.
+     * decodeBitmap always decodes the whole image (~244 MB bitmap plus
+     * decoder working set at 64 MP); the merged file only needs its
+     * dimensions asserted. Not an error: caught below and treated as
+     * success when dims were captured. No stack trace (thrown per shot).
+     */
+    private static final class HeaderDecoded extends RuntimeException {
+        HeaderDecoded() {
+            super(null, null, false, false);
+        }
+    }
+
+    /**
      * Permanent safety net for the manual mux: header-decodes the merged file
      * (no full decode) and asserts the base dimensions. Any mismatch means
      * our boxes misdescribe the payloads — discard and let the caller fall
@@ -120,7 +133,10 @@ public final class UltraHdrHeicEncoder {
                 size[0] = info.getSize().getWidth();
                 size[1] = info.getSize().getHeight();
                 seen[0] = true;
+                throw new HeaderDecoded();
             });
+        } catch (HeaderDecoded abort) {
+            // Expected path: dims captured, full decode skipped.
         } catch (Exception e) {
             throw new IllegalStateException("merged HEIC undecodable: " + e.getMessage(), e);
         }
