@@ -55,6 +55,11 @@ public final class UltraHdrHeicEncoder {
         try {
             writeSingleHeic(baseTmp, sdr);
             writeSingleHeic(gainTmp, gain.gainMap);
+            // Gain pixels are on disk now and only its metadata (captured
+            // above as ints) is needed downstream: release the ~244 MB
+            // (64 MP) before the read/merge/verify peak. sdr deliberately
+            // stays alive: the SDR fallback needs it.
+            recycleQuietly(gain.gainMap);
             byte[] baseBytes = Files.readAllBytes(baseTmp.toPath());
             byte[] gainBytes = Files.readAllBytes(gainTmp.toPath());
             UltraHdrHeicContainer.Inputs in = new UltraHdrHeicContainer.Inputs();
@@ -92,17 +97,20 @@ public final class UltraHdrHeicEncoder {
             // noinspection ResultOfMethodCallIgnored
             gainTmp.delete();
             if (success) {
-                try {
-                    sdr.recycle();
-                } catch (Exception ignored) {
-                }
-                try {
-                    gain.gainMap.recycle();
-                } catch (Exception ignored) {
-                }
+                recycleQuietly(sdr);
+                recycleQuietly(gain.gainMap);
             }
         }
         Log.d(TAG, "HEIC Ultra HDR written: " + dest);
+    }
+
+    private static void recycleQuietly(Bitmap bitmap) {
+        try {
+            if (bitmap != null && !bitmap.isRecycled()) {
+                bitmap.recycle();
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /**
