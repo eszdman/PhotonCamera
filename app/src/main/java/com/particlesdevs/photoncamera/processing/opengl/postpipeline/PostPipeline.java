@@ -481,6 +481,10 @@ public class PostPipeline extends GLBasePipeline {
             GLES30.glViewport(0, 0, gw, gh);
             prog.draw();
             checkGlError("scene-luma draw");
+            // linTex is consumed: release it now instead of with the group
+            // below, so its ~512 MB (64 MP) doesn't overlap the histogram,
+            // downsample and gain-map draws. Nothing below reads it.
+            linTex.close();
 
             // Preserve the original full-resolution SDR texture at down == 1.
             // This keeps the established <=16 MP path unchanged. At reduced
@@ -558,9 +562,9 @@ public class PostPipeline extends GLBasePipeline {
             checkGlError("gain-map comparison draw");
 
             // Release the GPU resources before the CPU-side bitmap work.
+            // (linTex was already released right after the scene-luma draw.)
             sdrSmall.close();
             lTex.close();
-            linTex.close();
 
             // R8 cannot be read directly into an ARGB_8888 Bitmap because
             // Android bitmaps require four bytes per pixel. Read the scalar
