@@ -3,14 +3,16 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 
-import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
+import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -98,10 +100,12 @@ public final class UpscaleCrop extends Node {
         PostPipeline pp = (PostPipeline) basePipeline;
         int[] pix = new int[paramsSize.x * paramsSize.y];
         params.position(0);
+        // Channel-major layout: s1/s2/rho planes, not interleaved.
+        int plane = paramsSize.x * paramsSize.y;
         for (int i = 0; i < pix.length; i++) {
-            float s1 = Math.min(params.get(i * 4) * 0.5f, 1.0f);
-            float s2 = Math.min(params.get(i * 4 + 1) * 0.5f, 1.0f);
-            float rho = Math.min(Math.max((params.get(i * 4 + 2) + 1.0f) * 0.5f, 0.0f), 1.0f);
+            float s1 = Math.min(params.get(i) * 0.5f, 1.0f);
+            float s2 = Math.min(params.get(plane + i) * 0.5f, 1.0f);
+            float rho = Math.min(Math.max((params.get(2 * plane + i) + 1.0f) * 0.5f, 0.0f), 1.0f);
             int r = (int) (s1 * 255.0f);
             int g = (int) (s2 * 255.0f);
             int b = (int) (rho * 255.0f);
@@ -171,11 +175,9 @@ public final class UpscaleCrop extends Node {
             pp.kernelNetSingleThread = null;
             KernelNetResult result = pp.kernelNetSingleResult.getAndSet(null);
             if (result != null) {
-                float[] rgba = KernelNetNcnnProcessor.toInterleavedRGBA(result);
-                if (rgba != null) {
-                    params = FloatBuffer.wrap(rgba);
-                    paramsSize = new Point(result.width(), result.height());
-                }
+                // Channel-major view, no interleave copy (see below).
+                params = result.asFloatBuffer();
+                paramsSize = new Point(result.width(), result.height());
             }
         }
 
@@ -184,10 +186,12 @@ public final class UpscaleCrop extends Node {
             // Map-health sanity check: if the first param texel is NaN or out
             // of the model's range, the map is garbage and the reconstruction
             // would mirror it - fall back to the bicubic path instead.
+            // Channel-major layout: s1/s2/rho planes, not interleaved.
+            int plane = paramsSize.x * paramsSize.y;
             params.position(0);
             float s1 = params.get(0);
-            float s2 = params.get(1);
-            float rho = params.get(2);
+            float s2 = params.get(plane);
+            float rho = params.get(2 * plane);
             if (Float.isNaN(s1) || Float.isNaN(s2) || Float.isNaN(rho)
                     || s1 < 0.0f || s1 > 4.0f || s2 < 0.0f || s2 > 4.0f
                     || rho < -2.0f || rho > 2.0f) {
@@ -198,9 +202,25 @@ public final class UpscaleCrop extends Node {
         if (hasParams) {
             kernelsMapTex = new GLTexture(paramsSize,
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
-            params.position(0);
-            kernelsMapTex.loadData(params);
+            // Band the interleave+upload like the merge path: sub-rect uploads
+            // convert identically, so no full float[4*w*h] is ever built.
+            int w = paramsSize.x, h = paramsSize.y;
+            ByteBuffer bandBytes = ByteBuffer.allocateDirect(
+                    w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
+            FloatBuffer band = bandBytes.asFloatBuffer();
+            for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
+                int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
+                KernelParams.interleaveBand(params, w, w * h, y0, rows, band);
+                band.position(0);
+                band.limit(w * rows * 4);
+                kernelsMapTex.loadDataOffset(0, y0, w, rows, band);
+            }
             dumpParams(params, paramsSize);
+            // CPU copy served its purpose (params now on GPU): release it so
+            // the ~245 MB (64 MP) doesn't ride along through the render.
+            pp.kernelParams = null;
+            pp.kernelParamsSize = null;
+            params = null;
 
             /*
              * Per-axis sigma floor in crop pixels: a constant floor in output

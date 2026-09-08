@@ -5,6 +5,7 @@ import android.util.Pair;
 
 import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
+import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLBuffer;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
@@ -1082,12 +1083,27 @@ public class ESD4D extends GLOneScript {
         if (result == null) return null;
         int w = result.width();
         int h = result.height();
-        float[] rgba = KernelNetNcnnProcessor.toInterleavedRGBA(result);
         GLTexture map = new GLTexture(new Point(w, h), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
-        map.loadData(FloatBuffer.wrap(rgba));
+        // Band the interleave+upload: the old path built a full float[4*w*h]
+        // (~245 MB at 64 MP) just to ferry params across GL contexts. Sub-rect
+        // uploads convert identically (driver FLOAT->HALF is per-texel), so
+        // keep the compact channel-major result as the CPU copy instead.
+        FloatBuffer src = result.asFloatBuffer();
+        int plane = w * h;
+        ByteBuffer bandBytes = ByteBuffer.allocateDirect(
+                w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
+        FloatBuffer band = bandBytes.asFloatBuffer();
+        for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
+            int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
+            KernelParams.interleaveBand(src, w, plane, y0, rows, band);
+            band.position(0);
+            band.limit(w * rows * 4);
+            map.loadDataOffset(0, y0, w, rows, band);
+        }
         // The unpacked fp32 params are exactly what the post pipeline needs;
         // keep them as the CPU copy instead of reading the fp16 texture back.
-        kernelsMapCPU = FloatBuffer.wrap(rgba);
+        // A view is enough: no copy, and HdrxProcessor nulls it after handoff.
+        kernelsMapCPU = src;
         kernelsMapCPUSize = new Point(w, h);
         return map;
     }

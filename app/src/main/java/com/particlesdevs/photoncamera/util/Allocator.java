@@ -58,7 +58,9 @@ public class Allocator{
     public static void logStage(String logTag, String stage) {
         long tracked = getMemoryCount();
         long heap = Debug.getNativeHeapAllocatedSize();
+        long dalvik = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
         Log.d(logTag, "MemStage[" + stage + "] tracked=" + (tracked / 1048576)
-                + "MB nativeHeap=" + (heap / 1048576) + "MB");
+                + "MB nativeHeap=" + (heap / 1048576)
+                + "MB dalvikHeap=" + (dalvik / 1048576) + "MB");
     }
 }

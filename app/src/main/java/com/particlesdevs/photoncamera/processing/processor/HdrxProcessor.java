@@ -308,6 +308,12 @@ public class HdrxProcessor extends ProcessorBase {
         PostPipeline pipeline = new PostPipeline();
         pipeline.kernelParams = esd4d != null ? esd4d.kernelsMapCPU : null;
         pipeline.kernelParamsSize = esd4d != null ? esd4d.kernelsMapCPUSize : null;
+        if (esd4d != null) {
+            // CPU copy handed off; UpscaleCrop nulls the pipeline side after
+            // its GPU upload, freeing the result buffer for the render.
+            esd4d.kernelsMapCPU = null;
+            esd4d.kernelsMapCPUSize = null;
+        }
 
         Bitmap img = pipeline.Run(output, processingParameters);
         Allocator.logStage(TAG, "post-render");
