@@ -346,6 +346,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * still image is ready to be saved.
      */
     public ImageSaver mImageSaver;
+    public final com.particlesdevs.photoncamera.processing.parameters.NightSceneAnalyzer nightSceneAnalyzer =
+            new com.particlesdevs.photoncamera.processing.parameters.NightSceneAnalyzer();
     public HashMap<Long, Double> mExposures = new HashMap<>();
 
     private final ArrayDeque<Image> mZslRingBuffer = new ArrayDeque<>();
@@ -1011,6 +1013,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * Closes the current {@link CameraDevice}.
      */
     public void closeCamera() {
+        nightSceneAnalyzer.reset();
         mCameraOpening.set(false);
         isCameraResumed = false;
         try {
@@ -1880,11 +1883,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /**
      * Initiate a still image capture.
      */
+    private long nightShutterPressNs;
+
     public void takePicture() {
         if (mPreviewRequestBuilder == null || mCaptureSession == null) {
             Log.w(TAG, "takePicture(): camera not ready, ignoring shutter press");
             return;
         }
+        nightShutterPressNs = SystemClock.elapsedRealtimeNanos();
         if (isZslMode()) {
             captureStillPicture();
             return;
@@ -2233,6 +2239,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             }
             float focus = mFocus;
+            if (PhotonCamera.getSettings().selectedMode == CameraMode.NIGHT)
+                captureBuilder.setTag(new com.particlesdevs.photoncamera.processing.parameters.NightReferenceSelector.CaptureIntent(nightShutterPressNs));
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
             //this.mCaptureSession.stopRepeating();
             if(isDualSession) {

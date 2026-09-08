@@ -13,6 +13,8 @@ import androidx.annotation.NonNull;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.processing.parameters.NightSceneAnalyzer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,6 +36,14 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private boolean mGLInit = false;
     private boolean mUpdateST = false;
     private volatile boolean mMirrorPreview;
+    private int meterFramebuffer, meterTexture;
+    private boolean meterFailed;
+    private long lastMeterTime, lastMeterImageTimestamp;
+    private final int[] savedViewport = new int[4];
+    private final int[] savedFramebuffer = new int[1];
+    private final float[] meterIdentity = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    private final ByteBuffer meterPixels = ByteBuffer.allocateDirect(
+            NightSceneAnalyzer.WIDTH * NightSceneAnalyzer.HEIGHT * 4);
 
     private final GLPreview mView;
     private ManualModeConsole mManualModeConsole;
@@ -74,6 +84,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4 * 2, pVertex);
         GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4 * 2, pTexCoord);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+        meterNightPreview();
         // GLES20.glFlush();
     }
 
@@ -83,8 +94,78 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int enablePeak;
     private int mirror;
 
+    /** Reuses the camera texture, without extra Camera2 streams or full-screen readback. */
+    private void meterNightPreview() {
+        CaptureController controller = PhotonCamera.getCaptureController();
+        if (controller == null) return;
+        if (PhotonCamera.getSettings().selectedMode != CameraMode.NIGHT) {
+            controller.nightSceneAnalyzer.reset();
+            return;
+        }
+        long now = System.nanoTime();
+        long imageTimestamp = mSTexture.getTimestamp();
+        if (meterFailed || imageTimestamp == 0 || imageTimestamp == lastMeterImageTimestamp
+                || now - lastMeterTime < NightSceneAnalyzer.INTERVAL_NS) return;
+        lastMeterTime = now;
+        lastMeterImageTimestamp = imageTimestamp;
+        GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, savedViewport, 0);
+        GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, savedFramebuffer, 0);
+        try {
+            if (meterFramebuffer == 0) {
+                int[] names = new int[1];
+                GLES20.glGenTextures(1, names, 0);
+                meterTexture = names[0];
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, meterTexture);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA,
+                        NightSceneAnalyzer.WIDTH, NightSceneAnalyzer.HEIGHT, 0,
+                        GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+                GLES20.glGenFramebuffers(1, names, 0);
+                meterFramebuffer = names[0];
+                GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, meterFramebuffer);
+                GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
+                        GLES20.GL_TEXTURE_2D, meterTexture, 0);
+                if (GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE)
+                    throw new IllegalStateException("Night preview framebuffer unavailable");
+            }
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, meterFramebuffer);
+            GLES20.glViewport(0, 0, NightSceneAnalyzer.WIDTH, NightSceneAnalyzer.HEIGHT);
+            // Stable sensor orientation; exclude focus-peaking and mirror UI effects.
+            GLES20.glUniformMatrix4fv(uTexRotateMatrix, 1, false, meterIdentity, 0);
+            GLES20.glUniform1i(enablePeak, 0);
+            GLES20.glUniform1i(mirror, 0);
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            meterPixels.clear();
+            GLES20.glReadPixels(0, 0, NightSceneAnalyzer.WIDTH, NightSceneAnalyzer.HEIGHT,
+                    GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, meterPixels);
+            if (GLES20.glGetError() != GLES20.GL_NO_ERROR)
+                throw new IllegalStateException("Night preview readback failed");
+            controller.nightSceneAnalyzer.accept(meterPixels, now);
+        } catch (RuntimeException e) {
+            meterFailed = true;
+            controller.nightSceneAnalyzer.reset();
+            Log.e("NightSceneAnalyzer", "Preview metering disabled for this GL session", e);
+        } finally {
+            GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, savedFramebuffer[0]);
+            GLES20.glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
+            GLES20.glUniformMatrix4fv(uTexRotateMatrix, 1, false, mTexRotateMatrix, 0);
+            GLES20.glUniform1i(enablePeak, getPeakEnabled());
+            GLES20.glUniform1i(mirror, mMirrorPreview ? 1 : 0);
+        }
+    }
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+        // Names from the previous EGL context are no longer valid.
+        meterFramebuffer = meterTexture = 0;
+        meterFailed = false;
+        lastMeterTime = lastMeterImageTimestamp = 0;
+        if (PhotonCamera.getCaptureController() != null)
+            PhotonCamera.getCaptureController().nightSceneAnalyzer.reset();
         initTex();
         mSTexture = new SurfaceTexture(hTex[0]);
         mSTexture.setOnFrameAvailableListener(this);

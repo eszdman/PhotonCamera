@@ -23,6 +23,7 @@ import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.NightReferenceSelector;
+import com.particlesdevs.photoncamera.processing.parameters.NightRawMetrics;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.util.Allocator;
@@ -105,6 +106,73 @@ public class HdrxProcessor extends ProcessorBase {
         }
     }
 
+    private NightReferenceSelector.Quality[] nightQuality(ArrayList<ImageFrame> images, Parameters parameters,
+                                                         double[] energy, double minimum) {
+        NightReferenceSelector.Quality[] quality = new NightReferenceSelector.Quality[images.size()];
+        NightRawMetrics[] metrics = new NightRawMetrics[images.size()];
+        ArrayList<Integer> shorts = new ArrayList<>();
+        long intent = 0;
+        Integer clock = characteristics.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
+        if (clock != null && clock == CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME
+                && captureRequest != null && captureRequest.getTag() instanceof NightReferenceSelector.CaptureIntent)
+            intent = ((NightReferenceSelector.CaptureIntent) captureRequest.getTag()).elapsedRealtimeNs;
+        double shot = 0, readout = 0;
+        for (android.util.Pair<Double, Double> channel : parameters.noiseModeler.baseModel) {
+            shot += channel.first / 3.0; readout += channel.second / 3.0;
+        }
+        for (int i = 0; i < images.size(); i++) {
+            if (energy[i] != minimum) continue;
+            shorts.add(i);
+            ImageFrame frame = images.get(i);
+            NightReferenceSelector.Quality q = new NightReferenceSelector.Quality();
+            quality[i] = q;
+            metrics[i] = NightRawMetrics.measure(frame.buffer, parameters.rawSize.x, parameters.rawSize.y,
+                    parameters.whiteLevel, parameters.blackLevel, shot, readout);
+            if (metrics[i] != null) {
+                q.sharpness = metrics[i].sharpness; q.clipping = metrics[i].clippedFraction;
+            }
+            q.gyroBlur = gyroBlurExtent(frame.frameGyro);
+            double seconds = (frame.timestamp - (double) intent) * 1e-9 + frame.pair.exposure * .5e-9;
+            if (intent > 0 && seconds >= 0 && seconds < 60) q.timeDistanceSeconds = seconds;
+        }
+        // Three distributed short-frame anchors, excluding self and duplicates.
+        for (int i : shorts) {
+            if (metrics[i] == null) continue;
+            double[] changes = new double[3], alignment = new double[3];
+            int nc = 0, na = 0, last = -1;
+            for (int a = 0; a < 3; a++) {
+                int j = shorts.get(a * (shorts.size() - 1) / 2);
+                if (j == i || j == last || metrics[j] == null) continue;
+                last = j;
+                double[] comparison = metrics[i].compare(metrics[j]);
+                if (Double.isFinite(comparison[0])) changes[nc++] = comparison[0];
+                if (Double.isFinite(comparison[1])) alignment[na++] = comparison[1];
+            }
+            java.util.Arrays.sort(changes, 0, nc);
+            java.util.Arrays.sort(alignment, 0, na);
+            if (nc > 0) quality[i].subjectChange = changes[nc / 2];
+            if (na > 0) quality[i].alignment = alignment[na / 2];
+        }
+        return quality;
+    }
+
+    private static double gyroBlurExtent(GyroBurst burst) {
+        if (burst == null || burst.samples <= 0 || burst.movementss == null || burst.movementss.length < 3)
+            return Double.NaN;
+        double squaredExtent = 0;
+        for (int axis = 0; axis < 3; axis++) {
+            if (burst.movementss[axis] == null || burst.movementss[axis].length < burst.samples) return Double.NaN;
+            double position = 0, low = 0, high = 0;
+            for (int sample = 0; sample < burst.samples; sample++) {
+                float increment = burst.movementss[axis][sample];
+                if (!Float.isFinite(increment)) return Double.NaN;
+                position += increment; low = Math.min(low, position); high = Math.max(high, position);
+            }
+            squaredExtent += (high - low) * (high - low);
+        }
+        return Math.sqrt(squaredExtent);
+    }
+
     private void ApplyHdrX() {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
@@ -178,7 +246,8 @@ public class HdrxProcessor extends ProcessorBase {
                 shake[i] = frame.frameGyro.samples > 0
                         ? frame.frameGyro.shakiness : Float.NaN;
             }
-            int reference = NightReferenceSelector.select(frameExposures, shake);
+            NightReferenceSelector.Quality[] quality = nightQuality(images, processingParameters, frameExposures, minExpo);
+            int reference = NightReferenceSelector.select(frameExposures, shake, quality);
             ImageFrame selectedFrame = images.remove(reference);
             images.add(0, selectedFrame);
             // Keep alternates in capture order. Their useful regions still
@@ -186,6 +255,10 @@ public class HdrxProcessor extends ProcessorBase {
             // Whole-frame shake rejection loses valid static regions and SNR.
             Log.d(TAG, "Night reference=" + selectedFrame.number
                     + " shake=" + shake[reference] + " retained=" + images.size());
+            NightReferenceSelector.Quality q = quality[reference];
+            if (q != null) Log.d(TAG, "Night quality sharp=" + q.sharpness + " clipping=" + q.clipping
+                    + " gyroExtent=" + q.gyroBlur + " subjectChange=" + q.subjectChange
+                    + " alignment=" + q.alignment + " shutterDistance=" + q.timeDistanceSeconds);
         } else {
         if (mImageFramesToProcess.size() >= 3)
             images.sort((img1, img2) -> Float.compare(img1.frameGyro.shakiness, img2.frameGyro.shakiness));
@@ -319,6 +392,9 @@ public class HdrxProcessor extends ProcessorBase {
         PostPipeline pipeline = new PostPipeline();
         pipeline.kernelParams = esd4d != null ? esd4d.kernelsMapCPU : null;
         pipeline.kernelParamsSize = esd4d != null ? esd4d.kernelsMapCPUSize : null;
+        pipeline.nightUncertainty = esd4d != null ? esd4d.nightUncertaintyCPU : null;
+        pipeline.nightUncertaintySize = esd4d != null ? esd4d.nightUncertaintySize : null;
+        pipeline.nightNominalReduction = Math.max(1.0f, images.size() * .9f);
 
         Bitmap img = pipeline.Run(output, processingParameters);
 

@@ -261,6 +261,10 @@ public class ESD4D extends GLOneScript {
     // Per-quad accepted temporal weight. Read/write is safe: each invocation
     // accesses only its own texel and computeAuto supplies the inter-pass barrier.
     GLTexture temporalWeights;
+    GLTexture nightSourceConfidence;
+    GLTexture nightPosteriorVariance;
+    public FloatBuffer nightUncertaintyCPU;
+    public Point nightUncertaintySize;
     //GLTexture;
     GLTexture brightMap;
     /** CPU copy of brightMap (float32 grayscale luma in [0,1]) set by {@link #exportBrightMap()}. */
@@ -868,6 +872,10 @@ public class ESD4D extends GLOneScript {
         if (nightWeightedMerge) {
             temporalWeights = new GLTexture(packedSize,
                     new GLFormat(GLFormat.DataType.FLOAT_32, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            nightSourceConfidence = new GLTexture(packedSize,
+                    new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            nightPosteriorVariance = new GLTexture(packedSize,
+                    new GLFormat(GLFormat.DataType.FLOAT_32, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
         }
         //Log.d("ESD4D", "alignment size: " + aSize.x + " " + aSize.y);
         Log.d("ESD4D", "alignment size: " + parameters.alignmentSize.x + " " + parameters.alignmentSize.y);
@@ -883,6 +891,10 @@ public class ESD4D extends GLOneScript {
             }
             ImageFrame frame = images.get(ind);
             float exposure = 1.f/frame.pair.layerMpy;
+            com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise frameNoise =
+                    nightWeightedMerge ? new com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise(
+                            rawNoiseS * adaptiveNMpy * adaptiveNMpy, rawNoiseO * adaptiveNMpy * adaptiveNMpy,
+                            (double) Math.max(1, frame.pair.iso) / Math.max(1, images.get(0).pair.iso), exposure) : null;
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
@@ -912,8 +924,14 @@ public class ESD4D extends GLOneScript {
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", parameters.tile);
+            glProg.setDefine("NIGHT_WEIGHTED", nightWeightedMerge ? 1 : 0);
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(useNcnnFlow ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
+            if (nightWeightedMerge) {
+                glProg.setTextureCompute("sourceConfidence", nightSourceConfidence, true);
+                glProg.setVar("nightSensorS", frameNoise.sensorS);
+                glProg.setVar("nightSensorO", frameNoise.sensorO);
+            }
             glProg.setVar("rawHalf", rawHalf);
             glProg.setVarU("whitelevel", (int) parameters.whiteLevel);
             glProg.setVar("whitePoint", parameters.whitePoint);
@@ -973,6 +991,17 @@ public class ESD4D extends GLOneScript {
                 glProg.setTextureCompute("temporalWeights", temporalWeights,
                         android.opengl.GLES31.GL_READ_WRITE);
                 glProg.setVar("firstWeightedMerge", firstWeightedMerge ? 1 : 0);
+                glProg.setTexture("sourceConfidence", nightSourceConfidence);
+                glProg.setTextureCompute("posteriorVariance", nightPosteriorVariance,
+                        android.opengl.GLES31.GL_READ_WRITE);
+                com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise referenceNoise =
+                        new com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise(
+                                rawNoiseS * adaptiveNMpy * adaptiveNMpy, rawNoiseO * adaptiveNMpy * adaptiveNMpy, 1, 1);
+                glProg.setVar("referenceNoiseS", referenceNoise.radianceS);
+                glProg.setVar("referenceNoiseO", referenceNoise.radianceO);
+                glProg.setVar("candidateNoiseS", frameNoise.radianceS);
+                glProg.setVar("candidateNoiseO", frameNoise.radianceO);
+                glProg.setVar("nightGateScale", (float) Math.max(.25, Math.min(4, noisempy)));
             }
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
@@ -982,7 +1011,7 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("enableFlow", enableFlowRefinement ? 1 : 0);
             glProg.setVar("flowNoiseS", rawNoiseS);
             glProg.setVar("flowNoiseO", rawNoiseO);
-            glProg.setTextureCompute("inTexture", base, false);
+            glProg.setTexture("inTexture", base);
             glProg.setTextureCompute("diffTexture", baseDiff, false);
             // Keep source and destination distinct: the combine shader reads
             // an 11x11 neighborhood. In-place writes race with other workgroups.
@@ -1012,6 +1041,16 @@ public class ESD4D extends GLOneScript {
             endT();
         }
 
+        if (nightWeightedMerge && !firstWeightedMerge) {
+            try {
+                exportNightUncertainty((float) (rawNoiseS * adaptiveNMpy * adaptiveNMpy),
+                        (float) (rawNoiseO * adaptiveNMpy * adaptiveNMpy));
+            } catch (RuntimeException e) {
+                nightUncertaintyCPU = null;
+                nightUncertaintySize = null;
+                Log.e("ESD4D", "Night uncertainty export failed; using global post noise model", e);
+            }
+        }
         float[] bl2 = new float[4];
         for (int i = 0; i < 4; i++) {
             bl2[i] = blNorm[i]*(FAKE_WL / parameters.whiteLevel);
@@ -1042,6 +1081,32 @@ public class ESD4D extends GLOneScript {
         raw.order(ByteOrder.nativeOrder());
         brightMapCPU = raw.asFloatBuffer();
         return brightMapCPU;
+    }
+
+    private void exportNightUncertainty(float shot, float readout) {
+        nightUncertaintySize = new Point((parameters.rawSize.x + 15) / 16, (parameters.rawSize.y + 15) / 16);
+        GLTexture compact = new GLTexture(nightUncertaintySize, new GLFormat(GLFormat.DataType.FLOAT_32, 4),
+                null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        try {
+            glProg.setLayout(8, 8, 1);
+            glProg.useAssetProgram("merge/nightUncertainty", true);
+            glProg.setTexture("mergedImage", base);
+            glProg.setTexture("varianceImage", nightPosteriorVariance);
+            glProg.setTexture("precisionImage", temporalWeights);
+            glProg.setVar("rawSize", parameters.rawSize);
+            glProg.setVar("cfaShift", cfaShift);
+            com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise model =
+                    new com.particlesdevs.photoncamera.processing.parameters.NightMergeNoise(shot, readout, 1, 1);
+            glProg.setVar("referenceS", model.radianceS);
+            glProg.setVar("referenceO", model.radianceO);
+            glProg.setTextureCompute("uncertaintyOutput", compact, true);
+            glProg.computeAuto(compact.mSize, 1);
+            compact.BufferLoad();
+            nightUncertaintyCPU = compact.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32, 4), true)
+                    .order(ByteOrder.nativeOrder()).asFloatBuffer();
+        } finally {
+            compact.close();
+        }
     }
 
     /**
@@ -1101,6 +1166,14 @@ public class ESD4D extends GLOneScript {
 
     @Override
     public void AfterRun() {
+        if (nightPosteriorVariance != null) {
+            nightPosteriorVariance.close();
+            nightPosteriorVariance = null;
+        }
+        if (nightSourceConfidence != null) {
+            nightSourceConfidence.close();
+            nightSourceConfidence = null;
+        }
         if (temporalWeights != null) {
             temporalWeights.close();
             temporalWeights = null;

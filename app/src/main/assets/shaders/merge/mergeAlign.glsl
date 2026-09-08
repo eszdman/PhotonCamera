@@ -6,11 +6,14 @@ precision highp image2D;
 uniform highp usampler2D inTexture;
 uniform highp sampler2D alignmentTexture;
 //layout(r16ui, binding = 0) uniform highp readonly uimage2D inTexture;
-layout(rgba16f, binding = 0) uniform highp readonly image2D avrTexture;
-layout(rgba8, binding = 1) uniform highp readonly image2D hotPixTexture;
 layout(rgba16f, binding = 2) uniform highp readonly image2D baseTexture;
 layout(rgba16f, binding = 3) uniform highp writeonly image2D outTexture;
-layout(rgba16f, binding = 4) uniform highp readonly image2D alterTexture;
+layout(rgba16f, binding = 1) uniform highp readonly image2D alterTexture;
+#define NIGHT_WEIGHTED 0
+#if NIGHT_WEIGHTED
+layout(rgba16f, binding = 0) uniform highp writeonly image2D sourceConfidence;
+#import night_source_confidence
+#endif
 
 uniform float minLevel;
 uniform uint whitelevel;
@@ -78,6 +81,7 @@ vec2 hash22(vec2 p)
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outSize = imageSize(outTexture);
+    if (any(greaterThanEqual(xy, outSize))) return;
     vec2 uvScale = vec2(outSize-border);
     vec2 uv = vec2(xy)/uvScale + vec2(0.5)/uvScale;
     vec4 bayerBase = imageLoad(baseTexture,xy);
@@ -92,6 +96,9 @@ void main() {
     w[0] = windowxy4((TILE*xy)%TILE_AL + ivec2(TILE_AL));
     vec4 alignedSum = vec4(0.0);
     vec4 bayerNone = imageLoad(alterTexture, xy);
+#if NIGHT_WEIGHTED
+    vec3 sourceQuality = nightSourceConfidence(xy);
+#endif
     for (int i = 0; i < 4; i++) {
         ivec2 xyT = clamp(ivec2((TILE*xy)/TILE_AL + ivec2(i % 2, i / 2)),ivec2(0),alignmentSize-1);
         vec4 alignLoad = texelFetch(alignmentTexture, xyT + shift, 0);
@@ -100,7 +107,15 @@ void main() {
         vec4 bayerAlter = imageLoad(alterTexture, aligned);
         vec4 w1 = (abs(bayerAlter*vec4(exposure) - bayerBase));
         vec4 w2 = (abs(bayerNone*vec4(exposure) - bayerBase));
+#if NIGHT_WEIGHTED
+        // One decision per quad, with defined smoothstep edges and a safe denominator.
+        float alignedFraction = smoothstep(.48, .51, nightMinimum(w2 / max(w1 + w2, vec4(1e-8))));
+        if (alignedFraction > .01 && nightMaximum(w[i]) > .01)
+            sourceQuality = min(sourceQuality, nightSourceConfidence(xy + align));
+        bayerAlter = mix(bayerNone, bayerAlter, alignedFraction);
+#else
         bayerAlter = mix(bayerNone, bayerAlter, smoothstep(w2/(w1+w2),vec4(0.48),vec4(0.51)));
+#endif
         alignedSum += bayerAlter * w[i];
     }
 
@@ -108,4 +123,7 @@ void main() {
     alignedSum *= vec4(exposure);
 
     imageStore(outTexture, xy, clamp(alignedSum, vec4(0.0), vec4(1.0)));
+#if NIGHT_WEIGHTED
+    imageStore(sourceConfidence, xy, vec4(sourceQuality, 1.0));
+#endif
 }

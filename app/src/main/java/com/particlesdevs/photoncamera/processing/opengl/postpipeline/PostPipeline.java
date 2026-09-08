@@ -197,6 +197,19 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         glint.parameters = parameters;
+        nightUncertaintyTexture = null;
+        if (nightUncertaintySize != null && com.particlesdevs.photoncamera.processing.parameters.NightUncertaintyMap.valid(
+                nightUncertainty, nightUncertaintySize.x, nightUncertaintySize.y, parameters.rawSize.x, parameters.rawSize.y)) {
+            try {
+                nightUncertaintyTexture = new GLTexture(nightUncertaintySize,
+                    new GLFormat(GLFormat.DataType.FLOAT_32, 4), nightUncertainty.duplicate(),
+                    android.opengl.GLES31.GL_NEAREST, GL_CLAMP_TO_EDGE);
+            } catch (RuntimeException e) {
+                Log.e("PostPipeline", "Night uncertainty upload failed; using global noise model", e);
+            }
+        } else if (nightUncertainty != null) {
+            Log.d("PostPipeline", "Invalid Night uncertainty map; using global noise model");
+        }
 
         // Inject tunable values for PostPipeline (since it doesn't extend Node)
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
@@ -231,11 +244,27 @@ public class PostPipeline extends GLBasePipeline {
         // scene-anchored gain-map pass can measure it afterwards.
         // closeAll must run while the EGL context is still current.
         GLTexture.closeAll();
+        nightUncertaintyTexture = null;
         return res;
     }
 
     /** KernelNet parameter map (RGBA floats: s1, s2, rho, 1) exported by ESD4D during the merge pass; may be null (single frame / model unavailable). */
     public java.nio.FloatBuffer kernelParams;
+    public java.nio.FloatBuffer nightUncertainty;
+    public Point nightUncertaintySize;
+    public float nightNominalReduction = 1;
+    private GLTexture nightUncertaintyTexture;
+
+    public void defineNightConfidence(GLProg program) {
+        program.setDefine("NIGHT_CONFIDENCE", nightUncertaintyTexture != null ? 1 : 0);
+    }
+
+    public void bindNightConfidence(GLProg program) {
+        if (nightUncertaintyTexture == null) return;
+        program.setTexture("nightUncertaintyMap", nightUncertaintyTexture);
+        program.setVar("nightRawSize", mParameters.rawSize);
+        program.setVar("nightNominalReduction", nightNominalReduction);
+    }
     /** Size of {@link #kernelParams}. */
     public android.graphics.Point kernelParamsSize;
 

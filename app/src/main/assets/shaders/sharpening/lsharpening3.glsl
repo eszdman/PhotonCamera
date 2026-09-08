@@ -19,6 +19,8 @@ float pdfSharp(float i, float sig) {
     i/=sig;
     return 1.0/(1.0+i*i*i*i);
 }
+#define NIGHT_CONFIDENCE 0
+#import night_post_confidence
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     const int size = 2;
@@ -50,7 +52,7 @@ void main() {
     float N = sqrt(avr*NOISES*INTENSE + NOISEO*INTENSE); + 0.00001;
     vec3 center = texelFetch(InputBuffer, (xy), 0).rgb;
     float c2 = edges[(size)*size2 + size];
-    float sharp;
+    float sharp = 0.0;
     for(int i = -size; i<=size;i++){
         float k0 = pdf(float(i)/SHARPSIZE);
         for (int j = -size; j<=size;j++){
@@ -81,6 +83,7 @@ void main() {
     // W=sqrt(W);
     W = mix(SHARPMIN,SHARPMAX,W);
     W*=strength;
+    W*=nightSharpenMultiplier((vec2(xy) + .5) / vec2(textureSize(InputBuffer, 0)));
 
     //float W2 = 1.0-pdf((Output.g/ksum - center.g)/N);
     //W*=W2;

@@ -105,6 +105,97 @@ public class IsoExpoSelector {
         return generateExpoPair(-1, controller, false, ratio);
     }
 
+    /** Snapshot Android inputs once; the pure planner never polls changing preview state. */
+    public static NightCapturePlanner.Plan planNight(CaptureController controller, ExpoPair normal,
+                                                     NightSceneAnalyzer.Snapshot scene, int maximum) {
+        if (scene == null || PhotonCamera.getSettings().DebugData) return null;
+        if (controller.getParamController() != null
+                && (controller.getParamController().getCurrentExposureValue() != 0
+                || controller.getParamController().getCurrentISOValue() != 0)) return null;
+        NightCapturePlanner.Input input = new NightCapturePlanner.Input();
+        input.tripod = PhotonCamera.getGyro() != null && PhotonCamera.getGyro().getTripod();
+        useTripod = input.tripod;
+        input.shake = PhotonCamera.getGyro() != null ? PhotonCamera.getGyro().getFilteredShakiness() : -1;
+        input.baseSeconds = ExposureIndex.time2sec(normal.exposure);
+        input.baseIso = normal.iso;
+        input.minSeconds = ExposureIndex.time2sec(normal.exposurelow);
+        // Preserve the existing focal-length/zoom/gyro ceiling, including the 1/3 s hard limit.
+        long ceiling = input.tripod ? TRIPOD_CAP_END
+                : (long) (NIGHT_HANDHELD_CAP_END * Math.min(1, getDynamicScalingFactor()));
+        if (!input.tripod) ceiling = Math.min(ceiling,
+                normal.resolveShutterLimit(controller.exposureBalanceShutterLimit, controller));
+        input.maxSeconds = ExposureIndex.time2sec(Math.min(normal.exposurehigh, ceiling));
+        input.minIso = normal.isolow;
+        ExpoPair normalized = new ExpoPair(normal);
+        normalized.normalizeiso100();
+        input.maxIso = Math.min(normal.isohigh,
+                normalized.resolveIsoLimit(controller.exposureBalanceIsoLimit) * normal.isolow / 100.0);
+        input.maxFrames = maximum;
+        input.budgetSeconds = input.tripod ? 12 : 4;
+        CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
+        if (characteristics != null && controller.mImageReaderRaw != null) {
+            android.hardware.camera2.params.StreamConfigurationMap streams = characteristics.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (streams != null) {
+                try {
+                    input.minFrameSeconds = ExposureIndex.time2sec(streams.getOutputMinFrameDuration(
+                            controller.mImageReaderRaw.getImageFormat(), new android.util.Size(
+                                    controller.mImageReaderRaw.getWidth(), controller.mImageReaderRaw.getHeight())));
+                } catch (IllegalArgumentException e) {
+                    // Some vendor/high-resolution stream sizes are absent from this map.
+                    Log.d(TAG, "Night planner: no minimum RAW frame duration for current stream");
+                }
+            }
+        }
+        input.motionReliable = scene.motionReliable;
+        input.cameraPixelsPerSecond = scene.cameraMotion;
+        input.subjectFraction = scene.subjectMotion;
+        input.clippedFraction = scene.clippedFraction;
+        input.shadowP10 = scene.shadowP10;
+        input.contrast = scene.dynamicRangeScore;
+        int bracketMode = PreferenceKeys.getBracketingMode();
+        input.maxBracketRatio = HDR ? (bracketMode == 2 ? 8 : bracketMode == 1 ? 4 : 1) : 1;
+        CaptureResult result = CaptureController.mPreviewCaptureResult;
+        if (result != null) {
+            Integer ois = result.get(CaptureResult.LENS_OPTICAL_STABILIZATION_MODE);
+            input.ois = ois != null && ois == CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
+            Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+            android.util.Pair<Double, Double>[] profile = result.get(CaptureResult.SENSOR_NOISE_PROFILE);
+            if (iso != null && iso > 0 && profile != null && profile.length > 0) {
+                double s = 0, o = 0;
+                boolean valid = true;
+                for (android.util.Pair<Double, Double> channel : profile) {
+                    if (channel == null || channel.first == null || channel.second == null
+                            || !Double.isFinite(channel.first) || channel.first <= 0
+                            || !Double.isFinite(channel.second) || channel.second < 0) { valid = false; break; }
+                    s += channel.first; o += channel.second;
+                }
+                if (valid) {
+                    input.noiseS = s / profile.length;
+                    input.noiseO = o / profile.length;
+                    input.noiseIso = iso;
+                }
+            }
+        }
+        return NightCapturePlanner.select(input);
+    }
+
+    public static ArrayList<ExpoPair> materializeNightPlan(ExpoPair normal, NightCapturePlanner.Plan plan) {
+        ArrayList<ExpoPair> frames = new ArrayList<>();
+        long shortNs = Math.round(plan.shortSeconds * ExposureIndex.sec);
+        for (int i = 0; i < plan.size(); i++) {
+            ExpoPair frame = new ExpoPair(normal);
+            frame.exposure = plan.isLong(i) ? Math.round(plan.longSeconds * ExposureIndex.sec) : shortNs;
+            frame.iso = plan.iso;
+            frame.layerMpy = (float) ((double) frame.exposure / shortNs);
+            frame.curlayer = plan.isLong(i) ? ExpoPair.exposureLayer.High : ExpoPair.exposureLayer.Normal;
+            frame.isIsoLimited = frame.iso >= normal.iso && normal.isIsoLimited;
+            frame.isShutterLimited = frame.exposure >= normal.exposure && normal.isShutterLimited;
+            frames.add(frame);
+        }
+        return frames;
+    }
+
     private static ExpoPair generateExpoPair(int step, CaptureController captureController,
                                               boolean recordPair, double nightRatio) {
         ExpoPair pair = new ExpoPair(captureController.mPreviewExposureTime, getEXPLOW(), getEXPHIGH(),
@@ -501,6 +592,13 @@ public class IsoExpoSelector {
             isolow = pair.isolow;
             isohigh = pair.isohigh;
             isoanalog = pair.isoanalog;
+            curlayer = pair.curlayer;
+            layerMpy = pair.layerMpy;
+            isIsoLimited = pair.isIsoLimited;
+            isShutterLimited = pair.isShutterLimited;
+            isShutterTripodBypassed = pair.isShutterTripodBypassed;
+            isIsoManualOverLimit = pair.isIsoManualOverLimit;
+            isShutterManualOverLimit = pair.isShutterManualOverLimit;
         }
 
         public double normalizedIsoHigh() {

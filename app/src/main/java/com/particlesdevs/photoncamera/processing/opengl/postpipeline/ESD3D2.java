@@ -92,7 +92,9 @@ public class ESD3D2 extends Node {
             Log.d("ESD3D", "KernelSize: "+kernelSize+" MSIZE: "+msize);
             glProg.setDefine("KERNELSIZE", (float)(kernelSize));
             glProg.setDefine("MSIZE", msize);
+            ((PostPipeline) basePipeline).defineNightConfidence(glProg);
             glProg.useAssetProgram(esd3dProgram());
+            ((PostPipeline) basePipeline).bindNightConfidence(glProg);
             glProg.setTexture("InputBuffer", inputTexture);
             glProg.setTexture("GradBuffer", gradBuffer);
             glProg.drawBlocks(outputTexture);

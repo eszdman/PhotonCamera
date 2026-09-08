@@ -53,6 +53,8 @@ bool s = (abs(x) > abs(y));
 return mix(PI/2.0 - atan(x,y+0.00001), atan(y,x+0.00001), s);
 }
 
+#define NIGHT_CONFIDENCE 0
+#import night_post_confidence
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -89,7 +91,8 @@ void main() {
     vec3 final_colour = vec3(0.0);
     vec3 final_colour2 = vec3(0.0);
     float sigX = 2.5;
-    float sigY = max(NOISES*noisefactor + NOISEO, 0.0000001);
+    float localNoise = nightNoiseMultiplier((vec2(xy) + .5) / vec2(textureSize(InputBuffer, 0)));
+    float sigY = max((NOISES*noisefactor + NOISEO) * localNoise, 0.0000001);
     //float sigY = max(NOISES*noisefactor + NOISES*NOISES * 3.0/8.0 + NOISEO, 0.0000001);
     vec3 chromaDiff = (abs(cavg-cinX)+abs(cavg-cinY)+abs(cavg-cinXY)+abs(cavg-cin))/4.0;
     //chromaDiff *= (length(chromaDiff)/(length(chromaDiff)+sigY*64.0));

@@ -14,6 +14,8 @@ out vec3 Output;
 #define SHARPSTR 1.0
 #define INSIZE 0,0
 #import gaussian
+#define NIGHT_CONFIDENCE 0
+#import night_post_confidence
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     vec3 mask = vec3(0.0);
@@ -33,6 +35,7 @@ void main() {
     mask/=pdfsize;
     mask = cur-mask;
 
-    cur+=(mask.r+mask.g+mask.b)*(float(SHARPSTR)/3.0);
+    cur+=(mask.r+mask.g+mask.b)*(float(SHARPSTR)/3.0)
+            * nightSharpenMultiplier((vec2(xy) + .5) / vec2(textureSize(InputBuffer, 0)));
     Output = clamp(cur,0.0,1.0);
 }

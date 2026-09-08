@@ -28,7 +28,9 @@ public class CaptureSharpening extends Node {
         glProg.setDefine("SHARPSTR",strength);
         glProg.setDefine("SHARPSIZEKER",size);
         glProg.setDefine("INSIZE",basePipeline.workSize);
+        ((PostPipeline) basePipeline).defineNightConfidence(glProg);
         glProg.useAssetProgram("CaptureSharpening/capturesharpening");
+        ((PostPipeline) basePipeline).bindNightConfidence(glProg);
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
 
         WorkingTexture = basePipeline.getMain();

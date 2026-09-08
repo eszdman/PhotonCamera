@@ -6,11 +6,14 @@ precision highp image2D;
 uniform highp usampler2D inTexture;
 uniform highp sampler2D alignmentTexture;
 //layout(r16ui, binding = 0) uniform highp readonly uimage2D inTexture;
-layout(rgba16f, binding = 0) uniform highp readonly image2D avrTexture;
-layout(rgba8, binding = 1) uniform highp readonly image2D hotPixTexture;
 layout(rgba16f, binding = 2) uniform highp readonly image2D baseTexture;
 layout(rgba16f, binding = 3) uniform highp writeonly image2D outTexture;
-layout(rgba16f, binding = 4) uniform highp readonly image2D alterTexture;
+layout(rgba16f, binding = 1) uniform highp readonly image2D alterTexture;
+#define NIGHT_WEIGHTED 0
+#if NIGHT_WEIGHTED
+layout(rgba16f, binding = 0) uniform highp writeonly image2D sourceConfidence;
+#import night_source_confidence
+#endif
 
 uniform float minLevel;
 uniform uint whitelevel;
@@ -78,6 +81,7 @@ float luma(vec4 c) {
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outSize = imageSize(outTexture);
+    if (any(greaterThanEqual(xy, outSize))) return;
     vec4 bayerBase = imageLoad(baseTexture,xy);
     // Guided upsampling of the dense flow field (high-res guide + low-res
     // nearest flow), radius 2, eps 3e-4. Local linear model q = a*I + b is fit
@@ -115,4 +119,7 @@ void main() {
     ivec2 aligned = clamp(xy + align, ivec2(0), outSize - ivec2(1));
     vec4 bayerAlter = imageLoad(alterTexture, aligned);
     imageStore(outTexture, xy, clamp(bayerAlter*vec4(exposure), vec4(0.0), vec4(1.0)));
+#if NIGHT_WEIGHTED
+    imageStore(sourceConfidence, xy, vec4(nightSourceConfidence(xy + align), 1.0));
+#endif
 }
