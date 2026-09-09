@@ -542,11 +542,12 @@ public class PostPipeline extends GLBasePipeline {
                         + " Lmed:" + lMed + " SmedLin:" + sMedLin);
             }
 
-            // Gain-map output is scalar. Store only its red channel as R8;
-            // gainmap.glsl writes the same encoded value to RGB, so retaining
-            // all four RGBA8 components is redundant.
+            // Gain-map output is scalar (gainmap.glsl writes gray+opaque), but
+            // read it as RGBA8 straight into the destination bitmap: identical
+            // bytes to an R8 readback + Java expand loop, minus the 64 MB
+            // staging buffer and the 64M-iteration loop at 64 MP.
             GLTexture outTex = new GLTexture(new Point(gw, gh),
-                    new GLFormat(GLFormat.DataType.SIMPLE_8, 1));
+                    new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
             outTex.BufferLoad();
 
             prog.useAssetProgram("ultrahdr/gainmap");
@@ -566,37 +567,44 @@ public class PostPipeline extends GLBasePipeline {
             sdrSmall.close();
             lTex.close();
 
-            // R8 cannot be read directly into an ARGB_8888 Bitmap because
-            // Android bitmaps require four bytes per pixel. Read the scalar
-            // gain bytes, then expand each value to opaque grayscale ARGB.
-            //
             // gmBmp remains mutable and at the final logical gain-map size,
             // allowing GainMapComputer.compute() to normalize it in place.
-            // Adapted to HEAD: retains linTex.close() from newzoom and keeps
-            // the R8 readback (gw*gh, SIMPLE_8/1) on the unpacked lTex path.
             Bitmap gmBmp = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
-            ByteBuffer gm = Allocator.allocate(gw * gh);
-            if (gm == null) {
-                throw new IllegalStateException(
-                        "Unable to allocate R8 gain-map readback buffer: "
-                                + gw + "x" + gh);
-            }
-            try {
-                outTex.textureBuffer(
-                        new GLFormat(GLFormat.DataType.SIMPLE_8, 1),
-                        gm);
-                gm.rewind();
-
-                int[] row = new int[gw];
-                for (int y = 0; y < gh; y++) {
-                    for (int x = 0; x < gw; x++) {
-                        int v = gm.get() & 0xFF;
-                        row[x] = 0xFF000000 | (v << 16) | (v << 8) | v;
-                    }
-                    gmBmp.setPixels(row, 0, gw, 0, y, gw, 1);
+            ByteBuffer wrapped = Allocator.wrapBitmap(gmBmp);
+            if (wrapped != null) {
+                try {
+                    outTex.textureBuffer(
+                            new GLFormat(GLFormat.DataType.SIMPLE_8, 4),
+                            wrapped);
+                } finally {
+                    Allocator.unlockBitmap(gmBmp);
                 }
-            } finally {
-                Allocator.free(gm);
+            } else {
+                // Wrap failed (unexpected stride/config): fall back to the R8
+                // readback plus Java expansion of old.
+                ByteBuffer gm = Allocator.allocate(gw * gh);
+                if (gm == null) {
+                    throw new IllegalStateException(
+                            "Unable to allocate R8 gain-map readback buffer: "
+                                    + gw + "x" + gh);
+                }
+                try {
+                    outTex.textureBuffer(
+                            new GLFormat(GLFormat.DataType.SIMPLE_8, 1),
+                            gm);
+                    gm.rewind();
+
+                    int[] row = new int[gw];
+                    for (int y = 0; y < gh; y++) {
+                        for (int x = 0; x < gw; x++) {
+                            int v = gm.get() & 0xFF;
+                            row[x] = 0xFF000000 | (v << 16) | (v << 8) | v;
+                        }
+                        gmBmp.setPixels(row, 0, gw, 0, y, gw, 1);
+                    }
+                } finally {
+                    Allocator.free(gm);
+                }
             }
             outTex.close();
 
