@@ -1084,13 +1084,11 @@ public class ESD4D extends GLOneScript {
         if (brightMapCPU == null || brightMapCPUSize == null) return null;
         var ctx = PhotonCamera.getAppContext();
         if (ctx == null) return null;
-        KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(ctx);
-        try {
-            if (!processor.isReady()) return null;
-            return processor.runInference(brightMapCPU, brightMapCPUSize.x, brightMapCPUSize.y, sigma);
-        } finally {
-            processor.close();
-        }
+        // Process-wide shared instance (kept warm across shots): do NOT
+        // close it here. runInference blocks until the model is ready.
+        KernelNetNcnnProcessor processor = KernelNetNcnnProcessor.start(ctx);
+        if (!processor.isReady()) return null;
+        return processor.runInference(brightMapCPU, brightMapCPUSize.x, brightMapCPUSize.y, sigma);
     }
 
     /**

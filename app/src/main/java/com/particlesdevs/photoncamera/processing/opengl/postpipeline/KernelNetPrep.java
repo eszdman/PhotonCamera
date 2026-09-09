@@ -89,14 +89,11 @@ public final class KernelNetPrep extends Node {
             try {
                 Context ctx = PhotonCamera.getAppContext();
                 if (ctx == null) return;
-                KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(ctx);
-                try {
-                    if (processor.isReady()) {
-                        pp.kernelNetSingleResult.set(processor.runInference(
-                                lumaCPU, lumaCPUSize.x, lumaCPUSize.y, sigma));
-                    }
-                } finally {
-                    processor.close();
+                // Shared instance (see ESD4D): do NOT close it here.
+                KernelNetNcnnProcessor processor = KernelNetNcnnProcessor.start(ctx);
+                if (processor.isReady()) {
+                    pp.kernelNetSingleResult.set(processor.runInference(
+                            lumaCPU, lumaCPUSize.x, lumaCPUSize.y, sigma));
                 }
             } catch (Throwable t) {
                 Log.e(Name, "Single-frame KernelNet worker failed", t);
