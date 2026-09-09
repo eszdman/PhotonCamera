@@ -220,6 +220,127 @@ public class GLTexture implements AutoCloseable {
     }
 
     /**
+     * Handle for an in-flight async half-float readback. The PBO + fence live
+     * on the creating GL context; finish on the same context.
+     */
+    public static final class AsyncRead {
+        final int pbo;
+        final long sync;
+        final int bytes;
+        AsyncRead(int pbo, long sync, int bytes) {
+            this.pbo = pbo;
+            this.sync = sync;
+            this.bytes = bytes;
+        }
+    }
+
+    /**
+     * Starts an async RGBA16F->HALF_FLOAT readback of this texture into a
+     * pixel-pack buffer. The caller must have bound this texture's framebuffer
+     * (see {@link #BindBuffer}); returns null on any failure, in which case
+     * the caller keeps its synchronous path. The transfer overlaps later GPU
+     * work; complete it with {@link #finishAsyncHalfFloatRead}.
+     */
+    public AsyncRead beginAsyncHalfFloatRead() {
+        int[] pbos = new int[1];
+        long sync = 0;
+        try {
+            int bytes = mSize.x * mSize.y * 4 * 2;
+            while (GLES30.glGetError() != GLES30.GL_NO_ERROR) {} // clear stale errors
+            GLES30.glGenBuffers(1, pbos, 0);
+            int pbo = pbos[0];
+            if (pbo == 0) {
+                return null;
+            }
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo);
+            GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER, bytes, null,
+                    GLES30.GL_STREAM_READ);
+            GLES30.glReadPixels(0, 0, mSize.x, mSize.y, GLES30.GL_RGBA,
+                    GLES30.GL_HALF_FLOAT, 0);
+            sync = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+            GLES30.glFlush();
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+            if (sync == 0 || GLES30.glGetError() != GLES30.GL_NO_ERROR) {
+                deleteAsync(pbo, sync);
+                return null;
+            }
+            return new AsyncRead(pbo, sync, bytes);
+        } catch (Throwable t) {
+            deleteAsync(pbos[0], sync);
+            return null;
+        }
+    }
+
+    /**
+     * Completes an async read started by {@link #beginAsyncHalfFloatRead}:
+     * waits for the fence (bounded), maps the PBO and copies into an
+     * Allocator buffer. Returns null on timeout/failure (caller falls back
+     * to SDR rendering); the PBO + fence are always released. Bytes are
+     * identical to the synchronous path when it succeeds.
+     */
+    public static ByteBuffer finishAsyncHalfFloatRead(AsyncRead handle) {
+        if (handle == null) {
+            return null;
+        }
+        try {
+            int wait = GLES30.GL_TIMEOUT_EXPIRED;
+            for (int i = 0; i < 3
+                    && wait == GLES30.GL_TIMEOUT_EXPIRED; i++) {
+                wait = GLES30.glClientWaitSync(handle.sync,
+                        GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 100_000_000L);
+            }
+            if (wait != GLES30.GL_CONDITION_SATISFIED
+                    && wait != GLES30.GL_ALREADY_SIGNALED) {
+                return null;
+            }
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, handle.pbo);
+            java.nio.Buffer mapped = GLES30.glMapBufferRange(
+                    GLES30.GL_PIXEL_PACK_BUFFER, 0, handle.bytes,
+                    GLES30.GL_MAP_READ_BIT);
+            if (!(mapped instanceof ByteBuffer)) {
+                GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+                return null;
+            }
+            ByteBuffer out = Allocator.allocate(handle.bytes);
+            if (out == null) {
+                GLES30.glUnmapBuffer(GLES30.GL_PIXEL_PACK_BUFFER);
+                GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+                return null;
+            }
+            mapped.position(0);
+            out.position(0);
+            out.put((ByteBuffer) mapped);
+            out.rewind();
+            GLES30.glUnmapBuffer(GLES30.GL_PIXEL_PACK_BUFFER);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+            return out;
+        } catch (Throwable t) {
+            return null;
+        } finally {
+            deleteAsync(handle.pbo, handle.sync);
+        }
+    }
+
+    private static void deleteAsync(int pbo, long sync) {
+        try {
+            if (sync != 0) {
+                GLES30.glDeleteSync(sync);
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            if (pbo != 0) {
+                GLES30.glDeleteBuffers(1, new int[]{pbo}, 0);
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
      * Half-float readback from a FLOAT_16 texture: stores the exact bits the
      * GPU already holds, at half the size of a GL_FLOAT transfer (8 vs
      * 16 B/pixel for RGBA). The buffer is backed by native memory

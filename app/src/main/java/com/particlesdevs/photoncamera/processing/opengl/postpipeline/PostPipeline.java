@@ -105,6 +105,8 @@ public class PostPipeline extends GLBasePipeline {
      */
     public ByteBuffer demosaicLinear;
     public Point demosaicLinearSize;
+    /** In-flight async snapshot readback (PBO + fence), completed at Run end. */
+    private GLTexture.AsyncRead pendingSnapshotRead;
 
     public PostPipeline() {
         super("PostPipeline");
@@ -236,6 +238,10 @@ public class PostPipeline extends GLBasePipeline {
         res = runAll(res);
         Allocator.logStage("PostPipeline", "post-render");
 
+        // Complete the async snapshot (if any) while the render context and
+        // source textures are still alive; falls back to SDR on failure.
+        finishDemosaicLinear();
+
         // The linear scene buffer was already snapshotted to CPU from inside
         // Initial.Run (before closeAll claims the textures), so the
         // scene-anchored gain-map pass can measure it afterwards.
@@ -258,6 +264,20 @@ public class PostPipeline extends GLBasePipeline {
     public void captureDemosaicLinear(GLTexture tex) {
         if (mCaptured || demosaicLinear != null) return;
         tex.BindBuffer();
+        // Prefer the async PBO transfer: it overlaps the rest of the render
+        // and is completed at Run end. Bytes are identical on success; any
+        // failure falls through to the synchronous path below. Skipped when
+        // cropped: UpscaleCrop closes and recreates the mains mid-flight,
+        // which may delete the source texture before the fence signals.
+        GLTexture.AsyncRead async = (mParameters == null || mParameters.isCropped)
+                ? null : tex.beginAsyncHalfFloatRead();
+        if (async != null) {
+            pendingSnapshotRead = async;
+            demosaicLinearHalfFloat = true;
+            demosaicLinearSize = new Point(tex.mSize.x, tex.mSize.y);
+            mCaptured = true;
+            return;
+        }
         // The source texture is RGBA16F, so a packed GL_HALF_FLOAT transfer
         // stores the identical bits at half the memory of a GL_FLOAT readback
         // (~515 MB vs ~1030 MB at 64 MP). Backed by native memory either way;
@@ -279,6 +299,25 @@ public class PostPipeline extends GLBasePipeline {
         demosaicLinear = buf;
         demosaicLinearSize = new Point(tex.mSize.x, tex.mSize.y);
         mCaptured = true;
+    }
+
+    /**
+     * Completes a pending async snapshot started by
+     * {@link #captureDemosaicLinear}. Must run on the render context before
+     * {@code closeAll()}, while the source texture is still alive. On
+     * timeout/failure {@link #demosaicLinear} stays null and the gain-map
+     * pass falls back to SDR through its existing path.
+     */
+    private void finishDemosaicLinear() {
+        GLTexture.AsyncRead async = pendingSnapshotRead;
+        pendingSnapshotRead = null;
+        if (async == null) {
+            return;
+        }
+        ByteBuffer buf = GLTexture.finishAsyncHalfFloatRead(async);
+        if (buf != null) {
+            demosaicLinear = buf;
+        }
     }
 
     /** Frees the native linear scene snapshot; safe to call repeatedly. */
