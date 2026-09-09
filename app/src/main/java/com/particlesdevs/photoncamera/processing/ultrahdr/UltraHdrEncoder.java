@@ -42,14 +42,48 @@ public final class UltraHdrEncoder {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
             exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
-        final byte[] sdrJpeg = compress(sdr, DEFAULT_QUALITY);
-        final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
-
-        final ByteArrayOutputStream gainOut = new ByteArrayOutputStream();
-        if (!gm.gainMap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_QUALITY, gainOut)) {
-            throw new RuntimeException("Failed to compress gain map");
+        // The two compresses are independent (distinct bitmaps, deterministic
+        // per-input encoders): run them together, so latency is the max
+        // instead of the sum. Byte-identical outputs either way.
+        final byte[][] sdrHolder = new byte[1][];
+        final byte[][] gainHolder = new byte[1][];
+        final Throwable[] failure = new Throwable[1];
+        Thread sdrThread = new Thread(() -> {
+            try {
+                sdrHolder[0] = compress(sdr, DEFAULT_QUALITY);
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        });
+        Thread gainThread = new Thread(() -> {
+            try {
+                final ByteArrayOutputStream gainOut = new ByteArrayOutputStream();
+                if (!gm.gainMap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_QUALITY, gainOut)) {
+                    throw new RuntimeException("Failed to compress gain map");
+                }
+                gainHolder[0] = gainOut.toByteArray();
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        });
+        sdrThread.start();
+        gainThread.start();
+        try {
+            sdrThread.join();
+            gainThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted during parallel compress", e);
         }
-        final byte[] gainMapJpeg = gainOut.toByteArray();
+        if (failure[0] != null) {
+            if (failure[0] instanceof RuntimeException) {
+                throw (RuntimeException) failure[0];
+            }
+            throw new RuntimeException("Parallel compress failed", failure[0]);
+        }
+        final byte[] sdrJpeg = sdrHolder[0];
+        final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
+        final byte[] gainMapJpeg = gainHolder[0];
 
         return UltraHdrContainer.encode(sdrJpegExif, gainMapJpeg,
                 gm.gainMapMin, gm.gainMapMax, gm.hdrCapacityMax);
