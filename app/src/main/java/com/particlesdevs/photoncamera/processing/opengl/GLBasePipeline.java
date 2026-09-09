@@ -15,8 +15,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
+import static android.opengl.GLES20.GL_LINEAR;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
@@ -74,6 +76,7 @@ public class GLBasePipeline implements AutoCloseable {
 
     // Swaps main3 with main1 and main2
     public GLTexture swap3() {
+        if (main3 == null) getMain3();
         if(texnum == 1) {
             GLTexture temp = main1;
             main1 = main3;
@@ -85,6 +88,26 @@ public class GLBasePipeline implements AutoCloseable {
             main3 = temp;
             return main2;
         }
+    }
+
+    /**
+     * Scratch main, allocated on first use instead of up front (~514 MB at
+     * 64 MP). Only demosaic-stage nodes (and dead/experimental variants) ever
+     * touch it; everything downstream of UpscaleCrop uses main1/2. Size tracks
+     * the current workSize, matching what eager allocation + resizing would
+     * have produced at any touch point. Callers must use this, never
+     * the field directly (a null field means "not needed yet").
+     */
+    public GLTexture getMain3() {
+        if (main3 == null) {
+            Point size = workSize != null ? workSize
+                    : (mParameters != null ? mParameters.rawSize : null);
+            if (size == null && main1 != null) size = main1.mSize;
+            main3 = new GLTexture(new Point(size),
+                    new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),
+                    null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
+        return main3;
     }
 
     private void tuningLog(String name, String value){

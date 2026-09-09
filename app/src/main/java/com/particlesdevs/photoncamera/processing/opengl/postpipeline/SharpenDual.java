@@ -40,7 +40,7 @@ public class SharpenDual extends Node {
         //glProg.setVar("size", blurSize);
         //glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer",previousNode.WorkingTexture);
-        glProg.drawBlocks(basePipeline.main3);
+        glProg.drawBlocks(basePipeline.getMain3());
         glProg.setDefine("INTENSE",denoiseActivity);
         glProg.setDefine("INSIZE",basePipeline.mParameters.rawSize);
         glProg.setDefine("SHARPSIZE",sharpSize);
@@ -53,7 +53,7 @@ public class SharpenDual extends Node {
         glProg.setVar("size", sharpSize);
         glProg.setVar("strength", PreferenceKeys.getSharpnessValue());
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
-        glProg.setTexture("BlurBuffer",basePipeline.main3);
+        glProg.setTexture("BlurBuffer",basePipeline.getMain3());
         WorkingTexture = basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;

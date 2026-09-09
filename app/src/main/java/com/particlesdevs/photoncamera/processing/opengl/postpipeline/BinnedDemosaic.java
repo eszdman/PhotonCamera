@@ -26,7 +26,7 @@ public class BinnedDemosaic extends Node {
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
         glProg.setTexture("GainMap",GainMapTex);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;
         GainMapTex.close();

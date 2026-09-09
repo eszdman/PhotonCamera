@@ -39,7 +39,7 @@ public class Demosaic extends Node {
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         glProg.setVar("neutral", basePipeline.mParameters.whitePoint[0], basePipeline.mParameters.whitePoint[1], basePipeline.mParameters.whitePoint[1], basePipeline.mParameters.whitePoint[2]);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
         WorkingTexture = basePipeline.swap3();

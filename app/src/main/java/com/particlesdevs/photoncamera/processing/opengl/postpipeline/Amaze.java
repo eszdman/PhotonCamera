@@ -100,7 +100,7 @@ public class Amaze extends Node {
         imgH = inTex.mSize.y;
         window = new Point(TILE + 2 * BORDER + 2 * PAD, TILE + 2 * BORDER + 2 * PAD);
         inner = new Point(PAD + BORDER, PAD + BORDER);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
 
         cfa = alloc(window, 1);
         grad = alloc(window, 4);

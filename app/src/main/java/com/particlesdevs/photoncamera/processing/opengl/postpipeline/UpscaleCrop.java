@@ -87,6 +87,11 @@ public final class UpscaleCrop extends Node {
             if (mains[i] != null) {
                 mains[i].close();
             }
+            // main3 is demand-allocated and dead past the demosaic stage:
+            // never resurrect it here (getMain3 re-creates on demand).
+            if (i == 2 && mains[i] == null) {
+                continue;
+            }
             mains[i] = new GLTexture(size, fmt, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
         }
         basePipeline.main1 = mains[0];
@@ -123,6 +128,16 @@ public final class UpscaleCrop extends Node {
         if (input == null) {
             WorkingTexture = null;
             return;
+        }
+
+        // Last main3 reader (demosaic stage) is behind us in every pipeline
+        // variant; nothing downstream touches it. Release the ~514 MB
+        // (64 MP) before the local-contrast/sharpen chain instead of holding
+        // it to runAll's tail close. Any future reader re-allocates via
+        // getMain3(), so this is purely a lifetime change.
+        if (basePipeline.main3 != null) {
+            basePipeline.main3.close();
+            basePipeline.main3 = null;
         }
 
         if (basePipeline.mParameters.fullRawSize == null ||

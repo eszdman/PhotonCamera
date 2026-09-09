@@ -182,7 +182,9 @@ public class Bayer2Float extends Node {
 
         glProg.drawBlocks(WorkingTexture);
         basePipeline.main1 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
-        basePipeline.main3 = new GLTexture(wsize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        // main3 is demand-allocated via GLBasePipeline.getMain3(): only
+        // demosaic-stage nodes use it, so it must not occupy ~514 MB (64 MP)
+        // from here through the whole render.
         ((PostPipeline) basePipeline).GainMap = GainMapTex;
         glProg.closed = true;
         in.close();
