@@ -254,6 +254,11 @@ public class PostPipeline extends GLBasePipeline {
     public java.nio.FloatBuffer kernelParams;
     /** Size of {@link #kernelParams}. */
     public android.graphics.Point kernelParamsSize;
+    /**
+     * Base direct buffer behind {@link #kernelParams}; freed explicitly
+     * after the GPU upload (GC timing can't be trusted for ~200 MB).
+     */
+    public java.nio.ByteBuffer kernelParamsBase;
     /** Worker thread running the single-frame KernelNet inference, started by KernelNetPrep and collected by UpscaleCrop; may be null. */
     public Thread kernelNetSingleThread;
     /** Result of the single-frame KernelNet inference; null until/unless it completes successfully. */

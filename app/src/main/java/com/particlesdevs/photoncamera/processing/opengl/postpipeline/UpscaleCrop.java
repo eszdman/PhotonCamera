@@ -5,6 +5,7 @@ import android.graphics.Point;
 
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
 import com.particlesdevs.photoncamera.processing.ml.KernelParams;
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -99,6 +100,16 @@ public final class UpscaleCrop extends Node {
         basePipeline.main3 = mains[2];
     }
 
+    /** Frees a malloc-backed result buffer exactly once; null/view-safe. */
+    private static void freeBase(ByteBuffer base) {
+        if (base != null && base.isDirect()) {
+            try {
+                Allocator.free(base);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
     /** Renders the interleaved (s1, s2, rho, 1) param buffer as a debug bitmap. */
     private void dumpParams(FloatBuffer params, Point paramsSize) {
         if (debugParams == 0 || params == null || paramsSize == null) return;
@@ -180,6 +191,7 @@ public final class UpscaleCrop extends Node {
         PostPipeline pp = (PostPipeline) basePipeline;
         FloatBuffer params = pp.kernelParams;
         Point paramsSize = pp.kernelParamsSize;
+        ByteBuffer singleBase = null;
         if (params == null && pp.kernelNetSingleThread != null) {
             // Collect the single-frame inference started by KernelNetPrep.
             try {
@@ -193,6 +205,7 @@ public final class UpscaleCrop extends Node {
                 // Channel-major view, no interleave copy (see below).
                 params = result.asFloatBuffer();
                 paramsSize = new Point(result.width(), result.height());
+                singleBase = result.params();
             }
         }
 
@@ -219,23 +232,30 @@ public final class UpscaleCrop extends Node {
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
             // Band the interleave+upload like the merge path: sub-rect uploads
             // convert identically, so no full float[4*w*h] is ever built.
-            int w = paramsSize.x, h = paramsSize.y;
-            ByteBuffer bandBytes = ByteBuffer.allocateDirect(
-                    w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
-            FloatBuffer band = bandBytes.asFloatBuffer();
-            for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
-                int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
-                KernelParams.interleaveBand(params, w, w * h, y0, rows, band);
-                band.position(0);
-                band.limit(w * rows * 4);
-                kernelsMapTex.loadDataOffset(0, y0, w, rows, band);
+            // Exactly one base buffer is owned here (merge ferry or single
+            // result); it is freed after a successful upload, or on any
+            // failure below since no other owner exists yet.
+            ByteBuffer ownedBase = pp.kernelParamsBase != null ? pp.kernelParamsBase : singleBase;
+            try {
+                int w = paramsSize.x, h = paramsSize.y;
+                ByteBuffer bandBytes = ByteBuffer.allocateDirect(
+                        w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
+                FloatBuffer band = bandBytes.asFloatBuffer();
+                for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
+                    int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
+                    KernelParams.interleaveBand(params, w, w * h, y0, rows, band);
+                    band.position(0);
+                    band.limit(w * rows * 4);
+                    kernelsMapTex.loadDataOffset(0, y0, w, rows, band);
+                }
+            } catch (Throwable t) {
+                freeBase(ownedBase);
+                pp.kernelParamsBase = null;
+                pp.kernelParams = null;
+                pp.kernelParamsSize = null;
+                throw t;
             }
             dumpParams(params, paramsSize);
-            // CPU copy served its purpose (params now on GPU): release it so
-            // the ~245 MB (64 MP) doesn't ride along through the render.
-            pp.kernelParams = null;
-            pp.kernelParamsSize = null;
-            params = null;
 
             /*
              * Per-axis sigma floor in crop pixels: a constant floor in output
@@ -270,6 +290,18 @@ public final class UpscaleCrop extends Node {
         } else {
             WorkingTexture = glUtils.interpolate(input, target);
         }
+
+        // CPU copies served their purpose (params now on GPU, or unused on
+        // the bicubic path): release so the ~192 MB result (50 MP) doesn't
+        // ride along through the render — or leak on the fallback path.
+        // Bases are Allocator-backed (see runInference); views alone must
+        // never be freed. GC timing can't be trusted here.
+        freeBase(pp.kernelParamsBase);
+        freeBase(singleBase);
+        pp.kernelParamsBase = null;
+        pp.kernelParams = null;
+        pp.kernelParamsSize = null;
+        params = null;
 
         /*
          * Downstream nodes and the final GL output need to use the new texture

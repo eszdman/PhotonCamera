@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.processing.ml;
 import android.content.Context;
 import android.content.res.AssetManager;
 
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -121,8 +122,15 @@ public final class KernelNetNcnnProcessor {
         long start = System.nanoTime();
         int outW = (width - 1) / 2 + 1;
         int outH = (height - 1) / 2 + 1;
-        ByteBuffer outBuf = ByteBuffer.allocateDirect(NUM_PARAMS * outH * outW * 4)
-                .order(ByteOrder.nativeOrder());
+        // Allocator-backed, NOT allocateDirect: the ~192 MB (50 MP) output
+        // is freed explicitly after the GPU upload (GC timing can't be
+        // trusted), and Allocator.free must only ever see malloc'd memory.
+        ByteBuffer outBuf = Allocator.allocate(NUM_PARAMS * outH * outW * 4);
+        if (outBuf == null) {
+            Log.e(TAG, "KernelNetNcnn: output allocation failed");
+            return null;
+        }
+        outBuf.order(ByteOrder.nativeOrder());
         gray.rewind();
         boolean ok;
         try {

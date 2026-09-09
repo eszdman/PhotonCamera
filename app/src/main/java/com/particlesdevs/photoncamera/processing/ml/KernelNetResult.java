@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.ml;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
 /**
@@ -15,4 +16,10 @@ public interface KernelNetResult {
 
     /** Channel-major [s1, s2, rho] floats, each channel width*height values. */
     FloatBuffer asFloatBuffer();
+
+    /**
+     * Base direct buffer behind {@link #asFloatBuffer} (single owner frees
+     * it once uploaded; views don't free).
+     */
+    ByteBuffer params();
 }

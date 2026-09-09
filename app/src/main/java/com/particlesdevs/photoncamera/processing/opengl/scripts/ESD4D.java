@@ -284,6 +284,12 @@ public class ESD4D extends GLOneScript {
     public FloatBuffer kernelsMapCPU;
     /** Size of {@link #kernelsMapCPU}. */
     public Point kernelsMapCPUSize;
+    /**
+     * Base direct buffer behind {@link #kernelsMapCPU} (the inference
+     * result). Single owner: whoever holds it frees it exactly once via
+     * {@code Allocator.free} after the GPU upload — views don't free.
+     */
+    public ByteBuffer kernelsMapBase;
     /** Noise sigma fed to KernelNet (captured pre-merge-inflation). */
     float kernelSigma;
     GLTexture result;
@@ -984,6 +990,10 @@ public class ESD4D extends GLOneScript {
                 }
                 kernelNetThread = null;
                 kernelsMap = createKernelsMap(kernelNetResult.get());
+                // Inference joined and params uploaded: both CPU copies are
+                // dead past this point (GPU textures carry on).
+                brightMapCPU = null;
+                brightMapCPUSize = null;
             }
 
             glProg.setLayout(tile, tile, 1);
@@ -1112,18 +1122,27 @@ public class ESD4D extends GLOneScript {
         ByteBuffer bandBytes = ByteBuffer.allocateDirect(
                 w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
         FloatBuffer band = bandBytes.asFloatBuffer();
-        for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
-            int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
-            KernelParams.interleaveBand(src, w, plane, y0, rows, band);
-            band.position(0);
-            band.limit(w * rows * 4);
-            map.loadDataOffset(0, y0, w, rows, band);
+        try {
+            for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
+                int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
+                KernelParams.interleaveBand(src, w, plane, y0, rows, band);
+                band.position(0);
+                band.limit(w * rows * 4);
+                map.loadDataOffset(0, y0, w, rows, band);
+            }
+        } catch (Throwable t) {
+            // Upload failed: the malloc'd result has no other owner yet.
+            com.particlesdevs.photoncamera.util.Allocator.free(result.params());
+            throw t;
         }
         // The unpacked fp32 params are exactly what the post pipeline needs;
         // keep them as the CPU copy instead of reading the fp16 texture back.
         // A view is enough: no copy, and HdrxProcessor nulls it after handoff.
+        // The base buffer rides along so the post pipeline can free the
+        // malloc deterministically once uploaded (views don't free).
         kernelsMapCPU = src;
         kernelsMapCPUSize = new Point(w, h);
+        kernelsMapBase = result.params();
         return map;
     }
 
