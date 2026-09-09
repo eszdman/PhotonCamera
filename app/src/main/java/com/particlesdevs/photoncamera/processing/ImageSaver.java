@@ -212,6 +212,8 @@ public class ImageSaver {
             } catch (IOException e) {
                 e.printStackTrace();
                 return false;
+            } finally {
+                dngCreator.close();
             }
             return true;
         }

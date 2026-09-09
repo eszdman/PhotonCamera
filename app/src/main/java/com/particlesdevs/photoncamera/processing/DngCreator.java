@@ -28,6 +28,7 @@ public class DngCreator {
     // Native methods
     private native long create();
     private native ByteBuffer createDNG(long nativePtr, int width, int height, ByteBuffer rawImageData);
+    private native void freeDNG(ByteBuffer dngData);
     private native void setOrientation(long nativePtr, int orientation);
     private native void setWhiteLevel(long nativePtr, double whiteLevel);
     private native void setBlackLevel(long nativePtr, short[] blackLevel);
@@ -441,6 +442,10 @@ public class DngCreator {
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write DNG data to output stream", e);
+        } finally {
+            // malloc'd by WriteToMemory: NewDirectByteBuffer takes no
+            // ownership, so an explicit free is the only release path.
+            freeDNG(dngData);
         }
     }
 
