@@ -102,8 +102,16 @@ public final class UltraHdrEncoder {
      * {@link ParseExif#setAllAttributes} (which inserts an EXIF APP1), and reads
      * the result back. Doing this on a baseline JPEG (no XMP/MPF yet) keeps all
      * existing segments intact.
+     *
+     * <p>Fast path first: splice a stub-built APP1 after SOI (same tags,
+     * ~KBs of file I/O instead of roundtripping the full JPEG). Falls back
+     * to the temp-file roundtrip below on any failure.
      */
     private static byte[] injectExif(byte[] jpeg, ParseExif.ExifData exif) {
+        byte[] spliced = trySpliceApp1(jpeg, exif);
+        if (spliced != null) {
+            return spliced;
+        }
         File tmp = null;
         try {
             tmp = File.createTempFile("uhdr_exif_", ".jpg");
@@ -116,6 +124,34 @@ public final class UltraHdrEncoder {
             return jpeg; // fall back to EXIF-less base
         } finally {
             if (tmp != null) tmp.delete();
+        }
+    }
+
+    /**
+     * Returns {@code SOI + APP1 + rest} for a baseline JPEG, or null when the
+     * input isn't one (caller keeps its file path). Marker order after SOI
+     * may differ from ExifInterface placement, but the tag payload is built
+     * by the same setAllAttributes call.
+     */
+    private static byte[] trySpliceApp1(byte[] jpeg, ParseExif.ExifData exif) {
+        try {
+            if (jpeg == null || jpeg.length < 4
+                    || jpeg[0] != (byte) 0xFF || jpeg[1] != (byte) 0xD8) {
+                return null;
+            }
+            byte[] app1 = ParseExif.buildApp1Segment(exif);
+            if (app1 == null || app1.length < 4) {
+                return null;
+            }
+            byte[] out = new byte[2 + app1.length + (jpeg.length - 2)];
+            out[0] = (byte) 0xFF;
+            out[1] = (byte) 0xD8;
+            System.arraycopy(app1, 0, out, 2, app1.length);
+            System.arraycopy(jpeg, 2, out, 2 + app1.length, jpeg.length - 2);
+            return out;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

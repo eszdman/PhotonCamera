@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.api;
 
+import android.graphics.Bitmap;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.os.Build;
@@ -8,8 +9,10 @@ import androidx.exifinterface.media.ExifInterface;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -152,6 +155,90 @@ public class ParseExif {
             inter.setAttribute(TAG_PIXEL_Y_DIMENSION, data.IMAGE_LENGTH);
         }
         return inter;
+    }
+
+    /**
+     * Builds a standalone EXIF APP1 segment (marker+length+payload) carrying
+     * exactly the tags {@link #setAllAttributes} writes, by stamping a tiny
+     * stub JPEG: ~KBs of file I/O instead of roundtripping a full-size JPEG
+     * through a temp file. Null on any failure (callers keep their file
+     * path as fallback).
+     */
+    public static byte[] buildApp1Segment(ExifData data) {
+        if (data == null) {
+            return null;
+        }
+        File tmp = null;
+        try {
+            Bitmap stub = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888);
+            stub.eraseColor(0xFF808080);
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            stub.compress(Bitmap.CompressFormat.JPEG, 90, os);
+            stub.recycle();
+            tmp = File.createTempFile("exif_app1_", ".jpg");
+            Files.write(tmp.toPath(), os.toByteArray());
+            ExifInterface inter = setAllAttributes(tmp, data);
+            if (inter != null) {
+                inter.saveAttributes();
+            }
+            return extractApp1(Files.readAllBytes(tmp.toPath()));
+        } catch (Exception e) {
+            Log.e(TAG, "buildApp1Segment failed", e);
+            return null;
+        } finally {
+            if (tmp != null) {
+                // noinspection ResultOfMethodCallIgnored
+                tmp.delete();
+            }
+        }
+    }
+
+    /** Slices the first Exif APP1 segment (marker+length+payload), or null. */
+    private static byte[] extractApp1(byte[] jpeg) {
+        if (jpeg == null || jpeg.length < 4
+                || jpeg[0] != (byte) 0xFF || jpeg[1] != (byte) 0xD8) {
+            return null;
+        }
+        int pos = 2;
+        while (pos + 4 <= jpeg.length) {
+            while (pos < jpeg.length && jpeg[pos] != (byte) 0xFF) {
+                return null;
+            }
+            while (pos + 1 < jpeg.length && jpeg[pos + 1] == (byte) 0xFF) {
+                pos++; // fill bytes
+            }
+            if (pos + 1 >= jpeg.length) {
+                return null;
+            }
+            int marker = jpeg[pos + 1] & 0xFF;
+            pos += 2;
+            if (marker == 0xD8 || marker == 0x01
+                    || (marker >= 0xD0 && marker <= 0xD7)) {
+                continue; // standalone markers carry no length
+            }
+            if (marker == 0xDA) {
+                return null; // scan data: APP1 must precede entropy coding
+            }
+            if (pos + 2 > jpeg.length) {
+                return null;
+            }
+            int len = ((jpeg[pos] & 0xFF) << 8) | (jpeg[pos + 1] & 0xFF);
+            if (len < 2 || pos + len > jpeg.length) {
+                return null;
+            }
+            if (marker == 0xE1 && len >= 8
+                    && jpeg[pos + 2] == 'E' && jpeg[pos + 3] == 'x'
+                    && jpeg[pos + 4] == 'i' && jpeg[pos + 5] == 'f'
+                    && jpeg[pos + 6] == 0 && jpeg[pos + 7] == 0) {
+                byte[] seg = new byte[2 + len];
+                seg[0] = (byte) 0xFF;
+                seg[1] = (byte) 0xE1;
+                System.arraycopy(jpeg, pos, seg, 2, len);
+                return seg;
+            }
+            pos += len;
+        }
+        return null;
     }
 
     public static int getOrientation(int cameraRotation) {
