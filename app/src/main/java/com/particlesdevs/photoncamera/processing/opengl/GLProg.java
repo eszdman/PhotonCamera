@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Point;
+import android.opengl.GLES30;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -32,6 +33,103 @@ public class GLProg implements AutoCloseable {
     private final Map<String, Integer> mTextureBinds = new HashMap<>();
     private int mUniformCacheProgram = 0;
     private final Map<String, Integer> mUniformCache = new HashMap<>();
+
+    /**
+     * Process-wide cache of linked program binaries (memory only): programs
+     * recompile from scratch on every shot today because each pass builds a
+     * fresh context with an empty mProgramCache. Binaries are portable
+     * across contexts on the same device/driver; any failure falls back to
+     * normal compile+link, so worst case is today's behavior.
+     */
+    private static final int PROGRAM_BINARY_CACHE_MAX = 64;
+    private static final Map<String, CachedBinary> sBinaryCache =
+            new java.util.LinkedHashMap<String, CachedBinary>(64, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(
+                        java.util.Map.Entry<String, CachedBinary> eldest) {
+                    return size() > PROGRAM_BINARY_CACHE_MAX;
+                }
+            };
+    private static volatile Boolean sBinariesSupported;
+
+    private static final class CachedBinary {
+        final int format;
+        final byte[] bytes;
+        CachedBinary(int format, byte[] bytes) {
+            this.format = format;
+            this.bytes = bytes;
+        }
+    }
+
+    private static String binaryKey(String shader, boolean compute) {
+        return compute ? shader + "|compute" : shader + "|frag";
+    }
+
+    /** Loads a cached binary into a fresh program, or 0 (compile normally). */
+    private static int tryLoadBinary(String key) {
+        CachedBinary cached;
+        synchronized (sBinaryCache) {
+            cached = sBinaryCache.get(key);
+        }
+        if (cached == null) {
+            return 0;
+        }
+        try {
+            int program = GLES30.glCreateProgram();
+            if (program == 0) {
+                return 0;
+            }
+            java.nio.ByteBuffer buf = java.nio.ByteBuffer
+                    .allocateDirect(cached.bytes.length)
+                    .order(java.nio.ByteOrder.nativeOrder());
+            buf.put(cached.bytes);
+            buf.position(0);
+            GLES30.glProgramBinary(program, cached.format, buf, cached.bytes.length);
+            int[] status = new int[1];
+            GLES30.glGetProgramiv(program, GLES30.GL_LINK_STATUS, status, 0);
+            if (status[0] == GLES30.GL_TRUE) {
+                return program;
+            }
+            GLES30.glDeleteProgram(program);
+        } catch (Throwable ignored) {
+        }
+        return 0;
+    }
+
+    /** Stores a linked program's binary for later contexts; never throws. */
+    private static void storeBinary(String key, int program) {
+        try {
+            Boolean supported = sBinariesSupported;
+            if (supported == null) {
+                int[] count = new int[1];
+                GLES30.glGetIntegerv(GLES30.GL_NUM_PROGRAM_BINARY_FORMATS, count, 0);
+                supported = count[0] > 0;
+                sBinariesSupported = supported;
+            }
+            if (!supported) {
+                return;
+            }
+            int[] length = new int[1];
+            GLES30.glGetProgramiv(program, GLES30.GL_PROGRAM_BINARY_LENGTH, length, 0);
+            if (length[0] <= 0) {
+                return;
+            }
+            int[] format = new int[1];
+            byte[] bytes = new byte[length[0]];
+            java.nio.ByteBuffer buf = java.nio.ByteBuffer.wrap(bytes);
+            int[] written = new int[1];
+            GLES30.glGetProgramBinary(program, length[0], written, 0, format, 0, buf);
+            if (written[0] <= 0) {
+                return;
+            }
+            byte[] stored = written[0] == bytes.length
+                    ? bytes : java.util.Arrays.copyOf(bytes, written[0]);
+            synchronized (sBinaryCache) {
+                sBinaryCache.put(key, new CachedBinary(format[0], stored));
+            }
+        } catch (Throwable ignored) {
+        }
+    }
 
     /**
      * Cached uniform lookup: locations are per-program, so the cache resets
@@ -156,18 +254,23 @@ public class GLProg implements AutoCloseable {
             checkEglError("glUseProgram");
             mCurrentProgramActive = prog;
         } else {
-            int program;
-            int nShader;
-            if(!compute) {
-                nShader = compileShader(GL_FRAGMENT_SHADER, shader);
-                program = createProgram(vertexShader, nShader);
-            } else {
-                nShader = compileShader(GL_COMPUTE_SHADER, shader);
-                program = glCreateProgram();
-                glAttachShader(program,nShader);
-                glLinkProgram(program);
+            int program = tryLoadBinary(binaryKey(shader, compute));
+            if (program == 0) {
+                int nShader;
+                if(!compute) {
+                    nShader = compileShader(GL_FRAGMENT_SHADER, shader);
+                    program = createProgram(vertexShader, nShader);
+                } else {
+                    nShader = compileShader(GL_COMPUTE_SHADER, shader);
+                    program = glCreateProgram();
+                    glAttachShader(program,nShader);
+                    GLES30.glProgramParameteri(program,
+                            GLES30.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GLES30.GL_TRUE);
+                    glLinkProgram(program);
+                }
+                storeBinary(binaryKey(shader, compute), program);
+                currentShader = nShader;
             }
-            currentShader = nShader;
             glGetError();
             glUseProgram(program);
             checkEglError("glUseProgram");
@@ -224,6 +327,9 @@ public class GLProg implements AutoCloseable {
             glAttachShader(programHandle, vertexShaderHandle);
             // Bind the fragment shader to the program.
             glAttachShader(programHandle, fragmentShaderHandle);
+            // Allow later retrieval as a program binary (best effort).
+            GLES30.glProgramParameteri(programHandle,
+                    GLES30.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GLES30.GL_TRUE);
             // Link the two shaders together into a program.
             glLinkProgram(programHandle);
             // Get the link status.
