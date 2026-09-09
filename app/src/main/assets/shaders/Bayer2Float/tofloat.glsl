@@ -164,11 +164,14 @@ void main() {
     if (hlVal >= HLCLIP) {
         float chromaC = (ci == 0) ? Chrominance.r : ((ci == 1) ? Chrominance.g : Chrominance.b);
         float ref = hlRefavg(xy, ci);
-        float outVal = gainC * max(hlVal, ref + chromaC);
+        float rec = ref + chromaC;
+        // Direct Darktable inpainting: replace clipped channel with opposed reconstruction + chrominance offset
+        float outVal = gainC * (isBadFloat(rec) ? hlVal : max(0.0, rec));
         Output = isBadFloat(outVal) ? 1.0 : outVal;
     } else
     #endif
     {
+        // Original clamp, prevents color fringes in non-clipped areas
         Output = clamp(gainC * hlVal, 0.0, 1.0);
     }
     #endif
