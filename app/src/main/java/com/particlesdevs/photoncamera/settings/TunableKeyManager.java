@@ -107,10 +107,21 @@ public class TunableKeyManager {
 
     /**
      * Universal method to read a hidden system boolean flag for a given sensor.
+     * Includes a self-healing mechanism in case the key was persisted as a String
+     * by a legacy backup/restore routine.
      */
     public static boolean getSystemFlag(Context context, String sensorId, String flagName, boolean defaultValue) {
         if (context == null || sensorId == null || flagName == null || flagName.isEmpty()) return defaultValue;
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getBoolean(getSystemFlagKey(sensorId, flagName), defaultValue);
+        String key = getSystemFlagKey(sensorId, flagName);
+        try {
+            return prefs.getBoolean(key, defaultValue);
+        } catch (ClassCastException e) {
+            Object raw = prefs.getAll().get(key);
+            String s = (raw == null) ? null : String.valueOf(raw).trim();
+            boolean healed = "1".equals(s) || "true".equalsIgnoreCase(s);
+            prefs.edit().putBoolean(key, healed).apply();
+            return healed;
+        }
     }
 }
