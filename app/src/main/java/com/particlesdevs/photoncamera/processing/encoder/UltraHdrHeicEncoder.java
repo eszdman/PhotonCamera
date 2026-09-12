@@ -3,8 +3,6 @@ package com.particlesdevs.photoncamera.processing.encoder;
 import android.graphics.Bitmap;
 import android.os.Build;
 
-import androidx.heifwriter.HeifWriter;
-
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.util.Log;
@@ -130,24 +128,7 @@ public final class UltraHdrHeicEncoder {
     }
 
     private static void writeSingleHeic(File dest, Bitmap bitmap) throws Exception {
-        HeifWriter writer = null;
-        try {
-            writer = new HeifWriter.Builder(
-                    dest.getAbsolutePath(),
-                    bitmap.getWidth(), bitmap.getHeight(),
-                    HeifWriter.INPUT_MODE_BITMAP)
-                    .setQuality(SdrHeicEncoder.HEIC_QUALITY)
-                    .build();
-            writer.start();
-            writer.addBitmap(bitmap);
-            writer.stop(0);
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (Exception ignored) {
-                }
-            }
-        }
+        // Exif is injected by the merge (for the base) or not wanted (gain).
+        SdrHeicEncoder.writeHeic(dest, bitmap, null);
     }
 }
