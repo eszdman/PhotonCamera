@@ -17,9 +17,9 @@ uniform int rotate;
 uniform bool mirror;
 uniform ivec2 cropSize;
 uniform ivec2 rawSize;
-// Geometry of the final stored SDR plane and of the reduced gain-map grid.
+// Geometry of the final stored SDR plane and of the scene-luma grid.
 // A scene-luma output texel averages its entire corresponding SDR-output
-// region. downsample_sdr.glsl uses the identical region partition.
+// region.
 uniform ivec2 uLinFullSize;
 uniform ivec2 uLinGridSize;
 // Banded execution (see RunHDRGainMap): the input may be a band tile holding

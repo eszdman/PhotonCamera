@@ -81,7 +81,7 @@ public final class StillEncoder {
         GainMapComputer.Result res = null;
         if (wantUhdr) {
             try {
-                res = GainMapComputer.compute(gain.bitmap, gain.down, gain.scale);
+                res = GainMapComputer.compute(gain.bitmap, gain.scale);
             } catch (Exception e) {
                 Log.e(TAG, "GainMapComputer failed, SDR HEIC fallback", e);
                 res = null;
@@ -125,7 +125,7 @@ public final class StillEncoder {
             GainMapComputer.Result res = null;
             try {
                 res = GainMapComputer.compute(
-                        gain.bitmap, gain.down, gain.scale);
+                        gain.bitmap, gain.scale);
                 byte[] uhdr = UltraHdrEncoder.encode(sdr, res, exif);
                 Files.write(dest, uhdr);
                 sdr.recycle();

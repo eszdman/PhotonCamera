@@ -114,13 +114,12 @@ public class PostPipeline extends GLBasePipeline {
 
     // P3-I: scene-luma grid captured during Run from the live linear texture.
     // Replaces the full-res RGB snapshot (8 B/px + its PBO spanning the whole
-    // render) with the exact grid the gain-map pass consumes (2 B/px at
-    // down=1). Uploaded verbatim in RunHDRGainMap, so the luma math and the
-    // stored grid are identical to the old snapshot path.
+    // render) with the exact grid the gain-map pass consumes (2 B/px).
+    // Uploaded verbatim in RunHDRGainMap, so the luma math and the stored grid
+    // are identical to the old snapshot path.
     private ByteBuffer sceneLumaCPU;
     private Point sceneLumaGrid;
     private int sceneLumaChannels;
-    private int sceneLumaDown;
     /** Rotated output size at capture time (final SDR/gain-map geometry). */
     private Point captureOutputSize;
 
@@ -471,9 +470,8 @@ public class PostPipeline extends GLBasePipeline {
      */
     private boolean captureSceneLumaGrid(GLTexture tex) {
         if (mParameters == null || captureOutputSize == null || mSettings == null) return false;
-        int down = mSettings.ultraHdr4x ? 4 : 1;
-        int gw = Math.max(1, (captureOutputSize.x + down - 1) / down);
-        int gh = Math.max(1, (captureOutputSize.y + down - 1) / down);
+        int gw = Math.max(1, captureOutputSize.x);
+        int gh = Math.max(1, captureOutputSize.y);
         int channels = floatRenderable() ? 1 : 4;
         GLTexture grid = null;
         GLTexture linFull = null;
@@ -534,9 +532,8 @@ public class PostPipeline extends GLBasePipeline {
             sceneLumaCPU = buf;
             sceneLumaGrid = new Point(gw, gh);
             sceneLumaChannels = channels;
-            sceneLumaDown = down;
             Log.d("TiledHarness", "P3-I sceneluma grid=" + gw + "x" + gh
-                    + " ch=" + channels + " down=" + down
+                    + " ch=" + channels
                     + " bytes=" + ((long) gw * gh * channels * 2 / 1048576) + "MB");
             return true;
         } catch (Throwable t) {
@@ -666,11 +663,10 @@ public class PostPipeline extends GLBasePipeline {
      * mapping state.
      *
      * @param sdr   the SDR (display-encoded) base rendition, already computed by {@link #Run}
-     * @param down  downsample factor per axis for the gain map (1/down^2 pixels)
      * @param scale total log2 range of the encoding; must equal {@link GainMapComputer#SCALE}
-     * @return the encoded RGBA8 gain map plus its dimensions, downsample and scale
+     * @return the encoded RGBA8 gain map plus its dimensions and scale
      */
-    public GainMapRaw RunHDRGainMap(Parameters parameters, Bitmap sdr, int down, float scale) {
+    public GainMapRaw RunHDRGainMap(Parameters parameters, Bitmap sdr, float scale) {
         if ((demosaicLinear == null || demosaicLinearSize == null) && sceneLumaCPU == null) {
             throw new IllegalStateException("Linear buffer missing; Run() must complete first with ultraHdr enabled");
         }
@@ -708,8 +704,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         // P3-A residency checkpoints: grid size + entry footprint (logging
         // only; the later checkpoints normalize against these).
-        Log.d("TiledHarness", "gainmap grid=" + rotatedSize.x + "x" + rotatedSize.y
-                + " down=" + down);
+        Log.d("TiledHarness", "gainmap grid=" + rotatedSize.x + "x" + rotatedSize.y);
         Allocator.logStage("PostPipeline", "gainmap-enter");
         GLTexture.logLive("TiledHarness", "gainmap-enter");
         GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
@@ -776,14 +771,11 @@ public class PostPipeline extends GLBasePipeline {
                         BufferUtils.getFrom(new float[]{1f, 1f, 1f, 1f}), GL_LINEAR, GL_CLAMP_TO_EDGE);
             }
 
-            // Dims from the guard-verified bitmap (equals the sdrTex size the
-            // old code read off the texture; sdrTex uploads later now).
+            // Dims from the guard-verified bitmap (the gain map is at the full
+            // base resolution: the GPU already reduces to the final grid).
             final Point sdrSize = new Point(sdr.getWidth(), sdr.getHeight());
-
-            // Ceiling division preserves the complete source extent, including
-            // partial right/bottom blocks for non-divisible dimensions.
-            int gw = Math.max(1, (sdrSize.x + down - 1) / down);
-            int gh = Math.max(1, (sdrSize.y + down - 1) / down);
+            int gw = sdrSize.x;
+            int gh = sdrSize.y;
 
             // Single-channel grid when R16F renders here (P3-H, ~4x smaller);
             // RGBA16F otherwise (identical luma bytes either way: gray plane).
@@ -816,7 +808,7 @@ public class PostPipeline extends GLBasePipeline {
             // back to the snapshot path.
             boolean scenelumaFromCapture = false;
             if (sceneLumaCPU != null) {
-                if (sceneLumaDown == down && sceneLumaGrid != null
+                if (sceneLumaGrid != null
                         && sceneLumaGrid.x == gw && sceneLumaGrid.y == gh
                         && sceneLumaChannels == gridCh) {
                     lTex.loadHalfFloat(sceneLumaCPU);
@@ -824,8 +816,8 @@ public class PostPipeline extends GLBasePipeline {
                     sceneLumaCPU = null;
                     scenelumaFromCapture = true;
                 } else {
-                    Log.e("PostPipeline", "P3-I grid mismatch (down=" + sceneLumaDown
-                            + " grid=" + sceneLumaGrid + " ch=" + sceneLumaChannels
+                    Log.e("PostPipeline", "P3-I grid mismatch (grid=" + sceneLumaGrid
+                            + " ch=" + sceneLumaChannels
                             + "); dropping and re-rendering");
                     Allocator.free(sceneLumaCPU);
                     sceneLumaCPU = null;
@@ -910,33 +902,13 @@ public class PostPipeline extends GLBasePipeline {
             // P3-A: snapshot-freed checkpoint (tracked should drop ~1 frame).
             Allocator.logStage("PostPipeline", "gainmap-lintex");
             GLTexture.logLive("TiledHarness", "gainmap-lintex");
-            // SDR texture policy: at down == 1 production never uploads it
-            // (saves a 201 MB upload at 50 MP) — the banded draws slice the
-            // bitmap directly and the SDR median below is an identical CPU
-            // histogram. Upload survives for down > 1 (matched reduction)
-            // and lazily inside the wrap-fail/prove fallbacks below.
+            // SDR texture policy: production never uploads it (saves a
+            // 201 MB upload at 50 MP) — the banded draws slice the bitmap
+            // directly and the SDR median below is an identical CPU
+            // histogram. Upload happens lazily inside the wrap-fail/prove
+            // fallbacks below.
             GLTexture sdrTex = null;
-            GLTexture sdrSmall = null;
             GLProg prog = glint.glProgram;
-            if (down != 1) {
-                sdrTex = uploadSdrTex(sdr);
-                // Matched linear-light reduction instead of a GL_LINEAR blit,
-                // since the footprint will not match lTex.
-                sdrSmall = new GLTexture(new Point(gw, gh),
-                        new GLFormat(GLFormat.DataType.FLOAT_16, 4));
-                sdrSmall.BufferLoad();
-
-                sdrTex.Bufferize();
-                prog.useAssetProgram("ultrahdr/downsample_sdr");
-                prog.setTexture("InputBuffer", sdrTex);
-                prog.setVar("uGridSize", gw, gh);
-                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, sdrSmall.mBuffer);
-                GLES30.glViewport(0, 0, gw, gh);
-                prog.draw();
-                checkGlError("Ultra HDR SDR matched downsample draw");
-                sdrTex.close();
-                sdrTex = null;
-            }
 
             // Anchor: medians of the rendering and of the scene plane. Median
             // (not top-percentile) anchoring is required - with large blown
@@ -949,14 +921,9 @@ public class PostPipeline extends GLBasePipeline {
             GLHistogram hist = new GLHistogram(prog, histSize);
             try {
                 lMed = Math.max(histogramMedian(hist.Compute(lTex), histSize, gridCh), 1e-4f);
-                float sMedDisp;
-                if (sdrSmall != null) {
-                    sMedDisp = histogramMedian(hist.Compute(sdrSmall), histSize, 3);
-                } else {
-                    // Identical math on the bitmap directly (full-res binning,
-                    // same median + linearize): no 201 MB texture at down == 1.
-                    sMedDisp = cpuSdrMedian(sdr, histSize);
-                }
+                // Identical math on the bitmap directly (full-res binning,
+                // same median + linearize): no 201 MB texture upload.
+                float sMedDisp = cpuSdrMedian(sdr, histSize);
                 sMedLin = srgbToLinear(sMedDisp);
             } finally {
                 hist.close();
@@ -981,12 +948,11 @@ public class PostPipeline extends GLBasePipeline {
             // Banded gainmap draw (P3-F): per grid band, sdr slice upload
             // straight from the SDR bitmap (zero-copy views, same W*4-packed
             // assumption the sink streamer already relies on), draw, stream
-            // readback into gmBmp. Exact at any down (each output texel
-            // gathers only its own down-block; viewport-offset output needs no
-            // origin uniform). sdrTex/sdrSmall are dead after histogram, so
-            // they close before the loop; wrap failure takes legacy (sdrTex
-            // still alive there). Band throws rethrow (SDR fallback, same as
-            // any gainmap throw today — full legacy needs the closed sdrTex).
+            // readback into gmBmp. The grid and the source are the same size
+            // (each output texel gathers only its own pixel; viewport-offset
+            // output needs no origin uniform). Wrap failure takes the legacy
+            // full path (which uploads its own sdrTex). Band throws rethrow
+            // (SDR fallback, same as any gainmap throw today).
             Bitmap gmBmp = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
             ByteBuffer wrapped = Allocator.wrapBitmap(gmBmp);
             ByteBuffer imgWrapped = Allocator.wrapBitmap(sdr);
@@ -998,18 +964,14 @@ public class PostPipeline extends GLBasePipeline {
                     Allocator.unlockBitmap(sdr);
                 }
                 // Legacy full path, verbatim (also the wrap-null handler):
-                // lazily uploads the SDR texture: production at down == 1
-                // never has one (see above), and only this path needs it.
-                if (sdrSmall == null) {
-                    sdrTex = uploadSdrTex(sdr);
-                    sdrSmall = sdrTex;
-                }
+                // lazily uploads the SDR texture; only this path needs one.
+                sdrTex = uploadSdrTex(sdr);
             GLTexture outTex = new GLTexture(new Point(gw, gh),
                     new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
             outTex.BufferLoad();
 
             prog.useAssetProgram("ultrahdr/gainmap");
-            prog.setTexture("InputBuffer", sdrSmall);
+            prog.setTexture("InputBuffer", sdrTex);
             prog.setTexture("LBuffer", lTex);
             // Initialized, not defaulted: the uniform persists on the shared
             // program across shots (a stale band origin would shift sampling).
@@ -1026,7 +988,8 @@ public class PostPipeline extends GLBasePipeline {
 
             // Release the GPU resources before the CPU-side bitmap work.
             // (linTex was already released right after the scene-luma draw.)
-            sdrSmall.close();
+            sdrTex.close();
+            sdrTex = null;
             lTex.close();
 
             // gmBmp remains mutable and at the final logical gain-map size,
@@ -1080,14 +1043,9 @@ public class PostPipeline extends GLBasePipeline {
                 if (prove) {
                     gmRef = Bitmap.createBitmap(gw, gh, Bitmap.Config.ARGB_8888);
                     wrappedRef = Allocator.wrapBitmap(gmRef);
-                    // Harness-only lazy upload: production at down == 1 has
-                    // no SDR texture (see above); the reference draw needs one.
-                    GLTexture sdrRef = sdrSmall;
-                    boolean closeRef = false;
-                    if (sdrRef == null) {
-                        sdrRef = uploadSdrTex(sdr);
-                        closeRef = true;
-                    }
+                    // Harness-only lazy upload: production has no SDR texture
+                    // (see above); the reference draw needs one.
+                    GLTexture sdrRef = uploadSdrTex(sdr);
                     outTexFull = new GLTexture(new Point(gw, gh),
                             new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
                     outTexFull.BufferLoad();
@@ -1111,21 +1069,13 @@ public class PostPipeline extends GLBasePipeline {
                     }
                     outTexFull.close();
                     outTexFull = null;
-                    if (closeRef) {
-                        try {
-                            sdrRef.close();
-                        } catch (Exception ignored) {
-                        }
+                    try {
+                        sdrRef.close();
+                    } catch (Exception ignored) {
                     }
                 }
-                // sdrTex/sdrSmall dead after histogram in the banded path
-                // (either may be null at down == 1 — never uploaded).
-                if (sdrTex != null) {
-                    sdrTex.close();
-                }
-                if (sdrSmall != null && sdrSmall != sdrTex) {
-                    sdrSmall.close();
-                }
+                // sdrTex dead after histogram in the banded path (never
+                // uploaded there).
                 prog.useAssetProgram("ultrahdr/gainmap");
                 prog.setTexture("LBuffer", lTex);
                 prog.setVar("uAnchor", anchor);
@@ -1209,10 +1159,9 @@ public class PostPipeline extends GLBasePipeline {
                 try { gainTex.close(); } catch (Exception ignored) {}
                 gainTex = null;
             }
-            // The GPU map is already at its final grid, so the box filter
-            // must not run again (down = 1).
+            // The GPU map is already at its final grid; no CPU downsample.
             Allocator.logStage("PostPipeline", "post-gainmap-render");
-            return new GainMapRaw(gmBmp, gw, gh, 1, scale);
+            return new GainMapRaw(gmBmp, gw, gh, scale);
         } finally {
             if (gainTex != null) {
                 try { gainTex.close(); } catch (Exception ignored) {}
@@ -1225,9 +1174,9 @@ public class PostPipeline extends GLBasePipeline {
 
     /**
      * Full-frame SDR upload (SIMPLE_8 RGBA) with off-heap staging (no
-     * Java-accounted direct copy of the whole bitmap). Caller closes. Used at
-     * down &gt; 1 and lazily by the down == 1 fallbacks (wrap-fail legacy,
-     * harness prove), which are the only paths that need an SDR texture.
+     * Java-accounted direct copy of the whole bitmap). Caller closes. Used
+     * lazily by the wrap-fail legacy path and the harness prove path, the
+     * only paths that need an SDR texture.
      */
     private static GLTexture uploadSdrTex(Bitmap sdr) {
         ByteBuffer sdrStaging = Allocator.allocate(sdr.getByteCount());
@@ -1514,13 +1463,11 @@ public class PostPipeline extends GLBasePipeline {
         public final Bitmap bitmap;
         public final int w;
         public final int h;
-        public final int down;
         public final float scale;
-        GainMapRaw(Bitmap bitmap, int w, int h, int down, float scale) {
+        GainMapRaw(Bitmap bitmap, int w, int h, float scale) {
             this.bitmap = bitmap;
             this.w = w;
             this.h = h;
-            this.down = down;
             this.scale = scale;
         }
     }

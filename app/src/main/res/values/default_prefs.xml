@@ -18,7 +18,6 @@
 
     <bool name="pref_quad_bayer_default">false</bool>
     <bool name="pref_ultrahdr_default">false</bool>
-    <bool name="pref_ultrahdr_4x_default">false</bool>
     <bool name="pref_remosaic_default">false</bool>
     <bool name="pref_eis_photo_default">true</bool>
     <bool name="pref_zoom_lock_default">false</bool>
