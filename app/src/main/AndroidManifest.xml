@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- heifwriter needs API 28+; all call sites are gated by HeicSupport
+         (API check + HEVC encoder probe), so forcing the merge is safe. -->
+    <uses-sdk tools:overrideLibrary="androidx.heifwriter" />
+
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Storage: read for gallery (system camera images). Write only via SAF on Android 11+. -->

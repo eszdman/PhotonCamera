@@ -110,8 +110,10 @@ public class FlowNetAlignment implements AutoCloseable {
         scaleY = (float) rawHalf.y / FLOW_H;
         log("flow scale " + scaleX + " x " + scaleY);
 
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
-                images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
+                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
                 null, GL_NEAREST, GL_MIRRORED_REPEAT);
         rgb0 = new GLTexture(new Point(FLOW_W, FLOW_H), new GLFormat(GLFormat.DataType.FLOAT_16, 4),
@@ -147,7 +149,9 @@ public class FlowNetAlignment implements AutoCloseable {
         }
 
         float mult = images.get(ind).pair.layerMpy;
-        inputAlter.loadData(images.get(ind).buffer);
+        try (ImageFrame.Upload up = images.get(ind).upload()) {
+            inputAlter.loadData(up.buffer);
+        }
         long t1 = System.currentTimeMillis();
         FloatBuffer baseRgba = renderFlowRGB(inputBase, rgb0, mult);
         FloatBuffer alterRgba = renderFlowRGB(inputAlter, rgb1, 1.0f);
@@ -174,8 +178,9 @@ public class FlowNetAlignment implements AutoCloseable {
         }
         flowTex.loadData(FloatBuffer.wrap(rgba));
         long t4 = System.currentTimeMillis();
-        log("flow frame " + ind + ": upload=" + (t1 - startAll) + "ms render=" + (t2 - t1)
-                + "ms inference=" + (t3 - t2) + "ms pack=" + (t4 - t3) + "ms total=" + (t4 - startAll) + "ms");
+        if (PhotonCamera.DEBUG)
+            log("flow frame " + ind + ": upload=" + (t1 - startAll) + "ms render=" + (t2 - t1)
+                    + "ms inference=" + (t3 - t2) + "ms pack=" + (t4 - t3) + "ms total=" + (t4 - startAll) + "ms");
         return flowTex;
     }
 

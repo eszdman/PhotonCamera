@@ -42,8 +42,7 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_height="match_parent"
-            android:layout_width="match_parent"
-            android:animateLayoutChanges="true">
+            android:layout_width="match_parent">
 
         <FrameLayout
                 android:layout_width="match_parent"
@@ -51,14 +50,12 @@
                 android:background="#000"
                 android:onClickListener="@{onclickempty}"
                 tools:visibility="gone" />
-        <androidx.viewpager.widget.ViewPager
+        <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/view_pager"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="#000"
-                tools:visibility="gone">
-
-        </androidx.viewpager.widget.ViewPager>
+                tools:visibility="gone" />
 
         <include
                 layout="@layout/gallery_viewer_top_buttons"

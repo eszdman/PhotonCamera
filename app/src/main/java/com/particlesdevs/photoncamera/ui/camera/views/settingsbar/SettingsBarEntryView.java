@@ -78,7 +78,10 @@ public class SettingsBarEntryView extends LinearLayout {
 
     public void setSettingsBarEntryModel(SettingsBarEntryModel entryModel) {
         titleTextView.setText(entryModel.getTitleStringId());
-        stateTextView.setText(entryModel.getStateTextStringId());
+        // Guard: id 0 (unset state label) throws Resources$NotFoundException.
+        if (entryModel.getStateTextStringId() != 0) {
+            stateTextView.setText(entryModel.getStateTextStringId());
+        }
 
         imageButtons.clear();
         if (entryModel.getSettingsBarButtonModels() != null) {

@@ -492,8 +492,8 @@ public class ExposureFusionBayer3 extends Node {
         basePipeline.main1.mSize.y = WorkSize.y;
         basePipeline.main2.mSize.x = WorkSize.x;
         basePipeline.main2.mSize.y = WorkSize.y;
-        basePipeline.main3.mSize.x = WorkSize.x;
-        basePipeline.main3.mSize.y = WorkSize.y;
+        basePipeline.getMain3().mSize.x = WorkSize.x;
+        basePipeline.getMain3().mSize.y = WorkSize.y;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         float perlevel = downScalePerLevel;
         int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel));
@@ -592,8 +592,8 @@ public class ExposureFusionBayer3 extends Node {
         basePipeline.main1.mSize.y = initialSize.y;
         basePipeline.main2.mSize.x = initialSize.x;
         basePipeline.main2.mSize.y = initialSize.y;
-        basePipeline.main3.mSize.x = initialSize.x;
-        basePipeline.main3.mSize.y = initialSize.y;
+        basePipeline.getMain3().mSize.x = initialSize.x;
+        basePipeline.getMain3().mSize.y = initialSize.y;
         ((PostPipeline)basePipeline).FusionMap =
                 fusionMap(binnedFuse,exposureBase, (float)((PostPipeline)basePipeline).AecCorr/2.f);
         //Use EDI to interpolate fusionmap

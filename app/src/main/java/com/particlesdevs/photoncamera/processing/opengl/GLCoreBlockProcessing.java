@@ -31,9 +31,28 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public GLImage mOut = null;
     public Point shift = new Point(0,0);
     private final int mOutWidth, mOutHeight;
+    private final int mTileSize;
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;
     private final GLFormat mglFormat;
+    /** Band height of the sink renderbuffer (see the constructor). */
+    private final int renderHeight;
+    /** This instance's registered renderbuffer bytes (deregistered in close). */
+    private long renderBytes = 0;
+    /**
+     * Live sink-renderbuffer bytes across instances: sink FBOs are invisible
+     * to the GLTexture gauge otherwise (~400 MB hidden at 50 MP before P3-E1).
+     */
+    private static long sLiveRenderBytes = 0;
+
+    /** Sums live sink-renderbuffer bytes (see sLiveRenderBytes). */
+    public static synchronized long liveRenderBytes() {
+        return sLiveRenderBytes;
+    }
+
+    private static synchronized void addRenderBytes(long b) {
+        sLiveRenderBytes += b;
+    }
 
     public GLDrawParams.Allocate allocation = GLDrawParams.Allocate.Heap;
 
@@ -59,15 +78,24 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
     public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         super(size.x, GLDrawParams.TileSize);
+        mTileSize = GLDrawParams.TileSize;
         allocation = alloc;
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
-        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        // Band-sized sink storage (P3-E1): every draw loop in this class
+        // addresses at most one divider block (mTileSize rows), except the
+        // fused tail streamer (512-row bands) — so the renderbuffer only ever
+        // needs max(mTileSize, 512) rows, never the frame height.
+        renderHeight = Math.max(mTileSize, 512);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
+        renderBytes = (long) size.x * renderHeight
+                * glFormat.mFormat.mSize * glFormat.mChannels;
+        addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
@@ -79,15 +107,21 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
     public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat,ByteBuffer output) {
         super(size.x, GLDrawParams.TileSize);
+        mTileSize = GLDrawParams.TileSize;
         output.position(0);
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocate(mOutWidth * GLDrawParams.TileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocate(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
-        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        // Band-sized (see the main constructor): this sink also streams only.
+        renderHeight = Math.max(mTileSize, 512);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
+        renderBytes = (long) size.x * renderHeight
+                * glFormat.mFormat.mSize * glFormat.mChannels;
+        addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         mOutBuffer = output;
@@ -96,8 +130,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
 
     public void drawBlocksToOutput() {
         glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
         GLProg program = super.mProgram;
-        GLBlockDivider divider = new GLBlockDivider(mOutHeight, GLDrawParams.TileSize);
+        GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
         int[] row = new int[2];
         mOutBuffer.position(0);
         mBlockBuffer.position(0);
@@ -112,7 +147,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             mBlockBuffer.position(0);
             glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), mBlockBuffer);
             checkEglError("glReadPixels");
-            if (height < GLDrawParams.TileSize) {
+            if (height < mTileSize) {
                 // This can only happen 2 times at edges
                 byte[] data = new byte[mOutWidth * height * mglFormat.mFormat.mSize * mglFormat.mChannels];
                 mBlockBuffer.get(data);
@@ -125,6 +160,77 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         mBlockBuffer = null;
         if (mOut != null) mOut.byteBuffer = mOutBuffer;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    /**
+     * Streams the rendered tiles directly into {@code sink}'s pixel memory
+     * (a software ARGB_8888 bitmap wrapped via {@link Allocator#wrapBitmap}),
+     * skipping every intermediate full-frame buffer. The per-tile program
+     * replay (viewport + yOffset) is identical to {@link #drawBlocksToOutput()}.
+     */
+    public void drawBlocksToOutput(Bitmap sink) {
+        ByteBuffer wrapped = Allocator.wrapBitmap(sink);
+        if (wrapped == null) {
+            throw new IllegalStateException("Failed to lock bitmap pixels for direct output");
+        }
+        try {
+            glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+            GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+            GLProg program = super.mProgram;
+            GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
+            int[] row = new int[2];
+            while (divider.nextBlock(row)) {
+                int y = row[0];
+                int height = row[1];
+                glViewport(0, 0, mOutWidth, height);
+                checkEglError("glViewport");
+                program.setVar("yOffset", y);
+                program.draw();
+                checkEglError("program");
+                wrapped.position(y * mOutWidth * 4);
+                wrapped.limit((y + height) * mOutWidth * 4);
+                glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), wrapped);
+                checkEglError("glReadPixels");
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        } finally {
+            Allocator.unlockBitmap(sink);
+        }
+    }
+
+
+    /**
+     * T4b fused-sink draw: renders ONE output band with the currently-bound
+     * program (the caller binds it and sets every sampler/uniform first,
+     * INCLUDING yOffset) and reads it into {@code dst} at band offset,
+     * mirroring one iteration of {@link #drawBlocksToOutput(Bitmap)} exactly
+     * (framebuffer, alignment, viewport, draw, readPixels). Deliberately does
+     * NOT set yOffset itself: fused bands sample tile-sized inputs whose
+     * origin differs from the output origin, so the caller owns that uniform
+     * (setting output rows here blacked every band past the first). The
+     * shared sink loops are untouched. Throws (fail-fast to the caller's
+     * legacy fallback) if the band leaves the frame.
+     */
+    public void streamBand(int y, int rows, java.nio.ByteBuffer dst, int dstStrideBytes) {
+        if (y < 0 || rows <= 0 || y + rows > mOutHeight) {
+            throw new IllegalStateException("sink band [" + y + "," + (y + rows)
+                    + ") outside height " + mOutHeight);
+        }
+        if (rows > renderHeight) {
+            throw new IllegalStateException("sink band rows " + rows
+                    + " exceed renderbuffer height " + renderHeight);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        glViewport(0, 0, mOutWidth, rows);
+        checkEglError("glViewport");
+        super.mProgram.draw();
+        checkEglError("program");
+        dst.position(y * dstStrideBytes);
+        dst.limit((y + rows) * dstStrideBytes);
+        glReadPixels(0, 0, mOutWidth, rows, mglFormat.getGLFormatExternal(),
+                mglFormat.getGLType(), dst);
+        checkEglError("glReadPixels");
     }
 
 
@@ -144,8 +250,14 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,ByteBuffer mOutBuffer) {
         glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
         checkEglError("glBindFramebuffer");
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        int bytes = glFormat.mFormat.mSize * glFormat.mChannels;
+        int need = size.x * mTileSize * bytes;
+        if (mBlockBuffer == null || mBlockBuffer.capacity() < need) {
+            mBlockBuffer = ByteBuffer.allocateDirect(need);
+        }
         GLProg program = super.mProgram;
-        GLBlockDivider divider = new GLBlockDivider(size.y, GLDrawParams.TileSize);
+        GLBlockDivider divider = new GLBlockDivider(size.y, mTileSize);
         int[] row = new int[2];
         ByteBuffer mBlockBuffert = mBlockBuffer;
         mOutBuffer.position(0);
@@ -161,14 +273,13 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             mBlockBuffert.position(0);
             glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffert);
             checkEglError("glReadPixels");
-            if (height < GLDrawParams.TileSize) {
-                // This can only happen 2 times at edges
+            if (height < mTileSize) {
                 byte[] data = new byte[size.x * height * glFormat.mFormat.mSize * glFormat.mChannels];
                 mBlockBuffert.get(data);
                 mOutBuffer.put(data);
             } else {
                 int lim = mBlockBuffert.limit();
-                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * GLDrawParams.TileSize * glFormat.mFormat.mSize * glFormat.mChannels));
+                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * mTileSize * glFormat.mFormat.mSize * glFormat.mChannels));
                 mBlockBuffert.limit(lim);
             }
         }
@@ -216,5 +327,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         try {
             if (bindRB[0] != 0) GLES30.glDeleteRenderbuffers(1, bindRB, 0);
         } catch (Exception ignored) {}
+        if (renderBytes != 0) {
+            addRenderBytes(-renderBytes);
+            renderBytes = 0;
+        }
     }
 }

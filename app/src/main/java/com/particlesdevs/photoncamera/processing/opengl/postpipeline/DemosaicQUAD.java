@@ -17,6 +17,10 @@ public class DemosaicQUAD extends Node {
     float fuseShift = -0.3f;
     float fuseMpy = 0.0f;
     @Override
+    public int halo() {
+        return 8; // 4x4 quad cells + taps; harness-proven
+    }
+
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);
         fuseMin = getTuning("FuseMin",fuseMin);
@@ -29,10 +33,10 @@ public class DemosaicQUAD extends Node {
         glProg.useAssetProgram("demosaic/demosaicp0quad");
         glProg.setTexture("RawBuffer", glTexture);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
-        glProg.drawBlocks(basePipeline.main3);
+        glProg.drawBlocks(basePipeline.getMain3());
         GLTexture outp;
-        //glUtils.convertVec4(basePipeline.main3,"in1");
-        //glUtils.SaveProgResult(basePipeline.main3.mSize,"deriv");
+        //glUtils.convertVec4(basePipeline.getMain3(),"in1");
+        //glUtils.SaveProgResult(basePipeline.getMain3().mSize,"deriv");
 
 
         //Green channel
@@ -45,7 +49,7 @@ public class DemosaicQUAD extends Node {
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.useAssetProgram("demosaic/demosaicp12quad");
         glProg.setTexture("RawBuffer",previousNode.WorkingTexture);
-        glProg.setTexture("GradBuffer",basePipeline.main3);
+        glProg.setTexture("GradBuffer",basePipeline.getMain3());
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         GLTexture prev = previousNode.WorkingTexture;
         outp = basePipeline.main1;
@@ -61,7 +65,7 @@ public class DemosaicQUAD extends Node {
         glProg.setTexture("GreenBuffer", outp);
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
     }

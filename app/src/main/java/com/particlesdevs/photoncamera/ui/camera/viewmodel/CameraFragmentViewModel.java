@@ -113,6 +113,14 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         cameraFragmentModel.setScreenAspectRatio(aspectRatio);
     }
 
+    public void setZoomRatio(float zoomRatio) {
+        cameraFragmentModel.setZoomRatio(zoomRatio);
+    }
+
+    public float getZoomRatio() {
+        return cameraFragmentModel.getZoomRatio();
+    }
+
     public boolean isSettingsBarVisible() {
         return cameraFragmentModel.isSettingsBarVisibility();
     }

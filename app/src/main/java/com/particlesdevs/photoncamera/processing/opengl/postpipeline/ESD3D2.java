@@ -112,6 +112,12 @@ public class ESD3D2 extends Node {
     }
 
     @Override
+    public int halo() {
+        // Steered kernel up to ~10px + grad + pyramid slop; overestimated on
+        // purpose (safe direction) — harness-proven, lower if seams allow.
+        return 16;
+    }
+
     public void Run() {
         if (!enable) {
             WorkingTexture = previousNode.WorkingTexture;

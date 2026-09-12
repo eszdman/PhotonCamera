@@ -60,13 +60,13 @@ public class ESD3D extends Node {
         //    basePipeline.main4 = glUtils.medianDown(previousNode.WorkingTexture,4);
         //GLTexture grad;
         /*
-        if(previousNode.WorkingTexture != basePipeline.main3){
-            //grad = basePipeline.main3;
+        if(previousNode.WorkingTexture != basePipeline.getMain3()){
+            //grad = basePipeline.getMain3();
             WorkingTexture = basePipeline.getMain();
         }
         else {
             //grad = basePipeline.getMain();
-            WorkingTexture = basePipeline.main3;
+            WorkingTexture = basePipeline.getMain3();
         }*/
         //glUtils.ConvDiff(previousNode.WorkingTexture, grad, 0.f);
         WorkingTexture = basePipeline.getMain();

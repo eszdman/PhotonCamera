@@ -28,6 +28,10 @@ uniform float displayGain; // Linear exposure multiplier from LinearExposure
 uniform float sceneWhite; // Scene headroom, 0.90*displayGain clamped to [1, sceneWhiteMax]
 uniform float outputExposureScale; // Global output exposure (~-0.32 EV at 0.80)
 uniform ivec4 activeSize;
+// Tiled rendering origin (image coords of this tile's row 0) and the full
+// input size for map UVs. (0,0)+input size on the legacy path: identical.
+uniform ivec2 u_tileOrigin;
+uniform vec2 u_fullSize;
 
 #define NEUTRALPOINT 0.0,0.0,0.0
 #define FUSION 0
@@ -146,7 +150,9 @@ vec3 fitDisplayGamut(vec3 rgb) {
 
 void main() {
     ivec2 xy=ivec2(gl_FragCoord.xy);
-    xy=mirrorCoords(xy,activeSize);
+    // Tiled rendering: mirror in absolute image coords, then shift back to
+    // tile-relative buffer rows (legacy path: origin is zero, identical).
+    xy=mirrorCoords(xy+u_tileOrigin,activeSize)-u_tileOrigin;
     vec3 inColor=max(texelFetch(InputBuffer,xy,0).rgb,vec3(0.0));
 
     /* Fusion map guided local gain: same 5x5 linear-model fit as the
@@ -160,7 +166,7 @@ void main() {
             ivec2 p=clamp(xy+ivec2(i,j),ivec2(0),sz-ivec2(1));
             vec2 offset=vec2(float(i),float(j));
             float lightness=dot(texelFetch(InputBuffer,p,0).rgb,vec3(1.0/3.0));
-            float gain=texture(FusionMap,(gl_FragCoord.xy+offset)/vec2(sz)).r;
+            float gain=texture(FusionMap,(gl_FragCoord.xy+vec2(u_tileOrigin)+offset)/u_fullSize).r;
             moments+=vec4(lightness,gain,lightness*lightness,lightness*gain);
         }
     }
@@ -177,7 +183,7 @@ void main() {
     tonemapGain=clamp(tonemapGain,0.0,3.0);
 
     /* Lens shading gain: same bicubic sampling as the previous Initial stage. */
-    vec4 gains=textureBicubicHardware(GainMap,vec2(xy)/vec2(textureSize(InputBuffer,0)));
+    vec4 gains=textureBicubicHardware(GainMap,(vec2(xy)+vec2(u_tileOrigin))/u_fullSize);
     gains.rgb=vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal=dot(gains.rgb,vec3(1.0/3.0));
 

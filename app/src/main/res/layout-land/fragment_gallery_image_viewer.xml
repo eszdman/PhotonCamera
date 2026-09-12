@@ -5,10 +5,20 @@
         tools:context=".gallery.ui.fragments.ImageViewerFragment"
         >
 
+    <data>
+        <import type="android.view.View"/>
+        <variable name="exif_dialog_visible" type="boolean" />
+        <variable name="buttons_visible" type="boolean" />
+        <variable name="mini_exif_visible" type="boolean" />
+        <variable name="exifmodel" type="com.particlesdevs.photoncamera.gallery.model.ExifDialogModel"/>
+        <variable name="onHdrToggleClicked" type="android.view.View.OnClickListener" />
+        <variable name="scale" type="java.lang.String"/>
+        <variable name="onclickempty" type="android.view.View.OnClickListener" />
+    </data>
+
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_height="match_parent"
-            android:layout_width="match_parent"
-            android:animateLayoutChanges="true">
+            android:layout_width="match_parent">
 
         <FrameLayout
                 android:layout_width="match_parent"
@@ -17,14 +27,12 @@
                 android:onClickListener="@{onclickempty}"
                 tools:visibility="gone" />
 
-        <androidx.viewpager.widget.ViewPager
+        <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/view_pager"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="#000"
-                tools:visibility="gone">
-
-        </androidx.viewpager.widget.ViewPager>
+                tools:visibility="gone" />
         <include
                 layout="@layout/gallery_viewer_top_buttons"
                 android:layout_width="0dp"
@@ -96,6 +104,25 @@
                 android:text="@{scale}"
                 android:visibility='@{mini_exif_visible ? View.VISIBLE : View.INVISIBLE, default="invisible"}'
                 />
+
+        <ImageButton
+                android:id="@+id/hdr_toggle_text"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="72dp"
+                android:layout_marginEnd="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Toggle Ultra HDR viewing"
+                android:focusable="true"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_ultra_hdr"
+                android:tint="@android:color/white"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:visibility="visible" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

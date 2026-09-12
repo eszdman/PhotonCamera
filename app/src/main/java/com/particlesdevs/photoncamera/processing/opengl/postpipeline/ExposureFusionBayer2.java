@@ -76,15 +76,16 @@ public class ExposureFusionBayer2 extends Node {
         return tex;
     }
     void getHistogram(GLTexture lowGauss){
-        GLTexture vectored = glUtils.convertVec4(lowGauss,"in1.r*4.0");
-        //GLImage sourceh = glUtils.GenerateGLImage(lowGauss.mSize);
+        // The old path copied lowGauss into a half-res RGBA16F buffer with
+        // .r*4 broadcast to every channel just so the histogram saw the
+        // pre-multiplied red. Folding the factor into exposure[0] measures
+        // the same bins directly on lowGauss (~129 MB less GPU traffic).
         glHistogram = new GLHistogram(basePipeline.glint.glProcessing);
-        glHistogram.Compute(vectored);
+        glHistogram.exposure[0] = 4.f;
+        glHistogram.Compute(lowGauss);
         glHistogram.Bc = false;
         glHistogram.Gc = false;
         glHistogram.Ac = false;
-        //sourceh.close();
-        vectored.close();
     }
 
     float autoExposureHigh(){
@@ -136,7 +137,11 @@ public class ExposureFusionBayer2 extends Node {
         glProg.setTexture("InputBuffer",in);
         glProg.setTexture("BrBuffer",br);
         glProg.setVar("factor", str);
-        GLFormat format = new GLFormat(in.mFormat);
+        // ltm/fusionmap writes a vec2 (gain in R, 0 in G) and every consumer
+        // samples only the red channel, so RG16F carries everything - half
+        // the memory of the inherited RGBA16F (~64 MB saved at 64 MP, held
+        // from fusion until Initial completes).
+        GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 2);
         format.filter = GL_LINEAR;
         format.wrap = GL_CLAMP_TO_EDGE;
         GLTexture out = new GLTexture(in,format);
@@ -454,8 +459,8 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main1.mSize.y = WorkSize.y;
         basePipeline.main2.mSize.x = WorkSize.x;
         basePipeline.main2.mSize.y = WorkSize.y;
-        basePipeline.main3.mSize.x = WorkSize.x;
-        basePipeline.main3.mSize.y = WorkSize.y;
+        basePipeline.getMain3().mSize.x = WorkSize.x;
+        basePipeline.getMain3().mSize.y = WorkSize.y;
         //if(PhotonCamera.getManualMode().getCurrentExposureValue() != 0 && PhotonCamera.getManualMode().getCurrentISOValue() != 0) compressor = 1.f;
         float perlevel = downScalePerLevel;
         int levelcount = (int)(Math.log10(WorkSize.x)/Math.log10(perlevel));
@@ -570,8 +575,8 @@ public class ExposureFusionBayer2 extends Node {
         basePipeline.main1.mSize.y = initialSize.y;
         basePipeline.main2.mSize.x = initialSize.x;
         basePipeline.main2.mSize.y = initialSize.y;
-        basePipeline.main3.mSize.x = initialSize.x;
-        basePipeline.main3.mSize.y = initialSize.y;
+        basePipeline.getMain3().mSize.x = initialSize.x;
+        basePipeline.getMain3().mSize.y = initialSize.y;
         ((PostPipeline)basePipeline).FusionMap =
                 fusionMap(binnedFuse,exposureBase, (float)((PostPipeline)basePipeline).AecCorr/2.f);
         //Use EDI to interpolate fusionmap

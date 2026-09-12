@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import com.particlesdevs.photoncamera.util.Log;
 
@@ -14,8 +15,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
 
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_FRAMEBUFFER;
 import static android.opengl.GLES20.GL_FRAMEBUFFER_BINDING;
+import static android.opengl.GLES20.GL_LINEAR;
 import static android.opengl.GLES20.glBindFramebuffer;
 import static android.opengl.GLES20.glGetIntegerv;
 import static com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing.checkEglError;
@@ -73,6 +76,7 @@ public class GLBasePipeline implements AutoCloseable {
 
     // Swaps main3 with main1 and main2
     public GLTexture swap3() {
+        if (main3 == null) getMain3();
         if(texnum == 1) {
             GLTexture temp = main1;
             main1 = main3;
@@ -84,6 +88,26 @@ public class GLBasePipeline implements AutoCloseable {
             main3 = temp;
             return main2;
         }
+    }
+
+    /**
+     * Scratch main, allocated on first use instead of up front (~514 MB at
+     * 64 MP). Only demosaic-stage nodes (and dead/experimental variants) ever
+     * touch it; everything downstream of UpscaleCrop uses main1/2. Size tracks
+     * the current workSize, matching what eager allocation + resizing would
+     * have produced at any touch point. Callers must use this, never
+     * the field directly (a null field means "not needed yet").
+     */
+    public GLTexture getMain3() {
+        if (main3 == null) {
+            Point size = workSize != null ? workSize
+                    : (mParameters != null ? mParameters.rawSize : null);
+            if (size == null && main1 != null) size = main1.mSize;
+            main3 = new GLTexture(new Point(size),
+                    new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),
+                    null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
+        return main3;
     }
 
     private void tuningLog(String name, String value){
@@ -149,6 +173,21 @@ public class GLBasePipeline implements AutoCloseable {
     }
 
     public GLImage runAll() {
+        runAllInternal(null);
+        return glint.glProcessing.mOut;
+    }
+
+    /**
+     * Runs the node chain and streams the final render directly into
+     * {@code sink}'s pixel memory (software ARGB_8888), avoiding any
+     * intermediate full-frame output buffer. Returns {@code sink}.
+     */
+    public Bitmap runAll(Bitmap sink) {
+        runAllInternal(sink);
+        return sink;
+    }
+
+    private void runAllInternal(Bitmap sink) {
         lastI();
         for (int i = 0; i < Nodes.size(); i++) {
             prepareNode(Nodes.get(i),i);
@@ -158,6 +197,7 @@ public class GLBasePipeline implements AutoCloseable {
             if (i != Nodes.size() - 1) {
                 drawProgramTexture(Nodes.get(i));
             }
+            Nodes.get(i).postDrawOracle();
             Nodes.get(i).AfterRun();
         }
         if(texnum == 1){
@@ -165,7 +205,14 @@ public class GLBasePipeline implements AutoCloseable {
         }else {
             if (main1 != null) main1.close();
         }
-        glint.glProcessing.drawBlocksToOutput();
+        if (sink != null) {
+            if (!fusedSinkSkip()) {
+                glint.glProcessing.drawBlocksToOutput(sink);
+            }
+        } else {
+            glint.glProcessing.drawBlocksToOutput();
+        }
+        replayForHarness(sink);
         if(texnum == 1){
             if (main1 != null) main1.close();
         }else {
@@ -174,7 +221,6 @@ public class GLBasePipeline implements AutoCloseable {
         if (main3 != null) main3.close();
         glint.glProgram.close();
         Nodes.clear();
-        return glint.glProcessing.mOut;
     }
 
     public ByteBuffer runAllRaw() {
@@ -213,6 +259,24 @@ public class GLBasePipeline implements AutoCloseable {
             glint.glProgram.drawBlocks(node.GetProgTex());
             glint.glProgram.closed = true;
         }
+    }
+
+    /**
+     * Tiling-harness hook (Phase T1+): replays the sink stage for
+     * determinism/band-sensitivity comparison while inputs are still alive.
+     * Default no-op; PostPipeline overrides under its debug tunable.
+     */
+    protected void replayForHarness(Bitmap sink) {
+    }
+
+    /**
+     * T4b fused-sink hook: true once a produce driver streamed every band
+     * straight to the sink bitmap (nothing left for runAll to draw).
+     * Default false; PostPipeline overrides from its per-shot flag. Zero
+     * behavior change for other pipelines.
+     */
+    protected boolean fusedSinkSkip() {
+        return false;
     }
 
     private void prepareNode(Node node, int index) {

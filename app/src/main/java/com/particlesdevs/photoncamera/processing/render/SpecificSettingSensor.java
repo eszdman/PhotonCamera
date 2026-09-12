@@ -3,6 +3,8 @@ package com.particlesdevs.photoncamera.processing.render;
 import android.hardware.camera2.params.ColorSpaceTransform;
 import android.util.Rational;
 
+import com.particlesdevs.photoncamera.api.VendorTagUtils;
+
 //Device current sensor specific
 public class SpecificSettingSensor {
     public int id = 0;
@@ -39,6 +41,16 @@ public class SpecificSettingSensor {
     public double[][] NoiseModelerArr;
     public boolean ModelerExists = false;
     public int[] preferredResolution;
+    /**
+     * In-Sensor Zoom (ISZ) virtual lens. When present, this physical sensor exposes
+     * an extra lens-switcher entry that reuses this sensor but applies the given
+     * CaptureRequest key so the sensor performs the zoom in-sensor. The zoom ratio
+     * is informational only (composes the displayed zoom factor); the app does not
+     * crop for it.
+     */
+    public VendorTagUtils.TunableKey iszKey;
+    public float iszZoomRatio;
+    public boolean hasIsz = false;
     public SpecificSettingSensor(){
         NoiseModelerArr = new double[4][4];
 

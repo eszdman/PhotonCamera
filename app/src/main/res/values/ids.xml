@@ -49,4 +49,6 @@
     <item name="ae_metering_std_center_button" type="id"/>
     <item name="ae_metering_std_average_button" type="id"/>
     <item name="ae_metering_std_spot_button" type="id"/>
+    <item name="zoom_ratio_tag" type="id"/>
+    <item name="zoom_hidden_tag" type="id"/>
 </resources>

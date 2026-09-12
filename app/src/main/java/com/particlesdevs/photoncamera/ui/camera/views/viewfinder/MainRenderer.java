@@ -35,6 +35,33 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private boolean mUpdateST = false;
     private volatile boolean mMirrorPreview;
 
+    /**
+     * Frames to observe before an ISZ lens transition is considered settled.
+     * ~10 frames at 30fps covers the sensor's readout-mode switch latency.
+     */
+    public static final int ISZ_SETTLE_FRAMES = 10;
+
+    /**
+     * While true, newly arrived frames are counted toward the settle threshold
+     * for ISZ sensor-mode transitions. Every frame is still latched (on the GL
+     * thread, without rendering) so the camera pipeline keeps flowing, while
+     * the SurfaceView keeps presenting the frozen pre-switch frame until the
+     * sensor has settled. Latching without rendering can never stall the
+     * pipeline, so this mask cannot wedge the preview.
+     */
+    private volatile boolean mSettleTracking;
+    private final IszSettleCounter mSettleCounter = new IszSettleCounter(ISZ_SETTLE_FRAMES);
+
+    /**
+     * Begins settle tracking for an ISZ lens-switch mask. Re-arming resets the
+     * counter. Tracking stops on its own at the threshold; a stuck flag with
+     * no frames is inert. Safe to call from any thread.
+     */
+    public void beginSettleTracking() {
+        mSettleCounter.reset();
+        mSettleTracking = true;
+    }
+
     private final GLPreview mView;
     private ManualModeConsole mManualModeConsole;
 
@@ -127,6 +154,23 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     }
 
     public synchronized void onFrameAvailable(SurfaceTexture st) {
+        if (mSettleTracking) {
+            if (!mSettleCounter.onFrame()) {
+                // Freeze: consume the frame on the GL thread (releasing its
+                // buffer back to the camera pipeline) without rendering, so
+                // the frozen pre-switch frame stays on screen.
+                mView.queueEvent(() -> {
+                    try {
+                        if (mSettleTracking) st.updateTexImage();
+                    } catch (Exception ignored) {
+                        // Surface gone mid-transition (e.g. paused): drop it.
+                    }
+                });
+                return;
+            }
+            // Settled: fall through to live rendering of the newest frame.
+            mSettleTracking = false;
+        }
         mUpdateST = true;
         mView.requestRender();
     }

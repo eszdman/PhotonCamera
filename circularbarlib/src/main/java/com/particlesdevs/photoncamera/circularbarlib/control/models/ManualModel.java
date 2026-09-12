@@ -118,18 +118,34 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         Log.d(ManualModel.class.getSimpleName(), "onSelectedKnobItemChanged");
         vibrator.vibrate(tick);
         //vibrator.cancel();
+        applySelection(knobItemInfo, knobItemInfo2);
+    }
+
+    public void resetModel() {
+        vibrator.vibrate(tick);
+        resetModelSilently();
+    }
+
+    /**
+     * Resets the model to auto without haptic feedback. Used when the manual
+     * panel is closed, where up to four models reset at once and each tick
+     * would stack into a multi-buzz.
+     */
+    public void resetModelSilently() {
+        applySelection(null, autoModel);
+    }
+
+    private void applySelection(KnobItemInfo knobItemInfo, final KnobItemInfo knobItemInfo2) {
         if (knobItemInfo == knobItemInfo2)
             return;
         onSelectedKnobItemChanged(knobItemInfo2);
         if (knobItemInfo != null) {
             knobItemInfo.drawable.setState(new int[]{-android.R.attr.state_selected});
         }
-        knobItemInfo2.drawable.setState(new int[]{android.R.attr.state_selected});
-        fireValueChangedEvent(knobItemInfo2.text);
-    }
-
-    public void resetModel() {
-        onSelectedKnobItemChanged(null, null, autoModel);
+        if (knobItemInfo2 != null) {
+            knobItemInfo2.drawable.setState(new int[]{android.R.attr.state_selected});
+            fireValueChangedEvent(knobItemInfo2.text);
+        }
     }
 
     public abstract void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2);

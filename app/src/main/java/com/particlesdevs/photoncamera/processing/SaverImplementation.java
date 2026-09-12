@@ -6,8 +6,10 @@ import android.hardware.camera2.CaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 
+import android.graphics.Rect;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.capture.ZoomController;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.processor.ProcessorBase;
 import com.particlesdevs.photoncamera.util.Allocator;
@@ -35,14 +37,37 @@ public class SaverImplementation {
         int height;
         int offset = 0;
         int capacity = image.getPlanes()[0].getBuffer().capacity();
+        int rowStride = image.getPlanes()[0].getRowStride();
+        int pixelStride = image.getPlanes()[0].getPixelStride();
         if(image.getFormat() == 0x25){
             width = image.getWidth();
             height = image.getHeight();
         } else {
-            width = image.getPlanes()[0].getRowStride() /
-                    image.getPlanes()[0].getPixelStride();
+            width = rowStride / pixelStride;
             height = image.getHeight();
         }
+
+        // Digital zoom: crop a rectangular region of the RAW buffer that the
+        // preview already reflects. This crops both the stored JPEG and RAW/DNG
+        // because both derive from this single ImageFrame.
+        CaptureController captureController = PhotonCamera.getCaptureController();
+        if (captureController != null && captureController.zoomController.isZoomed()) {
+            int logicalW = image.getWidth();
+            int logicalH = image.getHeight();
+            ZoomController.CropRegion cropRegion =
+                    captureController.zoomController.computeCropRegion(logicalW, logicalH);
+            boolean useZoomCrop = cropRegion.width < logicalW || cropRegion.height < logicalH;
+            if (useZoomCrop) {
+                ImageFrame frame = ImageFrame.fromCrop(
+                        image.getPlanes()[0].getBuffer(), image.getFormat(),
+                        logicalW, logicalH, rowStride, pixelStride, cropRegion,
+                        PhotonCamera.getSettings().binning);
+                if (frame == null) return null;
+                frame.timestamp = image.getTimestamp();
+                return frame;
+            }
+        }
+
         if(PhotonCamera.getSettings().aspect169){
             if(width > height){
                 height = width * 9 / 16;
@@ -52,16 +77,19 @@ public class SaverImplementation {
                 } else {
                     offsetH = (image.getHeight() - height) / 2;
                     offsetH -= offsetH % 2;
-                    offset = image.getPlanes()[0].getRowStride() * offsetH;
+                    offset = rowStride * offsetH;
                 }
-                capacity = image.getPlanes()[0].getRowStride() * height;
+                capacity = rowStride * height;
             }
         }
-        Allocator.binning = PhotonCamera.getSettings().binning;
-        ImageFrame frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, image.getPlanes()[0].getRowStride(), offset, capacity);
+        boolean doBinning = PhotonCamera.getSettings().binning;
+        ImageFrame frame;
+        synchronized (Allocator.class) {
+            Allocator.binning = doBinning;
+            frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, rowStride, offset, capacity);
+        }
         frame.timestamp = image.getTimestamp();
-
-        if (Allocator.binning) {
+        if (doBinning) {
             frame.width = width / 2;
             frame.height = height / 2;
         } else {

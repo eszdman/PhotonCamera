@@ -16,6 +16,8 @@ import de.hdodenhof.circleimageview.BuildConfig;
 public class DngCreator {
     private long nativePtr;
     private static final String TAG = "DngCreator";
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US));
 
     // CFA Pattern constants
     public static final int CFA_PATTERN_RGGB = 0;
@@ -26,6 +28,7 @@ public class DngCreator {
     // Native methods
     private native long create();
     private native ByteBuffer createDNG(long nativePtr, int width, int height, ByteBuffer rawImageData);
+    private native void freeDNG(ByteBuffer dngData);
     private native void setOrientation(long nativePtr, int orientation);
     private native void setWhiteLevel(long nativePtr, double whiteLevel);
     private native void setBlackLevel(long nativePtr, short[] blackLevel);
@@ -428,14 +431,21 @@ public class DngCreator {
             throw new RuntimeException("Failed to create DNG data");
         }
 
-        ByteBuffer softbuffer = ByteBuffer.allocate(dngData.capacity());
-        softbuffer.put(dngData);
-        softbuffer.position(0);
-
+        // Stream directly out of the native buffer: a full-size heap copy of
+        // the DNG (~128 MB at 64 MP) would spike memory right after merging.
+        byte[] chunk = new byte[256 * 1024];
         try {
-            outputStream.write(softbuffer.array());
+            while (dngData.hasRemaining()) {
+                int n = Math.min(chunk.length, dngData.remaining());
+                dngData.get(chunk, 0, n);
+                outputStream.write(chunk, 0, n);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to write DNG data to output stream", e);
+        } finally {
+            // malloc'd by WriteToMemory: NewDirectByteBuffer takes no
+            // ownership, so an explicit free is the only release path.
+            freeDNG(dngData);
         }
     }
 
@@ -460,8 +470,7 @@ public class DngCreator {
         setSoftware("PhotonCamera v" + BuildConfig.VERSION_NAME+BuildConfig.VERSION_CODE);
         
         // Set current date and time
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
-        setDateTime(dateFormat.format(new Date()));
+        setDateTime(DATE_FORMAT.get().format(new Date()));
         
         // Set noise profile from noise modeler
         if (parameters.noiseModeler != null && parameters.noiseModeler.baseModel != null) {

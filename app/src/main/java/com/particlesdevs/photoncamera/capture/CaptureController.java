@@ -70,6 +70,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.Camera2ApiAutoFix;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
+import com.particlesdevs.photoncamera.processing.render.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.api.Settings;
@@ -90,6 +91,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SensorConfigInjector;
 import com.particlesdevs.photoncamera.settings.annotations.SensorConfig;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
+import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
@@ -328,6 +330,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /*{@link CaptureRequest.Builder} for the camera preview*/
     public CaptureRequest.Builder mPreviewRequestBuilder;
     public CaptureRequest mPreviewInputRequest;
+    /** Digital zoom source of truth; drives both the preview and the captured crop. */
+    public final ZoomController zoomController = new ZoomController();
+    /** True when the camera is (re)opening because of a zoom-driven lens switch. */
+    private boolean zoomDrivenLensSwitch = false;
     /**
      * The current state of camera state for taking pictures.
      */
@@ -1128,6 +1134,200 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * Applies the current zoom ratio to a capture request builder so the
+     * viewfinder (and any replay of the request) matches the crop that will be
+     * taken out of the stored RAW buffer. Uses a scaled sensor crop region
+     * because a {@code SCALER_CROP_REGION} in active-array coordinates is the
+     * widest-compatible representation.
+     *
+     * @param builder the request builder to modify (preview or still capture)
+     */
+    public void applyZoom(CaptureRequest.Builder builder) {
+        applyZoom(builder, true);
+    }
+
+    public void applyZoom(CaptureRequest.Builder builder, boolean isPreview) {
+        if (builder == null) return;
+        if (!isPreview) {
+            return;
+        }
+        CameraCharacteristics chars = mCameraCharacteristics;
+        if (chars == null) return;
+        Rect activeArray = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if (activeArray == null) return;
+        try {
+            // SCALER_CROP_REGION is used for all API levels because it supports a
+            // pinch focal point (CONTROL_ZOOM_RATIO always zooms centred) AND its
+            // width/height are scaled by the same factor, so it preserves the
+            // active-array aspect ratio. CONTROL_ZOOM_RATIO is also set on API 30+
+            // so the HUD can read it back consistently.
+            // The crop region uses the DIGITAL zoom (always >= 1.0); the effective
+            // zoom is a combination of the physical lens and this digital crop.
+            builder.set(CaptureRequest.SCALER_CROP_REGION, zoomController.computeSensorCrop(activeArray));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoomController.getDigitalZoom());
+            }
+        } catch (IllegalArgumentException e) {
+            Log.d(TAG, "applyZoom: key not supported, skipping. " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Updates the effective zoom (and pinch focus point), then re-submits the
+     * repeating preview request so the change is applied live. If the target
+     * crosses a physical-lens threshold, the lens switch is triggered and the
+     * preview update is deferred until the new lens reopens.
+     *
+     * @param ratio  target effective zoom ratio (may be &lt; 1.0 for ultra-wide)
+     * @param focusX normalized pinch focus X in [0,1]
+     * @param focusY normalized pinch focus Y in [0,1]
+     */
+    public void setZoom(float ratio, float focusX, float focusY) {
+        String switchTo = zoomController.setTargetZoom(ratio, focusX, focusY);
+        if (switchTo != null) {
+            requestLensSwitch(switchTo);
+            return;
+        }
+        if (mPreviewRequestBuilder != null) {
+            applyZoom(mPreviewRequestBuilder);
+            rebuildPreviewBuilder();
+        }
+    }
+
+    /** Effective zoom (what the indicator and pinch gesture operate on). */
+    public float getZoomRatio() {
+        return zoomController.getZoomRatio();
+    }
+
+    /** Minimum effective zoom of the active facing's lens set. */
+    public float getMinZoom() {
+        return zoomController.getMinZoom();
+    }
+
+    /** Maximum effective zoom of the active facing's lens set. */
+    public float getMaxZoom() {
+        return zoomController.getMaxZoom();
+    }
+
+    /** True when zoom is locked to the current lens (no auto lens-switch on zoom). */
+    public boolean isLensSwitchLocked() {
+        return zoomController.isLensSwitchLocked();
+    }
+
+    public void setLensSwitchLocked(boolean locked) {
+        zoomController.setLensSwitchLocked(locked);
+    }
+
+    public void resetZoom() {
+        zoomController.resetToActiveLensNative();
+        if (mPreviewRequestBuilder != null) {
+            applyZoom(mPreviewRequestBuilder);
+            rebuildPreviewBuilder();
+        }
+    }
+
+    /**
+     * Builds the physical-lens model for the zoom controller from the lens data
+     * map, restricted to a single facing, and marks the currently open lens.
+     *
+     * @param lensDataMap  cameraId -> CameraLensData (all facing lens metadata)
+     * @param activeFacing the LENS_FACING_* of the currently open camera
+     */
+    public void configureZoomLenses(Map<String, CameraLensData> lensDataMap, int activeFacing) {
+        List<ZoomController.LensEntry> entries = new ArrayList<>();
+        if (lensDataMap != null) {
+            for (Map.Entry<String, CameraLensData> e : lensDataMap.entrySet()) {
+                CameraLensData lens = e.getValue();
+                if (lens.getFacing() != activeFacing) continue;
+                entries.add(new ZoomController.LensEntry(
+                        e.getKey(), lens.getZoomFactor(), readMaxDigitalZoom(e.getKey())));
+            }
+        }
+        zoomController.setLenses(entries);
+        zoomController.setActiveLens(PhotonCamera.getSettings().mCameraID);
+    }
+
+    /**
+     * Applies the In-Sensor Zoom (ISZ) CaptureRequest key when the currently
+     * active camera id is an ISZ virtual lens. The key makes the physical sensor
+     * perform the zoom in-sensor; the zoom ratio is informational only (it only
+     * composes the displayed zoom factor) so no crop is applied here.
+     *
+     * @param builder    the request builder being configured (preview or capture)
+     * @param physicalID the physical camera id for the session
+     */
+    private void applyIszIfActive(CaptureRequest.Builder builder, String physicalID) {
+        try {
+            String cameraId = PhotonCamera.getSettings().mCameraID;
+            if (builder == null || cameraId == null || !CameraManager2.isIszVirtual(cameraId)) return;
+            int sensorId = -1;
+            try {
+                sensorId = Integer.parseInt(physicalID);
+            } catch (NumberFormatException ignored) {
+                return;
+            }
+            SpecificSettingSensor isz = PhotonCamera.getSpecificSensor().getIszForSensor(sensorId);
+            if (isz == null || isz.iszKey == null) return;
+            // Apply a copy so the shared SensorSpecifics config is not mutated.
+            VendorTagUtils.TunableKey key = new VendorTagUtils.TunableKey(
+                    isz.iszKey.type, isz.iszKey.name, VendorTagUtils.TunableKey.classForValueType(isz.iszKey.valueType), isz.iszKey.parseValue());
+            Log.d(TAG, "Applying ISZ key " + key.name + " = " + key.value + " (" + key.valueType + ") for sensor " + sensorId);
+            VendorTagUtils.applyTunableKeys(builder, Collections.singletonList(key), physicalID);
+        } catch (Exception e) {
+            Log.d(TAG, "applyIszIfActive: " + Log.getStackTraceString(e));
+        }
+    }
+
+    /** Reads the max digital zoom for a (possibly composite) camera id. */
+    private float readMaxDigitalZoom(String cameraId) {
+        String physical = cameraId;
+        if (cameraId != null && cameraId.contains("-")) {
+            physical = cameraId.split("-")[1];
+        }
+        CameraCharacteristics chars = mCameraCharacteristicsMap.get(physical);
+        if (chars == null) return 1f;
+        Float max = chars.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+        return max != null && max > 0f ? Math.max(max, 20f) : 20f;
+    }
+
+    /** Handles a physical lens switch requested by the zoom controller. */
+    private void requestLensSwitch(String cameraId) {
+        Log.d(TAG, "requestLensSwitch -> " + cameraId);
+        zoomDrivenLensSwitch = true;
+        PreferenceKeys.setCameraID(cameraId);
+        restartCamera();
+    }
+
+    /**
+     * Masks the physical sensor's readout-mode switch when changing onto an
+     * ISZ virtual lens: the presented frame stays frozen while newly arrived
+     * frames are latched-and-dropped on the GL thread until the sensor has
+     * settled, then live rendering resumes on its own. The pipeline is never
+     * gated, so this mask cannot stall or wedge the preview; a tracking flag
+     * left over with no frames is inert and reset by the next arm.
+     *
+     * <p>Arms only for genuine lens changes onto a virtual lens (zoom-driven
+     * or manual). Everything else leaves any in-flight tracking to finish (or
+     * reset) on its own.
+     */
+    private void armOrCancelIszTransition() {
+        String targetId = PhotonCamera.getSettings().mCameraID;
+        boolean switchingLens = zoomDrivenLensSwitch
+                || (targetId != null && !targetId.equals(zoomController.getActiveLensId()));
+        if (targetId != null && CameraManager2.isIszVirtual(targetId) && switchingLens && mTextureView != null) {
+            mTextureView.beginPreviewSettleTracking();
+        }
+    }
+
+    public boolean isZoomDrivenLensSwitch() {
+        return zoomDrivenLensSwitch;
+    }
+
+    public void clearZoomDrivenLensSwitch() {
+        zoomDrivenLensSwitch = false;
+    }
+
+    /**
      * Configures the necessary {@link Matrix} transformation to `mTextureView`.
      * This method should be called after the camera preview size is determined in
      * setUpCameraOutputs and also the size of `mTextureView` is fixed.
@@ -1230,6 +1430,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     @SuppressLint("MissingPermission")
     public void restartCamera() {
         Log.d(TAG, "restartCamera() called from \"" + Thread.currentThread().getName() + "\" Thread");
+        armOrCancelIszTransition();
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
         if (paramController != null) {
             paramController.onCameraChanged();
@@ -1533,6 +1734,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (paramController != null) {
             paramController.onCameraChanged();
         }
+        // Re-anchor the active lens choice; the lens/facing model itself is fed
+        // from the lens-data map by CameraFragment on reopen.
+        zoomController.setActiveLens(PhotonCamera.getSettings().mCameraID);
         //Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
 
         StreamConfigurationMap map = null;
@@ -1736,6 +1940,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         applyAeMeteringRegions(mPreviewRequestBuilder);
                         Camera2ApiAutoFix.applyPrev(mPreviewRequestBuilder);
                         VendorTagUtils.builderSessionApply(mPreviewRequestBuilder, false, useMaximumResolutionKey, physicalID);
+                        applyIszIfActive(mPreviewRequestBuilder, physicalID);
                         //if(isZslMode()){
                             try {
                                 mPreviewRequestBuilder.set(CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE, CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE_ON);
@@ -1869,6 +2074,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mInitialMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
         mPreviewMeteringAE = mInitialMeteringAE;
         mPreviewAEMode = mPreviewRequestBuilder.get(CONTROL_AE_MODE);
+        applyZoom(mPreviewRequestBuilder);
     }
 
     private void showToast(String msg) {
@@ -2119,7 +2325,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (isoVal != null) previewISO = isoVal.doubleValue();
         }
         final double exposureVal = previewExpTime * previewISO;
-
+        boolean doZoomCrop = zoomController.isZoomed();
         // Copy selected Images to ImageFrames only now (on shutter press)
         List<ImageFrame> selected = new ArrayList<>();
         for (int i = skip; i < rawImages.size(); i++) {
@@ -2132,6 +2338,25 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int height = img.getHeight();
             int bufCapacity = img.getPlanes()[0].getBuffer().capacity();
             int offset = 0;
+
+            // Digital zoom crop (crops both JPEG and RAW/DNG on the ZSL path).
+            ImageFrame frame;
+            if (doZoomCrop) {
+                int logicalW = img.getWidth();
+                int logicalH = img.getHeight();
+                frame = ImageFrame.fromCrop(
+                        img.getPlanes()[0].getBuffer(), img.getFormat(),
+                        logicalW, logicalH, rowStride, pixelStride,
+                        zoomController.computeCropRegion(logicalW, logicalH),
+                        PhotonCamera.getSettings().binning);
+                if (frame == null) { img.close(); continue; }
+                frame.timestamp = img.getTimestamp();
+                img.close();
+                mExposures.put(frame.timestamp, exposureVal);
+                selected.add(frame);
+                continue;
+            }
+
             if (PhotonCamera.getSettings().aspect169 && width > height) {
                 height = width * 9 / 16;
                 int offsetH = (img.getHeight() - height) / 2;
@@ -2139,14 +2364,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 offset = rowStride * offsetH;
                 bufCapacity = rowStride * height;
             }
-            Allocator.binning = PhotonCamera.getSettings().binning;
-            ImageFrame frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(),
-                    width, rowStride, offset, bufCapacity);
+            boolean doBinning2 = PhotonCamera.getSettings().binning;
+            synchronized (com.particlesdevs.photoncamera.util.Allocator.class) {
+                Allocator.binning = doBinning2;
+                frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(), width, rowStride, offset, bufCapacity);
+            }
             frame.timestamp = img.getTimestamp();
-
             frame.width = width;
             frame.height = height;
-            if(PhotonCamera.getSettings().binning) {
+            if(doBinning2) {
                 frame.width/= 2;
                 frame.height/= 2;
             }
@@ -2302,6 +2528,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //setAutoFlash(captureBuilder);
             //int rotation = Interface.getGravity().getCameraRotation();//activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, PhotonCamera.getGravity().getCameraRotation(mSensorOrientation));
+            applyZoom(captureBuilder, false);
             if (mTouchFocus != null && mTouchFocus.isTouchFocus) {
                 captureBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_REGIONS));
                 captureBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_REGIONS));
@@ -2309,6 +2536,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 applyAeMeteringRegions(captureBuilder);
             }
             VendorTagUtils.builderSessionApply(captureBuilder, true, useMaximumResolutionKey, physicalID);
+            applyIszIfActive(captureBuilder, physicalID);
             try {
                 captureBuilder.set(CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE, CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE_ON);
             } catch (Exception e) {

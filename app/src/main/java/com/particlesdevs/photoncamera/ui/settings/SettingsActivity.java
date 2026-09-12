@@ -193,6 +193,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             }
             
             filterPreferencesByMode();
+            applySaveHeicUi();
             showHideHdrxSettings();
             setFramesSummary();
             setVersionDetails();
@@ -393,6 +394,36 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
         }
 
+        /**
+         * Applies the Save HEIC toggle to the settings UI: the "Save" list
+         * shows its JPEG or HEIC entries depending on the toggle. On devices
+         * without HEIC encode (API &lt;28 or no HEVC encoder) the toggle is
+         * hidden entirely and forced off.
+         */
+        private void applySaveHeicUi() {
+            try {
+                boolean supported = com.particlesdevs.photoncamera.processing.encoder.HeicSupport.isHeicEncodeSupported();
+                Preference heicPref = findPreference(
+                        mContext.getString(R.string.pref_save_heic_key));
+                if (heicPref != null) {
+                    heicPref.setVisible(supported);
+                    if (!supported) {
+                        PreferenceKeys.setHeicSave(false);
+                    }
+                }
+                androidx.preference.ListPreference savePref = findPreference(
+                        mContext.getString(R.string.pref_save_raw_key));
+                if (savePref != null) {
+                    boolean heic = supported && PreferenceKeys.isHeicSave();
+                    savePref.setEntries(heic
+                            ? R.array.raw_mode_entries_heic
+                            : R.array.raw_mode_entries);
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "applySaveHeicUi failed", e);
+            }
+        }
+
         @NonNull
         @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -573,6 +604,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             }
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue)) {
                 setFramesSummary();
+            }
+            if (key.equals(PreferenceKeys.Key.KEY_SAVE_HEIC.mValue)) {
+                applySaveHeicUi();
             }
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_HIDE_GALLERY_ICON.mValue)) {
                 Log.d("SettingsFragment", "Hide gallery icon changed, expected key: " + PreferenceKeys.Key.KEY_HIDE_GALLERY_ICON.mValue);

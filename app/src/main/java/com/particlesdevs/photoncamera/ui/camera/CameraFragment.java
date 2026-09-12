@@ -62,11 +62,13 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.databinding.Observable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.particlesdevs.photoncamera.BR;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
@@ -91,7 +93,9 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
+import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -149,6 +153,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     public Swipe mSwipe;
+    private LensZoomBarController lensZoomBarController;
     // Created on an AsyncTask thread in onResume and consumed from the camera
     // callback threads; volatile + local-copy access keeps them consistent.
     private volatile MediaPlayer burstPlayer;
@@ -290,6 +295,30 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         captureController.isDualSession = supportedDevice.specific.specificSetting.isDualSessionSupported;
         mHorizonIndicatorView = cameraFragmentBinding.layoutViewfinder.horizonIndicatorView;
         this.mSwipe = new Swipe(this);
+        this.lensZoomBarController = new LensZoomBarController(
+                cameraFragmentBinding.lensZoomBar,
+                cameraFragmentBinding.auxButtonsContainer,
+                cameraFragmentBinding.zoomSlider,
+                cameraFragmentBinding.zoomLockPill,
+                cameraFragmentBinding.zoomLockButton,
+                captureController,
+                cameraFragmentViewModel);
+        lensZoomBarController.init();
+        mSwipe.setZoomGestureListener(lensZoomBarController::onPinchGesture);
+        cameraFragmentViewModel.getCameraFragmentModel().addOnPropertyChangedCallback(
+                new Observable.OnPropertyChangedCallback() {
+                    @Override
+                    public void onPropertyChanged(Observable sender, int propertyId) {
+                        if (lensZoomBarController == null) return;
+                        CameraFragmentModel model = (CameraFragmentModel) sender;
+                        if (propertyId == BR._all || propertyId == BR.zoomRatio) {
+                            lensZoomBarController.onZoomChanged(model.getZoomRatio());
+                        }
+                        if (propertyId == BR._all || propertyId == BR.settingsBarVisibility) {
+                            lensZoomBarController.setSettingsHidden(model.isSettingsBarVisibility());
+                        }
+                    }
+                });
         var gyro = PhotonCamera.getGyro();
         if ((mHorizonIndicatorView != null) && (gyro != null)) {
             mHorizonIndicatorView.updateDisplayRotation(getCameraFragmentViewModel().getCameraFragmentModel().getOrientation());
@@ -396,6 +425,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
         mCameraUIEventsListener.onPause();
+        if (lensZoomBarController != null) lensZoomBarController.onPause();
         auxButtonsViewModel.setAuxButtonListener(null);
         // The players are created asynchronously in onResume, so they may still
         // be null when the app is backgrounded again quickly.
@@ -1209,21 +1239,53 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
             auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
+            // Feed the physical-lens model into the zoom controller so pinch can
+            // switch lenses and zoom below 1.0x (ultra-wide).
+            updateZoomLensModel();
+        }
+
+        private void updateZoomLensModel() {
+            if (captureController == null || mCameraLensDataMap == null) return;
+            CameraLensData active = mCameraLensDataMap.get(PreferenceKeys.getCameraID());
+            int facing = active != null
+                    ? active.getFacing()
+                    : CameraCharacteristics.LENS_FACING_BACK;
+            captureController.configureZoomLenses(mCameraLensDataMap, facing);
         }
 
         @Override
         public void onCameraRestarted() {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            // Same-sensor ISZ transitions keep the overlay (grid/HUD stay
+            // valid); everything else wipes it for a fresh lens.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
             mCameraUIView.refresh(CaptureController.isProcessing);
             mTouchFocus.resetFocusCircle();
         }
 
         @Override
         public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            // See onCameraRestarted: the overlay survives same-sensor ISZ entry.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
             auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
+            if (captureController != null) {
+                if (captureController.isZoomDrivenLensSwitch()) {
+                    // The zoom target changed because a lens switch occurred. Preserve
+                    // the effective zoom so the new lens continues where the user left
+                    // off, re-expressing any crop on the new sensor.
+                    captureController.clearZoomDrivenLensSwitch();
+                } else {
+                    // A manual lens/camera switch invalidates the existing crop.
+                    captureController.resetZoom();
+                }
+                cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                if (lensZoomBarController != null) lensZoomBarController.refreshZoomRange();
+            }
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
             manualModeConsole.setPreserveManualWb(PreferenceKeys.isPreserveManualWbOn());

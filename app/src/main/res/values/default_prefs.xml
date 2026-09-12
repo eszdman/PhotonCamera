@@ -14,11 +14,13 @@
     <bool name="pref_disable_align_default">false</bool>
     <bool name="pref_hdrx_nr_default">true</bool>
     <bool name="pref_save_raw_default">false</bool>
+    <bool name="pref_save_heic_default">false</bool>
 
     <bool name="pref_quad_bayer_default">false</bool>
     <bool name="pref_ultrahdr_default">false</bool>
     <bool name="pref_remosaic_default">false</bool>
     <bool name="pref_eis_photo_default">true</bool>
+    <bool name="pref_zoom_lock_default">false</bool>
     <bool name="pref_fps_preview_default">false</bool>
     <bool name="pref_hdrx_mode_default">true</bool>
     <string name="pref_ae_mode_default" translatable="false">1</string>

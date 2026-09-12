@@ -5,6 +5,7 @@ import android.util.Pair;
 
 import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
+import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLBuffer;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
@@ -106,7 +107,9 @@ public class ESD4D extends GLOneScript {
         for (int i = 0; i < maxFrames; i++) {
             GLTexture rawSrc = (i == 0) ? inputBase : tempRaw;
             if (i > 0) {
-                tempRaw.loadData(images.get(i).buffer);
+                try (ImageFrame.Upload up = images.get(i).upload()) {
+                    tempRaw.loadData(up.buffer);
+                }
             }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 Bayer quad)
@@ -283,6 +286,12 @@ public class ESD4D extends GLOneScript {
     public FloatBuffer kernelsMapCPU;
     /** Size of {@link #kernelsMapCPU}. */
     public Point kernelsMapCPUSize;
+    /**
+     * Base direct buffer behind {@link #kernelsMapCPU} (the inference
+     * result). Single owner: whoever holds it frees it exactly once via
+     * {@code Allocator.free} after the GPU upload — views don't free.
+     */
+    public ByteBuffer kernelsMapBase;
     /** Noise sigma fed to KernelNet (captured pre-merge-inflation). */
     float kernelSigma;
     GLTexture result;
@@ -424,7 +433,11 @@ public class ESD4D extends GLOneScript {
             int idx = frameCnt == 1 ? 0
                     : (int) Math.round((double) k * (images.size() - 1) / (frameCnt - 1));
             GLTexture rawSrc = (idx == 0) ? inputBase : tempRaw;
-            if (idx > 0) tempRaw.loadData(images.get(idx).buffer);
+            if (idx > 0) {
+                try (ImageFrame.Upload up = images.get(idx).upload()) {
+                    tempRaw.loadData(up.buffer);
+                }
+            }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 quad)
             glProg.setLayout(tile, tile, 1);
@@ -506,7 +519,10 @@ public class ESD4D extends GLOneScript {
         cfaShift = (cfa == 1 || cfa == 2) ? new Point(cfa % 2, cfa / 2) : new Point(0, 0);
         packedSize = new Point(rawHalf.x + cfaShift.x, rawHalf.y + cfaShift.y);
         result = new GLTexture(raw,new GLFormat(GLFormat.DataType.UNSIGNED_16,1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),
+                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
         // Pyramid diff
         baseDiff = new GLTexture(packedSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         // Temporal result
@@ -807,6 +823,11 @@ public class ESD4D extends GLOneScript {
         glProg.setTextureCompute("outTexture",brightMap, true);
         glProg.computeAuto(brightMap.mSize, 1);
         exportBrightMap();
+        // GPU copy consumed (the CPU copy feeds inference from here on):
+        // release now instead of AfterRun so it doesn't span alignment +
+        // the merge loop. Nulled; AfterRun null-guards it.
+        brightMap.close();
+        brightMap = null;
         // KernelNet's input derives from the reference frame only, so its
         // inference is independent of the alignment/merge loop below. Run it
         // on a worker thread concurrently with alignment (merge00 / FlowNet /
@@ -875,6 +896,17 @@ public class ESD4D extends GLOneScript {
         float maxBlack = Math.max(blackLevel[0], Math.max(blackLevel[1], Math.max(blackLevel[2], blackLevel[3])));
         float minLevel = (float) (1.0/(double)(parameters.whiteLevel-maxBlack));
 
+        // The base frame's pixels are on the GPU now (inputBase upload plus
+        // the FlowNet/Pyramid init uploads above, all synchronous). The loop
+        // below only touches its GPU texture and scalar pair metadata, and
+        // the base index is never loaded there, so release the native copy
+        // up-front: it would otherwise outlive the whole merge.
+        images.get(0).close();
+
+        // getBase() aliases base onto baseAlter from the first iteration,
+        // orphaning the original base texture; reclaim it post-loop below.
+        final GLTexture mergeBase0 = base;
+
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -886,8 +918,11 @@ public class ESD4D extends GLOneScript {
             float exposure = 1.f/frame.pair.layerMpy;
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
-            Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
-            inputAlter.loadData(frame.buffer);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "load:" + frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
+            try (ImageFrame.Upload up = frame.upload()) {
+                inputAlter.loadData(up.buffer);
+            }
 
             GLTexture flowTex = null;
             if(useNcnnFlow) {
@@ -951,7 +986,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
 
-            Log.d("ESD4D", "create diff");
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "create diff");
 
             // First combine pass: collect the KernelNet result that has been
             // running concurrently with alignment and this frame's merge00 /
@@ -965,6 +1001,10 @@ public class ESD4D extends GLOneScript {
                 }
                 kernelNetThread = null;
                 kernelsMap = createKernelsMap(kernelNetResult.get());
+                // Inference joined and params uploaded: both CPU copies are
+                // dead past this point (GPU textures carry on).
+                brightMapCPU = null;
+                brightMapCPUSize = null;
             }
 
             glProg.setLayout(tile, tile, 1);
@@ -999,8 +1039,25 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(base.mSize, 1);
+            // This frame's pixels are on the GPU now: inputAlter.loadData()
+            // (and FlowNet's computeFlow()) upload synchronously, and
+            // everything above only touches GPU textures plus scalar pair
+            // metadata afterwards. Release the native copy so peak memory no
+            // longer holds the whole burst through the merge. close() is
+            // idempotent, so HdrxProcessor's post-merge loop stays a safe net.
+            images.get(ind).close();
             endT();
         }
+
+        // Temporal temporaries are dead past this point: merge2o below reads
+        // only base + alignmentTex. Release ~530 MB (64 MP) before the output
+        // readback instead of AfterRun. Fields are nulled and AfterRun
+        // null-guards them, so a stale close can never delete a recycled ID.
+        if (mergeBase0 != base) mergeBase0.close();
+        baseDiff.close(); baseDiff = null;
+        alter.close(); alter = null;
+        inputAlter.close(); inputAlter = null;
+        inputBase.close(); inputBase = null;
 
         float[] bl2 = new float[4];
         for (int i = 0; i < 4; i++) {
@@ -1017,6 +1074,7 @@ public class ESD4D extends GLOneScript {
         glOne.glProcessing.drawBlocksToOutput();
         Output = glOne.glProcessing.mOutBuffer;
         AfterRun();
+        com.particlesdevs.photoncamera.util.Allocator.logStage("ESD4D", "post-merge");
     }
 
     /**
@@ -1047,13 +1105,11 @@ public class ESD4D extends GLOneScript {
         if (brightMapCPU == null || brightMapCPUSize == null) return null;
         var ctx = PhotonCamera.getAppContext();
         if (ctx == null) return null;
-        KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(ctx);
-        try {
-            if (!processor.isReady()) return null;
-            return processor.runInference(brightMapCPU, brightMapCPUSize.x, brightMapCPUSize.y, sigma);
-        } finally {
-            processor.close();
-        }
+        // Process-wide shared instance (kept warm across shots): do NOT
+        // close it here. runInference blocks until the model is ready.
+        KernelNetNcnnProcessor processor = KernelNetNcnnProcessor.start(ctx);
+        if (!processor.isReady()) return null;
+        return processor.runInference(brightMapCPU, brightMapCPUSize.x, brightMapCPUSize.y, sigma);
     }
 
     /**
@@ -1067,38 +1123,60 @@ public class ESD4D extends GLOneScript {
         if (result == null) return null;
         int w = result.width();
         int h = result.height();
-        int plane = w * h;
-        FloatBuffer params = result.asFloatBuffer();
-        float[] rgba = new float[plane * 4];
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int i = y * w + x;
-                int o = i * 4;
-                rgba[o] = params.get(i);                 // s1
-                rgba[o + 1] = params.get(plane + i);     // s2
-                rgba[o + 2] = params.get(2 * plane + i); // rho
-                rgba[o + 3] = 1.0f;
-            }
-        }
         GLTexture map = new GLTexture(new Point(w, h), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
-        map.loadData(FloatBuffer.wrap(rgba));
+        // Band the interleave+upload: the old path built a full float[4*w*h]
+        // (~245 MB at 64 MP) just to ferry params across GL contexts. Sub-rect
+        // uploads convert identically (driver FLOAT->HALF is per-texel), so
+        // keep the compact channel-major result as the CPU copy instead.
+        FloatBuffer src = result.asFloatBuffer();
+        int plane = w * h;
+        ByteBuffer bandBytes = ByteBuffer.allocateDirect(
+                w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
+        FloatBuffer band = bandBytes.asFloatBuffer();
+        try {
+            for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
+                int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
+                KernelParams.interleaveBand(src, w, plane, y0, rows, band);
+                band.position(0);
+                band.limit(w * rows * 4);
+                map.loadDataOffset(0, y0, w, rows, band);
+            }
+        } catch (Throwable t) {
+            // Upload failed: the malloc'd result has no other owner yet.
+            com.particlesdevs.photoncamera.util.Allocator.free(result.params());
+            throw t;
+        }
         // The unpacked fp32 params are exactly what the post pipeline needs;
         // keep them as the CPU copy instead of reading the fp16 texture back.
-        kernelsMapCPU = FloatBuffer.wrap(rgba);
+        // A view is enough: no copy, and HdrxProcessor nulls it after handoff.
+        // The base buffer rides along so the post pipeline can free the
+        // malloc deterministically once uploaded (views don't free).
+        kernelsMapCPU = src;
         kernelsMapCPUSize = new Point(w, h);
+        kernelsMapBase = result.params();
         return map;
     }
 
     @Override
     public void AfterRun() {
         if(hotPixelBuffer != null) hotPixelBuffer.close();
-        inputAlter.close();
-        alter.close();
-        inputBase.close();
-        baseDiff.close();
+        // baseDiff/alter/inputAlter/inputBase/brightMap may already be
+        // released post-loop (nulled there); guard so a stale close can
+        // never delete a recycled texture ID.
+        if (inputAlter != null) inputAlter.close();
+        if (alter != null) alter.close();
+        if (inputBase != null) inputBase.close();
+        if (baseDiff != null) baseDiff.close();
         base.close();
         baseAlter.close();
-        brightMap.close();
+        if (brightMap != null) brightMap.close();
+        // The kernel-params texture is only read by the merge passes above;
+        // downstream uses the fp32 CPU view. Free the GPU copy with the rest
+        // instead of leaving it registered until context teardown.
+        if (kernelsMap != null) {
+            kernelsMap.close();
+            kernelsMap = null;
+        }
         result.close();
         if(useNcnnFlow && flowNetAlignment != null) {
             // Closes flowTex (== alignmentTex), so drop the reference to avoid
