@@ -20,8 +20,8 @@ import java.nio.file.Path;
 public final class SdrHeicEncoder {
 
     private static final String TAG = "SdrHeicEncoder";
-    /** HEVC quality tuned to roughly match the JPEG q98 output. */
-    public static final int HEIC_QUALITY = 90;
+    /** HEVC quality matching {@code ImageSaver.JPG_QUALITY} (98). */
+    public static final int HEIC_QUALITY = 98;
 
     private SdrHeicEncoder() {}
 
