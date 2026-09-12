@@ -7,6 +7,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.BufferUtils;
+import com.particlesdevs.photoncamera.util.Log;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -148,6 +149,12 @@ public class LocalLaplacian2 extends Node {
     }
 
     @Override
+    public int halo() {
+        // Unbounded (12-level pyramid): must execute full-frame with frozen
+        // coarse levels consumed per tile. Tile driver must special-case this.
+        return Integer.MAX_VALUE;
+    }
+
     public void Run() {
         final GLTexture input = previousNode.WorkingTexture;
         if (!enabled || input.mSize.x < 8 || input.mSize.y < 8) {
@@ -193,6 +200,9 @@ public class LocalLaplacian2 extends Node {
             glProg.setTexture("RemapLut", lut);
             glProg.setVar("coarseSize", coarse.mSize);
             glProg.drawBlocks(output);
+            if (finest && ((PostPipeline) basePipeline).debugTiledCompare) {
+                verifyFinestRegions(output);
+            }
             glProg.close();
 
             reconstructed.close();
@@ -202,5 +212,54 @@ public class LocalLaplacian2 extends Node {
 
         lut.close();
         WorkingTexture = reconstructed;
+        // The cropped-recrop path feeds this node a full-frame UpscaleCrop
+        // output that is not one of the pipeline's ping-pong mains and has no
+        // other owner; free it now instead of holding it through the tail and
+        // gain-map passes (~384 MB at 50 MP). Non-cropped runs pass a main
+        // (needed by the legacy/fused tail), so those are left alone.
+        if (!isPipelineMain(input)) {
+            input.close();
+        }
+    }
+
+    /** Whether {@code tex} is one of the pipeline's reserved ping-pong mains. */
+    private boolean isPipelineMain(GLTexture tex) {
+        return tex == basePipeline.main1 || tex == basePipeline.main2
+                || tex == basePipeline.main3 || tex == basePipeline.main4
+                || tex == basePipeline.main5;
+    }
+
+    /**
+     * Harness oracle (debugTiledCompare, T3b): re-renders finest-level output
+     * bands with the output-space origin and requires bit-exactness vs the
+     * full finest render. This is the documented halo() special case: the
+     * pyramid stays full-frame and frozen (fine, coarse, reconstructed, LUT
+     * all remain bound from the loop — nothing is rebound per band except the
+     * origin), only the finest reconstruction is banded. No halo mathematics
+     * and no edge exclusions (absolute coarse taps and clamped edges are
+     * identical per pixel). Must run inside the finest iteration while all
+     * levels are alive. No program rebind (see Initial.renderInitialBinds).
+     */
+    private void verifyFinestRegions(GLTexture fullOut) {
+        int imgW = fullOut.mSize.x;
+        int imgH = fullOut.mSize.y;
+        float worst = TileDriver.verifyNodeBands(fullOut, imgW, imgH, 512,
+                "TiledHarness", (b0, rows) -> {
+                    GLTexture reg = new GLTexture(new android.graphics.Point(imgW, rows),
+                            fullOut.mFormat);
+                    tileY0 = b0;
+                    tileY1 = b0 + rows;
+                    tileOut = reg;
+                    WorkingTexture = reg;
+                    glProg.setVar("u_tileOrigin", 0, b0);
+                    glProg.drawBlocks(reg);
+                    return reg;
+                });
+        Log.d("TiledHarness", "laplacian strips maxDiff=" + worst);
+        tileY0 = 0;
+        tileY1 = -1;
+        tileOut = null;
+        WorkingTexture = fullOut;
+        glProg.setVar("u_tileOrigin", 0, 0);
     }
 }

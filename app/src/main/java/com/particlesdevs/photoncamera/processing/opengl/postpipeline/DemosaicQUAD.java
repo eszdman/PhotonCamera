@@ -17,6 +17,10 @@ public class DemosaicQUAD extends Node {
     float fuseShift = -0.3f;
     float fuseMpy = 0.0f;
     @Override
+    public int halo() {
+        return 8; // 4x4 quad cells + taps; harness-proven
+    }
+
     public void Run() {
         gradSize = getTuning("GradSize",gradSize);
         fuseMin = getTuning("FuseMin",fuseMin);

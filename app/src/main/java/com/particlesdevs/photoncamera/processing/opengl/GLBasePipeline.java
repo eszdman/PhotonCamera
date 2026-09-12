@@ -197,6 +197,7 @@ public class GLBasePipeline implements AutoCloseable {
             if (i != Nodes.size() - 1) {
                 drawProgramTexture(Nodes.get(i));
             }
+            Nodes.get(i).postDrawOracle();
             Nodes.get(i).AfterRun();
         }
         if(texnum == 1){
@@ -205,10 +206,13 @@ public class GLBasePipeline implements AutoCloseable {
             if (main1 != null) main1.close();
         }
         if (sink != null) {
-            glint.glProcessing.drawBlocksToOutput(sink);
+            if (!fusedSinkSkip()) {
+                glint.glProcessing.drawBlocksToOutput(sink);
+            }
         } else {
             glint.glProcessing.drawBlocksToOutput();
         }
+        replayForHarness(sink);
         if(texnum == 1){
             if (main1 != null) main1.close();
         }else {
@@ -255,6 +259,24 @@ public class GLBasePipeline implements AutoCloseable {
             glint.glProgram.drawBlocks(node.GetProgTex());
             glint.glProgram.closed = true;
         }
+    }
+
+    /**
+     * Tiling-harness hook (Phase T1+): replays the sink stage for
+     * determinism/band-sensitivity comparison while inputs are still alive.
+     * Default no-op; PostPipeline overrides under its debug tunable.
+     */
+    protected void replayForHarness(Bitmap sink) {
+    }
+
+    /**
+     * T4b fused-sink hook: true once a produce driver streamed every band
+     * straight to the sink bitmap (nothing left for runAll to draw).
+     * Default false; PostPipeline overrides from its per-shot flag. Zero
+     * behavior change for other pipelines.
+     */
+    protected boolean fusedSinkSkip() {
+        return false;
     }
 
     private void prepareNode(Node node, int index) {

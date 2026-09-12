@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.processing.encoder;
 
 import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
 import android.os.Build;
 
 import androidx.heifwriter.HeifWriter;
@@ -89,15 +88,23 @@ public final class UltraHdrHeicEncoder {
             baseBytes = null;
             gainBytes = null;
             Log.d(TAG, "HEIC mux output: merged=" + (merged.length / 1024) + "KB");
+            // Structural verify before writing: parses the boxes we just
+            // assembled (layout + primary ispe) without ImageDecoder, whose
+            // abort path could still decode the whole image.
+            int[] primary = UltraHdrHeicContainer.primarySize(merged);
+            if (primary[0] != sdr.getWidth() || primary[1] != sdr.getHeight()) {
+                throw new IllegalStateException("merged HEIC dimensions "
+                        + primary[0] + "x" + primary[1]
+                        + " != expected " + sdr.getWidth() + "x" + sdr.getHeight());
+            }
             try {
                 Files.write(dest, merged);
-                verifyMergedHeic(dest, sdr.getWidth(), sdr.getHeight());
-            } catch (Exception verifyFailed) {
+            } catch (Exception writeFailed) {
                 try {
                     Files.deleteIfExists(dest);
                 } catch (Exception ignored) {
                 }
-                throw verifyFailed;
+                throw writeFailed;
             }
             success = true;
         } finally {
@@ -119,50 +126,6 @@ public final class UltraHdrHeicEncoder {
                 bitmap.recycle();
             }
         } catch (Exception ignored) {
-        }
-    }
-
-    /**
-     * Control flow to abort the full decode once the header is captured.
-     * decodeBitmap always decodes the whole image (~244 MB bitmap plus
-     * decoder working set at 64 MP); the merged file only needs its
-     * dimensions asserted. Not an error: caught below and treated as
-     * success when dims were captured. No stack trace (thrown per shot).
-     */
-    private static final class HeaderDecoded extends RuntimeException {
-        HeaderDecoded() {
-            super(null, null, false, false);
-        }
-    }
-
-    /**
-     * Permanent safety net for the manual mux: header-decodes the merged file
-     * (no full decode) and asserts the base dimensions. Any mismatch means
-     * our boxes misdescribe the payloads — discard and let the caller fall
-     * back to SDR instead of shipping a corrupt file.
-     */
-    static void verifyMergedHeic(Path dest, int expectedW, int expectedH) throws Exception {
-        final int[] size = new int[2];
-        final boolean[] seen = new boolean[1];
-        try {
-            ImageDecoder.Source src = ImageDecoder.createSource(dest.toFile());
-            ImageDecoder.decodeBitmap(src, (decoder, info, source) -> {
-                size[0] = info.getSize().getWidth();
-                size[1] = info.getSize().getHeight();
-                seen[0] = true;
-                throw new HeaderDecoded();
-            });
-        } catch (HeaderDecoded abort) {
-            // Expected path: dims captured, full decode skipped.
-        } catch (Exception e) {
-            throw new IllegalStateException("merged HEIC undecodable: " + e.getMessage(), e);
-        }
-        if (!seen[0]) {
-            throw new IllegalStateException("merged HEIC header not decoded");
-        }
-        if (size[0] != expectedW || size[1] != expectedH) {
-            throw new IllegalStateException("merged HEIC dimensions " + size[0] + "x" + size[1]
-                    + " != expected " + expectedW + "x" + expectedH);
         }
     }
 

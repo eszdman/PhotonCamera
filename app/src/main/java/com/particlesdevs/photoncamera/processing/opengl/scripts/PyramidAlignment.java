@@ -218,7 +218,10 @@ public class PyramidAlignment implements AutoCloseable {
         Log.d("PyramidAlignment", "prefilter: sigma=" + blurSigma + " noiseFactor=" + prefilterN);
         Point rawHalf = new Point(parameters.rawSize.x/2,parameters.rawSize.y/2);
         Result = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),
+                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
         // Temporal result
         temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
         base = new GLTexture(rawHalf,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
@@ -267,6 +270,10 @@ public class PyramidAlignment implements AutoCloseable {
         //hist.exposure = new float[]{1.0f, 1.0f, 1.0f, 1.0f};
         //histDataBase = hist.Compute(temp).clone();
 
+        // Base black levels are final; the alter-frame histogram branch below
+        // is disabled, so this instance has no further readers.
+        hist.close();
+
         glProg.setLayout(8, 8, 1);
         glProg.useAssetProgram("alignment/normalizebl", true);
         glProg.setVar("blackLevel", blackLevel);
@@ -308,7 +315,9 @@ public class PyramidAlignment implements AutoCloseable {
         for (int f = 1; f < images.size(); f++) {
             ImageFrame frame = images.get(f);
             Log.d("PyramidAlignment", "load:"+frame.pair.curlayer.name());
-            inputAlter.loadData(frame.buffer);
+            try (ImageFrame.Upload up = frame.upload()) {
+                inputAlter.loadData(up.buffer);
+            }
             
             // Compute alter frame histogram with exposure = 1.0 for exposure determination
             /*glProg.setLayout(tile, tile, 1);

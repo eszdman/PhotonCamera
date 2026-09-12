@@ -22,6 +22,14 @@ uniform ivec2 rawSize;
 // region. downsample_sdr.glsl uses the identical region partition.
 uniform ivec2 uLinFullSize;
 uniform ivec2 uLinGridSize;
+// Banded execution (see RunHDRGainMap): the input may be a band tile holding
+// absolute image rows/columns at uInOrigin (not the frame origin). Fetches
+// subtract the origin; mirror/transpose branches key off the FULL input size
+// uInFull (what textureSize would report on a full input, but misreports on
+// a tile). Full-input renders pass origin (0,0) and the frame size, which is
+// exactly the old behavior.
+uniform ivec2 uInOrigin;
+uniform ivec2 uInFull;
 
 out vec4 Output;
 
@@ -37,30 +45,30 @@ float sceneLumaAt(ivec2 xy, ivec2 texSize) {
             if (mirror)
                 xy.y = texSize.y - xy.y;
             srcCoord = xy;
-            c = texelFetch(InputBuffer, srcCoord, 0).rgb;
+            c = texelFetch(InputBuffer, srcCoord - uInOrigin, 0).rgb;
             break;
         case 1:
             xy += ivec2((rawSize.y - cropSize.y), 0);
             if (mirror)
                 xy.x = cropSize.y - xy.x;
             srcCoord = ivec2(texSize.x - xy.y, xy.x);
-            c = texelFetch(InputBuffer, srcCoord, 0).rgb;
+            c = texelFetch(InputBuffer, srcCoord - uInOrigin, 0).rgb;
             break;
         case 2:
             if (mirror)
                 xy.y = texSize.y - xy.y;
             srcCoord = ivec2(texSize.x - xy.x, texSize.y - xy.y);
-            c = texelFetch(InputBuffer, srcCoord, 0).rgb;
+            c = texelFetch(InputBuffer, srcCoord - uInOrigin, 0).rgb;
             break;
         case 3:
             if (mirror)
                 xy.x = cropSize.y - xy.x;
             srcCoord = ivec2(xy.y, texSize.y - xy.x);
-            c = texelFetch(InputBuffer, srcCoord, 0).rgb;
+            c = texelFetch(InputBuffer, srcCoord - uInOrigin, 0).rgb;
             break;
         default:
             srcCoord = min(xy, texSize - 1);
-            c = texelFetch(InputBuffer, srcCoord, 0).rgb;
+            c = texelFetch(InputBuffer, srcCoord - uInOrigin, 0).rgb;
             break;
     }
     // Lens-shading vignetting (must match Initial's luminance correction):
@@ -89,7 +97,7 @@ void main() {
     begin = clamp(begin, ivec2(0), uLinFullSize - ivec2(1));
     end = clamp(max(end, begin + ivec2(1)), begin + ivec2(1), uLinFullSize);
 
-    ivec2 texSize = ivec2(textureSize(InputBuffer, 0));
+    ivec2 texSize = uInFull;
     float sum = 0.0;
     int count = 0;
 

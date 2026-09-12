@@ -2,7 +2,6 @@ package com.particlesdevs.photoncamera.processing.encoder;
 
 import com.particlesdevs.photoncamera.util.Log;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -232,7 +231,7 @@ public final class UltraHdrHeicContainer {
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
         ipcoBoxes.add(IsoBmff.buildBox("colr", tmapColr));
-        byte[] newIpco = IsoBmff.buildBox("ipco", IsoBmff.concat(ipcoBoxes));
+        byte[] newIpco = IsoBmff.buildBox("ipco", ipcoBoxes);
         List<Integer> tmapPropIdx = new ArrayList<>();
         tmapPropIdx.add(tmapIspeIndex);
         tmapPropIdx.add(tmapPixiIndex);
@@ -299,7 +298,7 @@ public final class UltraHdrHeicContainer {
         byte[] zeroIloc = IsoBmff.buildBox("iloc",
                 IsoBmff.fullBoxPayload(0, 0, buildIlocBody(zeroExtents)));
         // iprp wrapper: 'iprp' box containing ipco + ipma.
-        byte[] iprpBox = IsoBmff.buildBox("iprp", IsoBmff.concat(listOf(newIpco, newIpma)));
+        byte[] iprpBox = IsoBmff.buildBox("iprp", listOf(newIpco, newIpma));
         // altr group scoping tmap<->base (readers may ignore tmap outside it).
         byte[] grplBox = buildAltrGroup(altrGroupId, new int[]{tmapId, primaryId});
         long metaBoxSize = 8 + 4 + base.hdlr.length + base.pitm.length
@@ -340,21 +339,18 @@ public final class UltraHdrHeicContainer {
         metaChildren.add(iprpBox);
         // altr group scoping tmap<->base (readers may ignore tmap outside it).
         metaChildren.add(grplBox);
-        byte[] metaBox = IsoBmff.buildBox("meta", IsoBmff.concat(
-                listOf(metaHeader, IsoBmff.concat(metaChildren))));
-        byte[] mdatBox = IsoBmff.buildBox("mdat", IsoBmff.concat(mdatParts));
+        List<byte[]> metaParts = new ArrayList<>();
+        metaParts.add(metaHeader);
+        metaParts.addAll(metaChildren);
+        byte[] metaBox = IsoBmff.buildBox("meta", metaParts);
+        byte[] mdatBox = IsoBmff.buildBox("mdat", mdatParts);
         logExifSelfCheck(extents, exifId, primaryId, mdatBox, mdatDataStart);
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream(
-                (int) (ftypSize + metaBox.length + mdatBox.length));
-        try {
-            out.write(ftypBox, 0, ftypBox.length);
-            out.write(metaBox, 0, metaBox.length);
-            out.write(mdatBox, 0, mdatBox.length);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-        return out.toByteArray();
+        byte[] merged = new byte[(int) (ftypSize + metaBox.length + mdatBox.length)];
+        System.arraycopy(ftypBox, 0, merged, 0, ftypBox.length);
+        System.arraycopy(metaBox, 0, merged, ftypBox.length, metaBox.length);
+        System.arraycopy(mdatBox, 0, merged, ftypBox.length + metaBox.length, mdatBox.length);
+        return merged;
     }
 
     /**
@@ -504,6 +500,47 @@ public final class UltraHdrHeicContainer {
 
     static Meta parseMeta(byte[] metaPayload) {
         return Meta.parse(metaPayload);
+    }
+
+    /**
+     * Structural verification of a merged HEIC: parses its top-level boxes
+     * and returns the primary item's {@code ispe} dimensions, or throws. This
+     * replaces the previous {@code ImageDecoder} header probe, whose abort
+     * path could still decode the whole image on some devices; everything the
+     * manual mux can actually get wrong (box layout, item/property mapping)
+     * is validated here, while the HEVC payloads come verbatim from
+     * HeifWriter.
+     */
+    static int[] primarySize(byte[] heic) {
+        // Range scans only: never copy the (large) top-level payloads just to
+        // validate structure; only the small meta box is materialized.
+        if (IsoBmff.boxDataRange(heic, "ftyp") == null) {
+            throw new IllegalStateException("merged HEIC has no ftyp box");
+        }
+        long[] mdat = IsoBmff.boxDataRange(heic, "mdat");
+        if (mdat == null || mdat[1] <= 0) {
+            throw new IllegalStateException("merged HEIC has no mdat box");
+        }
+        long[] metaRange = IsoBmff.boxDataRange(heic, "meta");
+        if (metaRange == null || metaRange[1] < 4 || metaRange[1] > Integer.MAX_VALUE) {
+            throw new IllegalStateException("merged HEIC has no usable meta box");
+        }
+        byte[] metaPayload = new byte[(int) metaRange[1]];
+        System.arraycopy(heic, (int) metaRange[0], metaPayload, 0, metaPayload.length);
+        Meta m = Meta.parse(metaPayload);
+        List<PropRef> assoc = m.ipmaAssoc.get(m.primaryItemId);
+        if (assoc != null) {
+            for (PropRef r : assoc) {
+                if (r.index - 1 >= 0 && r.index - 1 < m.ipcoChildren.size()) {
+                    IsoBmff.Box prop = m.ipcoChildren.get(r.index - 1);
+                    if (prop.type.equals("ispe") && prop.payload.length >= 12) {
+                        return new int[]{(int) IsoBmff.u32(prop.payload, 4),
+                                (int) IsoBmff.u32(prop.payload, 8)};
+                    }
+                }
+            }
+        }
+        throw new IllegalStateException("merged HEIC primary ispe not found");
     }
 
     static final class Extent {

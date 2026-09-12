@@ -17,6 +17,10 @@ public class BinnedDemosaic extends Node {
     }
 
     @Override
+    public int halo() {
+        return 4; // small-neighbourhood binned path; harness-proven
+    }
+
     public void Run() {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         for(int i =0; i<4;i++){

@@ -29,6 +29,15 @@ uniform int uDown;
 uniform float uScale;
 // OffsetSDR/OffsetHDR from the hdrgm XMP metadata (1/64)
 uniform float uEps;
+// Banded draws (see RunHDRGainMap): InputBuffer may be a band tile holding
+// image rows [origin, origin+rows) while LBuffer stays full-frame. Output and
+// LBuffer stay absolute (viewport-offset convention); only the SDR fetch
+// subtracts the origin (same pattern as sceneluma's uInOrigin).
+uniform ivec2 uInOrigin;
+// Output-row offset for the full-frame LBuffer fetch: band draws render
+// output rows [yOffset, yOffset+rows) into a band-sized target, so LBuffer
+// (full grid) needs the offset while the tile input does not.
+uniform int yOffset;
 
 out vec4 Output;
 
@@ -57,13 +66,16 @@ void main() {
     for (int dy = 0; dy < uDown; dy++) {
         for (int dx = 0; dx < uDown; dx++) {
             ivec2 p = ivec2(sx + dx, sy + dy);
-            vec3 s = texelFetch(InputBuffer, p, 0).rgb;
-            vec3 l = max(texelFetch(LBuffer, p, 0).rgb, vec3(0.0));
+            vec3 s = texelFetch(InputBuffer, p - uInOrigin, 0).rgb;
+            // Scene plane is scalar gray (vec4(l,l,l,1)) whether stored RGBA16F
+            // or single-channel R16F: .r is exactly lum709 either way.
+            // Band draws address output rows [yOffset, yOffset+rows) in the
+            // full grid while rendering into a band target.
+            float hL = max(texelFetch(LBuffer, ivec2(p.x, p.y + yOffset), 0).r, 0.0) * uAnchor;
 
             // SDR luminance in linear light.
             float sL = lum709(srgbToLinear(s));
             // Scene luminance is already linear; anchored to the render's top.
-            float hL = lum709(l) * uAnchor;
 
             // Decode applies (SDR + OffsetSDR) * 2^gain - OffsetHDR, so the
             // encode-side ratio must add the offset, not clamp to it.

@@ -284,6 +284,21 @@ public class GLProg implements AutoCloseable {
     }
 
     /**
+     * Re-asserts an already-built program binding without touching the define
+     * list, the program cache, or binaries: for phase switches (the T3a tail
+     * driver alternates node programs per phase) where a full useAssetProgram
+     * would needlessly re-issue defines. Unit assignment restarts, exactly
+     * like useShader, so every sampler must be re-set before drawing.
+     */
+    public void rebindProgram(int prog) {
+        glUseProgram(prog);
+        checkEglError("glUseProgram");
+        mCurrentProgramActive = prog;
+        mTextureBinds.clear();
+        mNewTextureId = 0;
+    }
+
+    /**
      * Helper function to compile a shader.
      *
      * @param shaderType   The shader type.

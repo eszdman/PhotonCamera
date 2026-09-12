@@ -143,10 +143,16 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         // The stacked RAW frame is dead once it has been rendered - free it
         // before the memory-heavy Ultra HDR gain-map pass (it previously
-        // leaked entirely).
-        Allocator.free(unlimitedBuffer);
+        // leaked entirely). PostPipeline frees it inside the render once its
+        // last GL consumer has uploaded it; only free here if that never ran.
+        if (!pipeline.isStackFrameReleased()) {
+            Allocator.free(unlimitedBuffer);
+        }
         unlimitedBuffer = null;
         Allocator.logStage(TAG, "post-raw-free");
+        // Same deterministic collection as HdrxProcessor (pipeline garbage
+        // would otherwise ride into the gain-map/encode peak on GC timing).
+        System.gc();
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {

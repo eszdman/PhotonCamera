@@ -15,6 +15,7 @@ uniform vec3 whitePoint;
 uniform int CfaPattern;
 uniform uint whitelevel;
 uniform int MinimalInd;
+uniform int yOffset;
 #define BLR (0.0)
 #define BLG (0.0)
 #define BLB (0.0)
@@ -100,7 +101,7 @@ float hlRefavg(ivec2 p, int c) {
 
 
 void main() {
-    ivec2 xy = ivec2(gl_FragCoord.xy) - ivec2(OFFSET);
+    ivec2 xy = ivec2(gl_FragCoord.xy) + ivec2(0, yOffset) - ivec2(OFFSET);
     ivec2 fact = (xy)%2;
     xy+=ivec2(CfaPattern%2,CfaPattern/2);
     #if QUAD == 1

@@ -45,63 +45,76 @@ public final class KernelNetPrep extends Node {
     }
 
     @Override
+    public int halo() {
+        return 0; // passthrough; side inference stays full-frame by design
+    }
+
+    @Override
     public void Run() {
         WorkingTexture = previousNode.WorkingTexture;
         PostPipeline pp = (PostPipeline) basePipeline;
-        if (pp.kernelParams != null || pp.kernelNetSingleThread != null) return;
-        if (!basePipeline.mParameters.isCropped
-                || basePipeline.mParameters.fullRawSize == null) return;
-        // RGB layout carries no Bayer quads for the packed luma pass.
-        if (basePipeline.mSettings.alignAlgorithm == 2) return;
+        try {
+            if (pp.kernelParams != null || pp.kernelNetSingleThread != null) return;
+            if (!basePipeline.mParameters.isCropped
+                    || basePipeline.mParameters.fullRawSize == null) return;
+            // RGB layout carries no Bayer quads for the packed luma pass.
+            if (basePipeline.mSettings.alignAlgorithm == 2) return;
 
-        Point rawSize = basePipeline.mParameters.rawSize;
-        Point packed = new Point(rawSize.x / 2, rawSize.y / 2);
-        Point lumaTexSize = new Point((packed.x + 3) / 4, packed.y);
-        if (lumaTexSize.x < 1) lumaTexSize.x = 1;
-        if (lumaTexSize.y < 1) lumaTexSize.y = 1;
+            Point rawSize = basePipeline.mParameters.rawSize;
+            Point packed = new Point(rawSize.x / 2, rawSize.y / 2);
+            Point lumaTexSize = new Point((packed.x + 3) / 4, packed.y);
+            if (lumaTexSize.x < 1) lumaTexSize.x = 1;
+            if (lumaTexSize.y < 1) lumaTexSize.y = 1;
 
-        ByteBuffer stack = pp.stackFrame;
-        stack.position(0);
-        rawTex = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
-                stack, GL_NEAREST, GL_MIRRORED_REPEAT);
+            ByteBuffer stack = pp.stackFrame;
+            stack.position(0);
+            rawTex = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
+                    stack, GL_NEAREST, GL_MIRRORED_REPEAT);
 
-        // Bayer2Float normalizes blackLevel by whiteLevel, so blMean is in
-        // [0,1] and the shader divides the raw values by whiteLevel only.
-        float[] bl = basePipeline.mParameters.blackLevel;
-        float blMean = (bl[0] + bl[1] + bl[2] + bl[3]) * 0.25f;
+            // Bayer2Float normalizes blackLevel by whiteLevel, so blMean is in
+            // [0,1] and the shader divides the raw values by whiteLevel only.
+            float[] bl = basePipeline.mParameters.blackLevel;
+            float blMean = (bl[0] + bl[1] + bl[2] + bl[3]) * 0.25f;
 
-        glProg.useAssetProgram("upscalecrop/singleluma");
-        glProg.setTexture("InputBuffer", rawTex);
-        glProg.setVar("blMean", blMean);
-        glProg.setVar("whiteLevel", (float) basePipeline.mParameters.whiteLevel);
-        lumaTex = new GLTexture(lumaTexSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4));
-        glProg.drawBlocks(lumaTex);
-        glProg.closed = true;
+            glProg.useAssetProgram("upscalecrop/singleluma");
+            glProg.setTexture("InputBuffer", rawTex);
+            glProg.setVar("blMean", blMean);
+            glProg.setVar("whiteLevel", (float) basePipeline.mParameters.whiteLevel);
+            lumaTex = new GLTexture(lumaTexSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4));
+            glProg.drawBlocks(lumaTex);
+            glProg.closed = true;
 
-        lumaTex.BufferLoad();
-        ByteBuffer raw = lumaTex.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32, 4), true);
-        raw.order(ByteOrder.nativeOrder());
-        final FloatBuffer lumaCPU = raw.asFloatBuffer();
-        final Point lumaCPUSize = new Point(lumaTexSize.x * 4, lumaTexSize.y);
+            lumaTex.BufferLoad();
+            ByteBuffer raw = lumaTex.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32, 4), true);
+            raw.order(ByteOrder.nativeOrder());
+            final FloatBuffer lumaCPU = raw.asFloatBuffer();
+            final Point lumaCPUSize = new Point(lumaTexSize.x * 4, lumaTexSize.y);
 
-        final float sigma = (float) (Math.sqrt(basePipeline.noiseS * 0.5 + basePipeline.noiseO) * singleSigmaMpy);
-        pp.kernelNetSingleThread = new Thread(() -> {
-            try {
-                Context ctx = PhotonCamera.getAppContext();
-                if (ctx == null) return;
-                // Shared instance (see ESD4D): do NOT close it here.
-                KernelNetNcnnProcessor processor = KernelNetNcnnProcessor.start(ctx);
-                if (processor.isReady()) {
-                    pp.kernelNetSingleResult.set(processor.runInference(
-                            lumaCPU, lumaCPUSize.x, lumaCPUSize.y, sigma));
+            final float sigma = (float) (Math.sqrt(basePipeline.noiseS * 0.5 + basePipeline.noiseO) * singleSigmaMpy);
+            pp.kernelNetSingleThread = new Thread(() -> {
+                try {
+                    Context ctx = PhotonCamera.getAppContext();
+                    if (ctx == null) return;
+                    // Shared instance (see ESD4D): do NOT close it here.
+                    KernelNetNcnnProcessor processor = KernelNetNcnnProcessor.start(ctx);
+                    if (processor.isReady()) {
+                        pp.kernelNetSingleResult.set(processor.runInference(
+                                lumaCPU, lumaCPUSize.x, lumaCPUSize.y, sigma));
+                    }
+                } catch (Throwable t) {
+                    Log.e(Name, "Single-frame KernelNet worker failed", t);
                 }
-            } catch (Throwable t) {
-                Log.e(Name, "Single-frame KernelNet worker failed", t);
-            }
-        }, "KernelNet-single-inference");
-        pp.kernelNetSingleThread.start();
-        Log.d(Name, "Single-frame KernelNet inference started: " + lumaCPUSize.x
-                + "x" + lumaCPUSize.y + " luma, sigma=" + sigma);
+            }, "KernelNet-single-inference");
+            pp.kernelNetSingleThread.start();
+            Log.d(Name, "Single-frame KernelNet inference started: " + lumaCPUSize.x
+                    + "x" + lumaCPUSize.y + " luma, sigma=" + sigma);
+        } finally {
+            // Last reader of the merged raw in every path: Bayer2Float
+            // uploaded it, the multi-frame params already came from ESD4D,
+            // and the single-frame luma pass above has consumed it. Free it
+            // here so it doesn't ride through Amaze/tail/gain-map.
+            pp.releaseStackFrame();
+        }
     }
 
     @Override

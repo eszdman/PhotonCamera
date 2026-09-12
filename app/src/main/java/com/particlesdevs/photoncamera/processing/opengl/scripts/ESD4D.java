@@ -107,7 +107,9 @@ public class ESD4D extends GLOneScript {
         for (int i = 0; i < maxFrames; i++) {
             GLTexture rawSrc = (i == 0) ? inputBase : tempRaw;
             if (i > 0) {
-                tempRaw.loadData(images.get(i).buffer);
+                try (ImageFrame.Upload up = images.get(i).upload()) {
+                    tempRaw.loadData(up.buffer);
+                }
             }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 Bayer quad)
@@ -431,7 +433,11 @@ public class ESD4D extends GLOneScript {
             int idx = frameCnt == 1 ? 0
                     : (int) Math.round((double) k * (images.size() - 1) / (frameCnt - 1));
             GLTexture rawSrc = (idx == 0) ? inputBase : tempRaw;
-            if (idx > 0) tempRaw.loadData(images.get(idx).buffer);
+            if (idx > 0) {
+                try (ImageFrame.Upload up = images.get(idx).upload()) {
+                    tempRaw.loadData(up.buffer);
+                }
+            }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 quad)
             glProg.setLayout(tile, tile, 1);
@@ -513,7 +519,10 @@ public class ESD4D extends GLOneScript {
         cfaShift = (cfa == 1 || cfa == 2) ? new Point(cfa % 2, cfa / 2) : new Point(0, 0);
         packedSize = new Point(rawHalf.x + cfaShift.x, rawHalf.y + cfaShift.y);
         result = new GLTexture(raw,new GLFormat(GLFormat.DataType.UNSIGNED_16,1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),
+                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
         // Pyramid diff
         baseDiff = new GLTexture(packedSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         // Temporal result
@@ -911,7 +920,9 @@ public class ESD4D extends GLOneScript {
             //int f = 1;
             if (PhotonCamera.DEBUG)
                 Log.d("ESD4D", "load:" + frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
-            inputAlter.loadData(frame.buffer);
+            try (ImageFrame.Upload up = frame.upload()) {
+                inputAlter.loadData(up.buffer);
+            }
 
             GLTexture flowTex = null;
             if(useNcnnFlow) {
@@ -1159,6 +1170,13 @@ public class ESD4D extends GLOneScript {
         base.close();
         baseAlter.close();
         if (brightMap != null) brightMap.close();
+        // The kernel-params texture is only read by the merge passes above;
+        // downstream uses the fp32 CPU view. Free the GPU copy with the rest
+        // instead of leaving it registered until context teardown.
+        if (kernelsMap != null) {
+            kernelsMap.close();
+            kernelsMap = null;
+        }
         result.close();
         if(useNcnnFlow && flowNetAlignment != null) {
             // Closes flowTex (== alignmentTex), so drop the reference to avoid

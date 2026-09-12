@@ -3,6 +3,14 @@ precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform sampler2D KernelsMap;
 uniform ivec2 fullSize;
+// Tiled rendering origin (output coords of this tile's row 0). (0,0) on the
+// legacy path: identical.
+uniform ivec2 u_tileOrigin;
+// Tiled input-window origin (input coords of the bound window's row 0) and
+// the full input size for filter-UV remap and sigma rescaling. Zeros and full
+// size on the legacy path: identical.
+uniform ivec2 u_winOrigin;
+uniform vec2 u_winFullSize;
 uniform float sigmaScale;
 uniform vec2 sigmaMinPx;
 uniform float sigmaMaxPx;
@@ -37,7 +45,10 @@ vec3 anisoCoeffs(vec2 uvPos, out vec2 sigmas) {
     // into a ridge), det floored at 1e-2.
     float rho = clamp(p.z, -0.8, 0.8);
     vec2 mapSize = vec2(textureSize(KernelsMap, 0));
-    vec2 cropSz = vec2(textureSize(InputBuffer, 0));
+    // Full crop size (not the bound window) keeps map-texel to crop-pixel
+    // rescaling identical with windowed inputs; equal to textureSize on the
+    // legacy path.
+    vec2 cropSz = u_winFullSize;
     s1 *= (cropSz.x / max(mapSize.x, 1.0)) * sigmaScale;
     s2 *= (cropSz.y / max(mapSize.y, 1.0)) * sigmaScale;
     s1 = clamp(s1, sigmaMinPx.x, sigmaMaxPx);
@@ -81,7 +92,9 @@ void accumulatePair(vec2 inPos, vec3 abc, vec3 abcWide, int radius, out vec4 acc
             //float ww = exp(-qw) * win;
             float wn = exp(-qn);
             float ww = exp(-qw);
-            ivec2 tap = clamp(fl + ivec2(i, j), ivec2(0), cropSize - ivec2(1));
+            // Window-relative fetch: taps are absolute input coords, shifted
+            // into the bound window (identity shift on the legacy path).
+            ivec2 tap = clamp(fl + ivec2(i, j) - u_winOrigin, ivec2(0), cropSize - ivec2(1));
             vec4 s = texelFetch(InputBuffer, tap, 0);
             an += s * wn;
             aw += s * ww;
@@ -95,12 +108,17 @@ void accumulatePair(vec2 inPos, vec3 abc, vec3 abcWide, int radius, out vec4 acc
 
 void main() {
     // Spatial precision correct inPos creation
-    vec2 inPos = gl_FragCoord.xy / scaleRatio;
+    vec2 inPos = (gl_FragCoord.xy + vec2(u_tileOrigin)) / scaleRatio;
     // Spatial precision correct UV creation
-    vec2 uv = gl_FragCoord.xy / vec2(fullSize);
+    vec2 uv = (gl_FragCoord.xy + vec2(u_tileOrigin)) / vec2(fullSize);
+    // Window-relative filter UV: identical to uv on the legacy path
+    // (u_winFullSize/cropSize is exactly 1.0 and the origin shift exactly 0.0
+    // there, both exact in fp), correctly remapped onto a bound window here.
+    vec2 uvWin = uv * (u_winFullSize / vec2(textureSize(InputBuffer, 0)))
+            - vec2(u_winOrigin) / vec2(textureSize(InputBuffer, 0));
     if (debugMode == 1) {
         // Plain bilinear upscale of the input baseline.
-        Output = texture(InputBuffer, uv);
+        Output = texture(InputBuffer, uvWin);
         return;
     }
     vec2 sigmas;
@@ -118,12 +136,12 @@ void main() {
     accumulatePair(inPos, abc, abcWide, kernelRadius, accN, accW);
     vec4 aniso = accN.a > 1e-5
         ? accN / accN.a
-        : texture(InputBuffer, uv);
+        : texture(InputBuffer, uvWin);
     vec4 sharp = aniso;
     if (sharpAmt > 0.0 && gate > 0.0) {
         vec4 wide = accW.a > 1e-5 ? accW / accW.a : aniso;
         sharp = aniso + (sharpAmt * gate) * (aniso - wide);
     }
-    vec4 bic = textureBicubicHardware(InputBuffer, uv);
+    vec4 bic = textureBicubicHardware(InputBuffer, uvWin);
     Output = mix(bic, sharp, clamp(strength, 0.0, 1.0));
 }

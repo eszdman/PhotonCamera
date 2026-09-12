@@ -477,3 +477,139 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unlockBitmap(JNIEnv *env, jcl
                                                                jobject bitmap) {
     return AndroidBitmap_unlockPixels(env, bitmap) == ANDROID_BITMAP_RESULT_SUCCESS;
 }
+
+// ---------------------------------------------------------------------------
+// Packed burst staging: sensor samples are <= whiteLevel, so they fit in
+// ceil(log2(whiteLevel+1)) bits. packBits copies a tightly-packed 16-bit
+// frame into a new native buffer holding the low `bits` of every sample as an
+// LSB-first bitstream; unpack16 restores little-endian shorts. The pair is an
+// exact inverse for samples < 2^bits (the only ones a sensor can emit below
+// whiteLevel).
+// ---------------------------------------------------------------------------
+
+static inline uint32_t maxSampleForBits(int bits) {
+    return bits >= 32 ? 0xFFFFFFFFu : ((1u << bits) - 1u);
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass clazz,
+                                                            jobject srcBuffer, jint pixels,
+                                                            jint bits, jboolean verify) {
+    if (srcBuffer == nullptr || pixels <= 0 || bits <= 0 || bits >= 16) {
+        LOGD("packBits: invalid args pixels=%d bits=%d", pixels, bits);
+        return nullptr;
+    }
+    const uint8_t *src = static_cast<const uint8_t *>(env->GetDirectBufferAddress(srcBuffer));
+    jlong srcCap = env->GetDirectBufferCapacity(srcBuffer);
+    if (src == nullptr || srcCap < (jlong) pixels * 2) {
+        LOGD("packBits: bad source capacity=%lld", (long long) srcCap);
+        return nullptr;
+    }
+    int64_t packedSize = ((int64_t) pixels * bits + 7) / 8;
+    uint8_t *dst = static_cast<uint8_t *>(malloc(packedSize));
+    if (dst == nullptr) {
+        LOGD("packBits: allocation of %lld failed", (long long) packedSize);
+        return nullptr;
+    }
+    memset(dst, 0, packedSize);
+    const uint16_t *in = reinterpret_cast<const uint16_t *>(src);
+    const uint32_t mask = maxSampleForBits(bits);
+    int64_t bitPos = 0;
+    bool overflow = false;
+    for (int i = 0; i < pixels; i++) {
+        uint32_t raw = (uint32_t) in[i];
+        if (raw > mask) {
+            // The caller derived `bits` from whiteLevel; a sample above the
+            // mask means the assumption is wrong, so refuse rather than
+            // truncate. The caller keeps the original 16-bit buffer.
+            overflow = true;
+        }
+        uint32_t v = raw & mask;
+        int64_t bytePos = bitPos >> 3;
+        int shift = (int) (bitPos & 7);
+        uint32_t word = v << shift;
+        int nbytes = (shift + bits + 7) >> 3;
+        for (int b = 0; b < nbytes; b++) {
+            dst[bytePos + b] |= (uint8_t) (word >> (8 * b));
+        }
+        bitPos += bits;
+    }
+    if (overflow) {
+        LOGD("packBits: sample above %d-bit range, keeping 16-bit buffer", bits);
+        free(dst);
+        return nullptr;
+    }
+    if (verify) {
+        uint16_t *check = static_cast<uint16_t *>(malloc((size_t) pixels * 2));
+        if (check == nullptr) {
+            free(dst);
+            return nullptr;
+        }
+        uint32_t acc = 0;
+        int accBits = 0;
+        int64_t inByte = 0;
+        for (int i = 0; i < pixels; i++) {
+            while (accBits < bits) {
+                acc |= (uint32_t) dst[inByte++] << accBits;
+                accBits += 8;
+            }
+            check[i] = (uint16_t) (acc & mask);
+            acc >>= bits;
+            accBits -= bits;
+        }
+        jboolean ok = memcmp(check, src, (size_t) pixels * 2) == 0 ? JNI_TRUE : JNI_FALSE;
+        free(check);
+        if (!ok) {
+            LOGD("packBits: verification FAILED pixels=%d bits=%d", pixels, bits);
+            free(dst);
+            return nullptr;
+        }
+    }
+    jobject buffer = env->NewDirectByteBuffer(dst, (jlong) packedSize);
+    if (buffer == nullptr) {
+        free(dst);
+        return nullptr;
+    }
+    memoryCount += packedSize;
+    LOGD("packBits: %d px %d-bit -> %lld bytes, memory %ld MB",
+         pixels, bits, (long long) packedSize, (memoryCount / 1024) / 1024);
+    return buffer;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_unpack16(JNIEnv *env, jclass clazz,
+                                                            jobject dstBuffer, jobject packedBuffer,
+                                                            jint pixels, jint bits) {
+    if (dstBuffer == nullptr || packedBuffer == nullptr || pixels <= 0 || bits <= 0 || bits > 16) {
+        LOGD("unpack16: invalid args pixels=%d bits=%d", pixels, bits);
+        return;
+    }
+    uint8_t *dst = static_cast<uint8_t *>(env->GetDirectBufferAddress(dstBuffer));
+    jlong dstCap = env->GetDirectBufferCapacity(dstBuffer);
+    const uint8_t *packed =
+            static_cast<const uint8_t *>(env->GetDirectBufferAddress(packedBuffer));
+    jlong packedCap = env->GetDirectBufferCapacity(packedBuffer);
+    int64_t needPacked = ((int64_t) pixels * bits + 7) / 8;
+    if (dst == nullptr || packed == nullptr || dstCap < (jlong) pixels * 2
+        || packedCap < needPacked) {
+        LOGD("unpack16: buffer too small dst=%lld packed=%lld need=%lld",
+             (long long) dstCap, (long long) packedCap, (long long) needPacked);
+        return;
+    }
+    uint16_t *out = reinterpret_cast<uint16_t *>(dst);
+    const uint32_t mask = maxSampleForBits(bits);
+    uint32_t acc = 0;
+    int accBits = 0;
+    int64_t inByte = 0;
+    for (int i = 0; i < pixels; i++) {
+        while (accBits < bits) {
+            acc |= (uint32_t) packed[inByte++] << accBits;
+            accBits += 8;
+        }
+        out[i] = (uint16_t) (acc & mask);
+        acc >>= bits;
+        accBits -= bits;
+    }
+}

@@ -14,6 +14,12 @@ import java.nio.ByteBuffer;
 
 public class ImageFrame {
     public ByteBuffer buffer;
+    /**
+     * Effective bit depth of {@link #buffer} when the frame is packed
+     * (LSB-first bitstream, see {@link Allocator#packBits}); 0 means the
+     * buffer holds plain little-endian 16-bit samples.
+     */
+    public int packedBits = 0;
     public long timestamp;
     public int width, height;
     /** Offset of this frame's crop within the full sensor frame (0,0 when uncropped). */
@@ -161,6 +167,44 @@ public class ImageFrame {
     }
 
     private ImageFrame() {
+    }
+
+    /**
+     * View of this frame's pixels for GL uploads. When the frame is packed,
+     * unpacks it into a temporary tightly-packed 16-bit native buffer that the
+     * caller must release with {@link Upload#close()} (try-with-resources);
+     * unpacked frames return their own buffer and free nothing.
+     */
+    public Upload upload() {
+        if (packedBits <= 0) {
+            return new Upload(buffer, false);
+        }
+        int pixels = width * height;
+        ByteBuffer staging = Allocator.allocate(pixels * 2);
+        if (staging == null) {
+            throw new IllegalStateException("Packed frame unpack allocation failed ("
+                    + pixels * 2 + " B)");
+        }
+        Allocator.unpack16(staging, buffer, pixels, packedBits);
+        return new Upload(staging, true);
+    }
+
+    /** Upload buffer plus ownership of a possible unpack staging copy. */
+    public static final class Upload implements AutoCloseable {
+        public final ByteBuffer buffer;
+        private final boolean temporary;
+
+        Upload(ByteBuffer buffer, boolean temporary) {
+            this.buffer = buffer;
+            this.temporary = temporary;
+        }
+
+        @Override
+        public void close() {
+            if (temporary && buffer != null) {
+                Allocator.free(buffer);
+            }
+        }
     }
 
     public void close() {

@@ -1,6 +1,5 @@
 package com.particlesdevs.photoncamera.processing.encoder;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -88,6 +87,38 @@ public final class IsoBmff {
         return bb.array();
     }
 
+    /**
+     * Builds a box from a list of payload chunks with a single allocation:
+     * unlike {@code buildBox(type, concat(parts))} this never materializes the
+     * concatenated payload first, which matters for the multi-megabyte mdat
+     * and meta boxes of the HEIC mux.
+     */
+    public static byte[] buildBox(String type, List<byte[]> parts) {
+        long payload = 0;
+        if (parts != null) {
+            for (byte[] p : parts) {
+                if (p != null) {
+                    payload += p.length;
+                }
+            }
+        }
+        long size = 8L + payload;
+        if (payload > Integer.MAX_VALUE || size > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Box " + type + " too large: " + size);
+        }
+        ByteBuffer bb = ByteBuffer.allocate((int) size).order(ByteOrder.BIG_ENDIAN);
+        bb.putInt((int) size);
+        bb.put(fourccBytes(type));
+        if (parts != null) {
+            for (byte[] p : parts) {
+                if (p != null) {
+                    bb.put(p);
+                }
+            }
+        }
+        return bb.array();
+    }
+
     public static byte[] fullBoxPayload(int version, int flags, byte[] body) {
         ByteBuffer bb = ByteBuffer.allocate(4 + (body == null ? 0 : body.length));
         bb.order(ByteOrder.BIG_ENDIAN);
@@ -106,15 +137,24 @@ public final class IsoBmff {
     }
 
     public static byte[] concat(List<byte[]> parts) {
-        try {
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            for (byte[] p : parts) {
-                os.write(p, 0, p.length);
+        long total = 0;
+        for (byte[] p : parts) {
+            if (p != null) {
+                total += p.length;
             }
-            return os.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
         }
+        if (total > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("concat too large: " + total);
+        }
+        byte[] out = new byte[(int) total];
+        int pos = 0;
+        for (byte[] p : parts) {
+            if (p != null) {
+                System.arraycopy(p, 0, out, pos, p.length);
+                pos += p.length;
+            }
+        }
+        return out;
     }
 
     public static long u32(byte[] d, int o) {

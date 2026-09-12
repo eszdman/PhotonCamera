@@ -37,6 +37,21 @@ public class IsoBmffTest {
     }
 
     @Test
+    public void buildBoxFromPartsMatchesConcat() {
+        List<byte[]> parts = Arrays.asList(
+                IsoBmff.buildBox("ftyp", new byte[]{'h', 'e', 'i', 'c'}),
+                new byte[]{9, 8},
+                null,
+                IsoBmff.buildBox("mdat", new byte[10]));
+        byte[] fromParts = IsoBmff.buildBox("meta", parts);
+        byte[] fromConcat = IsoBmff.buildBox("meta", IsoBmff.concat(parts));
+        assertArrayEquals(fromConcat, fromParts);
+        List<IsoBmff.Box> boxes = IsoBmff.parse(fromParts);
+        assertEquals(1, boxes.size());
+        assertEquals("meta", boxes.get(0).type);
+    }
+
+    @Test
     public void ilocBodyRoundTrip() {
         List<UltraHdrHeicContainer.Extent> extents = Arrays.asList(
                 new UltraHdrHeicContainer.Extent(1, 1000L, 500L),

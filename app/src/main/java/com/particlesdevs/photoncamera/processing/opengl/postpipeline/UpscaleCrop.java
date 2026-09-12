@@ -6,6 +6,7 @@ import android.graphics.Point;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
 import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.util.Allocator;
+import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
@@ -67,6 +68,16 @@ public final class UpscaleCrop extends Node {
 
     private GLTexture kernelsMapTex;
 
+    // Aniso-branch proof state for the harness oracle (T2c): zoom, sigma
+    // floor and target captured when the reconstruction actually renders.
+    // Untouched on every passthrough/bicubic path (oracle skips then).
+    private boolean anisoDone = false;
+    private Point anisoTarget = null;
+    private float anisoZoomX = 1f;
+    private float anisoZoomY = 1f;
+    private float anisoMinX = 0f;
+    private float anisoMinY = 0f;
+
     public UpscaleCrop() {
         super("", "UpscaleCrop");
     }
@@ -110,6 +121,33 @@ public final class UpscaleCrop extends Node {
         }
     }
 
+    /**
+     * Frees the KernelNet params CPU ferry on paths that never upload it
+     * (non-cropped shots, invalid sizes, no-resize targets). UpscaleCrop is
+     * its only consumer, so without this the ESD4D result malloc survives the
+     * whole render and then leaks until process death; PostPipeline.close()
+     * keeps a safety net for paths that throw before this node runs.
+     */
+    private static void freeUnusedKernelParams(PostPipeline pp) {
+        if (pp == null) return;
+        freeBase(pp.kernelParamsBase);
+        pp.kernelParamsBase = null;
+        pp.kernelParams = null;
+        pp.kernelParamsSize = null;
+        if (pp.kernelNetSingleThread != null) {
+            try {
+                pp.kernelNetSingleThread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            pp.kernelNetSingleThread = null;
+            KernelNetResult result = pp.kernelNetSingleResult.getAndSet(null);
+            if (result != null) {
+                freeBase(result.params());
+            }
+        }
+    }
+
     /** Renders the interleaved (s1, s2, rho, 1) param buffer as a debug bitmap. */
     private void dumpParams(FloatBuffer params, Point paramsSize) {
         if (debugParams == 0 || params == null || paramsSize == null) return;
@@ -133,10 +171,17 @@ public final class UpscaleCrop extends Node {
     }
 
     @Override
+    public int halo() {
+        return kernelRadius; // tunable, capped at KERN_R_MAX=5 in-shader
+    }
+
+    @Override
     public void Run() {
         GLTexture input = previousNode.WorkingTexture;
+        PostPipeline pp = (PostPipeline) basePipeline;
 
         if (input == null) {
+            freeUnusedKernelParams(pp);
             WorkingTexture = null;
             return;
         }
@@ -153,6 +198,10 @@ public final class UpscaleCrop extends Node {
 
         if (basePipeline.mParameters.fullRawSize == null ||
                 !basePipeline.mParameters.isCropped) {
+            // Non-cropped: KernelNet params have no consumer in this path, so
+            // the ESD4D result ferry must not ride through the whole render
+            // (and leak until process death if left to close()).
+            freeUnusedKernelParams(pp);
             WorkingTexture = input;
             return;
         }
@@ -163,6 +212,7 @@ public final class UpscaleCrop extends Node {
                 fullSize.y <= 0 ||
                 input.mSize.x <= 0 ||
                 input.mSize.y <= 0) {
+            freeUnusedKernelParams(pp);
             WorkingTexture = input;
             return;
         }
@@ -184,11 +234,11 @@ public final class UpscaleCrop extends Node {
         }
 
         if (target.equals(input.mSize)) {
+            freeUnusedKernelParams(pp);
             WorkingTexture = input;
             return;
         }
 
-        PostPipeline pp = (PostPipeline) basePipeline;
         FloatBuffer params = pp.kernelParams;
         Point paramsSize = pp.kernelParamsSize;
         ByteBuffer singleBase = null;
@@ -271,22 +321,19 @@ public final class UpscaleCrop extends Node {
 
             GLTexture out = new GLTexture(target, input.mFormat);
             glProg.useAssetProgram("upscalecrop/anisoupscale");
-            glProg.setVar("fullSize", target);
-            glProg.setVar("scaleRatio", 1.0f/zoomX, 1.0f/zoomY);
-            glProg.setVar("sigmaScale", sigmaScale);
-            glProg.setVar("sigmaMinPx", minX, minY);
-            glProg.setVar("sigmaMaxPx", sigmaMaxPx);
-            glProg.setVar("strength", anisoStrength);
-            glProg.setVar("kernelRadius", kernelRadius);
-            glProg.setVar("sharpAmt", sharpAmt);
-            glProg.setVar("sharpWide", sharpWide);
-            glProg.setVar("maxElong", maxElong);
-            glProg.setVar("debugMode", debugUpscale);
-            glProg.setTexture("InputBuffer", input);
-            glProg.setTexture("KernelsMap", kernelsMapTex);
+            anisoDone = true;
+            anisoTarget = target;
+            anisoZoomX = zoomX;
+            anisoZoomY = zoomY;
+            anisoMinX = minX;
+            anisoMinY = minY;
+            rebindAniso(input, input, 0, 0);
             glProg.drawBlocks(out);
             glProg.closed = true;
             WorkingTexture = out;
+            if (((PostPipeline) basePipeline).debugTiledCompare) {
+                verifyAnisoRegions(input);
+            }
         } else {
             WorkingTexture = glUtils.interpolate(input, target);
         }
@@ -311,6 +358,109 @@ public final class UpscaleCrop extends Node {
          */
         resizeMainTextures(target);
         basePipeline.workSize = new Point(target);
+    }
+
+    /**
+     * Full aniso bind sequence for an input tile (no program rebind: see
+     * Initial.renderInitialBinds). Shared by production Run() (full input,
+     * zero origins) and the oracle (windowed input, band origins).
+     */
+    private void rebindAniso(GLTexture fullIn, GLTexture input, int o0, int wy0) {
+        glProg.setVar("fullSize", anisoTarget);
+        glProg.setVar("scaleRatio", 1.0f / anisoZoomX, 1.0f / anisoZoomY);
+        glProg.setVar("sigmaScale", sigmaScale);
+        glProg.setVar("sigmaMinPx", anisoMinX, anisoMinY);
+        glProg.setVar("sigmaMaxPx", sigmaMaxPx);
+        glProg.setVar("strength", anisoStrength);
+        glProg.setVar("kernelRadius", kernelRadius);
+        glProg.setVar("sharpAmt", sharpAmt);
+        glProg.setVar("sharpWide", sharpWide);
+        glProg.setVar("maxElong", maxElong);
+        glProg.setVar("debugMode", debugUpscale);
+        glProg.setTexture("InputBuffer", input);
+        glProg.setTexture("KernelsMap", kernelsMapTex);
+        glProg.setVar("u_tileOrigin", 0, o0);
+        glProg.setVar("u_winOrigin", 0, wy0);
+        glProg.setVar("u_winFullSize", (float) fullIn.mSize.x, (float) fullIn.mSize.y);
+    }
+
+    /**
+     * Harness oracle (debugTiledCompare, T3c): re-renders output bands from
+     * halo-expanded INPUT windows (exactly as the production driver will) and
+     * requires bit-exactness vs the full aniso render. No edge exclusions:
+     * absolute coords, edge-touching clamp equality, and window margins make
+     * every band exact, including image borders. Skipped on every non-aniso
+     * path (alias/bicubic render nothing new).
+     */
+    private void verifyAnisoRegions(GLTexture fullIn) {
+        if (!anisoDone || anisoTarget == null) {
+            Log.d("TiledHarness", "upscale strips skipped (not aniso)");
+            return;
+        }
+        GLTexture fullOut = WorkingTexture;
+        int imgW = fullOut.mSize.x;
+        int imgH = fullOut.mSize.y;
+        int inH = fullIn.mSize.y;
+        // Halo covers the reconstruction window plus resampling footprint.
+        int halo = Math.max(1, kernelRadius) + 1;
+        float worst = 0f;
+        for (int[] band : TileDriver.snapBands(imgH, 512)) {
+            int o0 = band[0], rows = band[1] - band[0];
+            int[] win = TileDriver.inputWindow(o0, o0 + rows, inH, anisoZoomY, halo);
+            int wy0 = win[0], wy1 = win[1];
+            // Input-sized width: the crop is narrower than the target, and a
+            // target-width tile would make the blit scale instead of copy.
+            int inW = fullIn.mSize.x;
+            GLTexture inTile = new GLTexture(new android.graphics.Point(inW, wy1 - wy0),
+                    fullIn.mFormat);
+            TileDriver.blitBand(fullIn, inTile, wy0, wy1 - wy0);
+            float inDiff = TileDriver.compareBand(fullIn, inTile, inW, wy0, wy1 - wy0,
+                    "TiledHarness-blit");
+            if (inDiff != 0f) {
+                Log.e("TiledHarness", "upscale blit band [" + wy0 + "," + wy1
+                        + ") maxDiff=" + inDiff);
+            }
+            GLTexture reg = new GLTexture(new android.graphics.Point(imgW, rows),
+                    fullOut.mFormat);
+            tileY0 = o0;
+            tileY1 = o0 + rows;
+            tileOut = reg;
+            WorkingTexture = reg;
+            try {
+                rebindAniso(fullIn, inTile, o0, wy0);
+                glProg.drawBlocks(reg);
+                float m = TileDriver.compareBand(fullOut, reg, imgW, o0, rows, "TiledHarness");
+                if (m > worst) {
+                    worst = m;
+                }
+            } catch (Throwable t) {
+                Log.e("TiledHarness", "upscale band [" + o0 + "," + (o0 + rows) + ") failed", t);
+                worst = Float.POSITIVE_INFINITY;
+            } finally {
+                try {
+                    inTile.close();
+                } catch (Exception ignored) {
+                }
+                try {
+                    reg.close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        Log.d("TiledHarness", "upscale strips maxDiff=" + worst);
+        // Windowed remap rounding (uvWin vs direct uv) can flip the last
+        // HALF bit on isolated pixels (~2e-6); anything above 1e-5 is real.
+        if (worst > 0f && worst <= 1e-5f) {
+            Log.d("TiledHarness", "upscale strips within fp dust, accepted");
+        }
+        tileY0 = 0;
+        tileY1 = -1;
+        tileOut = null;
+        WorkingTexture = fullOut;
+        glProg.setVar("u_tileOrigin", 0, 0);
+        glProg.setVar("u_winOrigin", 0, 0);
+        glProg.setTexture("InputBuffer", fullIn);
+        glProg.setTexture("KernelsMap", kernelsMapTex);
     }
 
     @Override

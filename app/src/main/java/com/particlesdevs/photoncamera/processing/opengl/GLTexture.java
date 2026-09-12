@@ -24,10 +24,60 @@ public class GLTexture implements AutoCloseable {
     public final int mTextureID;
     public int mBuffer;
     public boolean isBuffered = false;
-    private static int count = 0;
+    /**
+     * Live GL texture names (unified registry): every constructed texture
+     * registers its driver-assigned name here; {@link #close()} unregisters
+     * exactly that name. Previously two parallel arrays were indexed by slot
+     * on alloc but by GL name on free, so records were overwritten, live
+     * textures became unlisted, and closeAllExcept silently missed them
+     * (GPU leak scaling with texture churn). Keyed by name, both ops agree.
+     */
+    private static final java.util.Set<Integer> sNames =
+            java.util.Collections.synchronizedSet(new java.util.HashSet<Integer>());
     public final GLFormat mFormat;
-    private static boolean[] ids = new boolean[256];
-    private static int[] textures = new int[256];
+    /**
+     * Live-instance VRAM registry (T4b): Allocator-tracked and native-heap
+     * counters cover no GPU memory (see Allocator.logStage), so tail-tiling
+     * savings are invisible to MemStage. Weak keys auto-drop instances whose
+     * close() was missed; values are getByteCount() snapshots (FBO
+     * renderbuffers excluded — consistent undercount, comparisons valid).
+     */
+    private static final java.util.Map<GLTexture, Integer> sLive =
+            java.util.Collections.synchronizedMap(
+                    new java.util.WeakHashMap<GLTexture, Integer>());
+
+    /** Sums live texture bytes (see sLive). */
+    public static long liveBytes() {
+        long sum = 0;
+        synchronized (sLive) {
+            for (int b : sLive.values()) {
+                sum += b;
+            }
+        }
+        return sum;
+    }
+
+    /** Logs live GPU texture bytes with a stage label; logging only. */
+    public static void logLive(String tag, String stage) {
+        long total = liveBytes();
+        long rb = GLCoreBlockProcessing.liveRenderBytes();
+        // Largest live textures pin footprint composition (which stages own
+        // the peak); weak keys may clear mid-iteration, guarded below.
+        java.util.List<String> top = new java.util.ArrayList<>();
+        synchronized (sLive) {
+            java.util.List<java.util.Map.Entry<GLTexture, Integer>> entries =
+                    new java.util.ArrayList<>(sLive.entrySet());
+            entries.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+            for (int i = 0; i < Math.min(6, entries.size()); i++) {
+                GLTexture t = entries.get(i).getKey();
+                top.add(t == null ? "?"
+                        : (t.mSize.x + "x" + t.mSize.y + "="
+                                + (entries.get(i).getValue() / 1048576) + "MB"));
+            }
+        }
+        Log.d(tag, "VramStage[" + stage + "] live=" + (total / 1048576)
+                + "MB rb=" + (rb / 1048576) + "MB count=" + sLive.size() + " top=" + top);
+    }
     public GLTexture(GLTexture in,GLFormat format) {
         this(in.mSize,new GLFormat(format),null,in.mFormat.filter,in.mFormat.wrap,0);
     }
@@ -81,22 +131,16 @@ public class GLTexture implements AutoCloseable {
         glGenTextures(1,TexID,0);
         if (PhotonCamera.DEBUG)
             Log.d("GLTexture","TexID:"+TexID[0] + " Size:"+mSize.x+"x"+mSize.y + " Format:"+mFormat.getGLFormatInternal() + " Filter:"+textureFilter + " Wrapper:"+textureWrapper);
-        for(int i = 1; i<ids.length;i++){
-            if(!ids[i]){
-                Log.d("GLTexture","get:"+i);
-                if(count < i){
-                    count = i;
-                    //glGenTextures(1,TexID,0);
-                }
-                //TexID[0] = i;
-                textures[i] = TexID[0];
-                ids[i] = true;
-                break;
-            }
-        }
+        sNames.add(TexID[0]);
 
         mTextureID = TexID[0];
         //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
+        // DO NOT TOUCH: the name-derived unit below looks wrong (it exceeds
+        // GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS once names churn) but is
+        // load-bearing on this driver family — a scratch unit broke banded
+        // draws (top-band-only) and binding on the current unit shipped a
+        // fully black gainmap. Per-draw setTexture calls re-establish sampler
+        // bindings explicitly, which is what makes this safe.
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         //if(bmp.byteBuffer != null) {
@@ -110,6 +154,7 @@ public class GLTexture implements AutoCloseable {
         checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
+        sLive.put(this, getByteCount());
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         mFormat = glFormat;
@@ -121,21 +166,10 @@ public class GLTexture implements AutoCloseable {
         glGenTextures(1,TexID,0);
         if (PhotonCamera.DEBUG)
             Log.d("GLTexture","TexID:"+TexID[0]);
-        for(int i = 1; i<ids.length;i++){
-            if(!ids[i]){
-                Log.d("GLTexture","get:"+i);
-                if(count < i){
-                    count = i;
-                    //glGenTextures(1,TexID,0);
-                }
-                //TexID[0] = i;
-                textures[i] = TexID[0];
-                ids[i] = true;
-                break;
-            }
-        }
+        sNames.add(TexID[0]);
         mTextureID = TexID[0];
         //Log.d("GLTexture","Size:"+size+" ID:"+mTextureID);
+        // DO NOT TOUCH: see above — the name-derived unit is load-bearing.
         glActiveTexture(GL_TEXTURE1+mTextureID);
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         //if(pixels != null) {
@@ -149,6 +183,7 @@ public class GLTexture implements AutoCloseable {
         checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
+        sLive.put(this, getByteCount());
     }
 
     public void loadData(Buffer pixels){
@@ -200,6 +235,16 @@ public class GLTexture implements AutoCloseable {
         if (output.capacity() < need) throw new IllegalArgumentException("textureBuffer under-capacity " + output.capacity() + " < " + need);
         GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, mSize.x, mSize.y, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), output);
+    }
+
+    /**
+     * Sub-rect readback into {@code output} at its position (caller sets
+     * position/limit for exactly {@code w*h} texels). Used for banded
+     * comparisons and snapshot streaming without full-texture copies.
+     */
+    public void textureBuffer(GLFormat outputFormat, ByteBuffer output, int x, int y, int w, int h) {
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        glReadPixels(x, y, w, h, outputFormat.getGLFormatExternal(), outputFormat.getGLType(), output);
     }
 
     public ByteBuffer textureBuffer(GLFormat outputFormat,boolean direct) {
@@ -369,6 +414,46 @@ public class GLTexture implements AutoCloseable {
                 mFormat.getGLFormatExternal(), GLES30.GL_HALF_FLOAT, pixels);
     }
 
+    /**
+     * Channel-generic packed half-float readback: stores the exact bits the
+     * GPU holds ({@code channels * 2} B/texel) into native memory. Unlike
+     * {@link #textureBufferHalfFloat()} this follows the texture's own
+     * external format, so a single-channel R16F grid can be read without
+     * inflating it to RGBA. Returns null on allocation or driver failure.
+     */
+    public ByteBuffer textureBufferHalfFloatNative() {
+        int bytes = mSize.x * mSize.y * mFormat.mChannels * 2;
+        ByteBuffer buffer = Allocator.allocate(bytes);
+        if (buffer == null) return null;
+        while (GLES30.glGetError() != GLES30.GL_NO_ERROR) {} // clear stale errors
+        glReadPixels(0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(),
+                GLES30.GL_HALF_FLOAT, buffer);
+        int err = GLES30.glGetError();
+        if (err != GLES30.GL_NO_ERROR) {
+            Log.d("GLTexture", "native HALF_FLOAT readback failed: 0x"
+                    + Integer.toHexString(err));
+            Allocator.free(buffer);
+            return null;
+        }
+        buffer.rewind();
+        return buffer;
+    }
+
+    /**
+     * Sub-rect upload of packed half-float pixel data (banded sceneluma
+     * streaming): {@code rowLengthPx} is the source row stride in pixels
+     * (0 = tightly packed, i.e. stride {@code w}); pass the full image width
+     * to upload a column band straight from a row-major snapshot with no CPU
+     * gather (GL_UNPACK_ROW_LENGTH, restored to 0 afterwards).
+     */
+    public void loadHalfFloatOffset(int x, int y, int w, int h, Buffer pixels, int rowLengthPx) {
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ROW_LENGTH, rowLengthPx);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h,
+                mFormat.getGLFormatExternal(), GLES30.GL_HALF_FLOAT, pixels);
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ROW_LENGTH, 0);
+    }
+
     public Bitmap toBitmap(){
         ByteBuffer buffer = textureBuffer(mFormat);
         Bitmap bmp = Bitmap.createBitmap(mSize.x, mSize.y, Bitmap.Config.ARGB_8888);
@@ -391,9 +476,9 @@ public class GLTexture implements AutoCloseable {
     }
     public static void notClosed(){
         StringBuilder str = new StringBuilder();
-        for(int i =0; i<ids.length;i++){
-            if(ids[i]) {
-                str.append(i);
+        synchronized (sNames) {
+            for (int name : new java.util.ArrayList<>(sNames)) {
+                str.append(name);
                 str.append(" ");
             }
         }
@@ -401,20 +486,41 @@ public class GLTexture implements AutoCloseable {
     }
 
     public static void closeAll(){
-        for(int i =0; i<ids.length;i++){
-            if(ids[i]) {
-                glDeleteTextures(1,new int[]{textures[i]},0);
-                ids[i] = false;
+        closeAllExcept(null);
+    }
+
+    /**
+     * Deletes every tracked texture except {@code keep} (null keeps nothing,
+     * identical to closeAll). Iterates a snapshot of the live-name registry,
+     * so permittivity is exact: the kept name is compared by value and every
+     * other listed name is deleted exactly once.
+     */
+    public static void closeAllExcept(GLTexture keep) {
+        int keepName = keep != null ? keep.mTextureID : 0;
+        java.util.List<Integer> names;
+        synchronized (sNames) {
+            names = new java.util.ArrayList<>(sNames);
+        }
+        for (int name : names) {
+            if (name != keepName && sNames.remove(name)) {
+                glDeleteTextures(1, new int[]{name}, 0);
             }
         }
-        count = 0;
     }
 
     @Override
     public void close() {
-        glDeleteTextures(1,new int[]{mTextureID},0);
-        ids[mTextureID] = false;
+        sLive.remove(this);
+        // Delete only if still registered: close() runs on stale registry
+        // entries too, and deleting an already-deleted name would (after
+        // driver name recycling) kill an unrelated live texture.
+        if (sNames.remove(mTextureID)) {
+            glDeleteTextures(1,new int[]{mTextureID},0);
+        }
         //Log.d("GLTexture","close ID:"+mTextureID);
-        if(isBuffered) glDeleteBuffers(1,new int[]{mBuffer},0);
+        // mBuffer is an FBO name (see Bufferize): delete it from the
+        // framebuffer namespace, not the buffer one. The old glDeleteBuffers
+        // call silently leaked one FBO per texture that ever rendered.
+        if(isBuffered) glDeleteFramebuffers(1,new int[]{mBuffer},0);
     }
 }

@@ -35,6 +35,24 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public ByteBuffer mBlockBuffer;
     public ByteBuffer mOutBuffer;
     private final GLFormat mglFormat;
+    /** Band height of the sink renderbuffer (see the constructor). */
+    private final int renderHeight;
+    /** This instance's registered renderbuffer bytes (deregistered in close). */
+    private long renderBytes = 0;
+    /**
+     * Live sink-renderbuffer bytes across instances: sink FBOs are invisible
+     * to the GLTexture gauge otherwise (~400 MB hidden at 50 MP before P3-E1).
+     */
+    private static long sLiveRenderBytes = 0;
+
+    /** Sums live sink-renderbuffer bytes (see sLiveRenderBytes). */
+    public static synchronized long liveRenderBytes() {
+        return sLiveRenderBytes;
+    }
+
+    private static synchronized void addRenderBytes(long b) {
+        sLiveRenderBytes += b;
+    }
 
     public GLDrawParams.Allocate allocation = GLDrawParams.Allocate.Heap;
 
@@ -69,7 +87,15 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
-        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        // Band-sized sink storage (P3-E1): every draw loop in this class
+        // addresses at most one divider block (mTileSize rows), except the
+        // fused tail streamer (512-row bands) — so the renderbuffer only ever
+        // needs max(mTileSize, 512) rows, never the frame height.
+        renderHeight = Math.max(mTileSize, 512);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
+        renderBytes = (long) size.x * renderHeight
+                * glFormat.mFormat.mSize * glFormat.mChannels;
+        addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
@@ -90,7 +116,12 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
-        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, size.y);
+        // Band-sized (see the main constructor): this sink also streams only.
+        renderHeight = Math.max(mTileSize, 512);
+        glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
+        renderBytes = (long) size.x * renderHeight
+                * glFormat.mFormat.mSize * glFormat.mChannels;
+        addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
         mOutBuffer = output;
@@ -165,6 +196,41 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         } finally {
             Allocator.unlockBitmap(sink);
         }
+    }
+
+
+    /**
+     * T4b fused-sink draw: renders ONE output band with the currently-bound
+     * program (the caller binds it and sets every sampler/uniform first,
+     * INCLUDING yOffset) and reads it into {@code dst} at band offset,
+     * mirroring one iteration of {@link #drawBlocksToOutput(Bitmap)} exactly
+     * (framebuffer, alignment, viewport, draw, readPixels). Deliberately does
+     * NOT set yOffset itself: fused bands sample tile-sized inputs whose
+     * origin differs from the output origin, so the caller owns that uniform
+     * (setting output rows here blacked every band past the first). The
+     * shared sink loops are untouched. Throws (fail-fast to the caller's
+     * legacy fallback) if the band leaves the frame.
+     */
+    public void streamBand(int y, int rows, java.nio.ByteBuffer dst, int dstStrideBytes) {
+        if (y < 0 || rows <= 0 || y + rows > mOutHeight) {
+            throw new IllegalStateException("sink band [" + y + "," + (y + rows)
+                    + ") outside height " + mOutHeight);
+        }
+        if (rows > renderHeight) {
+            throw new IllegalStateException("sink band rows " + rows
+                    + " exceed renderbuffer height " + renderHeight);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        glViewport(0, 0, mOutWidth, rows);
+        checkEglError("glViewport");
+        super.mProgram.draw();
+        checkEglError("program");
+        dst.position(y * dstStrideBytes);
+        dst.limit((y + rows) * dstStrideBytes);
+        glReadPixels(0, 0, mOutWidth, rows, mglFormat.getGLFormatExternal(),
+                mglFormat.getGLType(), dst);
+        checkEglError("glReadPixels");
     }
 
 
@@ -261,5 +327,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         try {
             if (bindRB[0] != 0) GLES30.glDeleteRenderbuffers(1, bindRB, 0);
         } catch (Exception ignored) {}
+        if (renderBytes != 0) {
+            addRenderBytes(-renderBytes);
+            renderBytes = 0;
+        }
     }
 }
