@@ -325,6 +325,12 @@ public class BackupRestoreUtil {
                 }
             } else {
                 String strValue = primitive.getAsString();
+                // Sanitize system flags which are expected to be booleans
+                if (key.startsWith("pref_sysflag_")) {
+                    boolean boolVal = "1".equals(strValue.trim()) || "true".equalsIgnoreCase(strValue.trim());
+                    editor.putBoolean(key, boolVal);
+                    return;
+                }
                 // Sanitize legacy/corrupted string numbers for tunable and sensor seekbars
                 if (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_")) {
                     try {
