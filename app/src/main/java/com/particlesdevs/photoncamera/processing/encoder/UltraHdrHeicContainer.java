@@ -58,6 +58,12 @@ public final class UltraHdrHeicContainer {
         public float hdrCapacityMax;
         /** Raw {@code Exif\0\0 + TIFF} payload, may be null. */
         public byte[] exifPayload;
+        /**
+         * True when the base item is 10-bit: adds {@code pixi} (10/10/10) and
+         * a full-range BT.709 SDR {@code colr} to the primary item so readers
+         * do not have to guess the bit depth and colorimetry.
+         */
+        public boolean baseTenBit;
     }
 
     public static byte[] merge(Inputs in) {
@@ -231,6 +237,19 @@ public final class UltraHdrHeicContainer {
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
         ipcoBoxes.add(IsoBmff.buildBox("colr", tmapColr));
+        // 10-bit base item gets its own pixi/colr (full-range BT.709 SDR,
+        // matching the color aspects set on the encoder).
+        List<PropRef> primaryExtras = new ArrayList<>();
+        if (in.baseTenBit) {
+            int basePixiIndex = tmapColrIndex + 1;
+            int baseColrIndex = tmapColrIndex + 2;
+            ipcoBoxes.add(IsoBmff.buildBox("pixi",
+                    IsoBmff.fullBoxPayload(0, 0, buildPixiBody(10, 10, 10))));
+            ipcoBoxes.add(IsoBmff.buildBox("colr",
+                    IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+            primaryExtras.add(new PropRef(false, basePixiIndex));
+            primaryExtras.add(new PropRef(false, baseColrIndex));
+        }
         byte[] newIpco = IsoBmff.buildBox("ipco", ipcoBoxes);
         List<Integer> tmapPropIdx = new ArrayList<>();
         tmapPropIdx.add(tmapIspeIndex);
@@ -239,7 +258,8 @@ public final class UltraHdrHeicContainer {
 
         // New ipma = kept base entries + kept gain entries (remapped) + aux grid
         // entry + tmap entry (descriptive props) + (XMP/EXIF need none).
-        byte[] newIpma = extendIpma(base, baseKeep, gg, gridAssoc, tmapId, tmapPropIdx);
+        byte[] newIpma = extendIpma(base, baseKeep, gg, gridAssoc, tmapId, tmapPropIdx,
+                primaryId, primaryExtras);
 
         // New iinf = kept base entries + Exif + remapped gain entries + new.
         List<byte[]> keptInfe = new ArrayList<>();
@@ -503,6 +523,148 @@ public final class UltraHdrHeicContainer {
     }
 
     /**
+     * Adds an Exif item to a single-image HEIC (e.g. one just written by
+     * {@link TenBitHeicEncoder}) and returns the rebuilt file. The container
+     * is reconstructed from the kept item set (primary + {@code dimg} grid
+     * tiles) with the Exif item appended to a fresh {@code mdat}; every kept
+     * item's bytes are copied verbatim. Top-level boxes are located by range
+     * scan, so the large {@code mdat} is never copied twice.
+     *
+     * @param heic        complete HEIC file bytes
+     * @param exifPayload raw {@code Exif\0\0 + TIFF} payload, may be null
+     * @return {@code heic} unchanged when there is nothing to inject
+     */
+    public static byte[] injectExif(byte[] heic, byte[] exifPayload) {
+        return injectExif(heic, exifPayload, false);
+    }
+
+    /**
+     * @param tenBit true when the source is a 10-bit encode: adds
+     *        {@code pixi} (10/10/10) and a full-range BT.709 SDR
+     *        {@code colr} to the rebuilt primary item.
+     */
+    public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean tenBit) {
+        if (heic == null) {
+            throw new IllegalArgumentException("Null HEIC");
+        }
+        byte[] exifItem = ExifBlob.heifExifItemBody(exifPayload);
+        if (exifItem == null) {
+            return heic;
+        }
+        long[] ftypRange = IsoBmff.boxDataRange(heic, "ftyp");
+        long[] metaRange = IsoBmff.boxDataRange(heic, "meta");
+        if (ftypRange == null || metaRange == null
+                || metaRange[1] < 4 || metaRange[1] > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("HEIC without usable ftyp/meta");
+        }
+        if (IsoBmff.boxDataRange(heic, "mdat") == null) {
+            throw new IllegalArgumentException("HEIC without mdat");
+        }
+        byte[] ftyp = IsoBmff.buildBox("ftyp",
+                sliceRange(heic, (int) ftypRange[0], (int) ftypRange[1]));
+        byte[] metaPayload = sliceRange(heic, (int) metaRange[0], (int) metaRange[1]);
+        Meta m = Meta.parse(metaPayload);
+        int primaryId = m.primaryItemId;
+
+        java.util.LinkedHashSet<Integer> keep = computeKeepSet(m);
+        java.util.Map<Integer, byte[]> kept = sliceKeptPayloads(heic, m, keep, "base");
+        List<Integer> order = new ArrayList<>(keep);
+        java.util.Collections.sort(order);
+        int exifId = m.maxItemId + 1;
+        if (exifId > 0xFFFF) {
+            throw new IllegalArgumentException("Exif item id too large: " + exifId);
+        }
+
+        List<byte[]> mdatParts = new ArrayList<>();
+        for (int id : order) {
+            mdatParts.add(kept.get(id));
+        }
+        mdatParts.add(exifItem);
+
+        List<byte[]> keptInfe = new ArrayList<>();
+        for (int id : order) {
+            byte[] infe = infeBoxFor(m, id);
+            if (infe == null) {
+                throw new IllegalArgumentException("infe missing for kept item " + id);
+            }
+            keptInfe.add(infe);
+        }
+        keptInfe.add(buildInfeV2(exifId, "Exif", "", null));
+        byte[] newIinf = buildIinf(m.iinfPayload, keptInfe,
+                java.util.Collections.<byte[]>emptyList());
+
+        int outRefVersion = m.irefVersion;
+        List<byte[]> extraRefs = new ArrayList<>();
+        extraRefs.add(buildSingleRef("cdsc", exifId, new int[]{primaryId}, outRefVersion));
+        byte[] newIref = extendIref(filterIref(m, keep, outRefVersion), extraRefs, outRefVersion);
+
+        List<byte[]> ipcoBoxes = new ArrayList<>();
+        for (IsoBmff.Box b : m.ipcoChildren) {
+            ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
+        }
+        List<PropRef> primaryExtras = new ArrayList<>();
+        if (tenBit) {
+            int pixiIndex = ipcoBoxes.size() + 1;
+            int colrIndex = ipcoBoxes.size() + 2;
+            ipcoBoxes.add(IsoBmff.buildBox("pixi",
+                    IsoBmff.fullBoxPayload(0, 0, buildPixiBody(10, 10, 10))));
+            ipcoBoxes.add(IsoBmff.buildBox("colr",
+                    IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+            primaryExtras.add(new PropRef(false, pixiIndex));
+            primaryExtras.add(new PropRef(false, colrIndex));
+        }
+        byte[] iprpBox = IsoBmff.buildBox("iprp",
+                listOf(IsoBmff.buildBox("ipco", ipcoBoxes),
+                        filterIpma(m, keep, primaryId, primaryExtras)));
+
+        // Placeholder iloc (same body size) to measure the meta box, then the
+        // real iloc with absolute offsets relative to the new mdat start.
+        List<Extent> zero = new ArrayList<>();
+        for (int i = 0; i < order.size() + 1; i++) {
+            zero.add(new Extent(0, 0, 0));
+        }
+        byte[] zeroIloc = IsoBmff.buildBox("iloc",
+                IsoBmff.fullBoxPayload(0, 0, buildIlocBody(zero)));
+        long metaBoxSize = 8 + 4 + m.hdlr.length + m.pitm.length
+                + zeroIloc.length + newIinf.length + newIref.length + iprpBox.length;
+        long cursor = ftyp.length + metaBoxSize + 8;
+        long mdatDataStart = cursor;
+        List<Extent> extents = new ArrayList<>();
+        for (int id : order) {
+            byte[] payload = kept.get(id);
+            extents.add(new Extent(id, cursor, payload.length));
+            cursor += payload.length;
+        }
+        extents.add(new Extent(exifId, cursor, exifItem.length));
+        byte[] ilocBox = IsoBmff.buildBox("iloc",
+                IsoBmff.fullBoxPayload(0, 0, buildIlocBody(extents)));
+
+        List<byte[]> metaParts = new ArrayList<>();
+        metaParts.add(m.metaFullHeader);
+        metaParts.add(m.hdlr);
+        metaParts.add(m.pitm);
+        metaParts.add(ilocBox);
+        metaParts.add(newIinf);
+        metaParts.add(newIref);
+        metaParts.add(iprpBox);
+        byte[] meta = IsoBmff.buildBox("meta", metaParts);
+        byte[] mdat = IsoBmff.buildBox("mdat", mdatParts);
+        logExifSelfCheck(extents, exifId, primaryId, mdat, mdatDataStart);
+
+        byte[] out = new byte[ftyp.length + meta.length + mdat.length];
+        System.arraycopy(ftyp, 0, out, 0, ftyp.length);
+        System.arraycopy(meta, 0, out, ftyp.length, meta.length);
+        System.arraycopy(mdat, 0, out, ftyp.length + meta.length, mdat.length);
+        return out;
+    }
+
+    private static byte[] sliceRange(byte[] data, int offset, int length) {
+        byte[] out = new byte[length];
+        System.arraycopy(data, offset, out, 0, length);
+        return out;
+    }
+
+    /**
      * Structural verification of a merged HEIC: parses its top-level boxes
      * and returns the primary item's {@code ispe} dimensions, or throws. This
      * replaces the previous {@code ImageDecoder} header probe, whose abort
@@ -527,7 +689,78 @@ public final class UltraHdrHeicContainer {
         }
         byte[] metaPayload = new byte[(int) metaRange[1]];
         System.arraycopy(heic, (int) metaRange[0], metaPayload, 0, metaPayload.length);
-        Meta m = Meta.parse(metaPayload);
+        return primaryIspe(Meta.parse(metaPayload));
+    }
+
+    /**
+     * {@link #primarySize(byte[])} without materializing the file: walks the
+     * top-level boxes through a {@link java.nio.channels.FileChannel} and
+     * reads only the meta box. Same validation (ftyp, non-empty mdat, usable
+     * meta, primary ispe).
+     */
+    static int[] primarySize(java.nio.file.Path file) throws java.io.IOException {
+        try (java.nio.channels.FileChannel ch = java.nio.channels.FileChannel.open(
+                file, java.nio.file.StandardOpenOption.READ)) {
+            long fileSize = ch.size();
+            java.nio.ByteBuffer header = java.nio.ByteBuffer.allocate(16)
+                    .order(java.nio.ByteOrder.BIG_ENDIAN);
+            long pos = 0;
+            boolean hasFtyp = false;
+            boolean hasMdat = false;
+            byte[] metaPayload = null;
+            while (pos + 8 <= fileSize) {
+                header.position(0);
+                header.limit(8);
+                readFully(ch, header, pos);
+                long boxSize = header.getInt(0) & 0xFFFFFFFFL;
+                String type = new String(new byte[]{
+                        header.get(4), header.get(5), header.get(6), header.get(7)},
+                        java.nio.charset.StandardCharsets.US_ASCII);
+                int headerSize = 8;
+                if (boxSize == 1) {
+                    if (pos + 16 > fileSize) {
+                        throw new IllegalStateException("truncated largesize " + type);
+                    }
+                    header.position(0);
+                    header.limit(8);
+                    readFully(ch, header, pos + 8);
+                    boxSize = header.getLong(0);
+                    headerSize = 16;
+                } else if (boxSize == 0) {
+                    boxSize = fileSize - pos;
+                }
+                if (boxSize < headerSize || pos + boxSize > fileSize) {
+                    throw new IllegalStateException("bad " + type + " box size " + boxSize);
+                }
+                long payloadLen = boxSize - headerSize;
+                if ("ftyp".equals(type)) {
+                    hasFtyp = true;
+                } else if ("mdat".equals(type)) {
+                    hasMdat = payloadLen > 0;
+                } else if ("meta".equals(type)) {
+                    if (payloadLen < 4 || payloadLen > Integer.MAX_VALUE) {
+                        throw new IllegalStateException("merged HEIC has no usable meta box");
+                    }
+                    metaPayload = new byte[(int) payloadLen];
+                    java.nio.ByteBuffer dst = java.nio.ByteBuffer.wrap(metaPayload);
+                    readFully(ch, dst, pos + headerSize);
+                }
+                pos += boxSize;
+            }
+            if (!hasFtyp) {
+                throw new IllegalStateException("merged HEIC has no ftyp box");
+            }
+            if (!hasMdat) {
+                throw new IllegalStateException("merged HEIC has no mdat box");
+            }
+            if (metaPayload == null) {
+                throw new IllegalStateException("merged HEIC has no usable meta box");
+            }
+            return primaryIspe(Meta.parse(metaPayload));
+        }
+    }
+
+    private static int[] primaryIspe(Meta m) {
         List<PropRef> assoc = m.ipmaAssoc.get(m.primaryItemId);
         if (assoc != null) {
             for (PropRef r : assoc) {
@@ -541,6 +774,23 @@ public final class UltraHdrHeicContainer {
             }
         }
         throw new IllegalStateException("merged HEIC primary ispe not found");
+    }
+
+    /** Fills {@code dst} (position 0..limit) from {@code pos}. */
+    private static void readFully(java.nio.channels.FileChannel ch,
+            java.nio.ByteBuffer dst, long pos) throws java.io.IOException {
+        int limit = dst.limit();
+        dst.position(0);
+        int read = 0;
+        while (dst.position() < limit) {
+            int n = ch.read(dst, pos + read);
+            if (n < 0) {
+                throw new java.io.EOFException("truncated at " + (pos + read));
+            }
+            read += n;
+        }
+        dst.position(0);
+        dst.limit(limit);
     }
 
     static final class Extent {
@@ -887,7 +1137,8 @@ public final class UltraHdrHeicContainer {
      * associations plus auxC/ispe handling from the caller).
      */
     static byte[] extendIpma(Meta base, java.util.Set<Integer> baseKeep, GainGraph gg,
-            List<PropRef> gridAssoc, int tmapId, List<Integer> tmapPropIdx) {
+            List<PropRef> gridAssoc, int tmapId, List<Integer> tmapPropIdx,
+            int primaryId, List<PropRef> primaryExtras) {
         int version = IsoBmff.fullVersion(base.ipmaPayload);
         Meta tmp = new Meta();
         tmp.ipmaPayload = base.ipmaPayload;
@@ -898,8 +1149,14 @@ public final class UltraHdrHeicContainer {
         List<Integer> baseOrder = new ArrayList<>(baseKeep);
         java.util.Collections.sort(baseOrder);
         for (int id : baseOrder) {
-            if (tmp.ipmaAssoc.containsKey(id)) {
-                entries.put(id, tmp.ipmaAssoc.get(id));
+            List<PropRef> refs = tmp.ipmaAssoc.get(id);
+            if (id == primaryId && primaryExtras != null && !primaryExtras.isEmpty()) {
+                List<PropRef> out = refs == null ? new ArrayList<>() : new ArrayList<>(refs);
+                out.addAll(primaryExtras);
+                entries.put(id, out);
+                order.add(id);
+            } else if (refs != null) {
+                entries.put(id, refs);
                 order.add(id);
             }
         }
@@ -947,6 +1204,43 @@ public final class UltraHdrHeicContainer {
                 if (id > 0xFFFF) {
                     throw new IllegalArgumentException("item id too large for ipma v0");
                 }
+            }
+        }
+        return serializeIpma(tmp.ipmaVersion, tmp.ipmaFlags, entries, order);
+    }
+
+    /**
+     * Rebuilds ipma with only the kept item entries (associations verbatim,
+     * property indexes unchanged); dropped items' entries are omitted.
+     */
+    static byte[] filterIpma(Meta m, java.util.Set<Integer> keep) {
+        return filterIpma(m, keep, -1, null);
+    }
+
+    /**
+     * @param primaryId    item that receives {@code primaryExtras}, or -1
+     * @param primaryExtras extra property references appended to the primary
+     *        entry (created when the primary had no associations)
+     */
+    static byte[] filterIpma(Meta m, java.util.Set<Integer> keep, int primaryId,
+            List<PropRef> primaryExtras) {
+        Meta tmp = new Meta();
+        tmp.ipmaPayload = m.ipmaPayload;
+        parseIpmaAssoc(tmp);
+        java.util.Map<Integer, java.util.List<PropRef>> entries = new java.util.HashMap<>();
+        List<Integer> sorted = new ArrayList<>(keep);
+        java.util.Collections.sort(sorted);
+        List<Integer> order = new ArrayList<>();
+        for (int id : sorted) {
+            List<PropRef> refs = tmp.ipmaAssoc.get(id);
+            if (id == primaryId && primaryExtras != null && !primaryExtras.isEmpty()) {
+                List<PropRef> out = refs == null ? new ArrayList<>() : new ArrayList<>(refs);
+                out.addAll(primaryExtras);
+                entries.put(id, out);
+                order.add(id);
+            } else if (refs != null) {
+                entries.put(id, refs);
+                order.add(id);
             }
         }
         return serializeIpma(tmp.ipmaVersion, tmp.ipmaFlags, entries, order);

@@ -15,6 +15,7 @@
     <bool name="pref_hdrx_nr_default">true</bool>
     <bool name="pref_save_raw_default">false</bool>
     <bool name="pref_save_heic_default">false</bool>
+    <bool name="pref_heic_10bit_default">false</bool>
 
     <bool name="pref_quad_bayer_default">false</bool>
     <bool name="pref_ultrahdr_default">false</bool>

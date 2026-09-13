@@ -326,6 +326,11 @@ public class HdrxProcessor extends ProcessorBase {
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
         int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
+        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
+        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
+            Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
+            useHeic = false;
+        }
         if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, output,
                     processingParameters);
@@ -353,10 +358,16 @@ public class HdrxProcessor extends ProcessorBase {
             esd4d.kernelsMapBase = null;
         }
 
+        // 10-bit HEIC: fill the parallel ABGR1010102 sink during the render
+        // (4 B/px extra, only when the user opted in).
+        pipeline.runTenBit = useHeic && PhotonCamera.getSettings().heic10Bit
+                && HeicSupport.isTenBitHeicSupported();
+        if (pipeline.runTenBit) {
+            Log.d(TAG, "10-bit HEIC requested");
+        }
         Bitmap img = pipeline.Run(output, processingParameters);
         Allocator.logStage(TAG, "post-render");
         Allocator.logProc(TAG, "post-render");
-
         // The merged RAW frame is dead once it has been rendered - free it
         // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
         // PostPipeline frees it as soon as its last GL consumer has uploaded
@@ -390,15 +401,14 @@ public class HdrxProcessor extends ProcessorBase {
         catch (Exception e){
             Log.d(TAG,"Error in processingEventsListener.onProcessingFinished:"+Log.getStackTraceString(e));
         }
-        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
-        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
-            Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
-            useHeic = false;
-        }
         imageFile = Paths.get(imageFile.toAbsolutePath()
                 + (useHeic ? ".heic" : ".jpg"));
+        // Ownership of the 10-bit sink transfers to the encoder, which frees
+        // it; detach it so pipeline.close() cannot double-free.
+        java.nio.ByteBuffer tenBitFrame = pipeline.tenBitBuffer;
+        pipeline.tenBitBuffer = null;
         StillEncoder.Result still = StillEncoder.encodeStill(
-                imageFile, img, gm, exifData, useHeic);
+                imageFile, img, gm, exifData, useHeic, tenBitFrame);
         boolean imageSaved = still.saved;
         imageFile = still.file;
 

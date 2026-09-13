@@ -818,6 +818,242 @@ public class UltraHdrHeicContainerTest {
     }
 
     @Test
+    public void injectExifAppendsItemToSingleImage() {
+        byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
+        byte[] tiff = minimalTiff();
+        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(tiff));
+
+        List<IsoBmff.Box> top = IsoBmff.parse(out);
+        assertEquals(3, top.size());
+        assertEquals("ftyp", top.get(0).type);
+        assertEquals("meta", top.get(1).type);
+        assertEquals("mdat", top.get(2).type);
+
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
+        // primary + Exif.
+        assertEquals(2, IsoBmff.u16(findBox(kids, "iinf").payload, 4));
+        assertEquals(2, IsoBmff.u16(findBox(kids, "iloc").payload, 6));
+        assertEquals(1, IsoBmff.u16(findBox(kids, "pitm").payload, 4));
+
+        int exifId = -1;
+        byte[] iinfPayload = findBox(kids, "iinf").payload;
+        int v = IsoBmff.fullVersion(iinfPayload);
+        int cs = v == 0 ? 2 : 4;
+        byte[] region = new byte[iinfPayload.length - 4 - cs];
+        System.arraycopy(iinfPayload, 4 + cs, region, 0, region.length);
+        for (IsoBmff.Box e : IsoBmff.parse(region)) {
+            int ev = IsoBmff.fullVersion(e.payload);
+            int id = ev >= 3 ? (int) IsoBmff.u32(e.payload, 4) : IsoBmff.u16(e.payload, 4);
+            if (IsoBmff.fourcc(e.payload, 8).equals("Exif")) {
+                exifId = id;
+            }
+        }
+        assertTrue(exifId > 1);
+
+        boolean cdsc = false;
+        for (UltraHdrHeicContainer.IrefEntry e : UltraHdrHeicContainer.parseIrefEntries(
+                findBox(kids, "iref").payload, IsoBmff.fullVersion(findBox(kids, "iref").payload))) {
+            if (e.type.equals("cdsc") && e.from == exifId) {
+                cdsc = true;
+                assertEquals(1, e.to.size());
+                assertEquals(1, (int) e.to.get(0));
+            }
+        }
+        assertTrue(cdsc);
+
+        // Kept payload bytes verbatim; Exif item right after them with the
+        // OEM u32(6)+"Exif\0\0"+TIFF convention.
+        byte[] mdat = top.get(2).payload;
+        for (int i = 0; i < 64; i++) {
+            assertEquals((byte) 0xA5, mdat[i]);
+        }
+        long ftypLen = 8 + top.get(0).payload.length;
+        long metaLen = 8 + top.get(1).payload.length;
+        long mdatStart = ftypLen + metaLen + 8;
+        List<UltraHdrHeicContainer.Extent> exifExtents =
+                UltraHdrHeicContainer.ilocExtents(findBox(kids, "iloc").payload, exifId);
+        assertEquals(1, exifExtents.size());
+        assertEquals(mdatStart + 64, exifExtents.get(0).offset);
+        byte[] exifBytes = new byte[(int) exifExtents.get(0).length];
+        System.arraycopy(mdat, (int) (exifExtents.get(0).offset - mdatStart),
+                exifBytes, 0, exifBytes.length);
+        assertEquals(4 + 6 + tiff.length, exifBytes.length);
+        assertEquals(6, ByteBuffer.wrap(exifBytes).order(ByteOrder.BIG_ENDIAN).getInt());
+        assertEquals('E', exifBytes[4] & 0xFF);
+        byte[] roundTrip = new byte[exifBytes.length - 10];
+        System.arraycopy(exifBytes, 10, roundTrip, 0, roundTrip.length);
+        assertArrayEquals(tiff, roundTrip);
+    }
+
+    @Test
+    public void injectExifWithoutPayloadIsNoOp() {
+        byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
+        assertTrue(base == UltraHdrHeicContainer.injectExif(base, null));
+        assertTrue(base == UltraHdrHeicContainer.injectExif(base, new byte[]{0, 1, 2}));
+    }
+
+    @Test
+    public void injectExifKeepsGridTiles() {
+        byte[] base = gridHeic(bytes(64, (byte) 0xA5), bytes(16, (byte) 0x11));
+        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(minimalTiff()));
+        List<IsoBmff.Box> top = IsoBmff.parse(out);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
+        // tiles 1,2 + grid 3 + Exif.
+        assertEquals(4, IsoBmff.u16(findBox(kids, "iinf").payload, 4));
+        assertEquals(4, IsoBmff.u16(findBox(kids, "iloc").payload, 6));
+        byte[] mdat = top.get(2).payload;
+        for (int i = 0; i < 64; i++) {
+            assertEquals((byte) 0xA5, mdat[i]);
+        }
+        for (int i = 0; i < 16; i++) {
+            assertEquals((byte) 0x11, mdat[64 + i]);
+        }
+        boolean dimg = false;
+        for (UltraHdrHeicContainer.IrefEntry e : UltraHdrHeicContainer.parseIrefEntries(
+                findBox(kids, "iref").payload, IsoBmff.fullVersion(findBox(kids, "iref").payload))) {
+            if (e.type.equals("dimg") && e.from == 3 && e.to.size() == 2) {
+                dimg = true;
+            }
+        }
+        assertTrue(dimg);
+    }
+
+    @Test
+    public void primarySizePathMatchesBytes() throws Exception {
+        byte[] heic = singleImageHeicFullIspe(bytes(64, (byte) 0xA5), 64, 48,
+                new byte[]{1, 2, 3});
+        int[] fromBytes = UltraHdrHeicContainer.primarySize(heic);
+        java.nio.file.Path tmp = java.nio.file.Files.createTempFile("heic_ps_", ".heic");
+        try {
+            java.nio.file.Files.write(tmp, heic);
+            assertArrayEquals(fromBytes, UltraHdrHeicContainer.primarySize(tmp));
+        } finally {
+            java.nio.file.Files.deleteIfExists(tmp);
+        }
+    }
+
+    /**
+     * Same as {@link #singleImageHeic} but with an unstripped {@code ispe}
+     * payload (the shared fixture strips the FullBox header, which
+     * {@code primarySize} deliberately rejects).
+     */
+    private static byte[] singleImageHeicFullIspe(byte[] payload, int w, int h,
+            byte[] hvcC) {
+        byte[] ftyp = IsoBmff.buildBox("ftyp", ByteBuffer.allocate(20)
+                .order(ByteOrder.BIG_ENDIAN)
+                .put("heic".getBytes(StandardCharsets.US_ASCII)).putInt(0)
+                .put("heic".getBytes(StandardCharsets.US_ASCII))
+                .put("mif1".getBytes(StandardCharsets.US_ASCII))
+                .put("hevc".getBytes(StandardCharsets.US_ASCII)).array());
+        byte[] infe = UltraHdrHeicContainer.buildInfeV2(1, "hvc1", "Primary", null);
+        ByteBuffer iinfBody = ByteBuffer.allocate(2 + infe.length).order(ByteOrder.BIG_ENDIAN);
+        iinfBody.putShort((short) 1);
+        iinfBody.put(infe);
+        byte[] iinf = IsoBmff.buildBox("iinf",
+                IsoBmff.fullBoxPayload(0, 0, iinfBody.array()));
+        byte[] hdlr = IsoBmff.buildBox("hdlr", IsoBmff.fullBoxPayload(0, 0,
+                ByteBuffer.allocate(4 + 4 + 12 + 1).order(ByteOrder.BIG_ENDIAN)
+                        .putInt(0).put("pict".getBytes(StandardCharsets.US_ASCII))
+                        .put(new byte[12]).put((byte) 0).array()));
+        ByteBuffer pitmBody = ByteBuffer.allocate(2).order(ByteOrder.BIG_ENDIAN);
+        pitmBody.putShort((short) 1);
+        byte[] pitm = IsoBmff.buildBox("pitm",
+                IsoBmff.fullBoxPayload(0, 0, pitmBody.array()));
+        byte[] ipco = IsoBmff.buildBox("ipco", IsoBmff.concat(listOf(
+                IsoBmff.buildBox("hvcC", hvcC),
+                IsoBmff.buildBox("ispe", UltraHdrHeicContainer.buildIspe(w, h)))));
+        ByteBuffer ipmaBody = ByteBuffer.allocate(4 + 2 + 1 + 2)
+                .order(ByteOrder.BIG_ENDIAN);
+        ipmaBody.putInt(1);
+        ipmaBody.putShort((short) 1);
+        ipmaBody.put((byte) 2);
+        ipmaBody.put((byte) 0x81);
+        ipmaBody.put((byte) 0x02);
+        byte[] iprp = IsoBmff.buildBox("iprp", IsoBmff.concat(listOf(ipco,
+                IsoBmff.buildBox("ipma",
+                        IsoBmff.fullBoxPayload(0, 0, ipmaBody.array())))));
+        List<byte[]> metaKids = new ArrayList<>();
+        metaKids.add(hdlr);
+        metaKids.add(pitm);
+        metaKids.add(IsoBmff.buildBox("iloc", IsoBmff.fullBoxPayload(0, 0,
+                UltraHdrHeicContainer.buildIlocBody(java.util.Collections.singletonList(
+                        new UltraHdrHeicContainer.Extent(1, 0, 0))))));
+        metaKids.add(iinf);
+        metaKids.add(iprp);
+        byte[] metaPass1 = IsoBmff.buildBox("meta", IsoBmff.concat(listOf(
+                IsoBmff.fullBoxPayload(0, 0, null), IsoBmff.concat(metaKids))));
+        long mdatStart = ftyp.length + metaPass1.length + 8;
+        metaKids.set(2, IsoBmff.buildBox("iloc", IsoBmff.fullBoxPayload(0, 0,
+                UltraHdrHeicContainer.buildIlocBody(java.util.Collections.singletonList(
+                        new UltraHdrHeicContainer.Extent(1, mdatStart, payload.length))))));
+        byte[] meta = IsoBmff.buildBox("meta", IsoBmff.concat(listOf(
+                IsoBmff.fullBoxPayload(0, 0, null), IsoBmff.concat(metaKids))));
+        return IsoBmff.concat(listOf(ftyp, meta, IsoBmff.buildBox("mdat", payload)));
+    }
+
+    @Test
+    public void tenBitBaseGetsPixiAndColr() {
+        // Ultra HDR merge path.
+        UltraHdrHeicContainer.Inputs in = inputs(null);
+        in.baseTenBit = true;
+        assertTenBitBaseProps(UltraHdrHeicContainer.merge(in), 1);
+
+        // SDR 10-bit Exif-injection path.
+        byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
+        byte[] injected = UltraHdrHeicContainer.injectExif(base,
+                exifPayloadOf(minimalTiff()), true);
+        assertTenBitBaseProps(injected, 1);
+    }
+
+    /**
+     * Verifies the primary item of {@code heic} carries a {@code pixi} with
+     * 10 bits per channel and a full-range BT.709 SDR {@code colr}.
+     */
+    private static void assertTenBitBaseProps(byte[] heic, int primaryId) {
+        List<IsoBmff.Box> top = IsoBmff.parse(heic);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
+                top.get(1).payload.length - 4);
+        List<IsoBmff.Box> ipco = null;
+        byte[] ipma = null;
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iprp")) {
+                continue;
+            }
+            for (IsoBmff.Box k : IsoBmff.parse(b.payload)) {
+                if (k.type.equals("ipco")) {
+                    ipco = IsoBmff.parse(k.payload);
+                } else if (k.type.equals("ipma")) {
+                    ipma = k.payload;
+                }
+            }
+        }
+        assertTrue(ipco != null && ipma != null);
+        UltraHdrHeicContainer.Meta probe = new UltraHdrHeicContainer.Meta();
+        probe.ipmaPayload = ipma;
+        UltraHdrHeicContainer.parseIpmaAssoc(probe);
+        List<UltraHdrHeicContainer.PropRef> refs = probe.ipmaAssoc.get(primaryId);
+        assertTrue(refs != null);
+        boolean pixiOk = false;
+        boolean colrOk = false;
+        for (UltraHdrHeicContainer.PropRef r : refs) {
+            IsoBmff.Box prop = ipco.get(r.index - 1);
+            if (prop.type.equals("pixi")) {
+                pixiOk = prop.payload.length == 8 && prop.payload[4] == 3
+                        && prop.payload[5] == 10 && prop.payload[6] == 10
+                        && prop.payload[7] == 10;
+            } else if (prop.type.equals("colr")) {
+                colrOk = prop.payload.length == 15
+                        && IsoBmff.u16(prop.payload, 8) == 1
+                        && IsoBmff.u16(prop.payload, 10) == 1
+                        && IsoBmff.u16(prop.payload, 12) == 1
+                        && (prop.payload[14] & 0x80) != 0;
+            }
+        }
+        assertTrue("primary pixi 10/10/10", pixiOk);
+        assertTrue("primary colr BT709 full range", colrOk);
+    }
+
+    @Test
     public void exifItemSelfAudit() {
         // Structural audit of our own Exif item, mirroring the de-facto OEM
         // form: u32(6) + "Exif\0\0" + TIFF, single cdsc to the primary.

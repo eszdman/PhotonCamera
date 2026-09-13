@@ -234,6 +234,20 @@ public class PostPipeline extends GLBasePipeline {
     // mid-pipeline (the same pixels runAll would stream into afterwards).
     Bitmap sinkBitmap = null;
 
+    /**
+     * When set before {@link #Run}, the sink additionally fills
+     * {@link #tenBitBuffer} with packed ABGR1010102 at full resolution
+     * (4 B/px native). Consumed by Run; callers own the buffer afterwards.
+     */
+    public boolean runTenBit = false;
+    /**
+     * Parallel 10-bit sink filled by {@link #Run} when {@link #runTenBit} was
+     * set; null when not requested or when allocation/GL setup failed. The
+     * caller must release it with {@link Allocator#free} (close() is a safety
+     * net only).
+     */
+    public ByteBuffer tenBitBuffer = null;
+
     private void computeNoise(Parameters parameters) {
         NoiseModeler modeler = parameters.noiseModeler;
         noiseS = modeler.computeModel[0].first.floatValue() +
@@ -374,6 +388,31 @@ public class PostPipeline extends GLBasePipeline {
         // (~258 MB at 64 MP) and no extra copies.
         Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y, Bitmap.Config.ARGB_8888);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None);
+        if (tenBitBuffer != null) {
+            Allocator.free(tenBitBuffer);
+            tenBitBuffer = null;
+        }
+        boolean wantTenBit = runTenBit;
+        runTenBit = false;
+        if (wantTenBit) {
+            ByteBuffer ten = null;
+            try {
+                ten = Allocator.allocate(rotatedSize.x * rotatedSize.y * 4);
+                if (ten == null) {
+                    throw new IllegalStateException("10-bit sink allocation failed");
+                }
+                ten.order(java.nio.ByteOrder.nativeOrder());
+                glproc.enableTenBitSink(ten);
+                tenBitBuffer = ten;
+            } catch (Exception e) {
+                Log.e("PostPipeline", "10-bit sink unavailable, 8-bit output only: "
+                        + Log.getStackTraceString(e));
+                if (ten != null) {
+                    Allocator.free(ten);
+                }
+                tenBitBuffer = null;
+            }
+        }
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         stackFrameReleased = false;
@@ -1371,6 +1410,11 @@ public class PostPipeline extends GLBasePipeline {
         }
         kernelParams = null;
         kernelParamsSize = null;
+        // Safety net: the owning processor frees the 10-bit sink after encode.
+        if (tenBitBuffer != null) {
+            Allocator.free(tenBitBuffer);
+            tenBitBuffer = null;
+        }
         super.close();
     }
 

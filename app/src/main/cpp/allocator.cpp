@@ -613,3 +613,92 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unpack16(JNIEnv *env, jclass 
         accBits -= bits;
     }
 }
+// Converts one tile of the packed ABGR1010102 pipeline sink (R in bits 0-9,
+// G 10-19, B 20-29) into P010 4:2:0 full-range BT.709, writing the Y plane
+// and the interleaved Cb/Cr plane buffers of an encoder input Image. All
+// strides are in bytes. Edge tiles replicate the last valid row/column; the
+// HEIF grid crops that padding on decode.
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_rgb10ToP010Tile(
+        JNIEnv *env, jclass clazz, jobject srcBuffer,
+        jint fullWidth, jint fullHeight,
+        jint tileX, jint tileY, jint tileWidth, jint tileHeight,
+        jobject yBuffer, jint yRowStride, jint yPixelStride,
+        jobject uBuffer, jint uvRowStride, jint uPixelStride,
+        jobject vBuffer, jint vRowStride, jint vPixelStride) {
+    const uint32_t *src =
+            static_cast<const uint32_t *>(env->GetDirectBufferAddress(srcBuffer));
+    uint8_t *yPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(yBuffer));
+    uint8_t *uPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(uBuffer));
+    uint8_t *vPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(vBuffer));
+    if (src == nullptr || yPlane == nullptr || uPlane == nullptr || vPlane == nullptr) {
+        LOGD("rgb10ToP010Tile: null buffer");
+        return;
+    }
+    jlong srcCap = env->GetDirectBufferCapacity(srcBuffer);
+    if (fullWidth <= 0 || fullHeight <= 0 || tileWidth <= 0 || tileHeight <= 0
+        || srcCap < (jlong) fullWidth * fullHeight * 4) {
+        LOGD("rgb10ToP010Tile: bad size %dx%d tile %dx%d cap=%lld",
+             fullWidth, fullHeight, tileWidth, tileHeight, (long long) srcCap);
+        return;
+    }
+
+    auto clampCoord = [](int v, int max) { return v < max ? v : max - 1; };
+    auto putU16 = [](uint8_t *p, int v) {
+        p[0] = (uint8_t) (v & 0xFF);
+        p[1] = (uint8_t) ((v >> 8) & 0xFF);
+    };
+
+    // Luma: full-range BT.709 of every pixel.
+    for (int r = 0; r < tileHeight; r++) {
+        const int sy = clampCoord(tileY + r, fullHeight);
+        const uint32_t *row = src + (size_t) sy * fullWidth;
+        uint8_t *yRow = yPlane + (size_t) r * yRowStride;
+        for (int c = 0; c < tileWidth; c++) {
+            const int sx = clampCoord(tileX + c, fullWidth);
+            const uint32_t p = row[sx];
+            const int R = (int) (p & 0x3FF);
+            const int G = (int) ((p >> 10) & 0x3FF);
+            const int B = (int) ((p >> 20) & 0x3FF);
+            int Y = (54 * R + 183 * G + 18 * B + 128) >> 8;
+            if (Y < 0) Y = 0;
+            else if (Y > 1023) Y = 1023;
+            putU16(yRow + (size_t) c * yPixelStride, Y << 6);
+        }
+    }
+
+    // Chroma: 2x2 box average, Cb/Cr centred on 512 (full range), BT.709.
+    for (int r = 0; r < tileHeight; r += 2) {
+        const int sy0 = clampCoord(tileY + r, fullHeight);
+        const int sy1 = clampCoord(tileY + r + 1, fullHeight);
+        const uint32_t *row0 = src + (size_t) sy0 * fullWidth;
+        const uint32_t *row1 = src + (size_t) sy1 * fullWidth;
+        const int cy = r / 2;
+        for (int c = 0; c < tileWidth; c += 2) {
+            const int sx0 = clampCoord(tileX + c, fullWidth);
+            const int sx1 = clampCoord(tileX + c + 1, fullWidth);
+            const uint32_t p00 = row0[sx0];
+            const uint32_t p01 = row0[sx1];
+            const uint32_t p10 = row1[sx0];
+            const uint32_t p11 = row1[sx1];
+            const int R = ((p00 & 0x3FF) + (p01 & 0x3FF)
+                           + (p10 & 0x3FF) + (p11 & 0x3FF) + 2) >> 2;
+            const int G = (((p00 >> 10) & 0x3FF) + ((p01 >> 10) & 0x3FF)
+                           + ((p10 >> 10) & 0x3FF) + ((p11 >> 10) & 0x3FF) + 2) >> 2;
+            const int B = (((p00 >> 20) & 0x3FF) + ((p01 >> 20) & 0x3FF)
+                           + ((p10 >> 20) & 0x3FF) + ((p11 >> 20) & 0x3FF) + 2) >> 2;
+            int Cb = 512 + ((-29 * R - 99 * G + 128 * B + 128) >> 8);
+            int Cr = 512 + ((128 * R - 116 * G - 12 * B + 128) >> 8);
+            if (Cb < 0) Cb = 0;
+            else if (Cb > 1023) Cb = 1023;
+            if (Cr < 0) Cr = 0;
+            else if (Cr > 1023) Cr = 1023;
+            const int cc = c / 2;
+            putU16(uPlane + (size_t) cy * uvRowStride + (size_t) cc * uPixelStride,
+                   Cb << 6);
+            putU16(vPlane + (size_t) cy * vRowStride + (size_t) cc * vPixelStride,
+                   Cr << 6);
+        }
+    }
+}

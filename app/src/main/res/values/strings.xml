@@ -146,6 +146,8 @@
     <string name="raw_string" translatable="false">RAW</string>
     <string name="save_heic">Save HEIC</string>
     <string name="save_heic_summary">Use HEIC instead of JPEG — smaller files at the same quality</string>
+    <string name="heic_10bit">10-bit HEIC</string>
+    <string name="heic_10bit_summary">Encode HEIC with a 10-bit pipeline — smoother gradients, larger files</string>
     <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
     <string name="raw_plus_heic" translatable="false">RAW + HEIC</string>
     <string name="heic_only" translatable="false">HEIC</string>

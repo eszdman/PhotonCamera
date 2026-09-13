@@ -55,6 +55,20 @@ public class Allocator{
     /** Inverse of {@link #packBits}: writes {@code pixels} little-endian shorts into {@code dst}. */
     public native static void unpack16(ByteBuffer dst, ByteBuffer packed, int pixels, int bits);
 
+    /**
+     * Converts one tile of the packed ABGR1010102 pipeline sink into P010
+     * 4:2:0 full-range BT.709, writing the Y plane and the interleaved Cb/Cr
+     * plane buffers of an encoder input {@code Image} (all strides in bytes).
+     * Edge tiles replicate the last valid row/column; the HEIF grid crops
+     * that padding on decode.
+     */
+    public native static void rgb10ToP010Tile(ByteBuffer src,
+            int fullWidth, int fullHeight, int tileX, int tileY,
+            int tileWidth, int tileHeight,
+            ByteBuffer yPlane, int yRowStride, int yPixelStride,
+            ByteBuffer uPlane, int uRowStride, int uPixelStride,
+            ByteBuffer vPlane, int vRowStride, int vPixelStride);
+
     public native static void free(ByteBuffer buffer);
     public native static long getMemoryCount();
 

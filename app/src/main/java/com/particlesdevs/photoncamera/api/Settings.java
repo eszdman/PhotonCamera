@@ -35,6 +35,8 @@ public class Settings {
     public double shadows;
     public int rawSaver;
     public boolean heicSave;
+    /** True when HEIC output uses the 10-bit pipeline (gated by HEIC save + device support). */
+    public boolean heic10Bit;
     public boolean QuadBayer;    public int cfaPattern;
     public int theme;
     public boolean remosaic;//TODO
@@ -82,6 +84,7 @@ public class Settings {
         cfaPattern = PreferenceKeys.getCFAValue();
         rawSaver = PreferenceKeys.isSaveRaw();
         heicSave = PreferenceKeys.isHeicSave();
+        heic10Bit = PreferenceKeys.isHeic10BitOn();
         remosaic = PreferenceKeys.isRemosaicOn();
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
