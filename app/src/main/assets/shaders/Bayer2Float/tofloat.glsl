@@ -1,4 +1,3 @@
-
 precision highp float;
 precision highp usampler2D;
 precision mediump sampler2D;
@@ -66,8 +65,15 @@ int hlFcol(ivec2 p) {
 
 // normalized white-balanced value of a raw sample, same space as OpposedChroma
 float hlNorm(uint rv, int c) {
-    vec3 lvl = vec3(blackLevel.r, (blackLevel.g + blackLevel.b) / 2.0, blackLevel.a);
-    return max(0.0, (float(rv) / float(whitelevel) - lvl[c]) / (1.0 - lvl[c]) / whitePoint[c]);
+    // Prevent dynamic vector indexing issues on some mobile drivers and safeguard divisors
+    float lvlC = (c == 0) ? blackLevel.r : ((c == 1) ? (blackLevel.g + blackLevel.b) * 0.5 : blackLevel.a);
+    float wpC  = (c == 0) ? whitePoint.r : ((c == 1) ? whitePoint.g : whitePoint.b);
+    
+    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs on some hardware
+    float rawF = min(float(rv), float(whitelevel));
+    float val  = rawF / max(float(whitelevel), 1.0);
+    
+    return max(0.0, (val - lvlC) / max(1.0 - lvlC, 1e-4) / max(wpC, 1e-4));
 }
 
 // opposed-colour estimate for channel c from the 3x3 photosite neighbourhood
@@ -75,21 +81,30 @@ float hlNorm(uint rv, int c) {
 float hlRefavg(ivec2 p, int c) {
     ivec2 lo = max(p - ivec2(1), ivec2(0));
     ivec2 hi = min(p + ivec2(1), RawSize - ivec2(1));
-    float sum[3];
-    float cnt[3];
-    sum[0] = sum[1] = sum[2] = 0.0;
-    cnt[0] = cnt[1] = cnt[2] = 0.0;
+    
+    // Unrolled arrays to prevent dynamic indexing bugs on mobile GPUs
+    float sumR = 0.0, sumG = 0.0, sumB = 0.0;
+    float cntR = 0.0, cntG = 0.0, cntB = 0.0;
+    
     for (int dy = lo.y; dy <= hi.y; dy++) {
         for (int dx = lo.x; dx <= hi.x; dx++) {
             int cc = hlFcol(ivec2(dx, dy));
             float v = hlNorm(texelFetch(InputBuffer, ivec2(dx, dy), 0).x, cc);
-            sum[cc] += v;
-            cnt[cc] += 1.0;
+            if (cc == 0) {
+                sumR += v; cntR += 1.0;
+            } else if (cc == 1) {
+                sumG += v; cntG += 1.0;
+            } else {
+                sumB += v; cntB += 1.0;
+            }
         }
     }
-    float m0 = cnt[0] > 0.0 ? pow(sum[0] / cnt[0], 1.0 / 3.0) : 0.0;
-    float m1 = cnt[1] > 0.0 ? pow(sum[1] / cnt[1], 1.0 / 3.0) : 0.0;
-    float m2 = cnt[2] > 0.0 ? pow(sum[2] / cnt[2], 1.0 / 3.0) : 0.0;
+    
+    // Safeguard pow() base against negative or zero values causing NaN
+    float m0 = cntR > 0.0 ? pow(max(sumR / cntR, 1e-6), 1.0 / 3.0) : 0.0;
+    float m1 = cntG > 0.0 ? pow(max(sumG / cntG, 1e-6), 1.0 / 3.0) : 0.0;
+    float m2 = cntB > 0.0 ? pow(max(sumB / cntB, 1e-6), 1.0 / 3.0) : 0.0;
+    
     float opp = c == 0 ? 0.5 * (m1 + m2) : (c == 1 ? 0.5 * (m0 + m2) : 0.5 * (m0 + m1));
     return opp * opp * opp;
 }
@@ -108,20 +123,23 @@ void main() {
     #if USEGAIN == 1
     vec4 gains = texture(GainMap, vec2(xy)*vec2(RawInvSize));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
-    gains.rgb /= dot(gains.rgb,vec3(1.0/3.0));
+    // Prevent division by zero
+    gains.rgb /= max(dot(gains.rgb,vec3(1.0/3.0)), 1e-4);
     #else
     vec3 gains = vec3(1.0);
     #endif
     //gains.rgb = vec3(1.f);
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     #if RGBLAYOUT == 1
-    //Output = vec3(texelFetch(InputBuffer, (xy+ivec2(0,0)), 0).rgb)/(float(whitelevel));
-    vec3 hlRGB = vec3(texelFetch(InputBuffer, (xy), 0).rgb)/(float(whitelevel));
+    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs
+    vec3 rawVec = min(vec3(texelFetch(InputBuffer, (xy), 0).rgb), vec3(whitelevel));
+    vec3 hlRGB = rawVec / max(float(whitelevel), 1.0);
     hlRGB = (hlRGB - level.rgb)/(vec3(1.0)-level.rgb);
     #if HLRECON == 1
     {
         vec3 u = max(hlRGB, vec3(0.0));
-        vec3 roots = pow(u, vec3(1.0/3.0));
+        // Safeguard pow() base against negative or zero values
+        vec3 roots = mix(vec3(0.0), pow(max(u, vec3(1e-6)), vec3(1.0/3.0)), step(vec3(1e-6), u));
         vec3 opp = vec3(0.5*(roots.g+roots.b), 0.5*(roots.r+roots.b), 0.5*(roots.r+roots.g));
         vec3 rec = max(u, opp*opp*opp + Chrominance);
         hlRGB = mix(u, rec, step(vec3(HLCLIP), u));
@@ -148,13 +166,24 @@ void main() {
                 ci = 2; levelC = level.b; gainC = gains.b;
             }
         }
-    Output = float(texelFetch(InputBuffer, (xy), 0).x)/(float(whitelevel));
-    float hlVal = (Output - levelC)/(1.0-levelC)/balance;
+        
+    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs
+    float rawF = min(float(texelFetch(InputBuffer, (xy), 0).x), float(whitelevel));
+    Output = rawF / max(float(whitelevel), 1.0);
+    
+    // Safeguard balance and denominator from zero division
+    balance = max(balance, 1e-4);
+    float denom = max(1.0 - levelC, 1e-4);
+    float hlVal = (Output - levelC)/denom/balance;
+    
     #if HLRECON == 1
     if (hlVal >= HLCLIP) {
         // inpaint the clipped photosite from its opposed colours; the value
         // stays scene-referred and may exceed 1.0 instead of clipping
-        Output = gainC * max(hlVal, hlRefavg(xy, ci) + Chrominance[ci]);
+        
+        // Prevent dynamic vector indexing issues on some mobile drivers
+        float chromaC = (ci == 0) ? Chrominance.r : ((ci == 1) ? Chrominance.g : Chrominance.b);
+        Output = gainC * max(hlVal, hlRefavg(xy, ci) + chromaC);
     } else
     #endif
     {
