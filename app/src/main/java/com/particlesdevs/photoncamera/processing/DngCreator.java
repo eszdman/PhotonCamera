@@ -500,11 +500,12 @@ public class DngCreator {
         setAsShotNeutral(toDouble(parameters.whitePoint));
         setCFAPattern(parameters.cfaPattern);
         setOrientation(parameters.cameraRotation/90);
+        // Native signature is (xmin, ymin, xmax, ymax): left, top, right, bottom.
         setGainMap(parameters.gainMap,
-                   parameters.sensorPix.top,
                    parameters.sensorPix.left,
-                   parameters.sensorPix.bottom,
+                   parameters.sensorPix.top,
                    parameters.sensorPix.right,
+                   parameters.sensorPix.bottom,
                    parameters.mapSize.x,
                    parameters.mapSize.y);
     }
