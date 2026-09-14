@@ -628,7 +628,13 @@ public class ESD4D extends GLOneScript {
             final float varianceScale = (numVarianceBins - 1) / (varStat * NOISE_BLEND_SIGMA_REF);
             final float brightnessScale = 64.0f * (float)Math.sqrt(3.0f);
             float[] spatialKernel = new float[9];
+            // Step-0 instrumentation (temporary, DEBUG only): split the
+            // pre-merge phase into noise-blend vs histogram vs fit.
+            long dbgBlendT = 0L;
+            if (PhotonCamera.DEBUG) dbgBlendT = System.currentTimeMillis();
             GLTexture noiseInput = buildNoiseBlendFrame(blNorm, 8, spatialKernel);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "stage noiseblend elapsed:" + (System.currentTimeMillis() - dbgBlendT) + "ms");
             GLHistogram noiseHist = new GLHistogram(glProg, noiseScanBins);
             noiseHist.Custom = true;
             noiseHist.Rc = true;
@@ -816,6 +822,9 @@ public class ESD4D extends GLOneScript {
         if(enableHotPixelCorrection)
             hotPixels();
 
+        // Step-0 instrumentation (temporary, DEBUG only).
+        long dbgBrightT = 0L;
+        if (PhotonCamera.DEBUG) dbgBrightT = System.currentTimeMillis();
         glProg.setLayout(tile,tile,1);
         glProg.useAssetProgram("merge/mergeGrayscale",true);
         glProg.setVar("inSize", packedSize);
@@ -823,6 +832,8 @@ public class ESD4D extends GLOneScript {
         glProg.setTextureCompute("outTexture",brightMap, true);
         glProg.computeAuto(brightMap.mSize, 1);
         exportBrightMap();
+        if (PhotonCamera.DEBUG)
+            Log.d("ESD4D", "stage brightmap elapsed:" + (System.currentTimeMillis() - dbgBrightT) + "ms");
         // GPU copy consumed (the CPU copy feeds inference from here on):
         // release now instead of AfterRun so it doesn't span alignment +
         // the merge loop. Nulled; AfterRun null-guards it.
@@ -920,9 +931,16 @@ public class ESD4D extends GLOneScript {
             //int f = 1;
             if (PhotonCamera.DEBUG)
                 Log.d("ESD4D", "load:" + frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
+            // Step-0 instrumentation (temporary, DEBUG only): per-stage
+            // split of the merge loop (upload / merge00 / mergeAlign /
+            // kernelnet-join / combine) to find the real hotspot.
+            long dbgStageT = 0L;
+            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
             try (ImageFrame.Upload up = frame.upload()) {
                 inputAlter.loadData(up.buffer);
             }
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "merge-loop stage upload elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
 
             GLTexture flowTex = null;
             if(useNcnnFlow) {
@@ -933,6 +951,7 @@ public class ESD4D extends GLOneScript {
             }
 
             // Convert inputAlter to alter (vec4 format)
+            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("merge/merge00", true);
             //glProg.setVar("whiteLevel", (float)(parameters.whiteLevel));
@@ -944,10 +963,13 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", inputAlter);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "merge-loop stage merge00 elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
             
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", parameters.tile);
+            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(useNcnnFlow ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
             glProg.setVar("rawHalf", rawHalf);
@@ -985,6 +1007,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("alterTexture", alter, false);
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "merge-loop stage mergeAlign elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
 
             if (PhotonCamera.DEBUG)
                 Log.d("ESD4D", "create diff");
@@ -993,6 +1017,7 @@ public class ESD4D extends GLOneScript {
             // running concurrently with alignment and this frame's merge00 /
             // mergeAlign work. Waits only for any inference remainder; the
             // texture build below needs the GL thread anyway.
+            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
             if (kernelNetThread != null) {
                 try {
                     kernelNetThread.join();
@@ -1005,9 +1030,12 @@ public class ESD4D extends GLOneScript {
                 // dead past this point (GPU textures carry on).
                 brightMapCPU = null;
                 brightMapCPUSize = null;
+                if (PhotonCamera.DEBUG)
+                    Log.d("ESD4D", "merge-loop stage kernelnet-join elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
             }
 
             glProg.setLayout(tile, tile, 1);
+            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
             glProg.useAssetProgram("merge/mergeCombineWeight1", true);
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
@@ -1039,6 +1067,8 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(base.mSize, 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("ESD4D", "merge-loop stage combine elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
             // This frame's pixels are on the GPU now: inputAlter.loadData()
             // (and FlowNet's computeFlow()) upload synchronously, and
             // everything above only touches GPU textures plus scalar pair
