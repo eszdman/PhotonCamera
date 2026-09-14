@@ -46,7 +46,7 @@ shared uint localAlpha[HISTSIZE];
 LAYOUT
 
 void main() {
-    ivec2 storePos = ivec2(gl_GlobalInvocationID.xy)*SCALE;
+    ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
     ivec2 imgsize = textureSize(inTexture,0).xy;
     uint index = uint(gl_LocalInvocationIndex) * HISTSTEPS; // 0 - 64 * HISTSTEPS
     for (uint i = 0u; i < HISTSTEPS; i++) {
@@ -65,24 +65,34 @@ void main() {
     }
     barrier();
 
-    if (storePos.x < imgsize.x && storePos.y < imgsize.y) {
-        vec4 texColor = texture(inTexture,(vec2(storePos) + 0.5)/vec2(imgsize));
-        uvec4 texColorUint = clamp(uvec4(exposure * texColor), uvec4(0), uvec4(HISTSIZE - 1));
-        #if COL_CUSTOM == 1
-            CUSTOM_PROGRAM;
-        #endif
-        #if COL_R == 1
-        atomicAdd(localRed[texColorUint.r], 1u);
-        #endif
-        #if COL_G == 1
-        atomicAdd(localGreen[texColorUint.g], 1u);
-        #endif
-        #if COL_B == 1
-        atomicAdd(localBlue[texColorUint.b], 1u);
-        #endif
-        #if COL_A == 1
-        atomicAdd(localAlpha[texColorUint.a], 1u);
-        #endif
+    // Each invocation covers a 2x2 patch of the SCALE lattice. The sampled
+    // SET matches the legacy single-texel dispatch, so integer bin counts
+    // are bit-identical while invocations (and contended global atomics)
+    // drop 4x. Out-of-lattice invocations sample nothing (bounds-checked).
+    ivec2 base2 = gid*2;
+    for (int ky = 0; ky < 2; ky++) {
+        for (int kx = 0; kx < 2; kx++) {
+            ivec2 storePos = (base2 + ivec2(kx, ky))*SCALE;
+            if (storePos.x < imgsize.x && storePos.y < imgsize.y) {
+                vec4 texColor = texture(inTexture,(vec2(storePos) + 0.5)/vec2(imgsize));
+                uvec4 texColorUint = clamp(uvec4(exposure * texColor), uvec4(0), uvec4(HISTSIZE - 1));
+                #if COL_CUSTOM == 1
+                    CUSTOM_PROGRAM;
+                #endif
+                #if COL_R == 1
+                atomicAdd(localRed[texColorUint.r], 1u);
+                #endif
+                #if COL_G == 1
+                atomicAdd(localGreen[texColorUint.g], 1u);
+                #endif
+                #if COL_B == 1
+                atomicAdd(localBlue[texColorUint.b], 1u);
+                #endif
+                #if COL_A == 1
+                atomicAdd(localAlpha[texColorUint.a], 1u);
+                #endif
+            }
+        }
     }
     barrier();
 
