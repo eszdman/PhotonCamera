@@ -27,7 +27,10 @@ import java.util.List;
  * camera is reopened the same target is re-expressed on the new lens.
  * A small "detent" window around every lens's native zoom snaps the target so
  * the lens lands exactly at native (digital = 1.0, no crop), making switches
- * sticky and preventing overshoot.
+ * sticky and preventing overshoot. The sticky path is used by pinch-to-zoom;
+ * the zoom slider passes {@code sticky=false} to skip the detent and the
+ * hysteresis band so dragging stays smooth while still switching lenses
+ * exactly at the native boundary.
  */
 public class ZoomController {
     private static final String TAG = "ZoomController";
@@ -156,7 +159,7 @@ public class ZoomController {
      * Sets the effective zoom the user is asking for. Applies a detent snap,
      * selects the owning lens, and either (a) fires {@link LensSwitchListener}
      * when the lens must change, or (b) recomputes the digital crop if the lens
-     * is already active.
+     * is already active. The pinch gesture uses the sticky path.
      *
      * @param effectiveZoom effective zoom (may be &lt; 1.0 for an ultra-wide lens)
      * @param focusX        normalized pinch focus X in [0,1]
@@ -164,25 +167,45 @@ public class ZoomController {
      * @return the camera id of the lens to switch to, or {@code null} if no switch is needed
      */
     public String setTargetZoom(float effectiveZoom, float focusX, float focusY) {
+        return setTargetZoom(effectiveZoom, focusX, focusY, true);
+    }
+
+    /**
+     * Sets the effective zoom with explicit control over lens stickiness.
+     *
+     * <p>When {@code sticky} is true the 3% detent snap and 5% hysteresis band
+     * apply (pinch-to-zoom). When false both are skipped so the zoom is fully
+     * continuous and the owning lens switches exactly at the native boundary
+     * (zoom slider).
+     *
+     * @param effectiveZoom effective zoom (may be &lt; 1.0 for an ultra-wide lens)
+     * @param focusX        normalized focus X in [0,1]
+     * @param focusY        normalized focus Y in [0,1]
+     * @param sticky        true to snap to lens detents with hysteresis, false for smooth zoom
+     * @return the camera id of the lens to switch to, or {@code null} if no switch is needed
+     */
+    public String setTargetZoom(float effectiveZoom, float focusX, float focusY, boolean sticky) {
         this.focusX = clamp(focusX, 0.0f, 1.0f);
         this.focusY = clamp(focusY, 0.0f, 1.0f);
         if (lensSwitchLocked) {
             LensEntry active = activeLens();
             if (active != null) {
-                // Stay on this lens: snap only to its own native zoom, then
-                // clamp into its optical/digital window. Never switches.
+                // Stay on this lens and never switch. The sticky path also
+                // snaps onto the lens native zoom; the smooth path stays
+                // fully continuous, then clamps into the lens window.
                 float max = active.nativeZoom * Math.max(1f, active.maxDigitalZoom);
-                targetZoom = clamp(snapToLens(effectiveZoom, active), active.nativeZoom, max);
+                float target = sticky ? snapToLens(effectiveZoom, active) : effectiveZoom;
+                targetZoom = clamp(target, active.nativeZoom, max);
                 recomputeDigitalZoom();
                 return null;
             }
             // No valid active lens: fall through to the normal path.
         }
         float clamped = clamp(effectiveZoom, getMinZoom(), getMaxZoom());
-        targetZoom = snapToDetent(clamped);
+        targetZoom = sticky ? snapToDetent(clamped) : clamped;
 
         int newIndex = selectLensIndex(targetZoom);
-        if (newIndex != activeLensIndex) {
+        if (sticky && newIndex != activeLensIndex) {
             newIndex = applyHysteresis(targetZoom, newIndex);
             if (newIndex == activeLensIndex && activeLensIndex >= 0
                     && activeLensIndex < lensesAsc.size()

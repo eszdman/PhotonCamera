@@ -18,8 +18,9 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewMode
  * {@link #COLLAPSE_DELAY_MS} of no zoom interaction.
  *
  * <p>The lens buttons stay clickable while expanded; the slider thumb tracks the
- * live effective zoom, and dragging it drives the same
- * {@link CaptureController#setZoom(float, float, float)} path as the pinch gesture.
+ * live effective zoom, and dragging it drives the same zoom path as the pinch
+ * gesture but with {@code sticky=false} so it stays smooth and skips the lens
+ * detent snap and hysteresis.
  * The total-zoom indicator above the pill is driven by data binding and is
  * intentionally left untouched here.
  */
@@ -64,7 +65,10 @@ public class LensZoomBarController {
                 if (!fromUser || !expanded || CaptureController.isProcessing) return;
                 float zoom = ZoomSliderMapper.progressToZoom(progress, SLIDER_MAX,
                         captureController.getMinZoom(), captureController.getMaxZoom());
-                captureController.setZoom(zoom, 0.5f, 0.5f);
+                // The slider is smooth: it skips the pinch detent snap and
+                // hysteresis so dragging feels continuous, but still
+                // auto-switches lenses exactly at the native boundary.
+                captureController.setZoom(zoom, 0.5f, 0.5f, false);
                 viewModel.setZoomRatio(captureController.getZoomRatio());
                 scheduleCollapse();
             }

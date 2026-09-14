@@ -1267,14 +1267,31 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * Updates the effective zoom (and pinch focus point), then re-submits the
      * repeating preview request so the change is applied live. If the target
      * crosses a physical-lens threshold, the lens switch is triggered and the
-     * preview update is deferred until the new lens reopens.
+     * preview update is deferred until the new lens reopens. The pinch gesture
+     * uses the sticky path.
      *
      * @param ratio  target effective zoom ratio (may be &lt; 1.0 for ultra-wide)
      * @param focusX normalized pinch focus X in [0,1]
      * @param focusY normalized pinch focus Y in [0,1]
      */
     public void setZoom(float ratio, float focusX, float focusY) {
-        String switchTo = zoomController.setTargetZoom(ratio, focusX, focusY);
+        setZoom(ratio, focusX, focusY, true);
+    }
+
+    /**
+     * Updates the effective zoom with explicit control over lens stickiness,
+     * then re-submits the repeating preview request so the change is applied
+     * live. If the target crosses a physical-lens threshold, the lens switch
+     * is triggered and the preview update is deferred until the new lens
+     * reopens.
+     *
+     * @param ratio  target effective zoom ratio (may be &lt; 1.0 for ultra-wide)
+     * @param focusX normalized focus X in [0,1]
+     * @param focusY normalized focus Y in [0,1]
+     * @param sticky true for detent snap + hysteresis (pinch), false for smooth zoom (slider)
+     */
+    public void setZoom(float ratio, float focusX, float focusY, boolean sticky) {
+        String switchTo = zoomController.setTargetZoom(ratio, focusX, focusY, sticky);
         if (switchTo != null) {
             requestLensSwitch(switchTo);
             return;

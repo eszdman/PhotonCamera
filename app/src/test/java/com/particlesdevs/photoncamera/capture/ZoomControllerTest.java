@@ -157,6 +157,52 @@ public class ZoomControllerTest {
         assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
     }
 
+    // --- smooth (non-sticky) path used by the zoom slider ---
+
+    @Test
+    public void smoothSkipsDetentNearTeleNative() {
+        // 3.06 would snap to 3.1 (tele) on the sticky path; smooth stays on main.
+        zoom.setTargetZoom(3.06f, 0.5f, 0.5f, false);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(3.06f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(3.06f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void smoothSwitchesExactlyAtTeleBoundary() {
+        // 3.2 is inside the +5% hysteresis band, so pinch stays on main,
+        // but the slider switches to tele immediately.
+        zoom.setTargetZoom(3.2f, 0.5f, 0.5f, false);
+        assertEquals("tele", switchedTo);
+        assertEquals("tele", zoom.getActiveLensId());
+        assertEquals(3.2f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void smoothSwitchesDownImmediatelyBelowTeleNative() {
+        // Pinch stays on tele at 3.0 (clamped to 3.1); the slider drops to main.
+        zoom.setActiveLens("tele");
+        switchedTo = null;
+        zoom.setTargetZoom(3.0f, 0.5f, 0.5f, false);
+        assertEquals("main", switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(3.0f, zoom.getZoomRatio(), 1e-4f);
+    }
+
+    @Test
+    public void smoothLockedSkipsSingleLensSnap() {
+        // 1.02 is inside the 3% snap window of main native; sticky locks to
+        // 1.0 while smooth stays continuous.
+        zoom.setLensSwitchLocked(true);
+        zoom.setTargetZoom(1.02f, 0.5f, 0.5f, true);
+        assertEquals(1.0f, zoom.getZoomRatio(), 1e-4f);
+        zoom.setTargetZoom(1.02f, 0.5f, 0.5f, false);
+        assertEquals(1.02f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(1.02f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
     // --- lens-boundary hysteresis ---
 
     @Test
