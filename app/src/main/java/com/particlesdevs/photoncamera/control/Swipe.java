@@ -57,7 +57,11 @@ public class Swipe {
             }
 
             @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
+            //onSingleTapUp, not onSingleTapConfirmed: tap-to-focus must fire on finger-lift
+            //without waiting out the double-tap timeout. Safe with onLongPress (Spot WB) —
+            //GestureDetector suppresses tap callbacks once a long press fires, and holds
+            //released before the long-press threshold resolve as taps (touch wins over WB).
+            public boolean onSingleTapUp(MotionEvent e) {
                 cameraFragmentViewModel.setSettingsBarVisible(false);
                 startTouchToFocus(e);
                 return true;

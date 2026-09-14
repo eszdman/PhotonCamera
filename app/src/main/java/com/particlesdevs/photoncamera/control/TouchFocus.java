@@ -18,6 +18,9 @@ import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
+import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
@@ -187,6 +190,10 @@ public class TouchFocus {
      */
     public void processSpotWb(float fx, float fy) {
         if (textureView == null || captureController == null) return;
+        if (isInsideSpotWbIndicator(fx, fy)) {
+            cancelSpotWb();
+            return;
+        }
 
         // 1. Tactile haptic feedback
         textureView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
@@ -239,7 +246,53 @@ public class TouchFocus {
                 .start();
     }
 
+    /**
+     * True when the long-press lands inside the visible Spot WB indicator. The
+     * indicator is placed by {@link #showSpotWbIndicator} using the same
+     * viewfinder-translated coordinates the long-press arrives with, so bounds
+     * comparison is exact; the hit area is the full square view bounds.
+     */
+    private boolean isInsideSpotWbIndicator(float fx, float fy) {
+        if (spotWbIndicatorView == null) return false;
+        if (spotWbIndicatorView.getVisibility() != View.VISIBLE) return false;
+        return fx >= spotWbIndicatorView.getX()
+                && fx <= spotWbIndicatorView.getX() + spotWbIndicatorView.getWidth()
+                && fy >= spotWbIndicatorView.getY()
+                && fy <= spotWbIndicatorView.getY() + spotWbIndicatorView.getHeight();
+    }
+
+    /**
+     * Cancels an active Spot WB selection: any in-flight measurement is dropped
+     * (a late RAW result must not re-apply WB), the camera reverts to auto AWB
+     * with the spot state cleared, the manual WB console re-syncs to AUTO, and
+     * the indicator hides. A no-op safe to call with nothing selected.
+     */
+    public void cancelSpotWb() {
+        if (textureView == null || captureController == null) return;
+        textureView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        SpotWhiteBalanceHelper.cancelPendingMeasurement();
+        ParamController paramController = captureController.getParamController();
+        if (paramController != null && paramController.isSpotWb) {
+            // setWB(WB_AUTO) is the existing spot-state reset: clears gains/transform
+            // and restores CONTROL_AWB_MODE_AUTO.
+            paramController.setWB((int) ManualParamModel.WB_AUTO);
+            ManualModeConsole console = captureController.getManualModeConsole();
+            if (console != null) {
+                console.setManualWbValue(ManualParamModel.WB_AUTO);
+            }
+        }
+        resetSpotWbIndicator();
+    }
+
     public void processTouchToFocus(float fx, float fy) {
+        if (isTapInsideFocusCircle(fx, fy)) {
+            // Tapping the visible focus circle cancels the touch focus and restores
+            // full-frame 3A. The circle itself must stay non-clickable so taps and
+            // long-presses pass through to the viewfinder gesture handler.
+            resetFocusCircle();
+            setInitialAFAE();
+            return;
+        }
         MeteringRectangle region = computeTapRegion(fx, fy);
         if (region == null) {
             Log.w(TAG, "processTouchToFocus(): camera or viewfinder not ready, ignoring tap");
@@ -258,6 +311,21 @@ public class TouchFocus {
         focusCircleView.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
                 .withEndAction(() -> focusCircleView.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
                 .start();
+    }
+
+    /**
+     * True when the tap lands inside the visible focus circle view. The circle is
+     * placed by {@link #showFocusCircle} using the same viewfinder-translated
+     * coordinates the tap arrives with, so bounds comparison is exact. The hit
+     * area is the full square view bounds, matching the pre-pass-through behavior
+     * where the circle consumed touches across its whole view.
+     */
+    private boolean isTapInsideFocusCircle(float fx, float fy) {
+        if (focusCircleView.getVisibility() != View.VISIBLE) return false;
+        return fx >= focusCircleView.getX()
+                && fx <= focusCircleView.getX() + focusCircleView.getWidth()
+                && fy >= focusCircleView.getY()
+                && fy <= focusCircleView.getY() + focusCircleView.getHeight();
     }
 
     /**

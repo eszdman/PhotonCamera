@@ -56,6 +56,14 @@ public class SpotWhiteBalanceHelper {
     }
 
     /**
+     * Invalidates any in-flight measurement (sequence bump): a RAW result that
+     * lands after this is dropped by the sequence gate instead of re-applying WB.
+     */
+    public static void cancelPendingMeasurement() {
+        sMeasurementSequence.incrementAndGet();
+    }
+
+    /**
      * Executes True Linear RAW Spot White Balance measurement.
      * Geometrically maps the viewfinder touch point to the Bayer RAW sensel array
      * using the canonical SPOT_WB_FOV_RATIO field-of-view fraction.
