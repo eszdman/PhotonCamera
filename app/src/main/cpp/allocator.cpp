@@ -491,6 +491,11 @@ static inline uint32_t maxSampleForBits(int bits) {
     return bits >= 32 ? 0xFFFFFFFFu : ((1u << bits) - 1u);
 }
 
+// Bitstream decode helpers (defined below, used by packBits' verify block).
+static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
+                         int start, int pixels, int bits, uint32_t mask);
+static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
+
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass clazz,
@@ -517,7 +522,29 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
     const uint32_t mask = maxSampleForBits(bits);
     int64_t bitPos = 0;
     bool overflow = false;
-    for (int i = 0; i < pixels; i++) {
+    int i = 0;
+    if (bits == 10) {
+        // Fast path: straight-line 4-sample/5-byte groups. Bit-identical to
+        // the scalar loop below (same 40-bit little-endian groups, disjoint
+        // writes onto the zeroed buffer); any sample above the mask fails
+        // the same way.
+        uint8_t *dp = dst;
+        int n4 = pixels & ~3;
+        for (; i < n4; i += 4) {
+            uint32_t s0 = in[i], s1 = in[i + 1], s2 = in[i + 2], s3 = in[i + 3];
+            if ((s0 | s1 | s2 | s3) > 0x3FFu) overflow = true;
+            uint32_t lo = (s0 & 0x3FFu) | ((s1 & 0x3FFu) << 10)
+                        | ((s2 & 0x3FFu) << 20) | ((s3 & 0x3u) << 30);
+            dp[0] = (uint8_t) lo;
+            dp[1] = (uint8_t) (lo >> 8);
+            dp[2] = (uint8_t) (lo >> 16);
+            dp[3] = (uint8_t) (lo >> 24);
+            dp[4] = (uint8_t) ((s3 & 0x3FFu) >> 2);
+            dp += 5;
+        }
+        bitPos = (int64_t) n4 * bits;
+    }
+    for (; i < pixels; i++) {
         uint32_t raw = (uint32_t) in[i];
         if (raw > mask) {
             // The caller derived `bits` from whiteLevel; a sample above the
@@ -546,20 +573,25 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
             free(dst);
             return nullptr;
         }
-        uint32_t acc = 0;
-        int accBits = 0;
-        int64_t inByte = 0;
-        for (int i = 0; i < pixels; i++) {
-            while (accBits < bits) {
-                acc |= (uint32_t) dst[inByte++] << accBits;
-                accBits += 8;
-            }
-            check[i] = (uint16_t) (acc & mask);
-            acc >>= bits;
-            accBits -= bits;
-        }
+        unpackScalar(dst, 0, check, 0, pixels, bits, mask);
         jboolean ok = memcmp(check, src, (size_t) pixels * 2) == 0 ? JNI_TRUE : JNI_FALSE;
         free(check);
+        if (ok && bits == 10) {
+            // Cross-check the 10-bit fast decode against the same source
+            // (DEBUG only): proves the production unpack path is
+            // bit-identical to the reference scalar loop on real frame data.
+            uint16_t *checkFast = static_cast<uint16_t *>(malloc((size_t) pixels * 2));
+            if (checkFast == nullptr) {
+                free(dst);
+                return nullptr;
+            }
+            unpackFast10(dst, checkFast, pixels);
+            if (memcmp(checkFast, src, (size_t) pixels * 2) != 0) {
+                LOGD("packBits: fast10 unpack mismatch pixels=%d", pixels);
+                ok = JNI_FALSE;
+            }
+            free(checkFast);
+        }
         if (!ok) {
             LOGD("packBits: verification FAILED pixels=%d bits=%d", pixels, bits);
             free(dst);
@@ -575,6 +607,44 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
     LOGD("packBits: %d px %d-bit -> %lld bytes, memory %ld MB",
          pixels, bits, (long long) packedSize, (memoryCount / 1024) / 1024);
     return buffer;
+}
+
+// Scalar bitstream decode (reference implementation; also the tail handler
+// and the fallback for bit depths without a fast path).
+static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
+                         int start, int pixels, int bits, uint32_t mask) {
+    uint32_t acc = 0;
+    int accBits = 0;
+    int64_t inByte = startByte;
+    for (int i = start; i < pixels; i++) {
+        while (accBits < bits) {
+            acc |= (uint32_t) packed[inByte++] << accBits;
+            accBits += 8;
+        }
+        out[i] = (uint16_t) (acc & mask);
+        acc >>= bits;
+        accBits -= bits;
+    }
+}
+
+// 10-bit fast path: straight-line 5-byte/4-sample groups, then scalar tail.
+// Pure integer regrouping of unpackScalar — bit-identical output.
+static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
+    int n4 = pixels & ~3;
+    for (int i = 0, j = 0; i < n4; i += 4, j += 5) {
+        uint32_t w;
+        memcpy(&w, packed + j, sizeof(w));
+        uint32_t b4 = packed[j + 4];
+        out[i]     = (uint16_t) (w & 0x3FFu);
+        out[i + 1] = (uint16_t) ((w >> 10) & 0x3FFu);
+        out[i + 2] = (uint16_t) ((w >> 20) & 0x3FFu);
+        out[i + 3] = (uint16_t) (((w >> 30) & 0x3u) | (b4 << 2));
+    }
+    if (n4 < pixels) {
+        // 4-sample groups consume whole 5-byte units, so the tail always
+        // restarts on a byte boundary.
+        unpackScalar(packed, (int64_t) n4 * 10 / 8, out, n4, pixels, 10, 0x3FFu);
+    }
 }
 
 extern "C"
@@ -600,17 +670,10 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unpack16(JNIEnv *env, jclass 
     }
     uint16_t *out = reinterpret_cast<uint16_t *>(dst);
     const uint32_t mask = maxSampleForBits(bits);
-    uint32_t acc = 0;
-    int accBits = 0;
-    int64_t inByte = 0;
-    for (int i = 0; i < pixels; i++) {
-        while (accBits < bits) {
-            acc |= (uint32_t) packed[inByte++] << accBits;
-            accBits += 8;
-        }
-        out[i] = (uint16_t) (acc & mask);
-        acc >>= bits;
-        accBits -= bits;
+    if (bits == 10) {
+        unpackFast10(packed, out, pixels);
+    } else {
+        unpackScalar(packed, 0, out, 0, pixels, bits, mask);
     }
 }
 // Converts one tile of tightly packed RGBA8888 into 8-bit YUV420 full-range
