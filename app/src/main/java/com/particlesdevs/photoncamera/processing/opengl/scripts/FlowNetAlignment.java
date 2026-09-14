@@ -60,6 +60,23 @@ public class FlowNetAlignment implements AutoCloseable {
 
     private final int minExpIdx;
 
+    /**
+     * When true, inputBase/inputAlter are owned by the caller (ESD4D merge
+     * textures, already uploaded) and must neither be (re-)allocated nor
+     * closed here. Bit-exact: the merge loop uploads each alter frame into
+     * its texture immediately before computeFlow(ind), so rendering from it
+     * sees identical texels to a duplicate upload.
+     */
+    private boolean sharedInputs = false;
+
+    /** Shares the caller's already-uploaded raw textures (see above). Must be
+     * called before {@link #initFlow()}. */
+    public void shareInputTextures(GLTexture base, GLTexture alter) {
+        inputBase = base;
+        inputAlter = alter;
+        sharedInputs = true;
+    }
+
     private FlowNetNcnnProcessor processor;
     private GLTexture inputBase;
     private GLTexture inputAlter;
@@ -110,12 +127,14 @@ public class FlowNetAlignment implements AutoCloseable {
         scaleY = (float) rawHalf.y / FLOW_H;
         log("flow scale " + scaleX + " x " + scaleY);
 
-        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
-            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
-                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        if (!sharedInputs) {
+            try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+                inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
+                        baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            }
+            inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
+                    null, GL_NEAREST, GL_MIRRORED_REPEAT);
         }
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
-                null, GL_NEAREST, GL_MIRRORED_REPEAT);
         rgb0 = new GLTexture(new Point(FLOW_W, FLOW_H), new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 null, GL_LINEAR, GL_CLAMP_TO_EDGE);
         rgb1 = new GLTexture(new Point(FLOW_W, FLOW_H), new GLFormat(GLFormat.DataType.FLOAT_16, 4),
@@ -149,9 +168,8 @@ public class FlowNetAlignment implements AutoCloseable {
         }
 
         float mult = images.get(ind).pair.layerMpy;
-        try (ImageFrame.Upload up = images.get(ind).upload()) {
-            inputAlter.loadData(up.buffer);
-        }
+        // inputAlter already holds frame ind: the merge loop uploads it just
+        // before this call (shared texture, no duplicate upload).
         long t1 = System.currentTimeMillis();
         FloatBuffer baseRgba = renderFlowRGB(inputBase, rgb0, mult);
         FloatBuffer alterRgba = renderFlowRGB(inputAlter, rgb1, 1.0f);
@@ -227,8 +245,16 @@ public class FlowNetAlignment implements AutoCloseable {
         processor = null;
         if (rgb1 != null) { rgb1.close(); rgb1 = null; }
         if (rgb0 != null) { rgb0.close(); rgb0 = null; }
-        if (inputAlter != null) { inputAlter.close(); inputAlter = null; }
-        if (inputBase != null) { inputBase.close(); inputBase = null; }
+        // Shared textures are owned by the caller (ESD4D closes them in its
+        // AfterRun); only drop our references. Closing them here would
+        // double-close a texture ID AfterRun may already have recycled.
+        if (!sharedInputs) {
+            if (inputAlter != null) { inputAlter.close(); inputAlter = null; }
+            if (inputBase != null) { inputBase.close(); inputBase = null; }
+        } else {
+            inputAlter = null;
+            inputBase = null;
+        }
         if (flowTex != null) { flowTex.close(); flowTex = null; }
         GLTexture.notClosed();
     }

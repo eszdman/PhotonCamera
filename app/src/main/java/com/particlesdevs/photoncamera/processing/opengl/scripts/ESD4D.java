@@ -861,6 +861,12 @@ public class ESD4D extends GLOneScript {
         // instead of following it. Nothing between the worker start and the
         // merge loop consumes alignmentTex, and this block only needs the
         // reference-frame inputs already prepared above.
+        // The merge loop uploads each alter frame into inputAlter just before
+        // FlowNet consumes it, so create it up-front and share it (plus the
+        // already-uploaded inputBase) instead of letting FlowNet allocate and
+        // re-upload duplicates. -48 MB VRAM, -8 uploads; bit-exact (same
+        // texture object sampled identically).
+        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
         Point alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
                 parameters.alignmentSize.y * ((images.size()-1)/parameters.tilesX + 1));
         Log.d("Alignment", "alignment pipeline size: " + alignmentOutputSize.x + " " + alignmentOutputSize.y);
@@ -868,6 +874,7 @@ public class ESD4D extends GLOneScript {
         if (enableAlignment && useNcnnFlow) {
             FlowNetAlignment flowNetAlignmentTmp = new FlowNetAlignment(alignmentOutputSize, images, glProg, glUtils, this, minExpIdx);
             flowNetAlignmentTmp.parameters = parameters;
+            flowNetAlignmentTmp.shareInputTextures(inputBase, inputAlter);
             long startTime = System.currentTimeMillis();
             useNcnnFlow = flowNetAlignmentTmp.initFlow();
             Log.d("ESD4D", "FlowNet alignment init time: " + (System.currentTimeMillis() - startTime) + "ms");
@@ -895,7 +902,7 @@ public class ESD4D extends GLOneScript {
 
         //Point aSize = new Point(parameters.rawSize.x/(2*parameters.tile) + 1, parameters.rawSize.y/(2*parameters.tile) + 1);
         Point border = new Point(16,16);
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        // NOTE: inputAlter is created above the alignment block (shared with FlowNet).
         //alignmentTex = new GLTexture(aSize, new GLFormat(GLFormat.DataType.FLOAT_32, 2), alignment, GL_NEAREST, GL_MIRRORED_REPEAT);
 
         //counter.put(1.0f,1.0f);
@@ -907,11 +914,11 @@ public class ESD4D extends GLOneScript {
         float maxBlack = Math.max(blackLevel[0], Math.max(blackLevel[1], Math.max(blackLevel[2], blackLevel[3])));
         float minLevel = (float) (1.0/(double)(parameters.whiteLevel-maxBlack));
 
-        // The base frame's pixels are on the GPU now (inputBase upload plus
-        // the FlowNet/Pyramid init uploads above, all synchronous). The loop
-        // below only touches its GPU texture and scalar pair metadata, and
-        // the base index is never loaded there, so release the native copy
-        // up-front: it would otherwise outlive the whole merge.
+        // The base frame's pixels are on the GPU now (inputBase upload, shared
+        // with FlowNet, plus the Pyramid init upload when that path runs; all
+        // synchronous). The loop below only touches its GPU texture and scalar
+        // pair metadata, and the base index is never loaded there, so release
+        // the native copy up-front: it would otherwise outlive the whole merge.
         images.get(0).close();
 
         // getBase() aliases base onto baseAlter from the first iteration,
