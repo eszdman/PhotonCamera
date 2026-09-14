@@ -170,8 +170,53 @@ public class ImageFrame {
     }
 
     /**
+     * Single-slot cache for the 10-bit unpack staging buffer. Every upload in
+     * a shot is same-sized and strictly serialized (each try-with-resources
+     * closes before the next opens, all on the GL thread), so one cached
+     * buffer removes ~20 malloc/munmap + page-fault cycles per shot with an
+     * identical peak: only one upload is ever in flight. The cache is
+     * released at phase end ({@link #releaseUploadStaging()}) so tracked
+     * memory returns to baseline outside the merge phase. Bytes produced are
+     * identical to a fresh allocation (same unpack into same size).
+     */
+    private static ByteBuffer sStagingCache = null;
+
+    private static synchronized ByteBuffer acquireUploadStaging(int bytes) {
+        if (sStagingCache != null) {
+            if (sStagingCache.capacity() == bytes) {
+                ByteBuffer buf = sStagingCache;
+                sStagingCache = null;
+                buf.clear();
+                return buf;
+            }
+            Allocator.free(sStagingCache);
+            sStagingCache = null;
+        }
+        return Allocator.allocate(bytes);
+    }
+
+    private static synchronized void cacheUploadStaging(ByteBuffer buf) {
+        if (buf == null) return;
+        if (sStagingCache == null) {
+            sStagingCache = buf;
+        } else {
+            // Concurrent or nested upload (not expected today): stay correct
+            // by freeing instead of caching a second buffer.
+            Allocator.free(buf);
+        }
+    }
+
+    /** Drops the cached staging buffer, if any. Idempotent. */
+    public static synchronized void releaseUploadStaging() {
+        if (sStagingCache != null) {
+            Allocator.free(sStagingCache);
+            sStagingCache = null;
+        }
+    }
+
+    /**
      * View of this frame's pixels for GL uploads. When the frame is packed,
-     * unpacks it into a temporary tightly-packed 16-bit native buffer that the
+     * unpacks it into a tightly-packed 16-bit native buffer that the
      * caller must release with {@link Upload#close()} (try-with-resources);
      * unpacked frames return their own buffer and free nothing.
      */
@@ -180,7 +225,7 @@ public class ImageFrame {
             return new Upload(buffer, false);
         }
         int pixels = width * height;
-        ByteBuffer staging = Allocator.allocate(pixels * 2);
+        ByteBuffer staging = acquireUploadStaging(pixels * 2);
         if (staging == null) {
             throw new IllegalStateException("Packed frame unpack allocation failed ("
                     + pixels * 2 + " B)");
@@ -202,7 +247,7 @@ public class ImageFrame {
         @Override
         public void close() {
             if (temporary && buffer != null) {
-                Allocator.free(buffer);
+                cacheUploadStaging(buffer);
             }
         }
     }

@@ -1189,6 +1189,10 @@ public class ESD4D extends GLOneScript {
 
     @Override
     public void AfterRun() {
+        // The unpack staging cache is only needed while frames are uploaded
+        // (this phase). Release it here so post-merge MemStage baselines are
+        // unchanged vs per-upload malloc/free.
+        ImageFrame.releaseUploadStaging();
         if(hotPixelBuffer != null) hotPixelBuffer.close();
         // baseDiff/alter/inputAlter/inputBase/brightMap may already be
         // released post-loop (nulled there); guard so a stale close can
