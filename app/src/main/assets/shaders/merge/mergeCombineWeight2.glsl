@@ -71,6 +71,7 @@ void main() {
     vec4 localDiff = vec4(0.0);
     vec4 localDiffSigned = vec4(0.0);
     vec4 localEnergy = vec4(0.0);
+    vec4 localBase2 = vec4(0.0);
     vec4 localDiff2 = vec4(0.001 * diff);
     //vec4 exposure1 = vec4(0.0);
     vec4 exposure2 = vec4(0.0);
@@ -117,10 +118,15 @@ void main() {
             neighborDiff.g * w + neighborDiff.b * wg,
             neighborDiff.b * w + neighborDiff.g * wb,
             neighborDiff.a * w);
+            localBase2 += vec4(
+            neighborBayer.r * w,
+            neighborBayer.g * w + neighborBayer.b * wg,
+            neighborBayer.b * w + neighborBayer.g * wb,
+            neighborBayer.a * w);
             localDiff += vec4(rAbs.r * w, rAbs.g * w + rAbs.b * wg, rAbs.b * w + rAbs.g * wb, rAbs.a * w);
             localDiffSigned += vec4(r.r * w, r.g * w + r.b * wg, r.b * w + r.g * wb, r.a * w);
             localEnergy += vec4(r.r * r.r * w, r.g * r.g * w + r.b * r.b * wg,
-                                r.b * r.b * w + r.g * r.g * wb, r.a * r.a * w);
+            r.b * r.b * w + r.g * r.g * wb, r.a * r.a * w);
             Z += vec4(w, w + wg, w + wb, w);
             // Squared weight sums per channel: the quincunx greens mix two
             // independent samples (r.g*w, r.b*wg), so their variances add
@@ -163,10 +169,24 @@ void main() {
     if(any(greaterThan(diff, vec4(exposure*0.80))) && exposure < 0.95) {
         comb = vec4(0.0); // skip overexposed pixels
     }
-    // Kernels gate the merge statistics ONLY - the output must point-sample
-    // diff at the center tap. Convolving the output with the kernel
-    // (localDiff2/Z) low-passes texture in direct proportion to the kernel
-    // size, which is blur by construction, not a robustness gain.
-    imageStore(outTexture, xy, mix(base, diff, weight * comb));
+    // Temporal merge: kernels gate the statistics only - the merge tap
+    // point-samples diff, so accepted frames never blur texture.
+    vec4 merged = mix(base, diff, weight * comb);
+    // Rejected regions (comb -> 0) keep the base untouched and would end up
+    // noisier than merged ones. Fill them with the kernel-averaged base,
+    // mixed by alpha solved so the blend reduces variance by exactly
+    // n/(n+1) - the same factor as merging one more frame - keeping the
+    // noise floor uniform across merged and rejected areas:
+    // Var(mix(base,conv,a))/Var(base) = (1-a)^2 + a^2*invEff^2 + 2a(1-a)/Z
+    // (center-tap covariance 1/Z). Tiny kernels cannot reach the target
+    // without destructive cancellation (root > 0.5), so alpha clamps and
+    // they keep their texture.
+    vec4 convBase = localBase2 / Z;
+    float varTarget = nFrames / (nFrames + 1.0);
+    vec4 aB = vec4(1.0) - 1.0 / Z;
+    vec4 aA = vec4(1.0) + invEff * invEff - 2.0 / Z;
+    vec4 disc = max(aB * aB - aA * (1.0 - varTarget), vec4(0.0));
+    vec4 alphaSpatial = clamp((aB - sqrt(disc)) / max(aA, vec4(EPS)), vec4(0.0), vec4(0.5));
+    imageStore(outTexture, xy, mix(merged, convBase, alphaSpatial * (1.0 - comb)));
     //imageStore(outTexture, xy, localDiff2 / Z); // blur test(check kernels)
 }
