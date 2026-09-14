@@ -411,20 +411,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         PreferenceKeys.setHeicSave(false);
                     }
                 }
-                // 10-bit HEIC needs HEIC on plus a Main10 + RGBA1010102 encoder.
-                boolean tenBitSupported = supported
-                        && com.particlesdevs.photoncamera.processing.encoder.HeicSupport.isTenBitHeicSupported();
-                boolean tenBitVisible = tenBitSupported && PreferenceKeys.isHeicSave();
-                Preference tenBitPref = findPreference(
-                        mContext.getString(R.string.pref_heic_10bit_key));
-                if (tenBitPref != null) {
-                    tenBitPref.setVisible(tenBitVisible);
-                    // Hiding for a disabled HEIC toggle keeps the stored
-                    // choice; only unsupported hardware forces it off.
-                    if (!tenBitSupported) {
-                        PreferenceKeys.setHeic10Bit(false);
-                    }
-                }
                 androidx.preference.ListPreference savePref = findPreference(
                         mContext.getString(R.string.pref_save_raw_key));
                 if (savePref != null) {

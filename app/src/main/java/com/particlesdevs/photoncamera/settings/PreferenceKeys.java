@@ -47,7 +47,6 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
-        COMMON_KEYS.add(Key.KEY_HEIC_10BIT.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
     }
 
@@ -66,7 +65,6 @@ public class PreferenceKeys {
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, resources.getBoolean(R.bool.pref_save_heic_default));
-        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HEIC_10BIT, resources.getBoolean(R.bool.pref_heic_10bit_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
@@ -288,15 +286,6 @@ public class PreferenceKeys {
 
     public static void setHeicSave(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC,value);
-    }
-
-    /** True when HEIC output should use the 10-bit pipeline (Save HEIC must be on). */
-    public static boolean isHeic10BitOn() {
-        return isHeicSave() && getBool(Key.KEY_HEIC_10BIT);
-    }
-
-    public static void setHeic10Bit(boolean value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HEIC_10BIT, value);
     }
 
     public static boolean isRoundEdgeOn() {
@@ -565,7 +554,6 @@ public class PreferenceKeys {
         KEY_SHOW_HORIZON(R.string.pref_horizon),
         KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SAVE_HEIC(R.string.pref_save_heic_key),
-        KEY_HEIC_10BIT(R.string.pref_heic_10bit_key),
         KEY_CFA(R.string.pref_cfa_key),
         KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
 

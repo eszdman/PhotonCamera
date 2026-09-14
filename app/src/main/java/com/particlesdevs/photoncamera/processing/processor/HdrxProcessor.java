@@ -358,13 +358,6 @@ public class HdrxProcessor extends ProcessorBase {
             esd4d.kernelsMapBase = null;
         }
 
-        // 10-bit HEIC: fill the parallel ABGR1010102 sink during the render
-        // (4 B/px extra, only when the user opted in).
-        pipeline.runTenBit = useHeic && PhotonCamera.getSettings().heic10Bit
-                && HeicSupport.isTenBitHeicSupported();
-        if (pipeline.runTenBit) {
-            Log.d(TAG, "10-bit HEIC requested");
-        }
         Bitmap img = pipeline.Run(output, processingParameters);
         Allocator.logStage(TAG, "post-render");
         Allocator.logProc(TAG, "post-render");
@@ -403,12 +396,8 @@ public class HdrxProcessor extends ProcessorBase {
         }
         imageFile = Paths.get(imageFile.toAbsolutePath()
                 + (useHeic ? ".heic" : ".jpg"));
-        // Ownership of the 10-bit sink transfers to the encoder, which frees
-        // it; detach it so pipeline.close() cannot double-free.
-        java.nio.ByteBuffer tenBitFrame = pipeline.tenBitBuffer;
-        pipeline.tenBitBuffer = null;
         StillEncoder.Result still = StillEncoder.encodeStill(
-                imageFile, img, gm, exifData, useHeic, tenBitFrame);
+                imageFile, img, gm, exifData, useHeic);
         boolean imageSaved = still.saved;
         imageFile = still.file;
 

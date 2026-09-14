@@ -341,6 +341,58 @@ public class UltraHdrHeicContainerTest {
         return IsoBmff.concat(newTop);
     }
 
+    /** Rewrites every iloc extent length to zero, keeping the mdat bytes. */
+    private static byte[] withZeroExtentLengths(byte[] file) {
+        List<IsoBmff.Box> top = IsoBmff.parse(file);
+        List<byte[]> newTop = new ArrayList<>();
+        for (IsoBmff.Box b : top) {
+            if (!b.type.equals("meta")) {
+                newTop.add(IsoBmff.buildBox(b.type, b.payload));
+                continue;
+            }
+            List<IsoBmff.Box> kids = IsoBmff.parse(b.payload, 4, b.payload.length - 4);
+            byte[] header = new byte[4];
+            System.arraycopy(b.payload, 0, header, 0, 4);
+            List<byte[]> metaParts = new ArrayList<>();
+            metaParts.add(header);
+            for (IsoBmff.Box k : kids) {
+                if (k.type.equals("iloc")) {
+                    List<UltraHdrHeicContainer.Extent> zeroed = new ArrayList<>();
+                    for (UltraHdrHeicContainer.Extent e
+                            : UltraHdrHeicContainer.ilocExtents(k.payload, -1)) {
+                        zeroed.add(new UltraHdrHeicContainer.Extent(e.itemId, e.offset, 0));
+                    }
+                    metaParts.add(IsoBmff.buildBox("iloc",
+                            IsoBmff.fullBoxPayload(0, 0,
+                                    UltraHdrHeicContainer.buildIlocBody(zeroed))));
+                } else {
+                    metaParts.add(IsoBmff.buildBox(k.type, k.payload));
+                }
+            }
+            newTop.add(IsoBmff.buildBox("meta", IsoBmff.concat(metaParts)));
+        }
+        return IsoBmff.concat(newTop);
+    }
+
+    /**
+     * A container whose samples were dropped by the muxer still parses
+     * structurally (non-empty mdat) but has zero-length item extents; writing
+     * it would produce an unviewable file, so it must be rejected.
+     */
+    @Test
+    public void payloadFreeContainerIsRejected() {
+        byte[] good = singleImageHeicFullIspe(bytes(64, (byte) 0xA5), 64, 48,
+                new byte[]{1, 2, 3});
+        assertEquals(64, UltraHdrHeicContainer.primarySize(good)[0]);
+        try {
+            UltraHdrHeicContainer.primarySize(withZeroExtentLengths(good));
+            fail("payload-free container accepted");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage() != null
+                    && expected.getMessage().contains("payload"));
+        }
+    }
+
     /**
      * v1 iloc body in the mp4box.js-verified layout: u16 count/ids, u16
      * construction (low 4 bits), u16 data-ref, u16 extent counts.
@@ -693,7 +745,7 @@ public class UltraHdrHeicContainerTest {
             }
         }
         assertTrue(dimgOk);
-        // tmap ipma entry: ispe sized to the base photo, pixi 10-bit, colr.
+        // tmap ipma entry: ispe sized to the base photo, 8-bit pixi, colr.
         boolean tmapPropsOk = false;
         for (IsoBmff.Box b : kids) {
             if (!b.type.equals("iprp")) {
@@ -725,8 +777,8 @@ public class UltraHdrHeicContainerTest {
                             && IsoBmff.u32(prop.payload, 8) == 48;
                 } else if (prop.type.equals("pixi")) {
                     pixiOk = prop.payload.length == 8 && prop.payload[4] == 3
-                            && prop.payload[5] == 10 && prop.payload[6] == 10
-                            && prop.payload[7] == 10;
+                            && prop.payload[5] == 8 && prop.payload[6] == 8
+                            && prop.payload[7] == 8;
                 } else if (prop.type.equals("colr")) {
                     colrOk = prop.payload.length == 15;
                 }
@@ -886,10 +938,20 @@ public class UltraHdrHeicContainerTest {
     }
 
     @Test
-    public void injectExifWithoutPayloadIsNoOp() {
+    public void injectExifWithoutPayloadStillTagsSdrBase() {
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
-        assertTrue(base == UltraHdrHeicContainer.injectExif(base, null));
-        assertTrue(base == UltraHdrHeicContainer.injectExif(base, new byte[]{0, 1, 2}));
+        // Nothing to inject, but the primary still gets the 8-bit pixi/colr.
+        byte[] tagged = UltraHdrHeicContainer.injectExif(base, null);
+        assertBaseProps(tagged, 1, 8);
+        List<IsoBmff.Box> top = IsoBmff.parse(tagged);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
+                top.get(1).payload.length - 4);
+        // Single primary item only: no Exif was appended.
+        assertEquals(1, IsoBmff.u16(findBox(kids, "iinf").payload, 4));
+        assertEquals(1, IsoBmff.u16(findBox(kids, "iloc").payload, 6));
+        // An unparseable payload is equally ignored.
+        byte[] tagged2 = UltraHdrHeicContainer.injectExif(base, new byte[]{0, 1, 2});
+        assertBaseProps(tagged2, 1, 8);
     }
 
     @Test
@@ -992,24 +1054,23 @@ public class UltraHdrHeicContainerTest {
     }
 
     @Test
-    public void tenBitBaseGetsPixiAndColr() {
+    public void baseGetsEightBitPixiAndColr() {
         // Ultra HDR merge path.
         UltraHdrHeicContainer.Inputs in = inputs(null);
-        in.baseTenBit = true;
-        assertTenBitBaseProps(UltraHdrHeicContainer.merge(in), 1);
+        assertBaseProps(UltraHdrHeicContainer.merge(in), 1, 8);
 
-        // SDR 10-bit Exif-injection path.
+        // SDR Exif-injection path.
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
         byte[] injected = UltraHdrHeicContainer.injectExif(base,
-                exifPayloadOf(minimalTiff()), true);
-        assertTenBitBaseProps(injected, 1);
+                exifPayloadOf(minimalTiff()));
+        assertBaseProps(injected, 1, 8);
     }
 
     /**
      * Verifies the primary item of {@code heic} carries a {@code pixi} with
-     * 10 bits per channel and a full-range BT.709 SDR {@code colr}.
+     * {@code bits} per channel and a full-range BT.709 SDR {@code colr}.
      */
-    private static void assertTenBitBaseProps(byte[] heic, int primaryId) {
+    private static void assertBaseProps(byte[] heic, int primaryId, int bits) {
         List<IsoBmff.Box> top = IsoBmff.parse(heic);
         List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
                 top.get(1).payload.length - 4);
@@ -1039,8 +1100,8 @@ public class UltraHdrHeicContainerTest {
             IsoBmff.Box prop = ipco.get(r.index - 1);
             if (prop.type.equals("pixi")) {
                 pixiOk = prop.payload.length == 8 && prop.payload[4] == 3
-                        && prop.payload[5] == 10 && prop.payload[6] == 10
-                        && prop.payload[7] == 10;
+                        && prop.payload[5] == bits && prop.payload[6] == bits
+                        && prop.payload[7] == bits;
             } else if (prop.type.equals("colr")) {
                 colrOk = prop.payload.length == 15
                         && IsoBmff.u16(prop.payload, 8) == 1
@@ -1049,7 +1110,7 @@ public class UltraHdrHeicContainerTest {
                         && (prop.payload[14] & 0x80) != 0;
             }
         }
-        assertTrue("primary pixi 10/10/10", pixiOk);
+        assertTrue("primary pixi " + bits + "/" + bits + "/" + bits, pixiOk);
         assertTrue("primary colr BT709 full range", colrOk);
     }
 

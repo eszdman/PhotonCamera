@@ -16,8 +16,8 @@ import java.util.Arrays;
  * Bridges {@link ParseExif.ExifData} to HEIF.
  *
  * <p>{@code ExifInterface.saveAttributes()} only writes JPEG/PNG/WebP, so for
- * HEIC the EXIF payload must be supplied separately via
- * {@code HeifWriter.addExifData()} (or the manual HEIF mux). This helper
+ * HEIC the EXIF payload must be supplied separately through the manual HEIF
+ * mux. This helper
  * reuses the existing JPEG EXIF path: compress a tiny proxy JPEG, stamp it
  * with {@link ParseExif#setAllAttributes}, then slice the EXIF APP1 payload
  * back out.
@@ -55,8 +55,8 @@ public final class ExifBlob {
     }
 
     /**
-     * @return raw EXIF payload ({@code Exif\0\0 + TIFF}) for
-     * {@code HeifWriter.addExifData} (which requires the header), or null.
+     * @return raw EXIF payload ({@code Exif\0\0 + TIFF}) for the manual HEIF
+     * Exif item (which requires the header), or null.
      */
     public static byte[] fromExifData(ParseExif.ExifData exif) {
         if (exif == null) {

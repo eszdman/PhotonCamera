@@ -56,13 +56,12 @@ public class Allocator{
     public native static void unpack16(ByteBuffer dst, ByteBuffer packed, int pixels, int bits);
 
     /**
-     * Converts one tile of the packed ABGR1010102 pipeline sink into P010
-     * 4:2:0 full-range BT.709, writing the Y plane and the interleaved Cb/Cr
-     * plane buffers of an encoder input {@code Image} (all strides in bytes).
-     * Edge tiles replicate the last valid row/column; the HEIF grid crops
-     * that padding on decode.
+     * Converts one tile of tightly packed RGBA8888 into 8-bit YUV420
+     * full-range BT.709 (2x2 box-averaged chroma), writing the Y/U/V plane
+     * buffers of an encoder input {@code Image} (strides in bytes). Edge
+     * tiles replicate the last valid row/column.
      */
-    public native static void rgb10ToP010Tile(ByteBuffer src,
+    public native static void rgbaToYuv420Tile(ByteBuffer src,
             int fullWidth, int fullHeight, int tileX, int tileY,
             int tileWidth, int tileHeight,
             ByteBuffer yPlane, int yRowStride, int yPixelStride,

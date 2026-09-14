@@ -144,12 +144,6 @@ public class UnlimitedProcessor extends ProcessorBase {
 
 
         PostPipeline pipeline = new PostPipeline();
-        // 10-bit HEIC: fill the parallel ABGR1010102 sink during the render.
-        pipeline.runTenBit = useHeic && PhotonCamera.getSettings().heic10Bit
-                && HeicSupport.isTenBitHeicSupported();
-        if (pipeline.runTenBit) {
-            Log.d(TAG, "10-bit HEIC requested");
-        }
         Bitmap bitmap = pipeline.Run(unlimitedBuffer, parameters);
 
         // The stacked RAW frame is dead once it has been rendered - free it
@@ -177,12 +171,8 @@ public class UnlimitedProcessor extends ProcessorBase {
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
         Allocator.logStage(TAG, "post-gainmap");
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
-        // Ownership of the 10-bit sink transfers to the encoder (which frees
-        // it); detach so pipeline.close() cannot double-free.
-        java.nio.ByteBuffer tenBitFrame = pipeline.tenBitBuffer;
-        pipeline.tenBitBuffer = null;
         StillEncoder.Result still = StillEncoder.encodeStill(
-                imageFile, bitmap, gm, exifData, useHeic, tenBitFrame);
+                imageFile, bitmap, gm, exifData, useHeic);
         boolean imageSaved = still.saved;
         imageFile = still.file;
 

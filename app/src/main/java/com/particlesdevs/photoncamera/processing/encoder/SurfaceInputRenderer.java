@@ -6,18 +6,15 @@ import android.opengl.GLES30;
 import android.view.Surface;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 /**
- * Minimal 10-bit EGL renderer that feeds a {@code MediaCodec} input surface
- * from the pipeline's packed ABGR1010102 sink.
+ * Minimal EGL renderer that feeds a {@code MediaCodec} input surface from a
+ * tightly packed RGBA8888 buffer in a matching 8-bit EGL window surface.
  *
- * <p>Hardware HEVC encoders commonly accept 10-bit frames only through an
- * input surface (HDR video capture works this way; buffer P010 input is
- * rejected by the QTI V4L2 component). This renders each tile/frame as a
- * full-surface quad into an RGB10_A2 EGL window surface created over
- * {@code codec.createInputSurface()}, so the encoder performs the
- * RGB10 -> P010 conversion itself.
+ * <p>Hardware HEVC encoders accept frames through an input surface and
+ * perform the YCbCr conversion themselves. This renders a full-size quad so
+ * the encoder does that conversion. Rendering is ES3 with a cheap fullscreen
+ * triangle and no vertex buffers.
  */
 final class SurfaceInputRenderer {
 
@@ -26,7 +23,9 @@ final class SurfaceInputRenderer {
                     + "out vec2 vTex;\n"
                     + "void main() {\n"
                     + "  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));\n"
-                    + "  vTex = p;\n"
+                    // Sources are top-down (bitmap row 0 is the image top), so
+                    // t=0 must sample at the viewport top.
+                    + "  vTex = vec2(p.x, 1.0 - p.y);\n"
                     + "  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);\n"
                     + "}\n";
 
@@ -49,7 +48,6 @@ final class SurfaceInputRenderer {
     private int program = 0;
     private int texture = 0;
     private int textureUniform = -1;
-    private ByteBuffer tileBuffer;
 
     private static synchronized android.opengl.EGLDisplay sharedDisplay() {
         if (sDisplay == EGL14.EGL_NO_DISPLAY) {
@@ -66,27 +64,32 @@ final class SurfaceInputRenderer {
         return sDisplay;
     }
 
-    /** Creates a 10-bit ES3 window surface over the codec input surface. */
+    /** Creates an 8-bit window surface over the codec surface. */
     void connect(Surface input) {
         display = sharedDisplay();
+        // 8-bit requests an alpha channel so the window buffers are
+        // RGBA_8888; RGBX_8888 (no alpha) is rejected by some encoders'
+        // surface-to-YUV converters.
         int[] configAttribs = {
                 EGL14.EGL_RENDERABLE_TYPE, EGLExt.EGL_OPENGL_ES3_BIT_KHR,
                 EGL14.EGL_SURFACE_TYPE, EGL14.EGL_WINDOW_BIT,
-                EGL14.EGL_RED_SIZE, 10,
-                EGL14.EGL_GREEN_SIZE, 10,
-                EGL14.EGL_BLUE_SIZE, 10,
+                EGL14.EGL_RED_SIZE, 8,
+                EGL14.EGL_GREEN_SIZE, 8,
+                EGL14.EGL_BLUE_SIZE, 8,
+                EGL14.EGL_ALPHA_SIZE, 8,
                 EGL14.EGL_NONE
         };
         android.opengl.EGLConfig[] configs = new android.opengl.EGLConfig[1];
         int[] numConfigs = new int[1];
         if (!EGL14.eglChooseConfig(display, configAttribs, 0, configs, 0, 1,
                 numConfigs, 0) || numConfigs[0] == 0) {
-            throw new IllegalStateException("No 10-bit EGL config");
+            throw new IllegalStateException("No 8-bit EGL config");
         }
         int[] redBits = new int[1];
         EGL14.eglGetConfigAttrib(display, configs[0], EGL14.EGL_RED_SIZE, redBits, 0);
-        if (redBits[0] < 10) {
-            throw new IllegalStateException("EGL config is not 10-bit (R=" + redBits[0] + ")");
+        if (redBits[0] < 8) {
+            throw new IllegalStateException("EGL config is not 8-bit (R="
+                    + redBits[0] + ")");
         }
         context = EGL14.eglCreateContext(display, configs[0], EGL14.EGL_NO_CONTEXT,
                 new int[]{EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE}, 0);
@@ -96,7 +99,7 @@ final class SurfaceInputRenderer {
         surface = EGL14.eglCreateWindowSurface(display, configs[0], input,
                 new int[]{EGL14.EGL_NONE}, 0);
         if (surface == null || surface == EGL14.EGL_NO_SURFACE) {
-            throw new IllegalStateException("eglCreateWindowSurface failed (surface not 10-bit RGB?)");
+            throw new IllegalStateException("eglCreateWindowSurface failed for 8-bit RGB");
         }
         if (!EGL14.eglMakeCurrent(display, surface, surface, context)) {
             throw new IllegalStateException("eglMakeCurrent failed");
@@ -113,31 +116,15 @@ final class SurfaceInputRenderer {
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
     }
 
-    /**
-     * Renders one frame (full sink, or the tile at {@code tileX/tileY}) into
-     * the encoder surface and swaps buffers with the given presentation time.
-     */
-    void render(ByteBuffer source, int fullWidth, int fullHeight,
-            int tileX, int tileY, int tileW, int tileH, long presentationTimeNs) {
-        ByteBuffer pixels;
-        if (tileW == fullWidth && tileH == fullHeight) {
-            pixels = source;
-        } else {
-            if (tileBuffer == null || tileBuffer.capacity() < tileW * tileH * 4) {
-                tileBuffer = ByteBuffer.allocateDirect(tileW * tileH * 4)
-                        .order(ByteOrder.nativeOrder());
-            }
-            TenBitHeicEncoder.copyAbgr1010102Tile(source, fullWidth, fullHeight,
-                    tileX, tileY, tileW, tileH, tileBuffer);
-            pixels = tileBuffer;
-        }
-        pixels.position(0);
+    /** Renders one 8-bit frame from a tightly packed RGBA buffer. */
+    void renderRgba(ByteBuffer rgba, int width, int height, long presentationTimeNs) {
+        rgba.position(0);
         GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1);
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ROW_LENGTH, 0);
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture);
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGB10_A2,
-                tileW, tileH, 0, GLES30.GL_RGBA,
-                GLES30.GL_UNSIGNED_INT_2_10_10_10_REV, pixels);
-        GLES30.glViewport(0, 0, tileW, tileH);
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8,
+                width, height, 0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, rgba);
+        GLES30.glViewport(0, 0, width, height);
         GLES30.glUseProgram(program);
         GLES30.glUniform1i(textureUniform, 0);
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3);
@@ -194,7 +181,6 @@ final class SurfaceInputRenderer {
         display = EGL14.EGL_NO_DISPLAY;
         context = EGL14.EGL_NO_CONTEXT;
         surface = EGL14.EGL_NO_SURFACE;
-        tileBuffer = null;
     }
 
     private static int buildProgram(String vertexSrc, String fragmentSrc) {
@@ -211,7 +197,7 @@ final class SurfaceInputRenderer {
         if (linked[0] == 0) {
             String log = GLES30.glGetProgramInfoLog(prog);
             GLES30.glDeleteProgram(prog);
-            throw new IllegalStateException("10-bit surface program link failed: " + log);
+            throw new IllegalStateException("surface program link failed: " + log);
         }
         return prog;
     }
@@ -225,7 +211,7 @@ final class SurfaceInputRenderer {
         if (compiled[0] == 0) {
             String log = GLES30.glGetShaderInfoLog(shader);
             GLES30.glDeleteShader(shader);
-            throw new IllegalStateException("10-bit surface shader failed: " + log);
+            throw new IllegalStateException("surface shader failed: " + log);
         }
         return shader;
     }

@@ -13,8 +13,8 @@ import java.util.List;
  * payloads — the SDR base and the normalized gain map — plus XMP/EXIF items.
  *
  * <p>Manual BMFF mux in the spirit of {@code UltraHdrContainer} (no native
- * dependency): {@code HeifWriter} supplies the hardware HEVC encoding, this
- * class supplies the multi-item {@code meta} box (primary + auxiliary
+ * dependency): {@link StillHeicEncoder} supplies the hardware HEVC encoding,
+ * this class supplies the multi-item {@code meta} box (primary + auxiliary
  * gain-map item with {@code auxC urn:iso:std:iso:ts:21496:-1}, {@code auxl} /
  * {@code cdsc} references, XMP and EXIF items) with rebased {@code iloc}
  * extents. Only single-item inputs are accepted; anything unexpected throws
@@ -58,12 +58,6 @@ public final class UltraHdrHeicContainer {
         public float hdrCapacityMax;
         /** Raw {@code Exif\0\0 + TIFF} payload, may be null. */
         public byte[] exifPayload;
-        /**
-         * True when the base item is 10-bit: adds {@code pixi} (10/10/10) and
-         * a full-range BT.709 SDR {@code colr} to the primary item so readers
-         * do not have to guess the bit depth and colorimetry.
-         */
-        public boolean baseTenBit;
     }
 
     public static byte[] merge(Inputs in) {
@@ -224,32 +218,32 @@ public final class UltraHdrHeicContainer {
             ipcoBoxes.add(IsoBmff.buildBox("ispe", auxIspe));
         }
         // tmap properties per the reference recipe: ispe sized to the BASE
-        // photo, pixi 10-bit, and the derived-HDR nclx colr. Readers check
-        // the tmap ispe; the colr describes the derived rendition
-        // (linear-light BT.709, full range — matching our gain math space).
+        // photo, 8-bit pixi (matching the encoded stream), and the derived-HDR
+        // nclx colr. Readers check the tmap ispe; the colr describes the
+        // derived rendition (linear-light BT.709, full range — matching our
+        // gain math space).
         int propCursor = basePropCount + (ipcoBoxes.size() - baseIpco.size());
         byte[] tmapIspe = buildIspe(in.baseW, in.baseH);
         int tmapIspeIndex = propCursor + 1;
-        byte[] tmapPixi = IsoBmff.fullBoxPayload(0, 0, buildPixiBody(10, 10, 10));
+        byte[] tmapPixi = IsoBmff.fullBoxPayload(0, 0,
+                buildPixiBody(8, 8, 8));
         int tmapPixiIndex = propCursor + 2;
         byte[] tmapColr = IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 8, 1, true));
         int tmapColrIndex = propCursor + 3;
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
         ipcoBoxes.add(IsoBmff.buildBox("colr", tmapColr));
-        // 10-bit base item gets its own pixi/colr (full-range BT.709 SDR,
-        // matching the color aspects set on the encoder).
+        // Encoded base item gets its own 8-bit pixi/colr (full-range BT.709
+        // SDR, matching the color aspects set on the encoder).
         List<PropRef> primaryExtras = new ArrayList<>();
-        if (in.baseTenBit) {
-            int basePixiIndex = tmapColrIndex + 1;
-            int baseColrIndex = tmapColrIndex + 2;
-            ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                    IsoBmff.fullBoxPayload(0, 0, buildPixiBody(10, 10, 10))));
-            ipcoBoxes.add(IsoBmff.buildBox("colr",
-                    IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
-            primaryExtras.add(new PropRef(false, basePixiIndex));
-            primaryExtras.add(new PropRef(false, baseColrIndex));
-        }
+        int basePixiIndex = tmapColrIndex + 1;
+        int baseColrIndex = tmapColrIndex + 2;
+        ipcoBoxes.add(IsoBmff.buildBox("pixi",
+                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
+        ipcoBoxes.add(IsoBmff.buildBox("colr",
+                IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+        primaryExtras.add(new PropRef(false, basePixiIndex));
+        primaryExtras.add(new PropRef(false, baseColrIndex));
         byte[] newIpco = IsoBmff.buildBox("ipco", ipcoBoxes);
         List<Integer> tmapPropIdx = new ArrayList<>();
         tmapPropIdx.add(tmapIspeIndex);
@@ -523,34 +517,22 @@ public final class UltraHdrHeicContainer {
     }
 
     /**
-     * Adds an Exif item to a single-image HEIC (e.g. one just written by
-     * {@link TenBitHeicEncoder}) and returns the rebuilt file. The container
-     * is reconstructed from the kept item set (primary + {@code dimg} grid
-     * tiles) with the Exif item appended to a fresh {@code mdat}; every kept
-     * item's bytes are copied verbatim. Top-level boxes are located by range
-     * scan, so the large {@code mdat} is never copied twice.
+     * Adds an Exif item (when a payload exists) to a single-image HEIC plus an
+     * 8-bit {@code pixi} and a full-range BT.709 SDR {@code colr} on the
+     * primary item, and returns the rebuilt file. The container is
+     * reconstructed from the kept item set (primary + {@code dimg} grid tiles)
+     * with the Exif item appended to a fresh {@code mdat}; every kept item's
+     * bytes are copied verbatim. Top-level boxes are located by range scan, so
+     * the large {@code mdat} is never copied twice.
      *
      * @param heic        complete HEIC file bytes
      * @param exifPayload raw {@code Exif\0\0 + TIFF} payload, may be null
-     * @return {@code heic} unchanged when there is nothing to inject
      */
     public static byte[] injectExif(byte[] heic, byte[] exifPayload) {
-        return injectExif(heic, exifPayload, false);
-    }
-
-    /**
-     * @param tenBit true when the source is a 10-bit encode: adds
-     *        {@code pixi} (10/10/10) and a full-range BT.709 SDR
-     *        {@code colr} to the rebuilt primary item.
-     */
-    public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean tenBit) {
         if (heic == null) {
             throw new IllegalArgumentException("Null HEIC");
         }
         byte[] exifItem = ExifBlob.heifExifItemBody(exifPayload);
-        if (exifItem == null) {
-            return heic;
-        }
         long[] ftypRange = IsoBmff.boxDataRange(heic, "ftyp");
         long[] metaRange = IsoBmff.boxDataRange(heic, "meta");
         if (ftypRange == null || metaRange == null
@@ -570,7 +552,7 @@ public final class UltraHdrHeicContainer {
         java.util.Map<Integer, byte[]> kept = sliceKeptPayloads(heic, m, keep, "base");
         List<Integer> order = new ArrayList<>(keep);
         java.util.Collections.sort(order);
-        int exifId = m.maxItemId + 1;
+        int exifId = exifItem != null ? m.maxItemId + 1 : -1;
         if (exifId > 0xFFFF) {
             throw new IllegalArgumentException("Exif item id too large: " + exifId);
         }
@@ -579,7 +561,9 @@ public final class UltraHdrHeicContainer {
         for (int id : order) {
             mdatParts.add(kept.get(id));
         }
-        mdatParts.add(exifItem);
+        if (exifItem != null) {
+            mdatParts.add(exifItem);
+        }
 
         List<byte[]> keptInfe = new ArrayList<>();
         for (int id : order) {
@@ -589,44 +573,56 @@ public final class UltraHdrHeicContainer {
             }
             keptInfe.add(infe);
         }
-        keptInfe.add(buildInfeV2(exifId, "Exif", "", null));
+        if (exifItem != null) {
+            keptInfe.add(buildInfeV2(exifId, "Exif", "", null));
+        }
         byte[] newIinf = buildIinf(m.iinfPayload, keptInfe,
                 java.util.Collections.<byte[]>emptyList());
 
         int outRefVersion = m.irefVersion;
         List<byte[]> extraRefs = new ArrayList<>();
-        extraRefs.add(buildSingleRef("cdsc", exifId, new int[]{primaryId}, outRefVersion));
-        byte[] newIref = extendIref(filterIref(m, keep, outRefVersion), extraRefs, outRefVersion);
+        if (exifItem != null) {
+            extraRefs.add(buildSingleRef("cdsc", exifId, new int[]{primaryId}, outRefVersion));
+        }
+        // Only build iref when something must be referenced: a pixi-only
+        // rebuild of a reference-less single item stays reference-less.
+        byte[] newIref = null;
+        if (!extraRefs.isEmpty()) {
+            newIref = extendIref(filterIref(m, keep, outRefVersion), extraRefs, outRefVersion);
+        } else if (m.irefPayload != null) {
+            newIref = extendIref(filterIref(m, keep, outRefVersion),
+                    java.util.Collections.<byte[]>emptyList(), outRefVersion);
+        }
 
         List<byte[]> ipcoBoxes = new ArrayList<>();
         for (IsoBmff.Box b : m.ipcoChildren) {
             ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
         }
         List<PropRef> primaryExtras = new ArrayList<>();
-        if (tenBit) {
-            int pixiIndex = ipcoBoxes.size() + 1;
-            int colrIndex = ipcoBoxes.size() + 2;
-            ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                    IsoBmff.fullBoxPayload(0, 0, buildPixiBody(10, 10, 10))));
-            ipcoBoxes.add(IsoBmff.buildBox("colr",
-                    IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
-            primaryExtras.add(new PropRef(false, pixiIndex));
-            primaryExtras.add(new PropRef(false, colrIndex));
-        }
+        int pixiIndex = ipcoBoxes.size() + 1;
+        int colrIndex = ipcoBoxes.size() + 2;
+        ipcoBoxes.add(IsoBmff.buildBox("pixi",
+                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
+        ipcoBoxes.add(IsoBmff.buildBox("colr",
+                IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+        primaryExtras.add(new PropRef(false, pixiIndex));
+        primaryExtras.add(new PropRef(false, colrIndex));
         byte[] iprpBox = IsoBmff.buildBox("iprp",
                 listOf(IsoBmff.buildBox("ipco", ipcoBoxes),
                         filterIpma(m, keep, primaryId, primaryExtras)));
 
         // Placeholder iloc (same body size) to measure the meta box, then the
         // real iloc with absolute offsets relative to the new mdat start.
+        int extentCount = order.size() + (exifItem != null ? 1 : 0);
         List<Extent> zero = new ArrayList<>();
-        for (int i = 0; i < order.size() + 1; i++) {
+        for (int i = 0; i < extentCount; i++) {
             zero.add(new Extent(0, 0, 0));
         }
         byte[] zeroIloc = IsoBmff.buildBox("iloc",
                 IsoBmff.fullBoxPayload(0, 0, buildIlocBody(zero)));
         long metaBoxSize = 8 + 4 + m.hdlr.length + m.pitm.length
-                + zeroIloc.length + newIinf.length + newIref.length + iprpBox.length;
+                + zeroIloc.length + newIinf.length
+                + (newIref != null ? newIref.length : 0) + iprpBox.length;
         long cursor = ftyp.length + metaBoxSize + 8;
         long mdatDataStart = cursor;
         List<Extent> extents = new ArrayList<>();
@@ -635,7 +631,10 @@ public final class UltraHdrHeicContainer {
             extents.add(new Extent(id, cursor, payload.length));
             cursor += payload.length;
         }
-        extents.add(new Extent(exifId, cursor, exifItem.length));
+        if (exifItem != null) {
+            extents.add(new Extent(exifId, cursor, exifItem.length));
+            cursor += exifItem.length;
+        }
         byte[] ilocBox = IsoBmff.buildBox("iloc",
                 IsoBmff.fullBoxPayload(0, 0, buildIlocBody(extents)));
 
@@ -645,11 +644,15 @@ public final class UltraHdrHeicContainer {
         metaParts.add(m.pitm);
         metaParts.add(ilocBox);
         metaParts.add(newIinf);
-        metaParts.add(newIref);
+        if (newIref != null) {
+            metaParts.add(newIref);
+        }
         metaParts.add(iprpBox);
         byte[] meta = IsoBmff.buildBox("meta", metaParts);
         byte[] mdat = IsoBmff.buildBox("mdat", mdatParts);
-        logExifSelfCheck(extents, exifId, primaryId, mdat, mdatDataStart);
+        if (exifItem != null) {
+            logExifSelfCheck(extents, exifId, primaryId, mdat, mdatDataStart);
+        }
 
         byte[] out = new byte[ftyp.length + meta.length + mdat.length];
         System.arraycopy(ftyp, 0, out, 0, ftyp.length);
@@ -670,8 +673,8 @@ public final class UltraHdrHeicContainer {
      * replaces the previous {@code ImageDecoder} header probe, whose abort
      * path could still decode the whole image on some devices; everything the
      * manual mux can actually get wrong (box layout, item/property mapping)
-     * is validated here, while the HEVC payloads come verbatim from
-     * HeifWriter.
+     * is validated here, while the HEVC payloads come verbatim from the
+     * encoder.
      */
     static int[] primarySize(byte[] heic) {
         // Range scans only: never copy the (large) top-level payloads just to
@@ -761,6 +764,18 @@ public final class UltraHdrHeicContainer {
     }
 
     private static int[] primaryIspe(Meta m) {
+        // A structurally valid container can still carry no image data when the
+        // muxer drops every sample ("encoded 0 frames"): the item extents are
+        // then zero-length even though an mdat exists. The HEVC payloads come
+        // verbatim from the encoder, so a payload-free container must be
+        // rejected here instead of being written out.
+        long payload = 0;
+        for (Extent e : ilocExtents(m.ilocPayload, -1)) {
+            payload += e.length;
+        }
+        if (payload <= 0) {
+            throw new IllegalStateException("merged HEIC carries no item payload");
+        }
         List<PropRef> assoc = m.ipmaAssoc.get(m.primaryItemId);
         if (assoc != null) {
             for (PropRef r : assoc) {
