@@ -888,6 +888,7 @@ public class ESD4D extends GLOneScript {
         if (enableAlignment && !useNcnnFlow) {
             PyramidAlignment pyramidAlignment = new PyramidAlignment(alignmentOutputSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
+            pyramidAlignment.shareInputTextures(inputBase, inputAlter);
             long startTime = System.currentTimeMillis();
             pyramidAlignment.Run();
             Log.d("ESD4D", "Alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
@@ -915,10 +916,10 @@ public class ESD4D extends GLOneScript {
         float minLevel = (float) (1.0/(double)(parameters.whiteLevel-maxBlack));
 
         // The base frame's pixels are on the GPU now (inputBase upload, shared
-        // with FlowNet, plus the Pyramid init upload when that path runs; all
-        // synchronous). The loop below only touches its GPU texture and scalar
-        // pair metadata, and the base index is never loaded there, so release
-        // the native copy up-front: it would otherwise outlive the whole merge.
+        // with the alignment stage; synchronous). The loop below only touches
+        // its GPU texture and scalar pair metadata, and the base index is
+        // never loaded there, so release the native copy up-front: it would
+        // otherwise outlive the whole merge.
         images.get(0).close();
 
         // getBase() aliases base onto baseAlter from the first iteration,

@@ -188,6 +188,25 @@ public class PyramidAlignment implements AutoCloseable {
     GLTexture gainMap;
     public GLTexture Result;
     GLTexture inputAlter;
+
+    /**
+     * When true, inputBase/inputAlter are owned by the caller (ESD4D merge
+     * textures) and must neither be (re-)allocated nor closed here.
+     * Bit-exact: identical size/format/filter/wrap objects. The base upload
+     * disappears entirely (caller uploads once before Run); alter frames are
+     * still uploaded by this Run's own loop, into the shared texture instead
+     * of a duplicate (-48 MB VRAM, -1 upload).
+     */
+    private boolean sharedInputs = false;
+
+    /** Shares the caller's already-uploaded raw textures (see above). Must be
+     * called before {@link #Run()}. */
+    public void shareInputTextures(GLTexture base, GLTexture alter) {
+        inputBase = base;
+        inputAlter = alter;
+        sharedInputs = true;
+    }
+
     GLTexture hotPix;
     GLUtils.Pyramid pyramid;
     GLUtils.Pyramid pyramidAlter;
@@ -218,9 +237,11 @@ public class PyramidAlignment implements AutoCloseable {
         Log.d("PyramidAlignment", "prefilter: sigma=" + blurSigma + " noiseFactor=" + prefilterN);
         Point rawHalf = new Point(parameters.rawSize.x/2,parameters.rawSize.y/2);
         Result = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
-            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),
-                    baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        if (!sharedInputs) {
+            try (ImageFrame.Upload baseUpload = images.get(0).upload()) {
+                inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),
+                        baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            }
         }
         // Temporal result
         temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
@@ -321,7 +342,9 @@ public class PyramidAlignment implements AutoCloseable {
         noiseO = (float)Math.max(noiseO * noisempy,1e-6f);
         double noise = Math.sqrt(noiseS + noiseO);
         Log.d("PyramidAlignment", "noise: " + Math.sqrt(noiseS + noiseO));
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        if (!sharedInputs) {
+            inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        }
 
         int alignCount = 0;
         for (int f = 1; f < images.size(); f++) {
@@ -468,7 +491,11 @@ public class PyramidAlignment implements AutoCloseable {
 
     @Override
     public void close() {
-        inputBase.close();
+        // Shared textures are owned by the caller (ESD4D closes them in its
+        // AfterRun); only the private pyramid textures are closed here.
+        if (!sharedInputs) {
+            inputBase.close();
+        }
         base.close();
         alter.close();
         temp.close();
@@ -476,7 +503,9 @@ public class PyramidAlignment implements AutoCloseable {
             pyramid.gauss[i].close();
             pyramidAlter.gauss[i].close();
         }
-        inputAlter.close();
+        if (!sharedInputs) {
+            inputAlter.close();
+        }
         gainMap.close();
         GLTexture.notClosed();
     }
