@@ -135,6 +135,10 @@ public class DefaultSaver extends SaverImplementation {
         }
     }
 
+    public void videoCaptureResult(CaptureResult result) {
+        mRawVideoProcessor.videoCaptureResult(result);
+    }
+
     public void processEnd() {
         switch (PhotonCamera.getSettings().selectedMode){
             case UNLIMITED:

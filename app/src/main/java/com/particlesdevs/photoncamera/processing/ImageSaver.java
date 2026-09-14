@@ -115,6 +115,13 @@ public class ImageSaver {
         implementation.processEnd();
     }
 
+    /** Feeds per-frame capture results to the RAW video processor (metadata). */
+    public void videoCaptureResult(CaptureResult captureResult) {
+        if (implementation instanceof DefaultSaver) {
+            ((DefaultSaver) implementation).videoCaptureResult(captureResult);
+        }
+    }
+
     public static class Util {
         public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, ParseExif.ExifData exifData) {
             exifData.COMPRESSION = String.valueOf(jpgQuality);

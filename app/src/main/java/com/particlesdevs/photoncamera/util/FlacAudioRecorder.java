@@ -35,12 +35,15 @@ import java.util.Arrays;
  * when the device supports simultaneous capture.
  */
 public class FlacAudioRecorder {
+    /** Receives raw PCM chunks; timestamps are System.nanoTime()-based. */
+    public interface PcmSink { void onPcm(long timestampNs, short[] samples, int channels); }
     private static final String TAG = "FlacAudioRecorder";
 
-    private static final int SAMPLE_RATE = 44100;
-    //private static final int SAMPLE_RATE = 48000;
+    private static final int SAMPLE_RATE = 48000;
 
-    private static final int BLOCK_SAMPLES = 1024;
+    // 6000 stereo frames = 24000 bytes per chunk, matching the chunk size of
+    // genuine MediaCinemaRAW recordings (~125ms).
+    private static final int BLOCK_SAMPLES = 6000;
     private static final int BIT_DEPTH = 16;
 
     static {
@@ -57,6 +60,33 @@ public class FlacAudioRecorder {
     private volatile boolean recording = false;
     private long nativeCtx = 0;
     private int actualChannels = 2;
+    private volatile PcmSink pcmSink;
+
+    public int getSampleRate() { return SAMPLE_RATE; }
+    public int getChannels() { return actualChannels; }
+
+    /**
+     * Records raw microphone PCM and delivers it to the sink instead of
+     * encoding a FLAC file. Used when the audio is embedded into a
+     * MediaCinemaRAW container.
+     */
+    public synchronized boolean start(PcmSink sink) {
+        if (recording || sink == null) return false;
+        audioRecord = createAudioRecord();
+        if (audioRecord == null || audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+            if (audioRecord != null) {
+                audioRecord.release();
+                audioRecord = null;
+            }
+            return false;
+        }
+        pcmSink = sink;
+        recording = true;
+        recordThread = new Thread(this::recordLoop, "MediaCinemaRAW-Audio");
+        recordThread.setDaemon(true);
+        recordThread.start();
+        return true;
+    }
 
     /**
      * Start recording to the given output path
@@ -192,10 +222,14 @@ public class FlacAudioRecorder {
             if (read <= 0) break;
             if (nativeCtx != 0) {
                 nativeWriteFrame(nativeCtx, buffer, read / actualChannels, actualChannels);
+            } else if (pcmSink != null) {
+                long durationNs = (long) (read / actualChannels) * 1_000_000_000L / SAMPLE_RATE;
+                pcmSink.onPcm(System.nanoTime() - durationNs, java.util.Arrays.copyOf(buffer, read), actualChannels);
             }
         }
 
         Log.d(TAG, "Record loop ended");
+        pcmSink = null;
     }
 
     /**

@@ -145,6 +145,16 @@
         <item>1920x1080</item>
         <item>1280x720</item>
     </string-array>
+    <string-array name="rawvideo_container_entries">
+        <item>@string/rawvideo_container_dng</item>
+        <item>@string/rawvideo_container_zip</item>
+        <item>@string/rawvideo_container_mcraw</item>
+    </string-array>
+    <string-array name="rawvideo_container_entryvalues">
+        <item>dng</item>
+        <item>zip</item>
+        <item>mcraw</item>
+    </string-array>
     <string-array name="afdata_entries">
         <item>Off</item>
         <item>HUD</item>

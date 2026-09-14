@@ -76,6 +76,14 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
+        // Migrate the legacy "Write ZIP" switch into the container selector
+        // (true -> zip, false -> dng) the first time the new key is seen.
+        if (!settingsManager.getDefaultPreferences().contains(Key.KEY_RAWVIDEO_CONTAINER.mValue)) {
+            settingsManager.set(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CONTAINER,
+                    settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP)
+                            ? CONTAINER_ZIP : CONTAINER_DNG);
+        }
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CONTAINER, CONTAINER_ZIP);
 
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
@@ -453,8 +461,21 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X);
     }
 
+    /** Raw video container selector values. */
+    public static final String CONTAINER_DNG = "dng";
+    public static final String CONTAINER_ZIP = "zip";
+    public static final String CONTAINER_MCRAW = "mcraw";
+
+    public static String getRawVideoContainer() {
+        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CONTAINER, CONTAINER_ZIP);
+        if (CONTAINER_MCRAW.equals(value) || CONTAINER_ZIP.equals(value) || CONTAINER_DNG.equals(value)) {
+            return value;
+        }
+        return CONTAINER_ZIP;
+    }
+
     public static boolean isRawVideoWriteZip() {
-        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP);
+        return CONTAINER_ZIP.equals(getRawVideoContainer());
     }
 
     public static boolean isRawVideoCrop169() {
@@ -511,6 +532,7 @@ public class PreferenceKeys {
         KEY_VIDEO_RESOLUTION(R.string.pref_video_resolution_key),
         KEY_RAWVIDEO_DOWNSCALE_4X(R.string.pref_rawvideo_downscale_4x_key),
         KEY_RAWVIDEO_WRITE_ZIP(R.string.pref_rawvideo_write_zip_key),
+        KEY_RAWVIDEO_CONTAINER(R.string.pref_rawvideo_container_key),
         KEY_RAWVIDEO_CROP_169(R.string.pref_rawvideo_crop_169_key),
         KEY_SHOW_AF_DATA(R.string.pref_show_afdata_key),
         KEY_SHOW_HORIZON(R.string.pref_horizon),

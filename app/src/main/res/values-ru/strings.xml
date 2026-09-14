@@ -124,6 +124,7 @@
     <string name="raw_video_settings">Настройки RAW видео</string>
     <string name="rawvideo_downscale_4x">Уменьшить x4</string>
     <string name="rawvideo_write_zip">Записывать ZIP</string>
+    <string name="rawvideo_container">Формат RAW видео</string>
     <string name="rawvideo_crop_169">Обрезать до 16:9</string>
     <string name="photo_settings">Настройки фото</string>
     <string name="video_resolution">Разрешение видео</string>

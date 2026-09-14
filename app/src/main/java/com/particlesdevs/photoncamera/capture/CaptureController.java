@@ -145,6 +145,8 @@ import static android.hardware.camera2.CaptureRequest.FLASH_MODE;
 public class CaptureController implements MediaRecorder.OnInfoListener {
     public static final int RAW_FORMAT = ImageFormat.RAW_SENSOR;
     public static final int YUV_FORMAT = ImageFormat.YUV_420_888;
+    // Depth of the RAW ImageReader in RAW video mode.
+    private static final int RAW_VIDEO_MAX_IMAGES = 16;
     private static final String TAG = CaptureController.class.getSimpleName();
     public List<Future<?>> taskResults = new ArrayList<>();
     private final ExecutorService processExecutor;
@@ -325,6 +327,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /*An {@link ImageReader} that handles still image capture.*/
     public ImageReader mImageReaderPreview;
     public ImageReader mImageReaderRaw;
+
+    /**
+     * Capacity (maxImages) of the raw ImageReader. Raw video recording uses
+     * this to bound the number of Images it may hold open simultaneously.
+     */
+    public int getRawImageReaderMaxImages() {
+        return mImageReaderRaw != null ? mImageReaderRaw.getMaxImages() : 3;
+    }
+
     /*{@link CaptureRequest.Builder} for the camera preview*/
     public CaptureRequest.Builder mPreviewRequestBuilder;
     public CaptureRequest mPreviewInputRequest;
@@ -1548,6 +1559,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Size preview = getCameraOutputSize(map.getOutputSizes(mPreviewTargetFormat));
 
         int maxjpg = 3;
+        // RAW video benefits from a deep buffer pool: the encoder holds a
+        // few Images between admission and encode completion, and a shallow
+        // reader starves the capture pipeline during encoder or file I/O stalls.
+        if (PhotonCamera.getSettings().selectedMode == CameraMode.RAWVIDEO)
+            maxjpg = RAW_VIDEO_MAX_IMAGES;
         if (mTargetFormat == mPreviewTargetFormat && isDualSession)
             maxjpg = PhotonCamera.getSettings().frameCount + 3;
         if (isZslMode())
@@ -2470,6 +2486,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         mImageSaver.processStart(mCameraCharacteristics, result, request, cameraRotation);
                         unlimitedStarted = true;
                     }
+                    // Per-frame results feed the RAW video frame metadata.
+                    if (onUnlimited) mImageSaver.videoCaptureResult(result);
                     //if(frameCount == 0)
                         mCaptureResult = result;
                     if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CaptureGyroBurst();

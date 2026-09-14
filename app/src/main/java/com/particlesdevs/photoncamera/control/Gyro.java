@@ -492,6 +492,42 @@ public class Gyro {
             videoFirstFrameTs = cameraTimestampNs;
     }
 
+    /** Gyro samples for embedding into a MediaCinemaRAW container. */
+    public static final class MediaCinemaRawSamples {
+        public final long[] timestampsNs;
+        public final float[] x, y, z;
+        public final int count;
+        public MediaCinemaRawSamples(long[] timestampsNs, float[] x, float[] y, float[] z, int count) {
+            this.timestampsNs = timestampsNs;
+            this.x = x; this.y = y; this.z = z;
+            this.count = count;
+        }
+    }
+
+    /**
+     * Stops buffering and returns the gyro samples for container embedding
+     * instead of writing a GCSV sidecar. Timestamps share the camera
+     * timestamp domain (the GCSV writer also mixes them directly).
+     */
+    public synchronized MediaCinemaRawSamples stopVideoRecordingForContainer() {
+        if (!isVideoRecording) {
+            return new MediaCinemaRawSamples(new long[0], new float[0], new float[0], new float[0], 0);
+        }
+        isVideoRecording = false;
+        mSensorManager.unregisterListener(mVideoRecordingListener, mGyroSensor);
+        if (mAccelSensor != null)
+            mSensorManager.unregisterListener(mVideoRecordingListener, mAccelSensor);
+        if (mMagSensor != null)
+            mSensorManager.unregisterListener(mVideoRecordingListener, mMagSensor);
+        MediaCinemaRawSamples samples = new MediaCinemaRawSamples(
+                recTimestamps, recGx, recGy, recGz, recCount);
+        recTimestamps = null;
+        recGx = recGy = recGz = null;
+        recAx = recAy = recAz = null;
+        recMx = recMy = recMz = null;
+        return samples;
+    }
+
     /**
      * Stop buffering and write the GCSV sidecar file on a background thread.
      */

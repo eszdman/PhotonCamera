@@ -10,6 +10,7 @@
     <string name="pref_category_rawvideo_key" translatable="false">pref_category_rawvideo_key</string>
     <string name="pref_rawvideo_downscale_4x_key" translatable="false">pref_rawvideo_downscale_4x_key</string>
     <string name="pref_rawvideo_write_zip_key" translatable="false">pref_rawvideo_write_zip_key</string>
+    <string name="pref_rawvideo_container_key" translatable="false">pref_rawvideo_container_key</string>
     <string name="pref_rawvideo_crop_169_key" translatable="false">pref_rawvideo_crop_169_key</string>
     <string name="pref_theme_category_key" translatable="false">pref_theme_category_key</string>
     <string name="pref_category_about_key" translatable="false">pref_category_about_key</string>

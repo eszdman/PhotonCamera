@@ -276,7 +276,7 @@ public class Log {
         writeToFile("V", tag, s);
     }
 
-    public static String getStackTraceString(Exception e) {
+    public static String getStackTraceString(Throwable e) {
         StringBuilder sb = new StringBuilder();
         sb.append(e.toString()).append("\n");
         for (StackTraceElement element : e.getStackTrace()) {

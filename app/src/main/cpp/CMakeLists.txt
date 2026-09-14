@@ -201,6 +201,24 @@ add_library(allocator SHARED
 add_library(flacRecorder SHARED
     ${SRC_DIR}/flacRecorder.cpp
 )
+
+# --- MediaCinemaRAW (.mcraw) lossless raw-video encoder ---------------------
+# Sources are globbed: dropping additional .cpp/.h files into
+# src/main/cpp/mediacinemaraw/{,src} adds them to the build automatically.
+# The test/ subdirectory is intentionally outside the glob.
+file(GLOB MCRAW_SOURCES
+        "${SRC_DIR}/mediacinemaraw/*.cpp"
+        "${SRC_DIR}/mediacinemaraw/src/*.cpp"
+)
+add_library(mcraw SHARED ${MCRAW_SOURCES})
+target_include_directories(mcraw PRIVATE "${SRC_DIR}/mediacinemaraw/include")
+# Always optimize the encoder, including debug Gradle builds: unoptimized
+# debug code multiplies the per-frame encode time several times over and
+# starves the RAW video pipeline.
+target_compile_options(mcraw PRIVATE -O3)
+target_link_libraries(mcraw PRIVATE
+        log
+)
 add_library(
         camera2native SHARED ${SRC_DIR}/native-engine.cpp
 )

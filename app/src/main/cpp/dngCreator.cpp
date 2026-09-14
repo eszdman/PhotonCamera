@@ -12,6 +12,7 @@
 #include <ctime>
 #include <cstdio>
 #include <dlfcn.h>
+#include <unistd.h>
 #include <sys/types.h>
 #define TINY_DNG_WRITER_IMPLEMENTATION
 #include "deps/tiny_dng_writer.h"
@@ -55,6 +56,7 @@ struct LibArchive {
     int                   (*write_open_filename)   (struct archive*, const char*)                           = nullptr;
     int                   (*write_header)          (struct archive*, struct archive_entry*)                 = nullptr;
     la_ssize_t            (*write_data)            (struct archive*, const void*, size_t)                   = nullptr;
+    int                   (*write_finish_entry)     (struct archive*)                                         = nullptr;
     int                   (*write_close)           (struct archive*)                                        = nullptr;
     int                   (*write_free)            (struct archive*)                                        = nullptr;
 
@@ -90,6 +92,8 @@ struct LibArchive {
         LOAD_SYM(write_open_filename,    "archive_write_open_filename");
         LOAD_SYM(write_header,           "archive_write_header");
         LOAD_SYM(write_data,             "archive_write_data");
+        write_finish_entry = reinterpret_cast<decltype(write_finish_entry)>(
+                dlsym(handle, "archive_write_finish_entry"));
         LOAD_SYM(write_close,            "archive_write_close");
         LOAD_SYM(write_free,             "archive_write_free");
         LOAD_SYM(entry_new,                     "archive_entry_new");
@@ -121,6 +125,10 @@ class DngCreator {
     // libarchive write state (nullptr when no archive is open)
     struct archive*       archive_handle  = nullptr;
     struct archive_entry* archive_entry_h = nullptr;
+    // Detached SAF descriptor owned by this archive; libarchive does not
+    // close it, and the storage provider only finalizes the document when
+    // the descriptor closes.
+    int                   archive_fd      = -1;
 
 
     /** Build linearization + encoding tables when input white level > 10-bit and target bps is 10. Uses gamma curve. */
@@ -178,6 +186,7 @@ public:
 
     ~DngCreator() {
         if (archive_handle) closeArchive();
+        closeArchiveFd();
         if (dng_image0) {
             delete dng_image0;
         }
@@ -229,6 +238,7 @@ public:
         if (archive_handle) closeArchive();
         if (!g_libarchive.load()) {
             LOGE("openArchiveByFd: libarchive not available");
+            ::close(fd);
             return;
         }
         archive_handle = g_libarchive.write_new();
@@ -237,9 +247,11 @@ public:
             LOGE("archive_write_open_fd failed for fd=%d", fd);
             g_libarchive.write_free(archive_handle);
             archive_handle = nullptr;
+            ::close(fd);
             return;
         }
         archive_entry_h = g_libarchive.entry_new();
+        archive_fd = fd;
         LOGD("Archive opened (fd=%d)", fd);
     }
 
@@ -259,12 +271,26 @@ public:
             LOGE("archive_write_header failed (%d) for %s", r, entryName.c_str());
             return;
         }
-        g_libarchive.write_data(archive_handle, data, size);
+        const la_ssize_t written = g_libarchive.write_data(archive_handle, data, size);
+        if (written >= 0 && static_cast<size_t>(written) != size)
+            LOGE("archive_write_data short write: %lld of %zu for %s",
+                 static_cast<long long>(written), size, entryName.c_str());
+        // Flush the entry's buffered tail now; without this the final entry
+        // stays incomplete until close and any fd-level truncation shows up
+        // as a corrupted last file in the archive.
+        if (g_libarchive.write_finish_entry) {
+            const int r = g_libarchive.write_finish_entry(archive_handle);
+            if (r != ARCHIVE_OK)
+                LOGE("archive_write_finish_entry failed (%d) for %s", r, entryName.c_str());
+        }
         LOGD("Archive entry: %s (%zu bytes)", entryName.c_str(), size);
     }
 
     void closeArchive() {
-        if (!archive_handle) return;
+        if (!archive_handle) {
+            closeArchiveFd();
+            return;
+        }
         g_libarchive.write_close(archive_handle);
         g_libarchive.write_free(archive_handle);
         archive_handle = nullptr;
@@ -272,7 +298,17 @@ public:
             g_libarchive.entry_free(archive_entry_h);
             archive_entry_h = nullptr;
         }
+        // Closing the descriptor is what finalizes the document on the
+        // storage provider side; do it only after libarchive has flushed.
+        closeArchiveFd();
         LOGD("Archive closed");
+    }
+
+    void closeArchiveFd() {
+        if (archive_fd >= 0) {
+            ::close(archive_fd);
+            archive_fd = -1;
+        }
     }
 
     bool isArchiveOpen() const { return archive_handle != nullptr; }
@@ -473,74 +509,39 @@ public:
     }
 
     void setGainMap(const float* gainMap, int xmin, int ymin, int xmax, int ymax, int width, int height) {
-        float* gainMap0 = new float[width * height];
-        float* gainMap1 = new float[width * height];
-        float* gainMap2 = new float[width * height];
-        float* gainMap3 = new float[width * height];
-        for (int x = 0; x < width*height; x++) {
-                gainMap0[x] = gainMap[4*x];
-                gainMap1[x] = gainMap[4*x + 1];
-                gainMap2[x] = gainMap[4*x + 2];
-                gainMap3[x] = gainMap[4*x + 3];
-        }
+        // Camera2 lens shading map: row-major grid of [R, G, G, B] gain factors.
+        // One DNG GainMap opcode per CFA channel. RowPitch/ColPitch = 2 (set by
+        // the GainMap constructor) makes each map address only its channel's
+        // pixels, so all maps share the same Area bounds (top/left/bottom/right
+        // from the active array rect) and differ only in the Area's top/left
+        // corner, offset to that channel's position in the 2x2 Bayer cell.
+        std::vector<float> plane(static_cast<size_t>(width) * static_cast<size_t>(height));
         std::vector<tinydngwriter::GainMap> gainMaps;
-        // Create gain maps for each channel
-        gainMaps.push_back(tinydngwriter::GainMap(gainMap0, width, height, xmin, ymin, xmax, ymax));
-        gainMaps.push_back(tinydngwriter::GainMap(gainMap1, width, height, xmin, ymin, xmax, ymax));
-        gainMaps.push_back(tinydngwriter::GainMap(gainMap2, width, height, xmin, ymin, xmax, ymax));
-        gainMaps.push_back(tinydngwriter::GainMap(gainMap3, width, height, xmin, ymin, xmax, ymax));
-        switch (metadata.cfa) {
-            case 0:
-                gainMaps[0].top = 0;
-                gainMaps[0].left = 0;
-                gainMaps[1].top = 0;
-                gainMaps[1].left = 1;
-                gainMaps[2].top = 1;
-                gainMaps[2].left = 0;
-                gainMaps[3].top = 1;
-                gainMaps[3].left = 1;
-                break;
-            case 1:
-                gainMaps[0].top = 0;
-                gainMaps[0].left = 1;
-                gainMaps[1].top = 0;
-                gainMaps[1].left = 0;
-                gainMaps[2].top = 1;
-                gainMaps[2].left = 1;
-                gainMaps[3].top = 1;
-                gainMaps[3].left = 0;
-                break;
-            case 2:
-                gainMaps[0].top = 1;
-                gainMaps[0].left = 0;
-                gainMaps[1].top = 0;
-                gainMaps[1].left = 0;
-                gainMaps[2].top = 1;
-                gainMaps[2].left = 1;
-                gainMaps[3].top = 0;
-                gainMaps[3].left = 1;
-                break;
-            case 3:
-                gainMaps[0].top = 1;
-                gainMaps[0].left = 1;
-                gainMaps[1].top = 0;
-                gainMaps[1].left = 1;
-                gainMaps[2].top = 1;
-                gainMaps[2].left = 0;
-                gainMaps[3].top = 0;
-                gainMaps[3].left = 0;
-                break;
+        for (int c = 0; c < 4; c++) {
+            for (int i = 0; i < width * height; i++) {
+                plane[static_cast<size_t>(i)] = gainMap[4 * i + c];
+            }
+            gainMaps.push_back(tinydngwriter::GainMap(plane.data(), width, height, xmin, ymin, xmax, ymax));
         }
-        int activeX = (xmax - xmin) - 1;
-        int activeY = (ymax - ymin) - 1;
-        gainMaps[0].bottom = activeY;
-        gainMaps[0].right = activeX;
-        gainMaps[1].bottom = activeY;
-        gainMaps[1].right = activeX;
-        gainMaps[2].bottom = activeY;
-        gainMaps[2].right = activeX;
-        gainMaps[3].bottom = activeY;
-        gainMaps[3].right = activeX;
+        // Camera2 channel order is fixed (R, G, G, B); each channel's position
+        // in the Bayer cell depends on the CFA pattern.
+        static const int phaseRow[4][4] = {
+                {0, 0, 1, 1}, // RGGB: R(0,0) G(0,1) G(1,0) B(1,1)
+                {0, 0, 1, 1}, // GRBG: R(0,1) G(0,0) G(1,1) B(1,0)
+                {1, 0, 1, 0}, // GBRG: R(1,0) G(0,0) G(1,1) B(0,1)
+                {1, 0, 1, 0}, // BGGR: R(1,1) G(0,1) G(1,0) B(0,0)
+        };
+        static const int phaseCol[4][4] = {
+                {0, 1, 0, 1}, // RGGB
+                {1, 0, 1, 0}, // GRBG
+                {0, 0, 1, 1}, // GBRG
+                {1, 1, 0, 0}, // BGGR
+        };
+        const int pattern = (metadata.cfa >= 0 && metadata.cfa <= 3) ? metadata.cfa : 0;
+        for (int c = 0; c < 4; c++) {
+            gainMaps[c].top = static_cast<unsigned int>(ymin + phaseRow[pattern][c]);
+            gainMaps[c].left = static_cast<unsigned int>(xmin + phaseCol[pattern][c]);
+        }
         dng_image0->SetGainMap(gainMaps);
     }
 
