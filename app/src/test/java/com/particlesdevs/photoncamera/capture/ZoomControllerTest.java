@@ -157,6 +157,57 @@ public class ZoomControllerTest {
         assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
     }
 
+    // --- lens-boundary hysteresis ---
+
+    @Test
+    public void hysteresisKeepsMainJustPastTeleBoundary() {
+        // 3.2 > tele native (3.1) but inside the +5% band -> stay on main.
+        zoom.setTargetZoom(3.2f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        assertEquals(3.2f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(3.2f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void hysteresisSwitchesOncePastBand() {
+        // 3.3 > 3.1 * 1.05 -> tele.
+        zoom.setTargetZoom(3.3f, 0.5f, 0.5f);
+        assertEquals("tele", switchedTo);
+        assertEquals("tele", zoom.getActiveLensId());
+    }
+
+    @Test
+    public void hysteresisKeepsTeleJustBelowBoundary() {
+        zoom.setActiveLens("tele");
+        // Dropping to 3.0 stays on tele (band down to 3.1 * 0.95 = 2.945).
+        zoom.setTargetZoom(3.0f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("tele", zoom.getActiveLensId());
+        // Reported zoom is clamped to the lens native since it cannot crop out.
+        assertEquals(3.1f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
+    @Test
+    public void hysteresisSwitchesDownPastBand() {
+        zoom.setActiveLens("tele");
+        zoom.setTargetZoom(2.9f, 0.5f, 0.5f);
+        assertEquals("main", switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+    }
+
+    @Test
+    public void hysteresisKeepsMainJustBelowNative() {
+        // 0.96 is outside the detent but inside the -5% band -> stay on main.
+        zoom.setTargetZoom(0.96f, 0.5f, 0.5f);
+        assertNull(switchedTo);
+        assertEquals("main", zoom.getActiveLensId());
+        // A lens cannot crop out, so the reported target snaps up to native.
+        assertEquals(1.0f, zoom.getZoomRatio(), 1e-4f);
+        assertEquals(1.0f, zoom.getDigitalZoom(), 1e-4f);
+    }
+
     // --- reset semantics ---
 
     @Test

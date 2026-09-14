@@ -37,6 +37,16 @@ public class ZoomController {
     /** Default relative detent window (3%) around each lens's native zoom. */
     private static final float DEFAULT_SNAP_WINDOW = 0.03f;
 
+    /**
+     * Relative hysteresis band (5%) around each lens boundary. Once a lens is
+     * active the target must move this far past the boundary before another
+     * physical switch is requested, so finger jitter at e.g. 1.0x or 3.1x
+     * cannot oscillate between lenses. A target that snapped exactly onto a
+     * lens native zoom (see {@link #snapToDetent}) bypasses the band, keeping
+     * the "snap to lens" behaviour.
+     */
+    private static final float DEFAULT_HYSTERESIS = 0.05f;
+
     /** Describes one physical lens available for the active facing. */
     public static class LensEntry {
         public final String cameraId;
@@ -60,6 +70,7 @@ public class ZoomController {
 
     private LensSwitchListener lensSwitchListener;
     private float snapWindow = DEFAULT_SNAP_WINDOW;
+    private float hysteresis = DEFAULT_HYSTERESIS;
 
     /**
      * When true, pinch/slider zoom never triggers a physical lens switch:
@@ -94,6 +105,10 @@ public class ZoomController {
 
     public void setSnapWindow(float snapWindow) {
         this.snapWindow = Math.max(0f, snapWindow);
+    }
+
+    public void setHysteresis(float hysteresis) {
+        this.hysteresis = Math.max(0f, hysteresis);
     }
 
     public void setLensSwitchLocked(boolean locked) {
@@ -167,6 +182,16 @@ public class ZoomController {
         targetZoom = snapToDetent(clamped);
 
         int newIndex = selectLensIndex(targetZoom);
+        if (newIndex != activeLensIndex) {
+            newIndex = applyHysteresis(targetZoom, newIndex);
+            if (newIndex == activeLensIndex && activeLensIndex >= 0
+                    && activeLensIndex < lensesAsc.size()
+                    && targetZoom < lensesAsc.get(activeLensIndex).nativeZoom) {
+                // Stayed on the stronger lens: a lens cannot crop out, so report
+                // at least its native zoom instead of a sub-native target.
+                targetZoom = lensesAsc.get(activeLensIndex).nativeZoom;
+            }
+        }
         if (newIndex != activeLensIndex) {
             activeLensIndex = newIndex;
             digitalZoom = MIN_ZOOM; // the new lens starts at native (no crop)
@@ -270,6 +295,40 @@ public class ZoomController {
             }
         }
         return index < 0 ? 0 : index;
+    }
+
+    /**
+     * Applies the hysteresis band to a candidate lens change: switching to a
+     * stronger lens requires the target to pass the next boundary by
+     * {@code +hysteresis}, switching back to a weaker lens requires passing the
+     * active lens's native zoom by {@code -hysteresis}. An exact detent snap
+     * onto a lens native zoom is an explicit selection and bypasses the band.
+     *
+     * @return the lens index to activate (may be the currently active one)
+     */
+    private int applyHysteresis(float target, int strictIndex) {
+        if (activeLensIndex < 0 || activeLensIndex >= lensesAsc.size()) return strictIndex;
+        if (strictIndex == activeLensIndex) return strictIndex;
+        if (isNativeZoom(target)) return strictIndex;
+        if (strictIndex > activeLensIndex) {
+            // Moving up: the first boundary is the next lens's native zoom.
+            int boundaryIndex = Math.min(activeLensIndex + 1, lensesAsc.size() - 1);
+            float boundary = lensesAsc.get(boundaryIndex).nativeZoom;
+            if (target < boundary * (1f + hysteresis)) return activeLensIndex;
+        } else {
+            // Moving down: the boundary is the active lens's native zoom.
+            float boundary = lensesAsc.get(activeLensIndex).nativeZoom;
+            if (target > boundary * (1f - hysteresis)) return activeLensIndex;
+        }
+        return strictIndex;
+    }
+
+    /** True when the target is exactly (within epsilon) a lens's native zoom. */
+    private boolean isNativeZoom(float target) {
+        for (LensEntry lens : lensesAsc) {
+            if (Math.abs(target - lens.nativeZoom) <= 1e-4f) return true;
+        }
+        return false;
     }
 
     private void recomputeDigitalZoom() {

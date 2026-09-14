@@ -121,6 +121,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.ImageSaverSelector;
 import com.particlesdevs.photoncamera.processing.SaverImplementation;
@@ -301,6 +302,40 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * again (see {@link #closeCamera()} and the {@link CameraDevice} callbacks).
      */
     private final AtomicBoolean mCameraOpening = new AtomicBoolean(false);
+    /**
+     * Serializes lens-switch close/open cycles and coalesces the bursts of
+     * requests produced by a fast pinch sweeping across lens thresholds. Only
+     * one cycle may be in flight; requests made meanwhile update a pending
+     * target consumed when the cycle settles.
+     */
+    private final LensSwitchScheduler lensSwitchScheduler = new LensSwitchScheduler();
+    /** Main-thread handler for deferred opens, settle delays and retries. */
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+    /**
+     * Minimum time between closing a camera device and opening the next one.
+     * Some vendor HALs crash the camera service when a device is reopened
+     * immediately after close, which is exactly what a fast pinch produces.
+     * Only back-to-back switches pay this delay; an isolated switch after idle
+     * opens immediately.
+     */
+    private static final long LENS_SWITCH_SETTLE_MS = 250L;
+    /** Poll interval while waiting for an in-flight cold open before switching. */
+    private static final long CYCLE_WAIT_MS = 50L;
+    /** Give up on starting a switch if the camera stays busy this long. */
+    private static final long CYCLE_WAIT_TIMEOUT_MS = 2000L;
+    /** Base backoff for retrying a failed open (300/600/1200 ms). */
+    private static final long OPEN_RETRY_BASE_MS = 300L;
+    /** Base backoff for reopening after an unexpected device disconnect. */
+    private static final long DISCONNECT_RETRY_BASE_MS = 500L;
+    /** Automatic recoveries after unexpected disconnects before giving up. */
+    private static final int MAX_DISCONNECT_RECOVERIES = 2;
+    /** Timestamp ({@link SystemClock#elapsedRealtime()}) of the last device close. */
+    private volatile long lastCameraCloseMs = 0L;
+    /** Invalidation token for in-flight {@link CameraDevice.StateCallback}s. */
+    private final AtomicInteger openToken = new AtomicInteger(0);
+    private boolean cycleStartScheduled = false;
+    private long cycleStartRequestedMs = 0L;
+    private final AtomicInteger disconnectRecoveries = new AtomicInteger(0);
     /**
      * True only while the camera fragment is foregrounded (between
      * {@link #resumeCamera()} and the next {@link #closeCamera()}). Open
@@ -640,45 +675,91 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     };
     /**
-     * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
+     * Creates a {@link CameraDevice.StateCallback} bound to the {@link #openToken}
+     * it was issued with. Callbacks of a superseded open are ignored (apart from
+     * releasing the open/close permit they hold), so a slow device can never
+     * clobber the state of a newer one.
      */
-    private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
+    private CameraDevice.StateCallback makeStateCallback(final int token) {
+        return new CameraDevice.StateCallback() {
 
-        @Override
-        public void onOpened(@NonNull CameraDevice cameraDevice) {
-            // This method is called when the camera is opened.  We start camera preview here.
-            mCameraOpenCloseLock.release();
-            mCameraOpening.set(false);
-            if (!isCameraResumed) {
-                // The app was backgrounded while the open was in flight; a
-                // hidden activity must not hold the camera device.
-                Log.d(TAG, "onOpened(): fragment already paused, closing device");
-                cameraDevice.close();
-                return;
+            @Override
+            public void onOpened(@NonNull CameraDevice cameraDevice) {
+                handleCameraOpened(cameraDevice, token);
             }
-            mCameraDevice = cameraDevice;
-            mImageSaver = new ImageSaver(cameraEventsListener);
-            createCameraPreviewSession(false);
-        }
 
-        @Override
-        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-            mCameraOpenCloseLock.release();
-            mCameraOpening.set(false);
-            cameraDevice.close();
-            mCameraDevice = null;
-        }
+            @Override
+            public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+                handleCameraDisconnected(cameraDevice, token);
+            }
 
-        @Override
-        public void onError(@NonNull CameraDevice cameraDevice, int error) {
-            mCameraOpenCloseLock.release();
-            mCameraOpening.set(false);
+            @Override
+            public void onError(@NonNull CameraDevice cameraDevice, int error) {
+                handleCameraError(cameraDevice, token, error);
+            }
+        };
+    }
+
+    private void handleCameraOpened(@NonNull CameraDevice cameraDevice, int token) {
+        mCameraOpenCloseLock.release();
+        if (token != openToken.get() || !isCameraResumed) {
+            // The app was backgrounded (or the open was superseded) while this
+            // open was in flight; a hidden/stale open must not hold the device.
+            Log.d(TAG, "onOpened(): stale or backgrounded open, closing device");
             cameraDevice.close();
-            mCameraDevice = null;
-            showToast("onError() : cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
-            Log.d(TAG, "onError() : cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
+            return;
         }
-    };
+        mCameraOpening.set(false);
+        // A newer lens was queued while this open was in flight: drop this
+        // device without building a preview session and switch right away.
+        LensSwitchScheduler.Request superseding = lensSwitchScheduler.pollSuperseding();
+        if (superseding != null) {
+            Log.d(TAG, "onOpened(): superseded by " + superseding.cameraId + ", reopening");
+            cameraDevice.close();
+            runOnMain(() -> runLensSwitchCycle(superseding));
+            return;
+        }
+        disconnectRecoveries.set(0);
+        mCameraDevice = cameraDevice;
+        mImageSaver = new ImageSaver(cameraEventsListener);
+        createCameraPreviewSession(false);
+    }
+
+    private void handleCameraDisconnected(@NonNull CameraDevice cameraDevice, int token) {
+        mCameraOpenCloseLock.release();
+        cameraDevice.close();
+        if (token != openToken.get()) return;
+        mCameraOpening.set(false);
+        if (mCameraDevice == cameraDevice) mCameraDevice = null;
+        if (!isCameraResumed) return;
+        if (lensSwitchScheduler.isActive()) {
+            // The device dropped while a lens-switch cycle owned it: fail the
+            // cycle so it retries instead of leaving the pipeline active
+            // forever with no session.
+            Log.w(TAG, "onDisconnected(): in-flight lens switch dropped, retrying");
+            handleOpenFailure(token);
+        } else {
+            Log.w(TAG, "onDisconnected(): camera device dropped, scheduling recovery");
+            scheduleCameraRecovery();
+        }
+    }
+
+    private void handleCameraError(@NonNull CameraDevice cameraDevice, int token, int error) {
+        mCameraOpenCloseLock.release();
+        cameraDevice.close();
+        if (token != openToken.get()) return;
+        mCameraOpening.set(false);
+        if (mCameraDevice == cameraDevice) mCameraDevice = null;
+        Log.e(TAG, "onError(): cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
+        if (!isCameraResumed) return;
+        if (lensSwitchScheduler.isActive()) {
+            // The failure belongs to an in-flight lens-switch open: retry it.
+            handleOpenFailure(token);
+        } else {
+            // The active preview device failed; reopen it with backoff.
+            scheduleCameraRecovery();
+        }
+    }
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -1019,6 +1100,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void closeCamera() {
         mCameraOpening.set(false);
         isCameraResumed = false;
+        // Cancel any queued/delayed lens switch and invalidate in-flight
+        // callbacks so a pending open cannot resurrect the camera while paused.
+        lensSwitchScheduler.cancel();
+        cycleStartScheduled = false;
+        cycleStartRequestedMs = 0L;
+        disconnectRecoveries.set(0);
+        openToken.incrementAndGet();
         try {
             mCameraOpenCloseLock.acquire();
             if (null != mCaptureSession) {
@@ -1034,6 +1122,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     mImageReaderPreview.close();
                     mImageReaderPreview = null;
                 }
+            }
+            if (null != mImageReaderRaw) {
                 if (!isProcessing) {
                     mImageReaderRaw.close();
                     mImageReaderRaw = null;
@@ -1049,7 +1139,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             mState = STATE_CLOSED;
         } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
+            Log.e(TAG, Log.getStackTraceString(e));
+            Thread.currentThread().interrupt();
         } finally {
             mCameraOpenCloseLock.release();
         }
@@ -1293,9 +1384,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /** Handles a physical lens switch requested by the zoom controller. */
     private void requestLensSwitch(String cameraId) {
         Log.d(TAG, "requestLensSwitch -> " + cameraId);
-        zoomDrivenLensSwitch = true;
-        PreferenceKeys.setCameraID(cameraId);
-        restartCamera();
+        enqueueLensSwitch(cameraId, true);
     }
 
     /**
@@ -1427,99 +1516,351 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
         return allTargets;
     }
-    @SuppressLint("MissingPermission")
+    /**
+     * Requests a camera restart (manual lens pill/flip, settings or mode
+     * change). Restarts are serialized and coalesced with zoom-driven lens
+     * switches so a change made mid-pinch can never overlap an in-flight
+     * close/open cycle.
+     */
     public void restartCamera() {
         Log.d(TAG, "restartCamera() called from \"" + Thread.currentThread().getName() + "\" Thread");
+        enqueueLensSwitch(PhotonCamera.getSettings().mCameraID, false);
+    }
+
+    /**
+     * Queues a camera (re)start. Only one close/open cycle runs at a time;
+     * requests arriving mid-cycle update a pending target (last request wins).
+     *
+     * @param cameraId   target (possibly composite) camera id
+     * @param zoomDriven true for a zoom-driven lens switch; false for a manual
+     *                   restart (which must re-run the setup path even when
+     *                   the lens id is unchanged)
+     */
+    private void enqueueLensSwitch(String cameraId, boolean zoomDriven) {
+        if (cameraId == null) return;
+        if (lensSwitchScheduler.request(cameraId, zoomDriven)) {
+            scheduleCycleStart();
+        }
+    }
+
+    private void runOnMain(Runnable r) {
+        if (Looper.myLooper() == Looper.getMainLooper()) r.run();
+        else mMainHandler.post(r);
+    }
+
+    /**
+     * Starts a queued cycle once no other open is in flight. A cold open issued
+     * by {@link #openCamera(int, int)} temporarily owns the device slot; the
+     * cycle waits (briefly) for it to complete instead of opening a second
+     * device on top of it, which is what crashes the camera service.
+     */
+    private void scheduleCycleStart() {
+        runOnMain(() -> {
+            if (!isCameraResumed) {
+                lensSwitchScheduler.cancel();
+                return;
+            }
+            if (mCameraOpening.get()) {
+                if (cycleStartRequestedMs == 0L) {
+                    cycleStartRequestedMs = SystemClock.elapsedRealtime();
+                }
+                if (SystemClock.elapsedRealtime() - cycleStartRequestedMs > CYCLE_WAIT_TIMEOUT_MS) {
+                    // The in-flight open is taking too long. Stop polling but
+                    // keep the request queued: if the open ever completes, its
+                    // callback promotes the request; if it fails, the error
+                    // path does. This avoids dropping a pinch and leaving the
+                    // zoom state anchored to a lens that never opened.
+                    Log.w(TAG, "scheduleCycleStart(): in-flight open still busy, deferring to its callback");
+                    cycleStartRequestedMs = 0L;
+                    cycleStartScheduled = false;
+                    return;
+                }
+                if (!cycleStartScheduled) {
+                    cycleStartScheduled = true;
+                    mMainHandler.postDelayed(() -> {
+                        cycleStartScheduled = false;
+                        scheduleCycleStart();
+                    }, CYCLE_WAIT_MS);
+                }
+                return;
+            }
+            cycleStartScheduled = false;
+            cycleStartRequestedMs = 0L;
+            LensSwitchScheduler.Request req = lensSwitchScheduler.beginNext();
+            if (req != null) runLensSwitchCycle(req);
+        });
+    }
+
+    /**
+     * Closes the current session/device and schedules the open of {@code req}
+     * after the HAL settle delay. Runs on the main thread; only one such cycle
+     * can be active because the scheduler only promotes a request when idle.
+     */
+    @SuppressLint("MissingPermission")
+    private void runLensSwitchCycle(LensSwitchScheduler.Request req) {
+        Log.d(TAG, "runLensSwitchCycle(" + req + ") from \"" + Thread.currentThread().getName() + "\"");
+        if (!isCameraResumed) {
+            lensSwitchScheduler.cancel();
+            return;
+        }
+        PreferenceKeys.setCameraID(req.cameraId);
+        zoomDrivenLensSwitch = req.zoomDriven;
         armOrCancelIszTransition();
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
         if (paramController != null) {
             paramController.onCameraChanged();
         }
+        final int token = openToken.incrementAndGet(); // invalidate callbacks of any previous open
         mCameraOpening.set(false); // the device is closed below before reopening
+        boolean locked = false;
         try {
-            mCameraOpenCloseLock.acquire();
-            if (mIsRecordingVideo) {
-                this.VideoEnd();
+            locked = mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS);
+            if (!locked) {
+                // Never block the UI thread forever on a stuck open/close lock:
+                // abort this cycle and let the scheduler idle out.
+                Log.e(TAG, "runLensSwitchCycle(): lock timeout, aborting cycle");
+                lensSwitchScheduler.cancel();
+                return;
             }
-
-            if (mCaptureSession != null) {
-                mCaptureSession.close();
-                mCaptureSession = null;
-            }
-            if (null != mCameraDevice) {
-                mCameraDevice.close();
-                mCameraDevice = null;
-            }
-            if (null != mImageReaderPreview) {
-                if (!isProcessing) {
-                    mImageReaderPreview.close();
-                    mImageReaderPreview = null;
-                }
-                if (!isProcessing) {
-                    mImageReaderRaw.close();
-                    mImageReaderRaw = null;
-                }
-            }
-            if (null != mMediaRecorder) {
-                mMediaRecorder.release();
-                mMediaRecorder = null;
-            }
-            if (null != mPreviewRequestBuilder) {
-                mPreviewRequestBuilder = null;
-            }
-            if (surface != null) {
-                surface.release();
-                surface = null;
-            }
+            closeCameraResourcesLocked();
             stopBackgroundThread();
+            lastCameraCloseMs = SystemClock.elapsedRealtime();
             cameraEventsListener.onCameraRestarted();
         } catch (Exception e) {
             Log.e(TAG, Log.getStackTraceString(e));
-            throw new RuntimeException("Interrupted while trying to lock camera restarting.", e);
+            // Do not crash on a lock hiccup: abort and let the next request retry.
+            lensSwitchScheduler.cancel();
+            return;
         } finally {
-            try {
-                mCameraOpenCloseLock.release();
-            } catch (Exception ignored) {
-                showToast("Failed to release camera");
+            if (locked) {
+                try {
+                    mCameraOpenCloseLock.release();
+                } catch (Exception ignored) {
+                    showToast("Failed to release camera");
+                }
             }
         }
-        String curID = PhotonCamera.getSettings().mCameraID;
-        if(curID.contains("-")) {
-            logicalID = curID.split("-")[0];
-            physicalID = curID.split("-")[1];
-        } else {
-            logicalID = curID;
-            physicalID = logicalID;
+        startBackgroundThread();
+        postDelayedOpen(token, req);
+    }
+
+    /** Closes the session, device, readers and surfaces. Caller holds the lock. */
+    private void closeCameraResourcesLocked() {
+        if (mIsRecordingVideo) {
+            this.VideoEnd();
         }
-        
+        if (mCaptureSession != null) {
+            mCaptureSession.close();
+            mCaptureSession = null;
+        }
+        if (null != mCameraDevice) {
+            mCameraDevice.close();
+            mCameraDevice = null;
+        }
+        if (null != mImageReaderPreview) {
+            if (!isProcessing) {
+                mImageReaderPreview.close();
+                mImageReaderPreview = null;
+            }
+        }
+        if (null != mImageReaderRaw) {
+            if (!isProcessing) {
+                mImageReaderRaw.close();
+                mImageReaderRaw = null;
+            }
+        }
+        if (null != mMediaRecorder) {
+            mMediaRecorder.release();
+            mMediaRecorder = null;
+        }
+        if (null != mPreviewRequestBuilder) {
+            mPreviewRequestBuilder = null;
+        }
+        if (surface != null) {
+            surface.release();
+            surface = null;
+        }
+    }
+
+    /**
+     * Opens the queued target after the settle delay. The delay doubles as a
+     * debounce window: a target queued meanwhile supersedes this open, so a
+     * fast sweep across several lenses ends with a single device open.
+     */
+    private void postDelayedOpen(final int token, final LensSwitchScheduler.Request req) {
+        long elapsed = SystemClock.elapsedRealtime() - lastCameraCloseMs;
+        long delay = Math.max(0L, LENS_SWITCH_SETTLE_MS - elapsed);
+        if (delay > 0) {
+            Log.d(TAG, "postDelayedOpen(" + req.cameraId + "): settling for " + delay + "ms");
+        }
+        final int generation = lensSwitchScheduler.generation();
+        mMainHandler.postDelayed(() -> {
+            if (token != openToken.get() || generation != lensSwitchScheduler.generation() || !isCameraResumed) {
+                return;
+            }
+            issueLensSwitchOpen(token, req);
+        }, delay);
+    }
+
+    private void issueLensSwitchOpen(final int token, final LensSwitchScheduler.Request req) {
+        if (token != openToken.get() || !isCameraResumed) return;
+        LensSwitchScheduler.Request next = lensSwitchScheduler.pollSuperseding();
+        if (next != null) {
+            // A newer target arrived during the settle window; skip this open.
+            runLensSwitchCycle(next);
+            return;
+        }
+        openCameraDevice(token, req.cameraId, req.zoomDriven);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void openCameraDevice(final int token, String cameraId, boolean zoomDriven) {
+        if (token != openToken.get() || !isCameraResumed) return;
+        PreferenceKeys.setCameraID(cameraId);
+        zoomDrivenLensSwitch = zoomDriven;
+        armOrCancelIszTransition();
+        parseCameraIds(cameraId);
+        // Recreate the ImageReaders / preview sizing before the device is
+        // opened. onOpened() runs on the camera background thread and builds
+        // the preview session from them, so doing this after openCamera()
+        // races the callback and can hand it null readers, which used to abort
+        // session creation and strand the whole switch pipeline.
+        setUpOutputsAfterOpen();
+        boolean acquired = false;
+        boolean issued = false;
         try {
             if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
-                throw new RuntimeException("Time out waiting to lock camera opening.");
+                Log.e(TAG, "openCameraDevice(): lock timeout");
+            } else {
+                acquired = true;
+                mCameraOpening.set(true);
+                this.mCameraManager.openCamera(logicalID, makeStateCallback(token), mBackgroundHandler);
+                issued = true;
             }
-            mCameraOpening.set(true);
-            this.mCameraManager.openCamera(logicalID, mStateCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             mCameraOpening.set(false);
             Log.e(TAG, Log.getStackTraceString(e));
         } catch (InterruptedException e) {
             mCameraOpening.set(false);
-            throw new RuntimeException("Interrupted while trying to restart camera.", e);
-        }
-        //stopBackgroundThread();
-        //UpdateCameraCharacteristics(physicalID);
-        startBackgroundThread();
-
-        if (mCameraCharacteristics == null) {
-            if (mCameraCharacteristicsMap == null || mCameraCharacteristicsMap.isEmpty()) {
-                fillInCameraCharacteristics();
+            Log.e(TAG, Log.getStackTraceString(e));
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            mCameraOpening.set(false);
+            Log.e(TAG, Log.getStackTraceString(e));
+        } finally {
+            // On success the open callback owns the permit; a failed issuance
+            // must return it here or the leaked permit blocks every later cycle.
+            if (acquired && !issued) {
+                mCameraOpenCloseLock.release();
             }
-            mCameraCharacteristics = mCameraCharacteristicsMap.get(physicalID);
         }
+        if (!issued) {
+            handleOpenFailure(token);
+        }
+    }
 
-        Size optimal = getPreviewOutputSize(getSafeDisplay(), mCameraCharacteristics, CameraFragment.mSelectedMode);
+    /** Splits a composite {@code logical-physical} camera id into its parts. */
+    private void parseCameraIds(String cameraId) {
+        if (cameraId != null && cameraId.contains("-")) {
+            String[] ids = cameraId.split("-");
+            logicalID = ids[0];
+            physicalID = ids[1];
+        } else {
+            logicalID = cameraId;
+            physicalID = cameraId;
+        }
+    }
 
-        setUpCameraOutputs(optimal.getWidth(), optimal.getHeight());
-        configureTransform(optimal.getWidth(), optimal.getHeight());
+    /** Post-open characteristic/output setup (mirrors the old restart tail). */
+    private void setUpOutputsAfterOpen() {
+        try {
+            if (mCameraCharacteristics == null) {
+                if (mCameraCharacteristicsMap == null || mCameraCharacteristicsMap.isEmpty()) {
+                    fillInCameraCharacteristics();
+                }
+                mCameraCharacteristics = mCameraCharacteristicsMap.get(physicalID);
+            }
+            Size optimal = getPreviewOutputSize(getSafeDisplay(), mCameraCharacteristics, CameraFragment.mSelectedMode);
+            setUpCameraOutputs(optimal.getWidth(), optimal.getHeight());
+            configureTransform(optimal.getWidth(), optimal.getHeight());
+        } catch (Exception e) {
+            Log.e(TAG, Log.getStackTraceString(e));
+        }
+    }
+
+    /** Schedules a bounded retry after an open attempt failed. */
+    private void handleOpenFailure(final int token) {
+        if (token != openToken.get()) return;
+        LensSwitchScheduler.Request retry = lensSwitchScheduler.onFailure();
+        if (retry == null) {
+            Log.e(TAG, "handleOpenFailure(): open retries exhausted");
+            showToast(activity.getString(R.string.camera_error));
+            return;
+        }
+        long delay = OPEN_RETRY_BASE_MS << Math.min(retry.attempt - 1, 3);
+        Log.d(TAG, "handleOpenFailure(): retrying " + retry.cameraId + " in " + delay + "ms");
+        mMainHandler.postDelayed(() -> {
+            if (token != openToken.get() || !isCameraResumed) return;
+            issueLensSwitchOpen(token, retry);
+        }, delay);
+    }
+
+    /**
+     * Reopens the camera after an unexpected disconnect (e.g. the camera
+     * service restarted). Bounded so a persistently failing HAL cannot loop.
+     */
+    private void scheduleCameraRecovery() {
+        if (!isCameraResumed) return;
+        final int attempt = disconnectRecoveries.incrementAndGet();
+        if (attempt > MAX_DISCONNECT_RECOVERIES) {
+            Log.e(TAG, "scheduleCameraRecovery(): recovery attempts exhausted");
+            showToast(activity.getString(R.string.camera_error));
+            return;
+        }
+        final String target = PhotonCamera.getSettings().mCameraID;
+        final int token = openToken.get();
+        Log.d(TAG, "scheduleCameraRecovery(): attempt " + attempt + " for " + target);
+        mMainHandler.postDelayed(() -> {
+            if (token != openToken.get() || !isCameraResumed) return;
+            enqueueLensSwitch(target, true);
+        }, DISCONNECT_RETRY_BASE_MS * attempt);
+    }
+
+    /** Called when the preview session configured for the current open. */
+    public void onPreviewConfigured(int token) {
+        mMainHandler.post(() -> {
+            if (token != openToken.get()) return;
+            disconnectRecoveries.set(0);
+            LensSwitchScheduler.Request next = lensSwitchScheduler.onSettled();
+            if (next != null) runLensSwitchCycle(next);
+        });
+    }
+
+    /** Called when the preview session failed to configure. */
+    public void onPreviewConfigureFailed(int token) {
+        if (token != openToken.get()) return;
+        LensSwitchScheduler.Request retry = lensSwitchScheduler.onFailure();
+        if (retry == null) {
+            showToast(activity.getString(R.string.session_on_configure_failed));
+            return;
+        }
+        runOnMain(() -> runLensSwitchCycle(retry));
+    }
+
+    /**
+     * Reports that the session for the current open could not be built at all
+     * (missing surface, missing outputs or a session-creation error). Without
+     * this the scheduler would stay active forever and silently swallow every
+     * later lens switch. In-flight cycles are retried through the scheduler;
+     * a failed cold open falls back to the disconnect recovery loop.
+     */
+    public void onPreviewSessionFailed(int token) {
+        if (token != openToken.get()) return;
+        if (lensSwitchScheduler.isActive()) {
+            onPreviewConfigureFailed(token);
+        } else {
+            scheduleCameraRecovery();
+        }
     }
     private Size getAspect(CameraMode targetMode){
         Size aspectRatio;
@@ -1675,6 +2016,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "openCamera(): an open is already in flight, skipping");
             return;
         }
+        // A cold open owns the device slot; drop any queued lens switch that
+        // would otherwise race with it. A pinch made during the open is queued
+        // again and picked up by handleCameraOpened().
+        lensSwitchScheduler.cancel();
+        final int token = openToken.incrementAndGet();
         //Open camera in non ui thread
         processExecutor.execute(()->{
             CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
@@ -1702,28 +2048,40 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 Log.d(TAG, "openCamera(): app backgrounded during setup, skipping");
                 return;
             }
+            boolean acquired = false;
+            boolean issued = false;
             try {
                 if (!mCameraOpenCloseLock.tryAcquire(1000, TimeUnit.MILLISECONDS)) {
                     mCameraOpening.set(false);
-                    throw new RuntimeException("Time out waiting to lock camera opening.");
+                    Log.e(TAG, "openCamera(): lock timeout");
+                    scheduleCameraRecovery();
+                    return;
                 }
-                physicalID = PhotonCamera.getSettings().mCameraID;
-                logicalID = PhotonCamera.getSettings().mCameraID;
+                acquired = true;
                 // Split x-y, x - logical, y - physical
-                if(PhotonCamera.getSettings().mCameraID.contains("-")){
-                    String[] ids = PhotonCamera.getSettings().mCameraID.split("-");
-                    logicalID = ids[0];
-                    physicalID = ids[1];
-                    //isDualSession = true;
-                }
-
-                this.mCameraManager.openCamera(logicalID, mStateCallback, mBackgroundHandler);
+                parseCameraIds(PhotonCamera.getSettings().mCameraID);
+                this.mCameraManager.openCamera(logicalID, makeStateCallback(token), mBackgroundHandler);
+                issued = true;
             } catch (CameraAccessException e) {
                 mCameraOpening.set(false);
                 Log.e(TAG, Log.getStackTraceString(e));
+                scheduleCameraRecovery();
             } catch (InterruptedException e) {
                 mCameraOpening.set(false);
-                throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
+                Log.e(TAG, Log.getStackTraceString(e));
+                Thread.currentThread().interrupt();
+                scheduleCameraRecovery();
+            } catch (Exception e) {
+                mCameraOpening.set(false);
+                Log.e(TAG, Log.getStackTraceString(e));
+                scheduleCameraRecovery();
+            } finally {
+                // On success the open callback owns the permit; a failed
+                // issuance must return it here or it leaks and blocks the next
+                // restart/close on the UI thread.
+                if (acquired && !issued) {
+                    mCameraOpenCloseLock.release();
+                }
             }
     });
     }
@@ -1885,12 +2243,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
     Surface surface;
     public void createCameraPreviewSession(boolean isBurstSession) {
+        final int sessionToken = openToken.get();
         try {
             SensorConfigInjector.applyToSensor(physicalID, this);
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
             if (texture == null) {
                 Log.w(TAG, "createCameraPreviewSession(): SurfaceTexture not ready, waiting for surface");
                 mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+                // Report the missing session so a lens-switch cycle cannot stay
+                // active forever with no preview.
+                onPreviewSessionFailed(sessionToken);
                 return;
             }
             // We configure the size of default buffer to be the size of camera preview we want.
@@ -1977,6 +2339,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     } catch (Exception e) {
                         Log.e(TAG, Log.getStackTraceString(e));
                     }
+                    // A configured session completes the current switch cycle;
+                    // a newer pending target (if any) starts from here.
+                    onPreviewConfigured(sessionToken);
                     if (mIsRecordingVideo)
                         activity.runOnUiThread(() -> {
                             // Start recording
@@ -1987,8 +2352,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 @Override
                 public void onConfigureFailed(
                         @NonNull CameraCaptureSession cameraCaptureSession) {
-                    showToast(activity.getString(R.string.session_on_configure_failed));
                     Log.d(TAG, "CameraCaptureSession onConfigureFailed()");
+                    onPreviewConfigureFailed(sessionToken);
                 }
             };
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -2004,11 +2369,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         } catch (Exception e) {
             Log.e(TAG, Log.getStackTraceString(e));
+            onPreviewSessionFailed(sessionToken);
         }
     }
 
     @NotNull
     private List<Surface> configureSurfaces(boolean isBurstSession) {
+        if (mImageReaderPreview == null || mImageReaderRaw == null) {
+            throw new IllegalStateException("Preview/RAW ImageReader not ready (preview="
+                    + mImageReaderPreview + ", raw=" + mImageReaderRaw + ")");
+        }
         List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
         if (isDualSession) {
             if (isBurstSession) {
@@ -3100,6 +3470,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
     public void resumeCamera() {
         isCameraResumed = true;
+        // Fresh start after backgrounding: drop any switch queued before pause.
+        lensSwitchScheduler.cancel();
+        cycleStartScheduled = false;
+        cycleStartRequestedMs = 0L;
+        disconnectRecoveries.set(0);
+        openToken.incrementAndGet();
         if(PhotonCamera.getSettings().previewFormat != 0) {
             mPreviewTargetFormat = PhotonCamera.getSettings().previewFormat;
         } else {
