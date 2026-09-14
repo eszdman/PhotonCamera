@@ -129,7 +129,9 @@ public class HdrxProcessor extends ProcessorBase {
         }
         // Packed burst staging: sensor samples never exceed whiteLevel, so
         // each burst frame is repacked at ceil(log2(whiteLevel+1)) bits
-        // (2 B/px -> 1.25 B/px at the common 10-bit setting). Uploads unpack
+        // (2 B/px -> 1.25 B/px at the common 10-bit setting). Frames already
+        // packed at arrival (RAW16Saver) are skipped below and act as the
+        // fast path; this loop only handles leftovers. Uploads unpack
         // on demand (ImageFrame.upload()); the merged output and the
         // single-frame path stay 16-bit. Only tightly packed buffers are
         // repacked; padded layouts keep their current form.
@@ -320,6 +322,23 @@ public class HdrxProcessor extends ProcessorBase {
             Allocator.logStage(TAG, "post-merge");
             Allocator.logProc(TAG, "post-merge");
             IncreaseWLBL(processingParameters);
+        } else if (images.get(0).packedBits > 0) {
+            // Rare: burst setting packed frames at arrival but only one frame
+            // survived filtering. Restore the single-frame path's 16-bit
+            // contract via the exact inverse (unpacks losslessly, no staging
+            // pool involvement).
+            ImageFrame single = images.get(0);
+            int pixels = single.width * single.height;
+            ByteBuffer restored = Allocator.allocate(pixels * 2);
+            if (restored == null) {
+                throw new IllegalStateException("Single-frame packed restore failed");
+            }
+            Allocator.unpack16(restored, single.buffer, pixels, single.packedBits);
+            single.close();
+            single.buffer = restored;
+            single.packedBits = 0;
+            output = single.buffer;
+            single.buffer = null;
         } else {
             output = images.get(0).buffer;
             images.get(0).buffer = null;

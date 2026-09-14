@@ -2655,6 +2655,26 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 && !isDualSession;
     }
 
+    /**
+     * Round 3 (ZSL): pack a shutter-copied burst frame immediately, so the
+     * copy loop's native peak drops from 8x24 MB to ~8x15.7 MB and ApplyHdrX
+     * finds nothing left to pack. Fail-safe: HdrxProcessor's loop still
+     * handles leftovers, and a failed pack keeps the 16-bit buffer. Only
+     * called when the burst holds >1 frame (single frames keep the 16-bit
+     * contract; the HdrxProcessor guard covers freak null-collapses).
+     */
+    private void packZslBurstFrame(ImageFrame frame) {
+        int whiteLevel = 0;
+        try {
+            if (mCameraCharacteristics != null) {
+                Integer wl = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_WHITE_LEVEL);
+                if (wl != null) whiteLevel = wl;
+            }
+        } catch (Exception ignored) {
+        }
+        ImageFrame.packBurstAtArrival(frame, whiteLevel, PhotonCamera.DEBUG);
+    }
+
     private void triggerZslCapture() {
         if (mZslCapturing || CaptureController.isProcessing) {
             Log.w(TAG, "ZSL: capture already in progress, ignoring");
@@ -2723,6 +2743,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 frame.timestamp = img.getTimestamp();
                 img.close();
                 mExposures.put(frame.timestamp, exposureVal);
+                if (take > 1) packZslBurstFrame(frame);
                 selected.add(frame);
                 continue;
             }
@@ -2748,9 +2769,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             img.close();
             mExposures.put(frame.timestamp, exposureVal);
+            if (take > 1) packZslBurstFrame(frame);
             selected.add(frame);
         }
         int actualCount = selected.size();
+        if (PhotonCamera.DEBUG) {
+            int packedCount = 0;
+            for (ImageFrame f : selected) {
+                if (f != null && f.packedBits > 0) packedCount++;
+            }
+            Log.d(TAG, "ZSL arrival pack: " + packedCount + "/" + actualCount);
+        }
 
         mImageSaver = new ImageSaver(cameraEventsListener);
         mImageSaver.setFrameCount(actualCount);

@@ -215,6 +215,27 @@ public class ImageFrame {
     }
 
     /**
+     * Packs a burst frame at arrival (exact inverse of {@link #upload()}'s
+     * unpack; same guards and bit formula as HdrxProcessor's pack loop, which
+     * stays as the fallback for any unpacked leftovers). No-op unless the
+     * buffer is a tightly packed 16-bit frame and whiteLevel yields a valid
+     * sub-16-bit depth. Never throws and never corrupts: a failed pack keeps
+     * the 16-bit buffer untouched.
+     */
+    public static void packBurstAtArrival(ImageFrame frame, int whiteLevel, boolean verify) {
+        if (frame == null || frame.buffer == null || frame.packedBits > 0) return;
+        if (frame.buffer.capacity() != frame.width * frame.height * 2) return;
+        int packBits = whiteLevel > 0 ? 32 - Integer.numberOfLeadingZeros(whiteLevel) : 0;
+        if (packBits <= 0 || packBits >= 16) return;
+        ByteBuffer packed = Allocator.packBits(frame.buffer, frame.width * frame.height,
+                packBits, verify);
+        if (packed == null) return;
+        Allocator.free(frame.buffer);
+        frame.buffer = packed;
+        frame.packedBits = packBits;
+    }
+
+    /**
      * View of this frame's pixels for GL uploads. When the frame is packed,
      * unpacks it into a tightly-packed 16-bit native buffer that the
      * caller must release with {@link Upload#close()} (try-with-resources);
