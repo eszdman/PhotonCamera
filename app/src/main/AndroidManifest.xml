@@ -46,6 +46,8 @@
         <activity
             android:name="com.particlesdevs.photoncamera.ui.SplashActivity"
             android:theme="@style/Theme.Photon.Splash"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
                 android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -54,6 +56,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.media.action.IMAGE_CAPTURE" />
+                <action android:name="android.media.action.IMAGE_CAPTURE_SECURE" />
                 <action android:name="android.media.action.STILL_IMAGE_CAMERA_SECURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -156,7 +159,9 @@
 
         <activity
             android:name="com.particlesdevs.photoncamera.ui.camera.CameraActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize" />
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
         <!-- <activity android:name="com.particlesdevs.photoncamera.gallery.ui.GalleryActivity" /> -->
 
         <provider

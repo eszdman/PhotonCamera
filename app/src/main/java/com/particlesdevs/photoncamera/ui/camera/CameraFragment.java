@@ -99,6 +99,7 @@ import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.lang.reflect.Field;
@@ -115,6 +116,8 @@ import java.util.concurrent.Future;
 
 public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
+    /** Request code for the lockscreen gallery device-credential confirmation. */
+    private static final int REQUEST_UNLOCK_GALLERY = 9001;
     public static final String FRAGMENT_DIALOG = "dialog";
     /**
      * Tag for the {@link Log}.
@@ -167,6 +170,12 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public float displayAspectRatio;
     private HorizonIndicatorView mHorizonIndicatorView;
     private ViewfinderHudView mViewfinderHudView;
+    /**
+     * True while running over the keyguard. Gallery shows no pre-lock content and
+     * settings entry points are disabled until {@link #onSecureSessionChanged(boolean)}
+     * clears it after unlock.
+     */
+    private boolean secureSession = false;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -191,11 +200,14 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public CameraFragmentViewModel getCameraFragmentViewModel() {
         return cameraFragmentViewModel;
     }
-   @Override
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = getActivity();
         assert activity != null;
+        if (activity instanceof CameraActivity) {
+            secureSession = ((CameraActivity) activity).isSecureSession();
+        }
         notificationManager = NotificationManagerCompat.from(activity);
         settingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
         supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
@@ -328,6 +340,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             mHorizonIndicatorView.setVisible(PreferenceKeys.isHorizonOn());
         }
         initSettingsBar();
+        applySecureSessionUI();
     }
 
     private void initSettingsBar() {
@@ -377,6 +390,11 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         updateSettingsBar();
         mSwipe.init();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
+        final boolean lockedAtResume = secureSession;
+        if (lockedAtResume) {
+            // Never expose pre-lock library content on the gallery button while locked.
+            cameraFragmentViewModel.clearGalleryThumb();
+        }
         AsyncTask.execute(() -> {
             PhotonCamera.getGyro().register();
             PhotonCamera.getGravity().register();
@@ -388,7 +406,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             if (endPlayer == null) {
                 endPlayer = MediaPlayer.create(activity, R.raw.sound_end);
             }
-            cameraFragmentViewModel.updateGalleryThumb(null);
+            if (!lockedAtResume) {
+                cameraFragmentViewModel.updateGalleryThumb(null);
+            }
         });
         cameraFragmentViewModel.onResume();
         auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
@@ -1004,14 +1024,111 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
 
     public void launchGallery() {
+        if (secureSession) {
+            promptUnlockForGallery();
+            return;
+        }
+        launchGalleryInternal(false);
+    }
+
+    private void launchGalleryInternal(boolean unlockedJustNow) {
         Intent galleryIntent = new Intent(activity, GalleryActivity.class);
         // Create gallery bundle
         galleryIntent.putExtra("CameraFragment", true);
-        
+        if (unlockedJustNow) {
+            galleryIntent.putExtra(SecureCameraHelper.EXTRA_UNLOCKED_JUST_NOW, true);
+        }
         startActivity(galleryIntent, null);
     }
 
+    /**
+     * Lockscreen behavior: the gallery button requires device credentials.
+     * Prefer {@code requestDismissKeyguard} (leaves the device genuinely unlocked
+     * on success); fall back to the confirm-credential activity on older APIs or
+     * dismiss errors.
+     */
+    private void promptUnlockForGallery() {
+        if (activity != null) {
+            boolean requested = SecureCameraHelper.requestDismissKeyguard(activity,
+                    new SecureCameraHelper.DismissCallback() {
+                        @Override
+                        public void onDismissSucceeded() {
+                            activity.runOnUiThread(() -> launchGalleryInternal(false));
+                        }
+
+                        @Override
+                        public void onDismissCancelled() {
+                            // Stay on the viewfinder; nothing to do.
+                        }
+
+                        @Override
+                        public void onDismissError() {
+                            activity.runOnUiThread(() -> fallbackToConfirmCredential());
+                        }
+                    });
+            if (requested) return;
+        }
+        fallbackToConfirmCredential();
+    }
+
+    private void fallbackToConfirmCredential() {
+        boolean launched = SecureCameraHelper.promptUnlock(this, REQUEST_UNLOCK_GALLERY,
+                getString(R.string.secure_camera_unlock_title),
+                getString(R.string.secure_camera_unlock_gallery_message));
+        if (!launched) {
+            // No secure lock enrolled: nothing to protect, open directly.
+            launchGalleryInternal(true);
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_UNLOCK_GALLERY && resultCode == Activity.RESULT_OK) {
+            launchGalleryInternal(true);
+        }
+    }
+
+    /**
+     * Called by {@link CameraActivity} when the secure session starts or ends
+     * (device unlocked). Updates gated UI and the gallery thumbnail without restart.
+     */
+    public void onSecureSessionChanged(boolean secure) {
+        secureSession = secure;
+        if (!isAdded()) return;
+        applySecureSessionUI();
+        if (cameraFragmentViewModel != null) {
+            if (secure) {
+                cameraFragmentViewModel.clearGalleryThumb();
+            } else {
+                cameraFragmentViewModel.updateGalleryThumb(null);
+            }
+        }
+    }
+
+    /**
+     * Hides/disables settings entry points while locked. The gallery button stays
+     * visible so users can authenticate from it.
+     */
+    private void applySecureSessionUI() {
+        if (cameraFragmentBinding == null) return;
+        View settingsButton = findViewById(R.id.settings_button);
+        if (settingsButton != null) {
+            settingsButton.setVisibility(secureSession ? View.GONE : View.VISIBLE);
+            settingsButton.setEnabled(!secureSession);
+        }
+        if (cameraFragmentBinding.settingsBar != null) {
+            cameraFragmentBinding.settingsBar.setChildVisibility(
+                    R.id.settings_bar_settings_button_container,
+                    secureSession ? View.GONE : View.VISIBLE);
+        }
+    }
+
     public void launchSettings() {
+        if (secureSession) {
+            showSnackBar(getString(R.string.secure_camera_settings_locked));
+            return;
+        }
         Intent settingsIntent = new Intent(activity, SettingsActivity.class);
         // Pass current camera mode to settings
         settingsIntent.putExtra("camera_mode", PreferenceKeys.getCameraModeOrdinal());

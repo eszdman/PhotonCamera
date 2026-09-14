@@ -43,6 +43,7 @@ import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 
 public class SettingsBarLayout extends RelativeLayout implements SettingsBarListener {
     private final LinearLayout optionsContainer;
@@ -77,7 +78,15 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         settingsButton.setImageResource(R.drawable.ic_settings);
         settingsButton.setBackgroundResource(getResolvedAttr(context, android.R.attr.selectableItemBackgroundBorderless));
         settingsButton.setPadding(dp(10), dp(5), dp(10), dp(5));
-        settingsButton.setOnClickListener(v -> context.startActivity(new Intent(context, SettingsActivity.class)));
+        settingsButton.setOnClickListener(v -> {
+            if (SecureCameraHelper.isDeviceLocked(context)) {
+                android.widget.Toast.makeText(context,
+                        context.getString(R.string.secure_camera_settings_locked),
+                        android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            context.startActivity(new Intent(context, SettingsActivity.class));
+        });
         LayoutParams buttonParam = new LayoutParams(dp(35), dp(35));
         buttonParam.setMargins(dp(10), dp(2.5f), dp(20), dp(2.5f));
         settingsButtonContainer.addView(settingsButton, buttonParam);

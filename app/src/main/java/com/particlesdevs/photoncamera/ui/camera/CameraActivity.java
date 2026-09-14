@@ -1,7 +1,10 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -28,6 +31,7 @@ import com.anggrayudi.storage.contract.RequestStorageAccessContract;
 import com.anggrayudi.storage.contract.RequestStorageAccessResult;
 import com.anggrayudi.storage.file.StorageType;
 import com.particlesdevs.photoncamera.util.FileManager;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 import com.particlesdevs.photoncamera.util.SimpleStorageHelper;
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
 
@@ -67,10 +71,29 @@ public class CameraActivity extends BaseActivity {
     private boolean rationaleShownMedia = false;
     private boolean rationaleShownDcim = false;
 
+    /**
+     * True while running as a lockscreen ("secure camera") session: launched via
+     * STILL_IMAGE_CAMERA_SECURE / IMAGE_CAPTURE_SECURE, or while the keyguard is
+     * locked. While true the gallery shows no pre-lock content and settings are blocked.
+     * Cleared when the device is unlocked (ACTION_USER_PRESENT).
+     */
+    private boolean secureSession = false;
+    private BroadcastReceiver unlockReceiver;
+
+    /** Whether this activity is currently in a lockscreen secure-camera session. */
+    public boolean isSecureSession() {
+        return secureSession;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d("CameraActivity", "Called onCreate()");
+        // Must be visible over the keyguard for lockscreen launches.
+        SecureCameraHelper.applyLockscreenFlags(this);
+        secureSession = SecureCameraHelper.isSecureSession(this);
+        Log.d("CameraActivity", "secureSession=" + secureSession
+                + " action=" + (getIntent() != null ? getIntent().getAction() : null));
         // Hide system UI immediately to prevent flickering (like gallery view)
         hideSystemUI();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -96,10 +119,44 @@ public class CameraActivity extends BaseActivity {
 
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(), true);
 
+        unlockReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_USER_PRESENT.equals(intent.getAction()) && secureSession) {
+                    Log.d("CameraActivity", "Device unlocked, leaving secure session");
+                    setSecureSession(false);
+                }
+            }
+        };
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(unlockReceiver, new IntentFilter(Intent.ACTION_USER_PRESENT),
+                    Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(unlockReceiver, new IntentFilter(Intent.ACTION_USER_PRESENT));
+        }
+
         if (hasAllPermissions()) {
             tryLoad();
         } else {
             requestPermission();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        boolean nowSecure = SecureCameraHelper.isSecureSession(this);
+        if (nowSecure != secureSession) {
+            setSecureSession(nowSecure);
+        }
+    }
+
+    private void setSecureSession(boolean secure) {
+        secureSession = secure;
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
+        if (fragment instanceof CameraFragment) {
+            ((CameraFragment) fragment).onSecureSessionChanged(secure);
         }
     }
 
@@ -116,6 +173,14 @@ public class CameraActivity extends BaseActivity {
             } else {
                 requestPermissions(PERMISSIONS, CODE_REQUEST_PERMISSIONS);
             }
+            return;
+        }
+        if (secureSession) {
+            // Lockscreen secure session is capture-only: the SAF folder picker and the
+            // media-library permission UI cannot be completed over the keyguard, and
+            // pre-lock library content must stay hidden. Capture via MediaStore works
+            // without them; full access is requested after unlock (see onResume).
+            tryLoad();
             return;
         }
         if (SDK_INT < Build.VERSION_CODES.R) {
@@ -214,7 +279,11 @@ public class CameraActivity extends BaseActivity {
 
     private boolean hasAllPermissions() {
         boolean basicPermissions = Arrays.stream(PERMISSIONS).allMatch(permission -> checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED);
-        
+
+        if (secureSession) {
+            // Capture-only over the keyguard: don't gate on gallery/SAF access.
+            return basicPermissions;
+        }
         if (SDK_INT >= Build.VERSION_CODES.R) {
             return basicPermissions
                     && hasMediaReadPermission()
@@ -292,10 +361,24 @@ public class CameraActivity extends BaseActivity {
         hideSystemUI();
         // Ensure portrait orientation is enforced every time activity resumes
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        // If the user unlocked while we were paused, leave the secure session so the
+        // gallery thumbnail and settings become available without a restart.
+        if (secureSession && !SecureCameraHelper.isDeviceLocked(this)) {
+            Log.d("CameraActivity", "Device unlocked, leaving secure session (onResume)");
+            setSecureSession(false);
+        }
     }
 
     @Override
     protected void onDestroy() {
+        if (unlockReceiver != null) {
+            try {
+                unregisterReceiver(unlockReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // Already unregistered.
+            }
+            unlockReceiver = null;
+        }
         super.onDestroy();
     }
 

@@ -210,4 +210,10 @@
     <string name="perm_rationale_audio_message">Microphone access is required for video recording with audio.</string>
     <string name="perm_rationale_dcim_title">DCIM Folder Access</string>
     <string name="perm_rationale_dcim_message">Access to the DCIM folder is required for saving RAW video files and reading device custom configs.</string>
+
+    <!-- Lockscreen secure-camera session -->
+    <string name="secure_camera_unlock_title">Unlock device</string>
+    <string name="secure_camera_unlock_gallery_message">Unlock your device to view the gallery</string>
+    <string name="secure_camera_gallery_locked">Unlock your device to view the gallery</string>
+    <string name="secure_camera_settings_locked">Unlock your device to access settings</string>
 </resources>

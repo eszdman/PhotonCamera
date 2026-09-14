@@ -15,6 +15,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -44,6 +45,7 @@ import com.particlesdevs.photoncamera.settings.TunablePreferenceGenerator;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.util.Log;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 import com.particlesdevs.photoncamera.util.log.FragmentLifeCycleMonitor;
 
 import java.text.SimpleDateFormat;
@@ -64,6 +66,14 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     protected void onCreate(Bundle savedInstanceState) {
         getDelegate().setLocalNightMode(PreferenceKeys.getThemeValue());
         super.onCreate(savedInstanceState);
+        // Defense-in-depth: settings are blocked while the device is locked. The
+        // camera UI already hides these entry points in a secure session.
+        if (SecureCameraHelper.isDeviceLocked(this)) {
+            Toast.makeText(this, getString(R.string.secure_camera_settings_locked),
+                    Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         setContentView(R.layout.activity_settings);
         
         // Get camera mode from intent

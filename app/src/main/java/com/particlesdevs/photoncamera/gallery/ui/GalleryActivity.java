@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.DisplayMetrics;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
@@ -27,6 +28,7 @@ import com.particlesdevs.photoncamera.gallery.ui.fragments.ImageLibraryFragment;
 import com.particlesdevs.photoncamera.gallery.ui.fragments.ImageViewerFragment;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +42,15 @@ public class GalleryActivity extends BaseActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Defense-in-depth: never expose the library over the keyguard. The secure
+        // camera flow launches us only after credential confirmation (EXTRA_UNLOCKED_JUST_NOW).
+        if (SecureCameraHelper.isDeviceLocked(this)
+                && !getIntent().getBooleanExtra(SecureCameraHelper.EXTRA_UNLOCKED_JUST_NOW, false)) {
+            Toast.makeText(this, getString(R.string.secure_camera_gallery_locked),
+                    Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         // Hide system UI immediately to prevent flickering
         hideSystemUI();
         
