@@ -207,6 +207,22 @@ public class PyramidAlignment implements AutoCloseable {
         sharedInputs = true;
     }
 
+    /** P2 (H2): when true, {@link #temp} is caller-owned scratch (see below). */
+    private boolean tempBorrowed = false;
+
+    /**
+     * Lends the caller's texture as this run's {@link #temp} scratch instead
+     * of allocating one (-24 MB). Caller must guarantee identical
+     * size/format and that the texture stays dead until fully overwritten
+     * hereafter; must be called before {@link #Run()}. The texture is only
+     * texelFetch/imageStore accessed (filter-agnostic) and is never closed
+     * here.
+     */
+    public void borrowTempTexture(GLTexture scratch) {
+        temp = scratch;
+        tempBorrowed = true;
+    }
+
     GLTexture hotPix;
     GLUtils.Pyramid pyramid;
     GLUtils.Pyramid pyramidAlter;
@@ -243,8 +259,10 @@ public class PyramidAlignment implements AutoCloseable {
                         baseUpload.buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
             }
         }
-        // Temporal result
-        temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        // Temporal result (P2/H2: skipped when temp is borrowed scratch).
+        if (!tempBorrowed) {
+            temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
         base = new GLTexture(rawHalf,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         alter = new GLTexture(rawHalf,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         gainMap = new GLTexture(parameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_32, 4),
@@ -498,7 +516,10 @@ public class PyramidAlignment implements AutoCloseable {
         }
         base.close();
         alter.close();
-        temp.close();
+        // Borrowed scratch is caller-owned (closed by ESD4D); see borrowTempTexture.
+        if (!tempBorrowed) {
+            temp.close();
+        }
         for (int i = 0; i < pyramid.gauss.length; i++) {
             pyramid.gauss[i].close();
             pyramidAlter.gauss[i].close();

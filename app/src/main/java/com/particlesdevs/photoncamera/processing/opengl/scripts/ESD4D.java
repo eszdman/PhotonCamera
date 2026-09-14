@@ -422,7 +422,12 @@ public class ESD4D extends GLOneScript {
             spatialKernel[(dy + 1) * 3 + (dx + 1)] = (float) (opW[k] / opSum);
         }
 
-        GLTexture blendAcc = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        // P2 (H9): borrow baseDiff as the blend accumulator instead of a
+        // dedicated texture (-24 MB). Safe: noiseblend uses imageLoad/Store
+        // only (filter-agnostic), geometry is identically packedSize, and
+        // baseDiff is dead until the merge loop fully overwrites it. Owned by
+        // the ESD4D lifecycle - never closed here (see guards below).
+        GLTexture blendAcc = baseDiff;
         GLTexture tempFloat = alter;
         GLTexture tempRaw = frameCnt > 1
                 ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
@@ -467,7 +472,7 @@ public class ESD4D extends GLOneScript {
             blendCurrent = blendNext;
             blendNext = swap;
         }
-        if (blendCurrent != blendAcc) blendAcc.close();
+        // Borrowed baseDiff must survive (see above); nothing to free here.
         if (tempRaw != null) tempRaw.close();
         Log.d(Name, "Noise blend: " + frameCnt + " frame(s), sum(w^2)="
                 + String.format(java.util.Locale.ROOT, "%.4f", java.util.stream.DoubleStream.of(weights).map(w -> w * w).sum()));
@@ -651,7 +656,9 @@ public class ESD4D extends GLOneScript {
             noiseHist.resize = noiseScanSubsample;
             noiseHist.customKernel = spatialKernel;
             int[][] noiseRes = noiseHist.Compute(noiseInput);
-            if (noiseInput != baseAlter) noiseInput.close();
+            // The accumulator may be the borrowed baseDiff (odd frame counts):
+            // it must survive for the merge loop, which fully overwrites it.
+            if (noiseInput != baseAlter && noiseInput != baseDiff) noiseInput.close();
             noiseHist.close();
             int[] hist = noiseRes[0];
             // Weighted linear regression: variance = NoiseS * brightness + NoiseO,
@@ -889,6 +896,10 @@ public class ESD4D extends GLOneScript {
             PyramidAlignment pyramidAlignment = new PyramidAlignment(alignmentOutputSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
             pyramidAlignment.shareInputTextures(inputBase, inputAlter);
+            // P2 (H2): lend baseDiff as pyramid scratch. Valid only when the
+            // packed grid matches rawHalf exactly (cfaShift==0); otherwise the
+            // 1-px size mismatch would diverge border texels.
+            if (cfaShift.x == 0 && cfaShift.y == 0) pyramidAlignment.borrowTempTexture(baseDiff);
             long startTime = System.currentTimeMillis();
             pyramidAlignment.Run();
             Log.d("ESD4D", "Alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
