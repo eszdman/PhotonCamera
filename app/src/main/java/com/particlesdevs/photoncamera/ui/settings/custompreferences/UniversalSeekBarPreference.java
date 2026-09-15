@@ -7,7 +7,6 @@ import android.util.AttributeSet;
 import com.particlesdevs.photoncamera.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +15,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.R;
@@ -36,7 +36,7 @@ import java.util.Locale;
  *    (dragging the bar, or confirming the precise-input dialog) persists anything, so a value
  *    that sits between two steps survives reopening the settings screen.
  */
-public class UniversalSeekBarPreference extends Preference implements SeekBar.OnSeekBarChangeListener {
+public class UniversalSeekBarPreference extends Preference {
     private static final String TAG = "UnivSeekBarPref";
     private static final boolean isLoggingOn = false;
     /** Sentinel used to detect "nothing persisted yet" without touching the store. */
@@ -48,7 +48,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
     private final int mSeekBarMax;
     private int seekBarProgress;
     private TextView seekBarValue;
-    private SeekBar seekBar;
+    private Slider seekBar;
     private String fallback_value;
 
     public UniversalSeekBarPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
@@ -90,10 +90,20 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
     public void onBindViewHolder(@NonNull PreferenceViewHolder holder) {
         super.onBindViewHolder(holder);
         holder.setDividerAllowedAbove(false);
-        seekBar = (SeekBar) holder.findViewById(R.id.seekbar);
+        seekBar = (Slider) holder.findViewById(R.id.seekbar);
         seekBarValue = (TextView) holder.findViewById(R.id.seekbar_value);
-        seekBar.setMax(mSeekBarMax);
-        seekBar.setOnSeekBarChangeListener(this);
+        if (seekBar != null) {
+            seekBar.setValueFrom(0f);
+            seekBar.setValueTo(mSeekBarMax);
+            seekBar.setStepSize(1f);
+            seekBar.clearOnChangeListeners();
+            seekBar.addOnChangeListener((slider, value, fromUser) -> {
+                if (fromUser) {
+                    vibration.Tick();
+                    set(Math.round(value));
+                }
+            });
+        }
         // Read-only refresh: must not quantize or rewrite what is already stored.
         showStoredValue();
 
@@ -101,24 +111,6 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
         if (seekBarValue != null) {
             seekBarValue.setOnClickListener(v -> showPreciseValueDialog());
         }
-    }
-
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if (fromUser) vibration.Tick();
-        if (fromUser) {
-            set(progress);
-        }
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
-
     }
 
     @Override
@@ -204,7 +196,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
 
     private void updateSeekbar(int progress) {
         if (seekBar != null)
-            seekBar.setProgress(clampProgress(progress));
+            seekBar.setValue(clampProgress(progress));
     }
 
     private float clamp(float value) {
@@ -272,7 +264,7 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
         return seekBarProgress;
     }
 
-    public SeekBar getSeekBar() {
+    public Slider getSeekBar() {
         return seekBar;
     }
 

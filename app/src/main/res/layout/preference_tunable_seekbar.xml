@@ -52,11 +52,10 @@
             android:maxLines="3"
             tools:text="SeekBar description"/>
 
-    <SeekBar
+    <com.google.android.material.slider.Slider
             android:id="@+id/seekbar"
-            style="@style/Widget.Photon.SeekBar"
+            style="@style/Widget.Material3Expressive.Slider.Xsmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="@dimen/preference_seekbar_padding"
-            android:paddingBottom="@dimen/preference_seekbar_padding"/>
+            android:layout_marginTop="4dp"/>
 </LinearLayout>

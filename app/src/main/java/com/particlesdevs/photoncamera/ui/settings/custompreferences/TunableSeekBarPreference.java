@@ -6,7 +6,6 @@ import android.text.InputType;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +15,7 @@ import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.R;
@@ -29,7 +29,7 @@ import java.util.Locale;
  * Seekbar preference that can be created programmatically.
  * Uses native float/int storage instead of strings for perfect precision.
  */
-public class TunableSeekBarPreference extends Preference implements SeekBar.OnSeekBarChangeListener {
+public class TunableSeekBarPreference extends Preference {
     private static final String TAG = "TunableSeekBarPref";
     private final Vibration vibration;
     private float mMin = 0.0f;
@@ -39,7 +39,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
     private float mDefaultValue = 0.0f;
     private int seekBarProgress;
     private TextView seekBarValue;
-    private SeekBar seekBar;
+    private Slider seekBar;
     private boolean isUserInteraction = false;
 
     public TunableSeekBarPreference(Context context) {
@@ -76,16 +76,22 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
     public void onBindViewHolder(@NonNull PreferenceViewHolder holder) {
         super.onBindViewHolder(holder);
         holder.setDividerAllowedAbove(false);
-        seekBar = (SeekBar) holder.findViewById(R.id.seekbar);
+        seekBar = (Slider) holder.findViewById(R.id.seekbar);
         seekBarValue = (TextView) holder.findViewById(R.id.seekbar_value);
-        
+
         if (seekBar != null) {
-            seekBar.setMax((int) ((mMax - mMin) * mStepPerUnit));
-            seekBar.setOnSeekBarChangeListener(this);
-            
+            seekBar.setValueFrom(0f);
+            seekBar.setValueTo(progressMax());
+            seekBar.setStepSize(1f);
+            seekBar.clearOnChangeListeners();
+            seekBar.addOnChangeListener((slider, value, fromUser) -> {
+                if (fromUser && vibration != null) vibration.Tick();
+                if (fromUser) set(Math.round(value));
+            });
+
             // Get persisted value as appropriate type with auto-healing
             float currentValue = getSafePersistedValue();
-            
+
             // Update UI only - don't persist again!
             seekBarProgress = valueToProgress(currentValue);
             String displayValue = formatValue(currentValue);
@@ -93,13 +99,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
                 seekBarValue.setText(displayValue);
                 updateValueColor(currentValue);
             }
-            seekBar.setProgress(seekBarProgress);
-            
-            // Add click listener for precise value input
-            View seekBarContainer = holder.itemView.findViewById(R.id.seekbar);
-            if (seekBarContainer != null) {
-                seekBarContainer.setOnClickListener(v -> showPreciseValueDialog());
-            }
+            seekBar.setValue(clampProgress(seekBarProgress));
         }
         
         // Also make the value text clickable
@@ -187,7 +187,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
                         seekBarValue.setText(displayValue);
                     }
                     if (seekBar != null) {
-                        seekBar.setProgress(seekBarProgress);
+                        updateSeekbar(seekBarProgress);
                     }
                     updateValueColor(mDefaultValue);
 
@@ -203,22 +203,6 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
 
         // Request keyboard
         input.requestFocus();
-    }
-
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if(fromUser && vibration != null) vibration.Tick();
-        if (fromUser) {
-            set(progress);
-        }
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
     }
 
     @Override
@@ -248,7 +232,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
             updateValueColor(currentValue);
         }
         if (seekBar != null) {
-            seekBar.setProgress(seekBarProgress);
+            updateSeekbar(seekBarProgress);
         }
     }
 
@@ -321,11 +305,20 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
 
     private void updateSeekbar(int progress) {
         if (seekBar != null)
-            seekBar.setProgress(progress);
+            seekBar.setValue(clampProgress(progress));
+    }
+
+    private int progressMax() {
+        return Math.max(1, (int) ((mMax - mMin) * mStepPerUnit));
+    }
+
+    private int clampProgress(int progress) {
+        if (progress < 0) return 0;
+        return Math.min(progress, progressMax());
     }
 
     private int valueToProgress(float value) {
-        return (int) ((value - mMin) * mStepPerUnit);
+        return clampProgress((int) ((value - mMin) * mStepPerUnit));
     }
     
     private float progressToValue(int progress) {

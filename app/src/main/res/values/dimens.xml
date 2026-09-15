@@ -25,7 +25,6 @@
     <dimen name="camera_settings_icon_size">24dp</dimen>
     <dimen name="preference_category_text_height">48dp</dimen>
     <dimen name="camera_settings_entry_margin">16dp</dimen>
-    <dimen name="preference_seekbar_padding">10dp</dimen>
     <dimen name="preference_seekbar_value_padding">5dp</dimen>
     <dimen name="preference_seekbar_value_text_width">50dp</dimen>
     <dimen name="preference_row_min_height">64dp</dimen>

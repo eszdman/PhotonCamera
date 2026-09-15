@@ -103,14 +103,6 @@
         <item name="android:layout">@layout/preference_with_margin</item>
     </style>
 
-    <style name="Widget.Photon.SeekBar" parent="">
-        <item name="android:progressDrawable">@drawable/seekbar_m3_track</item>
-        <item name="android:thumb">@drawable/seekbar_m3_thumb</item>
-        <item name="android:splitTrack">false</item>
-        <item name="android:paddingStart">0dp</item>
-        <item name="android:paddingEnd">0dp</item>
-    </style>
-
     <style name="AlertDialogTheme" parent="ThemeOverlay.Material3Expressive.Dialog.Alert">
         <item name="dialogCornerRadius">16dp</item>
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
