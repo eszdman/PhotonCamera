@@ -53,6 +53,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.BackEventCompat;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -98,6 +99,7 @@ import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
 import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
+import com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -490,9 +492,55 @@ public class CameraFragment extends Fragment {
      * surface (settings bar or manual panel) is open; otherwise the dispatcher
      * falls through to the default activity behaviour.
      */
+    private static final int BACK_TARGET_NONE = 0;
+    private static final int BACK_TARGET_SETTINGS_BAR = 1;
+    private static final int BACK_TARGET_MANUAL_PANEL = 2;
+
+    private int backProgressTarget = BACK_TARGET_NONE;
+
     private final OnBackPressedCallback cameraBackCallback = new OnBackPressedCallback(false) {
         @Override
+        public void handleOnBackStarted(@NonNull BackEventCompat backEvent) {
+            // API 34+: remember which surface the gesture started on.
+            backProgressTarget = BACK_TARGET_NONE;
+            if (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible()) {
+                backProgressTarget = BACK_TARGET_SETTINGS_BAR;
+            } else if (manualModeConsole != null && manualModeConsole.isPanelVisible()) {
+                backProgressTarget = BACK_TARGET_MANUAL_PANEL;
+            }
+        }
+
+        @Override
+        public void handleOnBackProgressed(@NonNull BackEventCompat backEvent) {
+            // API 34+: drive the dismiss transform without committing any state.
+            float progress = Math.min(1f, Math.max(0f, backEvent.getProgress()));
+            View target = backTargetView();
+            if (target == null) {
+                return;
+            }
+            if (backProgressTarget == BACK_TARGET_SETTINGS_BAR && target instanceof SettingsBarLayout) {
+                ((SettingsBarLayout) target).setBackProgress(progress);
+            } else if (backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+                target.setTranslationY(target.getResources().getDimension(R.dimen.standard_20) * progress);
+                target.setAlpha(1f - progress);
+            }
+        }
+
+        @Override
+        public void handleOnBackCancelled() {
+            // API 34+: restore the fully-open transform.
+            View target = backTargetView();
+            if (target instanceof SettingsBarLayout && backProgressTarget == BACK_TARGET_SETTINGS_BAR) {
+                ((SettingsBarLayout) target).cancelBackProgress();
+            } else if (target != null && backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+                target.animate().setDuration(200).alpha(1f).translationY(0f).start();
+            }
+            backProgressTarget = BACK_TARGET_NONE;
+        }
+
+        @Override
         public void handleOnBackPressed() {
+            backProgressTarget = BACK_TARGET_NONE;
             if (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible()) {
                 cameraFragmentViewModel.setSettingsBarVisible(false);
             }
@@ -501,6 +549,19 @@ public class CameraFragment extends Fragment {
             }
         }
     };
+
+    private View backTargetView() {
+        if (cameraFragmentBinding == null) {
+            return null;
+        }
+        if (backProgressTarget == BACK_TARGET_SETTINGS_BAR) {
+            return cameraFragmentBinding.settingsBar;
+        }
+        if (backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+            return cameraFragmentBinding.manualMode;
+        }
+        return null;
+    }
 
     /** Enabled-state mirrors any open in-fragment surface, so back-to-home keeps the system animation when idle. */
     private void updateBackIntercept() {

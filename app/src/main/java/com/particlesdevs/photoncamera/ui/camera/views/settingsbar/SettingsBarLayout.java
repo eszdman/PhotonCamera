@@ -127,6 +127,25 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         }
     }
 
+    /**
+     * Predictive-back progress: maps 0 (open) to 1 (fully dismissed) onto the
+     * same transform as the hide animation, without committing any state.
+     * Only invoked on API 34+ while a back gesture is in flight.
+     */
+    public void setBackProgress(float progress) {
+        float p = Math.min(1f, Math.max(0f, progress));
+        float maxDy = getResources().getDimension(R.dimen.standard_125);
+        setTranslationY(-maxDy * p);
+        setScaleX(1f - p);
+        setScaleY(1f - p);
+        setAlpha(1f - p);
+    }
+
+    /** Restores the fully-open transform after a cancelled predictive back gesture. */
+    public void cancelBackProgress() {
+        animate().setDuration(200).alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).start();
+    }
+
     private int getResolvedAttr(Context context, int attrId) {
         TypedValue outValue = new TypedValue();
         context.getTheme().resolveAttribute(attrId, outValue, true);
