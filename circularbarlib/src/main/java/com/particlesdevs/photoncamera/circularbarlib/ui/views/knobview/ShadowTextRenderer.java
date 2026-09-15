@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -160,9 +161,11 @@ public class ShadowTextRenderer {
             this.m_TextPaint.setColor(style.getColor(2, -1));
         }
         if (style.hasValue(1) || style.hasValue(7)) {
-            Typeface typeface = context.getResources().getFont(style.getResourceId(7, 0));
-            this.m_TextPaint.setTypeface(typeface);
-            this.m_StrokePaint.setTypeface(typeface);
+            Typeface typeface = resolveTypeface(context, style);
+            if (typeface != null) {
+                this.m_TextPaint.setTypeface(typeface);
+                this.m_StrokePaint.setTypeface(typeface);
+            }
             isTextSizeChanged = true;
         }
         if (style.hasValue(3) && style.hasValue(6)) {
@@ -173,6 +176,40 @@ public class ShadowTextRenderer {
             this.m_MeasuredTextBounds.setEmpty();
         }
         style.recycle();
+    }
+
+    /**
+     * Resolves the style's {@code fontFamily} defensively: it may be absent
+     * (fall back to the current typeface / platform sans), a plain family
+     * string, or a font resource. A zero/stale resource id must never reach
+     * {@link Resources#getFont(int)}.
+     */
+    private Typeface resolveTypeface(Context context, TypedArray style) {
+        Typeface typeface = null;
+        if (style.hasValue(7)) {
+            try {
+                int fontResId = style.getResourceId(7, 0);
+                if (fontResId != 0) {
+                    typeface = context.getResources().getFont(fontResId);
+                } else {
+                    String family = style.getString(7);
+                    if (family != null && !family.isEmpty()) {
+                        typeface = Typeface.create(family, Typeface.NORMAL);
+                    }
+                }
+            } catch (Resources.NotFoundException | UnsupportedOperationException ignored) {
+                // Absent/stale font family: fall back below.
+                typeface = null;
+            }
+        }
+        if (typeface == null) {
+            typeface = this.m_TextPaint.getTypeface() != null
+                    ? this.m_TextPaint.getTypeface() : Typeface.SANS_SERIF;
+        }
+        if (style.hasValue(1)) {
+            typeface = Typeface.create(typeface, style.getInt(1, Typeface.NORMAL));
+        }
+        return typeface;
     }
 
     public void setTypeface(Typeface typeface) {
