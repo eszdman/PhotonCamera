@@ -135,6 +135,16 @@
         <item>3</item>
         <item>4</item>
     </string-array>
+    <string-array name="lens_bar_position_entries">
+        <item>@string/lens_bar_position_right</item>
+        <item>@string/lens_bar_position_center</item>
+        <item>@string/lens_bar_position_left</item>
+    </string-array>
+    <string-array name="lens_bar_position_entryvalues">
+        <item>right</item>
+        <item>center</item>
+        <item>left</item>
+    </string-array>
     <integer-array name="countdowntimer_entryvalues">
         <item>0</item>
         <item>3</item>

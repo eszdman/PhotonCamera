@@ -34,6 +34,8 @@ import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -56,6 +58,8 @@ public class AuxButtonsLayout extends LinearLayout {
     private AuxButtonListener auxButtonListener;
     private AuxButtonsModel auxButtonsModel;
     private boolean hiddenBySettings;
+    private boolean verticalOrder;
+    private String activeCameraId;
 
 public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -86,7 +90,19 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     }
 
     public void setActiveId(String activeId) {
+        activeCameraId = activeId;
         refresh(activeId);
+    }
+
+    /**
+     * Sets the pill's reading order. Horizontal reads ascending zoom from left
+     * to right (ultra-wide to tele); vertical reads tele at the top through
+     * ultra-wide at the bottom, matching the pre-216133f2 vertical pill.
+     */
+    public void setVerticalOrder(boolean vertical) {
+        if (verticalOrder == vertical) return;
+        verticalOrder = vertical;
+        if (activeCameraId != null) refresh(activeCameraId);
     }
 
     private void refresh(String cameraId) {
@@ -107,7 +123,14 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     private void setAuxButtons(List<CameraLensData> cameraLensDataList, String activeId) {
         removeAllViews();
         auxButtonsMap.clear();
-        cameraLensDataList.forEach(cameraLensData -> addNewButton(cameraLensData.getCameraId(), getAuxButtonName(cameraLensData.getZoomFactor())));
+        List<CameraLensData> ordered = cameraLensDataList;
+        if (verticalOrder) {
+            ordered = new ArrayList<>(cameraLensDataList);
+            Collections.reverse(ordered);
+        }
+        for (CameraLensData cameraLensData : ordered) {
+            addNewButton(cameraLensData.getCameraId(), getAuxButtonName(cameraLensData.getZoomFactor()));
+        }
         setListenerAndSelected(activeId);
         updateVisibility();
     }

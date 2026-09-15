@@ -339,8 +339,10 @@ public class CameraFragment extends Fragment {
         mHorizonIndicatorView = cameraFragmentBinding.layoutViewfinder.horizonIndicatorView;
         this.mSwipe = new Swipe(this);
         this.lensZoomBarController = new LensZoomBarController(
+                cameraFragmentBinding.cameraContainer,
                 cameraFragmentBinding.lensZoomBar,
                 cameraFragmentBinding.auxButtonsContainer,
+                cameraFragmentBinding.zoomSliderContainer,
                 cameraFragmentBinding.zoomSlider,
                 cameraFragmentBinding.zoomLockPill,
                 cameraFragmentBinding.zoomLockButton,
@@ -434,6 +436,7 @@ public class CameraFragment extends Fragment {
     public void onResume() {
         super.onResume();
         updateSettingsBar();
+        lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
         mSwipe.init();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
         final boolean lockedAtResume = secureSession;
@@ -573,7 +576,7 @@ public class CameraFragment extends Fragment {
             addRoundedBlurSpec(cameraFragmentBinding.settingsBar, camPanelCornerPx,
                     cameraFragmentBinding.settingsBar.getAlpha());
             addPillBlurSpec(cameraFragmentBinding.lensZoomBar);
-            addPillBlurSpec(cameraFragmentBinding.zoomSlider);
+            addPillBlurSpec(cameraFragmentBinding.zoomSliderContainer);
             addPillBlurSpec(cameraFragmentBinding.zoomIndicator);
             addPillBlurSpec(cameraFragmentBinding.zoomLockPill);
             // The manual hierarchy carries its own alpha/transform on the root
@@ -631,7 +634,7 @@ public class CameraFragment extends Fragment {
         lensClusterOffset = offset;
         cameraFragmentBinding.lensZoomBar.setTranslationY(offset);
         cameraFragmentBinding.zoomLockPill.setTranslationY(offset);
-        cameraFragmentBinding.zoomSlider.setTranslationY(offset);
+        cameraFragmentBinding.zoomSliderContainer.setTranslationY(offset);
         cameraFragmentBinding.zoomIndicator.setTranslationY(offset);
         return true;
     }
@@ -671,14 +674,22 @@ public class CameraFragment extends Fragment {
         parent.getLocationOnScreen(parentLocation);
         int[] previewLocation = new int[2];
         textureView.getLocationOnScreen(previewLocation);
-        // Center is invariant under the center-pivot scale/rotation, so derive it
-        // from the parent origin instead of the (transformed) view origin.
-        float centerX = parentLocation[0] + view.getLeft() + view.getWidth() / 2f
-                + view.getTranslationX() - previewLocation[0];
-        float centerY = parentLocation[1] + view.getTop() + view.getHeight() / 2f
-                + view.getTranslationY() - previewLocation[1];
         float scaleX = Math.max(0.0001f, view.getScaleX());
         float scaleY = Math.max(0.0001f, view.getScaleY());
+        // The visible centre is the local centre transformed about the view's
+        // pivot (scale then rotation) plus its translation, so off-centre
+        // pivots (the lock pill scales about the lens pill) stay aligned.
+        float pivotX = view.getPivotX();
+        float pivotY = view.getPivotY();
+        float dx = (view.getWidth() / 2f - pivotX) * scaleX;
+        float dy = (view.getHeight() / 2f - pivotY) * scaleY;
+        double rotationRad = Math.toRadians(view.getRotation());
+        float cos = (float) Math.cos(rotationRad);
+        float sin = (float) Math.sin(rotationRad);
+        float centerX = parentLocation[0] + view.getLeft() + pivotX + dx * cos - dy * sin
+                + view.getTranslationX() - previewLocation[0];
+        float centerY = parentLocation[1] + view.getTop() + pivotY + dx * sin + dy * cos
+                + view.getTranslationY() - previewLocation[1];
         float halfW = view.getWidth() * scaleX / 2f;
         float halfH = view.getHeight() * scaleY / 2f;
         scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,

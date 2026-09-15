@@ -50,6 +50,17 @@
                 android:icon="@drawable/ic_watermark"
                 />
         <ListPreference
+                android:key="@string/pref_lens_bar_position_key"
+                android:defaultValue="@string/pref_lens_bar_position_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/lens_bar_position"
+                app:useSimpleSummaryProvider="true"
+                android:summary=""
+                android:entries="@array/lens_bar_position_entries"
+                android:entryValues="@array/lens_bar_position_entryvalues"
+                android:icon="@drawable/ic_multi_lens"
+                />
+        <ListPreference
                 android:key="@string/pref_show_grid_key"
                 android:defaultValue="@string/pref_show_grid_default"
                 android:layout="@layout/preference_with_margin"

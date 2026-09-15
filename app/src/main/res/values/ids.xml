@@ -51,4 +51,5 @@
     <item name="ae_metering_std_spot_button" type="id"/>
     <item name="zoom_ratio_tag" type="id"/>
     <item name="zoom_hidden_tag" type="id"/>
+    <item name="zoom_alpha_anim_tag" type="id"/>
 </resources>

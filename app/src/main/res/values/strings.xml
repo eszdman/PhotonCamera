@@ -32,6 +32,10 @@
     <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
+    <string name="lens_bar_position">Lens Bar Position</string>
+    <string name="lens_bar_position_right">Right</string>
+    <string name="lens_bar_position_center">Center</string>
+    <string name="lens_bar_position_left">Left</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>
     <string name="noise_merge_str">Noise Merge Strength</string>
     <string name="raw">Save</string>

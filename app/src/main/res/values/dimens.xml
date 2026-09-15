@@ -21,7 +21,7 @@
     <dimen name="preference_row_vertical_padding">8dp</dimen>
     <dimen name="preference_icon_size">24dp</dimen>
     <dimen name="preference_icon_margin">16dp</dimen>
-    <dimen name="aux_container_margin">6dp</dimen>
+    <dimen name="aux_container_margin">8dp</dimen>
     <dimen name="cam_panel_corner_radius">28dp</dimen>
     <dimen name="cam_panel_blur_radius">32dp</dimen>
     <!-- Tangent fillet blending the manual selector scrim's bottom corners into
@@ -30,6 +30,14 @@
     <dimen name="aux_button_size">35dp</dimen>
     <dimen name="aux_button_internal_margin">3dp</dimen>
     <dimen name="lens_zoom_slider_width">180dp</dimen>
+    <!-- Thickness of the zoom slider capsule, matching the lens pill's min
+         dimension (aux_button_size 35dp + 2x aux_button_internal_margin 3dp +
+         2x pill padding 2dp). In vertical modes the slider inside is rotated
+         -90 within a thickness x width capsule. -->
+    <dimen name="lens_zoom_slider_thickness">45dp</dimen>
+    <!-- Vertical gap between the lens pill, the zoom-lock pill, the slider and
+         the total-zoom indicator when they are stacked. -->
+    <dimen name="lens_zoom_stack_gap">8dp</dimen>
     <dimen name="capture_progress_circle_size">150dp</dimen>
     <dimen name="camera_switch_button_size">@dimen/gallery_button_size</dimen>
     <dimen name="standard_0">0dp</dimen>

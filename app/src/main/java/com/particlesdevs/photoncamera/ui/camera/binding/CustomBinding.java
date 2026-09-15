@@ -1,5 +1,9 @@
 package com.particlesdevs.photoncamera.ui.camera.binding;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
+import android.animation.TimeInterpolator;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
@@ -168,12 +172,10 @@ public class CustomBinding {
     public static void setZoomIndicator(android.widget.TextView view, float zoomRatio) {
         if (view == null) return;
         view.setTag(R.id.zoom_ratio_tag, zoomRatio);
-        if (Math.abs(zoomRatio - 1.0f) > 0.0001f && !isHiddenBySettings(view)) {
+        if (Math.abs(zoomRatio - 1.0f) > 0.0001f) {
             view.setText(String.format(java.util.Locale.US, "%.1fx", zoomRatio));
-            view.setVisibility(View.VISIBLE);
-        } else {
-            view.setVisibility(View.GONE);
         }
+        updateIndicatorVisibility(view);
     }
 
     /**
@@ -184,7 +186,7 @@ public class CustomBinding {
     public static void setZoomIndicatorHidden(android.widget.TextView view, boolean hidden) {
         if (view == null) return;
         view.setTag(R.id.zoom_hidden_tag, hidden);
-        hideOrShowZoom(view);
+        updateIndicatorVisibility(view);
     }
 
     private static boolean isHiddenBySettings(android.widget.TextView view) {
@@ -192,14 +194,57 @@ public class CustomBinding {
         return tag instanceof Boolean && (Boolean) tag;
     }
 
-    private static void hideOrShowZoom(android.widget.TextView view) {
+    private static boolean shouldShowZoom(android.widget.TextView view) {
         Object ratioTag = view.getTag(R.id.zoom_ratio_tag);
         float ratio = ratioTag instanceof Float ? (Float) ratioTag : 1.0f;
-        boolean hidden = isHiddenBySettings(view);
-        if (Math.abs(ratio - 1.0f) > 0.0001f && !hidden) {
+        return Math.abs(ratio - 1.0f) > 0.0001f && !isHiddenBySettings(view);
+    }
+
+    /**
+     * Fades the indicator in/out instead of relying on the camera container's
+     * layout transition (whose appear/disappear passes are disabled). A
+     * dedicated {@link ObjectAnimator} is used so the rotation animation started
+     * by {@code bindRotate} can't cancel the fade.
+     */
+    private static void updateIndicatorVisibility(android.widget.TextView view) {
+        boolean show = shouldShowZoom(view);
+        boolean visible = view.getVisibility() == View.VISIBLE;
+        if (show == visible && (!show || view.getAlpha() >= 1f)) return;
+
+        // Clear the tag before canceling: the cancel-triggered end callback must
+        // not treat the stale animator as the current one.
+        Object running = view.getTag(R.id.zoom_alpha_anim_tag);
+        view.setTag(R.id.zoom_alpha_anim_tag, null);
+        if (running instanceof Animator) ((Animator) running).cancel();
+
+        if (show) {
+            float from = visible ? view.getAlpha() : 0f;
+            view.setAlpha(from);
             view.setVisibility(View.VISIBLE);
+            startIndicatorFade(view, from, 1f, Motion.emphasized(view.getContext()));
         } else {
-            view.setVisibility(View.GONE);
+            startIndicatorFade(view, view.getAlpha(), 0f,
+                    Motion.emphasizedDecelerate(view.getContext()));
         }
+    }
+
+    private static void startIndicatorFade(android.widget.TextView view, float from, float to,
+                                           TimeInterpolator interpolator) {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, View.ALPHA, from, to);
+        animator.setDuration(Motion.durationShort4(view.getContext()));
+        animator.setInterpolator(interpolator);
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (view.getTag(R.id.zoom_alpha_anim_tag) != animation) return;
+                view.setTag(R.id.zoom_alpha_anim_tag, null);
+                if (!shouldShowZoom(view)) {
+                    view.setVisibility(View.GONE);
+                    view.setAlpha(1f);
+                }
+            }
+        });
+        view.setTag(R.id.zoom_alpha_anim_tag, animator);
+        animator.start();
     }
 }

@@ -39,6 +39,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_THEME_ACCENT.mValue);
         COMMON_KEYS.add(Key.KEY_THEME.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_GRID.mValue);
+        COMMON_KEYS.add(Key.KEY_LENS_BAR_POSITION.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Key.KEY_CAMERA_SOUNDS.mValue);
@@ -79,6 +80,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, 0); // Default to disable bracketing
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_METERING_STD, -1); // Default to Off
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, resources.getString(R.string.pref_video_resolution_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, resources.getString(R.string.pref_lens_bar_position_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
@@ -323,6 +325,15 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SHOW_GRID, value);
     }
 
+    /**
+     * Position of the multi-lens pill: {@code "right"}, {@code "center"} or
+     * {@code "left"}. Right/left render the pill vertically docked to that edge,
+     * center keeps the horizontal centered pill.
+     */
+    public static String getLensBarPosition() {
+        return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, "right");
+    }
+
     public static boolean isCameraSoundsOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_CAMERA_SOUNDS);
     }
@@ -537,6 +548,7 @@ public class PreferenceKeys {
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
+        KEY_LENS_BAR_POSITION(R.string.pref_lens_bar_position_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
         KEY_CHROMA_NR_SEEKBAR(R.string.pref_chroma_nr_seekbar_key),
         KEY_LUMA_NR_SEEKBAR(R.string.pref_luma_nr_seekbar_key),

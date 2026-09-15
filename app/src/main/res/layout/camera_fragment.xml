@@ -85,34 +85,44 @@
                     bindRotate="@{uimodel}"
                     zoomIndicator="@{uimodel.zoomRatio}"
                     hideZoomIndicator="@{uimodel.settingsBarVisibility}"
-                    app:layout_constraintBottom_toTopOf="@+id/zoom_slider"
+                    app:layout_constraintBottom_toTopOf="@+id/zoom_slider_container"
                     app:layout_constraintStart_toStartOf="@+id/lens_zoom_bar"
                     app:layout_constraintEnd_toEndOf="@+id/lens_zoom_bar" />
 
             <!--    Block 1.3b-->
             <!--    Auto-hiding zoom slider: appears above the lens pill (and below
                     the zoom indicator) on pinch-to-zoom and collapses back after
-                    2s of no zoom interaction. -->
-            <SeekBar
-                    android:id="@+id/zoom_slider"
+                    2s of no zoom interaction. The container carries the scrim and
+                    becomes a tall capsule with the slider inside rotated -90
+                    when the pill is docked right/left. -->
+            <FrameLayout
+                    android:id="@+id/zoom_slider_container"
                     android:layout_width="@dimen/lens_zoom_slider_width"
                     android:layout_height="wrap_content"
                     android:background="@drawable/aux_container_background"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:paddingTop="4dp"
-                    android:paddingBottom="4dp"
                     android:layout_marginBottom="8dp"
                     android:visibility="gone"
-                    android:max="1000"
-                    android:progressTint="?attr/colorPrimary"
-                    android:progressBackgroundTint="@color/cam_outline"
-                    android:thumbTint="@color/cam_on_surface"
-                    android:contentDescription="@string/zoom_slider_desc"
                     tools:visibility="visible"
                     app:layout_constraintBottom_toTopOf="@+id/lens_zoom_bar"
                     app:layout_constraintStart_toStartOf="@+id/lens_zoom_bar"
-                    app:layout_constraintEnd_toEndOf="@+id/lens_zoom_bar" />
+                    app:layout_constraintEnd_toEndOf="@+id/lens_zoom_bar">
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/zoom_slider"
+                        style="@style/Widget.Material3Expressive.Slider.Xsmall"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/lens_zoom_slider_thickness"
+                        android:layout_gravity="center"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:valueFrom="0"
+                        android:valueTo="1000"
+                        app:labelBehavior="gone"
+                        app:trackColorActive="?attr/colorPrimary"
+                        app:trackColorInactive="@color/cam_outline"
+                        app:thumbColor="@color/cam_on_surface"
+                        android:contentDescription="@string/zoom_slider_desc" />
+            </FrameLayout>
 
             <!--    Block 1.3c-->
             <!--    Centered lens pill: horizontal lens switcher whose buttons stay
@@ -163,6 +173,7 @@
                         android:id="@+id/zoom_lock_button"
                         android:layout_width="@dimen/aux_button_size"
                         android:layout_height="@dimen/aux_button_size"
+                        android:layout_margin="@dimen/aux_button_internal_margin"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         app:srcCompat="@drawable/ic_zoom_lock_open"
                         android:contentDescription="@string/zoom_lock_desc"
