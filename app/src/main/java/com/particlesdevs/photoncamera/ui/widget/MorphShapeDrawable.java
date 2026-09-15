@@ -91,7 +91,7 @@ public class MorphShapeDrawable extends Drawable {
 
     /** M3E fast spatial spring from the theme, with a spec fallback. */
     @NonNull
-    private static SpringForce spatialSpring(@NonNull Context context) {
+    public static SpringForce spatialSpring(@NonNull Context context) {
         try {
             return MotionUtils.resolveThemeSpringForce(context,
                     R.attr.motionSpringFastSpatial, R.attr.motionSpringFastSpatial);
@@ -147,18 +147,27 @@ public class MorphShapeDrawable extends Drawable {
     }
 
     private void updatePath() {
-        path.rewind();
-        List<Cubic> cubics = morph.asCubics(progress.getValue());
+        buildPath(morph, progress.getValue(), path);
+    }
+
+    /**
+     * Writes the morphed silhouette for {@code progress} into {@code out}
+     * (unit space; callers scale it to the target bounds). Shared with the
+     * mode-switcher pill, which draws its own morph.
+     */
+    public static void buildPath(@NonNull Morph morph, float progress, @NonNull Path out) {
+        out.rewind();
+        List<Cubic> cubics = morph.asCubics(progress);
         for (int i = 0; i < cubics.size(); i++) {
             Cubic cubic = cubics.get(i);
             if (i == 0) {
-                path.moveTo(cubic.getAnchor0X(), cubic.getAnchor0Y());
+                out.moveTo(cubic.getAnchor0X(), cubic.getAnchor0Y());
             }
-            path.cubicTo(cubic.getControl0X(), cubic.getControl0Y(),
+            out.cubicTo(cubic.getControl0X(), cubic.getControl0Y(),
                     cubic.getControl1X(), cubic.getControl1Y(),
                     cubic.getAnchor1X(), cubic.getAnchor1Y());
         }
-        path.close();
+        out.close();
     }
 
     @Override

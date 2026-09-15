@@ -39,11 +39,17 @@ import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+import androidx.dynamicanimation.animation.FloatValueHolder;
+import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.graphics.shapes.Morph;
+import androidx.graphics.shapes.RoundedPolygon;
 
+import com.google.android.material.shape.MaterialShapes;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
+import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -114,6 +120,17 @@ public class HorizontalPicker extends View {
     private final Matrix fadeMatrix = new Matrix();
     private float fadeFraction;
 
+    /**
+     * Selection pill morph: rests as a capsule and pops into the M3E cookie
+     * once per selection change (spring pulse back to the capsule).
+     */
+    private final Morph pillMorph;
+    private final FloatValueHolder pillProgress = new FloatValueHolder(0f);
+    private final SpringAnimation pillSpring;
+    private final Path pillPath = new Path();
+    private final Matrix pillMatrix = new Matrix();
+    private int pillMorphItem = Integer.MIN_VALUE;
+
     public HorizontalPicker(Context context) {
         this(context, null);
     }
@@ -138,7 +155,21 @@ public class HorizontalPicker extends View {
 
         // create the selector wheel paint
         textPaint = getTextPaint(context);
-        
+
+        // Morphing selection pill: rest capsule, pulsed to the cookie per selection.
+        RectF pillUnit = new RectF(0f, 0f, 1f, 1f);
+        RoundedPolygon pillRest = MaterialShapes.normalize(MaterialShapes.PILL, true, pillUnit);
+        RoundedPolygon pillPressed = MaterialShapes.normalize(MaterialShapes.COOKIE_9, true, pillUnit);
+        pillMorph = new Morph(pillRest, pillPressed);
+        pillSpring = new SpringAnimation(pillProgress)
+                .setSpring(MorphShapeDrawable.spatialSpring(context))
+                .addUpdateListener((animation, value, velocity) -> invalidate());
+        pillSpring.addEndListener((animation, canceled, value, velocity) -> {
+            if (!canceled && value >= 1f) {
+                pillSpring.animateToFinalPosition(0f);
+            }
+        });
+
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(
                 attributeSet,
                 R.styleable.HorizontalPicker,
@@ -279,6 +310,15 @@ public class HorizontalPicker extends View {
         // bubble tracks the finger during drag/fling instead of only on release.
         int selectedItem = getSelectedItem();
 
+        // Pop the pill with a shape morph whenever the centred item changes.
+        if (selectedItem != pillMorphItem) {
+            boolean firstDraw = pillMorphItem == Integer.MIN_VALUE;
+            pillMorphItem = selectedItem;
+            if (!firstDraw) {
+                pillSpring.animateToFinalPosition(1f);
+            }
+        }
+
         float itemWithPadding = itemWidth + dividerSize;
 
         ensureFadeFraction();
@@ -338,7 +378,11 @@ public class HorizontalPicker extends View {
                     background.right = itemClipBounds.right - margin;
 
                     paint.setColor(selectedBackgroundColor);
-                    canvas.drawRoundRect(background, 100, 100, paint);
+                    MorphShapeDrawable.buildPath(pillMorph, pillProgress.getValue(), pillPath);
+                    pillMatrix.setScale(background.width(), background.height());
+                    pillMatrix.postTranslate(background.left, background.top);
+                    pillPath.transform(pillMatrix);
+                    canvas.drawPath(pillPath, paint);
                 }
                 canvas.clipRect(clipBounds);
                 // apply the view-fixed edge fade so text smoothly fades out at the edges.
