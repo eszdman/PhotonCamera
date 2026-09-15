@@ -139,8 +139,13 @@ public class MorphShapeDrawable extends Drawable {
         strokePaint.setColorFilter(colorFilter);
 
         updatePath();
-        matrix.setScale(bounds.width(), bounds.height());
-        matrix.postTranslate(bounds.left, bounds.top);
+        // Keep the centered outline fully inside the bounds (its outer half
+        // would otherwise be clipped at the shape's cardinal points) plus a
+        // hair for antialiasing.
+        float inset = strokePaint.getStrokeWidth() / 2f + 0.5f;
+        matrix.setScale(Math.max(1f, bounds.width() - inset * 2f),
+                Math.max(1f, bounds.height() - inset * 2f));
+        matrix.postTranslate(bounds.left + inset, bounds.top + inset);
         path.transform(matrix);
         canvas.drawPath(path, fillPaint);
         canvas.drawPath(path, strokePaint);
@@ -152,10 +157,9 @@ public class MorphShapeDrawable extends Drawable {
 
     /**
      * Writes the morphed silhouette for {@code progress} into {@code out}
-     * (unit space; callers scale it to the target bounds). Shared with the
-     * mode-switcher pill, which draws its own morph.
+     * (unit space; the draw pass scales it to the target bounds).
      */
-    public static void buildPath(@NonNull Morph morph, float progress, @NonNull Path out) {
+    private static void buildPath(@NonNull Morph morph, float progress, @NonNull Path out) {
         out.rewind();
         List<Cubic> cubics = morph.asCubics(progress);
         for (int i = 0; i < cubics.size(); i++) {
