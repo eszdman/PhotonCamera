@@ -6,6 +6,8 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="iconTint">?android:textColorPrimary</item>
         <item name="colorPrimary">@color/colorAccent</item>

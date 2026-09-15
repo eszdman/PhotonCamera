@@ -42,6 +42,7 @@ import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
 import com.particlesdevs.photoncamera.gallery.views.CustomSSIV;
 import com.particlesdevs.photoncamera.processing.ImagePath;
+import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 
 import org.apache.commons.io.FileUtils;
 
@@ -213,6 +214,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Keep bottom controls above the transparent navigation bar.
+        // The photo pager itself stays full-bleed behind it.
+        View bottomControls = view.findViewById(R.id.bottom_controls_container);
+        if (bottomControls != null) {
+            SystemBarsHelper.padBottomForNavBar(bottomControls);
+        }
+        View miniExif = view.findViewById(R.id.mini_exif_container);
+        if (miniExif != null) {
+            SystemBarsHelper.padBottomForNavBar(miniExif);
+        }
         viewPager.setPageTransformer(null);
         // D: O(viewport) ~10-12 MB per page at 160dpi; keep baseline low on 4GB: offscreen=1 and cache=1 (was 2/2).
         // Still pre-warms ±1 tile via preview placeholder, without extra native tile retention.

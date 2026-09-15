@@ -34,6 +34,7 @@ import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.OnItemInteractionListener;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
+import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 
 import org.apache.commons.io.FileUtils;
 
@@ -78,6 +79,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Keep the grid and FABs above the transparent navigation bar.
+        SystemBarsHelper.padBottomForNavBar(view);
         viewModel = new ViewModelProvider(requireActivity()).get(GalleryViewModel.class);
         linearRecyclerView = fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView;
         recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
