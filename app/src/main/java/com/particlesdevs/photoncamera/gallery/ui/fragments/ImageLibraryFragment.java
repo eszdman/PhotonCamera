@@ -12,7 +12,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -205,7 +205,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         List<GalleryItem> filesToDelete = imageGridAdapter.getSelectedItems();
         String numOfFiles = String.valueOf(filesToDelete.size());
         String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(value -> value.getFile().getSize()).sum());
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
         builder
                 .setMessage(getContext().getString(R.string.sure_delete_multiple, numOfFiles, totalFileSize))
                 .setTitle(android.R.string.dialog_alert_title)

@@ -18,12 +18,13 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_height="match_parent"
-            android:layout_width="match_parent">
+            android:layout_width="match_parent"
+            android:background="@android:color/black">
 
         <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#000"
+                android:background="@android:color/black"
                 android:onClickListener="@{onclickempty}"
                 tools:visibility="gone" />
 
@@ -31,7 +32,7 @@
                 android:id="@+id/view_pager"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#000"
+                android:background="@android:color/black"
                 tools:visibility="gone" />
         <include
                 layout="@layout/gallery_viewer_top_buttons"
@@ -118,7 +119,7 @@
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_ultra_hdr"
-                android:tint="@android:color/white"
+                android:tint="@color/cam_on_surface"
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

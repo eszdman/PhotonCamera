@@ -30,7 +30,7 @@
         <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:cardCornerRadius="@dimen/standard_0"
+                app:cardCornerRadius="@dimen/standard_12"
                 android:id="@+id/image_card"
                 app:strokeWidth="@dimen/standard_0"
                 android:onClick="@{(v)-> galleryitemclickedlistener.onItemClicked(v,galleryitem)}"
@@ -38,7 +38,7 @@
 
             <com.particlesdevs.photoncamera.gallery.views.SquareImageView
                     android:id="@+id/square_image_view"
-                    android:background="@color/grid_thumbnail_background"
+                    android:background="?attr/colorSurfaceContainerHighest"
                     android:scaleType="centerCrop"
                     android:layout_width="match_parent"
                     app:loadImage="@{galleryitem}"

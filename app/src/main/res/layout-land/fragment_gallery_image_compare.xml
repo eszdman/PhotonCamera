@@ -5,7 +5,8 @@
 
     <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:background="@android:color/black">
 
         <LinearLayout
                 android:layout_width="match_parent"
@@ -35,13 +36,17 @@
         <ToggleButton
                 android:id="@+id/sync"
                 android:layout_gravity="top|end"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
                 android:layout_width="wrap_content"
-                android:layout_height="50dp"
+                android:layout_height="48dp"
                 android:checked="true"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:textSize="13sp"
                 android:visibility='@{hide_buttons ? View.INVISIBLE : View.VISIBLE, default="visible"}'
-                android:background="@color/panel_transparency"
-                android:textColor="#FFF"
+                android:background="@drawable/cam_chip_background"
+                android:textColor="@color/cam_chip_text"
                 android:textOn="@string/sync_on"
                 android:textOff="@string/sync_off"
                 android:onClick="@{on_sync_click}"
@@ -52,9 +57,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="bottom|end"
-                app:backgroundTint="@color/panel_transparency"
+                app:backgroundTint="@color/cam_surface_container_high"
                 app:srcCompat="@drawable/ic_share"
-                app:tint="@color/white"
+                app:tint="@color/cam_on_surface"
                 app:elevation="0dp"
                 android:visibility='@{hide_buttons ? View.INVISIBLE : View.VISIBLE, default="visible"}'
                 android:onClick="@{on_share}"
