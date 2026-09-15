@@ -64,11 +64,12 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 >
 
+            <!-- Background is the morphing MorphShapeDrawable, set per photo mode
+                 in CameraUIViewImpl (video modes use unlimitedbutton). -->
             <ImageButton
                     android:id="@+id/shutter_button"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@drawable/roundbutton"
                     android:clickable="true"
                     android:contentDescription="Shutter Button"
                     android:onClick="@{bottom_bar_click_listener}"

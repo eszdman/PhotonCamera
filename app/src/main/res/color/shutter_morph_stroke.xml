@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Outline colors for the morphing shutter, mirroring the old roundbutton
+    selector's stroke.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_hovered="true" android:color="@color/cam_on_primary"/>
+    <item android:state_activated="true" android:state_pressed="false"
+          android:color="@color/cam_on_primary_container"/>
+    <item android:state_pressed="true" android:color="@color/cam_on_primary"/>
+    <item android:color="@color/cam_outline"/>
+</selector>

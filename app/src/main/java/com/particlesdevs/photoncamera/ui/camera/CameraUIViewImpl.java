@@ -19,6 +19,7 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.TunableInjector;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
+import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.util.Arrays;
@@ -50,6 +51,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private final ProgressBar mProcessingProgressBar;
     private final HorizontalPicker mModePicker;
     private final TextView mVideoRecordingInfo;
+    private final MorphShapeDrawable mShutterMorph;
     private LayoutMainTopbarBinding topbar;
     private LayoutBottombuttonsBinding bottombuttons;
     private CameraUIEventsListener uiEventsListener;
@@ -62,6 +64,7 @@ public class CameraUIViewImpl implements CameraUIView {
         this.mCaptureProgressBar = cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar;
         this.mProcessingProgressBar = bottombuttons.processingProgressBar;
         this.mShutterButton = bottombuttons.shutterButton;
+        this.mShutterMorph = MorphShapeDrawable.shutter(cameraFragment.requireContext());
         this.mModePicker = cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
         this.mVideoRecordingInfo = cameraFragment.cameraFragmentBinding.getRoot().findViewById(R.id.video_recording_info);
         this.initListeners();
@@ -374,7 +377,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+            mShutterButton.setBackground(mShutterMorph);
             //cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
             //cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
@@ -412,7 +415,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackgroundResource(R.drawable.roundbutton);
+            mShutterButton.setBackground(mShutterMorph);
             if(PhotonCamera.getSettings().aspect169) {
                 // Set the dummy view's aspect ratio to 16:9
                 if(cameraFragment.displayAspectRatio <= 16f / 9f)

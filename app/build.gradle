@@ -131,6 +131,9 @@ dependencies {
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
     //Google Material
     implementation 'com.google.android.material:material:1.14.0'
+    // M3E shape morphs and spring physics (declared explicitly; also provided by Material)
+    implementation 'androidx.graphics:graphics-shapes:1.0.1'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.1.0'
     implementation "androidx.core:core-ktx:1.18.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "com.anggrayudi:storage:2.2.0"
