@@ -2,7 +2,7 @@
     <!--Activity Themes-->
 
     <!-- Base application theme. -->
-    <style name="Theme.Photon.BaseApp" parent="@style/Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Photon.BaseApp" parent="@style/Theme.Material3Expressive.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
@@ -10,14 +10,16 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="iconTint">?android:textColorPrimary</item>
-        <item name="colorPrimary">@color/colorAccent</item>
-        <item name="colorPrimaryContainer">@color/colorPrimaryContainer</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <!-- Accent roles are provided by the selected theme overlay:
+             Material You dynamic color on Android 12+, or a fixed accent scheme. -->
+        <item name="colorAccent">?attr/colorPrimary</item>
+        <item name="colorControlActivated">?attr/colorPrimary</item>
+        <item name="android:colorControlActivated">?attr/colorPrimary</item>
         <item name="cameraFragmentBackground">@android:color/black</item>
         <item name="modeSelectedTextColor">?attr/colorControlActivated</item>
-        <item name="processingProgressColor">?attr/colorAccent</item>
+        <item name="processingProgressColor">?attr/colorPrimary</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
+        <item name="materialAlertDialogTheme">@style/MaterialAlertDialogTheme</item>
         <item name="android:fontFamily">@font/open_sans</item>
     </style>
 
@@ -69,20 +71,22 @@
         <item name="android:textColor">?android:textColorPrimary</item>
     </style>
 
-    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3.Dialog.Alert">
+    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3Expressive.Dialog.Alert">
         <item name="dialogCornerRadius">16dp</item>
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
         <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
     </style>
 
-    <style name="NegativeButtonStyle" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="MaterialAlertDialogTheme" parent="ThemeOverlay.Material3Expressive.MaterialAlertDialog" />
+
+    <style name="NegativeButtonStyle" parent="Widget.Material3Expressive.Button.OutlinedButton">
         <item name="android:textColor">?colorOnSurface</item>
         <item name="strokeColor">?colorOnSurface</item>
         <item name="strokeWidth">1dp</item>
 
     </style>
 
-    <style name="PositiveButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
+    <style name="PositiveButtonStyle" parent="Widget.Material3Expressive.Button.TextButton.Dialog">
         <item name="android:textColor">?colorOnPrimary</item>
         <item name="backgroundTint">?colorPrimary</item>
     </style>

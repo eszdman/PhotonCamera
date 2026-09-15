@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.settings;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.Build;
 import com.particlesdevs.photoncamera.util.Log;
 
 import androidx.annotation.StringRes;
@@ -15,6 +16,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -163,31 +165,52 @@ public class PreferenceKeys {
     }
 
     public static void setActivityTheme(Activity activity) {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("default", 0);
-        map.put("red", R.style.RedTheme);
-        map.put("blue", R.style.BlueTheme);
-        map.put("orange", R.style.OrangeTheme);
-        map.put("green", R.style.GreenTheme);
-        map.put("eszdman", R.style.EszdmanTheme);
-        map.put("pink", R.style.PinkTheme);
-        map.put("cyan", R.style.CyanTheme);
-        map.put("teal", R.style.TealTheme);
-        map.put("white", R.style.WhiteTheme);
-
         SettingsManager sm = preferenceKeys.settingsManager;
 
         String theme = sm.getString(SCOPE_GLOBAL, Key.KEY_THEME_ACCENT, activity.getResources().getString(R.string.pref_theme_accent_default_value));
         boolean showGradient = sm.getBoolean(SCOPE_GLOBAL, Key.KEY_SHOW_GRADIENT, activity.getResources().getBoolean(R.bool.pref_show_gradient_def_value));
 
         if (showGradient) {
-            activity.getTheme().applyStyle(R.style.GradientBackgroundTheme, true);
-        }
-        if (theme != null) {
-            Integer themeRes = map.get(theme.toLowerCase());
-            activity.getTheme().applyStyle(themeRes == null ? 0 : themeRes, true);
+            activity.getTheme().applyStyle(R.style.ThemeOverlay_Photon_GradientBackground, true);
         }
 
+        int themeRes = resolveAccentTheme(theme);
+        if (themeRes != 0) {
+            activity.getTheme().applyStyle(themeRes, true);
+        }
+    }
+
+    private static int resolveAccentTheme(String accent) {
+        if (accent == null) {
+            return 0;
+        }
+        switch (accent.toLowerCase(Locale.ROOT)) {
+            case "default":
+                // Material You dynamic color on Android 12+, legacy purple below.
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                        ? R.style.ThemeOverlay_Photon_Dynamic
+                        : R.style.ThemeOverlay_Photon_Default;
+            case "red":
+                return R.style.ThemeOverlay_Photon_Red;
+            case "blue":
+                return R.style.ThemeOverlay_Photon_Blue;
+            case "orange":
+                return R.style.ThemeOverlay_Photon_Orange;
+            case "green":
+                return R.style.ThemeOverlay_Photon_Green;
+            case "eszdman":
+                return R.style.ThemeOverlay_Photon_Eszdman;
+            case "pink":
+                return R.style.ThemeOverlay_Photon_Pink;
+            case "cyan":
+                return R.style.ThemeOverlay_Photon_Cyan;
+            case "teal":
+                return R.style.ThemeOverlay_Photon_Teal;
+            case "white":
+                return R.style.ThemeOverlay_Photon_White;
+            default:
+                return 0;
+        }
     }
 
     /**
