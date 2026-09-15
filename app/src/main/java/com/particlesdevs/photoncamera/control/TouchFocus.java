@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
@@ -234,8 +235,12 @@ public class TouchFocus {
         spotWbIndicatorView.setX(fx - spotWbIndicatorView.getMeasuredWidth() / 2.0f);
         spotWbIndicatorView.setY(fy - spotWbIndicatorView.getMeasuredHeight() / 2.0f);
         spotWbIndicatorView.setVisibility(View.VISIBLE);
-        spotWbIndicatorView.animate().scaleX(1.25f).scaleY(1.25f).setDuration(150)
-                .withEndAction(() -> spotWbIndicatorView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start())
+        spotWbIndicatorView.animate().scaleX(1.25f).scaleY(1.25f)
+                .setDuration(Motion.durationShort3(spotWbIndicatorView.getContext()))
+                .setInterpolator(Motion.emphasized(spotWbIndicatorView.getContext()))
+                .withEndAction(() -> spotWbIndicatorView.animate().scaleX(1.0f).scaleY(1.0f)
+                        .setDuration(Motion.durationShort3(spotWbIndicatorView.getContext()))
+                        .setInterpolator(Motion.emphasized(spotWbIndicatorView.getContext())).start())
                 .start();
     }
 
@@ -255,8 +260,12 @@ public class TouchFocus {
         focusCircleView.setX(fx - focusCircleView.getMeasuredWidth() / 2.0f);
         focusCircleView.setY(fy - focusCircleView.getMeasuredHeight() / 2.0f);
         focusCircleView.setVisibility(View.VISIBLE);
-        focusCircleView.animate().scaleY(1.2f).scaleX(1.2f).setDuration(250)
-                .withEndAction(() -> focusCircleView.animate().scaleY(1f).scaleX(1f).setDuration(250).start())
+        focusCircleView.animate().scaleY(1.2f).scaleX(1.2f)
+                .setDuration(Motion.durationMedium1(focusCircleView.getContext()))
+                .setInterpolator(Motion.emphasized(focusCircleView.getContext()))
+                .withEndAction(() -> focusCircleView.animate().scaleY(1f).scaleX(1f)
+                        .setDuration(Motion.durationMedium1(focusCircleView.getContext()))
+                        .setInterpolator(Motion.emphasized(focusCircleView.getContext())).start())
                 .start();
     }
 
@@ -846,7 +855,9 @@ public class TouchFocus {
     //Must be run on UI Thread
     private void hideFocusCircleView() {
         if (focusCircleView.getVisibility() == View.VISIBLE) {
-            focusCircleView.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f).setDuration(100)
+            focusCircleView.animate().alpha(0f).scaleY(1.8f).scaleX(1.8f)
+                    .setDuration(Motion.durationShort2(focusCircleView.getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(focusCircleView.getContext()))
                     .withEndAction(() -> {
                         focusCircleView.setVisibility(View.GONE);
                         focusCircleView.setX((float) textureView.getWidth() / 2.f);
@@ -871,7 +882,9 @@ public class TouchFocus {
     //Must be run on UI Thread
     private void hideSpotWbIndicatorView() {
         if (spotWbIndicatorView != null && spotWbIndicatorView.getVisibility() == View.VISIBLE) {
-            spotWbIndicatorView.animate().alpha(0f).scaleX(1.4f).scaleY(1.4f).setDuration(120)
+            spotWbIndicatorView.animate().alpha(0f).scaleX(1.4f).scaleY(1.4f)
+                    .setDuration(Motion.durationShort2(spotWbIndicatorView.getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(spotWbIndicatorView.getContext()))
                     .withEndAction(() -> {
                         spotWbIndicatorView.setVisibility(View.GONE);
                         spotWbIndicatorView.setX((float) textureView.getWidth() / 2.f);

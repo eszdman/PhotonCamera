@@ -13,6 +13,7 @@ import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -241,14 +242,24 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     private void showFABMenu() {
         isFABOpen = true;
-        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(-getResources().getDimension(R.dimen.standard_65));
-        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(-getResources().getDimension(R.dimen.standard_125));
+        fragmentGalleryImageLibraryBinding.deleteFab.animate()
+                .translationY(-getResources().getDimension(R.dimen.standard_65))
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasized(requireContext())).start();
+        fragmentGalleryImageLibraryBinding.shareFab.animate()
+                .translationY(-getResources().getDimension(R.dimen.standard_125))
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasized(requireContext())).start();
     }
 
     private void closeFABMenu() {
         isFABOpen = false;
-        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(0);
-        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(0);
+        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(0)
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(requireContext())).start();
+        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(0)
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(requireContext())).start();
     }
 
     @Override

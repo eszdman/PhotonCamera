@@ -5,6 +5,7 @@ import android.view.ViewGroup;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.ManualModel;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.Rotation;
 
@@ -15,11 +16,17 @@ public class Binding {
     public static void setKnobVisibility(KnobView knobView, Boolean knobVisible) {
         if (knobView != null && knobVisible != null) {
             if (knobVisible) {
-                knobView.animate().translationY(0).scaleY(1).scaleX(1).setDuration(200).alpha(1f).start();
+                knobView.animate().translationY(0).scaleY(1).scaleX(1)
+                        .setDuration(Motion.durationShort4(knobView.getContext()))
+                        .setInterpolator(Motion.emphasized(knobView.getContext()))
+                        .alpha(1f).start();
                 knobView.setVisibility(View.VISIBLE);
             } else {
                 knobView.animate().translationY(knobView.getHeight() / 2.5f)
-                        .scaleY(.2f).scaleX(.2f).setDuration(200).alpha(0f)
+                        .scaleY(.2f).scaleX(.2f)
+                        .setDuration(Motion.durationShort4(knobView.getContext()))
+                        .setInterpolator(Motion.emphasizedDecelerate(knobView.getContext()))
+                        .alpha(0f)
                         .withEndAction(() -> knobView.setVisibility(View.GONE)).start();
             }
         }
@@ -45,14 +52,18 @@ public class Binding {
     public static void togglePanelVisibility(ViewGroup manualModeContainer, Boolean visible) {
         if (visible) {
             manualModeContainer.post(() -> {
-                manualModeContainer.animate().translationY(0).setDuration(100).alpha(1f).start();
+                manualModeContainer.animate().translationY(0)
+                        .setDuration(Motion.durationShort2(manualModeContainer.getContext()))
+                        .setInterpolator(Motion.emphasized(manualModeContainer.getContext()))
+                        .alpha(1f).start();
                 manualModeContainer.setVisibility(View.VISIBLE);
             });
         } else {
             manualModeContainer.post(() -> manualModeContainer.animate()
                     .translationY(manualModeContainer.getResources().getDimension(R.dimen.standard_20))
                     .alpha(0f)
-                    .setDuration(100)
+                    .setDuration(Motion.durationShort2(manualModeContainer.getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(manualModeContainer.getContext()))
                     .withEndAction(() -> manualModeContainer.setVisibility(View.GONE))
                     .start());
         }
@@ -64,7 +75,8 @@ public class Binding {
 
     public static void rotateViewGroupChild(ViewGroup viewGroup, int orientation, long duration) {
         for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(duration).start();
+            viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(duration)
+                    .setInterpolator(Motion.emphasized(viewGroup.getContext())).start();
         }
     }
 

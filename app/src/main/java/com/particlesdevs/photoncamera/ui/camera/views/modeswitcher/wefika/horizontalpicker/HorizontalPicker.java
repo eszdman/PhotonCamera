@@ -29,7 +29,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.*;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.animation.DecelerateInterpolator;
+import android.view.animation.AnimationUtils;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
 
@@ -177,7 +177,8 @@ public class HorizontalPicker extends View {
         setWillNotDraw(false);
 
         flingScrollerX = new OverScroller(context);
-        adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
+        adjustScrollerX = new OverScroller(context,
+                AnimationUtils.loadInterpolator(context, R.interpolator.m3_emphasized_decelerate));
 
         initializeConstants(context, values, sideItems);
 

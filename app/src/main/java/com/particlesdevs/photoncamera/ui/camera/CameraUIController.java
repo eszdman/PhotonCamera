@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.CountdownTimer;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
@@ -110,7 +111,8 @@ final class CameraUIController implements CameraUIEventsListener,
                 break;
 
             case R.id.flip_camera_button:
-                view.animate().rotationBy(180).setDuration(450).start();
+                view.animate().rotationBy(180).setDuration(Motion.durationLong1(view.getContext()))
+                        .setInterpolator(Motion.emphasized(view.getContext())).start();
                 //cameraFragment.textureView.animate().rotationBy(360).setDuration(450).start();
                 //PreferenceKeys.setCameraID(cycler(PreferenceKeys.getCameraID()));
                 setID(cameraFragment.cycler(PreferenceKeys.getCameraID()));

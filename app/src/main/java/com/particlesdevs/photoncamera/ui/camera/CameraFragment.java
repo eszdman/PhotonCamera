@@ -83,6 +83,7 @@ import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleImpl;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
@@ -533,7 +534,9 @@ public class CameraFragment extends Fragment {
             if (target instanceof SettingsBarLayout && backProgressTarget == BACK_TARGET_SETTINGS_BAR) {
                 ((SettingsBarLayout) target).cancelBackProgress();
             } else if (target != null && backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
-                target.animate().setDuration(200).alpha(1f).translationY(0f).start();
+                target.animate().setDuration(Motion.durationMedium2(target.getContext()))
+                        .setInterpolator(Motion.emphasized(target.getContext()))
+                        .alpha(1f).translationY(0f).start();
             }
             backProgressTarget = BACK_TARGET_NONE;
         }

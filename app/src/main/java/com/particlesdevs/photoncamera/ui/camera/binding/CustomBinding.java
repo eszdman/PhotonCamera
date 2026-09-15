@@ -9,6 +9,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
@@ -31,7 +32,8 @@ public class CustomBinding {
     @BindingAdapter("bindRotate")
     public static void rotateView(View view, CameraFragmentModel model) {
         if (model != null)
-            view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
+            view.animate().rotation(model.getOrientation()).setDuration(model.getDuration())
+                    .setInterpolator(Motion.emphasized(view.getContext())).start();
     }
 
     /**
@@ -47,7 +49,8 @@ public class CustomBinding {
         if (model != null) {
             int orientation = model.getOrientation();
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
-                viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(model.getDuration()).start();
+                viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(model.getDuration())
+                        .setInterpolator(Motion.emphasized(viewGroup.getContext())).start();
             }
         }
     }
@@ -86,11 +89,15 @@ public class CustomBinding {
         if (viewGroup != null)
             if (visible)
                 viewGroup.post(() -> {
-                    viewGroup.animate().setDuration(200).alpha(1).translationY(0).scaleX(1).scaleY(1).start();
+                    viewGroup.animate().setDuration(Motion.durationMedium2(viewGroup.getContext()))
+                            .setInterpolator(Motion.emphasized(viewGroup.getContext()))
+                            .alpha(1).translationY(0).scaleX(1).scaleY(1).start();
                     viewGroup.setVisibility(View.VISIBLE);
                 });
             else
-                viewGroup.post(() -> viewGroup.animate().setDuration(200).alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
+                viewGroup.post(() -> viewGroup.animate().setDuration(Motion.durationMedium2(viewGroup.getContext()))
+                        .setInterpolator(Motion.emphasizedDecelerate(viewGroup.getContext()))
+                        .alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
                         .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.INVISIBLE))
                         .start());
     }

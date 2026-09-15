@@ -29,6 +29,7 @@ import android.widget.LinearLayout;
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
@@ -128,11 +129,15 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     public void setAuxButtonsHidden(boolean hidden) {
         hiddenBySettings = hidden;
         if (hidden) {
-            animate().setDuration(200).alpha(0).scaleX(0).scaleY(0)
+            animate().setDuration(Motion.durationShort4(getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(getContext()))
+                    .alpha(0).scaleX(0).scaleY(0)
                     .withEndAction(() -> setVisibility(View.INVISIBLE)).start();
         } else {
             updateVisibility();
-            animate().setDuration(200).alpha(1).scaleX(1).scaleY(1).start();
+            animate().setDuration(Motion.durationShort4(getContext()))
+                    .setInterpolator(Motion.emphasized(getContext()))
+                    .alpha(1).scaleX(1).scaleY(1).start();
         }
     }
 

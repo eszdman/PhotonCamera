@@ -39,6 +39,7 @@ import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
@@ -143,7 +144,9 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
 
     /** Restores the fully-open transform after a cancelled predictive back gesture. */
     public void cancelBackProgress() {
-        animate().setDuration(200).alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).start();
+        animate().setDuration(Motion.durationMedium2(getContext()))
+                .setInterpolator(Motion.emphasized(getContext()))
+                .alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).start();
     }
 
     private int getResolvedAttr(Context context, int attrId) {

@@ -15,6 +15,7 @@ import androidx.viewbinding.ViewBinding;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.GalleryItemClickedListener;
@@ -30,7 +31,6 @@ import java.util.List;
  */
 public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.GridItemViewHolder> {
 
-    private static final int SELECTION_ANIMATION_DURATION = 250;
     private static final int RESTING_RADIUS = Utilities.dpToPx(12);
     private static final int ANIMATE_RADIUS = Utilities.dpToPx(20);
     private static final int SELECTION_STROKE_WIDTH = Utilities.dpToPx(2);
@@ -214,13 +214,16 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     }
 
     private void animatedSelect(View view, boolean select) {
-        view.animate().setDuration(SELECTION_ANIMATION_DURATION).scaleX(select ? SELECTION_SCALE_DOWN_FACTOR : 1f).scaleY(select ? SELECTION_SCALE_DOWN_FACTOR : 1f);
+        view.animate().setDuration(Motion.durationShort4(view.getContext()))
+                .setInterpolator(Motion.emphasized(view.getContext()))
+                .scaleX(select ? SELECTION_SCALE_DOWN_FACTOR : 1f).scaleY(select ? SELECTION_SCALE_DOWN_FACTOR : 1f);
         MaterialCardView card = (MaterialCardView) view;
         card.setStrokeColor(MaterialColors.getColor(card, R.attr.colorPrimary, 0));
         card.setStrokeWidth(select ? SELECTION_STROKE_WIDTH : 0);
         final ValueAnimator animator = ValueAnimator.ofFloat(select ? RESTING_RADIUS : ANIMATE_RADIUS, select ? ANIMATE_RADIUS : RESTING_RADIUS);
-        animator.setDuration(SELECTION_ANIMATION_DURATION)
-                .addUpdateListener(animation -> {
+        animator.setDuration(Motion.durationShort4(view.getContext()));
+        animator.setInterpolator(Motion.emphasized(view.getContext()));
+        animator.addUpdateListener(animation -> {
                     float value = (float) animation.getAnimatedValue();
                     card.setRadius(value);
                 });

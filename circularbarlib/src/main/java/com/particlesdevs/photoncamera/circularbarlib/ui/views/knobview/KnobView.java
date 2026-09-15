@@ -15,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -442,7 +443,8 @@ public class KnobView extends View {
 
     private void setKnobViewRotationSmooth(double rotation) {
         ValueAnimator animation = ValueAnimator.ofFloat((float) this.m_DrawableCurrentDegree, (float) rotation);
-        animation.setDuration(100);
+        animation.setDuration(Motion.durationShort2(getContext()));
+        animation.setInterpolator(Motion.emphasized(getContext()));
         animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation((double) (Float) animation1.getAnimatedValue()));
         animation.start();
     }

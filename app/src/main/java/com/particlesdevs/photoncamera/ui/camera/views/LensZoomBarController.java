@@ -9,6 +9,7 @@ import android.widget.SeekBar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.ZoomSliderMapper;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 
@@ -119,6 +120,8 @@ public class LensZoomBarController {
         if (hidden) {
             handler.removeCallbacks(collapseRunnable);
             expanded = false;
+            slider.animate().cancel();
+            slider.setAlpha(1f);
             slider.setVisibility(View.GONE);
         }
         updateBarVisibility();
@@ -127,13 +130,20 @@ public class LensZoomBarController {
     public void onPause() {
         handler.removeCallbacks(collapseRunnable);
         expanded = false;
+        slider.animate().cancel();
+        slider.setAlpha(1f);
         slider.setVisibility(View.GONE);
         updateBarVisibility();
     }
 
     private void expand() {
         expanded = true;
+        slider.animate().cancel();
         slider.setVisibility(View.VISIBLE);
+        slider.setAlpha(0f);
+        slider.animate().alpha(1f)
+                .setDuration(Motion.durationShort3(slider.getContext()))
+                .setInterpolator(Motion.emphasized(slider.getContext())).start();
         syncSlider();
         updateBarVisibility();
         scheduleCollapse();
@@ -141,7 +151,15 @@ public class LensZoomBarController {
 
     private void collapse() {
         expanded = false;
-        slider.setVisibility(View.GONE);
+        slider.animate().alpha(0f)
+                .setDuration(Motion.durationShort2(slider.getContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(slider.getContext()))
+                .withEndAction(() -> {
+                    if (!expanded) {
+                        slider.setVisibility(View.GONE);
+                        slider.setAlpha(1f);
+                    }
+                }).start();
         updateBarVisibility();
     }
 

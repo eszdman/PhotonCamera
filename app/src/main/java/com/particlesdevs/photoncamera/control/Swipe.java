@@ -13,6 +13,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
@@ -49,7 +50,8 @@ public class Swipe {
         cameraFragmentViewModel = cameraFragment.getCameraFragmentViewModel();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
         manualModeConsole.setPanelVisibility(false);
-        ocManual.animate().rotation(0).setDuration(250).start();
+        ocManual.animate().rotation(0).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
         ocManual.setOnClickListener((v) -> {
             if (!manualModeConsole.isPanelVisible()) {
                 SwipeUp();
@@ -192,7 +194,8 @@ public class Swipe {
         if (cameraFragmentViewModel.isSettingsBarVisible()) {
             cameraFragmentViewModel.setSettingsBarVisible(false);
         } else {
-            ocManual.animate().rotation(180).setDuration(250).start();
+            ocManual.animate().rotation(180).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                    .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
             manualModeConsole.setPanelVisibility(true);
 //        cameraFragment.getCaptureController().rebuildPreview();
             cameraFragment.getTouchFocus().resetFocusCircle();
@@ -202,7 +205,8 @@ public class Swipe {
 
     public void SwipeDown() {
         if (manualModeConsole.isPanelVisible()) {
-            ocManual.animate().rotation(0).setDuration(250).start();
+            ocManual.animate().rotation(0).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                    .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
             // Capture before the resets below clear the values: if no knob was
             // touched, there is nothing to re-apply and the preview session can
