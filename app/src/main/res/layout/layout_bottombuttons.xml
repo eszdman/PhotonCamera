@@ -78,22 +78,21 @@
                     tools:ignore="HardcodedText"
                     tools:text="Shot"/>
 
-            <ProgressBar
+            <!-- Burst/processing ring: the M3E wavy expressive indicator, thick
+                 and bright enough to read against the shutter disc. -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/processing_progress_bar"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:indeterminate="false"
                     android:max="100"
                     tools:progress="50"
-                    android:progressDrawable="@drawable/circular_progress_bar2"
-                    android:indeterminateBehavior="cycle"
-                    android:indeterminateDuration="2000"
-                    android:indeterminateDrawable="@drawable/circular_progress_bar2"
-                    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
-                    android:scaleX="1.35"
-                    android:scaleY="1.35"
-                    />
+                    app:indicatorSize="72dp"
+                    app:trackThickness="5dp"
+                    app:indicatorColor="@color/cam_primary"
+                    app:trackColor="@color/cam_outline" />
 
             <TextView
                     android:id="@+id/frameCount"

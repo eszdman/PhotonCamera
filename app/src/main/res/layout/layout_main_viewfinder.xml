@@ -97,19 +97,19 @@
                 app:layout_constraintTop_toTopOf="@id/texture" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!--Capture Progress circle-->
-        <ProgressBar
+        <!--Capture Progress circle: thick M3E ring so it reads on the dark viewfinder -->
+        <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/capture_progress_bar"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                style="@style/Widget.Material3.CircularProgressIndicator"
                 android:layout_width="@dimen/capture_progress_circle_size"
                 android:layout_height="@dimen/capture_progress_circle_size"
                 tools:progress="75"
-                app:layout_constraintDimensionRatio="1:1"
                 android:indeterminate="false"
                 android:max="100"
-                android:progressDrawable="@drawable/circular_progress_bar"
                 android:layout_gravity="center"
-                />
+                app:trackThickness="6dp"
+                app:indicatorColor="@color/cam_primary"
+                app:trackColor="@color/cam_outline" />
 
         <TextView
                 android:id="@+id/frameTimer"
