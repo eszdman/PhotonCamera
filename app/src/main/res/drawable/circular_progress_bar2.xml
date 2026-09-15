@@ -11,7 +11,7 @@
                     android:shape="ring"
                     android:useLevel="false"
                     android:thicknessRatio="40">
-                <solid android:color="@color/white_theme_background"/>
+                <solid android:color="@color/cam_outline"/>
             </shape>
         </rotate>
     </item>

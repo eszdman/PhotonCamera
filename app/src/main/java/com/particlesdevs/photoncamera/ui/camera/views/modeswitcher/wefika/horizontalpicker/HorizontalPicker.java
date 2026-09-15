@@ -100,6 +100,7 @@ public class HorizontalPicker extends View {
     private int lastTickItem = -1;
     private ColorStateList textColor;
     private final int selectedTextColor;
+    private final int selectedBackgroundColor;
     private OnItemSelected onItemSelected;
     private OnItemClicked onItemClicked;
     private int selectedItem;
@@ -160,6 +161,7 @@ public class HorizontalPicker extends View {
             dividerSize = typedArray.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
             sideItems = typedArray.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
             selectedTextColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
+            selectedBackgroundColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedBackgroundColor, 0X00FFFFFF);
             float textSize = typedArray.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
@@ -333,7 +335,7 @@ public class HorizontalPicker extends View {
                     background.left = itemClipBounds.left + margin;
                     background.right = itemClipBounds.right - margin;
 
-                    paint.setColor(Color.WHITE);
+                    paint.setColor(selectedBackgroundColor);
                     canvas.drawRoundRect(background, 100, 100, paint);
                 }
                 canvas.clipRect(clipBounds);

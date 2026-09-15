@@ -3,14 +3,12 @@
         xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="oval">
-            <corners android:radius="20dp"/>
-            <solid android:color="?android:colorControlActivated"/>
+            <solid android:color="@color/cam_primary_container"/>
             <size android:height="@dimen/aux_button_size" android:width="@dimen/aux_button_size"/>
         </shape>
     </item>
     <item>
         <shape android:shape="oval">
-            <corners android:radius="20dp"/>
             <solid android:color="#00000000"/>
             <size android:height="@dimen/aux_button_size" android:width="@dimen/aux_button_size"/>
         </shape>

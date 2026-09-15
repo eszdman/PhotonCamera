@@ -59,8 +59,12 @@
 
     <style name="AuxButtonText">
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/black_white_selectable</item>
+        <item name="android:textColor">@color/cam_icon_tint</item>
         <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">
+        <item name="android:textColor">@color/cam_primary</item>
     </style>
 
     <style name="SettingsTitleTextAppearance" parent="TextAppearance.Material3.TitleLarge">

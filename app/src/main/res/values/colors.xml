@@ -16,10 +16,24 @@
     <color name="LauncherBackground">#00000000</color>
     <color name="colorText">#B794F6</color>
     <color name="colorSeparator">#616161</color>
-    <color name="panel_transparency">#40000000</color>
+    <!-- Fixed dark palette for the camera viewfinder chrome. The viewfinder is always dark,
+         independent of the app's light/dark Material You theme. -->
+    <color name="cam_surface">#CC121417</color>
+    <color name="cam_surface_container">#991E2227</color>
+    <color name="cam_surface_container_high">#E6262B31</color>
+    <color name="cam_on_surface">#F2FFFFFF</color>
+    <color name="cam_on_surface_variant">#B3FFFFFF</color>
+    <color name="cam_outline">#4DFFFFFF</color>
+    <color name="cam_primary">#FFA8C7FA</color>
+    <color name="cam_on_primary">#FF08305F</color>
+    <color name="cam_primary_container">#FF2B4A6F</color>
+    <color name="cam_on_primary_container">#FFD3E3FD</color>
+    <color name="cam_error">#FFFFB4AB</color>
+
+    <color name="panel_transparency">@color/cam_surface_container_high</color>
     <color name="transparent_focus_circle">#20000000</color>
     <color name="white">#FFFFFF</color>
-    <color name="aux_container_color">#99000000</color>
+    <color name="aux_container_color">@color/cam_surface_container</color>
     <color name="grid_thumbnail_background">#AAAAAA</color>
     <color name="white_theme_background">#F0EEE9</color>
 </resources>

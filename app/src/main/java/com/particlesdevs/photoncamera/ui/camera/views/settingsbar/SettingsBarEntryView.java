@@ -21,13 +21,14 @@
 package com.particlesdevs.photoncamera.ui.camera.views.settingsbar;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
@@ -66,7 +67,7 @@ public class SettingsBarEntryView extends LinearLayout {
         stateTextView.setId(android.R.id.summary);
         stateTextView.setGravity(CENTER_VERTICAL);
         stateTextView.setTextAlignment(TEXT_ALIGNMENT_VIEW_END);
-        stateTextView.setTextColor(getResolvedAttrData(context, android.R.attr.colorControlActivated));
+        stateTextView.setTextColor(ContextCompat.getColor(context, R.color.cam_primary));
         LayoutParams textViewParam = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         textViewParam.setMargins(dp(2), dp(2), dp(2), dp(2));
 
@@ -89,7 +90,7 @@ public class SettingsBarEntryView extends LinearLayout {
                 ImageButton button = new ImageButton(context);
                 button.setId(buttonModel.getId());
                 button.setImageResource(buttonModel.getButtonDrawableId());
-                button.setImageTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_selected}, new int[]{-android.R.attr.state_selected}}, new int[]{Color.BLACK, Color.WHITE}));
+                button.setImageTintList(AppCompatResources.getColorStateList(context, R.color.cam_icon_tint));
                 button.setBackgroundResource(R.drawable.aux_button_background);
                 button.setCropToPadding(false);
                 button.setOnClickListener(buttonModel.getButtonClickListener());
@@ -114,9 +115,4 @@ public class SettingsBarEntryView extends LinearLayout {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, f, getContext().getResources().getDisplayMetrics());
     }
 
-    private int getResolvedAttrData(Context context, int attrId) {
-        TypedValue outValue = new TypedValue();
-        context.getTheme().resolveAttribute(attrId, outValue, true);
-        return outValue.data;
-    }
 }

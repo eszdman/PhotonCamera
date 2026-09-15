@@ -5,7 +5,7 @@
     android:height="24dp"
     android:viewportWidth="960"
     android:viewportHeight="960"
-    android:tint="@color/black_white_selectable">
+    android:tint="@color/cam_icon_tint">
     <group android:translateY="960">
         <path
             android:fillColor="#FF000000"

@@ -13,7 +13,7 @@
             android:angle="0"
             android:type="sweep"
             android:thicknessRatio="40.0">
-            <solid android:color="#44DDDDDD"/>
+            <solid android:color="@color/cam_outline"/>
         </shape>
 
     </item>
@@ -27,7 +27,7 @@
                 android:angle="0"
                 android:type="sweep"
                 android:thicknessRatio="40.0">
-                <solid android:color="#DDDDDD"/>
+                <solid android:color="@color/cam_primary"/>
             </shape>
         </rotate>
     </item>
