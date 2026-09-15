@@ -5,9 +5,8 @@ import android.text.InputType;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 
-import androidx.appcompat.app.AlertDialog;
-
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -108,8 +107,7 @@ public class TunableKeyDialog {
             });
         }
 
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        BlurSupport.show(builder.create());
         nameEdit.requestFocus();
     }
 

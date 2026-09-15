@@ -14,144 +14,171 @@
         android:id="@+id/exif_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/exif_background"
-        android:orientation="vertical"
-        android:padding="10dp">
-    <TextView
-            android:id="@+id/value_filename"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        android:background="@drawable/exif_background">
+
+    <!-- Frosted-glass backdrop: a blurred capture of the photo behind the panel,
+         spanning the full rounded panel. The blur, scrim and rounded corners are
+         all baked into the bitmap. -->
+    <ImageView
+            android:id="@+id/exif_blur_backdrop"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:textAlignment="center"
-            android:text="@{exifmodel.title}"
-            tools:text="FILE_NAME.JPG"
-            android:textColor="@color/cam_on_surface"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:padding="5dp"
-    />
+            tools:background="#66121417"
+            tools:visibility="visible" />
 
+    <!-- Padded content, kept separate so the backdrop above can span the full panel. -->
     <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/exif_container"
-            android:padding="5dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/value_filename"
-            app:layout_constraintBottom_toTopOf="@id/histogram_container"
-            android:paddingRight="20dp"
-            android:paddingLeft="20dp"
-    >
-        <TextView
-                android:id="@+id/value_device"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="Google Pixel 3"
-                android:text="@{exifmodel.device}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                android:padding="5dp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/value_flength"
-        />
-        <TextView
-                android:id="@+id/value_flength"
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                tools:text="3.80dp"
-                android:text="@{exifmodel.focal}"
-                android:padding="5dp"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                tools:textStyle="normal"
-                android:textAlignment="center"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/value_device"
-                app:layout_constraintEnd_toStartOf="@id/value_fnumber"
-                app:layout_constraintBottom_toBottomOf="parent"/>
-        <TextView
-                android:id="@+id/value_fnumber"
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                android:padding="5dp"
-                tools:text="\u0192/1.8"
-                android:text="@{exifmodel.fnum}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                tools:textStyle="normal"
-                android:textAlignment="center"
-                app:layout_constraintStart_toEndOf="@+id/value_flength"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/value_exposure"
-                app:layout_constraintTop_toBottomOf="@id/value_device"/>
-        <TextView
-                android:id="@+id/value_exposure"
-                android:layout_width="wrap_content"
-                android:layout_height="0dp"
-                tools:text="1/30000s"
-                android:text="@{exifmodel.exposure}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                android:padding="5dp"
-                tools:textStyle="normal"
-                android:textAlignment="center"
-                app:layout_constraintStart_toEndOf="@+id/value_fnumber"
-                app:layout_constraintTop_toTopOf="@+id/value_flength"
-                app:layout_constraintEnd_toStartOf="@id/value_iso"
-                app:layout_constraintBottom_toBottomOf="@id/value_flength"
-        />
-
-        <TextView
-                android:id="@+id/value_iso"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="ISO12800"
-                android:text="@{exifmodel.iso}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                android:padding="5dp"
-                tools:textStyle="normal"
-                android:textAlignment="center"
-                app:layout_constraintStart_toEndOf="@+id/value_exposure"
-                app:layout_constraintTop_toTopOf="@+id/value_exposure"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="@id/value_flength"
-        />
-
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-    <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/exif_content"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:id="@+id/histogram_container"
-            app:layout_constraintStart_toStartOf="parent"
+            android:padding="10dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/exif_container"
-            app:layout_constraintBottom_toTopOf="@id/file_info_container">
-        <androidx.core.widget.ContentLoadingProgressBar
-                android:id="@+id/histo_loading"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:progressDrawable="@drawable/circular_progress_bar2"
-                android:indeterminateDrawable="@drawable/circular_progress_bar2"
-                android:interpolator="@android:anim/cycle_interpolator"
-                android:indeterminate="true"
-                android:visibility="invisible"
-                tools:visibility="visible"
-                android:layout_marginTop="3dp"
-                android:layout_marginEnd="27dp"
-                app:layout_constraintVertical_bias="0"
-                app:layout_constraintHorizontal_bias="1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+                android:id="@+id/value_filename"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
+                app:layout_constraintTop_toTopOf="parent"
+                android:textAlignment="center"
+                android:text="@{exifmodel.title}"
+                tools:text="FILE_NAME.JPG"
+                android:textColor="@color/cam_on_surface"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:padding="5dp"
+        />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/exif_container"
+                android:padding="5dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/value_filename"
+                app:layout_constraintBottom_toTopOf="@id/histogram_container"
+                android:paddingRight="20dp"
+                android:paddingLeft="20dp"
+        >
+            <TextView
+                    android:id="@+id/value_device"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="Google Pixel 3"
+                    android:text="@{exifmodel.device}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintBottom_toTopOf="@id/value_flength"
+            />
+            <TextView
+                    android:id="@+id/value_flength"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    tools:text="3.80dp"
+                    android:text="@{exifmodel.focal}"
+                    android:padding="5dp"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    tools:textStyle="normal"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/value_device"
+                    app:layout_constraintEnd_toStartOf="@id/value_fnumber"
+                    app:layout_constraintBottom_toBottomOf="parent"/>
+            <TextView
+                    android:id="@+id/value_fnumber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:padding="5dp"
+                    tools:text="\u0192/1.8"
+                    android:text="@{exifmodel.fnum}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    tools:textStyle="normal"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toEndOf="@+id/value_flength"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/value_exposure"
+                    app:layout_constraintTop_toBottomOf="@id/value_device"/>
+            <TextView
+                    android:id="@+id/value_exposure"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    tools:text="1/30000s"
+                    android:text="@{exifmodel.exposure}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    tools:textStyle="normal"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toEndOf="@+id/value_fnumber"
+                    app:layout_constraintTop_toTopOf="@+id/value_flength"
+                    app:layout_constraintEnd_toStartOf="@id/value_iso"
+                    app:layout_constraintBottom_toBottomOf="@id/value_flength"
+            />
+
+            <TextView
+                    android:id="@+id/value_iso"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="ISO12800"
+                    android:text="@{exifmodel.iso}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    tools:textStyle="normal"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toEndOf="@+id/value_exposure"
+                    app:layout_constraintTop_toTopOf="@+id/value_exposure"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintBottom_toBottomOf="@id/value_flength"
+            />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:id="@+id/histogram_container"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/exif_container"
+                app:layout_constraintBottom_toTopOf="@id/file_info_container">
+            <androidx.core.widget.ContentLoadingProgressBar
+                    android:id="@+id/histo_loading"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:progressDrawable="@drawable/circular_progress_bar2"
+                    android:indeterminateDrawable="@drawable/circular_progress_bar2"
+                    android:interpolator="@android:anim/cycle_interpolator"
+                    android:indeterminate="true"
+                    android:visibility="invisible"
+                    tools:visibility="visible"
+                    android:layout_marginTop="3dp"
+                    android:layout_marginEnd="27dp"
+                    app:layout_constraintVertical_bias="0"
+                    app:layout_constraintHorizontal_bias="1"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"/>
 
             <com.particlesdevs.photoncamera.gallery.views.Histogram
                     android:id="@+id/histogram_view"
@@ -166,81 +193,82 @@
                     app:layout_constraintTop_toTopOf="parent"
                     bindHistogram="@{exifmodel.histogramModel}"/>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/file_info_container"
-            android:padding="5dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/histogram_container"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-        <TextView
-                android:id="@+id/value_res"
+        <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                tools:text="4000x3000"
-                android:text="@{exifmodel.res}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
+                android:id="@+id/file_info_container"
                 android:padding="5dp"
-                android:textAlignment="center"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/value_date"
-                app:layout_constraintEnd_toStartOf="@id/value_res_mp"
-        />
-        <TextView
-                android:id="@+id/value_res_mp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="12.0MP"
-                android:text="@{exifmodel.res_mp}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                android:padding="5dp"
-                android:textAlignment="center"
-                app:layout_constraintStart_toEndOf="@id/value_res"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/value_filesize"
-                app:layout_constraintBottom_toTopOf="@id/value_date"
-        />
-        <TextView
-                android:id="@+id/value_filesize"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="5.6MB"
-                android:text="@{exifmodel.file_size}"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                tools:textStyle="normal"
-                android:padding="5dp"
-                android:textAlignment="center"
-                app:layout_constraintStart_toEndOf="@+id/value_res_mp"
-                app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="@id/value_res"/>
-        <TextView
-                android:id="@+id/value_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="22:08:2020 15:05:03"
-                android:text="@{exifmodel.date}"
-                android:padding="5dp"
-                android:textColor="@color/cam_on_surface"
-                android:textSize="16sp"
-                tools:textStyle="normal"
-                android:textAlignment="center"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/value_res"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintTop_toBottomOf="@id/histogram_container"
+                app:layout_constraintBottom_toBottomOf="parent">
 
+            <TextView
+                    android:id="@+id/value_res"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="4000x3000"
+                    android:text="@{exifmodel.res}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toTopOf="@id/value_date"
+                    app:layout_constraintEnd_toStartOf="@id/value_res_mp"
+            />
+            <TextView
+                    android:id="@+id/value_res_mp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="12.0MP"
+                    android:text="@{exifmodel.res_mp}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    android:padding="5dp"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toEndOf="@id/value_res"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/value_filesize"
+                    app:layout_constraintBottom_toTopOf="@id/value_date"
+            />
+            <TextView
+                    android:id="@+id/value_filesize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="5.6MB"
+                    android:text="@{exifmodel.file_size}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    tools:textStyle="normal"
+                    android:padding="5dp"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toEndOf="@+id/value_res_mp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintBottom_toBottomOf="@id/value_res"/>
+            <TextView
+                    android:id="@+id/value_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="22:08:2020 15:05:03"
+                    android:text="@{exifmodel.date}"
+                    android:padding="5dp"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="16sp"
+                    tools:textStyle="normal"
+                    android:textAlignment="center"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/value_res"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

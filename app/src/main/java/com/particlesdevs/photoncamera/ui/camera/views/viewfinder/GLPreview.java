@@ -227,4 +227,15 @@ public class GLPreview extends GLSurfaceView {
     public void scale(int in_width, int in_height, int out_width, int out_height, int or) {
         mRenderer.scale(in_width, in_height, out_width, out_height, or);
     }
+
+    /**
+     * Enables/drives the live frosted-glass backdrops for the camera panels.
+     * Pass specs built in this view's pixel space, or {@code null}/empty to
+     * disable. Safe to call from the UI thread.
+     */
+    public void setPanelBlur(java.util.List<MainRenderer.PanelBlurSpec> specs) {
+        if (mRenderer != null) {
+            mRenderer.setPanelBlurSpecs(specs);
+        }
+    }
 }

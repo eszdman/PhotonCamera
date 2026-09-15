@@ -28,7 +28,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.content.ContextCompat;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
@@ -67,7 +66,8 @@ public class SettingsBarEntryView extends LinearLayout {
         stateTextView.setId(android.R.id.summary);
         stateTextView.setGravity(CENTER_VERTICAL);
         stateTextView.setTextAlignment(TEXT_ALIGNMENT_VIEW_END);
-        stateTextView.setTextColor(ContextCompat.getColor(context, R.color.cam_primary));
+        stateTextView.setTextColor(resolveThemeColor(context,
+                R.attr.colorPrimary, 0xFFA8C7FA));
         LayoutParams textViewParam = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         textViewParam.setMargins(dp(2), dp(2), dp(2), dp(2));
 
@@ -113,6 +113,20 @@ public class SettingsBarEntryView extends LinearLayout {
 
     private int dp(float f) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, f, getContext().getResources().getDisplayMetrics());
+    }
+
+    /**
+     * Resolves a theme attribute to a color, falling back to a fixed value so
+     * a lookup can never crash inflation or binding.
+     */
+    private static int resolveThemeColor(Context context, int attrRes, int fallback) {
+        TypedValue value = new TypedValue();
+        if (context.getTheme().resolveAttribute(attrRes, value, true)
+                && value.type >= TypedValue.TYPE_FIRST_COLOR_INT
+                && value.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+            return value.data;
+        }
+        return fallback;
     }
 
 }

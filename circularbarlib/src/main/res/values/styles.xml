@@ -11,6 +11,13 @@
         <item name="android:shadowRadius">1</item>
     </style>
 
+    <!-- Option labels in the manual bar sit on the bar's scrim / selection pill,
+         so they are flat (no drop shadow); the pill keeps the black-on-container
+         label crisp. -->
+    <style name="ManualOptionText">
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="ManualModeKnobText" parent="BoldTextWithShadow">
         <item name="android:textSize">@dimen/manual_knob_text_size</item>
         <item name="android:textStyle">bold</item>

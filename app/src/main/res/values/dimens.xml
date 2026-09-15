@@ -22,6 +22,11 @@
     <dimen name="preference_icon_size">24dp</dimen>
     <dimen name="preference_icon_margin">16dp</dimen>
     <dimen name="aux_container_margin">6dp</dimen>
+    <dimen name="cam_panel_corner_radius">28dp</dimen>
+    <dimen name="cam_panel_blur_radius">32dp</dimen>
+    <!-- Tangent fillet blending the manual selector scrim's bottom corners into
+         its bottom edge (a larger radius visibly narrows the dome's base). -->
+    <dimen name="cam_panel_scrim_fillet_radius">8dp</dimen>
     <dimen name="aux_button_size">35dp</dimen>
     <dimen name="aux_button_internal_margin">3dp</dimen>
     <dimen name="lens_zoom_slider_width">180dp</dimen>

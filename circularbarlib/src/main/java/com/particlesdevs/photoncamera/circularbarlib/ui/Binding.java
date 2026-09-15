@@ -73,12 +73,25 @@ public class Binding {
         view.setKnobItemsRotation(Rotation.fromDeviceOrientation(orientation));
     }
 
-    public static void rotateViewGroupChild(ViewGroup viewGroup, int orientation, long duration) {
-        for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(duration)
-                    .setInterpolator(Motion.emphasized(viewGroup.getContext())).start();
+    /**
+     * Rotates each option label inside its (unrotated) cell. The selection pill
+     * lives on the cell, so keeping it upright prevents the rotated pill from
+     * being clipped to a hard-cornered rectangle by the bar in landscape.
+     */
+    public static void rotateManualOptionContent(ViewGroup bar, int orientation, long duration) {
+        if (bar == null) {
+            return;
+        }
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            View child = bar.getChildAt(i);
+            if (child instanceof ViewGroup) {
+                ViewGroup cell = (ViewGroup) child;
+                for (int j = 0; j < cell.getChildCount(); j++) {
+                    cell.getChildAt(j).animate().rotation(orientation).setDuration(duration)
+                            .setInterpolator(Motion.emphasized(cell.getContext())).start();
+                }
+            }
         }
     }
-
 
 }

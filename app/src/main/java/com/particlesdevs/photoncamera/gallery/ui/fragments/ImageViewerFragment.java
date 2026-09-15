@@ -2,21 +2,30 @@ package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.PointF;
+import android.graphics.RenderEffect;
+import android.graphics.RuntimeShader;
+import android.graphics.Shader;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -61,6 +70,41 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
+    /** Blur radius applied to the EXIF panel backdrop, in dp. */
+    private static final float EXIF_BLUR_RADIUS_DP = 32f;
+    /** Downscale of the captured backdrop bitmap (keeps both capture and software blur cheap). */
+    private static final float EXIF_BLUR_CAPTURE_SCALE = 4f;
+    /** 40% dark scrim baked into the backdrop for text legibility. */
+    private static final int EXIF_BLUR_SCRIM = 0x66121417;
+    /** Minimum interval between backdrop refreshes while panning/zooming. */
+    private static final long EXIF_BLUR_THROTTLE_MS = 80L;
+    /**
+     * Rounded-corner mask applied *after* the GPU blur. Only RenderEffect chains
+     * can mask after a blur without smearing the content back into the corners.
+     */
+    private static final String EXIF_MASK_AGSL =
+            "uniform shader content;\n" +
+            "uniform float2 size;\n" +
+            "uniform float radius;\n" +
+            "half4 main(float2 coord) {\n" +
+            "    float2 halfSize = size * 0.5;\n" +
+            "    float2 d = abs(coord - halfSize) - max(halfSize - radius, float2(0.0));\n" +
+            "    float dist = length(max(d, float2(0.0))) + min(max(d.x, d.y), 0.0) - radius;\n" +
+            "    float mask = 1.0 - smoothstep(-1.0, 1.0, dist);\n" +
+            "    half4 c = content.eval(coord);\n" +
+            "    return half4(c.rgb * mask, c.a * mask);\n" +
+            "}\n";
+
+    private final Bitmap[] exifBlurBuffers = new Bitmap[2];
+    private int exifBlurBufferIndex;
+    private int exifBlurLayoutRetries;
+    private RuntimeShader exifMaskShader;
+    private RenderEffect exifBackdropEffect;
+    private int exifEffectWidth;
+    private int exifEffectHeight;
+    private long exifBlurLastCaptureMs;
+    private final Handler exifBlurHandler = new Handler(Looper.getMainLooper());
+    private final Runnable exifBlurCaptureRunnable = this::captureExifBlur;
     private String mode;
     private int seek_position = 0;
     private int lastHdrPosition = -1;
@@ -77,8 +121,11 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                     viewPager.setUserInputEnabled(true);
                 }
             }
+            scheduleExifBlurRefresh();
         }
-        @Override public void onCenterChanged(PointF newCenter, int origin) {}
+        @Override public void onCenterChanged(PointF newCenter, int origin) {
+            scheduleExifBlurRefresh();
+        }
         @Override public void onTouched(int id) {}
     };
     private int indexToDelete = -1;
@@ -129,6 +176,8 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null) {
             viewPager.removeCallbacks(exifUpdateRunnable);
         }
+        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
+        clearExifBlur();
     }
 
     @Override
@@ -163,7 +212,10 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             adapter.setHdrStateListener(this);
             if (ssivListener != null) adapter.setSsivListener(ssivListener);
             adapter.setImageEventListener(new SubsamplingScaleImageView.DefaultOnImageEventListener() {
-                @Override public void onReady() { updateScaleText(); }
+                @Override public void onReady() {
+                    updateScaleText();
+                    scheduleExifBlurRefresh();
+                }
             });
             viewPager.setAdapter(adapter);
             initLinearRecyclerAdapter(galleryItems);
@@ -457,7 +509,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                     indexToDelete = viewPager.getCurrentItem();
                     GalleryFileOperations.deleteImageFiles(getActivity(), Collections.singletonList((ImageFile) galleryItems.get(indexToDelete).getFile()), this::handleImagesDeletedCallback);
                 });
-        builder.create().show();
+        BlurSupport.show(builder.create());
     }
 
     private void onShareButtonClick(View view) {
@@ -521,6 +573,173 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
             }
         }
+        syncExifBlur();
+    }
+
+    /**
+     * Shows, refreshes or clears the frosted-glass backdrop behind the EXIF
+     * panel. Only the region behind the panel is captured and blurred; the
+     * backdrop is clipped to the panel's rounded corners.
+     */
+    private void syncExifBlur() {
+        if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
+            return;
+        }
+        boolean panelVisible = Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible());
+        if (!panelVisible || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // Below API 33 there is no mask-after-blur; keep the opaque rounded panel.
+            clearExifBlur();
+            return;
+        }
+        // Show the scrim right away: the first blurred frame lands a few ms later
+        // and the opaque panel must not flash in between.
+        if (fragmentGalleryImageViewerBinding.exifLayout != null) {
+            ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+            if (backdrop == null || backdrop.getVisibility() != View.VISIBLE) {
+                View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+                if (panel != null) {
+                    panel.setBackgroundResource(R.drawable.exif_background_scrim);
+                }
+            }
+        }
+        scheduleExifBlurRefresh();
+    }
+
+    /** Throttled backdrop refresh, used while the image is panned or zoomed. */
+    private void scheduleExifBlurRefresh() {
+        if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
+            return;
+        }
+        exifBlurLayoutRetries = 0;
+        long elapsed = SystemClock.uptimeMillis() - exifBlurLastCaptureMs;
+        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
+        if (elapsed >= EXIF_BLUR_THROTTLE_MS) {
+            exifBlurHandler.post(exifBlurCaptureRunnable);
+        } else {
+            exifBlurHandler.postDelayed(exifBlurCaptureRunnable, EXIF_BLUR_THROTTLE_MS - elapsed);
+        }
+    }
+
+    /**
+     * Captures the visible part of the current page that sits behind the panel,
+     * bakes in the 40% scrim and shows it blurred as the panel background.
+     */
+    private void captureExifBlur() {
+        if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
+            return;
+        }
+        exifBlurLastCaptureMs = SystemClock.uptimeMillis();
+        if (!Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        CustomSSIV ssiv = getCurrentSSIV();
+        View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+        ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+        if (ssiv == null || !ssiv.isReady() || panel == null || backdrop == null) {
+            return;
+        }
+        int panelWidth = panel.getWidth();
+        int panelHeight = panel.getHeight();
+        if (panelWidth <= 0 || panelHeight <= 0) {
+            // The panel is shown but not laid out yet: retry briefly on the next frames.
+            if (exifBlurLayoutRetries++ < 10) {
+                exifBlurHandler.postDelayed(exifBlurCaptureRunnable, 32L);
+            }
+            return;
+        }
+        exifBlurLayoutRetries = 0;
+        int bitmapWidth = Math.max(1, Math.round(panelWidth / EXIF_BLUR_CAPTURE_SCALE));
+        int bitmapHeight = Math.max(1, Math.round(panelHeight / EXIF_BLUR_CAPTURE_SCALE));
+        // Ping-pong two buffers: the one currently shown is never written to,
+        // so no draw can ever reference pixels we are modifying.
+        int nextIndex = 1 - exifBlurBufferIndex;
+        Bitmap capture = exifBlurBuffers[nextIndex];
+        if (capture == null || capture.isRecycled()
+                || capture.getWidth() != bitmapWidth || capture.getHeight() != bitmapHeight) {
+            try {
+                capture = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
+            } catch (OutOfMemoryError e) {
+                return;
+            }
+            exifBlurBuffers[nextIndex] = capture;
+        }
+        int[] panelLocation = new int[2];
+        int[] ssivLocation = new int[2];
+        panel.getLocationOnScreen(panelLocation);
+        ssiv.getLocationOnScreen(ssivLocation);
+        Canvas canvas = new Canvas(capture);
+        canvas.scale(1f / EXIF_BLUR_CAPTURE_SCALE, 1f / EXIF_BLUR_CAPTURE_SCALE);
+        canvas.translate(ssivLocation[0] - panelLocation[0], ssivLocation[1] - panelLocation[1]);
+        ssiv.draw(canvas);
+        // Only the scrim is baked here; the blur and rounded mask are applied by
+        // the RenderEffect chain so corners stay crisp.
+        canvas.drawColor(EXIF_BLUR_SCRIM);
+        if (!prepareExifBackdropEffect(panelWidth, panelHeight)) {
+            return;
+        }
+        // Apply the effect before showing the bitmap so the first visible frame
+        // is already blurred (no sharp flash).
+        backdrop.setRenderEffect(exifBackdropEffect);
+        backdrop.setImageBitmap(capture);
+        backdrop.setVisibility(View.VISIBLE);
+        // Keep a rounded (transparent) background so the panel outline stays round.
+        panel.setBackgroundResource(R.drawable.exif_background_transparent);
+        exifBlurBufferIndex = nextIndex;
+    }
+
+    /**
+     * Builds (or refreshes) the GPU effect that blurs the backdrop and then masks
+     * it to the panel's rounded rectangle. Returns false when unavailable.
+     */
+    private boolean prepareExifBackdropEffect(int width, int height) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || width <= 0 || height <= 0) {
+            return false;
+        }
+        if (exifMaskShader == null) {
+            exifMaskShader = new RuntimeShader(EXIF_MASK_AGSL);
+        }
+        if (exifBackdropEffect == null || exifEffectWidth != width || exifEffectHeight != height) {
+            exifMaskShader.setFloatUniform("size", width, height);
+            exifMaskShader.setFloatUniform("radius",
+                    getResources().getDimension(R.dimen.cam_panel_corner_radius));
+            float blurRadius = BlurSupport.dpToPx(requireContext(), EXIF_BLUR_RADIUS_DP);
+            RenderEffect mask = RenderEffect.createRuntimeShaderEffect(exifMaskShader, "content");
+            RenderEffect blur = RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP);
+            exifBackdropEffect = RenderEffect.createChainEffect(mask, blur);
+            exifEffectWidth = width;
+            exifEffectHeight = height;
+        }
+        return true;
+    }
+
+    private void clearExifBlur() {
+        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
+        if (fragmentGalleryImageViewerBinding != null && fragmentGalleryImageViewerBinding.exifLayout != null) {
+            ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+            if (backdrop != null) {
+                backdrop.setVisibility(View.GONE);
+                backdrop.setImageBitmap(null);
+                BlurSupport.clearBlur(backdrop);
+            }
+            View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+            if (panel != null) {
+                panel.setBackgroundResource(R.drawable.exif_background);
+            }
+        }
+        for (int i = 0; i < exifBlurBuffers.length; i++) {
+            Bitmap buffer = exifBlurBuffers[i];
+            if (buffer != null && !buffer.isRecycled()) {
+                buffer.recycle();
+            }
+            exifBlurBuffers[i] = null;
+        }
+        exifBlurBufferIndex = 0;
     }
 
     private void isHistogramLoading(boolean loading) {

@@ -77,7 +77,7 @@ public class ViewObserver implements Observer {
                     prevOrientation = currentOrientation;
                     if (currentOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
                         Binding.rotateKnobView(knobView, rotation);
-                        Binding.rotateViewGroupChild(buttonsContainer, rotation, ROT_DUR);
+                        Binding.rotateManualOptionContent(buttonsContainer, rotation, ROT_DUR);
                     }
                 }
             }
@@ -98,6 +98,17 @@ public class ViewObserver implements Observer {
 
     private <T extends View> T findViewById(int id) {
         return activity.findViewById(id);
+    }
+
+    /**
+     * The selection pill is the background of the (unrotated) cell around the
+     * label, so the cell mirrors the label's selected state.
+     */
+    private void setOptionSelected(TextView textView, boolean selected) {
+        textView.setSelected(selected);
+        if (textView.getParent() instanceof View) {
+            ((View) textView.getParent()).setSelected(selected);
+        }
     }
 
 
@@ -155,11 +166,11 @@ public class ViewObserver implements Observer {
                         View v = findViewById(manualModeModel.getSelectedTextViewId());
                         if (v != null) {
                             for (TextView textView : textViews) {
-                                textView.setSelected(v.equals(textView));
+                                setOptionSelected(textView, v.equals(textView));
                             }
                         } else {
                             for (TextView textView : textViews) {
-                                textView.setSelected(false);
+                                setOptionSelected(textView, false);
                             }
                         }
                         break;

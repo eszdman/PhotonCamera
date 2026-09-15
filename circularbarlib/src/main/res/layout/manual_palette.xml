@@ -11,13 +11,16 @@
     <FrameLayout
         android:id="@+id/knobViewContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp">
 
         <com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
                 tools:visibility="gone"
-                android:layout_height="96dp" />
+                android:layout_height="@dimen/manual_knob_height" />
     </FrameLayout>
 
 
@@ -26,90 +29,144 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/knobViewContainer"
-        android:background="@color/panel_transparency"
-        android:paddingBottom="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/manual_panel_background"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/focus_option_tv"
-            android:layout_width="match_parent"
+        <FrameLayout
+            android:id="@+id/focus_option_cell"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:drawableBottom="@drawable/manual_control_icon_focus"
-            android:drawableTint="@color/manual_text_color"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp"
-            android:textAlignment="center"
-            android:textAppearance="@style/BoldTextWithShadow"
-            android:textColor="@color/manual_text_color"
-            android:textSize="15sp"
-            tools:text="NULL" />
+            android:background="@drawable/manual_option_background">
 
-        <TextView
-            android:id="@+id/exposure_option_tv"
-            android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/focus_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawableBottom="@drawable/manual_control_icon_focus"
+                android:drawableTint="@color/manual_text_color"
+                android:paddingTop="5dp"
+                android:paddingBottom="6dp"
+                android:textAlignment="center"
+                android:textAppearance="@style/ManualOptionText"
+                android:textColor="@color/manual_text_color"
+                android:textSize="15sp"
+                tools:text="NULL" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/exposure_option_cell"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:drawableBottom="@drawable/manual_control_icon_exposure"
-            android:drawableTint="@color/manual_text_color"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp"
-            android:textAlignment="center"
-            android:textAppearance="@style/BoldTextWithShadow"
-            android:textColor="@color/manual_text_color"
-            android:textSize="15sp"
-            tools:text="NULL" />
+            android:background="@drawable/manual_option_background">
+
+            <TextView
+                android:id="@+id/exposure_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawableBottom="@drawable/manual_control_icon_exposure"
+                android:drawableTint="@color/manual_text_color"
+                android:paddingTop="5dp"
+                android:paddingBottom="6dp"
+                android:textAlignment="center"
+                android:textAppearance="@style/ManualOptionText"
+                android:textColor="@color/manual_text_color"
+                android:textSize="15sp"
+                tools:text="NULL" />
+        </FrameLayout>
 
 
-        <TextView
-            android:id="@+id/iso_option_tv"
-            android:layout_width="match_parent"
+        <FrameLayout
+            android:id="@+id/iso_option_cell"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:drawableBottom="@drawable/manual_control_icon_iso"
-            android:drawableTint="@color/manual_text_color"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp"
-            android:textAlignment="center"
-            android:textAppearance="@style/BoldTextWithShadow"
-            android:textColor="@color/manual_text_color"
-            android:textSize="15sp"
-            tools:text="NULL" />
+            android:background="@drawable/manual_option_background">
+
+            <TextView
+                android:id="@+id/iso_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawableBottom="@drawable/manual_control_icon_iso"
+                android:drawableTint="@color/manual_text_color"
+                android:paddingTop="5dp"
+                android:paddingBottom="6dp"
+                android:textAlignment="center"
+                android:textAppearance="@style/ManualOptionText"
+                android:textColor="@color/manual_text_color"
+                android:textSize="15sp"
+                tools:text="NULL" />
+        </FrameLayout>
 
 
-        <TextView
-            android:id="@+id/ev_option_tv"
-            android:layout_width="match_parent"
+        <FrameLayout
+            android:id="@+id/ev_option_cell"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:drawableBottom="@drawable/ic_exposure"
-            android:drawableTint="@color/manual_text_color"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp"
-            android:textAlignment="center"
-            android:textAppearance="@style/BoldTextWithShadow"
-            android:textColor="@color/manual_text_color"
-            android:textSize="15sp"
-            tools:text="NULL" />
+            android:background="@drawable/manual_option_background">
 
-        <TextView
-            android:id="@+id/wb_option_tv"
-            android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/ev_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawableBottom="@drawable/ic_exposure"
+                android:drawableTint="@color/manual_text_color"
+                android:paddingTop="5dp"
+                android:paddingBottom="6dp"
+                android:textAlignment="center"
+                android:textAppearance="@style/ManualOptionText"
+                android:textColor="@color/manual_text_color"
+                android:textSize="15sp"
+                tools:text="NULL" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/wb_option_cell"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:drawableBottom="@drawable/manual_control_icon_wb"
-            android:drawableTint="@color/manual_text_color"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp"
-            android:textAlignment="center"
-            android:textAppearance="@style/BoldTextWithShadow"
-            android:textColor="@color/manual_text_color"
-            android:textSize="15sp"
-            tools:text="NULL" />
+            android:background="@drawable/manual_option_background">
+
+            <TextView
+                android:id="@+id/wb_option_tv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:drawableBottom="@drawable/manual_control_icon_wb"
+                android:drawableTint="@color/manual_text_color"
+                android:paddingTop="5dp"
+                android:paddingBottom="6dp"
+                android:textAlignment="center"
+                android:textAppearance="@style/ManualOptionText"
+                android:textColor="@color/manual_text_color"
+                android:textSize="15sp"
+                tools:text="NULL" />
+        </FrameLayout>
     </LinearLayout>
 </RelativeLayout>

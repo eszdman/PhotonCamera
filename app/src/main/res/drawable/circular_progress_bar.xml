@@ -27,7 +27,7 @@
                 android:angle="0"
                 android:type="sweep"
                 android:thicknessRatio="40.0">
-                <solid android:color="@color/cam_primary"/>
+                <solid android:color="?attr/colorPrimary"/>
             </shape>
         </rotate>
     </item>

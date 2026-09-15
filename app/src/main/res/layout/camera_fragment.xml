@@ -105,7 +105,7 @@
                     android:layout_marginBottom="8dp"
                     android:visibility="gone"
                     android:max="1000"
-                    android:progressTint="@color/cam_primary"
+                    android:progressTint="?attr/colorPrimary"
                     android:progressBackgroundTint="@color/cam_outline"
                     android:thumbTint="@color/cam_on_surface"
                     android:contentDescription="@string/zoom_slider_desc"

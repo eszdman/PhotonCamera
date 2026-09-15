@@ -13,6 +13,7 @@ import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
@@ -207,14 +208,13 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         String numOfFiles = String.valueOf(filesToDelete.size());
         String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(value -> value.getFile().getSize()).sum());
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
-        builder
+        BlurSupport.show(builder
                 .setMessage(getContext().getString(R.string.sure_delete_multiple, numOfFiles, totalFileSize))
                 .setTitle(android.R.string.dialog_alert_title)
                 .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> GalleryFileOperations.deleteImageFiles(getActivity(), filesToDelete.stream().map(galleryItem -> (ImageFile) galleryItem.getFile()).collect(Collectors.toList()), this::handleImagesDeletedCallback))
-                .create()
-                .show();
+                .create());
     }
 
     private void onShareFabClicked(View view) {

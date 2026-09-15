@@ -26,7 +26,7 @@
                     android:useLevel="true"
                     android:innerRadiusRatio="3.02"
                     android:thicknessRatio="30">
-                <solid android:color="@color/cam_primary"/>
+                <solid android:color="?attr/colorPrimary"/>
             </shape>
         </rotate>
     </item>

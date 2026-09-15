@@ -6,22 +6,22 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_hovered="true">
         <shape android:shape="oval">
-            <solid android:color="@color/cam_primary"/>
-            <stroke android:width="3dp" android:color="@color/cam_on_primary"/>
+            <solid android:color="?attr/colorPrimary"/>
+            <stroke android:width="3dp" android:color="?attr/colorOnPrimary"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_activated="true" android:state_pressed="false">
         <shape android:shape="oval">
-            <solid android:color="@color/cam_primary_container"/>
-            <stroke android:width="3dp" android:color="@color/cam_on_primary_container"/>
+            <solid android:color="?attr/colorPrimaryContainer"/>
+            <stroke android:width="3dp" android:color="?attr/colorOnPrimaryContainer"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <solid android:color="@color/cam_primary"/>
-            <stroke android:width="3dp" android:color="@color/cam_on_primary"/>
+            <solid android:color="?attr/colorPrimary"/>
+            <stroke android:width="3dp" android:color="?attr/colorOnPrimary"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>

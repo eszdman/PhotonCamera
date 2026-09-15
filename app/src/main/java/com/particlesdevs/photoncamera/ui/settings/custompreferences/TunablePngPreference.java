@@ -16,6 +16,7 @@ import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.io.File;
@@ -132,7 +133,7 @@ public class TunablePngPreference extends Preference {
                 listView.setOnItemLongClickListener((parent, view, position, id) -> {
                     if (position == 0) return true; // Cannot remove "None"
                     final String pngName = items.get(position);
-                    new MaterialAlertDialogBuilder(context)
+                    BlurSupport.show(new MaterialAlertDialogBuilder(context)
                             .setTitle("Remove PNG")
                             .setMessage("Remove " + pngName + "?")
                             .setPositiveButton("Remove", (d2, w2) -> {
@@ -146,12 +147,12 @@ public class TunablePngPreference extends Preference {
                                 showPngDialog();
                             })
                             .setNegativeButton("Cancel", null)
-                            .show();
+                            .create());
                     return true;
                 });
             }
         });
-        dialog.show();
+        BlurSupport.show(dialog);
     }
 
     private String getCurrentSummaryText() {

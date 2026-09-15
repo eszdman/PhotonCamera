@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
@@ -199,7 +200,7 @@ public class TunableSeekBarPreference extends Preference {
                 })
                 .setNegativeButton("Cancel", (d, which) -> d.cancel())
                 .create();
-        dialog.show();
+        BlurSupport.show(dialog);
 
         // Request keyboard
         input.requestFocus();

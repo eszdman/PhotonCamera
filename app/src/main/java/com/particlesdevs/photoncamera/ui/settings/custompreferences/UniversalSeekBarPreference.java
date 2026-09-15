@@ -16,6 +16,7 @@ import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.slider.Slider;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.R;
@@ -328,7 +329,7 @@ public class UniversalSeekBarPreference extends Preference {
                 })
                 .setNegativeButton("Cancel", (d, which) -> d.cancel())
                 .create();
-        dialog.show();
+        BlurSupport.show(dialog);
 
         // Request keyboard
         input.requestFocus();

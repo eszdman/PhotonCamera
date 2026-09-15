@@ -155,6 +155,16 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         return outValue.resourceId;
     }
 
+    /**
+     * Called by the camera fragment when the preview renderer enables its live
+     * frosted-glass backdrop behind this panel. While active the panel keeps a
+     * 40% dark scrim so the blurred content stays legible; otherwise the fully
+     * opaque fallback is used.
+     */
+    public void setBlurActive(boolean active) {
+        setBackgroundResource(active ? R.drawable.cam_bar_blur_overlay : R.drawable.exif_background);
+    }
+
     public void setChildVisibility(@IdRes int id, int visibility) {
         View view = findViewById(id);
         if (view != null) {

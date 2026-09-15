@@ -16,6 +16,8 @@
     <color name="cam_primary_container">#FF2B4A6F</color>
     <color name="cam_on_primary_container">#FFD3E3FD</color>
     <color name="cam_error">#FFFFB4AB</color>
+    <!-- Shared 40% scrim for all camera panel glass surfaces. -->
+    <color name="cam_panel_scrim">#66121417</color>
 
     <color name="panel_transparency">@color/cam_surface_container_high</color>
     <color name="white">#FFFFFF</color>

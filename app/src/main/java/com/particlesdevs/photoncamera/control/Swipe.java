@@ -49,6 +49,10 @@ public class Swipe {
         manualModeConsole = cameraFragment.getManualModeConsole();
         cameraFragmentViewModel = cameraFragment.getCameraFragmentViewModel();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
+        // A knob left open when the panel was closed programmatically (e.g. by a
+        // previous resume) would stay visible under the hidden panel; retract it
+        // so the selector state matches what is actually on screen.
+        manualModeConsole.retractAllKnobs();
         manualModeConsole.setPanelVisibility(false);
         ocManual.animate().rotation(0).setDuration(Motion.durationMedium1(ocManual.getContext()))
                 .setInterpolator(Motion.emphasized(ocManual.getContext())).start();

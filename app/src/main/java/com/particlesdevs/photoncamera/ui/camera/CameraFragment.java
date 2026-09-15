@@ -51,6 +51,7 @@ import android.util.SizeF;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Toast;
 
 import androidx.activity.BackEventCompat;
@@ -58,7 +59,9 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -83,6 +86,7 @@ import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleImpl;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
@@ -100,7 +104,9 @@ import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
 import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.MainRenderer;
 import com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -110,8 +116,10 @@ import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -363,6 +371,20 @@ public class CameraFragment extends Fragment {
         if (mHorizonIndicatorView != null) {
             mHorizonIndicatorView.setVisible(PreferenceKeys.isHorizonOn());
         }
+        manualPanelRoot = view.findViewById(R.id.manual_mode);
+        manualPanelBar = view.findViewById(R.id.buttons_container);
+        manualKnobView = view.findViewById(R.id.knobView);
+        camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
+        camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
+        camPanelFilletPx = getResources().getDimension(R.dimen.cam_panel_scrim_fillet_radius);
+        if (manualKnobView != null) {
+            manualKnobView.setScrimColor(ContextCompat.getColor(requireContext(), R.color.cam_panel_scrim));
+            // A tangent fillet blends the disc's bottom corners into the bottom
+            // edge; the rest of the circular shape stays as drawn.
+            manualKnobView.setScrimFilletRadius(camPanelFilletPx);
+        }
+        textureView.postOnAnimation(panelBlurTracker);
+        view.getViewTreeObserver().addOnPreDrawListener(lensOffsetCorrection);
         initSettingsBar();
         applySecureSessionUI();
     }
@@ -488,6 +510,251 @@ public class CameraFragment extends Fragment {
         super.onPause();
     }
 
+    /** Corner radius of the rounded panels (settings bar, manual bar), cached. */
+    private float camPanelCornerPx;
+    /** Blur kernel radius shared by every panel, cached. */
+    private float camPanelBlurPx;
+    /** Fillet radius for the knob scrim's bottom corners, cached. */
+    private float camPanelFilletPx;
+    /** Manual-console hierarchy that carries a blurred backdrop while visible. */
+    private View manualPanelRoot;
+    private View manualPanelBar;
+    private KnobView manualKnobView;
+    /** Current translation applied to the lens cluster to offset layout jumps. */
+    private float lensClusterOffset = Float.NaN;
+
+    /**
+     * Re-asserts the lens cluster offset after layout, so the drawn frame can
+     * never show the offset from the pre-layout pass (which briefly dips the
+     * cluster when the selector's space is removed on close).
+     */
+    private final ViewTreeObserver.OnPreDrawListener lensOffsetCorrection =
+            new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    if (syncLensClusterOffset()) {
+                        updatePanelBlurSpecs();
+                    }
+                    return true;
+                }
+            };
+    /** Scratch/applied spec lists so the renderer only receives real changes. */
+    private final List<MainRenderer.PanelBlurSpec> scratchBlurSpecs = new ArrayList<>(8);
+    private List<MainRenderer.PanelBlurSpec> appliedBlurSpecs;
+    private boolean settingsBarScrimActive;
+
+    /**
+     * Keeps the preview's live blur regions aligned with every visible panel
+     * (settings bar, lens/zoom pills, manual bar, knob wheel). Panels are
+     * scaled/translated/rotated by their show-hide animations, the orientation
+     * listener and predictive-back progress, so geometry is recomputed per frame.
+     */
+    private final Runnable panelBlurTracker = new Runnable() {
+        @Override
+        public void run() {
+            if (getView() == null || textureView == null) {
+                return;
+            }
+            updatePanelBlurSpecs();
+            textureView.postOnAnimation(panelBlurTracker);
+        }
+    };
+
+    private void updatePanelBlurSpecs() {
+        if (camPanelCornerPx == 0f) {
+            camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
+            camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
+        }
+        scratchBlurSpecs.clear();
+        syncLensClusterOffset();
+        // Without a live preview there is nothing to blur: the opaque panels stay,
+        // and the next ticks keep polling so blur returns if the preview restarts.
+        if (textureView.isAvailable()) {
+            addRoundedBlurSpec(cameraFragmentBinding.settingsBar, camPanelCornerPx,
+                    cameraFragmentBinding.settingsBar.getAlpha());
+            addPillBlurSpec(cameraFragmentBinding.lensZoomBar);
+            addPillBlurSpec(cameraFragmentBinding.zoomSlider);
+            addPillBlurSpec(cameraFragmentBinding.zoomIndicator);
+            addPillBlurSpec(cameraFragmentBinding.zoomLockPill);
+            // The manual hierarchy carries its own alpha/transform on the root
+            // (show/hide slides it down and fades it out, leaving children's
+            // visibility untouched), so both regions gate on the root too.
+            if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
+                float manualAlpha = manualPanelRoot.getAlpha();
+                boolean selectorOpen = manualKnobView != null
+                        && manualKnobView.getVisibility() == View.VISIBLE;
+                if (manualPanelBar != null && manualPanelBar.getVisibility() == View.VISIBLE) {
+                    addRoundedBlurSpec(manualPanelBar, camPanelCornerPx, manualAlpha);
+                }
+                if (selectorOpen) {
+                    addKnobBlurSpec(manualKnobView, manualAlpha);
+                }
+            }
+        }
+        boolean settingsScrim = textureView.isAvailable()
+                && cameraFragmentBinding.settingsBar.getVisibility() == View.VISIBLE;
+        if (settingsBarScrimActive != settingsScrim) {
+            cameraFragmentBinding.settingsBar.setBlurActive(settingsScrim);
+            settingsBarScrimActive = settingsScrim;
+        }
+        if (sameBlurSpecs(scratchBlurSpecs, appliedBlurSpecs)) {
+            return;
+        }
+        if (scratchBlurSpecs.isEmpty()) {
+            appliedBlurSpecs = null;
+            textureView.setPanelBlur(null);
+        } else {
+            appliedBlurSpecs = new ArrayList<>(scratchBlurSpecs);
+            textureView.setPanelBlur(appliedBlurSpecs);
+        }
+    }
+
+    /**
+     * The manual panel's height jumps by the selector's height when it appears
+     * or disappears (driven by the library), which would snap the lens cluster
+     * above it. A translation, decaying with the selector's own show/hide alpha,
+     * keeps the cluster gliding instead of jumping; the blur specs read the
+     * translation, so the pills' backdrops follow along.
+     */
+    private boolean syncLensClusterOffset() {
+        float offset = 0f;
+        if (manualKnobView != null && manualKnobView.getVisibility() == View.VISIBLE) {
+            float delta = manualKnobView.getHeight();
+            if (delta > 0f) {
+                float alpha = Math.min(1f, Math.max(0f, manualKnobView.getAlpha()));
+                offset = delta * (1f - alpha);
+            }
+        }
+        if (!Float.isNaN(lensClusterOffset) && Math.abs(offset - lensClusterOffset) < 0.25f) {
+            return false;
+        }
+        lensClusterOffset = offset;
+        cameraFragmentBinding.lensZoomBar.setTranslationY(offset);
+        cameraFragmentBinding.zoomLockPill.setTranslationY(offset);
+        cameraFragmentBinding.zoomSlider.setTranslationY(offset);
+        cameraFragmentBinding.zoomIndicator.setTranslationY(offset);
+        return true;
+    }
+
+    /** Adds a rounded-rect blur region for {@code view}, or nothing when hidden/empty. */
+    private void addRoundedBlurSpec(View view, float cornerRadiusPx, float alpha) {
+        if (view == null || view.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        addBlurSpec(view, alpha, cornerRadiusPx, false);
+    }
+
+    /** Pill-shaped region (corner radius = half its smaller extent). */
+    private void addPillBlurSpec(View view) {
+        if (view == null || view.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        addBlurSpec(view, view.getAlpha(),
+                Math.min(view.getWidth() * view.getScaleX(),
+                        view.getHeight() * view.getScaleY()) / 2f, true);
+    }
+
+    /**
+     * Computes the panel's on-screen geometry and stores one blur region.
+     * {@code cornerRadiusPx} is unscaled unless {@code radiusIsScaled} is set.
+     */
+    private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
+                             boolean radiusIsScaled) {
+        if (view.getWidth() <= 0 || view.getHeight() <= 0 || alpha <= 0.02f) {
+            return;
+        }
+        View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
+        if (parent == null) {
+            return;
+        }
+        int[] parentLocation = new int[2];
+        parent.getLocationOnScreen(parentLocation);
+        int[] previewLocation = new int[2];
+        textureView.getLocationOnScreen(previewLocation);
+        // Center is invariant under the center-pivot scale/rotation, so derive it
+        // from the parent origin instead of the (transformed) view origin.
+        float centerX = parentLocation[0] + view.getLeft() + view.getWidth() / 2f
+                + view.getTranslationX() - previewLocation[0];
+        float centerY = parentLocation[1] + view.getTop() + view.getHeight() / 2f
+                + view.getTranslationY() - previewLocation[1];
+        float scaleX = Math.max(0.0001f, view.getScaleX());
+        float scaleY = Math.max(0.0001f, view.getScaleY());
+        float halfW = view.getWidth() * scaleX / 2f;
+        float halfH = view.getHeight() * scaleY / 2f;
+        scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
+                centerX, centerY, halfW, halfH, view.getRotation(),
+                radiusIsScaled ? cornerRadiusPx : cornerRadiusPx * scaleX,
+                camPanelBlurPx, alpha));
+    }
+
+    /** Circular region for the manual knob wheel (its disc center sits below the view). */
+    private void addKnobBlurSpec(KnobView knob, float parentAlpha) {
+        View parent = knob.getParent() instanceof View ? (View) knob.getParent() : null;
+        if (parent == null || knob.getWidth() <= 0 || knob.getHeight() <= 0) {
+            return;
+        }
+        float alpha = knob.getAlpha() * parentAlpha;
+        if (alpha <= 0.02f) {
+            return;
+        }
+        int[] parentLocation = new int[2];
+        parent.getLocationOnScreen(parentLocation);
+        int[] previewLocation = new int[2];
+        textureView.getLocationOnScreen(previewLocation);
+        float scaleX = Math.max(0.0001f, knob.getScaleX());
+        float scaleY = Math.max(0.0001f, knob.getScaleY());
+        float pivotX = knob.getWidth() / 2f;
+        float pivotY = knob.getHeight() / 2f;
+        float centerX = parentLocation[0] + knob.getLeft() + pivotX
+                + knob.getTranslationX() - previewLocation[0];
+        float centerY = parentLocation[1] + knob.getTop() + pivotY
+                + knob.getTranslationY() - previewLocation[1];
+        // The wheel disc is far larger than the view and its scrim is only the part
+        // inside the view bounds, so the mask is drawn in dome mode: the shader
+        // rebuilds that same arc from the view rectangle alone and fillets its
+        // bottom corners, matching what KnobView paints.
+        scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
+                centerX, centerY,
+                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
+                0f, camPanelFilletPx * Math.min(scaleX, scaleY), camPanelBlurPx, alpha,
+                centerX, centerY,
+                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
+                true));
+    }
+
+    private static boolean sameBlurSpecs(List<MainRenderer.PanelBlurSpec> a,
+                                         List<MainRenderer.PanelBlurSpec> b) {
+        if (b == null) {
+            return a.isEmpty();
+        }
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            MainRenderer.PanelBlurSpec s = a.get(i);
+            MainRenderer.PanelBlurSpec t = b.get(i);
+            if (changed(s.centerX, t.centerX) || changed(s.centerY, t.centerY)
+                    || changed(s.halfW, t.halfW) || changed(s.halfH, t.halfH)
+                    || changed(s.angle, t.angle) || changed(s.cornerRadius, t.cornerRadius)
+                    || changedAlpha(s.alpha, t.alpha)
+                    || changed(s.clipCenterX, t.clipCenterX) || changed(s.clipCenterY, t.clipCenterY)
+                    || changed(s.clipHalfW, t.clipHalfW) || changed(s.clipHalfH, t.clipHalfH)
+                    || s.dome != t.dome) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean changed(float a, float b) {
+        return Math.abs(a - b) > 0.25f;
+    }
+
+    /** Alpha needs a finer threshold so the backdrop fades smoothly with the panel. */
+    private static boolean changedAlpha(float a, float b) {
+        return Math.abs(a - b) > 0.02f;
+    }
+
     /**
      * System-back handling. The callback is enabled only while an in-fragment
      * surface (settings bar or manual panel) is open; otherwise the dispatcher
@@ -574,6 +841,18 @@ public class CameraFragment extends Fragment {
     }
 
     private Observer manualPanelObserver;
+
+    @Override
+    public void onDestroyView() {
+        if (textureView != null) {
+            textureView.removeCallbacks(panelBlurTracker);
+            textureView.setPanelBlur(null);
+        }
+        if (getView() != null) {
+            getView().getViewTreeObserver().removeOnPreDrawListener(lensOffsetCorrection);
+        }
+        super.onDestroyView();
+    }
 
     @Override
     public void onDestroy() {
@@ -1301,7 +1580,7 @@ public class CameraFragment extends Fragment {
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Activity activity = getActivity();
             assert getArguments() != null;
-            return new MaterialAlertDialogBuilder(activity)
+            AlertDialog dialog = new MaterialAlertDialogBuilder(activity)
                     .setMessage(getArguments().getString(ARG_MESSAGE))
                     .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
                         if (activity != null) {
@@ -1309,6 +1588,8 @@ public class CameraFragment extends Fragment {
                         }
                     })
                     .create();
+            BlurSupport.blurBehindOnShow(dialog);
+            return dialog;
         }
     }
 
