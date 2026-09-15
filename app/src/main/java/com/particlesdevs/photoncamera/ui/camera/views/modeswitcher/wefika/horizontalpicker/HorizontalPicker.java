@@ -195,7 +195,8 @@ public class HorizontalPicker extends View {
     private static TextPaint getTextPaint(Context context) {
         TextPaint paint = new TextPaint();
         paint.setAntiAlias(true);
-        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
+        // M3E Roboto: the selected item is drawn with fake bold on top of this.
+        paint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
         return paint;
     }
 

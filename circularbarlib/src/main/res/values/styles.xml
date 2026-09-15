@@ -22,7 +22,6 @@
         <item name="android:textSize">@dimen/manual_knob_text_size</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/manual_icon_text</item>
-        <item name="android:fontFamily">@font/open_sans</item>
     </style>
 
     <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">

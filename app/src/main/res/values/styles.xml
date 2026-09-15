@@ -19,7 +19,6 @@
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="materialAlertDialogTheme">@style/MaterialAlertDialogTheme</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.Photon</item>
-        <item name="android:fontFamily">@font/open_sans</item>
     </style>
 
     <style name="Theme.Photon.Splash" parent="Theme.Photon.BaseApp">
