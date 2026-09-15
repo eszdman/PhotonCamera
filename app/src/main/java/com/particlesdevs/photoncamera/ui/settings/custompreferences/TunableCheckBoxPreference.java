@@ -2,7 +2,6 @@ package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
@@ -184,15 +183,15 @@ public class TunableCheckBoxPreference extends SwitchPreferenceCompat {
         SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
         boolean hasPersisted = prefs != null && prefs.contains(getKey());
         int color = MaterialColors.getColor(getContext(), android.R.attr.textColorPrimary, 0xFFFFFF);
-        // Green = persisted (user customized), White = not persisted (default)
+        // Accent = persisted (user customized), on-surface = not persisted (default)
         if (hasPersisted) {
-            mTitleView.setTextColor(Color.parseColor("#4CAF50")); // Material Green for customized
+            mTitleView.setTextColor(MaterialColors.getColor(mTitleView, R.attr.colorPrimary, color));
         } else {
-            mTitleView.setTextColor(color); // White for default
+            mTitleView.setTextColor(color);
         }
-        
-        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue + 
-            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "GREEN" : "WHITE"));
+
+        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue +
+            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "ACCENT" : "DEFAULT"));
     }
     
     /**

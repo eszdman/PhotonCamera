@@ -22,7 +22,6 @@ package com.particlesdevs.photoncamera.ui.camera;
 import android.graphics.Bitmap;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -67,6 +66,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.BR;
 import com.particlesdevs.photoncamera.R;
@@ -1207,7 +1207,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Activity activity = getActivity();
             assert getArguments() != null;
-            return new AlertDialog.Builder(activity)
+            return new MaterialAlertDialogBuilder(activity)
                     .setMessage(getArguments().getString(ARG_MESSAGE))
                     .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
                         if (activity != null) {

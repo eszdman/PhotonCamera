@@ -1,13 +1,16 @@
 package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
+import android.text.InputType;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.TunableKeyManager;
@@ -31,39 +34,69 @@ public class TunableKeyDialog {
 
         LinearLayout container = new LinearLayout(context);
         container.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(context, 20);
-        container.setPadding(pad, pad / 2, pad, 0);
+        int pad = dp(context, 24);
+        container.setPadding(pad, dp(context, 8), pad, 0);
 
-        EditText nameEdit = addEdit(context, container, "Key name", existing != null ? existing.name : "");
-        Spinner valueTypeSpinner = addSpinner(context, container, "Value type", VALUE_TYPES, existing != null ? existing.valueType : "Integer");
-        EditText valueEdit = addEdit(context, container, "Value", existing != null ? existing.value : "0");
+        TextInputLayout nameLayout = new TextInputLayout(context);
+        nameLayout.setHint("Key name");
+        TextInputEditText nameEdit = new TextInputEditText(nameLayout.getContext());
+        nameEdit.setSingleLine(true);
+        nameEdit.setText(existing != null ? existing.name : "");
+        nameLayout.addView(nameEdit);
+        container.addView(nameLayout, matchWrap());
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(isNew ? "Add Tunable Key" : "Edit Tunable Key");
-        builder.setView(container);
-        builder.setPositiveButton("Set", (dialog, which) -> {
-            String name = nameEdit.getText().toString().trim();
-            if (name.isEmpty()) {
-                PhotonCamera.showToast("Key name cannot be empty");
-                return;
-            }
-            VendorTagUtils.TunableKey key = new VendorTagUtils.TunableKey();
-            key.type = "CaptureRequest";
-            key.name = name;
-            key.valueType = (String) valueTypeSpinner.getSelectedItem();
-            key.value = valueEdit.getText().toString().trim();
-            key.tested = existing != null && existing.tested;
-            key.supported = existing != null && existing.supported;
+        TextInputLayout typeLayout = new TextInputLayout(context);
+        typeLayout.setHint("Value type");
+        typeLayout.setEndIconMode(TextInputLayout.END_ICON_DROPDOWN_MENU);
+        MaterialAutoCompleteTextView typeView = new MaterialAutoCompleteTextView(typeLayout.getContext());
+        typeView.setInputType(InputType.TYPE_NULL);
+        typeView.setAdapter(new ArrayAdapter<>(context,
+                com.google.android.material.R.layout.mtrl_auto_complete_simple_item, VALUE_TYPES));
+        typeView.setText(existing != null ? existing.valueType : VALUE_TYPES[0], false);
+        typeView.setOnClickListener(v -> typeView.showDropDown());
+        typeLayout.addView(typeView);
+        LinearLayout.LayoutParams typeParams = matchWrap();
+        typeParams.topMargin = dp(context, 8);
+        container.addView(typeLayout, typeParams);
 
-            List<VendorTagUtils.TunableKey> list = TunableKeyManager.loadKeys(context, sensorId);
-            if (isNew) {
-                list.add(key);
-            } else if (editIndex < list.size()) {
-                list.set(editIndex, key);
-            }
-            TunableKeyManager.saveKeys(context, sensorId, list);
-            if (onDone != null) onDone.run();
-        });
+        TextInputLayout valueLayout = new TextInputLayout(context);
+        valueLayout.setHint("Value");
+        TextInputEditText valueEdit = new TextInputEditText(valueLayout.getContext());
+        valueEdit.setSingleLine(true);
+        valueEdit.setText(existing != null ? existing.value : "0");
+        valueLayout.addView(valueEdit);
+        LinearLayout.LayoutParams valueParams = matchWrap();
+        valueParams.topMargin = dp(context, 8);
+        container.addView(valueLayout, valueParams);
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)
+                .setTitle(isNew ? "Add Tunable Key" : "Edit Tunable Key")
+                .setView(container)
+                .setPositiveButton("Set", (dialog, which) -> {
+                    String name = nameEdit.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        PhotonCamera.showToast("Key name cannot be empty");
+                        return;
+                    }
+                    VendorTagUtils.TunableKey key = new VendorTagUtils.TunableKey();
+                    key.type = "CaptureRequest";
+                    key.name = name;
+                    key.valueType = typeView.getText().toString();
+                    key.value = valueEdit.getText().toString().trim();
+                    key.tested = existing != null && existing.tested;
+                    key.supported = existing != null && existing.supported;
+
+                    List<VendorTagUtils.TunableKey> list = TunableKeyManager.loadKeys(context, sensorId);
+                    if (isNew) {
+                        list.add(key);
+                    } else if (editIndex < list.size()) {
+                        list.set(editIndex, key);
+                    }
+                    TunableKeyManager.saveKeys(context, sensorId, list);
+                    if (onDone != null) onDone.run();
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
         if (!isNew) {
             builder.setNeutralButton("Delete", (dialog, which) -> {
                 List<VendorTagUtils.TunableKey> list = TunableKeyManager.loadKeys(context, sensorId);
@@ -74,46 +107,16 @@ public class TunableKeyDialog {
                 if (onDone != null) onDone.run();
             });
         }
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
         dialog.show();
         nameEdit.requestFocus();
     }
 
-    private static TextView label(Context context, String text) {
-        TextView tv = new TextView(context);
-        tv.setText(text);
-        tv.setTextSize(14);
-        tv.setPadding(0, dp(context, 8), 0, 0);
-        return tv;
-    }
-
-    private static EditText addEdit(Context context, LinearLayout container, String label, String value) {
-        container.addView(label(context, label));
-        EditText edit = new EditText(context);
-        edit.setSingleLine(true);
-        edit.setText(value);
-        container.addView(edit);
-        return edit;
-    }
-
-    private static Spinner addSpinner(Context context, LinearLayout container, String label, String[] items, String selection) {
-        container.addView(label(context, label));
-        Spinner spinner = new Spinner(context);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, items);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-        int idx = -1;
-        for (int i = 0; i < items.length; i++) {
-            if (items[i].equals(selection)) {
-                idx = i;
-                break;
-            }
-        }
-        if (idx >= 0) spinner.setSelection(idx);
-        container.addView(spinner);
-        return spinner;
+    private static LinearLayout.LayoutParams matchWrap() {
+        return new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
     }
 
     private static int dp(Context context, int value) {

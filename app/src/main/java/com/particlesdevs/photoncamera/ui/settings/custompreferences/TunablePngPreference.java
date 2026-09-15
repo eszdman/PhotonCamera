@@ -1,6 +1,5 @@
 package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
@@ -10,10 +9,12 @@ import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceViewHolder;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.Log;
 
@@ -82,7 +83,7 @@ public class TunablePngPreference extends Preference {
         Context context = getContext();
         if (context == null) return;
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context);
         builder.setTitle(getTitle());
 
         final List<String> availablePngs = getAvailablePngs(context);
@@ -131,7 +132,7 @@ public class TunablePngPreference extends Preference {
                 listView.setOnItemLongClickListener((parent, view, position, id) -> {
                     if (position == 0) return true; // Cannot remove "None"
                     final String pngName = items.get(position);
-                    new AlertDialog.Builder(context)
+                    new MaterialAlertDialogBuilder(context)
                             .setTitle("Remove PNG")
                             .setMessage("Remove " + pngName + "?")
                             .setPositiveButton("Remove", (d2, w2) -> {

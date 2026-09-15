@@ -1,22 +1,23 @@
 package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.text.InputType;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.color.MaterialColors;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
@@ -120,95 +121,86 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
             String.format(Locale.ROOT, "%.10f", currentValue).replaceAll("0+$", "").replaceAll("\\.$", "") :
             String.valueOf((int) currentValue);
         
-        // Create input dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(getTitle());
-        builder.setMessage("Enter precise value (" + 
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMin).replaceAll("0+$", "").replaceAll("\\.$", "") + " - " +
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMax).replaceAll("0+$", "").replaceAll("\\.$", "") + 
-            ")\nDefault: " + 
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mDefaultValue).replaceAll("0+$", "").replaceAll("\\.$", ""));
-        
         // Create input field
-        final EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | 
-            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) | 
+        TextInputLayout inputLayout = new TextInputLayout(context);
+        inputLayout.setHint("Value");
+        final TextInputEditText input = new TextInputEditText(inputLayout.getContext());
+        input.setInputType(InputType.TYPE_CLASS_NUMBER |
+            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) |
             InputType.TYPE_NUMBER_FLAG_SIGNED);
-        
         input.setText(currentValueText);
         input.setSelectAllOnFocus(true);
-        
-        // Add padding
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(50, 20, 50, 20);
-        input.setLayoutParams(lp);
-        
-        LinearLayout container = new LinearLayout(context);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.addView(input);
-        builder.setView(container);
-        
-        builder.setPositiveButton("Set", (dialog, which) -> {
-            try {
-                String valueStr = input.getText().toString();
-                float value = Float.parseFloat(valueStr);
-                
-                // Clamp to min/max
-                if (value < mMin) {
-                    value = mMin;
-                    PhotonCamera.showToast("Value clamped to minimum: " + mMin);
-                } else if (value > mMax) {
-                    value = mMax;
-                    PhotonCamera.showToast("Value clamped to maximum: " + mMax);
-                }
-                
-                // Just set the value - it will be persisted as native type
-                int progress = valueToProgress(value);
-                set(progress);
-                
-                Log.d(TAG, "Set precise value: " + value + " for " + getKey());
-            } catch (NumberFormatException e) {
-                PhotonCamera.showToast("Invalid number format");
-                Log.w(TAG, "Invalid input: " + input.getText().toString());
-            }
-        });
-        
-        builder.setNeutralButton("Reset", (dialog, which) -> {
-            // Temporarily disable user interaction flag to prevent re-persistence during UI updates
-            boolean wasUserInteraction = isUserInteraction;
-            isUserInteraction = false;
-            
-            // Remove the persisted value to use annotation default
-            SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-            if (prefs != null) {
-                prefs.edit().remove(getKey()).apply();
-            }
-            
-            // Update UI to match default
-            seekBarProgress = valueToProgress(mDefaultValue);
-            String displayValue = formatValue(mDefaultValue);
-            if (seekBarValue != null) {
-                seekBarValue.setText(displayValue);
-            }
-            if (seekBar != null) {
-                seekBar.setProgress(seekBarProgress);
-            }
-            updateValueColor(mDefaultValue);
-            
-            // Restore user interaction flag
-            isUserInteraction = wasUserInteraction;
-            
-            PhotonCamera.showToast("Reset to default: " + mDefaultValue);
-            Log.d(TAG, "Reset to default (removed persisted value): " + mDefaultValue + " for " + getKey());
-        });
-        
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        
-        AlertDialog dialog = builder.create();
+        inputLayout.addView(input);
+
+        FrameLayout container = new FrameLayout(context);
+        int horizontalPadding = (int) (24 * context.getResources().getDisplayMetrics().density);
+        container.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        container.addView(inputLayout);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(getTitle())
+                .setMessage("Enter precise value (" +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMin).replaceAll("0+$", "").replaceAll("\\.$", "") + " - " +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMax).replaceAll("0+$", "").replaceAll("\\.$", "") +
+                    ")\nDefault: " +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mDefaultValue).replaceAll("0+$", "").replaceAll("\\.$", ""))
+                .setView(container)
+                .setPositiveButton("Set", (d, which) -> {
+                    try {
+                        String valueStr = input.getText().toString();
+                        float value = Float.parseFloat(valueStr);
+
+                        // Clamp to min/max
+                        if (value < mMin) {
+                            value = mMin;
+                            PhotonCamera.showToast("Value clamped to minimum: " + mMin);
+                        } else if (value > mMax) {
+                            value = mMax;
+                            PhotonCamera.showToast("Value clamped to maximum: " + mMax);
+                        }
+
+                        // Just set the value - it will be persisted as native type
+                        int progress = valueToProgress(value);
+                        set(progress);
+
+                        Log.d(TAG, "Set precise value: " + value + " for " + getKey());
+                    } catch (NumberFormatException e) {
+                        PhotonCamera.showToast("Invalid number format");
+                        Log.w(TAG, "Invalid input: " + input.getText().toString());
+                    }
+                })
+                .setNeutralButton("Reset", (d, which) -> {
+                    // Temporarily disable user interaction flag to prevent re-persistence during UI updates
+                    boolean wasUserInteraction = isUserInteraction;
+                    isUserInteraction = false;
+
+                    // Remove the persisted value to use annotation default
+                    SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+                    if (prefs != null) {
+                        prefs.edit().remove(getKey()).apply();
+                    }
+
+                    // Update UI to match default
+                    seekBarProgress = valueToProgress(mDefaultValue);
+                    String displayValue = formatValue(mDefaultValue);
+                    if (seekBarValue != null) {
+                        seekBarValue.setText(displayValue);
+                    }
+                    if (seekBar != null) {
+                        seekBar.setProgress(seekBarProgress);
+                    }
+                    updateValueColor(mDefaultValue);
+
+                    // Restore user interaction flag
+                    isUserInteraction = wasUserInteraction;
+
+                    PhotonCamera.showToast("Reset to default: " + mDefaultValue);
+                    Log.d(TAG, "Reset to default (removed persisted value): " + mDefaultValue + " for " + getKey());
+                })
+                .setNegativeButton("Cancel", (d, which) -> d.cancel())
+                .create();
         dialog.show();
-        
+
         // Request keyboard
         input.requestFocus();
     }
@@ -316,15 +308,15 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
         SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
         boolean hasPersisted = prefs != null && prefs.contains(getKey());
         int color = MaterialColors.getColor(getContext(), android.R.attr.textColorPrimary, 0xFFFFFF);
-        // Green = persisted (user customized), White = not persisted (default)
+        // Accent = persisted (user customized), on-surface = not persisted (default)
         if (hasPersisted) {
-            seekBarValue.setTextColor(Color.parseColor("#4CAF50")); // Material Green
+            seekBarValue.setTextColor(MaterialColors.getColor(seekBarValue, R.attr.colorPrimary, color));
         } else {
-            seekBarValue.setTextColor(color); // White
+            seekBarValue.setTextColor(color);
         }
-        
-        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue + 
-            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "GREEN" : "WHITE"));
+
+        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue +
+            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "ACCENT" : "DEFAULT"));
     }
 
     private void updateSeekbar(int progress) {

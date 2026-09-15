@@ -1,21 +1,23 @@
 package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.text.InputType;
 import android.util.AttributeSet;
 import com.particlesdevs.photoncamera.util.Log;
 import android.view.View;
-import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
@@ -282,68 +284,60 @@ public class UniversalSeekBarPreference extends Preference implements SeekBar.On
         String currentValueText = formatExactValue(currentValue);
         float defaultValue = clamp(parseValue(fallback_value, mMin));
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(getTitle());
-        builder.setMessage("Enter precise value (" +
-                formatExactValue(mMin) + " - " + formatExactValue(mMax) +
-                ")\nDefault: " + formatExactValue(defaultValue));
-        // Create input field
-        final EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | 
-            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) | 
+        TextInputLayout inputLayout = new TextInputLayout(context);
+        inputLayout.setHint("Value");
+        final TextInputEditText input = new TextInputEditText(inputLayout.getContext());
+        input.setInputType(InputType.TYPE_CLASS_NUMBER |
+            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) |
             InputType.TYPE_NUMBER_FLAG_SIGNED);
-        
         input.setText(currentValueText);
         input.setSelectAllOnFocus(true);
-        
-        // Add padding
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(50, 20, 50, 20);
-        input.setLayoutParams(lp);
-        
-        LinearLayout container = new LinearLayout(context);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.addView(input);
-        builder.setView(container);
-        
-        builder.setPositiveButton("Set", (dialog, which) -> {
-            try {
-                String valueStr = input.getText().toString();
-                float value = Float.parseFloat(valueStr.trim());
+        inputLayout.addView(input);
 
-                // Clamp to min/max
-                if (value < mMin) {
-                    value = mMin;
-                    PhotonCamera.showToast("Value clamped to minimum: " + formatExactValue(mMin));
-                } else if (value > mMax) {
-                    value = mMax;
-                    PhotonCamera.showToast("Value clamped to maximum: " + formatExactValue(mMax));
-                }
-                
-                // Set the exact value directly - bypasses step quantization
-                setDirectValue(value);
-                
-                Log.d(TAG, "Set precise value: " + value + " for " + getKey());
-            } catch (NumberFormatException e) {
-                PhotonCamera.showToast("Invalid number format");
-                Log.w(TAG, "Invalid input: " + input.getText().toString());
-            }
-        });
-        
-        builder.setNeutralButton("Reset", (dialog, which) -> {
-            // Reset to exact default value - preserves precision
-            setDirectValue(defaultValue);
-            PhotonCamera.showToast("Reset to default: " + formatExactValue(defaultValue));
-            Log.d(TAG, "Reset to default: " + defaultValue + " for " + getKey());
-        });
-        
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        
-        AlertDialog dialog = builder.create();
+        FrameLayout container = new FrameLayout(context);
+        int horizontalPadding = (int) (24 * context.getResources().getDisplayMetrics().density);
+        container.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        container.addView(inputLayout);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(getTitle())
+                .setMessage("Enter precise value (" +
+                        formatExactValue(mMin) + " - " + formatExactValue(mMax) +
+                        ")\nDefault: " + formatExactValue(defaultValue))
+                .setView(container)
+                .setPositiveButton("Set", (d, which) -> {
+                    try {
+                        String valueStr = input.getText().toString();
+                        float value = Float.parseFloat(valueStr.trim());
+
+                        // Clamp to min/max
+                        if (value < mMin) {
+                            value = mMin;
+                            PhotonCamera.showToast("Value clamped to minimum: " + formatExactValue(mMin));
+                        } else if (value > mMax) {
+                            value = mMax;
+                            PhotonCamera.showToast("Value clamped to maximum: " + formatExactValue(mMax));
+                        }
+
+                        // Set the exact value directly - bypasses step quantization
+                        setDirectValue(value);
+
+                        Log.d(TAG, "Set precise value: " + value + " for " + getKey());
+                    } catch (NumberFormatException e) {
+                        PhotonCamera.showToast("Invalid number format");
+                        Log.w(TAG, "Invalid input: " + input.getText().toString());
+                    }
+                })
+                .setNeutralButton("Reset", (d, which) -> {
+                    // Reset to exact default value - preserves precision
+                    setDirectValue(defaultValue);
+                    PhotonCamera.showToast("Reset to default: " + formatExactValue(defaultValue));
+                    Log.d(TAG, "Reset to default: " + defaultValue + " for " + getKey());
+                })
+                .setNegativeButton("Cancel", (d, which) -> d.cancel())
+                .create();
         dialog.show();
-        
+
         // Request keyboard
         input.requestFocus();
     }

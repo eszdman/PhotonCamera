@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
+import com.google.android.material.color.MaterialColors;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.settings.TunableKeyManager;
@@ -19,10 +20,6 @@ import java.util.List;
  * Clicking opens the edit dialog.
  */
 public class TunableKeyPreference extends Preference {
-    private static final int COLOR_UNKNOWN = 0xFF9E9E9E;
-    private static final int COLOR_SUPPORTED = 0xFF4CAF50;
-    private static final int COLOR_UNSUPPORTED = 0xFFF44336;
-
     private final String sensorId;
     private final int index;
 
@@ -51,7 +48,7 @@ public class TunableKeyPreference extends Preference {
         setTitle(key.name);
         String status = key.tested ? (key.supported ? "\u2714 supported" : "\u2718 not supported") : "untested";
         setSummary(key.valueType + " = " + key.value + "  (" + status + ")");
-        setIcon(createCircleDrawable(getContext(), getStatusColor(key)));
+        setIcon(createCircleDrawable(getContext(), getStatusColor(getContext(), key)));
     }
 
     @Override
@@ -59,9 +56,13 @@ public class TunableKeyPreference extends Preference {
         super.onBindViewHolder(holder);
     }
 
-    private static int getStatusColor(VendorTagUtils.TunableKey key) {
-        if (!key.tested) return COLOR_UNKNOWN;
-        return key.supported ? COLOR_SUPPORTED : COLOR_UNSUPPORTED;
+    private static int getStatusColor(Context context, VendorTagUtils.TunableKey key) {
+        if (!key.tested) {
+            return MaterialColors.getColor(context, R.attr.colorOutline, 0xFF9E9E9E);
+        }
+        return key.supported
+                ? MaterialColors.getColor(context, R.attr.colorPrimary, 0xFF4CAF50)
+                : MaterialColors.getColor(context, R.attr.colorError, 0xFFF44336);
     }
 
     static GradientDrawable createCircleDrawable(Context context, int color) {

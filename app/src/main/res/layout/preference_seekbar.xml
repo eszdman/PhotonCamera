@@ -2,81 +2,86 @@
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        android:gravity="top"
+        android:gravity="center_vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="?android:listPreferredItemHeight"
-        android:paddingEnd="?android:scrollbarSize"
-        android:paddingStart="?android:scrollbarSize"
->
+        android:minHeight="@dimen/preference_row_min_height"
+        android:paddingTop="@dimen/preference_row_vertical_padding"
+        android:paddingBottom="@dimen/preference_row_vertical_padding"
+        android:paddingStart="@dimen/preference_row_horizontal_padding"
+        android:paddingEnd="@dimen/preference_row_horizontal_padding"
+        android:baselineAligned="false">
+
     <ImageView
-            android:layout_gravity="center|top"
             android:id="@android:id/icon"
-            android:layout_width="@dimen/camera_settings_icon_size"
-            android:layout_height="@dimen/camera_settings_icon_size"
-            android:layout_marginTop="@dimen/camera_settings_entry_margin"
-            android:layout_marginStart="@dimen/camera_settings_entry_margin"
-            tools:src="@drawable/ic_focus"
+            android:layout_width="@dimen/preference_icon_size"
+            android:layout_height="@dimen/preference_icon_size"
+            android:layout_marginEnd="@dimen/preference_icon_margin"
+            android:layout_gravity="center_vertical"
+            android:importantForAccessibility="no"
             android:contentDescription="@string/icon_string"
-    />
-    <RelativeLayout
+            tools:src="@drawable/ic_focus"/>
+
+    <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="@dimen/camera_settings_entry_margin"
-            android:layout_weight="1.0"
+            android:layout_weight="1"
             android:layout_gravity="center_vertical"
-            android:layout_marginStart="@dimen/camera_settings_icon_size"
-            android:layout_marginEnd="@dimen/camera_settings_entry_margin">
-        <TextView
-                android:textSize="@dimen/camera_settings_preference_font_size"
-                android:ellipsize="marquee"
-                android:id="@android:id/title"
-                android:fadingEdge="horizontal"
-                tools:text="SeekBar Title"
-                android:gravity="center"
-                android:textColor="?android:textColorPrimary"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        <TextView
-                android:textAppearance="?android:textAppearanceSmall"
-                android:textColor="?android:textColorSecondary"
-                android:id="@android:id/summary"
-                android:layout_width="wrap_content"
-                tools:text="SeekBar description"
+            android:orientation="vertical">
+
+        <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@android:id/title"
-                android:layout_alignStart="@android:id/title"/>
-        <SeekBar android:id="@+id/seekbar"
-                 android:paddingTop="@dimen/preference_seekbar_padding"
-                 android:paddingBottom="@dimen/preference_seekbar_padding"
-                 android:layout_width="match_parent"
-                 android:layout_height="wrap_content"
-                 android:layout_below="@android:id/summary"
-                 android:layout_toStartOf="@id/seekbar_value"/>
-        <TextView android:layout_width="@dimen/preference_seekbar_value_text_width"
-                  android:layout_height="wrap_content"
-                  android:textAppearance="?android:textAppearanceSmall"
-                  android:textColor="?android:textColorSecondary"
-                  android:id="@+id/seekbar_value"
-                  android:paddingStart="@dimen/preference_seekbar_value_padding"
-                  android:paddingEnd="@dimen/preference_seekbar_value_padding"
-                  android:layout_alignParentEnd="true"
-                  android:layout_alignBottom="@id/seekbar"
-                  android:layout_alignTop="@id/seekbar"
-                  android:gravity="center"
-                  tools:text="10000"
-        />
-    </RelativeLayout>
-    <LinearLayout
-            android:gravity="bottom"
-            android:orientation="vertical"
-            android:id="@android:id/widget_frame"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:paddingBottom="@dimen/camera_settings_entry_margin"
-            android:paddingEnd="@dimen/camera_settings_entry_margin"
-            android:paddingStart="?android:scrollbarSize">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+            <TextView
+                    android:id="@android:id/title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:fadingEdge="horizontal"
+                    tools:text="SeekBar Title"/>
+
+            <TextView
+                    android:layout_width="@dimen/preference_seekbar_value_text_width"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/seekbar_value"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:gravity="end|center_vertical"
+                    android:paddingStart="@dimen/preference_seekbar_value_padding"
+                    android:paddingEnd="@dimen/preference_seekbar_value_padding"
+                    tools:text="10000"/>
+        </LinearLayout>
+
+        <TextView
+                android:id="@android:id/summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:maxLines="3"
+                tools:text="SeekBar description"/>
+
+        <SeekBar
+                android:id="@+id/seekbar"
+                style="@style/Widget.Photon.SeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="@dimen/preference_seekbar_padding"
+                android:paddingBottom="@dimen/preference_seekbar_padding"/>
     </LinearLayout>
 
+    <LinearLayout
+            android:id="@android:id/widget_frame"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"/>
 </LinearLayout>

@@ -32,6 +32,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
@@ -75,7 +76,12 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             return;
         }
         setContentView(R.layout.activity_settings);
-        
+
+        MaterialToolbar toolbar = findViewById(R.id.settings_toolbar);
+        if (toolbar != null) {
+            toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        }
+
         // Get camera mode from intent
         sCameraMode = getIntent().getIntExtra("camera_mode", -1);
         
@@ -113,9 +119,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
     }
 
-    public void back(View view) {
-        onBackPressed();
-    }
     @Override
     public boolean onPreferenceStartScreen(@NonNull PreferenceFragmentCompat preferenceFragmentCompat,
                                            PreferenceScreen preferenceScreen) {

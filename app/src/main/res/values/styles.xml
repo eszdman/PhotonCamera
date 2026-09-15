@@ -20,6 +20,7 @@
         <item name="processingProgressColor">?attr/colorPrimary</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="materialAlertDialogTheme">@style/MaterialAlertDialogTheme</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Photon</item>
         <item name="android:fontFamily">@font/open_sans</item>
     </style>
 
@@ -62,13 +63,52 @@
         <item name="android:textSize">13sp</item>
     </style>
 
-    <style name="PreferenceActionBarStyle">
-        <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
+    <style name="SettingsTitleTextAppearance" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 
-    <style name="SettingsTitleTextAppearance">
-        <item name="android:textSize">18sp</item>
-        <item name="android:textColor">?android:textColorPrimary</item>
+    <style name="Widget.Photon.Toolbar" parent="Widget.Material3Expressive.Toolbar.Surface">
+        <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
+        <item name="navigationIconTint">?attr/colorOnSurface</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <!-- Preference framework theming: M3 rows, MaterialSwitch toggles. -->
+    <style name="PreferenceThemeOverlay.Photon" parent="PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/Preference.Photon</item>
+        <item name="preferenceCategoryStyle">@style/Preference.Photon.Category</item>
+        <item name="switchPreferenceCompatStyle">@style/Preference.Photon.Switch</item>
+        <item name="dialogPreferenceStyle">@style/Preference.Photon.Dialog</item>
+        <item name="editTextPreferenceStyle">@style/Preference.Photon.EditText</item>
+    </style>
+
+    <style name="Preference.Photon" parent="Preference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="Preference.Photon.Switch" parent="Preference.SwitchPreferenceCompat.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+        <item name="android:widgetLayout">@layout/preference_widget_material_switch</item>
+    </style>
+
+    <style name="Preference.Photon.Category" parent="Preference.Category.Material">
+        <item name="android:layout">@layout/preference_category_layout</item>
+    </style>
+
+    <style name="Preference.Photon.Dialog" parent="Preference.DialogPreference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="Preference.Photon.EditText" parent="Preference.DialogPreference.EditTextPreference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="Widget.Photon.SeekBar" parent="">
+        <item name="android:progressDrawable">@drawable/seekbar_m3_track</item>
+        <item name="android:thumb">@drawable/seekbar_m3_thumb</item>
+        <item name="android:splitTrack">false</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
     </style>
 
     <style name="AlertDialogTheme" parent="ThemeOverlay.Material3Expressive.Dialog.Alert">

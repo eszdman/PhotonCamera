@@ -6,48 +6,46 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="@dimen/camera_preference_about_padding"
-        android:paddingBottom="@dimen/camera_preference_about_padding"
-        android:minHeight="?android:listPreferredItemHeight"
-        android:paddingEnd="?android:scrollbarSize"
-        android:paddingStart="?android:scrollbarSize"
-        >
+        android:minHeight="@dimen/preference_row_min_height"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:paddingEnd="@dimen/preference_row_horizontal_padding"
+        android:paddingStart="@dimen/preference_row_horizontal_padding">
 
     <ImageView
-            android:layout_gravity="top|center"
             android:id="@android:id/icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            tools:src="@drawable/ic_splash"
-            android:contentDescription="@string/icon_string"/>
+            android:layout_gravity="top|center"
+            android:importantForAccessibility="no"
+            android:contentDescription="@string/icon_string"
+            tools:src="@drawable/ic_splash"/>
 
     <TextView
-            android:textSize="18sp"
-            android:ellipsize="marquee"
             android:id="@android:id/title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:ellipsize="marquee"
             android:fadingEdge="horizontal"
             android:layout_gravity="top|center_horizontal"
-            android:paddingStart="@dimen/camera_settings_icon_size"
-            android:paddingEnd="@dimen/camera_settings_icon_size"
-            android:paddingBottom="10dp"
-            android:paddingTop="10dp"
+            android:paddingStart="@dimen/preference_icon_margin"
+            android:paddingEnd="@dimen/preference_icon_margin"
+            android:paddingBottom="4dp"
+            android:paddingTop="8dp"
             android:textAlignment="center"
-            tools:text="Title"
-            android:textColor="?android:textColorPrimaryNoDisable"
-            android:textStyle="bold"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            tools:text="Title"/>
 
     <TextView
-            android:textAppearance="?android:textAppearanceSmall"
-            android:textColor="?android:textColorPrimaryNoDisable"
             android:id="@android:id/summary"
-            tools:text="Summary"
-            android:paddingStart="@dimen/camera_settings_icon_size"
-            android:paddingEnd="@dimen/camera_settings_icon_size"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:paddingStart="@dimen/preference_icon_margin"
+            android:paddingEnd="@dimen/preference_icon_margin"
             android:layout_gravity="center_horizontal"
             android:layout_width="wrap_content"
-            android:textAlignment="center"
             android:layout_height="wrap_content"
-            />
+            android:textAlignment="center"
+            tools:text="Summary"/>
 </LinearLayout>
