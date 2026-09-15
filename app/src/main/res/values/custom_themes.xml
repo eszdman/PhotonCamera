@@ -97,8 +97,6 @@
         <item name="colorOnPrimary">@android:color/black</item>
         <item name="colorPrimaryContainer">@color/white_theme_background</item>
         <item name="colorOnPrimaryContainer">@android:color/black</item>
-        <item name="processingProgressColor">@android:color/black</item>
-        <item name="modeSelectedTextColor">@android:color/black</item>
     </style>
 
     <style name="ThemeOverlay.Photon.GradientBackground" parent="ThemeOverlay.Photon.Accent">

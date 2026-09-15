@@ -1,21 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#212121</color>
-    <color name="colorPrimaryColored">#6594ff</color>
     <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">@color/md_deep_purple_400</color>
-    <color name="colorPrimaryContainer">@color/md_deep_purple_400_dark</color>
-    <color name="GreyDis">#555555</color>
-    <color name="BlueDis">#4b7ae6</color>
-    <color name="Blue">#6594ff</color>
-    <color name="LightDis">#CACACA</color>
-    <color name="Light">#F1F1F1</color>
     <color name="White">#FFFFFF</color>
-    <color name="ToolBar">#1c1c1c</color>
-    <color name="controlCol">#33000000</color>
-    <color name="LauncherBackground">#00000000</color>
-    <color name="colorText">#B794F6</color>
-    <color name="colorSeparator">#616161</color>
     <!-- Fixed dark palette for the camera viewfinder chrome. The viewfinder is always dark,
          independent of the app's light/dark Material You theme. -->
     <color name="cam_surface">#CC121417</color>
@@ -31,9 +18,6 @@
     <color name="cam_error">#FFFFB4AB</color>
 
     <color name="panel_transparency">@color/cam_surface_container_high</color>
-    <color name="transparent_focus_circle">#20000000</color>
     <color name="white">#FFFFFF</color>
-    <color name="aux_container_color">@color/cam_surface_container</color>
-    <color name="grid_thumbnail_background">#AAAAAA</color>
     <color name="white_theme_background">#F0EEE9</color>
 </resources>

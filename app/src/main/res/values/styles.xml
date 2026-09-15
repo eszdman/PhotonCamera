@@ -16,8 +16,6 @@
         <item name="colorControlActivated">?attr/colorPrimary</item>
         <item name="android:colorControlActivated">?attr/colorPrimary</item>
         <item name="cameraFragmentBackground">@android:color/black</item>
-        <item name="modeSelectedTextColor">?attr/colorControlActivated</item>
-        <item name="processingProgressColor">?attr/colorPrimary</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
         <item name="materialAlertDialogTheme">@style/MaterialAlertDialogTheme</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.Photon</item>
@@ -31,16 +29,6 @@
     <style name="Theme.Photon.SettingsActivity" parent="Theme.Photon.BaseApp">
 
     </style>
-
-    <!--    <style name="Theme.Photon.CameraActivity" parent="Theme.AppCompat.NoActionBar">-->
-    <!--        <item name="android:windowNoTitle">true</item>-->
-    <!--        <item name="android:windowActionBar">false</item>-->
-    <!--        <item name="android:windowFullscreen">true</item>-->
-    <!--        <item name="android:windowContentOverlay">@null</item>-->
-    <!--        <item name="colorPrimary">@color/colorPrimary</item>-->
-    <!--        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>-->
-    <!--        <item name="colorAccent">@color/colorAccent</item>-->
-    <!--    </style>-->
 
     <!--Other Styles-->
     <style name="BoldTextWithShadow">
