@@ -128,6 +128,12 @@
             <!--    Centered lens pill: horizontal lens switcher whose buttons stay
                     clickable. Stays centered on screen; the zoom-lock pill floats
                     to its right without affecting its position. -->
+            <!--    Anchored to the bottom bar rather than the manual panel: the
+                    cluster's layout position must not change when the panel
+                    shows/hides, otherwise the container's layout transition
+                    animates that move while the panel-alpha offset compensates
+                    it (double motion). The lift is driven entirely by the
+                    offset in syncLensClusterOffset. -->
             <LinearLayout
                     android:id="@+id/lens_zoom_bar"
                     android:orientation="horizontal"
@@ -137,7 +143,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    app:layout_constraintBottom_toTopOf="@+id/manual_mode"
+                    app:layout_constraintBottom_toTopOf="@+id/layout_bottombar"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintHorizontal_bias="0.5">

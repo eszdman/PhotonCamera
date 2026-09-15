@@ -375,6 +375,7 @@ public class CameraFragment extends Fragment {
         }
         manualPanelRoot = view.findViewById(R.id.manual_mode);
         manualPanelBar = view.findViewById(R.id.buttons_container);
+        manualKnobContainer = view.findViewById(R.id.knobViewContainer);
         manualKnobView = view.findViewById(R.id.knobView);
         camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
         camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
@@ -522,6 +523,7 @@ public class CameraFragment extends Fragment {
     /** Manual-console hierarchy that carries a blurred backdrop while visible. */
     private View manualPanelRoot;
     private View manualPanelBar;
+    private View manualKnobContainer;
     private KnobView manualKnobView;
     /** Current translation applied to the lens cluster to offset layout jumps. */
     private float lensClusterOffset = Float.NaN;
@@ -613,19 +615,25 @@ public class CameraFragment extends Fragment {
     }
 
     /**
-     * The manual panel's height jumps by the selector's height when it appears
-     * or disappears (driven by the library), which would snap the lens cluster
-     * above it. A translation, decaying with the selector's own show/hide alpha,
-     * keeps the cluster gliding instead of jumping; the blur specs read the
-     * translation, so the pills' backdrops follow along.
+     * Lifts the lens cluster clear of the manual panel. The cluster is anchored
+     * to the bottom bar (its layout never moves with the panel), so the whole
+     * motion is this explicit translation: it follows the panel's own reveal
+     * alpha — gliding on the same M3E curve as the panel — and the wheel's
+     * alpha once the panel is fully in. Keeping the layout still means the
+     * container's layout transition never animates the cluster, so there is no
+     * second movement to fight. The blur specs read the translation, so the
+     * pills' backdrops follow along.
      */
     private boolean syncLensClusterOffset() {
         float offset = 0f;
-        if (manualKnobView != null && manualKnobView.getVisibility() == View.VISIBLE) {
-            float delta = manualKnobView.getHeight();
-            if (delta > 0f) {
-                float alpha = Math.min(1f, Math.max(0f, manualKnobView.getAlpha()));
-                offset = delta * (1f - alpha);
+        if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
+            float panelHeight = manualPanelRoot.getHeight();
+            if (panelHeight > 0f) {
+                float knobArea = manualKnobContainer != null ? manualKnobContainer.getHeight() : 0f;
+                float knobAlpha = manualKnobView != null && manualKnobView.getVisibility() == View.VISIBLE
+                        ? clampAlpha(manualKnobView.getAlpha()) : 0f;
+                float barArea = Math.max(0f, panelHeight - knobArea);
+                offset = -(barArea + knobArea * knobAlpha) * clampAlpha(manualPanelRoot.getAlpha());
             }
         }
         if (!Float.isNaN(lensClusterOffset) && Math.abs(offset - lensClusterOffset) < 0.25f) {
@@ -637,6 +645,10 @@ public class CameraFragment extends Fragment {
         cameraFragmentBinding.zoomSliderContainer.setTranslationY(offset);
         cameraFragmentBinding.zoomIndicator.setTranslationY(offset);
         return true;
+    }
+
+    private static float clampAlpha(float alpha) {
+        return Math.min(1f, Math.max(0f, alpha));
     }
 
     /** Adds a rounded-rect blur region for {@code view}, or nothing when hidden/empty. */
@@ -800,8 +812,15 @@ public class CameraFragment extends Fragment {
             if (backProgressTarget == BACK_TARGET_SETTINGS_BAR && target instanceof SettingsBarLayout) {
                 ((SettingsBarLayout) target).setBackProgress(progress);
             } else if (backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
-                target.setTranslationY(target.getResources().getDimension(R.dimen.standard_20) * progress);
+                // Map the gesture onto the same reveal/hide transform as the
+                // panel animation: fade + slide + option-bar collapse.
+                float slide = target.getResources().getDimension(R.dimen.manual_panel_slide);
+                target.setTranslationY(slide * progress);
                 target.setAlpha(1f - progress);
+                if (manualPanelBar != null) {
+                    manualPanelBar.setScaleX(1f - progress);
+                    manualPanelBar.setScaleY(1f - progress);
+                }
             }
         }
 
@@ -815,6 +834,12 @@ public class CameraFragment extends Fragment {
                 target.animate().setDuration(Motion.durationMedium2(target.getContext()))
                         .setInterpolator(Motion.emphasized(target.getContext()))
                         .alpha(1f).translationY(0f).start();
+                if (manualPanelBar != null) {
+                    manualPanelBar.animate().scaleX(1f).scaleY(1f)
+                            .setDuration(Motion.durationMedium2(manualPanelBar.getContext()))
+                            .setInterpolator(Motion.emphasized(manualPanelBar.getContext()))
+                            .start();
+                }
             }
             backProgressTarget = BACK_TARGET_NONE;
         }

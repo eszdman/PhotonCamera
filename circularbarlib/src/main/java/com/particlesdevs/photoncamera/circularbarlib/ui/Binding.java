@@ -49,23 +49,59 @@ public class Binding {
         }
     }
 
+    /**
+     * Reveals/hides the manual palette with the same M3E motion as the quick
+     * settings panel: fade + slide (by {@code manual_panel_slide}) with an
+     * emphasized curve over medium2. The option bar collapses through its own
+     * scale so its blur region (and the lens cluster's offset math) stays
+     * exact — the container itself is never scaled. The wheel keeps its own
+     * snappy show/hide.
+     */
     public static void togglePanelVisibility(ViewGroup manualModeContainer, Boolean visible) {
+        if (manualModeContainer == null || visible == null) {
+            return;
+        }
+        View optionBar = manualModeContainer.findViewById(R.id.buttons_container);
+        float slide = manualModeContainer.getResources().getDimension(R.dimen.manual_panel_slide);
         if (visible) {
             manualModeContainer.post(() -> {
-                manualModeContainer.animate().translationY(0)
-                        .setDuration(Motion.durationShort2(manualModeContainer.getContext()))
-                        .setInterpolator(Motion.emphasized(manualModeContainer.getContext()))
-                        .alpha(1f).start();
+                if (manualModeContainer.getVisibility() != View.VISIBLE) {
+                    // Establish the hidden state so the first reveal animates too.
+                    manualModeContainer.setAlpha(0f);
+                    manualModeContainer.setTranslationY(slide);
+                    if (optionBar != null) {
+                        optionBar.setScaleX(0f);
+                        optionBar.setScaleY(0f);
+                    }
+                }
                 manualModeContainer.setVisibility(View.VISIBLE);
+                manualModeContainer.animate()
+                        .alpha(1f).translationY(0f)
+                        .setDuration(Motion.durationMedium2(manualModeContainer.getContext()))
+                        .setInterpolator(Motion.emphasized(manualModeContainer.getContext()))
+                        .start();
+                if (optionBar != null) {
+                    optionBar.animate().scaleX(1f).scaleY(1f)
+                            .setDuration(Motion.durationMedium2(optionBar.getContext()))
+                            .setInterpolator(Motion.emphasized(optionBar.getContext()))
+                            .start();
+                }
             });
         } else {
-            manualModeContainer.post(() -> manualModeContainer.animate()
-                    .translationY(manualModeContainer.getResources().getDimension(R.dimen.standard_20))
-                    .alpha(0f)
-                    .setDuration(Motion.durationShort2(manualModeContainer.getContext()))
-                    .setInterpolator(Motion.emphasizedDecelerate(manualModeContainer.getContext()))
-                    .withEndAction(() -> manualModeContainer.setVisibility(View.GONE))
-                    .start());
+            manualModeContainer.post(() -> {
+                manualModeContainer.animate()
+                        .alpha(0f).translationY(slide)
+                        .setDuration(Motion.durationMedium2(manualModeContainer.getContext()))
+                        .setInterpolator(Motion.emphasizedDecelerate(manualModeContainer.getContext()))
+                        .withEndAction(() -> manualModeContainer.setVisibility(View.GONE))
+                        .start();
+                if (optionBar != null) {
+                    optionBar.animate().scaleX(0f).scaleY(0f)
+                            .setDuration(Motion.durationMedium2(optionBar.getContext()))
+                            .setInterpolator(Motion.emphasizedDecelerate(optionBar.getContext()))
+                            .start();
+                }
+            });
         }
     }
 

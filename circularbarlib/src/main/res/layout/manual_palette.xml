@@ -11,19 +11,19 @@
     <FrameLayout
         android:id="@+id/knobViewContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/manual_knob_area_height"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp">
 
-        <!-- The 8dp bottom margin lives on the knob itself: a GONE child's
-             margins don't count, so the panel top only lifts when the wheel
-             is actually visible and the lens cluster stays 8dp above the
-             option bar otherwise. -->
+        <!-- Fixed-height wheel area: the extra 8dp below the wheel is the gap
+             to the option bar. Keeping it constant means the panel height (and
+             the lens cluster's constraint) never jumps when the wheel toggles;
+             the cluster glides via its own offset instead. -->
         <com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView
                 android:id="@+id/knobView"
                 android:layout_width="match_parent"
+                android:layout_gravity="top"
                 tools:visibility="gone"
-                android:layout_marginBottom="8dp"
                 android:layout_height="@dimen/manual_knob_height" />
     </FrameLayout>
 

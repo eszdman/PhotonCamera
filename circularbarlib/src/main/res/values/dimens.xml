@@ -8,7 +8,11 @@
     <!-- Vertical extent of the selector dome; raising it makes the circular
          scrim taller (and its arc slightly tighter). -->
     <dimen name="manual_knob_height">120dp</dimen>
-    <dimen name="standard_20">20dp</dimen>
+    <!-- The wheel area keeps this height at all times (wheel + 8dp gap), so the
+         panel height never changes when the selector toggles. -->
+    <dimen name="manual_knob_area_height">128dp</dimen>
+    <!-- Panel reveal/hide travel, mirroring the quick settings bar. -->
+    <dimen name="manual_panel_slide">125dp</dimen>
     <dimen name="icon_size">35dp</dimen>
 
 </resources>
