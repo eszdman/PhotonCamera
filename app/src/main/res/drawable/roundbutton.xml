@@ -1,26 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!--
+    M3E tonal shutter: a filled primary-container disc with an on-container
+    outline, brightening to primary while pressed. The centre is always an
+    opaque themed surface, never the black backdrop showing through.
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_hovered="true">
         <shape android:shape="oval">
-            <solid android:color="#33FFFFFF"/>
+            <solid android:color="@color/cam_primary"/>
+            <stroke android:width="3dp" android:color="@color/cam_on_primary"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_activated="true" android:state_pressed="false">
         <shape android:shape="oval">
-            <stroke android:width="4dp" android:color="@color/cam_on_surface"/>
+            <solid android:color="@color/cam_primary_container"/>
+            <stroke android:width="3dp" android:color="@color/cam_on_primary_container"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape android:shape="oval">
             <solid android:color="@color/cam_primary"/>
+            <stroke android:width="3dp" android:color="@color/cam_on_primary"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>
     <item>
         <shape android:shape="oval">
-            <stroke android:width="4dp" android:color="@color/cam_outline"/>
+            <solid android:color="@color/cam_surface_container_high"/>
+            <stroke android:width="3dp" android:color="@color/cam_outline"/>
             <size android:width="80dp" android:height="80dp"/>
         </shape>
     </item>

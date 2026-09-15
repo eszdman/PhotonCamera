@@ -7,10 +7,10 @@
             android:viewportHeight="80">
             <group>
                 <path
-                    android:fillColor="@color/cam_surface_container_high"
+                    android:fillColor="@color/cam_primary_container"
                     android:pathData="M40 0a40 40 0 1 0 0 80a40 40 0 1 0 0-80z"/>
                 <path
-                    android:fillColor="@color/cam_primary"
+                    android:fillColor="@color/cam_on_primary_container"
                     android:pathData="M24.15 17.45c0-2.31 2.5-3.76 4.5-2.6L68.4 37.8c2 1.15 2 4.04 0 5.2L28.65 65.93c-2 1.16-4.5-0.29-4.5-2.6v-45.9z"/>
             </group>
         </vector>
@@ -20,7 +20,7 @@
         android:viewportWidth="80"
         android:viewportHeight="80">
         <path
-            android:fillColor="@color/cam_surface_container_high"
+            android:fillColor="@color/cam_primary_container"
             android:pathData="M40 0a40 40 0 1 0 0 80a40 40 0 1 0 0-80z"/>
         <path
             android:fillColor="@color/cam_error"
