@@ -36,6 +36,7 @@ import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.OnItemInteractionListener;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
+import com.particlesdevs.photoncamera.ui.widget.FabPressSpring;
 import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 
 import org.apache.commons.io.FileUtils;
@@ -83,6 +84,12 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         super.onViewCreated(view, savedInstanceState);
         // Keep the grid and FABs above the transparent navigation bar.
         SystemBarsHelper.padBottomForNavBar(view);
+        // M3E spring press-scale for the action FABs.
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.shareFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.deleteFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.numberFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.compareFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.settingsFab);
         viewModel = new ViewModelProvider(requireActivity()).get(GalleryViewModel.class);
         linearRecyclerView = fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView;
         recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
