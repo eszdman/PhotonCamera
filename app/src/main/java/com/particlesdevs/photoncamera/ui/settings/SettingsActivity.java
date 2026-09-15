@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -79,8 +80,21 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
 
         MaterialToolbar toolbar = findViewById(R.id.settings_toolbar);
         if (toolbar != null) {
-            toolbar.setNavigationOnClickListener(v -> onBackPressed());
+            toolbar.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
         }
+
+        // Predictive-back compatible handling: applies the restart side effect,
+        // then disables and re-dispatches so FragmentManager pops its back stack.
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (toRestartApp) {
+                    PhotonCamera.restartApp(SettingsActivity.this);
+                }
+                setEnabled(false);
+                getOnBackPressedDispatcher().onBackPressed();
+            }
+        });
 
         // Get camera mode from intent
         sCameraMode = getIntent().getIntExtra("camera_mode", -1);
@@ -137,14 +151,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         ft.addToBackStack(preferenceScreen.getKey());
         ft.commit();
         return true;
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (toRestartApp) {
-            PhotonCamera.restartApp(this);
-        }
-        super.onBackPressed();
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {

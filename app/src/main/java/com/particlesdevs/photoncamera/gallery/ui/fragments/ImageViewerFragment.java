@@ -389,7 +389,11 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         return null;
     }
 
-    private void onBack(View view) { if (getActivity()!=null) getActivity().finish(); }
+    private void onBack(View view) {
+        // Match system back: pop the nav graph; only finish when launched externally.
+        if (navController != null && navController.navigateUp()) return;
+        if (getActivity() != null) getActivity().finish();
+    }
 
     private void onQuickCompare(View view) {
         if (galleryItems.size() >= 2) {

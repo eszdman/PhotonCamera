@@ -216,6 +216,7 @@ public class PhotonCamera extends Application {
     @Override
     public void onCreate() {
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
+        androidx.fragment.app.FragmentManager.enablePredictiveBack(true);
         sPhotonCamera = this;
         Log.d("PhotonCamera", "Initializing PhotonCamera Modules");
         initModules();

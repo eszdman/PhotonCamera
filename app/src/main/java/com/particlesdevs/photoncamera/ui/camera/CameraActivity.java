@@ -349,13 +349,6 @@ public class CameraActivity extends BaseActivity {
     }
 
     @Override
-    public void onBackPressed() {
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
-        if (!(fragment instanceof BackPressedListener) || !((BackPressedListener) fragment).onBackPressed())
-            super.onBackPressed();
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
         // Apply hideSystemUI in onResume to prevent flickering when returning to the camera

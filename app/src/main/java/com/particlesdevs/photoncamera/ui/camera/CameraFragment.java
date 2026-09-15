@@ -53,6 +53,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -75,11 +76,12 @@ import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.app.base.BaseActivity;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleImpl;
+import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
@@ -110,12 +112,13 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Observer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
+public class CameraFragment extends Fragment {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
     /** Request code for the lockscreen gallery device-credential confirmation. */
     private static final int REQUEST_UNLOCK_GALLERY = 9001;
@@ -233,6 +236,12 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
+        manualPanelObserver = (observable, arg) -> {
+            if (arg == ManualModeModel.ManualModelFields.PANEL_VISIBILITY) {
+                updateBackIntercept();
+            }
+        };
+        ((ManualModeConsoleImpl) manualModeConsole).getManualModeModel().addObserver(manualPanelObserver);
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
@@ -297,6 +306,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
+        // System back closes any in-fragment surface; otherwise the dispatcher falls
+        // through to the default behaviour (predictive-back compatible).
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), cameraBackCallback);
+        updateBackIntercept();
         // Keep the shutter/mode bottom bar above the transparent navigation bar.
         // The viewfinder itself stays full-bleed behind it.
         View bottomBar = view.findViewById(R.id.layout_bottombar);
@@ -335,6 +348,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                         }
                         if (propertyId == BR._all || propertyId == BR.settingsBarVisibility) {
                             lensZoomBarController.setSettingsHidden(model.isSettingsBarVisibility());
+                            updateBackIntercept();
                         }
                     }
                 });
@@ -471,19 +485,31 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         super.onPause();
     }
 
-    @Override
-    public boolean onBackPressed() {
-        boolean handleBack = false;
-        if (cameraFragmentViewModel.isSettingsBarVisible()) {
-            cameraFragmentViewModel.setSettingsBarVisible(false);
-            handleBack = true;
+    /**
+     * System-back handling. The callback is enabled only while an in-fragment
+     * surface (settings bar or manual panel) is open; otherwise the dispatcher
+     * falls through to the default activity behaviour.
+     */
+    private final OnBackPressedCallback cameraBackCallback = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            if (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible()) {
+                cameraFragmentViewModel.setSettingsBarVisible(false);
+            }
+            if (manualModeConsole != null && mSwipe != null && manualModeConsole.isPanelVisible()) {
+                mSwipe.SwipeDown();
+            }
         }
-        if (manualModeConsole.isPanelVisible()) {
-            mSwipe.SwipeDown();
-            handleBack = true;
-        }
-        return handleBack;
+    };
+
+    /** Enabled-state mirrors any open in-fragment surface, so back-to-home keeps the system animation when idle. */
+    private void updateBackIntercept() {
+        boolean intercept = (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible())
+                || (manualModeConsole != null && manualModeConsole.isPanelVisible());
+        cameraBackCallback.setEnabled(intercept);
     }
+
+    private Observer manualPanelObserver;
 
     @Override
     public void onDestroy() {
@@ -501,6 +527,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             }
         }
         settingsBarEntryProvider.removeObserver(mCameraUIEventsListener);
+        if (manualModeConsole != null && manualPanelObserver != null) {
+            ((ManualModeConsoleImpl) manualModeConsole).getManualModeModel().deleteObserver(manualPanelObserver);
+            manualPanelObserver = null;
+        }
         cameraFragmentBinding = null;
         mCameraUIView.destroy();
         mCameraUIView = null;
