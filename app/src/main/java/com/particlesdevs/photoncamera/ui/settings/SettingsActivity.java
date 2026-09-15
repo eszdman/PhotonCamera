@@ -35,6 +35,7 @@ import androidx.preference.PreferenceScreen;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.transition.MaterialSharedAxis;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -140,13 +141,17 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         
         // Note: Tunable preferences are already generated in onPreferenceTreeClick before reaching here
         
-        FragmentTransaction ft = getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(R.anim.animate_slide_left_enter, R.anim.animate_slide_left_exit
-                        , R.anim.animate_card_enter, R.anim.animate_slide_right_exit);
         SettingsFragment fragment = new SettingsFragment();
         Bundle args = new Bundle();
         args.putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, preferenceScreen.getKey());
         fragment.setArguments(args);
+        // M3 shared-axis transitions for sub-screen navigation (predictive-back compatible).
+        fragment.setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
+        fragment.setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X, false));
+        fragment.setExitTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
+        fragment.setReenterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, false));
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true);
         ft.replace(R.id.settings_container, fragment, preferenceScreen.getKey());
         ft.addToBackStack(preferenceScreen.getKey());
         ft.commit();

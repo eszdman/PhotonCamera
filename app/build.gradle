@@ -118,7 +118,6 @@ dependencies {
     implementation 'org.jetbrains:annotations:26.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.bumptech.glide:glide:5.0.5'
     annotationProcessor 'com.github.bumptech.glide:compiler:5.0.5'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'

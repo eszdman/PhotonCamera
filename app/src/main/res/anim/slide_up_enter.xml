@@ -1,7 +1,5 @@
-<set xmlns:android="http://schemas.android.com/apk/res/android"
-        android:startOffset="500">
-    <translate
-            android:duration="@android:integer/config_mediumAnimTime"
-            android:fromYDelta="100%p"
-            android:toYDelta="0" />
-</set>
+<translate xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="@android:integer/config_mediumAnimTime"
+    android:interpolator="@interpolator/m3_emphasized"
+    android:fromYDelta="100%p"
+    android:toYDelta="0" />
