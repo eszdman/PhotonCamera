@@ -108,7 +108,7 @@
                 android:max="100"
                 android:layout_gravity="center"
                 app:trackThickness="6dp"
-                app:indicatorColor="@color/cam_primary"
+                app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="@color/cam_outline" />
 
         <TextView

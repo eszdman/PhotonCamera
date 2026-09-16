@@ -91,7 +91,7 @@
                     tools:progress="50"
                     app:indicatorSize="72dp"
                     app:trackThickness="5dp"
-                    app:indicatorColor="@color/cam_primary"
+                    app:indicatorColor="?attr/colorPrimary"
                     app:trackColor="@color/cam_outline" />
 
             <TextView
