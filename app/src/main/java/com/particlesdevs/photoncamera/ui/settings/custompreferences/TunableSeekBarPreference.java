@@ -84,6 +84,9 @@ public class TunableSeekBarPreference extends Preference {
             seekBar.setValueFrom(0f);
             seekBar.setValueTo(progressMax());
             seekBar.setStepSize(1f);
+            // Same index-domain pill issue as UniversalSeekBarPreference: map
+            // the floating label to the real value shown in the value text.
+            seekBar.setLabelFormatter(value -> formatValue(progressToValue(Math.round(value))));
             seekBar.clearOnChangeListeners();
             seekBar.addOnChangeListener((slider, value, fromUser) -> {
                 if (fromUser && vibration != null) vibration.Tick();
@@ -310,7 +313,10 @@ public class TunableSeekBarPreference extends Preference {
     }
 
     private int progressMax() {
-        return Math.max(1, (int) ((mMax - mMin) * mStepPerUnit));
+        // Rounded, not truncated: float32 arithmetic lands just below exact
+        // multiples (e.g. (1.0f - -0.2f) * 20 == 24.00000095 or 0.99999994),
+        // and a negative min would otherwise lose a whole step.
+        return Math.max(1, (int) Math.round(((double) mMax - (double) mMin) * (double) mStepPerUnit));
     }
 
     private int clampProgress(int progress) {
@@ -319,7 +325,8 @@ public class TunableSeekBarPreference extends Preference {
     }
 
     private int valueToProgress(float value) {
-        return clampProgress((int) ((value - mMin) * mStepPerUnit));
+        double steps = ((double) value - (double) mMin) * (double) mStepPerUnit;
+        return clampProgress((int) Math.round(steps));
     }
     
     private float progressToValue(int progress) {

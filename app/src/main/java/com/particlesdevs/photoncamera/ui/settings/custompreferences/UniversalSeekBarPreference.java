@@ -97,6 +97,10 @@ public class UniversalSeekBarPreference extends Preference {
             seekBar.setValueFrom(0f);
             seekBar.setValueTo(mSeekBarMax);
             seekBar.setStepSize(1f);
+            // The Slider runs in progress-index domain (0..mSeekBarMax), so the
+            // default floating pill would show the raw index. Map it to the
+            // real value, identical to what dragging persists and labels.
+            seekBar.setLabelFormatter(value -> convertToValue(Math.round(value)));
             seekBar.clearOnChangeListeners();
             seekBar.addOnChangeListener((slider, value, fromUser) -> {
                 if (fromUser) {
