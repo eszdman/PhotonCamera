@@ -43,7 +43,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Key.KEY_CAMERA_SOUNDS.mValue);
-        COMMON_KEYS.add(Key.KEY_SHOW_GRADIENT.mValue);
+        COMMON_KEYS.add(Key.KEY_VIEWFINDER_BACKGROUND.mValue);
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_FOCUS_PEAK.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
@@ -170,9 +170,8 @@ public class PreferenceKeys {
         SettingsManager sm = preferenceKeys.settingsManager;
 
         String theme = sm.getString(SCOPE_GLOBAL, Key.KEY_THEME_ACCENT, activity.getResources().getString(R.string.pref_theme_accent_default_value));
-        boolean showGradient = sm.getBoolean(SCOPE_GLOBAL, Key.KEY_SHOW_GRADIENT, activity.getResources().getBoolean(R.bool.pref_show_gradient_def_value));
 
-        if (showGradient) {
+        if (isShowGradientOn()) {
             activity.getTheme().applyStyle(R.style.ThemeOverlay_Photon_GradientBackground, true);
         }
 
@@ -315,6 +314,30 @@ public class PreferenceKeys {
 
     public static boolean isRoundEdgeOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SHOW_ROUND_EDGE);
+    }
+
+    /** Viewfinder background modes, stored in {@link Key#KEY_VIEWFINDER_BACKGROUND}. */
+    public static final String VIEWFINDER_BACKGROUND_NONE = "none";
+    public static final String VIEWFINDER_BACKGROUND_GRADIENT = "gradient";
+    public static final String VIEWFINDER_BACKGROUND_BLUR = "blur";
+
+    /** The selected viewfinder background: none, gradient or blurred edges. */
+    public static String getViewfinderBackground() {
+        return preferenceKeys.settingsManager.getString(
+                SCOPE_GLOBAL, Key.KEY_VIEWFINDER_BACKGROUND);
+    }
+
+    /**
+     * True when the black areas above and below the preview should show the
+     * unflipped, blurred strips of the live viewfinder edges.
+     */
+    public static boolean isBlurViewfinderEdgesOn() {
+        return VIEWFINDER_BACKGROUND_BLUR.equals(getViewfinderBackground());
+    }
+
+    /** True when the camera background should use the themed gradient. */
+    public static boolean isShowGradientOn() {
+        return VIEWFINDER_BACKGROUND_GRADIENT.equals(getViewfinderBackground());
     }
 
     public static int getGridValue() {
@@ -570,7 +593,7 @@ public class PreferenceKeys {
         KEY_CONTRIBUTORS(R.string.pref_contributors_key),
         KEY_THEME(R.string.pref_theme_key),
         KEY_THEME_ACCENT(R.string.pref_theme_accent_key),
-        KEY_SHOW_GRADIENT(R.string.pref_show_gradient_key),
+        KEY_VIEWFINDER_BACKGROUND(R.string.pref_viewfinder_background_key),
         KEY_HIDE_GALLERY_ICON(R.string.pref_hide_gallery_icon_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),

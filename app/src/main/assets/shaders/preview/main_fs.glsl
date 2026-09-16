@@ -4,9 +4,24 @@ uniform samplerExternalOES sTexture;
 uniform vec2 resolution;
 uniform bool enablePeak;
 uniform bool mirror;
+// Rounded viewfinder corners (px, 0 = square). Fragments outside the rounded
+// rect are dropped so the blurred backdrop beneath the preview shows through.
+uniform float uCornerRadius;
+// Sharp rect origin in GL surface pixels, so the mask is built in screen space
+// (texCoord is rotated by the vertex shader and would stretch the arcs).
+uniform vec2 uSharpOrigin;
 out vec4 Output;
 in vec2 texCoord;
 void main() {
+    if (uCornerRadius > 0.0) {
+        vec2 halfSize = resolution * 0.5;
+        vec2 local = gl_FragCoord.xy - uSharpOrigin;
+        vec2 q = abs(local - halfSize) - (halfSize - vec2(uCornerRadius));
+        float cornerDist = length(max(q, vec2(0.0)))
+                + min(max(q.x, q.y), 0.0) - uCornerRadius;
+        if (cornerDist > 0.0)
+            discard;
+    }
     vec2 uv = texCoord.xy;
     if(mirror)
         uv.y = 1.0 - uv.y;

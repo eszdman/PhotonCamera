@@ -24,6 +24,9 @@
     <dimen name="aux_container_margin">8dp</dimen>
     <dimen name="cam_panel_corner_radius">28dp</dimen>
     <dimen name="cam_panel_blur_radius">32dp</dimen>
+    <!-- Viewfinder rounded corners; px to match the renderer's sharp mask and
+         SurfaceViewOverViewfinder's grid clip exactly. -->
+    <dimen name="viewfinder_round_corner_radius">40px</dimen>
     <!-- Tangent fillet blending the manual selector scrim's bottom corners into
          its bottom edge (a larger radius visibly narrows the dome's base). -->
     <dimen name="cam_panel_scrim_fillet_radius">8dp</dimen>

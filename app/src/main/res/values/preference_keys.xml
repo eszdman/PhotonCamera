@@ -55,7 +55,7 @@
     <string name="pref_contributors_key" translatable="false">pref_contributors_key</string>
     <string name="pref_theme_key" translatable="false">pref_theme_key</string>
     <string name="pref_theme_accent_key" translatable="false">pref_theme_accent_key</string>
-    <string name="pref_show_gradient_key" translatable="false">pref_show_gradient_key</string>
+    <string name="pref_viewfinder_background_key" translatable="false">pref_viewfinder_background_key</string>
     <string name="pref_af_mode_key" translatable="false">pref_af_mode_key</string>
     <string name="pref_hdrx_key" translatable="false">pref_hdrx_key</string>
     <string name="pref_eis_photo_key" translatable="false">pref_eis_photo_key</string>

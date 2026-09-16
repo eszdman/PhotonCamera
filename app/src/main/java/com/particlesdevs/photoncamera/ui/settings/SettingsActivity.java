@@ -168,6 +168,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private boolean tunablePreferencesGenerated = false;
         private boolean sensorConfigPreferencesGenerated = false;
         private ActivityResultLauncher<String[]> lutImportLauncher;
+        /** Viewfinder background mode before the current settings change. */
+        private String viewfinderBackgroundBefore;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -222,7 +224,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             setFramesSummary();
             setVersionDetails();
             setHdrxTitle();
-            checkEszdTheme();
+            viewfinderBackgroundBefore = PreferenceKeys.getViewfinderBackground();
             setTelegramPref();
             setGithubPref();
             setBackupPref();
@@ -619,12 +621,18 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 restartActivity();
             }
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_THEME_ACCENT.mValue)) {
-                checkEszdTheme();
                 restartActivity();
                 toRestartApp = true;
             }
-            if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_SHOW_GRADIENT.mValue)) {
-                toRestartApp = true;
+            if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_VIEWFINDER_BACKGROUND.mValue)) {
+                // Only the gradient lives in the activity theme and needs an app
+                // restart; the blurred edges apply when the camera resumes.
+                String mode = PreferenceKeys.getViewfinderBackground();
+                if (PreferenceKeys.VIEWFINDER_BACKGROUND_GRADIENT.equals(mode)
+                        || PreferenceKeys.VIEWFINDER_BACKGROUND_GRADIENT.equals(viewfinderBackgroundBefore)) {
+                    toRestartApp = true;
+                }
+                viewfinderBackgroundBefore = mode;
             }
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue)) {
                 setFramesSummary();
@@ -643,12 +651,6 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     e.printStackTrace();
                 }
             }
-        }
-
-        private void checkEszdTheme() {
-            Preference p = findPreference(PreferenceKeys.Key.KEY_SHOW_GRADIENT.mValue);
-            if (p != null)
-                p.setEnabled(!mSettingsManager.getString(SCOPE_GLOBAL, PreferenceKeys.Key.KEY_THEME_ACCENT).equalsIgnoreCase("eszdman"));
         }
 
         private void setHdrxTitle() {

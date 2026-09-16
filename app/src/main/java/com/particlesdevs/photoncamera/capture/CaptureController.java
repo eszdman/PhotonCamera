@@ -61,6 +61,7 @@ import android.util.SparseIntArray;
 import android.view.Display;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -95,6 +96,7 @@ import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.TimerFrameCountViewModel;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.AutoFitPreviewView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import org.jetbrains.annotations.NotNull;
@@ -2249,8 +2251,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         activity.runOnUiThread(() -> {
             //Preview drawing size changing
             mPreviewSize = getTextureOutputSize(getSafeDisplay(), PhotonCamera.getSettings().selectedMode);
-            mTextureView.setAspectRatio(
-                    mPreviewSize.getHeight(), mPreviewSize.getWidth());
+            applyPreviewAspect();
             updatePreviewMirror();
             cameraEventsListener.onCharacteristicsUpdated(characteristics);
             if (PhotonCamera.getSettings().DebugData)
@@ -2258,6 +2259,23 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         });
         //activity.runOnUiThread(() -> cameraEventsListener.onCharacteristicsUpdated(characteristics));
     }
+
+    /**
+     * Sizes the viewfinder frame to the preview aspect. The frame anchors the HUD
+     * and defines the sharp rect the renderer letterboxes into; the preview
+     * surface itself (ViewfinderEdgeBlurController) fills the layout or the frame.
+     */
+    private void applyPreviewAspect() {
+        if (mPreviewSize == null) {
+            return;
+        }
+        View frame = activity.findViewById(R.id.viewfinder_frame);
+        if (frame instanceof ViewfinderFrameView) {
+            ((ViewfinderFrameView) frame).setAspectRatio(
+                    mPreviewSize.getHeight(), mPreviewSize.getWidth());
+        }
+    }
+
     Surface surface;
     public void createCameraPreviewSession(boolean isBurstSession) {
         final int sessionToken = openToken.get();

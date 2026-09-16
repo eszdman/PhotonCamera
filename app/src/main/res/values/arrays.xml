@@ -172,4 +172,14 @@
         <item>2</item>
         <item>3</item>
     </string-array>
+    <string-array name="viewfinder_background_entries">
+        <item>@string/viewfinder_background_none</item>
+        <item>@string/viewfinder_background_gradient</item>
+        <item>@string/viewfinder_background_blur</item>
+    </string-array>
+    <string-array name="viewfinder_background_entryValues">
+        <item>none</item>
+        <item>gradient</item>
+        <item>blur</item>
+    </string-array>
 </resources>

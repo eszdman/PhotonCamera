@@ -78,7 +78,7 @@
     <string name="pref_cfa_default_value" translatable="false">-1</string>
     <string name="pref_theme_default_value" translatable="false">-1</string>
     <string name="pref_theme_accent_default_value" translatable="false">default</string>
-    <bool name="pref_show_gradient_def_value">true</bool>
+    <string name="pref_viewfinder_background_default_value" translatable="false">none</string>
     <string name="pref_af_mode_default_value" translatable="false">4</string>
     <string name="pref_raw_mode_default_value" translatable="false">0</string>
     <bool name="pref_hide_gallery_icon_default">false</bool>

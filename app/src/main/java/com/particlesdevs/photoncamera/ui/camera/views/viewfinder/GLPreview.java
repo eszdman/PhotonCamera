@@ -17,8 +17,6 @@ import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 
 public class GLPreview extends GLSurfaceView {
     MainRenderer mRenderer;
-    private int mRatioWidth;
-    private int mRatioHeight;
     public Point cameraSize;
     private TextureView.SurfaceTextureListener surfaceTextureListener;
     private Handler handler;
@@ -26,10 +24,13 @@ public class GLPreview extends GLSurfaceView {
     private final Paint placeholderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint placeholderFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    // True while the renderer owns a SurfaceTexture bound to a live GL surface.
-    // Mirrors TextureView#isAvailable() so the camera stack can tell whether
+    // True while the surface exists and the renderer owns a SurfaceTexture for
+    // it. Mirrors TextureView#isAvailable() so the camera stack can tell whether
     // the preview consumer is ready without waiting for one-shot callbacks.
-    private volatile boolean surfaceReady = false;
+    // Resizing/repositioning the view recreates the GL surface, so the flag is
+    // re-armed from every surface callback, not just from the renderer's
+    // onSurfaceCreated (which only runs when the EGL context itself is new).
+    private volatile boolean surfaceAlive = false;
 
     public GLPreview(Context context) {
         super(context);
@@ -92,7 +93,7 @@ public class GLPreview extends GLSurfaceView {
         // The renderer only calls this right after creating a fresh SurfaceTexture
         // for the current GL surface, so from this point on the preview consumer
         // exists and the camera can be opened against it.
-        surfaceReady = true;
+        surfaceAlive = true;
         handler.post(() -> {
             if (surfaceTextureListener != null)
                 surfaceTextureListener.onSurfaceTextureAvailable(surfaceTexture, w, h);
@@ -107,17 +108,23 @@ public class GLPreview extends GLSurfaceView {
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
+        surfaceAlive = true;
         super.surfaceCreated(holder);
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         // The system tore the GL surface down (activity stopped, app sent to
-        // background); the old SurfaceTexture can no longer receive frames.
-        surfaceReady = false;
+        // background, or the view was resized off the window); the old
+        // SurfaceTexture can no longer receive frames.
+        surfaceAlive = false;
         super.surfaceDestroyed(holder);
     }
 
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        // A surviving surface after a resize: the renderer's texture is still
+        // valid, so the preview consumer is available again even though
+        // Renderer.onSurfaceCreated may not fire for this EGL context.
+        surfaceAlive = true;
         super.surfaceChanged(holder, format, w, h);
         handler.post(() -> {
             if (surfaceTextureListener != null)
@@ -139,49 +146,15 @@ public class GLPreview extends GLSurfaceView {
         super.onPause();
     }
 
-    /**
-     * Sets the aspect ratio for this view. The size of the view will be measured
-     * based on the ratio
-     * calculated from the parameters. Note that the actual sizes of parameters
-     * don't matter, that
-     * is, calling setAspectRatio(2, 3) and setAspectRatio(4, 6) make the same
-     * result.
-     *
-     * @param width  Relative horizontal size
-     * @param height Relative vertical size
-     */
-    public void setAspectRatio(int width, int height) {
-        if (width < 0 || height < 0) {
-            throw new IllegalArgumentException("Size cannot be negative.");
-        }
-
-        mRatioWidth = width;
-        mRatioHeight = height;
-        this.post(this::requestLayout);
-
-    }
-
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-
-        if (mRatioWidth == 0 || mRatioHeight == 0)
-            setMeasuredDimension(width, height);
-        else {
-            if (width > height * mRatioWidth / mRatioHeight)
-                setMeasuredDimension(width, width * mRatioHeight / mRatioWidth);
-            else
-                setMeasuredDimension(height * mRatioWidth / mRatioHeight, height);
-            setMeasuredDimension(mRatioWidth, mRatioHeight);
-        }
-    }
+    // The preview surface's size is owned by ViewfinderEdgeBlurController: it is
+    // the viewfinder frame by default, or the whole layout when the edge-blur
+    // option is on. Its measurement therefore follows the layout params, and the
+    // aspect-ratio logic lives in ViewfinderFrameView.
 
     public SurfaceTexture getSurfaceTexture() {
         return mRenderer == null ? null : mRenderer.getmSTexture();
@@ -217,7 +190,7 @@ public class GLPreview extends GLSurfaceView {
     }
 
     public boolean isAvailable() {
-        return surfaceReady && mRenderer != null && mRenderer.getmSTexture() != null;
+        return surfaceAlive && mRenderer != null && mRenderer.getmSTexture() != null;
     }
 
     public void setSurfaceTextureListener(TextureView.SurfaceTextureListener l) {
@@ -236,6 +209,34 @@ public class GLPreview extends GLSurfaceView {
     public void setPanelBlur(java.util.List<MainRenderer.PanelBlurSpec> specs) {
         if (mRenderer != null) {
             mRenderer.setPanelBlurSpecs(specs);
+        }
+    }
+
+    /**
+     * Sharp viewfinder rect in surface pixels (Android convention). The renderer
+     * letterboxes the preview into it and paints the blurred backdrop around it.
+     * Safe to call from the UI thread.
+     */
+    public void setSharpRect(android.graphics.Rect rect) {
+        if (mRenderer != null) {
+            mRenderer.setSharpRect(rect);
+        }
+    }
+
+    /** Enables/disables the blurred backdrop around the sharp rect. */
+    public void setEdgeBlurEnabled(boolean enabled) {
+        if (mRenderer != null) {
+            mRenderer.setEdgeBlurEnabled(enabled);
+        }
+    }
+
+    /**
+     * Rounds the sharp preview's corners so the blurred backdrop shows through
+     * the cut corners (the round-edges option).
+     */
+    public void setRoundCorners(boolean enabled) {
+        if (mRenderer != null) {
+            mRenderer.setRoundCorners(enabled);
         }
     }
 }

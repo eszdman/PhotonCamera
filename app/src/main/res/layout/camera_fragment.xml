@@ -19,6 +19,19 @@
             android:background="?cameraFragmentBackground"
             android:animateLayoutChanges="true">
 
+        <!--    Full-bleed preview surface, behind every control. ViewfinderEdgeBlurController
+                sizes it to the viewfinder frame (default) or the whole layout when the
+                edge-blur option is on; the renderer letterboxes the sharp image and paints
+                the mirrored blurred bands around it. -->
+        <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview
+                android:id="@+id/texture"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
         <!--    Block 1-->
         <!--    Contains viewfinder,bottombar and manualbar-->
         <!--    this boxing has been done in order to exclude topbar from layout parameter adjustments-->

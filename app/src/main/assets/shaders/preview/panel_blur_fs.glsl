@@ -1,6 +1,10 @@
 precision highp float;
 uniform sampler2D sTexture;
 uniform vec2 uViewSize;
+// Sampling is confined to the sharp (viewfinder) rect, so a panel over a
+// letterbox band continues the same blurred edge content as the backdrop.
+uniform vec2 uSampleMin;
+uniform vec2 uSampleMax;
 // Panel geometry in framebuffer pixels (GL convention: origin bottom-left).
 uniform vec2 uCenter;
 uniform vec2 uHalfSize;
@@ -62,6 +66,8 @@ void main() {
         }
     }
     float mask = 1.0 - smoothstep(-1.0, 1.0, dist);
-    vec2 uv = gl_FragCoord.xy / uViewSize;
+    // The blur passes place the camera image exactly like the sharp pass, so
+    // the panel samples its own screen position (clamped to the sharp rect).
+    vec2 uv = clamp(gl_FragCoord.xy / uViewSize, uSampleMin, uSampleMax);
     Output = vec4(texture(sTexture, uv).rgb, mask * uAlpha);
 }

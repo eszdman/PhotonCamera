@@ -48,7 +48,6 @@
             >
 
         <androidx.constraintlayout.widget.ConstraintLayout
-                android:background="@drawable/rectangle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:paddingTop="@dimen/topbar_padding"

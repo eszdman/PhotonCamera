@@ -3,6 +3,10 @@ precision mediump float;
 uniform samplerExternalOES sTexture;
 uniform vec2 uViewSize;
 uniform vec2 uFboSize;
+// Sharp (viewfinder) rect in surface pixels. The blurred copy places the camera
+// image inside it exactly like the sharp pass, so identity when full-surface.
+uniform vec2 uSharpOrigin;
+uniform vec2 uSharpSize;
 // Per-tap maximum offset in VIEW pixels (screen space).
 uniform vec2 uOffsetPx;
 uniform float uCos;
@@ -16,7 +20,8 @@ void main() {
     for (int i = -8; i <= 8; i++) {
         // Screen-space tap, converted to the camera texture's sample coordinate.
         vec2 viewPx = gl_FragCoord.xy * scale + uOffsetPx * (float(i) / 8.0);
-        vec2 ndc = viewPx / uViewSize * 2.0 - 1.0;
+        vec2 rel = viewPx - uSharpOrigin;
+        vec2 ndc = rel / max(uSharpSize, vec2(1.0)) * 2.0 - 1.0;
         vec2 q = vec2(ndc.x * uCos + ndc.y * uSin, -ndc.x * uSin + ndc.y * uCos);
         vec2 uv = vec2((1.0 + q.y) * 0.5, (q.x + 1.0) * 0.5);
         if (mirror)

@@ -21,7 +21,6 @@ import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.views.FocusCircleView;
-import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.SpotWbIndicatorView;
 import com.particlesdevs.photoncamera.util.Log;
 
@@ -110,7 +109,7 @@ public class TouchFocus {
             CameraMetadata.CONTROL_AF_STATE_FOCUSED_LOCKED};
 
     private final CaptureController captureController;
-    private final GLPreview textureView;
+    private final View viewfinderFrame;
     private final View focusCircleView;
     private final View spotWbIndicatorView;
     private int currentOrientation = 0;
@@ -118,11 +117,11 @@ public class TouchFocus {
     private final Runnable hideSpotWbRunnable = this::hideSpotWbIndicatorView;
     public volatile boolean isTouchFocus = false;
 
-    public TouchFocus(CaptureController captureController, View focusCircle, View spotWbIndicator, GLPreview textureView) {
+    public TouchFocus(CaptureController captureController, View focusCircle, View spotWbIndicator, View viewfinderFrame) {
         this.captureController = captureController;
         this.focusCircleView = focusCircle;
         this.spotWbIndicatorView = spotWbIndicator;
-        this.textureView = textureView;
+        this.viewfinderFrame = viewfinderFrame;
         if (focusCircleView != null) {
             focusCircleView.setClickable(false);
             focusCircleView.setFocusable(false);
@@ -187,10 +186,10 @@ public class TouchFocus {
      * Displays a dedicated sampling reticle with "WB" label and handles real-time error feedback.
      */
     public void processSpotWb(float fx, float fy) {
-        if (textureView == null || captureController == null) return;
+        if (viewfinderFrame == null || captureController == null) return;
 
         // 1. Tactile haptic feedback
-        textureView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        viewfinderFrame.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
 
         // 2. Position, animate and reset dedicated Spot WB indicator box to measuring state
         if (spotWbIndicatorView != null) {
@@ -200,7 +199,7 @@ public class TouchFocus {
 
         // 3. Measure True Linear RAW Spot WB directly using canonical field-of-view ratio
         SpotWhiteBalanceHelper.measureSpotWbRaw(
-                textureView,
+                viewfinderFrame,
                 captureController,
                 fx, fy,
                 new SpotWhiteBalanceHelper.SpotWbCallback() {
@@ -314,11 +313,11 @@ public class TouchFocus {
         boolean mirrored = facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT;
         int gravityRotation = currentGravityRotation();
         logPreCorrectionMismatch(characteristics);
-        int[] r = mapTapToCrop(viewX, viewY, textureView.getWidth(), textureView.getHeight(),
+        int[] r = mapTapToCrop(viewX, viewY, viewfinderFrame.getWidth(), viewfinderFrame.getHeight(),
                 crop.left, crop.top, crop.width(), crop.height(),
                 captureController.mSensorOrientation, gravityRotation, mirrored);
         if (r == null) return null;
-        Log.d(TAG, "tap (" + (int) viewX + "," + (int) viewY + ")v" + textureView.getWidth() + "x" + textureView.getHeight()
+        Log.d(TAG, "tap (" + (int) viewX + "," + (int) viewY + ")v" + viewfinderFrame.getWidth() + "x" + viewfinderFrame.getHeight()
                 + " so=" + captureController.mSensorOrientation + " rot=" + gravityRotation + " mirror=" + mirrored
                 + " crop=" + crop.width() + "x" + crop.height() + " -> rect=[" + r[0] + "," + r[1] + " " + r[2] + "x" + r[2] + "]");
         return new MeteringRectangle(r[0], r[1], r[2], r[2], REGION_WEIGHT);
@@ -331,7 +330,7 @@ public class TouchFocus {
      */
     private int currentGravityRotation() {
         try {
-            Display display = textureView.getDisplay();
+            Display display = viewfinderFrame.getDisplay();
             if (display != null) return display.getRotation() * 90 + 90;
         } catch (Exception ignored) {
         }
@@ -860,8 +859,8 @@ public class TouchFocus {
                     .setInterpolator(Motion.emphasizedDecelerate(focusCircleView.getContext()))
                     .withEndAction(() -> {
                         focusCircleView.setVisibility(View.GONE);
-                        focusCircleView.setX((float) textureView.getWidth() / 2.f);
-                        focusCircleView.setY((float) textureView.getHeight() / 2.f);
+                        focusCircleView.setX((float) viewfinderFrame.getWidth() / 2.f);
+                        focusCircleView.setY((float) viewfinderFrame.getHeight() / 2.f);
                         focusCircleView.setScaleY(1f);
                         focusCircleView.setScaleX(1f);
                         focusCircleView.setAlpha(1f);
@@ -887,8 +886,8 @@ public class TouchFocus {
                     .setInterpolator(Motion.emphasizedDecelerate(spotWbIndicatorView.getContext()))
                     .withEndAction(() -> {
                         spotWbIndicatorView.setVisibility(View.GONE);
-                        spotWbIndicatorView.setX((float) textureView.getWidth() / 2.f);
-                        spotWbIndicatorView.setY((float) textureView.getHeight() / 2.f);
+                        spotWbIndicatorView.setX((float) viewfinderFrame.getWidth() / 2.f);
+                        spotWbIndicatorView.setY((float) viewfinderFrame.getHeight() / 2.f);
                         spotWbIndicatorView.setScaleX(1f);
                         spotWbIndicatorView.setScaleY(1f);
                         spotWbIndicatorView.setAlpha(1f);

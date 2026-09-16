@@ -11,6 +11,7 @@ import com.particlesdevs.photoncamera.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 
 public class SurfaceViewOverViewfinder extends SurfaceView {
@@ -18,6 +19,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     private static final String TAG = "SurfaceViewOverViewfinder";
     private final SurfaceHolder mHolder;
     private final float screenRatio;
+    private final float roundRadiusPx;
     private final Paint whitePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint textPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
     private final Paint rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -32,8 +34,26 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         this.setZOrderOnTop(true);
         mHolder = this.getHolder();
         mHolder.setFormat(PixelFormat.TRANSPARENT);
+        // A transparent on-top surface must never keep uninitialized buffer
+        // content (it would composite garbage over the preview).
+        mHolder.addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                clearSurface();
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                clearSurface();
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+            }
+        });
         DisplayMetrics dm = getResources().getDisplayMetrics();
         screenRatio = (float) Math.max(dm.heightPixels, dm.widthPixels) / Math.min(dm.heightPixels, dm.widthPixels);
+        roundRadiusPx = getResources().getDimension(R.dimen.viewfinder_round_corner_radius);
         initPaints();
     }
 
@@ -54,8 +74,19 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         super.onDraw(canvas);
         // PreferenceKeys is uninitialized in the layout editor, skip overlay drawing there.
         if (isInEditMode()) return;
+        // Drop the previous overlay drawing: nothing paints over the rounded
+        // corners anymore, so stale grid pixels must not linger there.
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        // The preview surface is corner-masked by the renderer so the blurred
+        // backdrop shows through the cut corners; keep the grid inside the same
+        // rounded rect so it cannot spill into those corners.
+        if (PreferenceKeys.isRoundEdgeOn()) {
+            path.reset();
+            path.addRoundRect(new RectF(canvas.getClipBounds()), roundRadiusPx, roundRadiusPx,
+                    Path.Direction.CW);
+            canvas.clipPath(path);
+        }
         drawGrid(canvas);
-        drawRoundEdges(canvas);
     }
 
     private void drawGrid(Canvas canvas) {
@@ -125,16 +156,6 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         }
     }
 
-    private void drawRoundEdges(Canvas canvas) {
-        if (PreferenceKeys.isRoundEdgeOn()) {
-            path.reset();
-            path.addRoundRect(new RectF(canvas.getClipBounds()), 40, 40, Path.Direction.CW);
-            path.setFillType(Path.FillType.INVERSE_EVEN_ODD);
-            canvas.clipPath(path);
-            canvas.drawColor(Color.BLACK);
-        }
-    }
-
     public void setAFRect(RectF rect) {
         this.afRectToDraw = rect;
     }
@@ -171,7 +192,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         }
     }
 
-    public void clear() {
+    /** Wipes the overlay surface (transparent, so the preview shows through). */
+    private void clearSurface() {
         try {
             Canvas canvas = mHolder.lockHardwareCanvas();
             if (canvas == null) {
@@ -183,6 +205,10 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void clear() {
+        clearSurface();
         afRectToDraw = null;
         aeRectToDraw = null;
         debugText = null;

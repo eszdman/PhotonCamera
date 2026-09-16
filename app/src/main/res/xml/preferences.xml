@@ -448,13 +448,15 @@
             android:entryValues="@array/theme_accent_entryValues"
             android:defaultValue="@string/pref_theme_accent_default_value"
             />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+        <ListPreference
                 android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_show_gradient_key"
-                android:title="@string/show_gradient"
-                android:summary=""
+                android:key="@string/pref_viewfinder_background_key"
+                android:title="@string/viewfinder_background"
+                app:useSimpleSummaryProvider="true"
                 android:icon="@drawable/ic_gradient_black_24dp"
-                android:defaultValue="@bool/pref_show_gradient_def_value"/>
+                android:entries="@array/viewfinder_background_entries"
+                android:entryValues="@array/viewfinder_background_entryValues"
+                android:defaultValue="@string/pref_viewfinder_background_default_value"/>
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"

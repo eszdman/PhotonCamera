@@ -40,22 +40,27 @@ public class AssetLoader {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        BufferedReader br = new BufferedReader(new InputStreamReader(initialStream, StandardCharsets.UTF_8 ));
-        String str = null;
-        StringBuilder sb = new StringBuilder();
-        while (true) {
-            try {
-                if ((str = br.readLine()) == null) break;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            sb.append(str).append("\n");
+        if (initialStream == null) {
+            // Missing asset: callers get an empty string instead of an NPE from
+            // the reader (a missing shader must never kill the GL thread).
+            return "";
         }
         try {
-            br.close();
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(initialStream, StandardCharsets.UTF_8));
+            try {
+                StringBuilder sb = new StringBuilder();
+                String str;
+                while ((str = br.readLine()) != null) {
+                    sb.append(str).append("\n");
+                }
+                return sb.toString();
+            } finally {
+                br.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
+            return "";
         }
-        return sb.toString();
     }
 }

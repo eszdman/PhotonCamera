@@ -104,6 +104,7 @@ import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
 import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderEdgeBlurController;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.MainRenderer;
 import com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout;
 import com.particlesdevs.photoncamera.util.BlurSupport;
@@ -172,6 +173,7 @@ public class CameraFragment extends Fragment {
     private TouchFocus mTouchFocus;
     public Swipe mSwipe;
     private LensZoomBarController lensZoomBarController;
+    private ViewfinderEdgeBlurController edgeBlurController;
     // Created on an AsyncTask thread in onResume and consumed from the camera
     // callback threads; volatile + local-copy access keeps them consistent.
     private volatile MediaPlayer burstPlayer;
@@ -256,7 +258,7 @@ public class CameraFragment extends Fragment {
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
-        textureView = cameraFragmentBinding.layoutViewfinder.texture;
+        textureView = cameraFragmentBinding.texture;
         mViewfinderHudView = cameraFragmentBinding.layoutViewfinder.viewfinderHudView;
     }
 
@@ -349,6 +351,18 @@ public class CameraFragment extends Fragment {
                 captureController,
                 cameraFragmentViewModel);
         lensZoomBarController.init();
+        // Preview surface geometry: frame-sized by default, full-bleed with
+        // mirrored edge-blur bands when the option is on.
+        this.edgeBlurController = new ViewfinderEdgeBlurController(
+                cameraFragmentBinding.textureHolder,
+                cameraFragmentBinding.texture,
+                cameraFragmentBinding.layoutViewfinder.viewfinderFrame);
+        cameraFragmentBinding.textureHolder.addOnLayoutChangeListener(
+                (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
+        cameraFragmentBinding.layoutViewfinder.viewfinderFrame.addOnLayoutChangeListener(
+                (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
+        edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
+        textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
         mSwipe.setZoomGestureListener(lensZoomBarController::onPinchGesture);
         cameraFragmentViewModel.getCameraFragmentModel().addOnPropertyChangedCallback(
                 new Observable.OnPropertyChangedCallback() {
@@ -438,6 +452,8 @@ public class CameraFragment extends Fragment {
         super.onResume();
         updateSettingsBar();
         lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
+        edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
+        textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
         mSwipe.init();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
         final boolean lockedAtResume = secureSession;
@@ -476,8 +492,9 @@ public class CameraFragment extends Fragment {
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
             View spotWbIndicator = cameraFragmentBinding.layoutViewfinder.spotWbIndicator;
+            View viewfinderFrame = cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
             textureView.post(() -> {
-                mTouchFocus = new TouchFocus(captureController, focusCircle, spotWbIndicator, textureView);
+                mTouchFocus = new TouchFocus(captureController, focusCircle, spotWbIndicator, viewfinderFrame);
                 captureController.mTouchFocus = mTouchFocus;
             });
         }
@@ -1308,17 +1325,19 @@ public class CameraFragment extends Fragment {
         if (size == null) {
             size = new Size(captureController.mImageReaderPreview.getWidth(), captureController.mImageReaderPreview.getHeight());
         }
-        float left = (((float) meteringRectangle.getY() / size.getHeight()) * (textureView.getWidth()));
-        float top = (((float) meteringRectangle.getX() / size.getWidth()) * (textureView.getHeight()));
-        float width = (((float) meteringRectangle.getHeight() / size.getHeight()) * (textureView.getWidth()));
-        float height = (((float) meteringRectangle.getWidth() / size.getWidth()) * (textureView.getHeight()));
-        //left = textureView.getWidth() - left;
+        // The viewfinder frame is the visible preview rect regardless of whether
+        // the preview surface is frame-sized or full-bleed.
+        View frame = cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
+        int frameW = frame != null ? frame.getWidth() : textureView.getWidth();
+        int frameH = frame != null ? frame.getHeight() : textureView.getHeight();
+        float left = (((float) meteringRectangle.getY() / size.getHeight()) * (frameW));
+        float top = (((float) meteringRectangle.getX() / size.getWidth()) * (frameH));
+        float width = (((float) meteringRectangle.getHeight() / size.getHeight()) * (frameW));
+        float height = (((float) meteringRectangle.getWidth() / size.getWidth()) * (frameH));
         return new RectF(
-                //meteringRectangle.getY()-left, //Left
-                textureView.getWidth()-left-width,//Right
+                frameW - left - width,//Right
                 top,  //Top
-                //meteringRectangle.getY() - (left + width),//Right
-                textureView.getWidth()-left,
+                frameW - left,
                 top + height //Bottom
         );
     }

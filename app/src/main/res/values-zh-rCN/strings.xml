@@ -70,7 +70,6 @@
     <string name="theme_accent_cyan">青色</string>
     <string name="theme_accent_teal">蓝绿色</string>
     <string name="theme_accent_white">白色</string>
-    <string name="show_gradient">显示渐变背景</string>
     <string name="unprocessed_raw">未处理的 RAW 文件</string>
     <string name="frame_count_summary">图像帧数</string>
     <string name="photon_camera_summary">一个具有增强图像处理功能的开源 Android 相机</string>
