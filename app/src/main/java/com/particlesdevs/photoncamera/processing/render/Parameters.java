@@ -102,6 +102,12 @@ public class Parameters {
     public String cameraID = PhotonCamera.getSettings().mCameraID;
     public int physicalID = 0;
     public int logicalID = 0;
+    /** Wall time from onProcessing start to onProcessing finished (stop before encode), ms. 0 = not measured. */
+    public long totalProcessingTimeMs = 0;
+    /** Highest VramStage (live+renderbuffer) sample this shot, MB. 0 = not measured. */
+    public long peakVramMB = 0;
+    /** Highest MemStage entry this shot, MB. 0 = not measured. */
+    public long peakMemoryMB = 0;
 
     @Tunable(title = "Use Dynamic Black Level", category = "Parameters", defaultValue = 0, min = 0, max = 1, step = 1,
             description = "Use dynamic black level from the camera2api capture result if available (may cause instability on some devices)"
@@ -698,6 +704,9 @@ public class Parameters {
                 "\n Color=" + PhotonCamera.getSettings().colorMethod +
                 "\n PreviewFormat=" + PhotonCamera.getSettings().previewFormat +
                 "\n FocalL=" + FltFormat(focalLength) +
+                "\n TotalProcessingTime=" + totalProcessingTimeMs + "ms" +
+                "\n PeakVram=" + peakVramMB + "MB" +
+                "\n PeakMemory=" + peakMemoryMB + "MB" +
                 "\n Version=" + PhotonCamera.getVersion();
     }
 

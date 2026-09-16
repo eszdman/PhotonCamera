@@ -22,6 +22,7 @@ import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
 import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
 import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
@@ -108,6 +109,8 @@ public class HdrxProcessor extends ProcessorBase {
     private void ApplyHdrX() {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
+        Allocator.resetPeakMemory();
+        GLTexture.resetPeakVram();
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
@@ -407,6 +410,15 @@ public class HdrxProcessor extends ProcessorBase {
         Allocator.logStage(TAG, "post-gainmap");
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
+        // Total processing time: onProcessing start -> onProcessing finished,
+        // stopping before encode so the values can go into this shot's EXIF.
+        processingParameters.totalProcessingTimeMs = System.currentTimeMillis() - startTime;
+        processingParameters.peakVramMB = GLTexture.getPeakVramMB();
+        processingParameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        exifData.IMAGE_DESCRIPTION = processingParameters.toString();
+        Log.d(TAG, "TotalProcessingTime=" + processingParameters.totalProcessingTimeMs
+                + "ms PeakVram=" + processingParameters.peakVramMB
+                + "MB PeakMemory=" + processingParameters.peakMemoryMB + "MB");
         try {
             processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
         }

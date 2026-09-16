@@ -72,6 +72,25 @@ public class Allocator{
     public native static long getMemoryCount();
 
     /**
+     * Per-shot peak of any MemStage entry (max MB value seen across
+     * tracked/nativeHeap/dalvikHeap samples). Reset at processing start,
+     * read before encode for EXIF. No new stages; fed by logStage() only.
+     */
+    private static long sPeakMemoryBytes = 0;
+
+    public static void resetPeakMemory() {
+        synchronized (Allocator.class) {
+            sPeakMemoryBytes = 0;
+        }
+    }
+
+    public static long getPeakMemoryMB() {
+        synchronized (Allocator.class) {
+            return sPeakMemoryBytes / 1048576;
+        }
+    }
+
+    /**
      * Logs current native memory totals with a pipeline-stage label so peak
      * usage can be compared across stages, frame counts and resolutions.
      * Logging only; zero behavior change.
@@ -80,11 +99,20 @@ public class Allocator{
      * snapshots, staging) and the whole-process native heap (which also
      * covers Bitmap pixels and other native allocations that bypass
      * Allocator). GPU texture (VRAM) usage is tracked by neither.
+     *
+     * <p>Also feeds the per-shot PeakMemory tracker (see sPeakMemoryBytes):
+     * the highest MB value of this entry becomes the new peak if larger.
      */
     public static void logStage(String logTag, String stage) {
         long tracked = getMemoryCount();
         long heap = Debug.getNativeHeapAllocatedSize();
         long dalvik = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+        long samplePeak = Math.max(tracked, Math.max(heap, dalvik));
+        synchronized (Allocator.class) {
+            if (samplePeak > sPeakMemoryBytes) {
+                sPeakMemoryBytes = samplePeak;
+            }
+        }
         Log.d(logTag, "MemStage[" + stage + "] tracked=" + (tracked / 1048576)
                 + "MB nativeHeap=" + (heap / 1048576)
                 + "MB dalvikHeap=" + (dalvik / 1048576) + "MB");

@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
 import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
 import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
@@ -111,6 +112,9 @@ public class UnlimitedProcessor extends ProcessorBase {
         callback.onStarted();
 //        parameters.path = ImageSaver.jpgFilePathToSave.getAbsolutePath();
         processingEventsListener.onProcessingStarted("Unlimited");
+        Allocator.resetPeakMemory();
+        GLTexture.resetPeakVram();
+        long processStartMs = System.currentTimeMillis();
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
@@ -170,6 +174,15 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
         Allocator.logStage(TAG, "post-gainmap");
+        // Total processing time: onProcessing start -> onProcessing finished,
+        // stopping before encode so the values can go into this shot's EXIF.
+        parameters.totalProcessingTimeMs = System.currentTimeMillis() - processStartMs;
+        parameters.peakVramMB = GLTexture.getPeakVramMB();
+        parameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        exifData.IMAGE_DESCRIPTION = parameters.toString();
+        Log.d(TAG, "TotalProcessingTime=" + parameters.totalProcessingTimeMs
+                + "ms PeakVram=" + parameters.peakVramMB
+                + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
                 imageFile, bitmap, gm, exifData, useHeic);

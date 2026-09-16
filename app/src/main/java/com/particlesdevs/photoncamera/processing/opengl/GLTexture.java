@@ -57,10 +57,35 @@ public class GLTexture implements AutoCloseable {
         return sum;
     }
 
+    /**
+     * Per-shot peak of any VramStage entry (max live+renderbuffer bytes seen).
+     * Reset at processing start, read before encode for EXIF. No new stages;
+     * fed by logLive() only.
+     */
+    private static long sPeakVramBytes = 0;
+
+    public static void resetPeakVram() {
+        synchronized (GLTexture.class) {
+            sPeakVramBytes = 0;
+        }
+    }
+
+    public static long getPeakVramMB() {
+        synchronized (GLTexture.class) {
+            return sPeakVramBytes / 1048576;
+        }
+    }
+
     /** Logs live GPU texture bytes with a stage label; logging only. */
     public static void logLive(String tag, String stage) {
         long total = liveBytes();
         long rb = GLCoreBlockProcessing.liveRenderBytes();
+        synchronized (GLTexture.class) {
+            long sample = total + rb;
+            if (sample > sPeakVramBytes) {
+                sPeakVramBytes = sample;
+            }
+        }
         // Largest live textures pin footprint composition (which stages own
         // the peak); weak keys may clear mid-iteration, guarded below.
         java.util.List<String> top = new java.util.ArrayList<>();
