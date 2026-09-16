@@ -74,9 +74,9 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         super.onDraw(canvas);
         // PreferenceKeys is uninitialized in the layout editor, skip overlay drawing there.
         if (isInEditMode()) return;
-        // Drop the previous overlay drawing: nothing paints over the rounded
-        // corners anymore, so stale grid pixels must not linger there.
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        // Never clear this canvas: it is the window's, shared with the focus and
+        // spot WB indicators drawn before this overlay (see the child order in
+        // layout_main_viewfinder.xml), which a PorterDuff.CLEAR would erase.
         // The preview surface is corner-masked by the renderer so the blurred
         // backdrop shows through the cut corners; keep the grid inside the same
         // rounded rect so it cannot spill into those corners.

@@ -31,6 +31,21 @@
             <!--FocusCircleView-->
             <!--        putting focus circle here will make it
              not visible outside viewfinder container-->
+
+            <!--Grid/rounded-corner overlay: declared first so its window drawing
+                (and any canvas operation it makes) stays below the focus and
+                spot WB indicators. Its surface keeps ZOrderOnTop. -->
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:id="@+id/surfaceView"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
+                    android:background="#00000000"
+                    tools:visibility="visible" />
+
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView
                     android:id="@+id/viewfinder_frame"
                     android:layout_width="wrap_content"
@@ -66,17 +81,6 @@
                     app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
                     app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
                     tools:visibility="visible"/>
-
-            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:id="@+id/surfaceView"
-                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
-                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
-                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
-                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
-                    android:background="#00000000"
-                    tools:visibility="visible" />
 
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView
                 android:id="@+id/horizon_indicator_view"
