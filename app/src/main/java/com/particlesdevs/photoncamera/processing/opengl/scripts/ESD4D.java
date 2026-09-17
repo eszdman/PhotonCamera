@@ -349,6 +349,9 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "Adaptive fallback max", category = "Merge", description = "Upper clamp of the fallback adaptive multiplier (was 4.0)", min = 1.0f, max = 4.0f, step = 0.25f, defaultValue = 2.0f)
     float adaptiveFallbackMax;
 
+    @Tunable(title = "GPU sync profiling", category = "Merge", description = "Drain the GPU queue after every merge-loop stage so Stage[merge:*] logs measure true per-stage time (submit + GPU execution) instead of submit-only. Measurement only: serializes the pipeline and inflates the shot time", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean profileGpuSync;
+
     /** Progressive noise-blend grid, must match BLEND_GRID in
      * tools/noise-blend-calibration/mc.py: center first, then edges, then
      * corners, so the first f slots give the temporal kernel shape for f
@@ -470,11 +473,24 @@ public class ESD4D extends GLOneScript {
         return blendCurrent;
     }
 
+    /**
+     * Profiling aid: drains the command queue so the enclosing Stage[merge:*]
+     * timer includes GPU execution, not just submit time (dispatches are
+     * queued asynchronously; without this the loop's timers read ~0-2 ms
+     * while the real cost surfaces later in a single drain). Off by default -
+     * it serializes the pipeline and inflates the shot time.
+     */
+    private void gpuSyncProfile() {
+        if (profileGpuSync) android.opengl.GLES30.glFinish();
+    }
+
     @Override
     public void Run() {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
+        if (profileGpuSync)
+            Log.d("ESD4D", "GPU sync profiling ON: Stage[merge:*] times now include GPU execution");
         Log.d("ESD4D", "Noise multiplier: " + noiseMpy);
-        //Log.d("ESD4D", "Optical flow refinement: " + enableFlowRefinement + " maxShift: " + flowRefineMaxDisp);
+            //Log.d("ESD4D", "Optical flow refinement: " + enableFlowRefinement + " maxShift: " + flowRefineMaxDisp);
         glUtils = new GLUtils(glOne.glProcessing);
 
         // Convert every frame once into white/black-level normalized fp16
@@ -483,6 +499,7 @@ public class ESD4D extends GLOneScript {
         // normalize / flowRGB inputs) feeds FLOAT_16 textures directly - the
         // shaders receive already-normalized floats and skip the
         // whitelevel/blackLevel math.
+        long f16T = System.currentTimeMillis();
         for (int i = 0; i < images.size(); i++) {
             ImageFrame frame = images.get(i);
             if (frame.fp16 || frame.buffer == null) continue;
@@ -508,6 +525,7 @@ public class ESD4D extends GLOneScript {
             frame.fp16 = true;
             frame.packedBits = 0;
         }
+        Log.d("ESD4D", "Stage[f16-convert] elapsed:" + (System.currentTimeMillis() - f16T) + " ms");
 
         float minExp = 1.f;
         int minExpIdx = 0;
@@ -530,6 +548,7 @@ public class ESD4D extends GLOneScript {
             Log.d("ESD4D", "Alignment tile size: " + parameters.tile
                     + " alignmentSize: " + parameters.alignmentSize.x + "x" + parameters.alignmentSize.y);
         }
+        long texT = System.currentTimeMillis();
         Point raw = parameters.rawSize;
         Point rawHalf = new Point(parameters.rawSize.x/2,parameters.rawSize.y/2);
         // merge00 green-normalizes all packed quads for any CFA: the quincunx
@@ -622,6 +641,7 @@ public class ESD4D extends GLOneScript {
         glProg.setTexture("inTexture",inputBase);
         glProg.setTextureCompute("outTexture",base, true);
         glProg.computeAuto(new Point(base.mSize.x, base.mSize.y), 1);
+        Log.d("ESD4D", "Stage[textures+base] elapsed:" + (System.currentTimeMillis() - texT) + " ms");
         //glUtils.convertVec4(base, "vec4(0.5)", base);
         //var buff = glUtils.GenerateGLImage(base.mSize, 4);
         //Log.d(Name, "Buffer first:" + buff.byteBuffer.get(0) + " " + buff.byteBuffer.get(1));
@@ -646,13 +666,9 @@ public class ESD4D extends GLOneScript {
             final float varianceScale = (numVarianceBins - 1) / (varStat * NOISE_BLEND_SIGMA_REF);
             final float brightnessScale = 64.0f * (float)Math.sqrt(3.0f);
             float[] spatialKernel = new float[9];
-            // Step-0 instrumentation (temporary, DEBUG only): split the
-            // pre-merge phase into noise-blend vs histogram vs fit.
-            long dbgBlendT = 0L;
-            if (PhotonCamera.DEBUG) dbgBlendT = System.currentTimeMillis();
+            long blendT = System.currentTimeMillis();
             GLTexture noiseInput = buildNoiseBlendFrame(8, spatialKernel);
-            if (PhotonCamera.DEBUG)
-                Log.d("ESD4D", "stage noiseblend elapsed:" + (System.currentTimeMillis() - dbgBlendT) + "ms");
+            Log.d("ESD4D", "Stage[noiseblend] elapsed:" + (System.currentTimeMillis() - blendT) + " ms");
             GLHistogram noiseHist = new GLHistogram(glProg, noiseScanBins);
             noiseHist.Custom = true;
             noiseHist.Rc = true;
@@ -668,12 +684,15 @@ public class ESD4D extends GLOneScript {
             noiseHist.input2 = varianceScale;
             noiseHist.resize = noiseScanSubsample;
             noiseHist.customKernel = spatialKernel;
+            long histT = System.currentTimeMillis();
             int[][] noiseRes = noiseHist.Compute(noiseInput);
             // The accumulator may be the borrowed baseDiff (odd frame counts):
             // it must survive for the merge loop, which fully overwrites it.
             if (noiseInput != baseAlter && noiseInput != baseDiff) noiseInput.close();
             noiseHist.close();
+            Log.d("ESD4D", "Stage[noise-histogram] elapsed:" + (System.currentTimeMillis() - histT) + " ms");
             int[] hist = noiseRes[0];
+            long fitT = System.currentTimeMillis();
             // Weighted linear regression: variance = NoiseS * brightness + NoiseO,
             // run in two passes. Pass 1 fits all bins kept by the per-row
             // filter; pass 2 (adaptive gate, noiseFitGateMpy) keeps only bins
@@ -827,6 +846,7 @@ public class ESD4D extends GLOneScript {
                 }
                 Log.d("DynamicNoise", "Adaptive Mpy (fallback): " + adaptiveNMpy + " (insufficient points=" + points + ")");
             }
+            Log.d("ESD4D", "Stage[noise-fit] elapsed:" + (System.currentTimeMillis() - fitT) + " ms");
         }
         parameters.noiseModeler.setAdaptiveMpy(adaptiveNMpy);
         double noisempy = Math.pow(2.0, PhotonCamera.getSettings().mergeStrength);
@@ -839,12 +859,13 @@ public class ESD4D extends GLOneScript {
         float rawNoiseO = noiseO;
         noiseS = (float)Math.max(noiseS * noisempy * adaptiveNMpy * adaptiveNMpy,noiseMin);
         noiseO = (float)Math.max(noiseO * noisempy * adaptiveNMpy * adaptiveNMpy,noiseMin);
-        if(enableHotPixelCorrection)
+        if(enableHotPixelCorrection) {
+            long hotT = System.currentTimeMillis();
             hotPixels();
+            Log.d("ESD4D", "Stage[hotpixels] elapsed:" + (System.currentTimeMillis() - hotT) + " ms");
+        }
 
-        // Step-0 instrumentation (temporary, DEBUG only).
-        long dbgBrightT = 0L;
-        if (PhotonCamera.DEBUG) dbgBrightT = System.currentTimeMillis();
+        long brightT = System.currentTimeMillis();
         glProg.setLayout(tile,tile,1);
         glProg.useAssetProgram("merge/mergeGrayscale",true);
         glProg.setVar("inSize", packedSize);
@@ -852,8 +873,7 @@ public class ESD4D extends GLOneScript {
         glProg.setTextureCompute("outTexture",brightMap, true);
         glProg.computeAuto(brightMap.mSize, 1);
         exportBrightMap();
-        if (PhotonCamera.DEBUG)
-            Log.d("ESD4D", "stage brightmap elapsed:" + (System.currentTimeMillis() - dbgBrightT) + "ms");
+        Log.d("ESD4D", "Stage[brightmap] elapsed:" + (System.currentTimeMillis() - brightT) + " ms");
         // GPU copy consumed (the CPU copy feeds inference from here on):
         // release now instead of AfterRun so it doesn't span alignment +
         // the merge loop. Nulled; AfterRun null-guards it.
@@ -967,6 +987,7 @@ public class ESD4D extends GLOneScript {
         // orphaning the original base texture; reclaim it post-loop below.
         final GLTexture mergeBase0 = base;
 
+        long mergeLoopT = System.currentTimeMillis();
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -979,14 +1000,8 @@ public class ESD4D extends GLOneScript {
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
-            // Step-0 instrumentation (temporary, DEBUG only): per-stage
-            // split of the merge loop (upload / merge00 / mergeAlign /
-            // kernelnet-join / combine) to find the real hotspot.
-            long dbgStageT = 0L;
-            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
+            long stageT = System.currentTimeMillis();
             inputAlter.loadRawHalf(frame.buffer);
-            if (PhotonCamera.DEBUG)
-                Log.d("ESD4D", "merge-loop stage upload elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
 
             GLTexture flowTex = null;
             if(Objects.equals(alignerSelect, "flownet")) {
@@ -997,7 +1012,7 @@ public class ESD4D extends GLOneScript {
             }
 
             // Convert inputAlter to alter (vec4 format)
-            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
+            stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("merge/merge00", true);
             glProg.setVar("exposure", 1.f/images.get(0).pair.layerMpy);
@@ -1006,13 +1021,11 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", inputAlter);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
-            if (PhotonCamera.DEBUG)
-                Log.d("ESD4D", "merge-loop stage merge00 elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
 
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", parameters.tile);
-            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
+            stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
             glProg.setVar("rawHalf", rawHalf);
@@ -1048,8 +1061,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("alterTexture", alter, false);
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
-            if (PhotonCamera.DEBUG)
-                Log.d("ESD4D", "merge-loop stage mergeAlign elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
+            gpuSyncProfile();
+            Log.d("ESD4D", "Stage[merge:mergeAlign] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             if (PhotonCamera.DEBUG)
                 Log.d("ESD4D", "create diff");
@@ -1058,7 +1071,7 @@ public class ESD4D extends GLOneScript {
             // running concurrently with alignment and this frame's merge00 /
             // mergeAlign work. Waits only for any inference remainder; the
             // texture build below needs the GL thread anyway.
-            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
+            stageT = System.currentTimeMillis();
             if (kernelNetThread != null) {
                 try {
                     kernelNetThread.join();
@@ -1071,12 +1084,12 @@ public class ESD4D extends GLOneScript {
                 // dead past this point (GPU textures carry on).
                 brightMapCPU = null;
                 brightMapCPUSize = null;
-                if (PhotonCamera.DEBUG)
-                    Log.d("ESD4D", "merge-loop stage kernelnet-join elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
+                gpuSyncProfile();
+                Log.d("ESD4D", "Stage[merge:kernelnet-join] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
             }
 
             glProg.setLayout(tile, tile, 1);
-            if (PhotonCamera.DEBUG) dbgStageT = System.currentTimeMillis();
+            stageT = System.currentTimeMillis();
             glProg.useAssetProgram("merge/mergeCombineWeight1", true);
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
@@ -1106,8 +1119,8 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(base.mSize, 1);
-            if (PhotonCamera.DEBUG)
-                Log.d("ESD4D", "merge-loop stage combine elapsed:" + (System.currentTimeMillis() - dbgStageT) + "ms f=" + f);
+            gpuSyncProfile();
+            Log.d("ESD4D", "Stage[merge:combine] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
             // This frame's pixels are on the GPU now: inputAlter.loadData()
             // (and FlowNet's computeFlow()) upload synchronously, and
             // everything above only touches GPU textures plus scalar pair
@@ -1117,6 +1130,7 @@ public class ESD4D extends GLOneScript {
             images.get(ind).close();
             endT();
         }
+        Log.d("ESD4D", "Stage[merge-loop] elapsed:" + (System.currentTimeMillis() - mergeLoopT) + " ms");
 
         // The merge result stays normalized fp16 end-to-end: merge2o unpacks
         // the packed quads straight into the R16F output buffer (no uint16
@@ -1126,6 +1140,7 @@ public class ESD4D extends GLOneScript {
         // only base + alignmentTex. Release ~530 MB (64 MP) before the output
         // readback instead of AfterRun. Fields are nulled and AfterRun
         // null-guards them, so a stale close can never delete a recycled ID.
+        long mergeOutT = System.currentTimeMillis();
         if (mergeBase0 != base) mergeBase0.close();
         baseDiff.close(); baseDiff = null;
         alter.close(); alter = null;
@@ -1140,7 +1155,14 @@ public class ESD4D extends GLOneScript {
         result.BufferLoad();
         glOne.glProcessing.drawBlocksToOutput();
         Output = glOne.glProcessing.mOutBuffer;
+        // The tiled glReadPixels inside drawBlocksToOutput drains every
+        // compute dispatch the merge loop queued asynchronously, so this
+        // stage carries the loop's real GPU execution time on top of the
+        // readback transfer itself.
+        Log.d("ESD4D", "Stage[merge2o+readback] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
+        long teardownT = System.currentTimeMillis();
         AfterRun();
+        Log.d("ESD4D", "Stage[afterrun] elapsed:" + (System.currentTimeMillis() - teardownT) + " ms");
         com.particlesdevs.photoncamera.util.Allocator.logStage("ESD4D", "post-merge");
     }
 

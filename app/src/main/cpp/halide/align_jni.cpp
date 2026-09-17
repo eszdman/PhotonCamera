@@ -47,8 +47,33 @@ namespace {
 
 constexpr int kMaxLevel = 4;
 constexpr int kTile = 16;
+constexpr int kStride = 8;   // 50% tile overlap: origins every 8 texels
 constexpr int kRadius = 4;
 constexpr int kMinLevel = 1;
+
+// CPU 3x3 median of the alignment field (per component, edge-replicated) -
+// the stage replaces isolated outlier tiles (confident
+// mislocks surrounded by correct neighbors) with their neighborhood median
+// before the merge consumes the field. Layout: [c][ty][tx], c = 0,1.
+static void median3x3_2ch(std::vector<float> &f, int ntx, int nty) {
+    std::vector<float> g(f.size());
+    const size_t plane = (size_t)ntx * nty;
+    for (int c = 0; c < 2; c++)
+        for (int ty = 0; ty < nty; ty++)
+            for (int tx = 0; tx < ntx; tx++) {
+                float v[9];
+                int n = 0;
+                for (int j = -1; j <= 1; j++)
+                    for (int i = -1; i <= 1; i++) {
+                        int x = std::max(0, std::min(ntx - 1, tx + i));
+                        int y = std::max(0, std::min(nty - 1, ty + j));
+                        v[n++] = f[c * plane + (size_t)y * ntx + x];
+                    }
+                std::nth_element(v, v + 4, v + 9);
+                g[c * plane + (size_t)ty * ntx + tx] = v[4];
+            }
+    f.swap(g);
+}
 
 // ---------------------------------------------------------------------------
 // Fault trap
@@ -320,11 +345,13 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nInit(
         ctx->levels[l].translate(1, -B[l]);
     }
 
-    // Finest aligned level is kMinLevel: one vector per kTile texels there.
+    // Finest aligned level is kMinLevel: overlapped grid - kTile-texel
+    // tiles with origins every kStride texels, last tile at the image edge
+    // (must match the kernels' level_tiles(raw, level, tile, stride)).
     int w1 = rawW / 2, h1 = rawH / 2;
     for (int i = 0; i < kMinLevel; i++) { w1 /= 2; h1 /= 2; }
-    ctx->ntx = (w1 + kTile - 1) / kTile;
-    ctx->nty = (h1 + kTile - 1) / kTile;
+    ctx->ntx = std::max(1, (w1 - kTile) / kStride + 1);
+    ctx->nty = std::max(1, (h1 - kTile) / kStride + 1);
     return reinterpret_cast<jlong>(ctx);
 }
 
@@ -395,13 +422,16 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nAlignFrame(
     jfloatArray result = env->NewFloatArray(n);
     if (result == nullptr) return nullptr;
     // out(c, tx, ty) -> flat [c][ty][tx] with tx fastest, matching the
-    // indexing used by HalideAlignment.Run().
+    // indexing used by HalideAlignment.Run(). Median-filter the field in
+    // place (isolated mislocks -> neighborhood median) before handing it
+    // to the atlas packing.
     std::vector<jfloat> flat(n);
     for (int c = 0; c < 2; c++)
         for (int ty = 0; ty < ctx->nty; ty++)
             for (int tx = 0; tx < ctx->ntx; tx++)
                 flat[(size_t)c * ctx->ntx * ctx->nty + (size_t)ty * ctx->ntx + tx] =
                         out(c, tx, ty);
+    median3x3_2ch(flat, ctx->ntx, ctx->nty);
     env->SetFloatArrayRegion(result, 0, n, flat.data());
     return result;
 }

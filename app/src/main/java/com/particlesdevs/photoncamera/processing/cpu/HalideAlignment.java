@@ -26,14 +26,18 @@ import static android.opengl.GLES20.GL_NEAREST;
  * implementation this wraps): the base frame's padded u8 pyramid is built
  * once per burst (nBase), then every alt frame is aligned against it with a
  * coarse-to-fine saturating-L1 tile search over 4 pyramid levels (nAlignFrame)
- * - 16x16-texel tiles, +-4 px exhaustive per level, parabolic sub-texel fit,
- * sqrt-encoded u8 pyramids for noise-proportional quantization.
+ * - 16x16-texel tiles with 50% OVERLAP (origins every 8 texels; 2x denser
+ * vector field per axis), +-4 px exhaustive at the coarsest level + 3x3
+ * refinement around the upsampled seed at finer levels, parabolic
+ * sub-texel fit, sqrt-encoded u8 pyramids for noise-proportional
+ * quantization, and a CPU 3x3 median filter of the final vector field that
+ * replaces isolated mislocked tiles by their neighborhood median.
  *
- * The atlas is packed on the CPU exactly like alignment/pack.glsl with
- * startLevel = 2: vectors live on a raw/64 tile grid (min_level = 1) and are
- * broadcast over the 4x4 block of raw/16-grid cells they cover, in
- * alignmentToVec4 encoding - floor(d)/rawHalf in xy, fract(d) in zw, d in
- * raw/2 texel units with alt(p + d) ~= base(p).
+ * The atlas is packed on the CPU like alignment/pack.glsl with startLevel =
+ * 1: vectors live on the overlapped raw/32 tile grid (min_level = 1, stride
+ * 8 texels there) and are broadcast over the 2x2 block of raw/16-grid cells
+ * they cover, in alignmentToVec4 encoding - floor(d)/rawHalf in xy,
+ * fract(d) in zw, d in raw/2 texel units with alt(p + d) ~= base(p).
  *
  * Frames must already be the fp16-normalized buffers produced by
  * Allocator.createF16 (ESD4D does this before alignment runs).
@@ -69,9 +73,11 @@ public class HalideAlignment implements AutoCloseable {
     private long ctx;
 
     // Baked generator params (must match the prebuilt kernels):
-    // tile 16, radius 4, levels [1..4], sqrt encoding, 5 base levels.
+    // tile 16, stride 8 (50% overlap), radius 4, levels [1..4], sqrt
+    // encoding, 5 base levels.
     private static final int MIN_LEVEL = 1;
     private static final int TILE = 16;
+    private static final int STRIDE = 8;
 
     private static native long nInit(int rawW, int rawH);
     private static native int nBase(long ctx, ByteBuffer raw, float white);
@@ -117,13 +123,14 @@ public class HalideAlignment implements AutoCloseable {
         final int rawH = parameters.rawSize.y;
         final Point rawHalf = new Point(rawW / 2, rawH / 2);
 
-        // Halide vector grid at MIN_LEVEL (raw/4 image, one vector per
-        // 16 texels = per 32 raw/2 texels).
+        // Halide vector grid at MIN_LEVEL (raw/4 image): overlapped 16-texel
+        // tiles with origins every 8 texels (native stride 32 raw px), last
+        // tile ending at the image edge. Must match nInit's formula.
         int w1 = rawW;
         int h1 = rawH;
         for (int i = 0; i < MIN_LEVEL + 1; i++) { w1 /= 2; h1 /= 2; }
-        final int NTX = (w1 + TILE - 1) / TILE;
-        final int NTY = (h1 + TILE - 1) / TILE;
+        final int NTX = Math.max(1, (w1 - TILE) / STRIDE + 1);
+        final int NTY = Math.max(1, (h1 - TILE) / STRIDE + 1);
 
         Log.d(TAG, "raw " + rawW + "x" + rawH + ", " + images.size()
                 + " frames (1 base + " + (images.size() - 1) + " aligned)");
@@ -171,13 +178,14 @@ public class HalideAlignment implements AutoCloseable {
                 Log.d(TAG, sb.toString());
             }
             Point shift = PyramidAlignment.alignmentShift(parameters, f);
-            // Broadcast the raw/64-grid vectors over the raw/16 alignment
-            // grid (pack.glsl's startLevel = 2; values already raw/2 units).
+            // Broadcast the raw/32-grid vectors over the raw/16 alignment
+            // grid (pack.glsl's startLevel = 1; values already raw/2 units):
+            // each native vector covers a 2x2 block of atlas cells.
             for (int ty = 0; ty < parameters.alignmentSize.y && ty + shift.y < size.y; ty++) {
-                int sy = Math.min(ty >> 2, NTY - 1);
+                int sy = Math.min(ty >> 1, NTY - 1);
                 int row = sy * NTX;
                 for (int tx = 0; tx < parameters.alignmentSize.x && tx + shift.x < size.x; tx++) {
-                    int sx = Math.min(tx >> 2, NTX - 1);
+                    int sx = Math.min(tx >> 1, NTX - 1);
                     float dx = vecs[row + sx];
                     float dy = vecs[NTX * NTY + row + sx];
                     float fdx = (float) Math.floor(dx);

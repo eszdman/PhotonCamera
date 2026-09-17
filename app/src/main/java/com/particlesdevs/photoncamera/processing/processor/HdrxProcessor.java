@@ -159,6 +159,8 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "Packed burst frames: " + packedCount + "/"
                     + mImageFramesToProcess.size() + " at " + packBits + " bits");
         }
+        Log.d(TAG, "Stage[params+pack] elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
+        long frameSelectT = System.currentTimeMillis();
         // sort by timestamp first
         mImageFramesToProcess.sort(Comparator.comparingLong(ImageFrame::getTimestamp));
         double minExpo = exposures.get(mImageFramesToProcess.get(0).getTimestamp());
@@ -315,18 +317,27 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Packing");
         //WrapperAl.packImages();
         Log.d(TAG, "Packed");
+        Log.d(TAG, "Stage[frame-select] elapsed:" + (System.currentTimeMillis() - frameSelectT) + " ms");
         ESD4D esd4d = null;
         if(images.size() > 1) {
+            long esdT = System.currentTimeMillis();
             esd4d = new ESD4D(new Point(width, height), images);
+            Log.d(TAG, "Stage[esd4d-init] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
+            esdT = System.currentTimeMillis();
             esd4d.parameters = processingParameters;
             esd4d.Run();
+            Log.d(TAG, "Stage[esd4d.Run] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
+            esdT = System.currentTimeMillis();
             esd4d.close();
+            Log.d(TAG, "Stage[esd4d.close] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
             output = esd4d.Output;
+            long postMergeT = System.currentTimeMillis();
             for (int i = 0; i < images.size(); i++) {
                 images.get(i).close();
             }
             Allocator.logStage(TAG, "post-merge");
             Allocator.logProc(TAG, "post-merge");
+            Log.d(TAG, "Stage[post-merge-logging] elapsed:" + (System.currentTimeMillis() - postMergeT) + " ms");
             IncreaseWLBL(processingParameters);
             outputF16 = true;
         } else if (images.get(0).packedBits > 0) {
