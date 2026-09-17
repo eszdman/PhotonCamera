@@ -18,6 +18,9 @@ package com.particlesdevs.photoncamera.capture;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
@@ -78,6 +81,7 @@ import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.api.LogicalCameraResolver;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.control.TouchFocus;
@@ -1109,6 +1113,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     public void closeCamera() {
         mCameraOpening.set(false);
         isCameraResumed = false;
+        cancelLogicalZoom();
+        mLogicalRenderRatio = 0f;
         // Cancel any queued/delayed lens switch and invalidate in-flight
         // callbacks so a pending open cannot resurrect the camera while paused.
         lensSwitchScheduler.cancel();
@@ -1282,18 +1288,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 // Member switching rides CONTROL_ZOOM_RATIO on the open
                 // logical device: identity crop, continuous ratio. A digital
                 // crop here would double-zoom.
-                builder.set(CaptureRequest.SCALER_CROP_REGION, new Rect(activeArray));
-                float ratio = zoomController.getZoomRatio();
-                try {
-                    android.util.Range<Float> range =
-                            LogicalCameraResolver.getLogicalZoomRatioRange(
-                                    activity, PreferenceKeys.getVideoLogicalId());
-                    if (range != null) {
-                        ratio = Math.max(range.getLower(), Math.min(range.getUpper(), ratio));
-                    }
-                } catch (Exception ignored) {
-                }
-                builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, ratio);
+                applyZoomLogical(builder, zoomController.getZoomRatio());
                 return;
             }
             // SCALER_CROP_REGION is used for all API levels because it supports a
@@ -1309,6 +1304,35 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         } catch (IllegalArgumentException e) {
             Log.d(TAG, "applyZoom: key not supported, skipping. " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Logical-mode zoom apply with an explicit ratio (used by the smooth-zoom
+     * animator for intermediate values). Identity crop; the ratio carries the
+     * zoom. Also records the last submitted ratio for animation seeding.
+     */
+    private void applyZoomLogical(CaptureRequest.Builder builder, float ratio) {
+        if (builder == null) return;
+        CameraCharacteristics chars = mCameraCharacteristics;
+        if (chars == null) return;
+        Rect activeArray = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+        if (activeArray == null) return;
+        try {
+            builder.set(CaptureRequest.SCALER_CROP_REGION, new Rect(activeArray));
+            try {
+                android.util.Range<Float> range =
+                        LogicalCameraResolver.getLogicalZoomRatioRange(
+                                activity, PreferenceKeys.getVideoLogicalId());
+                if (range != null) {
+                    ratio = Math.max(range.getLower(), Math.min(range.getUpper(), ratio));
+                }
+            } catch (Exception ignored) {
+            }
+            builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, ratio);
+            mLogicalRenderRatio = ratio;
+        } catch (IllegalArgumentException e) {
+            Log.d(TAG, "applyZoomLogical: key not supported, skipping. " + e.getLocalizedMessage());
         }
     }
 
@@ -1341,6 +1365,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      *               Stickiness is always bypassed in video mode.
      */
     public void setZoom(float ratio, float focusX, float focusY, boolean sticky) {
+        cancelLogicalZoom();
         String switchTo = zoomController.setTargetZoom(ratio, focusX, focusY, sticky && !isVideoMode());
         if (switchTo != null) {
             requestLensSwitch(switchTo);
@@ -1377,6 +1402,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void resetZoom() {
+        cancelLogicalZoom();
         zoomController.resetToActiveLensNative();
         if (mPreviewRequestBuilder != null) {
             applyZoom(mPreviewRequestBuilder);
@@ -1392,6 +1418,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * @param activeFacing the LENS_FACING_* of the currently open camera
      */
     public void configureZoomLenses(Map<String, CameraLensData> lensDataMap, int activeFacing) {
+        cancelLogicalZoom();
+        mLogicalRenderRatio = 0f;
         mLogicalMemberPhysical = null;
         mActiveLogicalMemberId = null;
         List<ZoomController.LensEntry> entries = new ArrayList<>();
@@ -1452,6 +1480,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     /** Handles a physical lens switch requested by the zoom controller. */
     private void requestLensSwitch(String cameraId) {
+        cancelLogicalZoom();
         if (cameraId != null && LogicalCameraResolver.isMemberId(cameraId) && isVideoLogicalActive()) {
             applyLogicalMemberSwitch(cameraId);
             return;
@@ -1597,6 +1626,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      */
     public void restartCamera() {
         Log.d(TAG, "restartCamera() called from \"" + Thread.currentThread().getName() + "\" Thread");
+        cancelLogicalZoom();
         enqueueLensSwitch(PhotonCamera.getSettings().mCameraID, false);
     }
 
@@ -1611,6 +1641,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      */
     private void enqueueLensSwitch(String cameraId, boolean zoomDriven) {
         if (cameraId == null) return;
+        cancelLogicalZoom();
         if (lensSwitchScheduler.request(cameraId, zoomDriven)) {
             scheduleCycleStart();
         }
@@ -2486,6 +2517,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     Surface surface;
     public void createCameraPreviewSession(boolean isBurstSession) {
         final int sessionToken = openToken.get();
+        cancelLogicalZoom();
         try {
             SensorConfigInjector.applyToSensor(getTunablePhysicalId(), this);
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
@@ -2792,6 +2824,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private String mLogicalMemberPhysical;
     /** Pill id of the active logical member (e.g. "5#2"), or null. */
     private String mActiveLogicalMemberId;
+    /** In-flight smooth-zoom animator for logical pill taps (null when idle). */
+    private ValueAnimator mLogicalZoomAnimator;
+    /** Last ratio actually submitted in logical mode (animation seed). */
+    private float mLogicalRenderRatio;
+    /** Smooth logical pill-tap zoom duration in ms. */
+    private static final long LOGICAL_ZOOM_ANIM_MS = 400L;
 
     /** Pill id of the active logical member, or null when not in logical mode. */
     public String getActiveLogicalMemberId() {
@@ -2846,6 +2884,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             @NonNull List<LogicalCameraResolver.Member> members) {
         String anchor = "";
         try {
+            cancelLogicalZoom();
+            mLogicalRenderRatio = 0f;
             List<ZoomController.LensEntry> entries = new ArrayList<>();
             for (int i = 0; i < members.size(); i++) {
                 LogicalCameraResolver.Member m = members.get(i);
@@ -2881,8 +2921,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
-     * Pill tap on a logical member: drives the shared zoom state machine so
-     * pinch/slider/pill all behave identically, without reopening the camera.
+     * Pill tap on a logical member: smooth-zooms to the member native ratio
+     * instead of jumping, without reopening the camera. Pre-R snaps (no
+     * zoom-ratio API to animate through).
      */
     public void zoomToLogicalMember(@NonNull String memberId) {
         try {
@@ -2891,16 +2932,105 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             LogicalCameraResolver.Member target =
                     LogicalCameraResolver.findMember(members, memberId);
             if (target == null) return;
-            // Video mode never uses detent snap + hysteresis (see setZoom).
-            String switchTo = zoomController.setTargetZoom(target.zoomFactor, 0.5f, 0.5f, false);
-            if (switchTo != null) {
-                requestLensSwitch(switchTo);
-            } else if (mPreviewRequestBuilder != null) {
-                applyZoom(mPreviewRequestBuilder);
-                rebuildPreviewBuilder();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                // Video mode never uses detent snap + hysteresis (see setZoom).
+                String switchTo = zoomController.setTargetZoom(target.zoomFactor, 0.5f, 0.5f, false);
+                if (switchTo != null) {
+                    requestLensSwitch(switchTo);
+                } else if (mPreviewRequestBuilder != null) {
+                    applyZoom(mPreviewRequestBuilder);
+                    rebuildPreviewBuilder();
+                }
+                return;
             }
+            startLogicalZoom(memberId, target.zoomFactor);
         } catch (Exception e) {
             Log.w(TAG, "zoomToLogicalMember failed", e);
+        }
+    }
+
+    /**
+     * Animates CONTROL_ZOOM_RATIO from the last rendered value to the target
+     * through the seamless-apply path (no session churn), then commits the
+     * zoom-controller state and member bookkeeping. Interruptible: any new
+     * tap, gesture, mode/lens change or lifecycle event cancels first.
+     */
+    private void startLogicalZoom(@NonNull final String memberId, final float to) {
+        try {
+            cancelLogicalZoom();
+            float from = mLogicalRenderRatio > 0f ? mLogicalRenderRatio : zoomController.getZoomRatio();
+            if (Math.abs(to - from) < 1e-4f) {
+                String switchTo = zoomController.setTargetZoom(to, 0.5f, 0.5f, false);
+                if (switchTo != null) {
+                    requestLensSwitch(switchTo);
+                } else if (mPreviewRequestBuilder != null) {
+                    applyZoom(mPreviewRequestBuilder);
+                    rebuildPreviewBuilder();
+                }
+                return;
+            }
+            mLogicalRenderRatio = from;
+            mLogicalZoomAnimator = ValueAnimator.ofFloat(from, to);
+            mLogicalZoomAnimator.setDuration(LOGICAL_ZOOM_ANIM_MS);
+            try {
+                mLogicalZoomAnimator.setInterpolator(Motion.emphasized(activity));
+            } catch (Exception ignored) {
+            }
+            mLogicalZoomAnimator.addUpdateListener(animation -> {
+                try {
+                    float value = (float) animation.getAnimatedValue();
+                    if (mPreviewRequestBuilder != null) {
+                        applyZoomLogical(mPreviewRequestBuilder, value);
+                        rebuildPreviewBuilder();
+                    }
+                    try {
+                        cameraEventsListener.onLogicalZoomProgress(value);
+                    } catch (Exception ignored) {
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "logical zoom tick failed", e);
+                }
+            });
+            mLogicalZoomAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mLogicalZoomAnimator = null;
+                    try {
+                        String switchTo = zoomController.setTargetZoom(to, 0.5f, 0.5f, false);
+                        if (switchTo != null) {
+                            requestLensSwitch(switchTo);
+                        } else if (mPreviewRequestBuilder != null) {
+                            applyZoom(mPreviewRequestBuilder);
+                            rebuildPreviewBuilder();
+                        }
+                        try {
+                            cameraEventsListener.onLogicalZoomProgress(to);
+                        } catch (Exception ignored) {
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "logical zoom commit failed", e);
+                    }
+                }
+            });
+            mLogicalZoomAnimator.start();
+        } catch (Exception e) {
+            Log.w(TAG, "startLogicalZoom failed", e);
+        }
+    }
+
+    /** Cancels any in-flight smooth logical zoom (safe from any thread). */
+    private void cancelLogicalZoom() {
+        try {
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                mMainHandler.post(this::cancelLogicalZoom);
+                return;
+            }
+            if (mLogicalZoomAnimator != null) {
+                mLogicalZoomAnimator.cancel();
+                mLogicalZoomAnimator = null;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "cancelLogicalZoom failed", e);
         }
     }
 
@@ -3950,11 +4080,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     public void VideoEnd() {
+        cancelLogicalZoom();
         mIsRecordingVideo = false;
         stopRecordingVideo();
     }
 
     public void VideoStart() {
+        cancelLogicalZoom();
         mIsRecordingVideo = true;
         createCameraPreviewSession(false);
     }

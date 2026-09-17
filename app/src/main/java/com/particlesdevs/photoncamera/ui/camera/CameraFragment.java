@@ -1711,6 +1711,13 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
+        public void onLogicalZoomProgress(float ratio) {
+            if (cameraFragmentViewModel != null) {
+                cameraFragmentViewModel.setZoomRatio(ratio);
+            }
+        }
+
+        @Override
         public void onProcessingFinished(Object obj) {
             logD("onProcessingFinished: " + obj);
             mCameraUIView.setProcessingProgressBarIndeterminate(false);

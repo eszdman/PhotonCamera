@@ -46,4 +46,7 @@ public abstract class CameraEventsListener implements CaptureEventsListener, Pro
 
     /** Fired when a seamless logical-member switch is applied (no reopen). */
     public void onLogicalMemberChanged(String memberId) {}
+
+    /** Fired per tick while a smooth logical zoom animates (ratio rendered). */
+    public void onLogicalZoomProgress(float ratio) {}
 }
