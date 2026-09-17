@@ -51,6 +51,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
+        COMMON_KEYS.add(Key.KEY_AUTO_ZOOM_SWITCH.mValue);
         // Video settings are global: per-lens copies would resurrect another
         // lens's resolution/bitrate/codec when switching lenses.
         COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION.mValue);
@@ -84,6 +85,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, resources.getBoolean(R.bool.pref_save_heic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUTO_ZOOM_SWITCH, resources.getBoolean(R.bool.pref_auto_zoom_switch_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER, resources.getBoolean(R.bool.pref_quad_bayer_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ULTRAHDR, resources.getBoolean(R.bool.pref_ultrahdr_default));
@@ -469,6 +471,15 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, value);
     }
 
+    /** Master switch for auto lens-switch on zoom (separate from the pill lock). */
+    public static boolean isAutoZoomSwitchOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_AUTO_ZOOM_SWITCH);
+    }
+
+    public static void setAutoZoomSwitch(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_AUTO_ZOOM_SWITCH, value);
+    }
+
     public static int getFpsMode() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW);
     }
@@ -745,6 +756,7 @@ public class PreferenceKeys {
         KEY_HDRX(R.string.pref_hdrx_key),
         KEY_EIS_PHOTO(R.string.pref_eis_photo_key),
         KEY_ZOOM_LOCK(R.string.pref_zoom_lock_key),
+        KEY_AUTO_ZOOM_SWITCH(R.string.pref_auto_zoom_switch_key),
         KEY_QUAD_BAYER(R.string.pref_quad_bayer_key),
         KEY_FPS_PREVIEW(R.string.pref_fps_preview_key),
         KEY_ULTRAHDR(R.string.pref_ultrahdr_key),

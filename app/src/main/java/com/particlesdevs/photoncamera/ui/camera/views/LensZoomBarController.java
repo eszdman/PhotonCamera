@@ -102,7 +102,7 @@ public class LensZoomBarController {
             transition.disableTransitionType(LayoutTransition.APPEARING);
             transition.disableTransitionType(LayoutTransition.DISAPPEARING);
         }
-        captureController.setLensSwitchLocked(PreferenceKeys.isZoomLockOn());
+        syncEffectiveLockState();
         updateLockIcon();
         lockButton.setOnClickListener(v -> toggleLock());
         slider.setValueFrom(0f);
@@ -289,6 +289,7 @@ public class LensZoomBarController {
 
     /** Called after the lens set or active camera changes (range may have changed). */
     public void refreshZoomRange() {
+        syncEffectiveLockState();
         syncSlider();
         updateBarVisibility(true);
         if (expanded) scheduleCollapse();
@@ -367,7 +368,7 @@ public class LensZoomBarController {
         // The lock pill follows the lens pill (a lock is meaningless with one lens),
         // and stays hidden in video logical mode (member switches never reopen).
         boolean show = !settingsHidden && (expanded || auxButtons.getChildCount() > 1);
-        boolean showLock = show && !isVideoLogicalActive();
+        boolean showLock = show && !isVideoLogicalActive() && PreferenceKeys.isAutoZoomSwitchOn();
         if (show == barShown) {
             // The lens pill is unchanged, but the lock pill may still need a
             // visibility update (e.g. entering/leaving logical mode).
@@ -485,12 +486,27 @@ public class LensZoomBarController {
     }
 
     private void toggleLock() {
-        boolean locked = !captureController.isLensSwitchLocked();
+        boolean locked = !PreferenceKeys.isZoomLockOn();
         captureController.setLensSwitchLocked(locked);
         PreferenceKeys.setZoomLock(locked);
+        syncEffectiveLockState();
         updateLockIcon();
         // The zoom range changed (full facing range vs current lens window).
         refreshZoomRange();
+    }
+
+    /**
+     * Effective zoom-lock state: locked when the auto-switch setting is off
+     * or the pill lock is on. Re-read on every open so Settings changes
+     * apply without restart.
+     */
+    private void syncEffectiveLockState() {
+        try {
+            captureController.setLensSwitchLocked(
+                    !PreferenceKeys.isAutoZoomSwitchOn() || PreferenceKeys.isZoomLockOn());
+        } catch (Exception e) {
+            // Controller not ready; init/refresh paths retry later.
+        }
     }
 
     private void updateLockIcon() {

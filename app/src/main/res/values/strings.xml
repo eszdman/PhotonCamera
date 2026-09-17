@@ -17,6 +17,8 @@
     <string name="zoom_slider_desc">Zoom slider</string>
     <string name="zoom_lock_desc">Lock zoom to current lens</string>
     <string name="zoom_unlock_desc">Unlock zoom (auto lens switch)</string>
+    <string name="auto_zoom_lens_switch">Auto zoom lens switch</string>
+    <string name="auto_zoom_lens_switch_summary">Automatically switch lenses while zooming. Shows the lock pill.</string>
 
     <string name="comp">Compressor</string>
     <string name="gain">Gain</string>

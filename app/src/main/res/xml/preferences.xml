@@ -87,6 +87,14 @@
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
                 />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_auto_zoom_switch_key"
+                android:defaultValue="@bool/pref_auto_zoom_switch_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/auto_zoom_lens_switch"
+                android:summary="@string/auto_zoom_lens_switch_summary"
+                android:icon="@drawable/ic_focus"
+                />
         <ListPreference
                 android:layout="@layout/preference_with_margin"
                 android:key="@string/pref_af_mode_key"
