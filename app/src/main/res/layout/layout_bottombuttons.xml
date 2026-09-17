@@ -92,8 +92,8 @@
                     tools:progress="50"
                     app:indicatorSize="72dp"
                     app:trackThickness="5dp"
-                    app:indicatorColor="?attr/colorPrimary"
-                    app:trackColor="@color/cam_outline" />
+                    app:indicatorColor="?attr/colorOnPrimaryContainer"
+                    app:trackColor="?attr/colorOnSurfaceVariant" />
 
             <TextView
                     android:id="@+id/frameCount"
@@ -101,7 +101,7 @@
                     android:layout_height="wrap_content"
                     tools:text="25"
                     android:text="@{timermodel.frameCount}"
-                    android:textColor="@android:color/white"
+                    android:textColor="?attr/colorOnPrimaryContainer"
                     android:textSize="34sp"
                     android:textAlignment="center"
                     android:typeface="normal"
