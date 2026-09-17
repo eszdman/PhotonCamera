@@ -1,7 +1,7 @@
 precision highp float;
-precision highp usampler2D;
 precision mediump sampler2D;
-uniform usampler2D InputBuffer;
+// White/black-level normalized fp16 raw (Allocator.createF16 / ESD4D R16F output).
+uniform highp sampler2D InputBuffer;
 uniform sampler2D GainMap;
 uniform sampler2D Kodak;
 uniform ivec2 RawSize;
@@ -9,7 +9,6 @@ uniform vec2 RawInvSize;
 uniform vec4 blackLevel;
 uniform vec3 whitePoint;
 uniform int CfaPattern;
-uniform uint whitelevel;
 uniform int MinimalInd;
 #define BLR (0.0)
 #define BLG (0.0)
@@ -64,16 +63,12 @@ int hlFcol(ivec2 p) {
 }
 
 // normalized white-balanced value of a raw sample, same space as OpposedChroma
-float hlNorm(uint rv, int c) {
+float hlNorm(float rv, int c) {
     // Prevent dynamic vector indexing issues on some mobile drivers and safeguard divisors
     float lvlC = (c == 0) ? blackLevel.r : ((c == 1) ? (blackLevel.g + blackLevel.b) * 0.5 : blackLevel.a);
     float wpC  = (c == 0) ? whitePoint.r : ((c == 1) ? whitePoint.g : whitePoint.b);
-    
-    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs on some hardware
-    float rawF = min(float(rv), float(whitelevel));
-    float val  = rawF / max(float(whitelevel), 1.0);
-    
-    return max(0.0, (val - lvlC) / max(1.0 - lvlC, 1e-4) / max(wpC, 1e-4));
+
+    return max(0.0, (rv - lvlC) / max(1.0 - lvlC, 1e-4) / max(wpC, 1e-4));
 }
 
 // opposed-colour estimate for channel c from the 3x3 photosite neighbourhood
@@ -131,9 +126,7 @@ void main() {
     //gains.rgb = vec3(1.f);
     vec3 level = vec3(blackLevel.r,(blackLevel.g+blackLevel.b)/2.0,blackLevel.a);
     #if RGBLAYOUT == 1
-    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs
-    vec3 rawVec = min(vec3(texelFetch(InputBuffer, (xy), 0).rgb), vec3(whitelevel));
-    vec3 hlRGB = rawVec / max(float(whitelevel), 1.0);
+    vec3 hlRGB = texelFetch(InputBuffer, (xy), 0).rgb;
     hlRGB = (hlRGB - level.rgb)/(vec3(1.0)-level.rgb);
     #if HLRECON == 1
     {
@@ -167,9 +160,8 @@ void main() {
             }
         }
         
-    // Clamp raw fetch to whitelevel to prevent unsigned 16-bit sign-extension bugs
-    float rawF = min(float(texelFetch(InputBuffer, (xy), 0).x), float(whitelevel));
-    Output = rawF / max(float(whitelevel), 1.0);
+    // Input is pre-normalized fp16: sample straight through
+    Output = texelFetch(InputBuffer, (xy), 0).x;
     
     // Safeguard balance and denominator from zero division
     balance = max(balance, 1e-4);

@@ -3,7 +3,8 @@ LAYOUT
 precision highp float;
 precision highp sampler2D;
 precision highp image2D;
-uniform highp usampler2D inTexture;
+// Normalized fp16 raw input (Allocator.createF16 pre-normalizes on the CPU).
+uniform highp sampler2D inTexture;
 uniform highp sampler2D alignmentTexture;
 //layout(r16ui, binding = 0) uniform highp readonly uimage2D inTexture;
 layout(rgba16f, binding = 0) uniform highp readonly image2D avrTexture;
@@ -13,8 +14,6 @@ layout(rgba16f, binding = 3) uniform highp writeonly image2D outTexture;
 layout(rgba16f, binding = 4) uniform highp readonly image2D alterTexture;
 
 uniform float minLevel;
-uniform uint whitelevel;
-uniform vec4 blackLevel;
 uniform float exposure;
 uniform float exposureLow;
 uniform bool createDiff;
@@ -31,21 +30,21 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define M_PI 3.1415926535897932384626433832795
 #define TILE_AL 16
 
-uint getBayer(ivec2 coords, highp usampler2D tex){
+float getBayer(ivec2 coords, highp sampler2D tex){
     return texelFetch(tex,coords,0).r;
 }
 
 // Repack raw with the same red-site origin shift as merge00 (negative shift,
 // edge-duplicated fetches), so the normalized quad layout (R, Gr, Gb, B)
-// matches the packed textures; blackLevel is already permuted accordingly.
-vec4 getBayerVec(ivec2 coords, highp usampler2D tex){
+// matches the packed textures.
+vec4 getBayerVec(ivec2 coords, highp sampler2D tex){
     ivec2 sz = textureSize(tex, 0);
     ivec2 org = coords - cfaShift;
     vec4 c0 = vec4(getBayer(clamp(org, ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(1,0), ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(0,1), ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(1,1), ivec2(0), sz - ivec2(1)),tex));
-    return clamp((c0 - blackLevel)/(vec4(float(whitelevel))-blackLevel), 0.0, 1.0);
+    return clamp(c0, 0.0, 1.0);
 }
 
 float window(float x){

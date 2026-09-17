@@ -14,6 +14,7 @@ import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableKeyDialog;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableKeyPreference;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableListPreference;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.settings.annotations.SensorConfig;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableSeekBarPreference;
@@ -438,10 +439,11 @@ public class SensorConfigPreferenceGenerator {
 
     /**
      * Creates a ListPreference (dropdown/dialog list) when the annotation provides entries and entryValues.
+     * Supports long press to reset to default.
      */
     private static void addListPreference(Context context, PreferenceCategory category, String prefKey, TunableFieldInfo info) {
         SensorConfig annotation = info.annotation;
-        ListPreference listPref = new ListPreference(context);
+        TunableListPreference listPref = new TunableListPreference(context);
         listPref.setKey(prefKey);
         listPref.setTitle(annotation.title());
         listPref.setDialogTitle(annotation.title());

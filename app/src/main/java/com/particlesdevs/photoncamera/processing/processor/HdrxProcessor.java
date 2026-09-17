@@ -259,6 +259,9 @@ public class HdrxProcessor extends ProcessorBase {
         //        IsoExpoSelector.getMPY() - 40.)*6400.f / (6.2f*IsoExpoSelector.getISOAnalog());
 
         ByteBuffer output = null;
+        // True when output already holds white/black-level normalized fp16
+        // (ESD4D's merge2o renders straight into an R16F buffer).
+        boolean outputF16 = false;
         Log.d(TAG, "Packing");
         //WrapperAl.packImages();
         Log.d(TAG, "Packed");
@@ -273,14 +276,23 @@ public class HdrxProcessor extends ProcessorBase {
                 images.get(i).close();
             }
             IncreaseWLBL(processingParameters);
+            outputF16 = true;
         } else {
             output = images.get(0).buffer;
             images.get(0).buffer = null;
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
         if ((saveRAW >= 1) && alignAlgorithm != 2) {
-            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, output,
+            // DNG carries uint16 raw counts: re-encode the fp16 merge back to
+            // the IncreasedWL scale (FAKE_WL, black 0) just for the save.
+            ByteBuffer dngOut = output;
+            if (outputF16) {
+                dngOut = Allocator.createU16FromF16(output, width, height,
+                        processingParameters.whiteLevel, processingParameters.blackLevel);
+            }
+            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, dngOut,
                     processingParameters);
+            if (dngOut != output) Allocator.free(dngOut);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             if (saveRAW == 2) {
                 processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
@@ -289,6 +301,16 @@ public class HdrxProcessor extends ProcessorBase {
                 Allocator.getMemoryCount();
                 return;
             }
+        }
+
+        // PostPipeline consumes normalized fp16 raw (Bayer2Float uploads a
+        // FLOAT_16 texture). The single-frame path skips ESD4D, so its raw
+        // uint16 buffer is normalized here with the sensor levels.
+        if (!outputF16) {
+            ByteBuffer f16 = Allocator.createF16(output, width, height,
+                    processingParameters.whiteLevel, processingParameters.blackLevel);
+            Allocator.free(output);
+            output = f16;
         }
 
         processingParameters.noiseModeler.computeStackingNoiseModel(images.size());

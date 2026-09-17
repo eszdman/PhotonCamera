@@ -197,6 +197,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 )
 add_library(allocator SHARED
     ${SRC_DIR}/allocator.cpp
+    ${SRC_DIR}/rawF16.cpp
 )
 add_library(flacRecorder SHARED
     ${SRC_DIR}/flacRecorder.cpp
@@ -245,3 +246,32 @@ target_link_libraries(
         camera2native
         log
 )
+
+# --- Halide CPU burst alignment (arm64-v8a only) ----------------------------
+# Prebuilt kernels from the halide-align project (stage 1: base pyramid once
+# per burst; stage 2: per-frame tile matching) + the Halide arm64 runtime,
+# wrapped for Java by align_jni.cpp. armeabi-v7a builds skip this library;
+# HalideAlignment.java falls back to the GL pyramid path when it is absent.
+if (${ANDROID_ABI} STREQUAL "arm64-v8a"
+        AND EXISTS ${SRC_DIR}/halide/arm64-v8a/libhalide_runtime_android.a)
+    add_library(halidealign SHARED ${SRC_DIR}/halide/align_jni.cpp)
+    target_include_directories(halidealign PRIVATE
+            ${SRC_DIR}/halide/include
+            ${SRC_DIR}/halide/arm64-v8a)
+    set_target_properties(halidealign PROPERTIES CXX_STANDARD 17)
+    add_library(alignburst_base_f16 STATIC IMPORTED)
+    set_target_properties(alignburst_base_f16 PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_base_f16.a)
+    add_library(alignburst_f16 STATIC IMPORTED)
+    set_target_properties(alignburst_f16 PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16.a)
+    add_library(halide_runtime_android STATIC IMPORTED)
+    set_target_properties(halide_runtime_android PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/libhalide_runtime_android.a)
+    target_link_libraries(halidealign PRIVATE
+            alignburst_base_f16
+            alignburst_f16
+            halide_runtime_android
+            log
+            dl)
+endif()

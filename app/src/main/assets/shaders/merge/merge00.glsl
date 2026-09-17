@@ -3,12 +3,12 @@ LAYOUT
 precision highp float;
 precision highp sampler2D;
 precision highp image2D;
-uniform highp usampler2D inTexture;
+// Normalized fp16 raw input (Allocator.createF16 applies the per-site
+// whitelevel/blackLevel normalization on the CPU before upload).
+uniform highp sampler2D inTexture;
 layout(rgba16f, binding = 0) uniform highp writeonly image2D outTexture;
 
 
-uniform uint whitelevel;
-uniform vec4 blackLevel;
 uniform float exposure;
 uniform bool createDiff;
 uniform float noiseS;
@@ -23,12 +23,8 @@ uniform vec2 randF;
 #define M_PI 3.1415926535897932384626433832795
 #define TILE_AL 16
 
-uint getBayer(ivec2 coords, highp usampler2D tex){
+float getBayer(ivec2 coords, highp sampler2D tex){
     return texelFetch(tex,coords,0).r;
-}
-
-float getBayerNorm(ivec2 coords, highp usampler2D tex){
-    return clamp((float(getBayer(coords, tex)) - dot(blackLevel, vec4(0.25)))/(float(whitelevel)-dot(blackLevel,vec4(0.25))), 0.0, 1.0);
 }
 // Green-normalize the packed quads: the quincunx sub-texel sampler in later
 // stages needs the two greens on the anti-diagonal g/b slots. Only GRBG/GBRG
@@ -39,22 +35,21 @@ float getBayerNorm(ivec2 coords, highp usampler2D tex){
 // - all merge stages work channel-wise and merge2o maps sites back).
 // The packed grid is rawHalf + cfaShift texels; shifted out-of-range sites
 // are filled by clamped fetches (edge duplication) and never read back.
-// blackLevel is passed already permuted to the shifted channel order.
-vec4 getBayerVec(ivec2 coords, highp usampler2D tex){
+vec4 getBayerVec(ivec2 coords, highp sampler2D tex){
     ivec2 sz = textureSize(tex, 0);
     ivec2 org = coords - cfaShift;
     vec4 c0 = vec4(getBayer(clamp(org, ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(1,0), ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(0,1), ivec2(0), sz - ivec2(1)),tex),
                    getBayer(clamp(org + ivec2(1,1), ivec2(0), sz - ivec2(1)),tex));
-    return clamp((c0 - blackLevel)/(vec4(float(whitelevel))-blackLevel), 0.0, 1.0);
+    return clamp(c0, 0.0, 1.0);
 }
 
-float getTest(ivec2 coords, highp usampler2D tex){
+float getTest(ivec2 coords, highp sampler2D tex){
     return (float(coords.x)/4000.0 + float(coords.y)/3000.0)/2.0;
 }
 
-vec4 getTestBayerVec(ivec2 coords, highp usampler2D tex){
+vec4 getTestBayerVec(ivec2 coords, highp sampler2D tex){
     vec4 c0 = vec4(getTest(coords,tex),getTest(coords+ivec2(1,0),tex),getTest(coords+ivec2(0,1),tex),getTest(coords+ivec2(1,1),tex));
     return clamp(c0, 0.0, 1.0);
 }

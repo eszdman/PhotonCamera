@@ -42,7 +42,7 @@ public class SensorSpecifics {
         BufferedReader indevice = new BufferedReader(new InputStreamReader(is));
         String str;
         while ((str = indevice.readLine()) != null) {
-            Log.d(TAG, "read local:" + str);
+            Log.d(TAG, "read local:" + str.substring(0, Math.min(64, str.length())));
             inputStr.add(str + "\n");
         }
         indevice.close();
@@ -56,7 +56,7 @@ public class SensorSpecifics {
         BufferedReader indevice = new BufferedReader(new InputStreamReader(is));
         String str;
         while ((str = indevice.readLine()) != null) {
-            Log.d(TAG, "read asset:" + str);
+            Log.d(TAG, "read asset:" + str.substring(0, Math.min(64, str.length())));
             inputStr.add(str + "\n");
         }
         indevice.close();
@@ -69,7 +69,7 @@ public class SensorSpecifics {
                 "https://raw.githubusercontent.com/eszdman/PhotonCamera/dev/app/src/main/assets/specific/sensors/" + device + ".txt", 150);
         String str;
         while ((str = indevice.readLine()) != null) {
-            Log.d(TAG, "read network:" + str);
+            Log.d(TAG, "read network:" + str.substring(0, Math.min(64, str.length())));
             inputStr.add(str + "\n");
         }
         return inputStr;

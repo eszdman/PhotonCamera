@@ -3,12 +3,11 @@ LAYOUT
 precision highp float;
 precision highp sampler2D;
 precision highp image2D;
-uniform highp usampler2D inTexture;
+// Normalized fp16 raw input (Allocator.createF16 pre-normalizes on the CPU).
+uniform highp sampler2D inTexture;
 uniform highp sampler2D gainMap;
 layout(rgba16f, binding = 0) uniform highp writeonly image2D outTexture;
 
-uniform float whiteLevel;
-uniform vec4 blackLevel;
 uniform float exposure;
 uniform float blurSigma;
 
@@ -30,7 +29,7 @@ vec4 loadQuad(ivec2 coords) {
                    texelFetch(inTexture, coords + ivec2(1, 0), 0).r,
                    texelFetch(inTexture, coords + ivec2(0, 1), 0).r,
                    texelFetch(inTexture, coords + ivec2(1, 1), 0).r);
-    return clamp((c0 - blackLevel) / (vec4(whiteLevel) - blackLevel), 0.0, 1.0);
+    return clamp(c0, 0.0, 1.0);
 }
 
 void main() {

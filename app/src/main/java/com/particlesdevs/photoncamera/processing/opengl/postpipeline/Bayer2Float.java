@@ -53,21 +53,26 @@ public class Bayer2Float extends Node {
 
         GLTexture in;
         if(basePipeline.mSettings.alignAlgorithm != 2) {
-            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
-                    ((PostPipeline) (basePipeline)).stackFrame, GL_NEAREST, GL_MIRRORED_REPEAT);
+            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.FLOAT_16),
+                    null, GL_NEAREST, GL_MIRRORED_REPEAT);
         } else {
-            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 3),
-                    ((PostPipeline) (basePipeline)).stackFrame, GL_NEAREST, GL_MIRRORED_REPEAT);
+            in = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 3),
+                    null, GL_NEAREST, GL_MIRRORED_REPEAT);
         }
+        // stackFrame is white/black-level normalized fp16 (see HdrxProcessor /
+        // UnlimitedProcessor) - upload as raw halves.
+        in.loadRawHalf(((PostPipeline) (basePipeline)).stackFrame);
         GLTexture GainMapTex = new GLTexture(basePipeline.mParameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 BufferUtils.getFrom(basePipeline.mParameters.gainMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
         float[] hlChroma = null;
         if (hlInpaintOpposed && basePipeline.mParameters.cfaPattern != 4) {
             startT();
             try {
+                // Input is already normalized fp16: level 0, whitelevel 1 put
+                // the clip thresholds into the same normalized domain.
                 hlChroma = OpposedGL.compute(glProg, in, rawSize, basePipeline.mParameters.cfaPattern,
                         basePipeline.mSettings.alignAlgorithm == 2,
-                        basePipeline.mParameters.whiteLevel, basePipeline.mParameters.blackLevel,
+                        1.0f, new float[]{0.f, 0.f, 0.f, 0.f},
                         basePipeline.mParameters.whitePoint, OpposedGL.CLIP_MAGIC * hlClip);
             } catch (Exception e) {
                 Log.d(Name, "InpaintOpposed failed, disabling:" + Log.getStackTraceString(e));
@@ -117,8 +122,6 @@ public class Bayer2Float extends Node {
         glProg.setVar("whitePoint", basePipeline.mParameters.whitePoint);
         glProg.setVar("RawSize", basePipeline.mParameters.rawSize);
         glProg.setVar("RawInvSize", 1.0f/basePipeline.mParameters.rawSize.x, 1.0f/basePipeline.mParameters.rawSize.y);
-        Log.d(Name, "whitelevel:" + basePipeline.mParameters.whiteLevel);
-        glProg.setVarU("whitelevel", (int) basePipeline.mParameters.whiteLevel);
         glProg.setTexture("GainMap", GainMapTex);
         if(testPattern && testPatternIndex == 0) {
             try {
@@ -131,10 +134,10 @@ public class Bayer2Float extends Node {
             }
         }
 
-        for (int i = 0; i < 4; i++) {
-            basePipeline.mParameters.blackLevel[i] /= basePipeline.mParameters.whiteLevel * postPipeline.regenerationSense;
-        }
-        glProg.setVar("blackLevel", basePipeline.mParameters.blackLevel);
+        // The fp16 input is already site-normalized (black removed, white at
+        // 1.0), so tofloat's blackLevel uniform is zero regardless of what the
+        // parameters carried.
+        glProg.setVar("blackLevel", new float[]{0.f, 0.f, 0.f, 0.f});
         if (hlChroma != null) glProg.setVar("Chrominance", hlChroma);
         Log.d(Name, "CfaPattern:" + basePipeline.mParameters.cfaPattern);
         postPipeline.regenerationSense = 10.f;

@@ -13,6 +13,6 @@ public interface KernelNetResult {
     /** Half-resolution height. */
     int height();
 
-    /** Channel-major [s1, s2, rho] floats, each channel width*height values. */
+    /** RGBA-interleaved (s1, s2, rho, 1) floats per texel, row-major, width*height*4 values. */
     FloatBuffer asFloatBuffer();
 }

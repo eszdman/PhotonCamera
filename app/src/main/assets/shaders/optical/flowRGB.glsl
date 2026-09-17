@@ -3,27 +3,26 @@ LAYOUT
 precision highp float;
 precision highp sampler2D;
 precision highp image2D;
-uniform highp usampler2D inTexture;
+// Normalized fp16 raw input (Allocator.createF16 pre-normalizes on the CPU).
+uniform highp sampler2D inTexture;
 layout(rgba16f, binding = 0) uniform highp writeonly image2D outTexture;
 
 // Produces the RGB frames fed to the FlowNet optical flow model (512x384).
 // Each output texel stores (B, G, R, 255) scaled to [0,255], channel order
 // matching the desktop *PIXEL_BGR* runner so the ncnn net sees the same layout
 // it was validated with.
-uniform float whiteLevel;
-uniform vec4 blackLevel;
 uniform float exposure;
 uniform int cfaPattern;
 uniform ivec2 rawHalf;     // rawSize/2 (a 2x2 camera quad == one texture texel)
 uniform vec2 flowScale;    // model pixel -> quad texel scale (rawHalf/FLOW)
 
-float getBayer(ivec2 coords, highp usampler2D tex) {
+float getBayer(ivec2 coords, highp sampler2D tex) {
     return float(texelFetch(tex, coords, 0).r);
 }
 
 // One 2x2 camera quad -> RGB according to the CFA layout.
 // q0=(x,y)  q1=(x+1,y)  q2=(x,y+1)  q3=(x+1,y+1)  in *quad* (rawHalf) coords.
-vec3 quadToRGB(int px, int py, highp usampler2D tex) {
+vec3 quadToRGB(int px, int py, highp sampler2D tex) {
     vec3 rgb;
     if (cfaPattern == 0) {         // RGGB
         rgb = vec3(getBayer(ivec2(2*px + 0, 2*py + 0), tex),
@@ -47,7 +46,7 @@ vec3 quadToRGB(int px, int py, highp usampler2D tex) {
 
 // Bilinear blend of 4 quads at (u,v) (fractional quad coordinates), which
 // low-passes the bayer data while downscaling.
-vec3 sampleRGB(vec2 uv, highp usampler2D tex) {
+vec3 sampleRGB(vec2 uv, highp sampler2D tex) {
     ivec2 maxQ = rawHalf - 1;
     ivec2 i0 = ivec2(floor(uv));
     vec2 f = uv - vec2(i0);
@@ -73,7 +72,6 @@ void main() {
     vec2 pos = (vec2(xy) + vec2(0.5)) * flowScale;
     vec3 rgb = sampleRGB(pos, inTexture);
 
-    vec3 normalized = clamp((rgb - blackLevel.rgb) / (whiteLevel - blackLevel.rgb), 0.0, 1.0);
-    vec3 scaled = clamp(normalized * vec3(exposure) * 255.0, 0.0, 255.0);
+    vec3 scaled = clamp(clamp(rgb, 0.0, 1.0) * vec3(exposure) * 255.0, 0.0, 255.0);
     imageStore(outTexture, xy, vec4(scaled.b, scaled.g, scaled.r, 255.0));
 }

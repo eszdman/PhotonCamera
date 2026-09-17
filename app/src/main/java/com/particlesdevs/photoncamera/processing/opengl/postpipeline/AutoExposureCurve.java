@@ -47,7 +47,7 @@
         @Tunable(title = "Target Brightness", category = "Auto Exposure", max = 255.0f, defaultValue = 128.0f)
         float target;
 
-        @Tunable(title = "Noise Max", category = "Auto Exposure", max = 1.0f, defaultValue = 0.05f)
+        @Tunable(title = "Noise Max", category = "Auto Exposure", max = 1.0f, defaultValue = 0.03f)
         float noiseMax;
 
         @Tunable(title = "Gain Max", category = "Auto Exposure", max = 20.0f, defaultValue = 9.0f)

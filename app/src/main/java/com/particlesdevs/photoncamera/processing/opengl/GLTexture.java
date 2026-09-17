@@ -151,6 +151,15 @@ public class GLTexture implements AutoCloseable {
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), mFormat.getGLType(), pixels);
     }
+    /** Uploads raw fp16 (half-float) data, e.g. the Allocator.createF16
+     * normalized raw frames. loadData() must NOT be used for these: GLFormat
+     * maps FLOAT_16 to GL_FLOAT there because its FloatBuffer payloads carry
+     * 32-bit floats that the driver converts on upload, while a ByteBuffer of
+     * half floats needs the explicit GL_HALF_FLOAT type. */
+    public void loadRawHalf(ByteBuffer pixels){
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), GL_HALF_FLOAT, pixels);
+    }
     void reSetParameters(){
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mFormat.filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mFormat.filter);

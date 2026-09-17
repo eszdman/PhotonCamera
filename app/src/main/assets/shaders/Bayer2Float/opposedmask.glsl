@@ -5,12 +5,12 @@
 // to decide whether the reconstruction engages at all.
 precision highp float;
 precision highp int;
-precision highp usampler2D;
-uniform usampler2D u_raw;
+// White/black-level normalized fp16 raw (uploaded by Bayer2Float).
+uniform highp sampler2D u_raw;
 uniform ivec2 u_size;     // image size in pixels
 uniform ivec2 u_msize;    // mask grid size in cells
 uniform vec3 u_level;     // normalized per-channel black level (greens averaged)
-uniform vec3 u_clipthr;   // raw-domain clip thresholds (counts)
+uniform vec3 u_clipthr;   // clip thresholds in the normalized domain
 uniform int CfaPattern;
 #define QUAD 0
 #define RGBLAYOUT 0
@@ -39,13 +39,13 @@ void main() {
             ivec2 p = cell * 3 + ivec2(dx, dy);
             if (p.x >= u_size.x || p.y >= u_size.y) continue;
             #if RGBLAYOUT == 1
-            uvec3 v = texelFetch(u_raw, p, 0).rgb;
-            if (float(v.r) >= u_clipthr.r) bits |= 1u;
-            if (float(v.g) >= u_clipthr.g) bits |= 2u;
-            if (float(v.b) >= u_clipthr.b) bits |= 4u;
+            vec3 v = texelFetch(u_raw, p, 0).rgb;
+            if (v.r >= u_clipthr.r) bits |= 1u;
+            if (v.g >= u_clipthr.g) bits |= 2u;
+            if (v.b >= u_clipthr.b) bits |= 4u;
             #else
             int c = hlFcol(p);
-            if (float(texelFetch(u_raw, p, 0).r) >= u_clipthr[c]) bits |= (1u << c);
+            if (texelFetch(u_raw, p, 0).r >= u_clipthr[c]) bits |= (1u << c);
             #endif
         }
     }

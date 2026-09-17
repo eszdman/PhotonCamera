@@ -10,6 +10,7 @@ import androidx.preference.PreferenceScreen;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableCheckBoxPreference;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableListPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableSeekBarPreference;
 
@@ -320,10 +321,11 @@ public class TunablePreferenceGenerator {
 
     /**
      * Creates a ListPreference (dropdown/dialog list) when the annotation provides entries and entryValues.
+     * Supports long press to reset to default.
      */
     private static void addListPreference(Context context, PreferenceCategory category, String prefKey, TunableFieldInfo info) {
         Tunable annotation = info.annotation;
-        ListPreference listPref = new ListPreference(context);
+        TunableListPreference listPref = new TunableListPreference(context);
         listPref.setKey(prefKey);
         listPref.setTitle(annotation.title());
         listPref.setDialogTitle(annotation.title());

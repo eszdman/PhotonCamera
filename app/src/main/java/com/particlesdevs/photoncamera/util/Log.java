@@ -37,7 +37,7 @@ public class Log {
     private static Handler logHandler;
     private static BufferedWriter bufferedWriter = null;
     private static String currentDate = null;
-    private static final int BUFFER_FLUSH_INTERVAL = 1000; // Flush every 1 second
+    private static final int BUFFER_FLUSH_INTERVAL = 10000; // Close (flush) the log file every 10 seconds
 
     static {
         initLogThread();
@@ -48,13 +48,14 @@ public class Log {
         logThread.start();
         logHandler = new Handler(logThread.getLooper());
 
-        // Schedule periodic flush
+        // Flush alone is not enough: MTP and some SAF readers serve stale content
+        // while the file is held open, so the file must be closed periodically.
         schedulePeriodicFlush();
     }
 
     private static void schedulePeriodicFlush() {
         logHandler.postDelayed(() -> {
-            flushBuffer();
+            closeWriter();
             schedulePeriodicFlush();
         }, BUFFER_FLUSH_INTERVAL);
     }
@@ -228,6 +229,7 @@ public class Log {
                 String time = timeFormatter.get().format(new java.util.Date(timestamp));
                 String logEntry = time + " " + level + "/" + tag + ": " + message + "\n";
                 bufferedWriter.write(logEntry);
+                bufferedWriter.flush();
             } catch (Exception e) {
                 closeWriter();
             }

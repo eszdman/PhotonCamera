@@ -18,6 +18,7 @@ import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -128,6 +129,16 @@ public class UnlimitedProcessor extends ProcessorBase {
                 callback.onFinished();
                 return;
             }
+        }
+
+        // PostPipeline consumes normalized fp16 raw; IncreaseWLBL above set
+        // wl = FAKE_WL / black = 0, so this is a plain v/65535 conversion.
+        {
+            ByteBuffer unlimitedF16 = Allocator.createF16(unlimitedBuffer,
+                    parameters.rawSize.x, parameters.rawSize.y,
+                    parameters.whiteLevel, parameters.blackLevel);
+            Allocator.free(unlimitedBuffer);
+            unlimitedBuffer = unlimitedF16;
         }
 
 

@@ -13,45 +13,71 @@ import static android.opengl.GLES20.GL_LINEAR;
 
 /**
  * Fast Local Laplacian filter (Paris, Hasinoff, Kautz 2011, with the LUT
- * acceleration of Aubry et al. 2011), evaluated on the GPU in a single pass
- * per pyramid level.
+ * acceleration of Aubry et al. 2011), evaluated on the GPU.  The two
+ * scale regimes use the two equivalent readings of the algorithm, each in
+ * the place where it is exact:
  *
- * <p>What makes this a correct LLF, unlike the previous LocalLaplacian:</p>
  * <ul>
- *   <li>The coarse level is remapped <b>before</b> the expansion filter:
- *       each coarse texel passes through the remap curve and only then is
- *       interpolated ({@code expand(remap(G))}, not {@code remap(expand(G))}).
- *       The filter-after-remap structure is what separates detail from edges
- *       at every scale.</li>
- *   <li>The remap anchor of an output pixel is its own Gaussian value, held
- *       fixed across the whole expansion of that pixel - exactly the paper's
- *       interpolation between discrete-anchor remapped pyramids.  Anchoring
- *       per tap instead would telescope the reconstruction into a pointwise
- *       tone curve and cancel the multi-scale behaviour.</li>
+ *   <li><b>Fine levels (single pyramid + 2D LUT):</b> each output pixel is
+ *       rebuilt as expand(reconstruction) + r(G_l(p); anchor) -
+ *       expand(r(G_{l+1}; anchor)).  Fine-scale windows only ever contain
+ *       values near the anchor, where the remap curve is locally linear, so
+ *       remapping the pyramid values directly is accurate here and costs
+ *       one pass per level.</li>
+ *   <li><b>Coarse levels (packed per-anchor pyramids):</b>
+ *       reconstruction out = expand(out) + mix(lap_lo, lap_hi, a) with
+ *       lap_k = R_k[l] - expand(R_k[l+1]) computed from pyramids of
+ *       <i>remapped</i> images.  The distinction matters: the tone
+ *       compression must be averaged INTO the reduction.  Remapping the
+ *       already-reduced values instead does nothing at these scales (the
+ *       blurred-in contrast is never far enough from the anchor to be
+ *       compressed) and measurably pushes blacks down.  Following Aubry et
+ *       al., the per-anchor pyramids are built from a downscaled Gaussian
+ *       (all levels with extent &gt; {@link #COARSE_MAX} are above the seam
+ *       and exact), packed as one texture column per anchor.</li>
+ * </ul>
+ *
+ * <p>Shared properties:</p>
+ * <ul>
  *   <li>The remap curves of all anchors are baked into a small 2D LUT
- *       (intensity x anchor).  Bilinear filtering of the anchor axis performs
- *       the paper's interpolation between neighbouring anchors for free.</li>
- *   <li>The remap curve, its parameter semantics and the 6 anchors at
- *       (k + 0.5)/6 follow the established local-contrast convention: the
- *       shadows slope acts on details brighter than the local average, the
- *       highlights slope on darker ones.</li>
- *   <li>The coarsest Gaussian level is remapped too: it is the base the
- *       Laplacian reconstruction starts from.</li>
- *   <li>Neutral parameters (detail 0, shadows/highlights 1) reproduce the
- *       input bit-exactly, so the filter can be reasoned about as a pure
+ *       (intensity x anchor, 24 anchors at (k + 0.5)/24).
+ *       Bilinear filtering of the anchor axis performs the
+ *       interpolation between neighbouring anchors for free.  Denser
+ *       anchoring is not cosmetic: a pixel farther than half the anchor
+ *       spacing from every row centre is remapped by one fixed curve, so
+ *       flat areas turn into a pointwise tone map - at 6 rows the bottom
+ *       ~12% of the range lost up to 36% brightness.</li>
+ *   <li>The remap curve and its parameter semantics follow the established
+ *       local-contrast convention: the shadows slope acts on details
+ *       brighter than the local average, the highlights slope on darker
+ *       ones.</li>
+ *   <li>Neutral parameters (detail 0, shadows/highlights 1) make the curve
+ *       the identity, every per-anchor pyramid the Gaussian itself, and so
+ *       reproduce the input bit-exactly - the filter is a pure
  *       perturbation.</li>
  * </ul>
  *
- * <p>Cost: N downsample passes, one tiny pointwise pass for the remapped
- * base and N reconstruction passes over a pyramid that shrinks 4x per level
- * - about 2.3 full-resolution pixel passes in total.  Extra storage is one
- * single-channel R16F pyramid plus a 16 KB LUT.</p>
+ * <p>Cost: N downsample passes, 1 remap + N/2 reductions of a packed
+ * coarse image (a few hundred KB), and one reconstruction pass per level -
+ * about 2.5 full-resolution pixel passes in total.  Extra storage is one
+ * single-channel R16F pyramid plus the packed coarse pyramids and a
+ * 24 KB LUT.</p>
  */
 public class LocalLaplacian2 extends Node {
     private static final int MAX_LEVELS = 12;
     private static final int LUT_SAMPLES = 512;
-    // 6 anchors at gamma_k = (k + 0.5) / 6.
-    private static final int LUT_ANCHORS = 6;
+    // 24 anchors at gamma_k = (k + 0.5) / 24.  A
+    // pixel farther than half the anchor spacing from every row center is
+    // remapped by a single fixed curve, so sparse rows turn flat areas into
+    // a pointwise tone map - at 6 rows the bottom ~12% of the range lost
+    // up to 36% brightness and crushed to black below ~1%.
+    private static final int LUT_ANCHORS = 24;
+    // Coarsest downscaled extent that still carries the per-anchor
+    // pyramids; levels coarser than this are represented by them.  64
+    // keeps the packed texture within the 2048-texel GLES minimum
+    // (24 anchors per row) while the within-cell variance the remap has
+    // to see stays small.
+    private static final int COARSE_MAX = 64;
 
     public LocalLaplacian2() {
         super("", "LocalLaplacian2");
@@ -62,15 +88,15 @@ public class LocalLaplacian2 extends Node {
     boolean enabled;
 
     @Tunable(title = "Detail", description = "Local contrast amplification near the local average; 0 is neutral",
-            category = "LLF", min = -1.0f, max = 4.0f, defaultValue = 0.25f, step = 0.05f)
+            category = "LLF", min = -1.0f, max = 4.0f, defaultValue = 0.15f, step = 0.05f)
     float detail;
 
     @Tunable(title = "Highlights", description = "Slope for details darker than the local average; below 1 compresses",
-            category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.5f, step = 0.05f)
+            category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.0f, step = 0.05f)
     float highlights;
 
     @Tunable(title = "Shadows", description = "Slope for details brighter than the local average; below 1 compresses",
-            category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.5f, step = 0.05f)
+            category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.0f, step = 0.05f)
     float shadows;
 
     @Tunable(title = "Mid-tone Range", description = "Width of the tone band around the local average treated as mid-tones; highlights/shadows act only outside 2x this width. 0.5 spans the whole tonal range",
@@ -147,6 +173,33 @@ public class LocalLaplacian2 extends Node {
         return output;
     }
 
+    /** Packed remap of a coarse Gaussian: column k = r(g; anchor_k). */
+    private GLTexture remapPacked(GLTexture level, GLTexture lut) {
+        Point size = new Point(LUT_ANCHORS * level.mSize.x, level.mSize.y);
+        GLTexture output = new GLTexture(size, new GLFormat(GLFormat.DataType.FLOAT_16));
+        glProg.setDefine("ANCHORS", LUT_ANCHORS);
+        glProg.useAssetProgram("local_laplacian2/remappacked");
+        glProg.setTexture("InputBuffer", level);
+        glProg.setTexture("RemapLut", lut);
+        glProg.setVar("columnSize", level.mSize);
+        glProg.drawBlocks(output);
+        glProg.close();
+        return output;
+    }
+
+    /** Column-wise Gaussian reduction of a packed pyramid level. */
+    private GLTexture reducePacked(GLTexture packedIn, Point columnSize) {
+        Point size = new Point(LUT_ANCHORS * Math.max(1, (columnSize.x + 1) / 2),
+                Math.max(1, (columnSize.y + 1) / 2));
+        GLTexture output = new GLTexture(size, new GLFormat(GLFormat.DataType.FLOAT_16));
+        glProg.useAssetProgram("local_laplacian2/reducepacked");
+        glProg.setTexture("InputBuffer", packedIn);
+        glProg.setVar("inSize", columnSize);
+        glProg.drawBlocks(output);
+        glProg.close();
+        return output;
+    }
+
     @Override
     public void Run() {
         final GLTexture input = previousNode.WorkingTexture;
@@ -164,19 +217,64 @@ public class LocalLaplacian2 extends Node {
         GLTexture levelInput = input;
         boolean rgbInput = true;
         while (levels < MAX_LEVELS
-                && (levelInput.mSize.x > 4 || levelInput.mSize.y > 4)) {
+                && (levelInput.mSize.x > 2 || levelInput.mSize.y > 2)) {
             GLTexture next = downsample(levelInput, rgbInput);
             gaussian[++levels] = next;
             levelInput = next;
             rgbInput = false;
         }
 
-        // The reconstruction base is the remapped coarsest level.  The
-        // coarsest Gaussian itself stays alive: the first reconstruction
-        // pass still samples it through the remap LUT.
-        GLTexture reconstructed = remapBase(gaussian[levels], lut);
+        // The packed per-anchor pyramids represent every level from
+        // coarseStart up, so the seam sits where the remap-vs-reduce order
+        // stops mattering.  The scan starts at 1: gaussian[0] stays null,
+        // level 0 is the RGB input itself.
+        int coarseStart = 1;
+        while (coarseStart < levels
+                && Math.max(gaussian[coarseStart].mSize.x,
+                        gaussian[coarseStart].mSize.y) > COARSE_MAX) {
+            coarseStart++;
+        }
+        coarseStart = Math.max(1, Math.min(coarseStart, levels - 1));
 
-        for (int level = levels - 1; level >= 0; level--) {
+        GLTexture reconstructed;
+        if (coarseStart <= levels - 1) {
+            GLTexture[] packed = new GLTexture[levels + 1];
+            packed[coarseStart] = remapPacked(gaussian[coarseStart], lut);
+            for (int level = coarseStart + 1; level <= levels; level++) {
+                packed[level] = reducePacked(packed[level - 1], gaussian[level - 1].mSize);
+            }
+            // reconstructs from the unremapped coarsest Gaussian
+            // and adds remapped Laplacians on the way down.
+            reconstructed = gaussian[levels];
+            for (int level = levels - 1; level >= coarseStart; level--) {
+                GLTexture output = new GLTexture(gaussian[level].mSize,
+                        new GLFormat(GLFormat.DataType.FLOAT_16));
+                glProg.setDefine("ANCHORS", LUT_ANCHORS);
+                glProg.useAssetProgram("local_laplacian2/coarserecon");
+                glProg.setTexture("PrevRecon", reconstructed);
+                glProg.setTexture("PackedFine", packed[level]);
+                glProg.setTexture("PackedCoarse", packed[level + 1]);
+                glProg.setTexture("FineBuffer", gaussian[level]);
+                glProg.setVar("fineSize", gaussian[level].mSize);
+                glProg.setVar("coarseSize", gaussian[level + 1].mSize);
+                glProg.drawBlocks(output);
+                glProg.close();
+
+                packed[level + 1].close();
+                reconstructed.close();
+                if (level > coarseStart) {
+                    gaussian[level].close();
+                }
+                reconstructed = output;
+            }
+            packed[coarseStart].close();
+        } else {
+            // Degenerate: image too small for a packed stage, keep the
+            // single-pyramid behaviour with the remapped base.
+            reconstructed = remapBase(gaussian[levels], lut);
+        }
+
+        for (int level = coarseStart - 1; level >= 0; level--) {
             boolean finest = level == 0;
             GLTexture fine = finest ? input : gaussian[level];
             GLTexture coarse = gaussian[level + 1];

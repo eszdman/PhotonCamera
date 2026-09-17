@@ -39,8 +39,8 @@ final class OpposedGL {
     }
 
     /**
-     * @param raw         the merged raw texture (uint16, 1 or 3 channels) Bayer2Float samples
-     * @param blackLevel  per-CFA-position black level (R, G1, G2, B), raw counts
+     * @param raw         the merged raw texture (normalized fp16, 1 or 3 channels) Bayer2Float samples
+     * @param blackLevel  per-CFA-position black level in the input's normalized domain (zeros)
      * @param whitePoint  camera neutral point (unused for rgbLayout)
      * @param clip        clip point in white-balanced normalized space, incl. {@link #CLIP_MAGIC}
      * @return null when no photosite is clipped, otherwise the vec3 uniform for tofloat.glsl
@@ -106,7 +106,6 @@ final class OpposedGL {
             prog.setTexture("u_raw", raw);
             prog.setVar("u_size", size.x, size.y);
             prog.setVar("u_msize", mw, mh);
-            prog.setVar("u_whitelevel", whiteLevel);
             prog.setVar("u_level", lvl);
             prog.setVar("u_whitepoint", wp);
             prog.setVar("u_loclip", loClip);

@@ -41,7 +41,7 @@ public class ABLC extends Node {
             category = TAG,
             min = -10.0f,
             max = 10.0f,
-            defaultValue = 0.0f,
+            defaultValue = -1.0f,
             step = 0.5f
     )
     double noiseEV;

@@ -12,6 +12,10 @@ import java.nio.ByteBuffer;
 
 public class ImageFrame {
     public ByteBuffer buffer;
+    /** True once {@code buffer} was swapped for the white/black-level
+     * normalized fp16 copy created by Allocator.createF16 (ESD4D does this
+     * on demand); the buffer is same-size half floats either way. */
+    public boolean fp16;
     public long timestamp;
     public int width, height;
     public GyroBurst frameGyro;

@@ -19,7 +19,8 @@ public class Debug2 extends Node {
         GLInterface glint = rawPipeline.glint;
         GLProg glProg = glint.glProgram;
         Parameters params = glint.parameters;
-        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16), rawPipeline.stackFrame);
+        GLTexture glTexture = new GLTexture(params.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16), null);
+        glTexture.loadRawHalf(rawPipeline.stackFrame);
         glProg.setTexture("InputBuffer", glTexture);
     }
 }

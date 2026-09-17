@@ -110,9 +110,10 @@ public class FlowNetAlignment implements AutoCloseable {
         scaleY = (float) rawHalf.y / FLOW_H;
         log("flow scale " + scaleX + " x " + scaleY);
 
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
-                images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1),
+        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1),
+                null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        inputBase.loadRawHalf(images.get(0).buffer);
+        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1),
                 null, GL_NEAREST, GL_MIRRORED_REPEAT);
         rgb0 = new GLTexture(new Point(FLOW_W, FLOW_H), new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 null, GL_LINEAR, GL_CLAMP_TO_EDGE);
@@ -147,7 +148,7 @@ public class FlowNetAlignment implements AutoCloseable {
         }
 
         float mult = images.get(ind).pair.layerMpy;
-        inputAlter.loadData(images.get(ind).buffer);
+        inputAlter.loadRawHalf(images.get(ind).buffer);
         long t1 = System.currentTimeMillis();
         FloatBuffer baseRgba = renderFlowRGB(inputBase, rgb0, mult);
         FloatBuffer alterRgba = renderFlowRGB(inputAlter, rgb1, 1.0f);
@@ -199,8 +200,6 @@ public class FlowNetAlignment implements AutoCloseable {
     private FloatBuffer renderFlowRGB(GLTexture rawTex, GLTexture rgbTex, float exposure) {
         glProg.setLayout(8, 8, 1);
         glProg.useAssetProgram("optical/flowRGB", true);
-        glProg.setVar("whiteLevel", (float) parameters.whiteLevel);
-        glProg.setVar("blackLevel", parameters.blackLevel);
         glProg.setVar("exposure", exposure);
         glProg.setVar("cfaPattern", parameters.cfaPattern);
         glProg.setVar("rawHalf", parameters.rawSize.x / 2, parameters.rawSize.y / 2);

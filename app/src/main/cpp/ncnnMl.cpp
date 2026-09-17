@@ -411,8 +411,10 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeC
 }
 
 // gray: [w*h] luma floats in [0,1]. sigma is a scalar noise estimate, tiled to
-// a full-res plane (the graph takes two 1-channel inputs). Output at half res:
-// channel-major [s1 plane][s2 plane][rho plane], each (outH*outW).
+// a full-res plane (the graph takes two 1-channel inputs). Output at half res,
+// RGBA-interleaved: (s1, s2, rho, 1) floats per texel, row-major — ready for a
+// straight glTexSubImage2D upload into the kernelsMap texture (4 floats per
+// output texel).
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeRun(
     JNIEnv* env, jclass, jlong handle, jobject grayBuffer, jint width, jint height,
@@ -460,16 +462,21 @@ static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
     LOGI("kernelnet forward %dx%d took %lld ms", width, height,
          (long long)(nowMs() - tStart));
 
-    // Output [3, outH, outW] channel-major -> flat [s1][s2][rho].
+    // Output [3, outH, outW] channel-major -> RGBA-interleaved (s1, s2, rho, 1).
     if (out.c != 3) {
         LOGE("unexpected kernelnet output dims=%d w=%d h=%d c=%d",
              out.dims, out.w, out.h, out.c);
         return JNI_FALSE;
     }
     const int outPlane = out.w * out.h;
-    for (int c = 0; c < 3; c++) {
-        const float* ch = (const float*)out.channel(c);
-        memcpy(outPtr + c * outPlane, ch, (size_t)outPlane * sizeof(float));
+    const float* ch0 = (const float*)out.channel(0);
+    const float* ch1 = (const float*)out.channel(1);
+    const float* ch2 = (const float*)out.channel(2);
+    for (int i = 0; i < outPlane; i++) {
+        outPtr[(size_t)i * 4 + 0] = ch0[i];
+        outPtr[(size_t)i * 4 + 1] = ch1[i];
+        outPtr[(size_t)i * 4 + 2] = ch2[i];
+        outPtr[(size_t)i * 4 + 3] = 1.0f;
     }
 
     return JNI_TRUE;
@@ -501,7 +508,6 @@ static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
     const int tOut = TILE / 2;          // fixed tile output size
     const int outW = (width - 1) / 2 + 1;
     const int outH = (height - 1) / 2 + 1;
-    const size_t outPlane = (size_t)outW * outH;
 
     if (ctx->grayTile.empty()) {
         ctx->grayTile.create(TILE, TILE, 1);
@@ -557,18 +563,26 @@ static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
 
             // Half-res core of this tile -> global output. Origins are even,
             // so output g of a tile maps exactly to full-res output index
-            // g + origin/2 (stride-2 conv phase preserved).
+            // g + origin/2 (stride-2 conv phase preserved). Written
+            // RGBA-interleaved (s1, s2, rho, 1) per texel so the buffer can
+            // be uploaded to the kernelsMap texture without a CPU repass.
             const int gx0 = vx0 / 2, gx1 = (vx1 + 1) / 2;
             const int gy0 = vy0 / 2, gy1 = (vy1 + 1) / 2;
             const int lx0 = gx0 - tx0 / 2, ly0 = gy0 - ty0 / 2;
             const int rowLen = gx1 - gx0;
-            for (int c = 0; c < 3; c++) {
-                const float* ch = (const float*)out.channel(c);
-                float* dst = outPtr + (size_t)c * outPlane;
-                for (int y = 0; y < gy1 - gy0; y++) {
-                    memcpy(dst + (size_t)(gy0 + y) * outW + gx0,
-                           ch + (size_t)(ly0 + y) * tOut + lx0,
-                           (size_t)rowLen * sizeof(float));
+            const float* ch0 = (const float*)out.channel(0);
+            const float* ch1 = (const float*)out.channel(1);
+            const float* ch2 = (const float*)out.channel(2);
+            for (int y = 0; y < gy1 - gy0; y++) {
+                const float* r0 = ch0 + (size_t)(ly0 + y) * tOut + lx0;
+                const float* r1 = ch1 + (size_t)(ly0 + y) * tOut + lx0;
+                const float* r2 = ch2 + (size_t)(ly0 + y) * tOut + lx0;
+                float* dst = outPtr + ((size_t)(gy0 + y) * outW + gx0) * 4;
+                for (int x = 0; x < rowLen; x++) {
+                    dst[x * 4 + 0] = r0[x];
+                    dst[x * 4 + 1] = r1[x];
+                    dst[x * 4 + 2] = r2[x];
+                    dst[x * 4 + 3] = 1.0f;
                 }
             }
             int64_t s5 = nowUs();

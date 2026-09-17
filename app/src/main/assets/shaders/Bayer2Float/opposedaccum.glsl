@@ -7,11 +7,10 @@
 // the minimum-sample rule - no float atomics needed anywhere.
 precision highp float;
 precision highp int;
-precision highp usampler2D;
-uniform usampler2D u_raw;
+// White/black-level normalized fp16 raw (uploaded by Bayer2Float).
+uniform highp sampler2D u_raw;
 uniform ivec2 u_size;
 uniform ivec2 u_msize;
-uniform float u_whitelevel;
 uniform vec3 u_level;
 uniform vec3 u_whitepoint;
 uniform vec3 u_loclip;
@@ -35,8 +34,8 @@ int hlFcol(ivec2 p) {
 }
 
 // normalized white-balanced value of a raw sample - mirrors hlNorm() in tofloat.glsl
-float hlNorm(uint rv, int c) {
-    return max(0.0, (float(rv) / u_whitelevel - u_level[c]) / (1.0 - u_level[c]) / u_whitepoint[c]);
+float hlNorm(float rv, int c) {
+    return max(0.0, (rv - u_level[c]) / (1.0 - u_level[c]) / u_whitepoint[c]);
 }
 
 float opp3(float a, float b) {
@@ -82,8 +81,7 @@ void main() {
         uint bits = mask[cell];
         if (bits == 0u) continue;
         #if RGBLAYOUT == 1
-        uvec3 rv = texelFetch(u_raw, ivec2(x, y), 0).rgb;
-        vec3 u = max((vec3(rv) / u_whitelevel - u_level) / (vec3(1.0) - u_level), vec3(0.0));
+        vec3 u = max((texelFetch(u_raw, ivec2(x, y), 0).rgb - u_level) / (vec3(1.0) - u_level), vec3(0.0));
         vec3 roots = pow(u, vec3(1.0 / 3.0));
         if ((bits & 1u) != 0u && u.r > u_loclip.r && u.r < u_clip) { p0 += u.r - opp3(roots.g, roots.b); c0++; }
         if ((bits & 2u) != 0u && u.g > u_loclip.g && u.g < u_clip) { p1 += u.g - opp3(roots.r, roots.b); c1++; }

@@ -162,6 +162,34 @@ public class PyramidAlignment implements AutoCloseable {
     @Tunable(title = "Correction Sharpness", category = "Alignment", min = -1.0f, max = 2.0f, defaultValue = 1.0f)
     float sharpness;
 
+    // u8 image pyramids: store the base/alter alignment pyramids as rgba8
+    // (4 B/texel) instead of rgba16f (8 B/texel) - the block matcher is
+    // texture-fetch bound, so on bandwidth-limited mobile GPUs this halves
+    // its footprint. The alignment vectors always stay in a separate rgba16f
+    // atlas chain: they encode signed floor(v)/rawHalf (down to ~1/4000),
+    // which rgba8 cannot represent.
+    // Modes: 0 = rgba16f (default), 1 = rgba8 sqrt-encoded, 2 = rgba8 linear.
+    // u8 defaults to the sqrt (gamma 2.0) encoding: the quantization step
+    // 2*sqrt(v)/255 is proportional to shot-noise sigma, keeping the
+    // quantization floor a fixed fraction of sigma in the shadows. Measured
+    // on real bursts (PC port, tools/alignment-bench): sqrt matches rgba16f
+    // within 0.2pp warp-residual gain on day/night scenes, while linear u8
+    // corrupts night alignment (mean|v| 4.3->9.4, runaway tile offsets).
+    // Linear stays selectable (mode 2) only for on-device A/B tests.
+    @Tunable(title = "U8 Pyramid", category = "Alignment", min = 0, max = 2, step = 1, defaultValue = 0)
+    int u8Precision;
+
+    // Finest pyramid level fed to the block matcher, in levels above the
+    // raw/2 pyramid root: 0 = raw/2 (default), 1 = raw/4, 2 = raw/8. The
+    // level-0 matcher pass alone costs ~4x every coarser level combined, so
+    // skipping it cuts the matcher core ~4x (per level skipped). The pyramid
+    // root stays raw/2 (the downscale chain and coarse warp range are
+    // unchanged); the final atlas holds one vector per 2^level x 2^level
+    // block of the raw/2 grid, broadcast and displacement-scaled x2^level by
+    // pack.glsl so mergeAlign consumes an unchanged texture. Set from ESD4D's
+    // "Alignment start level" tunable.
+    public int startLevel = 0;
+
     // Fixed alignment parameters, tuned on real ProRAW bursts with
     // perspective (hand-shake) warps in tools/alignment-bench:
     // - OFFSETS 9: the 8-neighborhood coarse-offset propagation roughly
@@ -191,9 +219,23 @@ public class PyramidAlignment implements AutoCloseable {
     GLTexture hotPix;
     GLUtils.Pyramid pyramid;
     GLUtils.Pyramid pyramidAlter;
+    // Per-level alignment atlas (sizes = pyramid level sizes, rgba16f in every
+    // mode): gauss[i+1] was previously overwritten in-place with the atlas;
+    // with u8 image pyramids that is impossible (the atlas needs signed
+    // sub-1/255 values), so the atlas gets its own chain - used in all modes
+    // so only the image format differs between them.
+    GLTexture[] alignAtlas;
 
     public void Run() {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
+        boolean u8 = u8Precision >= 1;
+        boolean sqrtEnc = u8 && u8Precision < 2;
+        GLFormat imageFormat = new GLFormat(
+                u8 ? GLFormat.DataType.SIMPLE_8 : GLFormat.DataType.FLOAT_16, 4);
+        Log.d("PyramidAlignment", "image pyramid format: "
+                + (u8 ? (sqrtEnc ? "rgba8 sqrt-encoded" : "rgba8 linear") : "rgba16f"));
+        Log.d("PyramidAlignment", "alignment start level: " + startLevel
+                + " (finest matched resolution: raw/" + (2 << startLevel) + ")");
         // --- prefilter (normalize.glsl) configuration ---
         // Replicate normalize.glsl's separable 5-tap gaussian weights to get
         // the exact noise-reduction factor for the alignment's noise model:
@@ -218,19 +260,18 @@ public class PyramidAlignment implements AutoCloseable {
         Log.d("PyramidAlignment", "prefilter: sigma=" + blurSigma + " noiseFactor=" + prefilterN);
         Point rawHalf = new Point(parameters.rawSize.x/2,parameters.rawSize.y/2);
         Result = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16,1),images.get(0).buffer, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16,1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        inputBase.loadRawHalf(images.get(0).buffer);
         // Temporal result
         temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
-        base = new GLTexture(rawHalf,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
-        alter = new GLTexture(rawHalf,new GLFormat(GLFormat.DataType.FLOAT_16,4),null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        base = new GLTexture(rawHalf,imageFormat,null,GL_LINEAR,GL_CLAMP_TO_EDGE);
+        alter = new GLTexture(rawHalf,imageFormat,null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         gainMap = new GLTexture(parameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_32, 4),
                 BufferUtils.getFrom(parameters.gainMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
 
         // Use normalize script to fill base texture
         glProg.setLayout(8, 8, 1);
         glProg.useAssetProgram("alignment/normalize", true);
-        glProg.setVar("whiteLevel", (float) (parameters.whiteLevel));
-        glProg.setVar("blackLevel", parameters.blackLevel);
         glProg.setVar("blurSigma", blurSigma);
         glProg.setTexture("inTexture", inputBase);
         glProg.setTexture("gainMap", gainMap);
@@ -268,6 +309,8 @@ public class PyramidAlignment implements AutoCloseable {
         //histDataBase = hist.Compute(temp).clone();
 
         glProg.setLayout(8, 8, 1);
+        glProg.setDefine("OUT_FORMAT", u8 ? "rgba8" : "rgba16f");
+        glProg.setDefine("SQRT_ENC", sqrtEnc);
         glProg.useAssetProgram("alignment/normalizebl", true);
         glProg.setVar("blackLevel", blackLevel);
         glProg.setVar("whiteLevel", 1.0f);
@@ -282,10 +325,23 @@ public class PyramidAlignment implements AutoCloseable {
         GLTexture alterTexture = new GLTexture(new Point(1024,1), new GLFormat(GLFormat.DataType.FLOAT_32), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
         int levelcount = (int)(Math.log10(rawHalf.x)/Math.log10(downScalePerLevel))-1;
         if(levelcount <= 0) levelcount = 2;
+        // The matcher loop needs at least one level: gauss.length-2 >= startLevel
+        if (levelcount < startLevel + 2) levelcount = startLevel + 2;
         int tile = 8;
 
         pyramid = new GLUtils.Pyramid();
         glUtils.createPyramidStore(levelcount, base, pyramid, false);
+
+        // Alignment atlas chain, level i sized like pyramid level i (the
+        // matcher stores one vector per TILE_AL x TILE_AL tile of level i-1,
+        // i.e. only the top-left size/8 region is used). Levels startLevel+1..N-1
+        // are written (the loop stops at pyramid level startLevel), the levels
+        // above each are read back as prevAlignment.
+        alignAtlas = new GLTexture[levelcount];
+        for (int i = startLevel + 1; i < levelcount; i++) {
+            alignAtlas[i] = new GLTexture(pyramid.gauss[i].mSize,
+                    new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+        }
 
         pyramidAlter = new GLUtils.Pyramid();
         NoiseModeler modeler = parameters.noiseModeler;
@@ -302,13 +358,13 @@ public class PyramidAlignment implements AutoCloseable {
         noiseO = (float)Math.max(noiseO * noisempy,1e-6f);
         double noise = Math.sqrt(noiseS + noiseO);
         Log.d("PyramidAlignment", "noise: " + Math.sqrt(noiseS + noiseO));
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
 
         int alignCount = 0;
         for (int f = 1; f < images.size(); f++) {
             ImageFrame frame = images.get(f);
             Log.d("PyramidAlignment", "load:"+frame.pair.curlayer.name());
-            inputAlter.loadData(frame.buffer);
+            inputAlter.loadRawHalf(frame.buffer);
             
             // Compute alter frame histogram with exposure = 1.0 for exposure determination
             /*glProg.setLayout(tile, tile, 1);
@@ -334,8 +390,6 @@ public class PyramidAlignment implements AutoCloseable {
             // Use normalize script to fill alter texture with computed exposure
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("alignment/normalize", true);
-            glProg.setVar("whiteLevel", (float) (parameters.whiteLevel));
-            glProg.setVar("blackLevel", parameters.blackLevel);
             glProg.setVar("blurSigma", blurSigma);
             glProg.setVar("exposure", exposure);
             glProg.setTexture("inTexture", inputAlter);
@@ -365,6 +419,8 @@ public class PyramidAlignment implements AutoCloseable {
             }*/
 
             glProg.setLayout(8, 8, 1);
+            glProg.setDefine("OUT_FORMAT", u8 ? "rgba8" : "rgba16f");
+            glProg.setDefine("SQRT_ENC", sqrtEnc);
             glProg.useAssetProgram("alignment/normalizebl", true);
             glProg.setVar("blackLevel", blackLevel);
             glProg.setVar("whiteLevel", 1.0f);
@@ -378,23 +434,25 @@ public class PyramidAlignment implements AutoCloseable {
             glUtils.createPyramidStore(levelcount, alter, pyramidAlter, false);
             Log.d("PyramidAlignment", "alter created");
 
-            // do pyramid alignment upscaling
-            for (int i = pyramidAlter.gauss.length - 2; i >= 0; i--) {
+            // do pyramid alignment upscaling, stopping startLevel levels above
+            // the raw/2 root when a coarser finest level is selected
+            for (int i = pyramidAlter.gauss.length - 2; i >= startLevel; i--) {
 
                 float integralNorm = (float)rawHalf.x * rawHalf.y/(pyramidAlter.gauss[i+1].mSize.x * pyramidAlter.gauss[i+1].mSize.y);
                 glProg.setDefine("TILE_AL", parameters.tile);
                 glProg.setDefine("OFFSETS", ALIGN_OFFSETS);
+                glProg.setDefine("SQRT_DEC", sqrtEnc);
                 glProg.setLayout(parameters.tile / 2, parameters.tile / 2, 1);
-                glProg.useAssetProgram("alignment/align", true);
+                glProg.useAssetProgram("alignment/align2", true);
                 boolean first = (i == pyramidAlter.gauss.length - 2);
                 if (!first) {
-                    glProg.setTexture("prevAlignment", pyramidAlter.gauss[i + 2]);
+                    glProg.setTexture("prevAlignment", alignAtlas[i + 2]);
                 }
                 glProg.setTexture("baseTexture", pyramid.gauss[i]);
                 glProg.setTexture("alterTexture", pyramidAlter.gauss[i]);
                 glProg.setTexture("baseCurve", histTexture);
                 glProg.setTexture("alterCurve", alterTexture);
-                glProg.setTextureCompute("outTexture", pyramidAlter.gauss[i+1], true);
+                glProg.setTextureCompute("outTexture", alignAtlas[i + 1], true);
                 glProg.setVar("noiseS", noiseS);
                 glProg.setVar("noiseO", noiseO);
                 // Noise shrinks by sqrt(pixels averaged) per pyramid level,
@@ -409,12 +467,17 @@ public class PyramidAlignment implements AutoCloseable {
                 glProg.computeManual(pyramidAlter.gauss[i].mSize.x/(parameters.tile/2) + 1,pyramidAlter.gauss[i].mSize.y/(parameters.tile/2) + 1, 1);
             }
             Point shift = alignmentShift(parameters, f);
-            // do alignment packing into single texture
+            // do alignment packing into single texture; with startLevel > 0 the
+            // atlas is one level coarser, pack.glsl broadcasts each vector to
+            // its 2^level x 2^level block and rescales the displacement to
+            // raw/2 texel units
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("alignment/pack", true);
-            glProg.setTexture("alignTexture", pyramidAlter.gauss[1]);
+            glProg.setTexture("alignTexture", alignAtlas[1 + startLevel]);
             glProg.setTextureCompute("outTexture", Result, true);
             glProg.setVar("shift", shift);
+            glProg.setVar("rawHalf", rawHalf);
+            glProg.setVar("startLevel", startLevel);
             glProg.computeAuto(parameters.alignmentSize, 1);
         }
         histTexture.close();
@@ -430,6 +493,11 @@ public class PyramidAlignment implements AutoCloseable {
         for (int i = 0; i < pyramid.gauss.length; i++) {
             pyramid.gauss[i].close();
             pyramidAlter.gauss[i].close();
+        }
+        if (alignAtlas != null) {
+            for (int i = 1; i < alignAtlas.length; i++) {
+                if (alignAtlas[i] != null) alignAtlas[i].close();
+            }
         }
         inputAlter.close();
         gainMap.close();

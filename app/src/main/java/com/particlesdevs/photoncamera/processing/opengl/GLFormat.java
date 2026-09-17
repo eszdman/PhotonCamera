@@ -296,6 +296,9 @@ public class GLFormat {
         switch (mFormat) {
             case NONE:
                 break;
+            // SIMPLE_8 is GL_R8/GL_RGBA8 (normalized unorm): sampled as float
+            // via sampler2D, unlike UNSIGNED_8 which is GL_*8UI integer-only.
+            case SIMPLE_8:
             case FLOAT_16:
             case FLOAT_32:
             case FLOAT_64:
@@ -325,7 +328,6 @@ public class GLFormat {
                         return "uvec4";
                 }
             case SIGNED_8:
-            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
@@ -364,6 +366,7 @@ public class GLFormat {
         switch (mFormat) {
             case NONE:
                 break;
+            case SIMPLE_8: // normalized unorm, not integer
             case FLOAT_16:
             case FLOAT_32:
             case FLOAT_64:
@@ -374,7 +377,6 @@ public class GLFormat {
             case UNSIGNED_64:
                 return "uint";
             case SIGNED_8:
-            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:
@@ -385,12 +387,12 @@ public class GLFormat {
 
     public String getTemSamp() {
         switch (mFormat) {
+            case SIMPLE_8: // normalized unorm, not integer
             case FLOAT_32:
             case FLOAT_64:
             case FLOAT_16:
                 return "sampler2D";
             case SIGNED_8:
-            case SIMPLE_8:
             case SIGNED_16:
             case SIGNED_32:
             case SIGNED_64:

@@ -2,8 +2,9 @@
 LAYOUT
 precision highp float;
 precision highp sampler2D;
-//uniform highp usampler2D alterTexture;
-uniform highp usampler2D inTex;
+//uniform highp sampler2D alterTexture;
+// Normalized fp16 raw input (Allocator.createF16 pre-normalizes on the CPU).
+uniform highp sampler2D inTex;
 uniform highp sampler2D kernelsMap;
 layout(rgba16f, binding = 0) uniform highp readonly image2D inTexture;
 layout(rgba16f, binding = 1) uniform highp readonly image2D diffTexture;
@@ -15,8 +16,6 @@ uniform float weight2;
 uniform float exposure;
 uniform float noiseS;
 uniform float noiseO;
-uniform uint whitelevel;
-uniform vec4 blackLevel;
 uniform vec4 analogBalance;
 uniform int cfaPattern;
 // Optical flow refinement: per-pixel correction of the coarse alignment.
@@ -31,13 +30,13 @@ uniform float flowMaxDisp;
 uniform float flowNoiseS;
 uniform float flowNoiseO;
 
-uint getBayer(ivec2 coords, highp usampler2D tex){
+float getBayer(ivec2 coords, highp sampler2D tex){
     return texelFetch(tex,coords,0).r;
 }
 
-vec4 getBayerVec(ivec2 coords, highp usampler2D tex){
+vec4 getBayerVec(ivec2 coords, highp sampler2D tex){
     vec4 c0 = vec4(getBayer(coords,tex),getBayer(coords+ivec2(1,0),tex),getBayer(coords+ivec2(0,1),tex),getBayer(coords+ivec2(1,1),tex));
-    return clamp((c0 - blackLevel)/(vec4(float(whitelevel))-blackLevel), 0.0, 1.0);
+    return clamp(c0, 0.0, 1.0);
 }
 
 vec4 robustWeight(vec4 w){
@@ -87,6 +86,7 @@ void main() {
     //exposure1 /= 121.0;
     exposure2 /= 121.0;
     vec4 meanMain = exposure2;
+    float blendFactor = smoothstep(0.0, 0.01, dot(meanMain, vec4(0.25)));
 
     for(float i = -5.0; i <= 5.0; i+=1.0) {
         float qi = c * i * i;
@@ -95,7 +95,7 @@ void main() {
             // Local-translation assumption: the block selected at the center
             // applies to the whole combine window.
             vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
-            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
+            vec4 neighborBayer = mix(imageLoad(inTexture, xy + offset), getBayerVec((xy + offset) * 2, inTex), blendFactor);
             //if(any(greaterThan(neighborDiff, vec4(exposure*0.99)))) {
             //    continue; // skip overexposed pixels
             //}

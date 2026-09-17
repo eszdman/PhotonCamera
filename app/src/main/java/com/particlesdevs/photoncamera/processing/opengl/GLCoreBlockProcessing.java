@@ -45,6 +45,17 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             Log.v(TAG, msg);
         }
     }
+
+    /**
+     * Readback pixel type for a GLFormat: FLOAT_16 outputs must request
+     * GL_HALF_FLOAT because the block/out buffers are sized by the 2-byte
+     * storage size - the GL_FLOAT convention used for FLOAT_16 texture
+     * uploads (32-bit floats the driver converts) would read 4 bytes per
+     * sample and overflow them.
+     */
+    private static int readbackType(GLFormat fmt) {
+        return fmt.mFormat == GLFormat.DataType.FLOAT_16 ? GLES30.GL_HALF_FLOAT : fmt.getGLType();
+    }
     public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat, GLDrawParams.Allocate alloc) {
         this(size, glFormat,alloc);
         allocation = alloc;
@@ -110,7 +121,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             program.draw();
             checkEglError("program");
             mBlockBuffer.position(0);
-            glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), mglFormat.getGLType(), mBlockBuffer);
+            glReadPixels(0, 0, mOutWidth, height, mglFormat.getGLFormatExternal(), readbackType(mglFormat), mBlockBuffer);
             checkEglError("glReadPixels");
             if (height < GLDrawParams.TileSize) {
                 // This can only happen 2 times at edges
@@ -159,7 +170,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             program.draw();
             checkEglError("program");
             mBlockBuffert.position(0);
-            glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), glFormat.getGLType(), mBlockBuffert);
+            glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), readbackType(glFormat), mBlockBuffert);
             checkEglError("glReadPixels");
             if (height < GLDrawParams.TileSize) {
                 // This can only happen 2 times at edges

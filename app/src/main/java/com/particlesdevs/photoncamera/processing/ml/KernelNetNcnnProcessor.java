@@ -19,11 +19,14 @@ import java.nio.FloatBuffer;
  *   in0  (W,H,1)  luma plane, values in [0,1]
  *   in1  (W,H,1)  sigma plane (scalar noise estimate tiled to full res)
  *   out  (W/2,H/2,3) channels: 0 = s1, 1 = s2, 2 = rho
+ *
+ * The returned buffer is RGBA-interleaved (s1, s2, rho, 1) per half-res texel
+ * in row-major fp32 — exactly what the kernelsMap GL texture upload expects.
  */
 public final class KernelNetNcnnProcessor {
     private static final String TAG = "KernelNetNcnnProcessor";
     private static final String MODEL_PARAM = "models/kernelnet_aniso_v2_2_params.ncnn.param";
-    private static final int NUM_PARAMS = 3;      // s1, s2, rho
+    private static final int OUT_CHANNELS = 4;    // interleaved RGBA stride
 
     static { System.loadLibrary("ncnnMl"); }
 
@@ -55,14 +58,15 @@ public final class KernelNetNcnnProcessor {
      * @param width  input width
      * @param height input height
      * @param sigma  estimated noise sigma
-     * @return params at half resolution, or null on error / if not ready
+     * @return interleaved RGBA (s1, s2, rho, 1) params at half resolution, or
+     *         null on error / if not ready
      */
     public Result runInference(FloatBuffer gray, int width, int height, float sigma) {
         if (!isReady() || gray == null || width <= 0 || height <= 0) return null;
         long start = System.nanoTime();
         int outW = (width - 1) / 2 + 1;
         int outH = (height - 1) / 2 + 1;
-        ByteBuffer outBuf = ByteBuffer.allocateDirect(NUM_PARAMS * outH * outW * 4)
+        ByteBuffer outBuf = ByteBuffer.allocateDirect(OUT_CHANNELS * outH * outW * 4)
                 .order(ByteOrder.nativeOrder());
         gray.rewind();
         boolean ok;
@@ -90,12 +94,12 @@ public final class KernelNetNcnnProcessor {
     }
 
     /**
-     * Parameter map at half resolution. Channel-major layout [s1, s2, rho],
-     * each channel outH*outW floats in row-major order, values in
+     * Parameter map at half resolution, RGBA-interleaved: (s1, s2, rho, 1)
+     * per texel, row-major, width*height*4 floats, values in
      * s1/s2 in [0, 2], rho in [-1, 1].
      */
     public static class Result implements KernelNetResult {
-        private final ByteBuffer params;   // direct, native order, NUM_PARAMS*outH*outW floats
+        private final ByteBuffer params;   // direct, native order, OUT_CHANNELS*outH*outW floats
         public final int width;            // half-res
         public final int height;           // half-res
 

@@ -25,11 +25,13 @@ public class SAGA extends Node {
     public void Run() {
         images = ((PostPipeline)basePipeline).SAGAIN;
         glProg.useAssetProgram("SAGA/sagamerge");
-        GLTexture output =  new GLTexture(basePipeline.mParameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),images.get(0).buffer);
+        GLTexture output =  new GLTexture(basePipeline.mParameters.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
+        output.loadRawHalf(images.get(0).buffer);
         GLTexture align = null;
 
         for(int i = 1; i<images.size();i++){
-            GLTexture input =  new GLTexture(basePipeline.mParameters.rawSize,new GLFormat(GLFormat.DataType.UNSIGNED_16),images.get(i).buffer);
+            GLTexture input =  new GLTexture(basePipeline.mParameters.rawSize,new GLFormat(GLFormat.DataType.FLOAT_16),null);
+            input.loadRawHalf(images.get(i).buffer);
             glProg.setTexture("OutputBuffer",output);
             glProg.setTexture("InputBuffer",output);
             glProg.setTexture("AlignBuffer",align);

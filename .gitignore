@@ -92,3 +92,11 @@ lint/tmp/
 # lint/reports/
 /app/google-services.json
 .idea/.name
+
+# ZCode agent workspace
+.zcode/
+
+# Python tooling artifacts (tools/)
+__pycache__/
+.venv/
+tools/alignment-bench/data/
