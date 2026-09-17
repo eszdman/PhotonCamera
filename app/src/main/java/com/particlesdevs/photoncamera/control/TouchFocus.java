@@ -427,8 +427,18 @@ public class TouchFocus {
             // With the AUTO fallback engaged (continuous-mode touch focus repeatedly failed on
             // this HAL), the sequence runs in trigger-driven AF_MODE_AUTO instead.
             int currentAfMode = valueOr(builder.get(CaptureRequest.CONTROL_AF_MODE), activeAfMode);
-            int requestedAfMode = touchAfAutoOverride
-                    ? CameraMetadata.CONTROL_AF_MODE_AUTO : PreferenceKeys.getAfMode();
+            // VIDEO owns AF: a tap only moves metering/focus regions, it must not
+            // flip CONTINUOUS_VIDEO back to the photo-mode pref.
+            boolean videoMode = false;
+            try {
+                videoMode = com.particlesdevs.photoncamera.app.PhotonCamera.getSettings() != null
+                        && com.particlesdevs.photoncamera.app.PhotonCamera.getSettings().selectedMode
+                                == com.particlesdevs.photoncamera.api.CameraMode.VIDEO;
+            } catch (Exception ignored) {
+            }
+            int requestedAfMode = videoMode ? currentAfMode
+                    : (touchAfAutoOverride
+                        ? CameraMetadata.CONTROL_AF_MODE_AUTO : PreferenceKeys.getAfMode());
             int afMode = supportedMode(characteristics, CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES,
                     requestedAfMode, currentAfMode);
             int aeMode = supportedMode(characteristics, CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES,

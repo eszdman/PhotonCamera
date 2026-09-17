@@ -364,18 +364,32 @@ public class LensZoomBarController {
     private void updateBarVisibility(boolean animate) {
         // Single-lens devices keep the current behaviour (no pill) until a pinch
         // reveals the slider; the settings bar hides the whole pill.
-        // The lock pill follows the lens pill (a lock is meaningless with one lens).
+        // The lock pill follows the lens pill (a lock is meaningless with one lens),
+        // and stays hidden in video logical mode (member switches never reopen).
         boolean show = !settingsHidden && (expanded || auxButtons.getChildCount() > 1);
-        if (show == barShown) return;
+        boolean showLock = show && !isVideoLogicalActive();
+        if (show == barShown) {
+            // The lens pill is unchanged, but the lock pill may still need a
+            // visibility update (e.g. entering/leaving logical mode).
+            syncLockVisibility(animate, showLock);
+            return;
+        }
         barShown = show;
         if (show) {
             if (animate) {
                 animateIn(bar);
                 syncLockPillPivot();
-                animateIn(lockPill);
             } else {
                 showNow(bar);
-                showNow(lockPill);
+            }
+            if (showLock) {
+                if (animate) {
+                    animateIn(lockPill);
+                } else {
+                    showNow(lockPill);
+                }
+            } else {
+                hideLockPill(false);
             }
         } else if (animate) {
             animateOut(bar);
@@ -385,6 +399,44 @@ public class LensZoomBarController {
             bar.animate().cancel();
             lockPill.animate().cancel();
             bar.setVisibility(View.GONE);
+            lockPill.setVisibility(View.GONE);
+        }
+    }
+
+    private boolean isVideoLogicalActive() {
+        try {
+            return captureController != null && captureController.isVideoLogicalActive();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Updates only the lock pill when the lens pill visibility is unchanged. */
+    private void syncLockVisibility(boolean animate, boolean showLock) {
+        boolean lockShown = lockPill.getVisibility() == View.VISIBLE;
+        if (showLock == lockShown) return;
+        if (showLock) {
+            syncLockPillPivot();
+            if (animate) {
+                animateIn(lockPill);
+            } else {
+                showNow(lockPill);
+            }
+        } else {
+            hideLockPill(animate);
+        }
+    }
+
+    /** Hides the lock pill independently of the lens pill state. */
+    private void hideLockPill(boolean animate) {
+        if (animate) {
+            syncLockPillPivot();
+            lockPill.animate().alpha(0f).scaleX(0.85f).scaleY(0.85f)
+                    .setDuration(Motion.durationShort4(lockPill.getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(lockPill.getContext()))
+                    .withEndAction(() -> lockPill.setVisibility(View.GONE)).start();
+        } else {
+            lockPill.animate().cancel();
             lockPill.setVisibility(View.GONE);
         }
     }

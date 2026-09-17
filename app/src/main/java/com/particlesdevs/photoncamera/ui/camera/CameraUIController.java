@@ -57,18 +57,22 @@ final class CameraUIController implements CameraUIEventsListener,
                         if (!cameraFragment.captureController.onUnlimited) {
                             cameraFragment.captureController.callUnlimitedStart();
                             view.setActivated(false);
+                            setShutterRecording(true);
                         } else {
                             cameraFragment.captureController.callUnlimitedEnd();
                             view.setActivated(true);
+                            setShutterRecording(false);
                         }
                         break;
                     case VIDEO:
                         if (!cameraFragment.captureController.mIsRecordingVideo) {
                             cameraFragment.captureController.VideoStart();
                             view.setActivated(false);
+                            setShutterRecording(true);
                         } else {
                             cameraFragment.captureController.VideoEnd();
                             view.setActivated(true);
+                            setShutterRecording(false);
                         }
                         break;
                 }
@@ -94,12 +98,17 @@ final class CameraUIController implements CameraUIEventsListener,
             case R.id.eis_toggle_button:
                 PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
                 cameraFragment.showSnackBar(cameraFragment.getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
+                if (PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
+                    cameraFragment.captureController.applyVideoStabilization();
+                }
                 cameraFragment.updateSettingsBar();
                 break;
 
             case R.id.fps_toggle_button:
                 PreferenceKeys.setFpsMode((PreferenceKeys.getFpsMode() + 1) % 4);
                 cameraFragment.captureController.applyFpsRange();
+                cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
+                        .setFpsModeState(PreferenceKeys.getFpsMode());
                 cameraFragment.updateSettingsBar();
                 break;
 
@@ -163,6 +172,14 @@ final class CameraUIController implements CameraUIEventsListener,
     @Override
     public void onAuxButtonClicked(String id) {
         Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
+        if (id != null
+                && com.particlesdevs.photoncamera.api.LogicalCameraResolver.isMemberId(id)
+                && cameraFragment.captureController != null
+                && cameraFragment.captureController.isVideoLogicalActive()) {
+            // Logical member tap: seamless zoom on the open device, no reopen.
+            cameraFragment.captureController.zoomToLogicalMember(id);
+            return;
+        }
         setID(id);
         this.restartCamera();
 
@@ -205,6 +222,12 @@ final class CameraUIController implements CameraUIEventsListener,
         return value ? "On" : "Off";
     }
 
+    private void setShutterRecording(boolean recording) {
+        if (cameraFragment.getCameraUIView() != null) {
+            cameraFragment.getCameraUIView().setShutterRecording(recording);
+        }
+    }
+
     private void onTimerFinished() {
         this.shutterButton.setHovered(false);
         this.shutterButton.setActivated(false);
@@ -243,6 +266,8 @@ final class CameraUIController implements CameraUIEventsListener,
                     case FPS_60:
                         PreferenceKeys.setFpsMode((Integer) value);
                         cameraFragment.captureController.applyFpsRange();
+                        cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
+                                .setFpsModeState((Integer) value);
                         break;
                     case TIMER:
                         PreferenceKeys.setCountdownTimerIndex((Integer) value);
@@ -250,6 +275,9 @@ final class CameraUIController implements CameraUIEventsListener,
                         break;
                     case EIS:
                         PreferenceKeys.setEisPhoto(value.equals(1));
+                        if (PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
+                            cameraFragment.captureController.applyVideoStabilization();
+                        }
                         break;
                     case RAW:
                         PreferenceKeys.setSaveRaw((Integer) value);

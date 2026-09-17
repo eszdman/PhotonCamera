@@ -81,6 +81,8 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
+    <string name="record_video_desc">Record video</string>
+    <string name="stop_recording_desc">Stop recording</string>
     <string name="energy_saving">Battery Saver</string>
     <string name="hide_gallery_icon">Hide Gallery Icon</string>
     <string name="theme">Theme</string>
@@ -189,6 +191,7 @@
 
     <!-- Video Settings -->
     <string name="video_settings">Video Settings</string>
+    <string name="video_settings_summary">Resolution, bitrate, codec, HDR and tuning</string>
     <string name="raw_video_settings">Raw Video Settings</string>
     <string name="rawvideo_downscale_4x">Downscale 4x</string>
     <string name="rawvideo_write_zip">Write ZIP</string>
@@ -200,6 +203,38 @@
     <string name="video_res_4k" translatable="false">3840x2160 (4K)</string>
     <string name="video_res_fhd" translatable="false">1920x1080 (Full HD)</string>
     <string name="video_res_hd" translatable="false">1280x720 (HD)</string>
+    <string name="video_bitrate">Bitrate (Mbit/s)</string>
+    <string name="video_bitrate_default" translatable="false">30</string>
+    <string name="video_save_storage">Save storage (HEVC/H.265)</string>
+    <string name="video_save_storage_summary">Uses HEVC/H.265 instead of AVC/H.264 for smaller files at the same quality. Must be enabled for HDR or 10-bit video.</string>
+    <string name="video_hdr">HDR video</string>
+    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video. Requires Save storage (HEVC).</string>
+    <string name="video_hdr_transfer">HDR Transfer</string>
+    <string name="video_hdr_transfer_default" translatable="false">hlg</string>
+    <string name="video_use_logical_id">Use logical camera id</string>
+    <string name="video_use_logical_id_summary">Open one logical camera in video mode and switch its lenses without reopening. Only applies in video mode.</string>
+    <string name="video_logical_id">Logical camera id</string>
+    <string name="video_logical_id_summary">Logical camera id used for video when the switch above is on</string>
+    <string name="video_logical_id_default" translatable="false">0</string>
+    <string name="video_logical_lenses">Logical lenses (manual)</string>
+    <string name="video_logical_lenses_summary">Comma-separated zoom factors, e.g. "0.6,1.0,3.1". Used instead of auto discovery whenever set; empty means auto.</string>
+    <string name="video_logical_lenses_default" translatable="false"></string>
+    <string name="video_logical_id_unsupported">That camera id is not a logical camera on this device.</string>
+    <string name="video_hevc_unsupported">No HEVC/H.265 video encoder on this device — AVC/H.264 will be used.</string>
+    <string name="video_hdr_unsupported">No 10-bit HEVC (Main10) encoder on this device — HDR video unavailable.</string>
+    <string name="video_tunable_keys_sdr">SDR video tunable keys</string>
+    <string name="video_tunable_summary_sdr">Custom vendor tags applied for SDR video only, on every sensor</string>
+    <string name="video_tunable_add_summary_sdr">Add a custom vendor tag applied for SDR video only (type, name, value)</string>
+    <string name="video_tunable_keys_hdr">HDR video tunable keys</string>
+    <string name="video_tunable_summary_hdr">Custom vendor tags applied for HDR video only, on every sensor</string>
+    <string name="video_tunable_add_summary_hdr">Add a custom vendor tag applied for HDR video only (type, name, value)</string>
+    <string name="audio_settings">Audio Settings</string>
+    <string name="audio_bitrate">Bitrate (kbit/s)</string>
+    <string name="audio_bitrate_default" translatable="false">128</string>
+    <string name="audio_stereo">Stereo channel</string>
+    <string name="audio_stereo_summary">Record in stereo. When off, audio is recorded in mono (single channel).</string>
+    <string name="audio_source">Audio source</string>
+    <string name="audio_source_default" translatable="false">camcorder</string>
 
     <!-- Storage Access Framework folder picker -->
     <string name="select_dcim_folder_hint">Select the DCIM folder for saving photos</string>

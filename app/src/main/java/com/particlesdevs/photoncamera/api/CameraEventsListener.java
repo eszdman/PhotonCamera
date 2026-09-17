@@ -34,4 +34,16 @@ public abstract class CameraEventsListener implements CaptureEventsListener, Pro
     public abstract void onFatalError(String errorMsg);
 
     public abstract void onRequestTriggerMediaScanner(Uri f);
+
+    /** Fired when MediaRecorder video capture actually starts. */
+    public void onVideoRecordingStarted() {}
+
+    /** Periodic (~2Hz) progress while a MediaRecorder video is running. */
+    public void onVideoRecordingTick(long elapsedMs, long estimatedBytes, long availableBytes) {}
+
+    /** Fired when MediaRecorder video capture stops. */
+    public void onVideoRecordingStopped() {}
+
+    /** Fired when a seamless logical-member switch is applied (no reopen). */
+    public void onLogicalMemberChanged(String memberId) {}
 }

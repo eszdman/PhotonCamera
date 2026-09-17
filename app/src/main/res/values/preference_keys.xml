@@ -7,10 +7,22 @@
     <string name="pref_category_hdrx_key" translatable="false">pref_category_hdrx_key</string>
     <string name="pref_category_photo_key" translatable="false">pref_category_photo_key</string>
     <string name="pref_category_video_key" translatable="false">pref_category_video_key</string>
+    <string name="pref_category_video_shortcut_key" translatable="false">pref_category_video_shortcut_key</string>
     <string name="pref_category_rawvideo_key" translatable="false">pref_category_rawvideo_key</string>
     <string name="pref_rawvideo_downscale_4x_key" translatable="false">pref_rawvideo_downscale_4x_key</string>
     <string name="pref_rawvideo_write_zip_key" translatable="false">pref_rawvideo_write_zip_key</string>
     <string name="pref_rawvideo_crop_169_key" translatable="false">pref_rawvideo_crop_169_key</string>
+    <string name="pref_video_bitrate_key" translatable="false">pref_video_bitrate_key</string>
+    <string name="pref_video_hevc_key" translatable="false">pref_video_hevc_key</string>
+    <string name="pref_video_hdr_key" translatable="false">pref_video_hdr_key</string>
+    <string name="pref_video_hdr_transfer_key" translatable="false">pref_video_hdr_transfer_key</string>
+    <string name="pref_video_use_logical_id_key" translatable="false">pref_video_use_logical_id_key</string>
+    <string name="pref_video_logical_id_key" translatable="false">pref_video_logical_id_key</string>
+    <string name="pref_video_logical_lenses_key" translatable="false">pref_video_logical_lenses_key</string>
+    <string name="pref_category_audio_key" translatable="false">pref_category_audio_key</string>
+    <string name="pref_audio_bitrate_key" translatable="false">pref_audio_bitrate_key</string>
+    <string name="pref_audio_stereo_key" translatable="false">pref_audio_stereo_key</string>
+    <string name="pref_audio_source_key" translatable="false">pref_audio_source_key</string>
     <string name="pref_theme_category_key" translatable="false">pref_theme_category_key</string>
     <string name="pref_category_about_key" translatable="false">pref_category_about_key</string>
     <string name="pref_category_advanced_key" translatable="false">pref_category_advanced_key</string>

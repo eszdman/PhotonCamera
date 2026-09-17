@@ -162,11 +162,17 @@ public class CameraFragment extends Fragment {
     private final ExecutorService processExecutorService = Executors.newFixedThreadPool(2);
     public SurfaceViewOverViewfinder surfaceView;
     public Map<String, CameraLensData> mCameraLensDataMap;
+    /** Logical members driving the pill/zoom in video logical mode (empty when inactive). */
+    private List<com.particlesdevs.photoncamera.api.LogicalCameraResolver.Member> mVideoLogicalMembers =
+            new ArrayList<>();
     public Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
     private CameraUIController mCameraUIEventsListener;
-    public CaptureController captureController;
+
+    public CameraUIView getCameraUIView() {
+        return mCameraUIView;
+    }    public CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
     public AuxButtonsViewModel auxButtonsViewModel;
     public CameraFragmentBinding cameraFragmentBinding;
@@ -1677,6 +1683,34 @@ public class CameraFragment extends Fragment {
         }
 
         @Override
+        public void onVideoRecordingStarted() {
+            if (mCameraUIView != null) {
+                mCameraUIView.setVideoRecordingInfoVisible(true);
+            }
+        }
+
+        @Override
+        public void onVideoRecordingTick(long elapsedMs, long estimatedBytes, long availableBytes) {
+            if (mCameraUIView != null) {
+                mCameraUIView.updateVideoRecordingInfo(elapsedMs, estimatedBytes, availableBytes);
+            }
+        }
+
+        @Override
+        public void onVideoRecordingStopped() {
+            if (mCameraUIView != null) {
+                mCameraUIView.setVideoRecordingInfoVisible(false);
+            }
+        }
+
+        @Override
+        public void onLogicalMemberChanged(String memberId) {
+            if (memberId != null) {
+                auxButtonsViewModel.setActiveId(memberId);
+            }
+        }
+
+        @Override
         public void onProcessingFinished(Object obj) {
             logD("onProcessingFinished: " + obj);
             mCameraUIView.setProcessingProgressBarIndeterminate(false);
@@ -1792,19 +1826,46 @@ public class CameraFragment extends Fragment {
         @Override
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
-            auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
-            // Feed the physical-lens model into the zoom controller so pinch can
+            refreshLensPillAndZoomModel();
+        }
+
+        /**
+         * Rebuilds the lens pill and the zoom-controller lens model for the
+         * current mode: logical members in video logical mode, physical
+         * lenses otherwise. Runs on cold open and on every restart-driven
+         * open (e.g. photo&lt;-&gt;video mode switches), so neither side
+         * keeps the other's stale pill. Idempotent while the target is
+         * unchanged.
+         */
+        private void refreshLensPillAndZoomModel() {
+            mVideoLogicalMembers = captureController != null
+                    ? captureController.getEffectiveLogicalMembers()
+                    : new ArrayList<>();
+            if (!mVideoLogicalMembers.isEmpty()) {
+                auxButtonsViewModel.showLogicalMembers(
+                        com.particlesdevs.photoncamera.api.LogicalCameraResolver
+                                .toCameraLensData(mVideoLogicalMembers));
+            } else {
+                auxButtonsViewModel.rebuildCameraLists(mCameraLensDataMap);
+            }
+            // Feed the lens model into the zoom controller so pinch can
             // switch lenses and zoom below 1.0x (ultra-wide).
             updateZoomLensModel();
         }
 
         private void updateZoomLensModel() {
             if (captureController == null || mCameraLensDataMap == null) return;
+            if (!mVideoLogicalMembers.isEmpty()) {
+                String anchor = captureController.configureLogicalZoomLenses(mVideoLogicalMembers);
+                auxButtonsViewModel.setActiveId(anchor);
+                return;
+            }
             CameraLensData active = mCameraLensDataMap.get(PreferenceKeys.getCameraID());
             int facing = active != null
                     ? active.getFacing()
                     : CameraCharacteristics.LENS_FACING_BACK;
             captureController.configureZoomLenses(mCameraLensDataMap, facing);
+            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
         }
 
         @Override
@@ -1826,7 +1887,9 @@ public class CameraFragment extends Fragment {
                 surfaceView.clear();
                 if (mViewfinderHudView != null) mViewfinderHudView.clear();
             }
-            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
+            // Authoritative per-open refresh: mode-switch restarts bypass
+            // onOpenCamera, so the pill/zoom model is rebuilt here too.
+            refreshLensPillAndZoomModel();
             if (captureController != null) {
                 if (captureController.isZoomDrivenLensSwitch()) {
                     // The zoom target changed because a lens switch occurred. Preserve

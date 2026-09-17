@@ -47,20 +47,50 @@ public class AuxButtonsViewModel extends ViewModel {
 
     public void initCameraLists(Map<String, CameraLensData> cameraLensDataMap) {
         if (!initialized) {
-            List<CameraLensData> frontCameras = new ArrayList<>();
-            List<CameraLensData> backCameras = new ArrayList<>();
+            rebuildCameraLists(cameraLensDataMap);
+            initialized = true;
+        }
+    }
+
+    /** Rebuilds the pill from the normal lens map, bypassing the one-shot guard. */
+    public void rebuildCameraLists(Map<String, CameraLensData> cameraLensDataMap) {
+        List<CameraLensData> frontCameras = new ArrayList<>();
+        List<CameraLensData> backCameras = new ArrayList<>();
+        if (cameraLensDataMap != null) {
             cameraLensDataMap.forEach((id, cameraLensData) -> {
                 if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_BACK)
                     backCameras.add(cameraLensData);
                 else if (cameraLensData.getFacing() == CameraCharacteristics.LENS_FACING_FRONT)
                     frontCameras.add(cameraLensData);
             });
-            backCameras.sort(SORT_BY_ZOOM_FACTOR);
-            frontCameras.sort(SORT_BY_ZOOM_FACTOR);
-            auxButtonsModel.setBackCameras(backCameras);
-            auxButtonsModel.setFrontCameras(frontCameras);
-            initialized = true;
         }
+        backCameras.sort(SORT_BY_ZOOM_FACTOR);
+        frontCameras.sort(SORT_BY_ZOOM_FACTOR);
+        auxButtonsModel.setBackCameras(backCameras);
+        auxButtonsModel.setFrontCameras(frontCameras);
+        initialized = true;
+    }
+
+    /**
+     * Shows logical member lenses instead of the normal list (video logical
+     * mode). The layout rebuilds on the next {@link #setActiveId(String)}.
+     */
+    public void showLogicalMembers(List<CameraLensData> members) {
+        List<CameraLensData> frontCameras = new ArrayList<>();
+        List<CameraLensData> backCameras = new ArrayList<>();
+        if (members != null) {
+            for (CameraLensData member : members) {
+                if (member.getFacing() == CameraCharacteristics.LENS_FACING_BACK)
+                    backCameras.add(member);
+                else if (member.getFacing() == CameraCharacteristics.LENS_FACING_FRONT)
+                    frontCameras.add(member);
+            }
+        }
+        backCameras.sort(SORT_BY_ZOOM_FACTOR);
+        frontCameras.sort(SORT_BY_ZOOM_FACTOR);
+        auxButtonsModel.setBackCameras(backCameras);
+        auxButtonsModel.setFrontCameras(frontCameras);
+        initialized = true;
     }
 
     public void setAuxButtonListener(AuxButtonsLayout.AuxButtonListener auxButtonListener) {

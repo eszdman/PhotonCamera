@@ -160,6 +160,24 @@
         <item>1920x1080</item>
         <item>1280x720</item>
     </string-array>
+    <string-array name="video_hdr_transfer_entries">
+        <item>HLG</item>
+        <item>PQ</item>
+    </string-array>
+    <string-array name="video_hdr_transfer_entryvalues">
+        <item>hlg</item>
+        <item>pq</item>
+    </string-array>
+    <string-array name="audio_source_entries">
+        <item>Camcorder</item>
+        <item>MIC</item>
+        <item>Unprocessed</item>
+    </string-array>
+    <string-array name="audio_source_entryvalues">
+        <item>camcorder</item>
+        <item>mic</item>
+        <item>unprocessed</item>
+    </string-array>
     <string-array name="afdata_entries">
         <item>Off</item>
         <item>HUD</item>

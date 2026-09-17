@@ -51,6 +51,20 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
+        // Video settings are global: per-lens copies would resurrect another
+        // lens's resolution/bitrate/codec when switching lenses.
+        COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_BITRATE.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_HEVC.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_HDR.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_HDR_TRANSFER.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_ID.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_LENSES.mValue);
+        // Audio settings are global like video.
+        COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
+        COMMON_KEYS.add(Key.KEY_AUDIO_STEREO.mValue);
+        COMMON_KEYS.add(Key.KEY_AUDIO_SOURCE.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -80,6 +94,16 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, 0); // Default to disable bracketing
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_METERING_STD, -1); // Default to Off
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, resources.getString(R.string.pref_video_resolution_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, resources.getString(R.string.video_bitrate_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, false);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, resources.getString(R.string.video_hdr_transfer_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID, false);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_ID, resources.getString(R.string.video_logical_id_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_LENSES, resources.getString(R.string.video_logical_lenses_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_BITRATE, resources.getString(R.string.audio_bitrate_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO, true);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, resources.getString(R.string.audio_source_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, resources.getString(R.string.pref_lens_bar_position_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
@@ -544,6 +568,96 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, value);
     }
 
+    public static int getVideoBitrateMbps() {
+        try {
+            return Integer.parseInt(preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, "30"));
+        } catch (NumberFormatException e) {
+            return 30;
+        }
+    }
+
+    public static void setVideoBitrateMbps(int mbps) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, String.valueOf(mbps));
+    }
+
+    public static boolean isVideoHevc() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC);
+    }
+
+    public static void setVideoHevc(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, value);
+    }
+
+    public static boolean isVideoHdr() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR);
+    }
+
+    public static void setVideoHdr(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, value);
+    }
+
+    public static String getVideoHdrTransfer() {
+        return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, "hlg");
+    }
+
+    public static void setVideoHdrTransfer(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, value);
+    }
+
+    public static boolean isVideoUseLogicalId() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID);
+    }
+
+    public static void setVideoUseLogicalId(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID, value);
+    }
+
+    public static String getVideoLogicalId() {
+        String id = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_ID, "0");
+        return id != null ? id.trim() : "0";
+    }
+
+    public static void setVideoLogicalId(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_ID, value);
+    }
+
+    public static String getVideoLogicalLenses() {
+        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_LENSES, "");
+        return value != null ? value.trim() : "";
+    }
+
+    public static void setVideoLogicalLenses(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_LENSES, value);
+    }
+
+    public static int getAudioBitrateKbps() {
+        try {
+            return Integer.parseInt(preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_AUDIO_BITRATE, "128"));
+        } catch (NumberFormatException e) {
+            return 128;
+        }
+    }
+
+    public static void setAudioBitrateKbps(int kbps) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_AUDIO_BITRATE, String.valueOf(kbps));
+    }
+
+    public static boolean isAudioStereo() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO);
+    }
+
+    public static void setAudioStereo(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO, value);
+    }
+
+    public static String getAudioSource() {
+        return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, "camcorder");
+    }
+
+    public static void setAudioSource(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, value);
+    }
+
     public static boolean isRawVideoDownscale4x() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X);
     }
@@ -605,6 +719,16 @@ public class PreferenceKeys {
          */
         KEY_PREVIEW_RESOLUTION(R.string.pref_preview_resolution_key),////TODO add preview resolution selector
         KEY_VIDEO_RESOLUTION(R.string.pref_video_resolution_key),
+        KEY_VIDEO_BITRATE(R.string.pref_video_bitrate_key),
+        KEY_VIDEO_HEVC(R.string.pref_video_hevc_key),
+        KEY_VIDEO_HDR(R.string.pref_video_hdr_key),
+        KEY_VIDEO_HDR_TRANSFER(R.string.pref_video_hdr_transfer_key),
+        KEY_VIDEO_USE_LOGICAL_ID(R.string.pref_video_use_logical_id_key),
+        KEY_VIDEO_LOGICAL_ID(R.string.pref_video_logical_id_key),
+        KEY_VIDEO_LOGICAL_LENSES(R.string.pref_video_logical_lenses_key),
+        KEY_AUDIO_BITRATE(R.string.pref_audio_bitrate_key),
+        KEY_AUDIO_STEREO(R.string.pref_audio_stereo_key),
+        KEY_AUDIO_SOURCE(R.string.pref_audio_source_key),
         KEY_RAWVIDEO_DOWNSCALE_4X(R.string.pref_rawvideo_downscale_4x_key),
         KEY_RAWVIDEO_WRITE_ZIP(R.string.pref_rawvideo_write_zip_key),
         KEY_RAWVIDEO_CROP_169(R.string.pref_rawvideo_crop_169_key),

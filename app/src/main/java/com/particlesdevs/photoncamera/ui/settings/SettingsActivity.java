@@ -167,6 +167,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private SupportedDevice supportedDevice;
         private boolean tunablePreferencesGenerated = false;
         private boolean sensorConfigPreferencesGenerated = false;
+        private boolean videoTunablePreferencesGenerated = false;
         private ActivityResultLauncher<String[]> lutImportLauncher;
         /** Viewfinder background mode before the current settings change. */
         private String viewfinderBackgroundBefore;
@@ -217,9 +218,22 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 Log.d("SettingsFragment", "This is the sensor config submenu fragment, generating preferences now");
                 generateSensorConfigPreferences();
             }
+
+            if ("pref_video_tunable_submenu".equals(rootKey)) {
+                Log.d("SettingsFragment", "This is the video tunable submenu fragment, generating preferences now");
+                generateVideoTunablePreferences(
+                        com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.SDR);
+            }
+
+            if ("pref_video_hdr_tunable_submenu".equals(rootKey)) {
+                Log.d("SettingsFragment", "This is the HDR video tunable submenu fragment, generating preferences now");
+                generateVideoTunablePreferences(
+                        com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.HDR);
+            }
             
             filterPreferencesByMode();
             applySaveHeicUi();
+            applyVideoUi();
             showHideHdrxSettings();
             setFramesSummary();
             setVersionDetails();
@@ -305,6 +319,27 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             }
         }
 
+        private void generateVideoTunablePreferences(
+                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.Config config) {
+            // Only generate once per fragment instance
+            if (videoTunablePreferencesGenerated) {
+                Log.d("SettingsActivity", "Video tunable preferences already generated, skipping");
+                return;
+            }
+            videoTunablePreferencesGenerated = true;
+            try {
+                PreferenceScreen screen = getPreferenceScreen();
+                if (screen == null) {
+                    Log.w("SettingsActivity", "PreferenceScreen is null, cannot generate video tunable preferences");
+                    return;
+                }
+                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(mContext, screen, config);
+            } catch (Exception e) {
+                Log.e("SettingsActivity", "ERROR in generateVideoTunablePreferences", e);
+                e.printStackTrace();
+            }
+        }
+
         private void addSensorConfigResetButton() {
             try {
                 PreferenceScreen submenu = getPreferenceScreen();
@@ -324,8 +359,15 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     SharedPreferences prefs = mSettingsManager.getDefaultPreferences();
                     SharedPreferences.Editor editor = prefs.edit();
                     int resetCount = 0;
+                    String videoKey = "pref_sensorconfig_"
+                            + com.particlesdevs.photoncamera.settings.TunableKeyManager.VIDEO_TUNABLE_ID
+                            + "_tunablekeys";
+                    String videoHdrKey = "pref_sensorconfig_"
+                            + com.particlesdevs.photoncamera.settings.TunableKeyManager.VIDEO_HDR_TUNABLE_ID
+                            + "_tunablekeys";
                     for (String key : prefs.getAll().keySet()) {
-                        if (key != null && key.startsWith("pref_sensorconfig_")) {
+                        if (key != null && key.startsWith("pref_sensorconfig_")
+                                && !key.equals(videoKey) && !key.equals(videoHdrKey)) {
                             editor.remove(key);
                             resetCount++;
                         }
@@ -384,33 +426,12 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             }
         }
 
+        /**
+         * No-op retained for history: settings groups used to be hidden per
+         * camera mode. All groups are always shown now; the Video settings
+         * live in their own shortcut screen.
+         */
         private void filterPreferencesByMode() {
-            // Get the camera mode from the activity
-            if (sCameraMode == -1) {
-                // If no mode is passed, get from preferences
-                sCameraMode = PreferenceKeys.getCameraModeOrdinal();
-            }
-            
-            CameraMode cameraMode = CameraMode.valueOf(sCameraMode);
-            
-            // Show/hide categories based on camera mode
-            if (cameraMode == CameraMode.RAWVIDEO) {
-                // Raw video mode: show raw video settings only
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_photo_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_video_key));
-            } else if (cameraMode == CameraMode.VIDEO) {
-                // Regular video mode: show video settings, hide raw video settings
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_photo_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_jpg_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_hdrx_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_rawvideo_key));
-            } else {
-                // Photo modes: hide all video-specific settings
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_video_key));
-                removePreferenceFromScreen(mContext.getString(R.string.pref_category_rawvideo_key));
-            }
         }
 
         private void showHideHdrxSettings() {
@@ -447,6 +468,102 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 }
             } catch (Exception e) {
                 Log.e("SettingsFragment", "applySaveHeicUi failed", e);
+            }
+        }
+
+        /**
+         * Applies capability gating and dependency visibility for the Video
+         * Settings category:
+         * <ul>
+         *   <li>Save storage (HEVC) disabled with a reason when no HEVC
+         *       video encoder exists; forced off.</li>
+         *   <li>HDR video shown only when Save storage is on; disabled with
+         *       a reason when no 10-bit Main10 encoder exists; forced off.</li>
+         *   <li>HDR Transfer shown only when Save storage and HDR are on.</li>
+         *   <li>HDR tunable keys entry shown only when HDR is on.</li>
+         *   <li>Logical id entry shown only when the logical-id switch is on;
+         *       the switch is forced off when the id is not logical.</li>
+         * </ul>
+         */
+        private void applyVideoUi() {
+            try {
+                boolean hasHevc = com.particlesdevs.photoncamera.processing.encoder.VideoCodecSupport.hasHevcEncoder();
+                boolean hasHdr = com.particlesdevs.photoncamera.processing.encoder.VideoCodecSupport.isHdrVideoSupported();
+                boolean hevcOn = hasHevc && PreferenceKeys.isVideoHevc();
+                boolean hdrOn = hevcOn && hasHdr && PreferenceKeys.isVideoHdr();
+
+                Preference hevcPref = findPreference(mContext.getString(R.string.pref_video_hevc_key));
+                if (hevcPref != null) {
+                    if (!hasHevc) {
+                        hevcPref.setEnabled(false);
+                        hevcPref.setSummary(mContext.getString(R.string.video_hevc_unsupported));
+                        if (PreferenceKeys.isVideoHevc()) PreferenceKeys.setVideoHevc(false);
+                        hevcOn = false;
+                    } else {
+                        hevcPref.setEnabled(true);
+                        hevcPref.setSummary(mContext.getString(R.string.video_save_storage_summary));
+                    }
+                }
+                Preference hdrPref = findPreference(mContext.getString(R.string.pref_video_hdr_key));
+                if (hdrPref != null) {
+                    hdrPref.setVisible(hevcOn);
+                    if (!hevcOn) {
+                        if (PreferenceKeys.isVideoHdr()) PreferenceKeys.setVideoHdr(false);
+                        hdrOn = false;
+                    } else if (!hasHdr) {
+                        hdrPref.setEnabled(false);
+                        hdrPref.setSummary(mContext.getString(R.string.video_hdr_unsupported));
+                        if (PreferenceKeys.isVideoHdr()) PreferenceKeys.setVideoHdr(false);
+                        hdrOn = false;
+                    } else {
+                        hdrPref.setEnabled(true);
+                        hdrPref.setSummary(mContext.getString(R.string.video_hdr_summary));
+                    }
+                }
+                Preference transferPref = findPreference(mContext.getString(R.string.pref_video_hdr_transfer_key));
+                if (transferPref != null) {
+                    transferPref.setVisible(hdrOn);
+                }
+                Preference hdrTunablePref = findPreference("pref_video_hdr_tunable_submenu");
+                if (hdrTunablePref != null) {
+                    hdrTunablePref.setVisible(hdrOn);
+                }
+                boolean useLogicalOn = PreferenceKeys.isVideoUseLogicalId();
+                if (useLogicalOn && !isLogicalCameraId(mContext, PreferenceKeys.getVideoLogicalId())) {
+                    PreferenceKeys.setVideoUseLogicalId(false);
+                    useLogicalOn = false;
+                    PhotonCamera.showToast(mContext.getString(R.string.video_logical_id_unsupported));
+                }
+                Preference logicalIdPref = findPreference(mContext.getString(R.string.pref_video_logical_id_key));
+                if (logicalIdPref != null) {
+                    logicalIdPref.setVisible(useLogicalOn);
+                }
+                Preference logicalLensesPref = findPreference(mContext.getString(R.string.pref_video_logical_lenses_key));
+                if (logicalLensesPref != null) {
+                    logicalLensesPref.setVisible(useLogicalOn);
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "applyVideoUi failed", e);
+            }
+        }
+
+        /**
+         * True when {@code id} names a logical camera (one with physical
+         * members) on this device. Guards the video logical-id toggle.
+         */
+        private boolean isLogicalCameraId(Context context, String id) {
+            if (context == null || id == null || id.isEmpty()) return false;
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) return false;
+            try {
+                android.hardware.camera2.CameraManager manager =
+                        (android.hardware.camera2.CameraManager)
+                                context.getSystemService(Context.CAMERA_SERVICE);
+                if (manager == null) return false;
+                android.hardware.camera2.CameraCharacteristics chars =
+                        manager.getCameraCharacteristics(id.trim());
+                return chars != null && !chars.getPhysicalCameraIds().isEmpty();
+            } catch (Exception e) {
+                return false;
             }
         }
 
@@ -640,6 +757,13 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             if (key.equals(PreferenceKeys.Key.KEY_SAVE_HEIC.mValue)) {
                 applySaveHeicUi();
             }
+            if (key.equals(PreferenceKeys.Key.KEY_VIDEO_HEVC.mValue)
+                    || key.equals(PreferenceKeys.Key.KEY_VIDEO_HDR.mValue)
+                    || key.equals(PreferenceKeys.Key.KEY_VIDEO_USE_LOGICAL_ID.mValue)
+                    || key.equals(PreferenceKeys.Key.KEY_VIDEO_LOGICAL_ID.mValue)
+                    || key.equals(PreferenceKeys.Key.KEY_VIDEO_LOGICAL_LENSES.mValue)) {
+                applyVideoUi();
+            }
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_HIDE_GALLERY_ICON.mValue)) {
                 Log.d("SettingsFragment", "Hide gallery icon changed, expected key: " + PreferenceKeys.Key.KEY_HIDE_GALLERY_ICON.mValue);
                 try {
@@ -772,22 +896,23 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         public boolean onPreferenceTreeClick(@NonNull Preference preference) {
             // Log which preference was clicked
             Log.d("SettingsFragment", "onPreferenceTreeClick: " + preference.getKey());
-            
-            // Handle tunable submenu click manually to ensure proper navigation
-            if ("pref_tunable_submenu".equals(preference.getKey()) || "pref_sensor_config_submenu".equals(preference.getKey())) {
+
+            // Navigate to any sub-screen manually: default handling does not
+            // open PreferenceScreens in this setup, so every submenu entry
+            // (tunable, sensor config, video tunables, about, ...) is
+            // forwarded here instead of maintaining a key list.
+            if (preference instanceof PreferenceScreen) {
                 Log.d("SettingsFragment", "Submenu clicked, navigating: " + preference.getKey());
-                
+
                 // Navigate to the submenu (preferences will be generated in the new fragment's onCreate)
-                if (preference instanceof PreferenceScreen) {
-                    PreferenceScreen screen = (PreferenceScreen) preference;
-                    if (activity instanceof SettingsActivity) {
-                        ((SettingsActivity) activity).onPreferenceStartScreen(this, screen);
-                        return true;
-                    }
+                PreferenceScreen screen = (PreferenceScreen) preference;
+                if (activity instanceof SettingsActivity) {
+                    ((SettingsActivity) activity).onPreferenceStartScreen(this, screen);
+                    return true;
                 }
             }
-            
-            // Return false to allow default handling (like opening other subscreens)
+
+            // Return false to allow default handling
             return super.onPreferenceTreeClick(preference);
         }
 

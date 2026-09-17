@@ -20,6 +20,7 @@ import com.particlesdevs.photoncamera.settings.TunableInjector;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
+import com.particlesdevs.photoncamera.ui.widget.RecordButtonDrawable;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private final HorizontalPicker mModePicker;
     private final TextView mVideoRecordingInfo;
     private final MorphShapeDrawable mShutterMorph;
+    private final RecordButtonDrawable mRecordDrawable;
     private LayoutMainTopbarBinding topbar;
     private LayoutBottombuttonsBinding bottombuttons;
     private CameraUIEventsListener uiEventsListener;
@@ -65,6 +67,7 @@ public class CameraUIViewImpl implements CameraUIView {
         this.mProcessingProgressBar = bottombuttons.processingProgressBar;
         this.mShutterButton = bottombuttons.shutterButton;
         this.mShutterMorph = MorphShapeDrawable.shutter(cameraFragment.requireContext());
+        this.mRecordDrawable = new RecordButtonDrawable(cameraFragment.requireContext());
         this.mModePicker = cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
         this.mVideoRecordingInfo = cameraFragment.cameraFragmentBinding.getRoot().findViewById(R.id.video_recording_info);
         this.initListeners();
@@ -117,6 +120,36 @@ public class CameraUIViewImpl implements CameraUIView {
         });
     }
 
+    @Override
+    public void setShutterRecording(boolean recording) {
+        if (mRecordDrawable != null) {
+            mRecordDrawable.setRecording(recording);
+        }
+        if (mShutterButton != null) {
+            mShutterButton.post(() -> mShutterButton.setContentDescription(
+                    cameraFragment.getString(recording
+                            ? R.string.stop_recording_desc
+                            : R.string.record_video_desc)));
+        }
+    }
+
+    /**
+     * Attaches the shared record-button drawable (popping the dot in on
+     * first attach) and syncs it with the live capture state so refreshes
+     * during a recording don't reset it to idle.
+     */
+    private void attachRecordButton() {
+        if (mShutterButton.getBackground() != mRecordDrawable) {
+            mShutterButton.setBackground(mRecordDrawable);
+            mRecordDrawable.rewindEntry();
+        }
+        mRecordDrawable.refreshColors(cameraFragment.requireContext());
+        boolean recording = cameraFragment.captureController != null
+                && (cameraFragment.captureController.mIsRecordingVideo
+                        || cameraFragment.captureController.onUnlimited);
+        setShutterRecording(recording);
+    }
+
 
     private void switchToMode(CameraMode cameraMode) {
         Log.d(TAG, "Current Mode:" + cameraMode.name());
@@ -142,6 +175,11 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     private void toggleConstraints(CameraMode mode) {
+        // Gated to <=16:9 screens on purpose: on taller screens the 16:9
+        // column is arranged by adjustTopBar (topbar pushed down) with
+        // camera_container below it. Yanking the container full-bleed there
+        // stretches the finder under the topbar and leaves the bottom scrim
+        // overlapping the video.
         if (cameraFragment.displayAspectRatio <= 16f / 9f) {
             ConstraintLayout.LayoutParams camera_containerLP =
                     (ConstraintLayout.LayoutParams) cameraFragment.cameraFragmentBinding
@@ -162,6 +200,49 @@ public class CameraUIViewImpl implements CameraUIView {
                     camera_containerLP.topToBottom = R.id.layout_topbar;
             }
 
+        }
+    }
+
+    /**
+     * Bottom chrome for 16:9/video layouts: no scrim behind the button row
+     * so the viewfinder shows through between the buttons; the mode
+     * selector's own background follows the viewfinder background option
+     * (black for none, theme gradient for gradient, transparent for blurred
+     * edges). Photo 4:3 layouts clear the selector and float over the themed
+     * root instead.
+     */
+    private void applyBottomChrome(boolean scrimmed) {
+        android.view.View buttons =
+                cameraFragment.cameraFragmentBinding.layoutBottombar.bottomButtons.getRoot();
+        android.view.View selector =
+                cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.getRoot();
+        buttons.setBackground(null);
+        if (scrimmed) {
+            String bg = PreferenceKeys.getViewfinderBackground();
+            if (PreferenceKeys.VIEWFINDER_BACKGROUND_GRADIENT.equals(bg)) {
+                selector.setBackgroundResource(R.drawable.gradient_vector);
+            } else if (PreferenceKeys.VIEWFINDER_BACKGROUND_BLUR.equals(bg)) {
+                selector.setBackground(null);
+            } else {
+                selector.setBackgroundColor(0xFF000000);
+            }
+        } else {
+            selector.setBackground(null);
+        }
+    }
+
+    /**
+     * Anchors the bottom bar below the 16:9 finder in video modes. This is the
+     * same geometry the aspect169 photo mode uses; the indirection exists so
+     * the intent ("16:9 video layout") reads at the call site instead of a
+     * magic ratio string.
+     */
+    private void setVideoDummyAspect() {
+        if (cameraFragment.displayAspectRatio <= 16f / 9f)
+            cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
+        else {
+            float avg = ((4f / 3f) + (16f / 9f)) / 2f;
+            cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f / avg));
         }
     }
 
@@ -275,7 +356,7 @@ public class CameraUIViewImpl implements CameraUIView {
         long seconds = totalSeconds % 60;
         double estimatedGB = estimatedBytes / 1_073_741_824.0;
         double availableGB = availableBytes / 1_073_741_824.0;
-        String text = String.format("%02d:%02d  %.2f/%.1f GB", minutes, seconds, estimatedGB, availableGB);
+        String text = String.format("● REC %02d:%02d  %.2f/%.1f GB", minutes, seconds, estimatedGB, availableGB);
         mVideoRecordingInfo.post(() -> {
             mVideoRecordingInfo.setText(text);
             mVideoRecordingInfo.setVisibility(View.VISIBLE);
@@ -295,29 +376,42 @@ public class CameraUIViewImpl implements CameraUIView {
         bottombuttons = null;
     }
 
+    private void syncFpsButton() {
+        try {
+            cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
+                    .setFpsModeState(PreferenceKeys.getFpsMode());
+        } catch (Exception e) {
+            Log.w(TAG, "syncFpsButton failed", e);
+        }
+    }
+
     public class VideoModeState implements CameraModeState {
         @Override
         public void reConfigureModeViews(CameraMode mode) {
             topbar.setEisVisible(true);
             // cameraUIView.cameraFragmentBinding.textureHolder.setBackgroundResource(R.drawable.gradient_vector_video);
+            // Video topbar shows frame rate where quad res sits elsewhere.
+            topbar.setQuadVisible(false);
             topbar.setFpsVisible(true);
             topbar.setTimerVisible(false);
+            syncFpsButton();
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
-            cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.VISIBLE);
+            // Video mode: RAW, Quad Bayer, Battery Saver and Exposure bracketing do not apply.
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.GONE);
+            attachRecordButton();
+            // VIDEO has its own REC badge (video_recording_info); the photo
+            // countdown timer and burst progress ring do not apply here.
+            cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
+            cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.GONE);
             setVideoRecordingInfoVisible(false);
-            // Set the dummy view's aspect ratio to 16:9
-            if(cameraFragment.displayAspectRatio <= 16f / 9f)
-                cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-            else {
-                float avg = ((4f/3f) + (16f / 9f)) / 2f;
-                cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
-                //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
-            }
-            cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+            // Anchor the bottom bar below the 16:9 finder (same layout as the
+            // aspect169 photo mode); see setVideoDummyAspect().
+            setVideoDummyAspect();
+            applyBottomChrome(true);
             cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
 
             toggleConstraints(mode);
@@ -328,12 +422,15 @@ public class CameraUIViewImpl implements CameraUIView {
     public class UnlimitedModeState implements CameraModeState {
         @Override
         public void reConfigureModeViews(CameraMode mode) {
-            topbar.setFpsVisible(true);
+            topbar.setFpsVisible(false);
             topbar.setTimerVisible(false);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackgroundResource(R.drawable.unlimitedbutton);
+            attachRecordButton();
             if (mode == CameraMode.RAWVIDEO) {
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.GONE);
@@ -343,19 +440,13 @@ public class CameraUIViewImpl implements CameraUIView {
                 setVideoRecordingInfoVisible(false);
             }
             if(PhotonCamera.getSettings().aspect169 || mode == CameraMode.RAWVIDEO) {
-                // Set the dummy view's aspect ratio to 16:9
-                if(cameraFragment.displayAspectRatio <= 16f / 9f)
-                    cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                else {
-                    float avg = ((4f/3f) + (16f / 9f)) / 2f;
-                    cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
-                    //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
-                }
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                // 16:9 video-style layout; see setVideoDummyAspect().
+                setVideoDummyAspect();
+                applyBottomChrome(true);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                applyBottomChrome(false);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
             toggleConstraints(mode);
@@ -367,7 +458,7 @@ public class CameraUIViewImpl implements CameraUIView {
         @Override
         public void reConfigureModeViews(CameraMode mode) {
             topbar.setEisVisible(true);
-            topbar.setFpsVisible(true);
+            topbar.setFpsVisible(false);
             topbar.setTimerVisible(true);
             cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.VISIBLE);
             cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.VISIBLE);
@@ -376,6 +467,9 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
             mShutterButton.setBackground(mShutterMorph);
             //cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
@@ -390,11 +484,11 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                applyBottomChrome(true);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                applyBottomChrome(false);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
 
@@ -406,7 +500,7 @@ public class CameraUIViewImpl implements CameraUIView {
         @Override
         public void reConfigureModeViews(CameraMode mode) {
             topbar.setEisVisible(false);
-            topbar.setFpsVisible(true);
+            topbar.setFpsVisible(false);
             topbar.setTimerVisible(true);
             cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.VISIBLE);
             cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.VISIBLE);
@@ -414,6 +508,9 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
             mShutterButton.setBackground(mShutterMorph);
             if(PhotonCamera.getSettings().aspect169) {
@@ -425,11 +522,11 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackgroundResource(R.color.panel_transparency);
+                applyBottomChrome(true);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
+                applyBottomChrome(false);
                 cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
 

@@ -86,7 +86,13 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
                         android.widget.Toast.LENGTH_SHORT).show();
                 return;
             }
-            context.startActivity(new Intent(context, SettingsActivity.class));
+            Intent intent = new Intent(context, SettingsActivity.class);
+            try {
+                intent.putExtra("camera_mode",
+                        com.particlesdevs.photoncamera.settings.PreferenceKeys.getCameraModeOrdinal());
+            } catch (Exception ignored) {
+            }
+            context.startActivity(intent);
         });
         LayoutParams buttonParam = new LayoutParams(dp(35), dp(35));
         buttonParam.setMargins(dp(10), dp(2.5f), dp(20), dp(2.5f));
