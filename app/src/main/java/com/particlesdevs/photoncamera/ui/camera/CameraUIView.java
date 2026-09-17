@@ -18,6 +18,14 @@ public interface CameraUIView {
     void activateShutterButton(boolean status);
 
     /**
+     * Shows or clears the recording state on the record shutter button
+     * (dot morph + pulse + content description). No-op for photo faces.
+     *
+     * @param recording true while video/unlimited capture is running
+     */
+    void setShutterRecording(boolean recording);
+
+    /**
      * Refresh all contained views here
      *
      * @param processing status of any ongoing process that might be relevant to view state

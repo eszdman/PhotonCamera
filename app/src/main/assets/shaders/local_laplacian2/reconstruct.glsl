@@ -13,6 +13,9 @@ uniform sampler2D ReconstructedBuffer;
 // remapped pyramids of the paper.
 uniform sampler2D RemapLut;
 uniform ivec2 coarseSize;
+// Tiled rendering origin (output coords of this tile's row 0). (0,0) on the
+// legacy path: identical.
+uniform ivec2 u_tileOrigin;
 
 #if FINAL_OUTPUT == 1
 out vec4 Output;
@@ -87,7 +90,7 @@ void expandPair(ivec2 p, float anchor, out float rebuiltBase, out float remapped
 }
 
 void main() {
-    ivec2 p = ivec2(gl_FragCoord.xy);
+    ivec2 p = ivec2(gl_FragCoord.xy) + u_tileOrigin;
 #if FINE_RGB == 1
     vec4 source = texelFetch(FineBuffer, p, 0);
     float luma = dot(source.rgb, LUMA);

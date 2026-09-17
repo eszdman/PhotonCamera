@@ -17,6 +17,10 @@ public class BinnedDemosaic extends Node {
     }
 
     @Override
+    public int halo() {
+        return 4; // small-neighbourhood binned path; harness-proven
+    }
+
     public void Run() {
         glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
         for(int i =0; i<4;i++){
@@ -26,7 +30,7 @@ public class BinnedDemosaic extends Node {
                 FloatBuffer.wrap(basePipeline.mParameters.gainMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
         glProg.setVar("blackLevel",basePipeline.mParameters.blackLevel);
         glProg.setTexture("GainMap",GainMapTex);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;
         GainMapTex.close();

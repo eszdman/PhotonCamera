@@ -51,6 +51,12 @@ public class Parameters {
     public Point mapSize;
     public Rect sensorPix;
     public float[] gainMap;
+    /** Offset of the (zoomed) crop within the full sensor frame; (0,0) when uncropped. */
+    public Point cropOrigin;
+    /** Full-frame (uncropped) raw size, for sensor-relative normalization. */
+    public Point fullRawSize;
+    /** True when the raw buffer has been cropped by digital zoom. */
+    public boolean isCropped;
     public float[] proPhotoToSRGB = new float[9];
     public float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
@@ -96,6 +102,12 @@ public class Parameters {
     public String cameraID = PhotonCamera.getSettings().mCameraID;
     public int physicalID = 0;
     public int logicalID = 0;
+    /** Wall time from onProcessing start to onProcessing finished (stop before encode), ms. 0 = not measured. */
+    public long totalProcessingTimeMs = 0;
+    /** Highest VramStage (live+renderbuffer) sample this shot, MB. 0 = not measured. */
+    public long peakVramMB = 0;
+    /** Highest MemStage entry this shot, MB. 0 = not measured. */
+    public long peakMemoryMB = 0;
 
     @Tunable(title = "Use Dynamic Black Level", category = "Parameters", defaultValue = 0, min = 0, max = 1, step = 1,
             description = "Use dynamic black level from the camera2api capture result if available (may cause instability on some devices)"
@@ -222,6 +234,40 @@ public class Parameters {
             mirror = false;
         }
         //hotPixels = PhotonCamera.getCameraFragment().mHotPixelMap;
+    }
+
+    /**
+     * Records where the (zoomed) raw buffer was cropped from the full frame so
+     * sensor-relative metadata (active array / lens-shading area, principal
+     * point, mm-per-pixel) can be corrected to reference the same region. When a
+     * crop is present it offsets {@link #sensorPix} to the crop footprint.
+     *
+     * <p>Must be called after {@link #FillConstParameters(CameraCharacteristics, Point)}
+     * (which loads the full-frame active array).</p>
+     *
+     * @param originX crop left in full-frame pixels
+     * @param originY crop top in full-frame pixels
+     */
+    public void setCropDetails(int originX, int originY) {
+        cropOrigin = new Point(originX, originY);
+        isCropped = originX != 0 || originY != 0;
+        if (!isCropped) return;
+        // The buffer now covers only the crop region, so the active array
+        // (lens-shading / initial.activeSize) becomes the crop footprint, and the
+        // intrinsic principal point re-centers on the crop region.
+        if (sensorPix != null) {
+            sensorPix = new Rect(originX, originY,
+                    originX + rawSize.x, originY + rawSize.y);
+        }
+        cameraIntrinsic[2] = originX + rawSize.x / 2.0;
+        cameraIntrinsic[5] = originY + rawSize.y / 2.0;
+        cameraIntrinsicRev[2] = -(originX + rawSize.x / 2.0);
+        cameraIntrinsicRev[5] = -(originY + rawSize.y / 2.0);
+    }
+
+    /** Sets the full-frame raw size (used for crop-normalized gain-map sampling). */
+    public void setFullRawSize(int fullWidth, int fullHeight) {
+        fullRawSize = new Point(fullWidth, fullHeight);
     }
 
     public void FillDynamicParameters(CaptureResult result, CaptureRequest request, int ISO) {
@@ -658,6 +704,9 @@ public class Parameters {
                 "\n Color=" + PhotonCamera.getSettings().colorMethod +
                 "\n PreviewFormat=" + PhotonCamera.getSettings().previewFormat +
                 "\n FocalL=" + FltFormat(focalLength) +
+                "\n TotalProcessingTime=" + totalProcessingTimeMs + "ms" +
+                "\n PeakVram=" + peakVramMB + "MB" +
+                "\n PeakMemory=" + peakMemoryMB + "MB" +
                 "\n Version=" + PhotonCamera.getVersion();
     }
 

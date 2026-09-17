@@ -1,22 +1,24 @@
 package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.text.InputType;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.SeekBar;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceViewHolder;
 
 import com.google.android.material.color.MaterialColors;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
@@ -28,7 +30,7 @@ import java.util.Locale;
  * Seekbar preference that can be created programmatically.
  * Uses native float/int storage instead of strings for perfect precision.
  */
-public class TunableSeekBarPreference extends Preference implements SeekBar.OnSeekBarChangeListener {
+public class TunableSeekBarPreference extends Preference {
     private static final String TAG = "TunableSeekBarPref";
     private final Vibration vibration;
     private float mMin = 0.0f;
@@ -38,7 +40,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
     private float mDefaultValue = 0.0f;
     private int seekBarProgress;
     private TextView seekBarValue;
-    private SeekBar seekBar;
+    private Slider seekBar;
     private boolean isUserInteraction = false;
 
     public TunableSeekBarPreference(Context context) {
@@ -75,16 +77,25 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
     public void onBindViewHolder(@NonNull PreferenceViewHolder holder) {
         super.onBindViewHolder(holder);
         holder.setDividerAllowedAbove(false);
-        seekBar = (SeekBar) holder.findViewById(R.id.seekbar);
+        seekBar = (Slider) holder.findViewById(R.id.seekbar);
         seekBarValue = (TextView) holder.findViewById(R.id.seekbar_value);
-        
+
         if (seekBar != null) {
-            seekBar.setMax((int) ((mMax - mMin) * mStepPerUnit));
-            seekBar.setOnSeekBarChangeListener(this);
-            
+            seekBar.setValueFrom(0f);
+            seekBar.setValueTo(progressMax());
+            seekBar.setStepSize(1f);
+            // Same index-domain pill issue as UniversalSeekBarPreference: map
+            // the floating label to the real value shown in the value text.
+            seekBar.setLabelFormatter(value -> formatValue(progressToValue(Math.round(value))));
+            seekBar.clearOnChangeListeners();
+            seekBar.addOnChangeListener((slider, value, fromUser) -> {
+                if (fromUser && vibration != null) vibration.Tick();
+                if (fromUser) set(Math.round(value));
+            });
+
             // Get persisted value as appropriate type with auto-healing
             float currentValue = getSafePersistedValue();
-            
+
             // Update UI only - don't persist again!
             seekBarProgress = valueToProgress(currentValue);
             String displayValue = formatValue(currentValue);
@@ -92,13 +103,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
                 seekBarValue.setText(displayValue);
                 updateValueColor(currentValue);
             }
-            seekBar.setProgress(seekBarProgress);
-            
-            // Add click listener for precise value input
-            View seekBarContainer = holder.itemView.findViewById(R.id.seekbar);
-            if (seekBarContainer != null) {
-                seekBarContainer.setOnClickListener(v -> showPreciseValueDialog());
-            }
+            seekBar.setValue(clampProgress(seekBarProgress));
         }
         
         // Also make the value text clickable
@@ -120,113 +125,88 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
             String.format(Locale.ROOT, "%.10f", currentValue).replaceAll("0+$", "").replaceAll("\\.$", "") :
             String.valueOf((int) currentValue);
         
-        // Create input dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(getTitle());
-        builder.setMessage("Enter precise value (" + 
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMin).replaceAll("0+$", "").replaceAll("\\.$", "") + " - " +
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMax).replaceAll("0+$", "").replaceAll("\\.$", "") + 
-            ")\nDefault: " + 
-            String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mDefaultValue).replaceAll("0+$", "").replaceAll("\\.$", ""));
-        
         // Create input field
-        final EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | 
-            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) | 
+        TextInputLayout inputLayout = new TextInputLayout(context);
+        inputLayout.setHint("Value");
+        final TextInputEditText input = new TextInputEditText(inputLayout.getContext());
+        input.setInputType(InputType.TYPE_CLASS_NUMBER |
+            (isFloat ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0) |
             InputType.TYPE_NUMBER_FLAG_SIGNED);
-        
         input.setText(currentValueText);
         input.setSelectAllOnFocus(true);
-        
-        // Add padding
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(50, 20, 50, 20);
-        input.setLayoutParams(lp);
-        
-        LinearLayout container = new LinearLayout(context);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.addView(input);
-        builder.setView(container);
-        
-        builder.setPositiveButton("Set", (dialog, which) -> {
-            try {
-                String valueStr = input.getText().toString();
-                float value = Float.parseFloat(valueStr);
-                
-                // Clamp to min/max
-                if (value < mMin) {
-                    value = mMin;
-                    PhotonCamera.showToast("Value clamped to minimum: " + mMin);
-                } else if (value > mMax) {
-                    value = mMax;
-                    PhotonCamera.showToast("Value clamped to maximum: " + mMax);
-                }
-                
-                // Just set the value - it will be persisted as native type
-                int progress = valueToProgress(value);
-                set(progress);
-                
-                Log.d(TAG, "Set precise value: " + value + " for " + getKey());
-            } catch (NumberFormatException e) {
-                PhotonCamera.showToast("Invalid number format");
-                Log.w(TAG, "Invalid input: " + input.getText().toString());
-            }
-        });
-        
-        builder.setNeutralButton("Reset", (dialog, which) -> {
-            // Temporarily disable user interaction flag to prevent re-persistence during UI updates
-            boolean wasUserInteraction = isUserInteraction;
-            isUserInteraction = false;
-            
-            // Remove the persisted value to use annotation default
-            SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-            if (prefs != null) {
-                prefs.edit().remove(getKey()).apply();
-            }
-            
-            // Update UI to match default
-            seekBarProgress = valueToProgress(mDefaultValue);
-            String displayValue = formatValue(mDefaultValue);
-            if (seekBarValue != null) {
-                seekBarValue.setText(displayValue);
-            }
-            if (seekBar != null) {
-                seekBar.setProgress(seekBarProgress);
-            }
-            updateValueColor(mDefaultValue);
-            
-            // Restore user interaction flag
-            isUserInteraction = wasUserInteraction;
-            
-            PhotonCamera.showToast("Reset to default: " + mDefaultValue);
-            Log.d(TAG, "Reset to default (removed persisted value): " + mDefaultValue + " for " + getKey());
-        });
-        
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        
-        AlertDialog dialog = builder.create();
-        dialog.show();
-        
+        inputLayout.addView(input);
+
+        FrameLayout container = new FrameLayout(context);
+        int horizontalPadding = (int) (24 * context.getResources().getDisplayMetrics().density);
+        container.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+        container.addView(inputLayout);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle(getTitle())
+                .setMessage("Enter precise value (" +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMin).replaceAll("0+$", "").replaceAll("\\.$", "") + " - " +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mMax).replaceAll("0+$", "").replaceAll("\\.$", "") +
+                    ")\nDefault: " +
+                    String.format(Locale.ROOT, isFloat ? "%.10f" : "%.0f", mDefaultValue).replaceAll("0+$", "").replaceAll("\\.$", ""))
+                .setView(container)
+                .setPositiveButton("Set", (d, which) -> {
+                    try {
+                        String valueStr = input.getText().toString();
+                        float value = Float.parseFloat(valueStr);
+
+                        // Clamp to min/max
+                        if (value < mMin) {
+                            value = mMin;
+                            PhotonCamera.showToast("Value clamped to minimum: " + mMin);
+                        } else if (value > mMax) {
+                            value = mMax;
+                            PhotonCamera.showToast("Value clamped to maximum: " + mMax);
+                        }
+
+                        // Just set the value - it will be persisted as native type
+                        int progress = valueToProgress(value);
+                        set(progress);
+
+                        Log.d(TAG, "Set precise value: " + value + " for " + getKey());
+                    } catch (NumberFormatException e) {
+                        PhotonCamera.showToast("Invalid number format");
+                        Log.w(TAG, "Invalid input: " + input.getText().toString());
+                    }
+                })
+                .setNeutralButton("Reset", (d, which) -> {
+                    // Temporarily disable user interaction flag to prevent re-persistence during UI updates
+                    boolean wasUserInteraction = isUserInteraction;
+                    isUserInteraction = false;
+
+                    // Remove the persisted value to use annotation default
+                    SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+                    if (prefs != null) {
+                        prefs.edit().remove(getKey()).apply();
+                    }
+
+                    // Update UI to match default
+                    seekBarProgress = valueToProgress(mDefaultValue);
+                    String displayValue = formatValue(mDefaultValue);
+                    if (seekBarValue != null) {
+                        seekBarValue.setText(displayValue);
+                    }
+                    if (seekBar != null) {
+                        updateSeekbar(seekBarProgress);
+                    }
+                    updateValueColor(mDefaultValue);
+
+                    // Restore user interaction flag
+                    isUserInteraction = wasUserInteraction;
+
+                    PhotonCamera.showToast("Reset to default: " + mDefaultValue);
+                    Log.d(TAG, "Reset to default (removed persisted value): " + mDefaultValue + " for " + getKey());
+                })
+                .setNegativeButton("Cancel", (d, which) -> d.cancel())
+                .create();
+        BlurSupport.show(dialog);
+
         // Request keyboard
         input.requestFocus();
-    }
-
-    @Override
-    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if(fromUser && vibration != null) vibration.Tick();
-        if (fromUser) {
-            set(progress);
-        }
-    }
-
-    @Override
-    public void onStartTrackingTouch(SeekBar seekBar) {
-    }
-
-    @Override
-    public void onStopTrackingTouch(SeekBar seekBar) {
     }
 
     @Override
@@ -256,7 +236,7 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
             updateValueColor(currentValue);
         }
         if (seekBar != null) {
-            seekBar.setProgress(seekBarProgress);
+            updateSeekbar(seekBarProgress);
         }
     }
 
@@ -316,24 +296,37 @@ public class TunableSeekBarPreference extends Preference implements SeekBar.OnSe
         SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
         boolean hasPersisted = prefs != null && prefs.contains(getKey());
         int color = MaterialColors.getColor(getContext(), android.R.attr.textColorPrimary, 0xFFFFFF);
-        // Green = persisted (user customized), White = not persisted (default)
+        // Accent = persisted (user customized), on-surface = not persisted (default)
         if (hasPersisted) {
-            seekBarValue.setTextColor(Color.parseColor("#4CAF50")); // Material Green
+            seekBarValue.setTextColor(MaterialColors.getColor(seekBarValue, R.attr.colorPrimary, color));
         } else {
-            seekBarValue.setTextColor(color); // White
+            seekBarValue.setTextColor(color);
         }
-        
-        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue + 
-            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "GREEN" : "WHITE"));
+
+        Log.d(TAG, "Color: current=" + currentValue + ", default=" + mDefaultValue +
+            ", persisted=" + hasPersisted + ", color=" + (hasPersisted ? "ACCENT" : "DEFAULT"));
     }
 
     private void updateSeekbar(int progress) {
         if (seekBar != null)
-            seekBar.setProgress(progress);
+            seekBar.setValue(clampProgress(progress));
+    }
+
+    private int progressMax() {
+        // Rounded, not truncated: float32 arithmetic lands just below exact
+        // multiples (e.g. (1.0f - -0.2f) * 20 == 24.00000095 or 0.99999994),
+        // and a negative min would otherwise lose a whole step.
+        return Math.max(1, (int) Math.round(((double) mMax - (double) mMin) * (double) mStepPerUnit));
+    }
+
+    private int clampProgress(int progress) {
+        if (progress < 0) return 0;
+        return Math.min(progress, progressMax());
     }
 
     private int valueToProgress(float value) {
-        return (int) ((value - mMin) * mStepPerUnit);
+        double steps = ((double) value - (double) mMin) * (double) mStepPerUnit;
+        return clampProgress((int) Math.round(steps));
     }
     
     private float progressToValue(int progress) {

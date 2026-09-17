@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rounded, fully transparent panel background kept while the blurred backdrop
+     is shown, so the panel still provides a rounded outline for clipping. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle">
+    <solid android:color="#00121417" />
+    <corners android:radius="@dimen/cam_panel_corner_radius"/>
+</shape>

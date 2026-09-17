@@ -10,11 +10,11 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 
 /**
  * Lightweight, hardware-accelerated indicator for Live View Spot White Balance.
@@ -95,8 +95,8 @@ public class SpotWbIndicatorView extends View {
         float endAngle = startAngle + diff;
 
         animate().rotation(endAngle)
-                .setDuration(250)
-                .setInterpolator(new DecelerateInterpolator())
+                .setDuration(Motion.durationMedium1(getContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(getContext()))
                 .start();
     }
 

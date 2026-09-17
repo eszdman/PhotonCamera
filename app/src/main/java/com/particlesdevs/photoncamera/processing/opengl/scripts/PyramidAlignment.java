@@ -216,6 +216,41 @@ public class PyramidAlignment implements AutoCloseable {
     GLTexture gainMap;
     public GLTexture Result;
     GLTexture inputAlter;
+
+    /**
+     * When true, inputBase/inputAlter are owned by the caller (ESD4D merge
+     * textures) and must neither be (re-)allocated nor closed here.
+     * Bit-exact: identical size/format/filter/wrap objects. The base upload
+     * disappears entirely (caller uploads once before Run); alter frames are
+     * still uploaded by this Run's own loop, into the shared texture instead
+     * of a duplicate (-48 MB VRAM, -1 upload).
+     */
+    private boolean sharedInputs = false;
+
+    /** Shares the caller's already-uploaded raw textures (see above). Must be
+     * called before {@link #Run()}. */
+    public void shareInputTextures(GLTexture base, GLTexture alter) {
+        inputBase = base;
+        inputAlter = alter;
+        sharedInputs = true;
+    }
+
+    /** P2 (H2): when true, {@link #temp} is caller-owned scratch (see below). */
+    private boolean tempBorrowed = false;
+
+    /**
+     * Lends the caller's texture as this run's {@link #temp} scratch instead
+     * of allocating one (-24 MB). Caller must guarantee identical
+     * size/format and that the texture stays dead until fully overwritten
+     * hereafter; must be called before {@link #Run()}. The texture is only
+     * texelFetch/imageStore accessed (filter-agnostic) and is never closed
+     * here.
+     */
+    public void borrowTempTexture(GLTexture scratch) {
+        temp = scratch;
+        tempBorrowed = true;
+    }
+
     GLTexture hotPix;
     GLUtils.Pyramid pyramid;
     GLUtils.Pyramid pyramidAlter;
@@ -260,15 +295,23 @@ public class PyramidAlignment implements AutoCloseable {
         Log.d("PyramidAlignment", "prefilter: sigma=" + blurSigma + " noiseFactor=" + prefilterN);
         Point rawHalf = new Point(parameters.rawSize.x/2,parameters.rawSize.y/2);
         Result = new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16,1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        inputBase.loadRawHalf(images.get(0).buffer);
-        // Temporal result
-        temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        if (!sharedInputs) {
+            inputBase = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16,1), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            inputBase.loadRawHalf(images.get(0).buffer);
+        }
+        // Temporal result (P2/H2: skipped when temp is borrowed scratch).
+        if (!tempBorrowed) {
+            temp = new GLTexture(rawHalf, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
         base = new GLTexture(rawHalf,imageFormat,null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         alter = new GLTexture(rawHalf,imageFormat,null,GL_LINEAR,GL_CLAMP_TO_EDGE);
         gainMap = new GLTexture(parameters.mapSize, new GLFormat(GLFormat.DataType.FLOAT_32, 4),
                 BufferUtils.getFrom(parameters.gainMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
 
+        // P0 instrumentation (temporary, DEBUG only): split the pyramid
+        // alignment into prefilter / per-frame / per-level stages.
+        long dbgBaseT = 0L;
+        if (PhotonCamera.DEBUG) dbgBaseT = System.currentTimeMillis();
         // Use normalize script to fill base texture
         glProg.setLayout(8, 8, 1);
         glProg.useAssetProgram("alignment/normalize", true);
@@ -278,6 +321,8 @@ public class PyramidAlignment implements AutoCloseable {
         glProg.setVar("exposure", 1.0f);
         glProg.setTextureCompute("outTexture", temp, true);
         glProg.computeAuto(temp.mSize, 1);
+        if (PhotonCamera.DEBUG)
+            Log.d("PyramidAlignment", "stage base-normalize elapsed:" + (System.currentTimeMillis() - dbgBaseT) + "ms");
 
         GLHistogram hist = new GLHistogram(glProg, 1024);
         hist.Rc = true;
@@ -308,9 +353,14 @@ public class PyramidAlignment implements AutoCloseable {
         //hist.exposure = new float[]{1.0f, 1.0f, 1.0f, 1.0f};
         //histDataBase = hist.Compute(temp).clone();
 
+        // Base black levels are final; the alter-frame histogram branch below
+        // is disabled, so this instance has no further readers.
+        hist.close();
+
         glProg.setLayout(8, 8, 1);
         glProg.setDefine("OUT_FORMAT", u8 ? "rgba8" : "rgba16f");
         glProg.setDefine("SQRT_ENC", sqrtEnc);
+        if (PhotonCamera.DEBUG) dbgBaseT = System.currentTimeMillis();
         glProg.useAssetProgram("alignment/normalizebl", true);
         glProg.setVar("blackLevel", blackLevel);
         glProg.setVar("whiteLevel", 1.0f);
@@ -319,6 +369,8 @@ public class PyramidAlignment implements AutoCloseable {
         glProg.setTexture("gainMap", gainMap);
         glProg.setTextureCompute("outTexture", base, true);
         glProg.computeAuto(base.mSize, 1);
+        if (PhotonCamera.DEBUG)
+            Log.d("PyramidAlignment", "stage base-normalizebl elapsed:" + (System.currentTimeMillis() - dbgBaseT) + "ms");
 
         //GLTexture histTexture = new GLTexture(new Point(1024,1), new GLFormat(GLFormat.DataType.FLOAT_32), BufferUtils.getFrom(histCurve), GL_LINEAR, GL_CLAMP_TO_EDGE);
         GLTexture histTexture = new GLTexture(new Point(1024,1), new GLFormat(GLFormat.DataType.FLOAT_32), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
@@ -330,7 +382,10 @@ public class PyramidAlignment implements AutoCloseable {
         int tile = 8;
 
         pyramid = new GLUtils.Pyramid();
+        if (PhotonCamera.DEBUG) dbgBaseT = System.currentTimeMillis();
         glUtils.createPyramidStore(levelcount, base, pyramid, false);
+        if (PhotonCamera.DEBUG)
+            Log.d("PyramidAlignment", "stage base-pyramid elapsed:" + (System.currentTimeMillis() - dbgBaseT) + "ms levels=" + levelcount);
 
         // Alignment atlas chain, level i sized like pyramid level i (the
         // matcher stores one vector per TILE_AL x TILE_AL tile of level i-1,
@@ -358,13 +413,19 @@ public class PyramidAlignment implements AutoCloseable {
         noiseO = (float)Math.max(noiseO * noisempy,1e-6f);
         double noise = Math.sqrt(noiseS + noiseO);
         Log.d("PyramidAlignment", "noise: " + Math.sqrt(noiseS + noiseO));
-        inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        if (!sharedInputs) {
+            inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        }
 
         int alignCount = 0;
         for (int f = 1; f < images.size(); f++) {
             ImageFrame frame = images.get(f);
             Log.d("PyramidAlignment", "load:"+frame.pair.curlayer.name());
+            long dbgFrameT = 0L;
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             inputAlter.loadRawHalf(frame.buffer);
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage upload elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
             
             // Compute alter frame histogram with exposure = 1.0 for exposure determination
             /*glProg.setLayout(tile, tile, 1);
@@ -388,6 +449,7 @@ public class PyramidAlignment implements AutoCloseable {
             //Log.d("PyramidAlignment", "Computed exposure: " + exposure + " reference exposure: " + 1.0f/frame.pair.layerMpy);
             
             // Use normalize script to fill alter texture with computed exposure
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("alignment/normalize", true);
             glProg.setVar("blurSigma", blurSigma);
@@ -396,6 +458,8 @@ public class PyramidAlignment implements AutoCloseable {
             glProg.setTexture("gainMap", gainMap);
             glProg.setTextureCompute("outTexture", temp, true);
             glProg.computeAuto(temp.mSize, 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage normalize elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
 
 
             /*int[][] histData = hist.Compute(temp);
@@ -421,6 +485,7 @@ public class PyramidAlignment implements AutoCloseable {
             glProg.setLayout(8, 8, 1);
             glProg.setDefine("OUT_FORMAT", u8 ? "rgba8" : "rgba16f");
             glProg.setDefine("SQRT_ENC", sqrtEnc);
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             glProg.useAssetProgram("alignment/normalizebl", true);
             glProg.setVar("blackLevel", blackLevel);
             glProg.setVar("whiteLevel", 1.0f);
@@ -429,14 +494,22 @@ public class PyramidAlignment implements AutoCloseable {
             glProg.setTexture("gainMap", gainMap);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(alter.mSize, 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage normalizebl elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
 
             Log.d("PyramidAlignment", "create alter");
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             glUtils.createPyramidStore(levelcount, alter, pyramidAlter, false);
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage alter-pyramid elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
             Log.d("PyramidAlignment", "alter created");
 
             // do pyramid alignment upscaling, stopping startLevel levels above
             // the raw/2 root when a coarser finest level is selected
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             for (int i = pyramidAlter.gauss.length - 2; i >= startLevel; i--) {
+                long dbgLevelT = 0L;
+                if (PhotonCamera.DEBUG) dbgLevelT = System.currentTimeMillis();
 
                 float integralNorm = (float)rawHalf.x * rawHalf.y/(pyramidAlter.gauss[i+1].mSize.x * pyramidAlter.gauss[i+1].mSize.y);
                 glProg.setDefine("TILE_AL", parameters.tile);
@@ -465,12 +538,18 @@ public class PyramidAlignment implements AutoCloseable {
                 glProg.setVar("exposure", exposure);
                 //glProg.computeAuto(new Point(alterPyramid.gauss[i].mSize.x/parameters.tile + 1,alterPyramid.gauss[i].mSize.y/parameters.tile + 1), 1);
                 glProg.computeManual(pyramidAlter.gauss[i].mSize.x/(parameters.tile/2) + 1,pyramidAlter.gauss[i].mSize.y/(parameters.tile/2) + 1, 1);
+                if (PhotonCamera.DEBUG)
+                    Log.d("PyramidAlignment", "stage align-level elapsed:" + (System.currentTimeMillis() - dbgLevelT) + "ms f=" + f + " i=" + i
+                            + " grid=" + pyramidAlter.gauss[i].mSize.x + "x" + pyramidAlter.gauss[i].mSize.y);
             }
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage align-total elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
             Point shift = alignmentShift(parameters, f);
             // do alignment packing into single texture; with startLevel > 0 the
             // atlas is one level coarser, pack.glsl broadcasts each vector to
             // its 2^level x 2^level block and rescales the displacement to
             // raw/2 texel units
+            if (PhotonCamera.DEBUG) dbgFrameT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram("alignment/pack", true);
             glProg.setTexture("alignTexture", alignAtlas[1 + startLevel]);
@@ -479,6 +558,8 @@ public class PyramidAlignment implements AutoCloseable {
             glProg.setVar("rawHalf", rawHalf);
             glProg.setVar("startLevel", startLevel);
             glProg.computeAuto(parameters.alignmentSize, 1);
+            if (PhotonCamera.DEBUG)
+                Log.d("PyramidAlignment", "stage pack elapsed:" + (System.currentTimeMillis() - dbgFrameT) + "ms f=" + f);
         }
         histTexture.close();
         alterTexture.close();
@@ -486,10 +567,17 @@ public class PyramidAlignment implements AutoCloseable {
 
     @Override
     public void close() {
-        inputBase.close();
+        // Shared textures are owned by the caller (ESD4D closes them in its
+        // AfterRun); only the private pyramid textures are closed here.
+        if (!sharedInputs) {
+            inputBase.close();
+        }
         base.close();
         alter.close();
-        temp.close();
+        // Borrowed scratch is caller-owned (closed by ESD4D); see borrowTempTexture.
+        if (!tempBorrowed) {
+            temp.close();
+        }
         for (int i = 0; i < pyramid.gauss.length; i++) {
             pyramid.gauss[i].close();
             pyramidAlter.gauss[i].close();
@@ -499,7 +587,9 @@ public class PyramidAlignment implements AutoCloseable {
                 if (alignAtlas[i] != null) alignAtlas[i].close();
             }
         }
-        inputAlter.close();
+        if (!sharedInputs) {
+            inputAlter.close();
+        }
         gainMap.close();
         GLTexture.notClosed();
     }

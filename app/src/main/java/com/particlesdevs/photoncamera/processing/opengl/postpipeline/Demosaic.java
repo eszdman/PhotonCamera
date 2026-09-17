@@ -13,6 +13,10 @@ public class Demosaic extends Node {
     public void Compile() {}
 
     @Override
+    public int halo() {
+        return 4; // legacy p2 chain taps +-2 observed; harness-proven
+    }
+
     public void Run() {
         GLTexture glTexture;
         glTexture = previousNode.WorkingTexture;
@@ -39,9 +43,16 @@ public class Demosaic extends Node {
         glProg.setVar("whitePoint",basePipeline.mParameters.whitePoint);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
         glProg.setVar("neutral", basePipeline.mParameters.whitePoint[0], basePipeline.mParameters.whitePoint[1], basePipeline.mParameters.whitePoint[1], basePipeline.mParameters.whitePoint[2]);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.drawBlocks(WorkingTexture);
         glProg.close();
         WorkingTexture = basePipeline.swap3();
+        // swap3 left the stale demosaic input in main3; it is dead now (see
+        // PostPipeline.canReleaseDemosaicScratch).
+        PostPipeline pp = (PostPipeline) basePipeline;
+        if (pp.canReleaseDemosaicScratch() && basePipeline.main3 != null) {
+            basePipeline.main3.close();
+            basePipeline.main3 = null;
+        }
     }
 }

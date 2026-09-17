@@ -25,6 +25,7 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageCompareBinding;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import com.particlesdevs.photoncamera.gallery.compare.ScaleAndPan;
+import com.particlesdevs.photoncamera.ui.widget.FabPressSpring;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,6 +75,7 @@ public class ImageCompareFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        FabPressSpring.attach(binding.screenShareButton);
         Bundle b = getArguments();
         if (b != null) {
             toSync = true;

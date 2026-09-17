@@ -23,6 +23,20 @@ import java.util.List;
 public class TunableKeyManager {
     private static final String TAG = "TunableKeyManager";
 
+    /**
+     * Pseudo sensor id for the single global video-only tunable list.
+     * Stored under {@code pref_sensorconfig_video_tunablekeys} so it shares
+     * the same JSON format as per-sensor lists but is isolated from them.
+     * This is the SDR list; see {@link #VIDEO_HDR_TUNABLE_ID} for HDR.
+     */
+    public static final String VIDEO_TUNABLE_ID = "video";
+
+    /**
+     * Pseudo sensor id for the global HDR-only tunable list, applied instead
+     * of {@link #VIDEO_TUNABLE_ID} whenever HDR video is actually active.
+     */
+    public static final String VIDEO_HDR_TUNABLE_ID = "video_hdr";
+
     private TunableKeyManager() {}
 
     private static String prefKey(String sensorId) {
@@ -63,6 +77,51 @@ public class TunableKeyManager {
         if (keys.isEmpty()) return;
         VendorTagUtils.applyTunableKeys(builder, keys, physicalId);
         saveKeys(context, physicalId, keys);
+    }
+
+    /** Load the single global video-only tunable list. */
+    public static List<VendorTagUtils.TunableKey> loadVideoKeys(Context context) {
+        return loadKeys(context, VIDEO_TUNABLE_ID);
+    }
+
+    /** Save the single global video-only tunable list. */
+    public static void saveVideoKeys(Context context, List<VendorTagUtils.TunableKey> keys) {
+        saveKeys(context, VIDEO_TUNABLE_ID, keys);
+    }
+
+    /** Load the global HDR-only tunable list. */
+    public static List<VendorTagUtils.TunableKey> loadVideoHdrKeys(Context context) {
+        return loadKeys(context, VIDEO_HDR_TUNABLE_ID);
+    }
+
+    /** Save the global HDR-only tunable list. */
+    public static void saveVideoHdrKeys(Context context, List<VendorTagUtils.TunableKey> keys) {
+        saveKeys(context, VIDEO_HDR_TUNABLE_ID, keys);
+    }
+
+    /**
+     * Apply the global video-only tunable list to a video-mode request
+     * builder. Callers must gate on video mode; this method itself only
+     * loads {@link #VIDEO_TUNABLE_ID} so photo paths are never affected.
+     * The current {@code physicalId} is still passed through for
+     * per-camera {@code setPhysicalCameraKey} application.
+     *
+     * @param hdrActive true to apply the HDR list, false for the SDR list.
+     */
+    public static void applyVideoTunableKeys(CaptureRequest.Builder builder, String physicalId,
+            boolean hdrActive) {
+        Context context = PhotonCamera.getSettingsManagerStatic() != null
+                ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
+        if (context == null || builder == null) return;
+        List<VendorTagUtils.TunableKey> keys =
+                hdrActive ? loadVideoHdrKeys(context) : loadVideoKeys(context);
+        if (keys.isEmpty()) return;
+        VendorTagUtils.applyTunableKeys(builder, keys, physicalId);
+        if (hdrActive) {
+            saveVideoHdrKeys(context, keys);
+        } else {
+            saveVideoKeys(context, keys);
+        }
     }
 
     /**

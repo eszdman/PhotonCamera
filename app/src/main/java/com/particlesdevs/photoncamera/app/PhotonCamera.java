@@ -29,6 +29,8 @@ import com.particlesdevs.photoncamera.debugclient.Debugger;
 import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.Specific;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
+import com.particlesdevs.photoncamera.processing.ml.FlowNetNcnnProcessor;
+import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.render.PreviewParameters;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
@@ -214,6 +216,7 @@ public class PhotonCamera extends Application {
     @Override
     public void onCreate() {
         registerActivityLifecycleCallbacks(new ActivityLifecycleMonitor());
+        androidx.fragment.app.FragmentManager.enablePredictiveBack(true);
         sPhotonCamera = this;
         Log.d("PhotonCamera", "Initializing PhotonCamera Modules");
         initModules();
@@ -222,6 +225,13 @@ public class PhotonCamera extends Application {
     private void initModules() {
 
         SimpleStorageHelper.init(this);
+
+        // Load the FlowNet optical-flow model + warm its shaders on a background
+        // thread right now, so the first HDR/ESD4D session is already warm.
+        FlowNetNcnnProcessor.start(this);
+
+        // Same for the KernelNet parameter model (per-shot loads removed).
+        KernelNetNcnnProcessor.start(this);
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);

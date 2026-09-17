@@ -43,22 +43,20 @@
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_height="match_parent"
             android:layout_width="match_parent"
-            android:animateLayoutChanges="true">
+            android:background="@android:color/black">
 
         <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#000"
+                android:background="@android:color/black"
                 android:onClickListener="@{onclickempty}"
                 tools:visibility="gone" />
-        <androidx.viewpager.widget.ViewPager
+        <androidx.viewpager2.widget.ViewPager2
                 android:id="@+id/view_pager"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#000"
-                tools:visibility="gone">
-
-        </androidx.viewpager.widget.ViewPager>
+                android:background="@android:color/black"
+                tools:visibility="gone" />
 
         <include
                 layout="@layout/gallery_viewer_top_buttons"
@@ -147,7 +145,7 @@
                 android:padding="8dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/ic_ultra_hdr"
-                android:tint="@android:color/white"
+                app:tint="@color/cam_on_surface"
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

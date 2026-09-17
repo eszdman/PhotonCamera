@@ -84,7 +84,6 @@
     <string name="theme_accent_cyan">사이언</string>
     <string name="theme_accent_teal">틸</string>
     <string name="theme_accent_white">화이트</string>
-    <string name="show_gradient">그라데이션 배경 표시</string>
     <string name="unprocessed_raw">미처리 RAW</string>
     <string name="frame_count_summary">스택할 이미지 프레임 수</string>
     <string name="photon_camera_summary">향상된 이미지 처리 기능을 갖춘 오픈 소스 안드로이드 카메라</string>

@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.processing.ml;
 import android.content.Context;
 import android.content.res.AssetManager;
 
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -30,10 +31,48 @@ public final class KernelNetNcnnProcessor {
 
     static { System.loadLibrary("ncnnMl"); }
 
-    private long nativeHandle;
+    private static volatile KernelNetNcnnProcessor sInstance;
+    private static final Object sLock = new Object();
+    private static final long INIT_TIMEOUT_MS = 30000;
 
-    public KernelNetNcnnProcessor(Context context) {
-        AssetManager am = context.getAssets();
+    private final java.util.concurrent.CountDownLatch initLatch =
+            new java.util.concurrent.CountDownLatch(1);
+    private final Object inferenceLock = new Object();
+    private volatile long nativeHandle;
+    private volatile boolean ready = false;
+
+    /**
+     * Ensures the process-wide processor is loading the model in the
+     * background (idempotent). Call from the Application onCreate so steady
+     * shots pay no model load; mirrors FlowNetNcnnProcessor.
+     */
+    public static KernelNetNcnnProcessor start(Context context) {
+        KernelNetNcnnProcessor inst = sInstance;
+        if (inst == null) {
+            synchronized (sLock) {
+                inst = sInstance;
+                if (inst == null) {
+                    inst = new KernelNetNcnnProcessor(context);
+                    sInstance = inst;
+                }
+            }
+        }
+        return inst;
+    }
+
+    /** The process-wide processor, or null if {@link #start} was never called. */
+    public static KernelNetNcnnProcessor getInstance() {
+        return sInstance;
+    }
+
+    private KernelNetNcnnProcessor(Context context) {
+        Context appContext = context.getApplicationContext();
+        Thread t = new Thread(() -> backgroundInit(appContext), "kernelnet-ncnn-init");
+        t.start();
+    }
+
+    private void backgroundInit(Context appContext) {
+        AssetManager am = appContext.getAssets();
         long h = 0;
         try {
             h = nativeCreate(am, MODEL_PARAM);
@@ -44,11 +83,25 @@ public final class KernelNetNcnnProcessor {
         if (nativeHandle == 0) {
             Log.w(TAG, "KernelNetNcnn: model unavailable: " + MODEL_PARAM
                     + " (see NcnnML logcat for the native load error)");
+            ready = false;
+        } else {
+            ready = true;
+        }
+        initLatch.countDown();
+    }
+
+    /** Blocks until the background load finished (or timed out). */
+    public boolean waitReady(long timeoutMs) {
+        try {
+            return initLatch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS) && ready;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ready;
         }
     }
 
     public boolean isReady() {
-        return nativeHandle != 0;
+        return ready;
     }
 
     /**
@@ -62,12 +115,26 @@ public final class KernelNetNcnnProcessor {
      *         null on error / if not ready
      */
     public Result runInference(FloatBuffer gray, int width, int height, float sigma) {
-        if (!isReady() || gray == null || width <= 0 || height <= 0) return null;
+        if (!waitReady(INIT_TIMEOUT_MS)) return null;
+        synchronized (inferenceLock) {
+            return runInferenceGuarded(gray, width, height, sigma);
+        }
+    }
+
+    private Result runInferenceGuarded(FloatBuffer gray, int width, int height, float sigma) {
+        if (nativeHandle == 0 || gray == null || width <= 0 || height <= 0) return null;
         long start = System.nanoTime();
         int outW = (width - 1) / 2 + 1;
         int outH = (height - 1) / 2 + 1;
-        ByteBuffer outBuf = ByteBuffer.allocateDirect(OUT_CHANNELS * outH * outW * 4)
-                .order(ByteOrder.nativeOrder());
+        // Allocator-backed, NOT allocateDirect: the ~256 MB (50 MP) interleaved
+        // output is freed explicitly after the GPU upload (GC timing can't be
+        // trusted), and Allocator.free must only ever see malloc'd memory.
+        ByteBuffer outBuf = Allocator.allocate(OUT_CHANNELS * outH * outW * 4);
+        if (outBuf == null) {
+            Log.e(TAG, "KernelNetNcnn: output allocation failed");
+            return null;
+        }
+        outBuf.order(ByteOrder.nativeOrder());
         gray.rewind();
         boolean ok;
         try {
@@ -87,9 +154,14 @@ public final class KernelNetNcnnProcessor {
 
     /** Close the native ncnn net. Safe to call multiple times. */
     public void close() {
-        if (nativeHandle != 0) {
-            nativeDestroy(nativeHandle);
+        synchronized (sLock) {
+            if (sInstance == this) sInstance = null;
+        }
+        long h = nativeHandle;
+        if (h != 0) {
             nativeHandle = 0;
+            ready = false;
+            nativeDestroy(h);
         }
     }
 

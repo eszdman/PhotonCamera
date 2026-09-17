@@ -47,6 +47,8 @@ public class SettingsBarEntryProvider extends ViewModel {
     private final SettingsBarEntryModel bracketingEntry = SettingsBarEntryModel.newEntry(R.id.bracketing_entry_layout, R.string.exposure_bracketing, SettingType.BRACKETING);
     private final SettingsBarEntryModel aeMeteringStdEntry = SettingsBarEntryModel.newEntry(R.id.ae_metering_std_entry_layout, R.string.ae_metering_std, SettingType.AE_METERING_STD);
     private final List<SettingsBarEntryModel> allEntries = new ArrayList<>(8);
+    /** Which label set the Save buttons were last built with (JPEG vs HEIC). */
+    private boolean saveLabelsHeic = false;
 
     public SettingsBarEntryProvider() {
 //        allEntries.add(hdrxEntry);
@@ -85,6 +87,12 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(eisEntry, PreferenceKeys.isEisPhotoOn());
         updateEntry(fpsEntry, PreferenceKeys.getFpsMode());
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
+        if (PreferenceKeys.isHeicSave() != saveLabelsHeic) {
+            // Toggle flipped since the buttons were built (e.g. changed in
+            // Settings) — rebuild so JPEG/HEIC labels match. Views are
+            // recreated from these models by addEntries().
+            createSaveRawEntry();
+        }
         updateEntry(saveRawEntry, PreferenceKeys.isSaveRaw());
         updateEntry(batterySaverEntry, PreferenceKeys.isBatterySaverOn());
         updateEntry(bracketingEntry, PreferenceKeys.getBracketingMode());
@@ -126,9 +134,13 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     private void  createSaveRawEntry() {
+        // JPEG mentions swap to HEIC while the Save HEIC toggle is on.
+        saveLabelsHeic = PreferenceKeys.isHeicSave();
+        int stillOnly = saveLabelsHeic ? R.string.heic_only : R.string.jpg_only;
+        int stillPlusRaw = saveLabelsHeic ? R.string.raw_plus_heic : R.string.raw_plus_jpg;
         saveRawEntry.addSettingsBarButtonModels(
-                SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, R.string.jpg_only, 0, saveRawEntry),
-                SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, R.string.raw_plus_jpg, 1, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.raw_off_button, R.drawable.ic_raw_off, stillOnly, 0, saveRawEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.raw_on_button, R.drawable.ic_raw, stillPlusRaw, 1, saveRawEntry),
                 SettingsBarButtonModel.newButtonModel(R.id.raw_only_button, R.drawable.ic_raw, R.string.raw_string, 2, saveRawEntry)
         );
     }
@@ -192,13 +204,23 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     private void updateEntry(SettingsBarEntryModel entry, int value) {
+        boolean matched = false;
         for (SettingsBarButtonModel buttonModel : entry.getSettingsBarButtonModels()) {
             if (buttonModel.getButtonValue() == value) {
                 buttonModel.setSelected(true);
                 entry.setStateTextStringId(buttonModel.getButtonStateNameStringId());
+                matched = true;
             } else {
                 buttonModel.setSelected(false);
             }
+        }
+        // Defense-in-depth: an unknown persisted value must never leave the
+        // state label unset (setText(0) crashes). Fall back to the first button.
+        if (!matched && entry.getSettingsBarButtonModels() != null
+                && entry.getSettingsBarButtonModels().length > 0) {
+            SettingsBarButtonModel first = entry.getSettingsBarButtonModels()[0];
+            first.setSelected(true);
+            entry.setStateTextStringId(first.getButtonStateNameStringId());
         }
     }
 

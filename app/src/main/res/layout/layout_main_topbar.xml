@@ -48,7 +48,6 @@
             >
 
         <androidx.constraintlayout.widget.ConstraintLayout
-                android:background="@drawable/rectangle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:paddingTop="@dimen/topbar_padding"
@@ -103,7 +102,8 @@
                     android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_timer"
-                    android:backgroundTint="@android:color/white"
+                    android:backgroundTint="@color/cam_on_surface"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
@@ -122,6 +122,7 @@
                     app:layout_constraintDimensionRatio="1:1"
                     android:checked="@{PreferenceKeys.isQuadBayerOn()}"
                     android:background="@drawable/quad_button"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
@@ -133,17 +134,17 @@
                     tools:visibility="visible"
                     />
 
-            <ToggleButton
+            <com.particlesdevs.photoncamera.ui.camera.views.FpsButton
                     android:id="@+id/fps_toggle_button"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
-                    android:background="@drawable/fps_button"
-                    android:checked="@{PreferenceKeys.getFpsMode() > 0}"
+                    android:backgroundTint="@color/cam_on_surface"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
-                    android:visibility="@{fps_visible ? View.GONE : View.GONE}"
+                    android:visibility="@{fps_visible ? View.VISIBLE : View.GONE}"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toEndOf="@id/quad_res_toggle_button"
                     app:layout_constraintEnd_toStartOf="@id/grid_toggle_button"
@@ -158,7 +159,8 @@
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_grid_toggle"
                     android:selected="@{PreferenceKeys.getGridValue() != 0}"
-                    app:backgroundTint="@android:color/white"
+                    app:backgroundTint="@color/cam_on_surface"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"
@@ -175,7 +177,8 @@
                     android:layout_height="wrap_content"
                     app:layout_constraintDimensionRatio="1:1"
                     android:background="@drawable/ic_flash"
-                    android:backgroundTint="@android:color/white"
+                    android:backgroundTint="@color/cam_on_surface"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:textOff=""
                     android:textOn=""
                     android:onClick="@{top_bar_click_listener}"

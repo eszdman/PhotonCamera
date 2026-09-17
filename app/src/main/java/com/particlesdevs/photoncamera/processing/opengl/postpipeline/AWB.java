@@ -389,7 +389,7 @@ public class AWB extends Node {
         glProg.useAssetProgram("AWB/awbgetchroma");
         glProg.setTexture("InputBuffer", r1);
         if (awb_lut != null) glProg.setTexture("LookupTable", awb_lut);
-        glProg.drawBlocks(basePipeline.main3, r1.mSize);
+        glProg.drawBlocks(basePipeline.getMain3(), r1.mSize);
         GLImage preview = glUtils.GenerateGLImage(r1.mSize);
         //r0.close();
         int[][] ChromaHist = new int[16][16];// = ChromaHistogram(preview);

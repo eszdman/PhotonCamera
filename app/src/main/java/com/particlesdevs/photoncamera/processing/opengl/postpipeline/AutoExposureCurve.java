@@ -96,8 +96,12 @@
         @Override
         public void Compile() {}
 
-        @Override
-        public void Run() {
+    @Override
+    public int halo() {
+        return 0; // compute-only passthrough; frozen 1024x1 curve consumed per tile
+    }
+
+    public void Run() {
             int bins = histSize;
             if (bins < 16) bins = 256; // guard against a failed tunable injection
 

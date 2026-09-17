@@ -29,7 +29,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.*;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.animation.DecelerateInterpolator;
+import android.view.animation.AnimationUtils;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
 
@@ -39,11 +39,14 @@ import androidx.core.text.TextDirectionHeuristicsCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
+import androidx.dynamicanimation.animation.FloatValueHolder;
+import androidx.dynamicanimation.animation.SpringAnimation;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.Vibration;
+import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -100,6 +103,7 @@ public class HorizontalPicker extends View {
     private int lastTickItem = -1;
     private ColorStateList textColor;
     private final int selectedTextColor;
+    private final int selectedBackgroundColor;
     private OnItemSelected onItemSelected;
     private OnItemClicked onItemClicked;
     private int selectedItem;
@@ -112,6 +116,15 @@ public class HorizontalPicker extends View {
     private TextDirectionHeuristicCompat textDir;
     private final Matrix fadeMatrix = new Matrix();
     private float fadeFraction;
+
+    /**
+     * Selection highlight: a manual-bar-style squircle that briefly scales in
+     * with an M3E spring whenever the centred item changes.
+     */
+    private final float pillCornerRadius;
+    private final FloatValueHolder pillScale = new FloatValueHolder(1f);
+    private final SpringAnimation pillScaleSpring;
+    private int pillPopItem = Integer.MIN_VALUE;
 
     public HorizontalPicker(Context context) {
         this(context, null);
@@ -137,7 +150,13 @@ public class HorizontalPicker extends View {
 
         // create the selector wheel paint
         textPaint = getTextPaint(context);
-        
+
+        // Selection highlight: manual-bar squircle radius + a light spring pop.
+        pillCornerRadius = context.getResources().getDimension(R.dimen.m3_sys_shape_corner_value_large);
+        pillScaleSpring = new SpringAnimation(pillScale)
+                .setSpring(MorphShapeDrawable.spatialSpring(context))
+                .addUpdateListener((animation, value, velocity) -> invalidate());
+
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(
                 attributeSet,
                 R.styleable.HorizontalPicker,
@@ -160,6 +179,7 @@ public class HorizontalPicker extends View {
             dividerSize = typedArray.getDimension(R.styleable.HorizontalPicker_dividerSize, dividerSize);
             sideItems = typedArray.getInt(R.styleable.HorizontalPicker_sideItems, sideItems);
             selectedTextColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedColor, 0XFFFFFFFF);
+            selectedBackgroundColor = typedArray.getColor(R.styleable.HorizontalPicker_selectedBackgroundColor, 0X00FFFFFF);
             float textSize = typedArray.getDimension(R.styleable.HorizontalPicker_android_textSize, -1);
             if (textSize > -1) {
                 setTextSize(textSize);
@@ -175,7 +195,8 @@ public class HorizontalPicker extends View {
         setWillNotDraw(false);
 
         flingScrollerX = new OverScroller(context);
-        adjustScrollerX = new OverScroller(context, new DecelerateInterpolator(2.5f));
+        adjustScrollerX = new OverScroller(context,
+                AnimationUtils.loadInterpolator(context, R.interpolator.m3_emphasized_decelerate));
 
         initializeConstants(context, values, sideItems);
 
@@ -192,7 +213,8 @@ public class HorizontalPicker extends View {
     private static TextPaint getTextPaint(Context context) {
         TextPaint paint = new TextPaint();
         paint.setAntiAlias(true);
-        paint.setTypeface(context.getResources().getFont(R.font.open_sans));
+        // M3E Roboto: the selected item is drawn with fake bold on top of this.
+        paint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL));
         return paint;
     }
 
@@ -275,6 +297,16 @@ public class HorizontalPicker extends View {
         // bubble tracks the finger during drag/fling instead of only on release.
         int selectedItem = getSelectedItem();
 
+        // Pop the highlight whenever the centred item changes.
+        if (selectedItem != pillPopItem) {
+            boolean firstDraw = pillPopItem == Integer.MIN_VALUE;
+            pillPopItem = selectedItem;
+            if (!firstDraw) {
+                pillScale.setValue(0.92f);
+                pillScaleSpring.animateToFinalPosition(1f);
+            }
+        }
+
         float itemWithPadding = itemWidth + dividerSize;
 
         ensureFadeFraction();
@@ -333,8 +365,14 @@ public class HorizontalPicker extends View {
                     background.left = itemClipBounds.left + margin;
                     background.right = itemClipBounds.right - margin;
 
-                    paint.setColor(Color.WHITE);
-                    canvas.drawRoundRect(background, 100, 100, paint);
+                    paint.setColor(selectedBackgroundColor);
+                    // Manual-bar-style squircle, scaled about its centre by the pop.
+                    float scale = pillScale.getValue();
+                    float halfW = background.width() * scale * 0.5f;
+                    float halfH = background.height() * scale * 0.5f;
+                    canvas.drawRoundRect(background.centerX() - halfW, background.centerY() - halfH,
+                            background.centerX() + halfW, background.centerY() + halfH,
+                            pillCornerRadius, pillCornerRadius, paint);
                 }
                 canvas.clipRect(clipBounds);
                 // apply the view-fixed edge fade so text smoothly fades out at the edges.

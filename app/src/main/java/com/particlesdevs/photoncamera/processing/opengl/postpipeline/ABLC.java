@@ -1,15 +1,21 @@
 package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.annotation.SuppressLint;
+import android.graphics.Point;
 
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.ABL;
 
 import java.util.Calendar;
 import java.util.Locale;
+
+import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_NEAREST;
 
 public class ABLC extends Node {
     private static final String TAG = "ABLC";
@@ -68,7 +74,9 @@ public class ABLC extends Node {
     )
     double maxEV;
 
-    
+    /** Frozen levels for this run; reused by strip re-renders. */
+    private float[] blackLevels;
+
     public ABLC() {
         super("", "ABLC");
     }
@@ -79,11 +87,27 @@ public class ABLC extends Node {
 
     @SuppressLint("DefaultLocale")
     @Override
+    public int halo() {
+        // Pointwise render, but the black-level compute is a whole-frame
+        // histogram: the tile driver must run the compute full-frame first
+        // (frozen levels), then tile only the levelcorrection draw (halo 0).
+        return 0;
+    }
+
     public void Run() {
         if(!enable){
             WorkingTexture = super.previousNode.WorkingTexture;
             return;
         }
+        blackLevels = computeBlackLevels(previousNode.WorkingTexture);
+        renderLevels(previousNode.WorkingTexture);
+        if (((PostPipeline) basePipeline).debugTiledCompare) {
+            verifyRegions();
+        }
+    }
+
+    /** Whole-frame histogram → frozen levels (driver pre-pass in production). */
+    private float[] computeBlackLevels(GLTexture input) {
         ABL abl = new ABL(basePipeline.glint.glProcessing, histSize);
 
         // Use bruteforce method to find optimal black levels that minimize color shifting
@@ -91,22 +115,70 @@ public class ABLC extends Node {
         double noise = Math.sqrt(basePipeline.noiseS + basePipeline.noiseO);
         noise *= Math.pow(2.0, noiseEV);
         Log.d(TAG, "Noise value:" + noise);
-        float[] blackLevels = abl.Compute(
+        float[] levels = abl.Compute(
                 minExposureMpy,
                 maxEV,
                 noise,
-                previousNode.WorkingTexture
+                input
         );
 
-        Log.d(TAG, String.format("Bruteforce Black Levels - R: %.4f, G: %.4f, B: %.4f", 
-               blackLevels[0], blackLevels[1], blackLevels[2]));
+        Log.d(TAG, String.format("Bruteforce Black Levels - R: %.4f, G: %.4f, B: %.4f",
+               levels[0], levels[1], levels[2]));
+        return levels;
+    }
 
+    /**
+     * Pointwise draw, region-capable: with tile fields set, renders rows
+     * [tileY0, tileY1) from the given input into tileOut. Inputs are
+     * same-layout tiles in production (halo 0), so no coordinate shift.
+     */
+    private void renderLevels(GLTexture input) {
         // Apply black level correction
         glProg.useAssetProgram("ABLC/levelcorrection");
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
+        glProg.setTexture("InputBuffer", input);
         glProg.setVar("blackLevel", blackLevels);
-        WorkingTexture = basePipeline.getMain();
+        WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
         glProg.drawBlocks(WorkingTexture);
         glProg.closed = true;
+    }
+
+    /**
+     * Harness oracle (debugTiledCompare): blits input bands into tile
+     * textures (exactly as the production driver will) and requires
+     * bit-exactness vs the full render.
+     */
+    private void verifyRegions() {
+        GLTexture fullOut = WorkingTexture;
+        GLTexture fullIn = previousNode.WorkingTexture;
+        int imgW = fullOut.mSize.x;
+        int imgH = fullOut.mSize.y;
+        float worst = TileDriver.verifyNodeBands(fullOut, imgW, imgH, 2,
+                "TiledHarness", (b0, rows) -> {
+                    GLTexture inTile = new GLTexture(new Point(imgW, rows),
+                            new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                            null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    TileDriver.blitBand(fullIn, inTile, b0, rows);
+                    float inDiff = TileDriver.compareBand(fullIn, inTile, imgW, b0, rows,
+                            "TiledHarness-blit");
+                    if (inDiff != 0f) {
+                        Log.e("TiledHarness", "ablc blit band [" + b0 + "," + (b0 + rows)
+                                + ") maxDiff=" + inDiff);
+                    }
+                    GLTexture reg = new GLTexture(new Point(imgW, rows),
+                            new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                            null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    tileY0 = b0;
+                    tileY1 = b0 + rows;
+                    tileOut = reg;
+                    WorkingTexture = reg;
+                    renderLevels(inTile);
+                    inTile.close();
+                    return reg;
+                });
+        Log.d("TiledHarness", "ablc strips maxDiff=" + worst);
+        tileY0 = 0;
+        tileY1 = -1;
+        tileOut = null;
+        WorkingTexture = fullOut;
     }
 }

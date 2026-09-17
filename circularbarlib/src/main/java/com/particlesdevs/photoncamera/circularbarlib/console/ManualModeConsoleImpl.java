@@ -223,14 +223,16 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
             knobModel.setKnobResetCalled(true);
         }
         selectedModel = null;
+        // Silent resets: the panel close already implies the action, and four
+        // simultaneous ticks stack into a multi-buzz.
         if (mfModel != null)
-            mfModel.resetModel();
+            mfModel.resetModelSilently();
         if (expoTimeModel != null)
-            expoTimeModel.resetModel();
+            expoTimeModel.resetModelSilently();
         if (isoModel != null)
-            isoModel.resetModel();
+            isoModel.resetModelSilently();
         if (evModel != null)
-            evModel.resetModel();
+            evModel.resetModelSilently();
         if (wbModel != null && (!this.preserveManualWb || manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO))
             wbModel.resetModel();
         manualModeModel.setCheckedTextViewId(-1);

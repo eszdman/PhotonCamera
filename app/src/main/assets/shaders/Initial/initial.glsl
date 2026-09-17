@@ -26,6 +26,10 @@ uniform mat3 intermediateToSRGB; // Color transform from wide-gamut colorspace t
 #endif
 uniform vec4 toneMapCoeffs; // Coefficients for a polynomial tonemapping curve
 uniform ivec4 activeSize;
+// Tiled rendering origin (image coords of this tile's row 0) and the full
+// input size for map UVs. (0,0)+input size on the legacy path: identical.
+uniform ivec2 u_tileOrigin;
+uniform vec2 u_fullSize;
 
 //#define CUBE0 (10.0)
 //#define CUBE1 (10.0)
@@ -452,8 +456,8 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
 
 float getGain(vec2 coordsShift){
     vec2 fusionSize = vec2(textureSize(FusionMap, 0));
-    vec2 inputSize = vec2(textureSize(InputBuffer, 0));
-    vec2 baseCoord = (gl_FragCoord.xy + coordsShift) / inputSize;
+    vec2 inputSize = u_fullSize;
+    vec2 baseCoord = (gl_FragCoord.xy + vec2(u_tileOrigin) + coordsShift) / inputSize;
     float ingain = texture(FusionMap, baseCoord).r;
     //float ingain = texelFetch(FusionMap, xy, 0).r;
     /*if(ingain > 0.0){
@@ -639,7 +643,11 @@ vec3 applyExposureCurve(vec3 rgb) {
 
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    xy = mirrorCoords(xy,activeSize);
+    // Tiled rendering: mirror in absolute image coords, then shift back to
+    // tile-relative buffer rows (legacy path: origin is zero, identical).
+    // Mirroring tile-relative coords reflects the first two rows of every
+    // non-top tile.
+    xy = mirrorCoords(xy + u_tileOrigin, activeSize) - u_tileOrigin;
     vec3 sRGB = texelFetch(InputBuffer, xy, 0).rgb;
     #if EXPOCURVE == 1
     // Adaptive white point: divide the input by the measured scene white so
@@ -687,7 +695,7 @@ void main() {
     //tonemapGain = max(tonemapGain, 0.5);
     #endif
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
-    vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(textureSize(InputBuffer, 0)));
+    vec4 gains = textureBicubicHardware(GainMap, (vec2(xy) + vec2(u_tileOrigin)) / u_fullSize);
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal = dot(gains.rgb,vec3(1.0/3.0));
     #if EXPOCURVE == 1

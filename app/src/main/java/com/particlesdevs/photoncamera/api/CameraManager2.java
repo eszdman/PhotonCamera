@@ -9,13 +9,17 @@ import com.particlesdevs.photoncamera.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.pro.SensorSpecifics;
 import com.particlesdevs.photoncamera.pro.SpecificSetting;
+import com.particlesdevs.photoncamera.processing.render.SpecificSettingSensor;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -87,6 +91,7 @@ public final class CameraManager2 {
             } else {
                 loadFromSave(cameraManager,ids);
             }
+            injectIszVirtualLenses();
     }
     private void initExt(CameraManager cameraManager, String[] ids) {
         for (String id : ids) {
@@ -282,5 +287,62 @@ public final class CameraManager2 {
             sb.append(getBit(i, num) ? "1" : "0");
         }
         return sb.toString();
+    }
+
+    /** True when a camera id identifies an In-Sensor Zoom (ISZ) virtual lens. */
+    public static boolean isIszVirtual(String cameraId) {
+        return IszLensUtil.isIszVirtual(cameraId);
+    }
+
+    /**
+     * Builds a 3-segment ISZ id that routes to the same logical/physical sensor as
+     * the base id while remaining distinct from it. Works for both plain ("3") and
+     * composite ("0-3") base ids; every composite-id consumer only reads segments
+     * [0] and [1], so the trailing virtual marker is ignored for routing.
+     */
+    public static String composeIszVirtualId(String baseCameraId) {
+        return IszLensUtil.composeIszVirtualId(baseCameraId);
+    }
+
+    /** Physical id (after the last {@code -}) of a (possibly composite) camera id. */
+    public static int physicalIdFrom(String cameraId) {
+        return IszLensUtil.physicalIdFrom(cameraId);
+    }
+
+    /**
+     * Appends an ISZ virtual-lens overlay to every physical sensor that carries an
+     * {@code ISZ} config in SensorSpecifics. The virtual lens clones the real lens
+     * (so it routes to the same sensor) but inflates {@code zoomFactor} by the ISZ
+     * zoom ratio, producing a distinct lens-switcher entry (e.g. 3.1x x 2.0 = 6.2x).
+     *
+     * <p>The overlay is regenerated on every construction so it stays in sync with
+     * any edited/fetched SensorSpecifics config; it is not persisted.</p>
+     */
+    private void injectIszVirtualLenses() {
+        try {
+            SensorSpecifics specifics = PhotonCamera.getSpecificSensor();
+            if (specifics == null) return;
+            // Snapshot to avoid ConcurrentModification on the backing map.
+            List<CameraLensData> real = new ArrayList<>(mCameraLensDataMap.values());
+            for (CameraLensData base : real) {
+                int physicalId = physicalIdFrom(base.getCameraId());
+                SpecificSettingSensor isz = specifics.getIszForSensor(physicalId);
+                if (isz == null || isz.iszKey == null || isz.iszZoomRatio <= 0f) continue;
+                String virtualId = composeIszVirtualId(base.getCameraId());
+                if (mCameraLensDataMap.containsKey(virtualId)) continue;
+
+                CameraLensData virtual = new CameraLensData(virtualId);
+                virtual.setFacing(base.getFacing());
+                virtual.setCameraFocalLength(base.getCameraFocalLength());
+                virtual.setCameraAperture(base.getCameraAperture());
+                virtual.setCamera35mmFocalLength(base.getCamera35mmFocalLength());
+                virtual.setZoomFactor(base.getZoomFactor() * isz.iszZoomRatio);
+                virtual.setFlashSupported(base.getFlashSupported());
+                mCameraLensDataMap.put(virtualId, virtual);
+                log("Injected ISZ virtual lens: " + virtualId + " @ " + virtual.getZoomFactor() + "x");
+            }
+        } catch (Exception e) {
+            log("Failed to inject ISZ virtual lenses: " + Log.getStackTraceString(e));
+        }
     }
 }

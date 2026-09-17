@@ -12,7 +12,9 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.OnBackPressedDispatcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.particlesdevs.photoncamera.util.BlurSupport;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -34,6 +36,8 @@ import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.OnItemInteractionListener;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
+import com.particlesdevs.photoncamera.ui.widget.FabPressSpring;
+import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 
 import org.apache.commons.io.FileUtils;
 
@@ -78,6 +82,14 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        // Keep the grid and FABs above the transparent navigation bar.
+        SystemBarsHelper.padBottomForNavBar(view);
+        // M3E spring press-scale for the action FABs.
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.shareFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.deleteFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.numberFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.compareFab);
+        FabPressSpring.attach(fragmentGalleryImageLibraryBinding.settingsFab);
         viewModel = new ViewModelProvider(requireActivity()).get(GalleryViewModel.class);
         linearRecyclerView = fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView;
         recyclerView = fragmentGalleryImageLibraryBinding.imageGridRv;
@@ -202,15 +214,14 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         List<GalleryItem> filesToDelete = imageGridAdapter.getSelectedItems();
         String numOfFiles = String.valueOf(filesToDelete.size());
         String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(value -> value.getFile().getSize()).sum());
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
+        BlurSupport.show(builder
                 .setMessage(getContext().getString(R.string.sure_delete_multiple, numOfFiles, totalFileSize))
                 .setTitle(android.R.string.dialog_alert_title)
                 .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> GalleryFileOperations.deleteImageFiles(getActivity(), filesToDelete.stream().map(galleryItem -> (ImageFile) galleryItem.getFile()).collect(Collectors.toList()), this::handleImagesDeletedCallback))
-                .create()
-                .show();
+                .create());
     }
 
     private void onShareFabClicked(View view) {
@@ -238,14 +249,24 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     private void showFABMenu() {
         isFABOpen = true;
-        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(-getResources().getDimension(R.dimen.standard_65));
-        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(-getResources().getDimension(R.dimen.standard_125));
+        fragmentGalleryImageLibraryBinding.deleteFab.animate()
+                .translationY(-getResources().getDimension(R.dimen.standard_65))
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasized(requireContext())).start();
+        fragmentGalleryImageLibraryBinding.shareFab.animate()
+                .translationY(-getResources().getDimension(R.dimen.standard_125))
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasized(requireContext())).start();
     }
 
     private void closeFABMenu() {
         isFABOpen = false;
-        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(0);
-        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(0);
+        fragmentGalleryImageLibraryBinding.deleteFab.animate().translationY(0)
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(requireContext())).start();
+        fragmentGalleryImageLibraryBinding.shareFab.animate().translationY(0)
+                .setDuration(Motion.durationShort4(requireContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(requireContext())).start();
     }
 
     @Override

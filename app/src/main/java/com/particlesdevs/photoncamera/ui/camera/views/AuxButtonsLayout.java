@@ -29,10 +29,13 @@ import android.widget.LinearLayout;
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -55,6 +58,8 @@ public class AuxButtonsLayout extends LinearLayout {
     private AuxButtonListener auxButtonListener;
     private AuxButtonsModel auxButtonsModel;
     private boolean hiddenBySettings;
+    private boolean verticalOrder;
+    private String activeCameraId;
 
 public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -76,7 +81,7 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     }
 
     private static String getAuxButtonName(float zoomFactor) {
-        return String.format(Locale.US, "%.1fx", (zoomFactor - 0.049)).replace(".0", "");
+        return String.format(Locale.US, "%.1fx", zoomFactor).replace(".0", "");
     }
 
     public void setAuxButtonsModel(AuxButtonsModel auxButtonsModel) {
@@ -85,7 +90,19 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     }
 
     public void setActiveId(String activeId) {
+        activeCameraId = activeId;
         refresh(activeId);
+    }
+
+    /**
+     * Sets the pill's reading order. Horizontal reads ascending zoom from left
+     * to right (ultra-wide to tele); vertical reads tele at the top through
+     * ultra-wide at the bottom, matching the pre-216133f2 vertical pill.
+     */
+    public void setVerticalOrder(boolean vertical) {
+        if (verticalOrder == vertical) return;
+        verticalOrder = vertical;
+        if (activeCameraId != null) refresh(activeCameraId);
     }
 
     private void refresh(String cameraId) {
@@ -106,7 +123,14 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     private void setAuxButtons(List<CameraLensData> cameraLensDataList, String activeId) {
         removeAllViews();
         auxButtonsMap.clear();
-        cameraLensDataList.forEach(cameraLensData -> addNewButton(cameraLensData.getCameraId(), getAuxButtonName(cameraLensData.getZoomFactor())));
+        List<CameraLensData> ordered = cameraLensDataList;
+        if (verticalOrder) {
+            ordered = new ArrayList<>(cameraLensDataList);
+            Collections.reverse(ordered);
+        }
+        for (CameraLensData cameraLensData : ordered) {
+            addNewButton(cameraLensData.getCameraId(), getAuxButtonName(cameraLensData.getZoomFactor()));
+        }
         setListenerAndSelected(activeId);
         updateVisibility();
     }
@@ -128,11 +152,15 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     public void setAuxButtonsHidden(boolean hidden) {
         hiddenBySettings = hidden;
         if (hidden) {
-            animate().setDuration(200).alpha(0).scaleX(0).scaleY(0)
+            animate().setDuration(Motion.durationShort4(getContext()))
+                    .setInterpolator(Motion.emphasizedDecelerate(getContext()))
+                    .alpha(0).scaleX(0).scaleY(0)
                     .withEndAction(() -> setVisibility(View.INVISIBLE)).start();
         } else {
             updateVisibility();
-            animate().setDuration(200).alpha(1).scaleX(1).scaleY(1).start();
+            animate().setDuration(Motion.durationShort4(getContext()))
+                    .setInterpolator(Motion.emphasized(getContext()))
+                    .alpha(1).scaleX(1).scaleY(1).start();
         }
     }
 

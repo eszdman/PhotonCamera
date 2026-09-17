@@ -1,5 +1,9 @@
 package com.particlesdevs.photoncamera.ui.camera.binding;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
+import android.animation.TimeInterpolator;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +13,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.BindingAdapter;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.views.AuxButtonsLayout;
@@ -31,7 +36,8 @@ public class CustomBinding {
     @BindingAdapter("bindRotate")
     public static void rotateView(View view, CameraFragmentModel model) {
         if (model != null)
-            view.animate().rotation(model.getOrientation()).setDuration(model.getDuration()).start();
+            view.animate().rotation(model.getOrientation()).setDuration(model.getDuration())
+                    .setInterpolator(Motion.emphasized(view.getContext())).start();
     }
 
     /**
@@ -47,7 +53,8 @@ public class CustomBinding {
         if (model != null) {
             int orientation = model.getOrientation();
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
-                viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(model.getDuration()).start();
+                viewGroup.getChildAt(i).animate().rotation(orientation).setDuration(model.getDuration())
+                        .setInterpolator(Motion.emphasized(viewGroup.getContext())).start();
             }
         }
     }
@@ -86,11 +93,15 @@ public class CustomBinding {
         if (viewGroup != null)
             if (visible)
                 viewGroup.post(() -> {
-                    viewGroup.animate().setDuration(200).alpha(1).translationY(0).scaleX(1).scaleY(1).start();
+                    viewGroup.animate().setDuration(Motion.durationMedium2(viewGroup.getContext()))
+                            .setInterpolator(Motion.emphasized(viewGroup.getContext()))
+                            .alpha(1).translationY(0).scaleX(1).scaleY(1).start();
                     viewGroup.setVisibility(View.VISIBLE);
                 });
             else
-                viewGroup.post(() -> viewGroup.animate().setDuration(200).alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
+                viewGroup.post(() -> viewGroup.animate().setDuration(Motion.durationMedium2(viewGroup.getContext()))
+                        .setInterpolator(Motion.emphasizedDecelerate(viewGroup.getContext()))
+                        .alpha(0).translationY(-viewGroup.getResources().getDimension(R.dimen.standard_125))
                         .scaleX(0).scaleY(0).withEndAction(() -> viewGroup.setVisibility(View.INVISIBLE))
                         .start());
     }
@@ -151,5 +162,89 @@ public class CustomBinding {
                 view.setLayoutParams(params);
             }
         }
+    }
+
+    /**
+     * Updates the on-screen zoom indicator (a {@link android.widget.TextView})
+     * from the live zoom ratio, and hides it entirely at 1.0x.
+     */
+    @BindingAdapter("zoomIndicator")
+    public static void setZoomIndicator(android.widget.TextView view, float zoomRatio) {
+        if (view == null) return;
+        view.setTag(R.id.zoom_ratio_tag, zoomRatio);
+        if (Math.abs(zoomRatio - 1.0f) > 0.0001f) {
+            view.setText(String.format(java.util.Locale.US, "%.1fx", zoomRatio));
+        }
+        updateIndicatorVisibility(view);
+    }
+
+    /**
+     * Hides the zoom indicator along with the lens switcher when the floating
+     * settings bar is opened.
+     */
+    @BindingAdapter("hideZoomIndicator")
+    public static void setZoomIndicatorHidden(android.widget.TextView view, boolean hidden) {
+        if (view == null) return;
+        view.setTag(R.id.zoom_hidden_tag, hidden);
+        updateIndicatorVisibility(view);
+    }
+
+    private static boolean isHiddenBySettings(android.widget.TextView view) {
+        Object tag = view.getTag(R.id.zoom_hidden_tag);
+        return tag instanceof Boolean && (Boolean) tag;
+    }
+
+    private static boolean shouldShowZoom(android.widget.TextView view) {
+        Object ratioTag = view.getTag(R.id.zoom_ratio_tag);
+        float ratio = ratioTag instanceof Float ? (Float) ratioTag : 1.0f;
+        return Math.abs(ratio - 1.0f) > 0.0001f && !isHiddenBySettings(view);
+    }
+
+    /**
+     * Fades the indicator in/out instead of relying on the camera container's
+     * layout transition (whose appear/disappear passes are disabled). A
+     * dedicated {@link ObjectAnimator} is used so the rotation animation started
+     * by {@code bindRotate} can't cancel the fade.
+     */
+    private static void updateIndicatorVisibility(android.widget.TextView view) {
+        boolean show = shouldShowZoom(view);
+        boolean visible = view.getVisibility() == View.VISIBLE;
+        if (show == visible && (!show || view.getAlpha() >= 1f)) return;
+
+        // Clear the tag before canceling: the cancel-triggered end callback must
+        // not treat the stale animator as the current one.
+        Object running = view.getTag(R.id.zoom_alpha_anim_tag);
+        view.setTag(R.id.zoom_alpha_anim_tag, null);
+        if (running instanceof Animator) ((Animator) running).cancel();
+
+        if (show) {
+            float from = visible ? view.getAlpha() : 0f;
+            view.setAlpha(from);
+            view.setVisibility(View.VISIBLE);
+            startIndicatorFade(view, from, 1f, Motion.emphasized(view.getContext()));
+        } else {
+            startIndicatorFade(view, view.getAlpha(), 0f,
+                    Motion.emphasizedDecelerate(view.getContext()));
+        }
+    }
+
+    private static void startIndicatorFade(android.widget.TextView view, float from, float to,
+                                           TimeInterpolator interpolator) {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, View.ALPHA, from, to);
+        animator.setDuration(Motion.durationShort4(view.getContext()));
+        animator.setInterpolator(interpolator);
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (view.getTag(R.id.zoom_alpha_anim_tag) != animation) return;
+                view.setTag(R.id.zoom_alpha_anim_tag, null);
+                if (!shouldShowZoom(view)) {
+                    view.setVisibility(View.GONE);
+                    view.setAlpha(1f);
+                }
+            }
+        });
+        view.setTag(R.id.zoom_alpha_anim_tag, animator);
+        animator.start();
     }
 }

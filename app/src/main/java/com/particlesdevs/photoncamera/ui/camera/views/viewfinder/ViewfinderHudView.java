@@ -13,9 +13,10 @@ import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.Nullable;
+
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 
 /**
  * Clean Leica-style Viewfinder HUD and real-time live RGB histogram overlay.
@@ -121,8 +122,8 @@ public class ViewfinderHudView extends View {
         }
 
         mRotationAnimator = ValueAnimator.ofFloat(startAngle, endAngle);
-        mRotationAnimator.setDuration(250);
-        mRotationAnimator.setInterpolator(new DecelerateInterpolator());
+        mRotationAnimator.setDuration(Motion.durationMedium1(getContext()));
+        mRotationAnimator.setInterpolator(Motion.emphasizedDecelerate(getContext()));
         mRotationAnimator.addUpdateListener(animation -> {
             mAnimatedOrientation = (float) animation.getAnimatedValue();
             invalidate();

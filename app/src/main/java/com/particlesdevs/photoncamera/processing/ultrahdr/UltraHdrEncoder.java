@@ -38,14 +38,52 @@ public final class UltraHdrEncoder {
      * @return Ultra HDR JPEG bytes
      */
     public static byte[] encode(Bitmap sdr, GainMapComputer.Result gm, ParseExif.ExifData exif) {
-        final byte[] sdrJpeg = compress(sdr, DEFAULT_QUALITY);
-        final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
-
-        final ByteArrayOutputStream gainOut = new ByteArrayOutputStream();
-        if (!gm.gainMap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_QUALITY, gainOut)) {
-            throw new RuntimeException("Failed to compress gain map");
+        if (sdr != null && !sdr.isRecycled() && exif != null) {
+            exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
+            exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
-        final byte[] gainMapJpeg = gainOut.toByteArray();
+        // The two compresses are independent (distinct bitmaps, deterministic
+        // per-input encoders): run them together, so latency is the max
+        // instead of the sum. Byte-identical outputs either way.
+        final byte[][] sdrHolder = new byte[1][];
+        final byte[][] gainHolder = new byte[1][];
+        final Throwable[] failure = new Throwable[1];
+        Thread sdrThread = new Thread(() -> {
+            try {
+                sdrHolder[0] = compress(sdr, DEFAULT_QUALITY);
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        });
+        Thread gainThread = new Thread(() -> {
+            try {
+                final ByteArrayOutputStream gainOut = new ByteArrayOutputStream();
+                if (!gm.gainMap.compress(Bitmap.CompressFormat.JPEG, DEFAULT_QUALITY, gainOut)) {
+                    throw new RuntimeException("Failed to compress gain map");
+                }
+                gainHolder[0] = gainOut.toByteArray();
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        });
+        sdrThread.start();
+        gainThread.start();
+        try {
+            sdrThread.join();
+            gainThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted during parallel compress", e);
+        }
+        if (failure[0] != null) {
+            if (failure[0] instanceof RuntimeException) {
+                throw (RuntimeException) failure[0];
+            }
+            throw new RuntimeException("Parallel compress failed", failure[0]);
+        }
+        final byte[] sdrJpeg = sdrHolder[0];
+        final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
+        final byte[] gainMapJpeg = gainHolder[0];
 
         return UltraHdrContainer.encode(sdrJpegExif, gainMapJpeg,
                 gm.gainMapMin, gm.gainMapMax, gm.hdrCapacityMax);
@@ -64,8 +102,16 @@ public final class UltraHdrEncoder {
      * {@link ParseExif#setAllAttributes} (which inserts an EXIF APP1), and reads
      * the result back. Doing this on a baseline JPEG (no XMP/MPF yet) keeps all
      * existing segments intact.
+     *
+     * <p>Fast path first: splice a stub-built APP1 after SOI (same tags,
+     * ~KBs of file I/O instead of roundtripping the full JPEG). Falls back
+     * to the temp-file roundtrip below on any failure.
      */
     private static byte[] injectExif(byte[] jpeg, ParseExif.ExifData exif) {
+        byte[] spliced = trySpliceApp1(jpeg, exif);
+        if (spliced != null) {
+            return spliced;
+        }
         File tmp = null;
         try {
             tmp = File.createTempFile("uhdr_exif_", ".jpg");
@@ -78,6 +124,34 @@ public final class UltraHdrEncoder {
             return jpeg; // fall back to EXIF-less base
         } finally {
             if (tmp != null) tmp.delete();
+        }
+    }
+
+    /**
+     * Returns {@code SOI + APP1 + rest} for a baseline JPEG, or null when the
+     * input isn't one (caller keeps its file path). Marker order after SOI
+     * may differ from ExifInterface placement, but the tag payload is built
+     * by the same setAllAttributes call.
+     */
+    private static byte[] trySpliceApp1(byte[] jpeg, ParseExif.ExifData exif) {
+        try {
+            if (jpeg == null || jpeg.length < 4
+                    || jpeg[0] != (byte) 0xFF || jpeg[1] != (byte) 0xD8) {
+                return null;
+            }
+            byte[] app1 = ParseExif.buildApp1Segment(exif);
+            if (app1 == null || app1.length < 4) {
+                return null;
+            }
+            byte[] out = new byte[2 + app1.length + (jpeg.length - 2)];
+            out[0] = (byte) 0xFF;
+            out[1] = (byte) 0xD8;
+            System.arraycopy(app1, 0, out, 2, app1.length);
+            System.arraycopy(jpeg, 2, out, 2 + app1.length, jpeg.length - 2);
+            return out;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

@@ -2,21 +2,23 @@
     <!--Activity Themes-->
 
     <!-- Base application theme. -->
-    <style name="Theme.Photon.BaseApp" parent="@style/Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Photon.BaseApp" parent="@style/Theme.Material3Expressive.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="iconTint">?android:textColorPrimary</item>
-        <item name="colorPrimary">@color/colorAccent</item>
-        <item name="colorPrimaryContainer">@color/colorPrimaryContainer</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <!-- Accent roles are provided by the selected theme overlay:
+             Material You dynamic color on Android 12+, or a fixed accent scheme. -->
+        <item name="colorAccent">?attr/colorPrimary</item>
+        <item name="colorControlActivated">?attr/colorPrimary</item>
+        <item name="android:colorControlActivated">?attr/colorPrimary</item>
         <item name="cameraFragmentBackground">@android:color/black</item>
-        <item name="modeSelectedTextColor">?attr/colorControlActivated</item>
-        <item name="processingProgressColor">?attr/colorAccent</item>
         <item name="alertDialogTheme">@style/AlertDialogTheme</item>
-        <item name="android:fontFamily">@font/open_sans</item>
+        <item name="materialAlertDialogTheme">@style/MaterialAlertDialogTheme</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Photon</item>
     </style>
 
     <style name="Theme.Photon.Splash" parent="Theme.Photon.BaseApp">
@@ -26,16 +28,6 @@
     <style name="Theme.Photon.SettingsActivity" parent="Theme.Photon.BaseApp">
 
     </style>
-
-    <!--    <style name="Theme.Photon.CameraActivity" parent="Theme.AppCompat.NoActionBar">-->
-    <!--        <item name="android:windowNoTitle">true</item>-->
-    <!--        <item name="android:windowActionBar">false</item>-->
-    <!--        <item name="android:windowFullscreen">true</item>-->
-    <!--        <item name="android:windowContentOverlay">@null</item>-->
-    <!--        <item name="colorPrimary">@color/colorPrimary</item>-->
-    <!--        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>-->
-    <!--        <item name="colorAccent">@color/colorAccent</item>-->
-    <!--    </style>-->
 
     <!--Other Styles-->
     <style name="BoldTextWithShadow">
@@ -54,33 +46,70 @@
 
     <style name="AuxButtonText">
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/black_white_selectable</item>
+        <item name="android:textColor">@color/cam_icon_tint</item>
         <item name="android:textSize">13sp</item>
     </style>
 
-    <style name="PreferenceActionBarStyle">
+    <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">
+        <item name="android:textColor">@color/cam_primary</item>
+    </style>
+
+    <style name="SettingsTitleTextAppearance" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.Photon.Toolbar" parent="Widget.Material3Expressive.Toolbar.Surface">
         <item name="titleTextAppearance">@style/SettingsTitleTextAppearance</item>
+        <item name="navigationIconTint">?attr/colorOnSurface</item>
+        <item name="android:elevation">0dp</item>
     </style>
 
-    <style name="SettingsTitleTextAppearance">
-        <item name="android:textSize">18sp</item>
-        <item name="android:textColor">?android:textColorPrimary</item>
+    <!-- Preference framework theming: M3 rows, MaterialSwitch toggles. -->
+    <style name="PreferenceThemeOverlay.Photon" parent="PreferenceThemeOverlay">
+        <item name="preferenceStyle">@style/Preference.Photon</item>
+        <item name="preferenceCategoryStyle">@style/Preference.Photon.Category</item>
+        <item name="switchPreferenceCompatStyle">@style/Preference.Photon.Switch</item>
+        <item name="dialogPreferenceStyle">@style/Preference.Photon.Dialog</item>
+        <item name="editTextPreferenceStyle">@style/Preference.Photon.EditText</item>
     </style>
 
-    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3.Dialog.Alert">
+    <style name="Preference.Photon" parent="Preference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="Preference.Photon.Switch" parent="Preference.SwitchPreferenceCompat.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+        <item name="android:widgetLayout">@layout/preference_widget_material_switch</item>
+    </style>
+
+    <style name="Preference.Photon.Category" parent="Preference.Category.Material">
+        <item name="android:layout">@layout/preference_category_layout</item>
+    </style>
+
+    <style name="Preference.Photon.Dialog" parent="Preference.DialogPreference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="Preference.Photon.EditText" parent="Preference.DialogPreference.EditTextPreference.Material">
+        <item name="android:layout">@layout/preference_with_margin</item>
+    </style>
+
+    <style name="AlertDialogTheme" parent="ThemeOverlay.Material3Expressive.Dialog.Alert">
         <item name="dialogCornerRadius">16dp</item>
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
         <item name="buttonBarPositiveButtonStyle">@style/PositiveButtonStyle</item>
     </style>
 
-    <style name="NegativeButtonStyle" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="MaterialAlertDialogTheme" parent="ThemeOverlay.Material3Expressive.MaterialAlertDialog" />
+
+    <style name="NegativeButtonStyle" parent="Widget.Material3Expressive.Button.OutlinedButton">
         <item name="android:textColor">?colorOnSurface</item>
         <item name="strokeColor">?colorOnSurface</item>
         <item name="strokeWidth">1dp</item>
 
     </style>
 
-    <style name="PositiveButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
+    <style name="PositiveButtonStyle" parent="Widget.Material3Expressive.Button.TextButton.Dialog">
         <item name="android:textColor">?colorOnPrimary</item>
         <item name="backgroundTint">?colorPrimary</item>
     </style>

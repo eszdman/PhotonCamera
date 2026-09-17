@@ -2,7 +2,6 @@
 <resources>
     <color name="white">#FFFFFF</color>
     <color name="manual_icon_text">@color/white</color>
-    <color name="manual_icon_text_selected">@color/white</color>
     <color name="panel_transparency">#40000000</color>
     <color name="colorAccent">?android:attr/colorControlActivated</color>
 </resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 40% scrim shown while the EXIF frosted backdrop is prepared/displayed. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle">
+    <solid android:color="@color/cam_panel_scrim" />
+    <corners android:radius="@dimen/cam_panel_corner_radius"/>
+</shape>

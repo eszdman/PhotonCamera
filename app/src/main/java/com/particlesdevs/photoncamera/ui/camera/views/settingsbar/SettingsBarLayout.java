@@ -39,10 +39,12 @@ import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
 
 public class SettingsBarLayout extends RelativeLayout implements SettingsBarListener {
     private final LinearLayout optionsContainer;
@@ -77,7 +79,21 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         settingsButton.setImageResource(R.drawable.ic_settings);
         settingsButton.setBackgroundResource(getResolvedAttr(context, android.R.attr.selectableItemBackgroundBorderless));
         settingsButton.setPadding(dp(10), dp(5), dp(10), dp(5));
-        settingsButton.setOnClickListener(v -> context.startActivity(new Intent(context, SettingsActivity.class)));
+        settingsButton.setOnClickListener(v -> {
+            if (SecureCameraHelper.isDeviceLocked(context)) {
+                android.widget.Toast.makeText(context,
+                        context.getString(R.string.secure_camera_settings_locked),
+                        android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent intent = new Intent(context, SettingsActivity.class);
+            try {
+                intent.putExtra("camera_mode",
+                        com.particlesdevs.photoncamera.settings.PreferenceKeys.getCameraModeOrdinal());
+            } catch (Exception ignored) {
+            }
+            context.startActivity(intent);
+        });
         LayoutParams buttonParam = new LayoutParams(dp(35), dp(35));
         buttonParam.setMargins(dp(10), dp(2.5f), dp(20), dp(2.5f));
         settingsButtonContainer.addView(settingsButton, buttonParam);
@@ -107,7 +123,9 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         for (SettingsBarButtonModel model : entryModel.getSettingsBarButtonModels()) {
             findViewById(entryModel.getId()).findViewById(model.getId()).setSelected(model.isSelected());
         }
-        ((TextView) findViewById(entryModel.getId()).findViewById(android.R.id.summary)).setText(entryModel.getStateTextStringId());
+        if (entryModel.getStateTextStringId() != 0) {
+            ((TextView) findViewById(entryModel.getId()).findViewById(android.R.id.summary)).setText(entryModel.getStateTextStringId());
+        }
     }
 
     public void removeEntries() {
@@ -116,10 +134,41 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         }
     }
 
+    /**
+     * Predictive-back progress: maps 0 (open) to 1 (fully dismissed) onto the
+     * same transform as the hide animation, without committing any state.
+     * Only invoked on API 34+ while a back gesture is in flight.
+     */
+    public void setBackProgress(float progress) {
+        float p = Math.min(1f, Math.max(0f, progress));
+        float maxDy = getResources().getDimension(R.dimen.standard_125);
+        setTranslationY(-maxDy * p);
+        setScaleX(1f - p);
+        setScaleY(1f - p);
+        setAlpha(1f - p);
+    }
+
+    /** Restores the fully-open transform after a cancelled predictive back gesture. */
+    public void cancelBackProgress() {
+        animate().setDuration(Motion.durationMedium2(getContext()))
+                .setInterpolator(Motion.emphasized(getContext()))
+                .alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).start();
+    }
+
     private int getResolvedAttr(Context context, int attrId) {
         TypedValue outValue = new TypedValue();
         context.getTheme().resolveAttribute(attrId, outValue, true);
         return outValue.resourceId;
+    }
+
+    /**
+     * Called by the camera fragment when the preview renderer enables its live
+     * frosted-glass backdrop behind this panel. While active the panel keeps a
+     * 40% dark scrim so the blurred content stays legible; otherwise the fully
+     * opaque fallback is used.
+     */
+    public void setBlurActive(boolean active) {
+        setBackgroundResource(active ? R.drawable.cam_bar_blur_overlay : R.drawable.exif_background);
     }
 
     public void setChildVisibility(@IdRes int id, int visibility) {

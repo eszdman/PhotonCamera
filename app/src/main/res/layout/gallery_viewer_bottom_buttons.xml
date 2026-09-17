@@ -57,7 +57,7 @@
                         android:text=""
                         android:clickable="false"
                         android:background="@drawable/ic_delete"
-                        app:backgroundTint="@android:color/white" />
+                        app:backgroundTint="@color/cam_on_surface" />
             </FrameLayout>
 
 
@@ -85,7 +85,7 @@
                         android:text=""
                         android:clickable="false"
                         android:background="@drawable/ic_info"
-                        app:backgroundTint="@android:color/white" />
+                        app:backgroundTint="@color/cam_on_surface" />
             </FrameLayout>
 
             <FrameLayout
@@ -112,7 +112,7 @@
                         android:text=""
                         android:clickable="false"
                         android:background="@drawable/ic_edit"
-                        app:backgroundTint="@android:color/white" />
+                        app:backgroundTint="@color/cam_on_surface" />
             </FrameLayout>
 
             <FrameLayout
@@ -139,7 +139,7 @@
                         android:text=""
                         android:clickable="false"
                         android:background="@drawable/ic_share"
-                        app:backgroundTint="@android:color/white" />
+                        app:backgroundTint="@color/cam_on_surface" />
             </FrameLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
