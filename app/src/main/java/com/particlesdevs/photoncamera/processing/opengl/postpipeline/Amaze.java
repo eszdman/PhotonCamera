@@ -6,6 +6,7 @@ import android.opengl.GLES31;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.util.Log;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_NEAREST;
@@ -52,7 +53,7 @@ public class Amaze extends Node {
     private static final int LW = 8;
     private static final int LH = 8;
     private static final int BORDER = 32;     // tile skirt, >= the 30 px stage chain
-    private static final int TILE = 1024;     // interior; window = TILE + 2*BORDER + 2*PAD
+    public static final int TILE = 1024;      // interior; window = TILE + 2*BORDER + 2*PAD
 
     public Amaze() {
         super("", "Amaze");
@@ -94,13 +95,17 @@ public class Amaze extends Node {
     }
 
     @Override
+    public int halo() {
+        return BORDER; // outer tiles must supply the demosaic skirt
+    }
+
     public void Run() {
         inTex = previousNode.WorkingTexture;
         imgW = inTex.mSize.x;
         imgH = inTex.mSize.y;
         window = new Point(TILE + 2 * BORDER + 2 * PAD, TILE + 2 * BORDER + 2 * PAD);
         inner = new Point(PAD + BORDER, PAD + BORDER);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
 
         cfa = alloc(window, 1);
         grad = alloc(window, 4);
@@ -120,10 +125,9 @@ public class Amaze extends Node {
         dgrb01 = alloc(window, 4);
 
         startT();
-        for (int ty = 0; ty < (imgH + TILE - 1) / TILE; ty++) {
-            for (int tx = 0; tx < (imgW + TILE - 1) / TILE; tx++) {
-                runTile(tx * TILE, ty * TILE);
-            }
+        runTileLoop();
+        if (((PostPipeline) basePipeline).debugTiledCompare) {
+            verifyTiledRegions();
         }
         glProg.close();
         GLES31.glFinish();   // one sync per shot: honest timing + safe scratch close
@@ -146,12 +150,69 @@ public class Amaze extends Node {
         greenD3.close();
         dgrb01.close();
 
-        WorkingTexture = basePipeline.swap3();
+        if (!tileActive()) {
+            WorkingTexture = basePipeline.swap3();
+            // swap3 left the stale demosaic input in main3; it is dead now.
+            PostPipeline pp = (PostPipeline) basePipeline;
+            if (pp.canReleaseDemosaicScratch() && basePipeline.main3 != null) {
+                Log.d("TiledHarness", "release stale main3 " + basePipeline.main3.mSize.x
+                        + "x" + basePipeline.main3.mSize.y);
+                basePipeline.main3.close();
+                basePipeline.main3 = null;
+            }
+        }
+    }
+
+    /** Tile loop honoring the strip region (full image when inactive). */
+    private void runTileLoop() {
+        int y0 = tileActive() ? tileY0 : 0;
+        int y1 = tileActive() ? tileY1 : imgH;
+        for (int ty = y0 / TILE; ty * TILE < y1; ty++) {
+            for (int tx = 0; tx < (imgW + TILE - 1) / TILE; tx++) {
+                runTile(tx * TILE, ty * TILE);
+            }
+        }
+    }
+
+    /**
+     * Harness oracle (debugTiledCompare): re-renders TILE-aligned top/middle/
+     * bottom strips into region textures and requires bit-exactness vs the
+     * full render. Restores all region state before returning.
+     */
+    private void verifyTiledRegions() {
+        GLTexture fullOut = WorkingTexture;
+        float worst = TileDriver.verifyNodeBands(fullOut, imgW, imgH, TILE,
+                "TiledHarness", (b0, rows) -> {
+                    GLTexture reg = new GLTexture(new Point(imgW, rows),
+                            new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                            null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    tileY0 = b0;
+                    tileY1 = b0 + rows;
+                    tileOut = reg;
+                    WorkingTexture = reg;
+                    runTileLoop();
+                    return reg;
+                });
+        Log.d("TiledHarness", "amaze strips maxDiff=" + worst);
+        tileY0 = 0;
+        tileY1 = -1;
+        tileOut = null;
+        WorkingTexture = fullOut;
     }
 
     private void runTile(int ox, int oy) {
         int tw = Math.min(TILE, imgW - ox);
         int th = Math.min(TILE, imgH - oy);
+        int storeOY = oy;
+        if (tileActive()) {
+            // Strip region: tiles at the region edge store only inside it;
+            // bounds stay TILE multiples so Bayer phase is preserved.
+            if (oy < tileY0 || oy >= tileY1) {
+                return;
+            }
+            th = Math.min(th, tileY1 - oy);
+            storeOY = oy - tileY0;
+        }
 
         // pass 0: crop the tile's padded window out of the full CFA; texels
         // past the image edge reproduce the whole-image pad + staging clamp
@@ -268,7 +329,7 @@ public class Amaze extends Node {
         glProg.setVar("u_fc", 0, 1, 1, 2);
         glProg.setVar("u_inner", inner.x, inner.y);
         glProg.setVar("u_outsize", tw, th);
-        glProg.setVar("u_outoff", ox, oy);
+        glProg.setVar("u_outoff", ox, storeOY);
         glProg.setTexture("u_chroma", dgrb01);
         glProg.setTexture("u_hvwt", hvwt3);
         glProg.setTextureCompute("img_out", WorkingTexture, true);

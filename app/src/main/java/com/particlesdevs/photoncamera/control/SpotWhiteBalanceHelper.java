@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Pair;
 import android.util.SizeF;
+import android.view.View;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
@@ -20,7 +21,6 @@ import com.particlesdevs.photoncamera.manual.ParamController;
 import com.particlesdevs.photoncamera.processing.parameters.ColorTemperatureConverter;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.settings.SettingsManagerExtensions;
-import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -60,25 +60,25 @@ public class SpotWhiteBalanceHelper {
      * Geometrically maps the viewfinder touch point to the Bayer RAW sensel array
      * using the canonical SPOT_WB_FOV_RATIO field-of-view fraction.
      */
-    public static void measureSpotWbRaw(GLPreview glPreview,
+    public static void measureSpotWbRaw(View viewfinderFrame,
                                        CaptureController captureController,
                                        float viewX,
                                        float viewY,
                                        SpotWbCallback callback) {
-        if (glPreview == null || captureController == null) return;
+        if (viewfinderFrame == null || captureController == null) return;
 
-        int viewW = glPreview.getWidth();
-        int viewH = glPreview.getHeight();
+        int viewW = viewfinderFrame.getWidth();
+        int viewH = viewfinderFrame.getHeight();
         if (viewW <= 0 || viewH <= 0) return;
 
         final float clampedX = Math.max(0.0f, Math.min((float) viewW, viewX));
         final float clampedY = Math.max(0.0f, Math.min((float) viewH, viewY));
         final long sequenceId = sMeasurementSequence.incrementAndGet();
 
-        // Query Display rotation directly from glPreview on the UI thread before background execution
+        // Query Display rotation directly from the viewfinder frame on the UI thread before background execution
         int initialGravityRotation = 90;
         try {
-            android.view.Display display = glPreview.getDisplay();
+            android.view.Display display = viewfinderFrame.getDisplay();
             if (display != null) {
                 initialGravityRotation = display.getRotation() * 90 + 90;
             } else if (PhotonCamera.getGravity() != null) {

@@ -22,7 +22,6 @@ package com.particlesdevs.photoncamera.ui.camera;
 import android.graphics.Bitmap;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -52,32 +51,43 @@ import android.util.SizeF;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Toast;
 
+import androidx.activity.BackEventCompat;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.databinding.Observable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.particlesdevs.photoncamera.BR;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
-import com.particlesdevs.photoncamera.app.base.BaseActivity;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
+import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleImpl;
+import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
@@ -91,26 +101,39 @@ import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.*;
+import com.particlesdevs.photoncamera.ui.camera.views.LensZoomBarController;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderEdgeBlurController;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.MainRenderer;
+import com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout;
+import com.particlesdevs.photoncamera.util.BlurSupport;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
+import com.particlesdevs.photoncamera.util.SecureCameraHelper;
+import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Observer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class CameraFragment extends Fragment implements BaseActivity.BackPressedListener {
+public class CameraFragment extends Fragment {
     public static final int REQUEST_CAMERA_PERMISSION = 1;
+    /** Request code for the lockscreen gallery device-credential confirmation. */
+    private static final int REQUEST_UNLOCK_GALLERY = 9001;
     public static final String FRAGMENT_DIALOG = "dialog";
     /**
      * Tag for the {@link Log}.
@@ -139,16 +162,24 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     private final ExecutorService processExecutorService = Executors.newFixedThreadPool(2);
     public SurfaceViewOverViewfinder surfaceView;
     public Map<String, CameraLensData> mCameraLensDataMap;
+    /** Logical members driving the pill/zoom in video logical mode (empty when inactive). */
+    private List<com.particlesdevs.photoncamera.api.LogicalCameraResolver.Member> mVideoLogicalMembers =
+            new ArrayList<>();
     public Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
     private CameraUIController mCameraUIEventsListener;
-    public CaptureController captureController;
+
+    public CameraUIView getCameraUIView() {
+        return mCameraUIView;
+    }    public CaptureController captureController;
     private CameraFragmentViewModel cameraFragmentViewModel;
     public AuxButtonsViewModel auxButtonsViewModel;
     public CameraFragmentBinding cameraFragmentBinding;
     private TouchFocus mTouchFocus;
     public Swipe mSwipe;
+    private LensZoomBarController lensZoomBarController;
+    private ViewfinderEdgeBlurController edgeBlurController;
     // Created on an AsyncTask thread in onResume and consumed from the camera
     // callback threads; volatile + local-copy access keeps them consistent.
     private volatile MediaPlayer burstPlayer;
@@ -162,6 +193,12 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public float displayAspectRatio;
     private HorizonIndicatorView mHorizonIndicatorView;
     private ViewfinderHudView mViewfinderHudView;
+    /**
+     * True while running over the keyguard. Gallery shows no pre-lock content and
+     * settings entry points are disabled until {@link #onSecureSessionChanged(boolean)}
+     * clears it after unlock.
+     */
+    private boolean secureSession = false;
 
     public CameraFragment() {
         Log.v(TAG, "fragment created");
@@ -186,11 +223,14 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public CameraFragmentViewModel getCameraFragmentViewModel() {
         return cameraFragmentViewModel;
     }
-   @Override
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = getActivity();
         assert activity != null;
+        if (activity instanceof CameraActivity) {
+            secureSession = ((CameraActivity) activity).isSecureSession();
+        }
         notificationManager = NotificationManagerCompat.from(activity);
         settingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
         supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
@@ -215,10 +255,16 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 
         timerFrameCountViewModel = new ViewModelProvider(this).get(TimerFrameCountViewModel.class);
         manualModeConsole = ManualInstanceProvider.getNewManualModeConsole();
+        manualPanelObserver = (observable, arg) -> {
+            if (arg == ManualModeModel.ManualModelFields.PANEL_VISIBILITY) {
+                updateBackIntercept();
+            }
+        };
+        ((ManualModeConsoleImpl) manualModeConsole).getManualModeModel().addObserver(manualPanelObserver);
         settingsBarEntryProvider = new ViewModelProvider(this).get(SettingsBarEntryProvider.class);
         auxButtonsViewModel = new ViewModelProvider(this).get(AuxButtonsViewModel.class);
         surfaceView = cameraFragmentBinding.layoutViewfinder.surfaceView;
-        textureView = cameraFragmentBinding.layoutViewfinder.texture;
+        textureView = cameraFragmentBinding.texture;
         mViewfinderHudView = cameraFragmentBinding.layoutViewfinder.viewfinderHudView;
     }
 
@@ -279,6 +325,16 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
     @Override
     public void onViewCreated(@NonNull final View view, Bundle savedInstanceState) {
+        // System back closes any in-fragment surface; otherwise the dispatcher falls
+        // through to the default behaviour (predictive-back compatible).
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), cameraBackCallback);
+        updateBackIntercept();
+        // Keep the shutter/mode bottom bar above the transparent navigation bar.
+        // The viewfinder itself stays full-bleed behind it.
+        View bottomBar = view.findViewById(R.id.layout_bottombar);
+        if (bottomBar != null) {
+            SystemBarsHelper.padBottomForNavBar(bottomBar);
+        }
         this.mCameraUIView = new CameraUIViewImpl(this);
         this.mCameraUIEventsListener = new CameraUIController(this);
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
@@ -290,6 +346,45 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         captureController.isDualSession = supportedDevice.specific.specificSetting.isDualSessionSupported;
         mHorizonIndicatorView = cameraFragmentBinding.layoutViewfinder.horizonIndicatorView;
         this.mSwipe = new Swipe(this);
+        this.lensZoomBarController = new LensZoomBarController(
+                cameraFragmentBinding.cameraContainer,
+                cameraFragmentBinding.lensZoomBar,
+                cameraFragmentBinding.auxButtonsContainer,
+                cameraFragmentBinding.zoomSliderContainer,
+                cameraFragmentBinding.zoomSlider,
+                cameraFragmentBinding.zoomLockPill,
+                cameraFragmentBinding.zoomLockButton,
+                captureController,
+                cameraFragmentViewModel);
+        lensZoomBarController.init();
+        // Preview surface geometry: frame-sized by default, full-bleed with
+        // mirrored edge-blur bands when the option is on.
+        this.edgeBlurController = new ViewfinderEdgeBlurController(
+                cameraFragmentBinding.textureHolder,
+                cameraFragmentBinding.texture,
+                cameraFragmentBinding.layoutViewfinder.viewfinderFrame);
+        cameraFragmentBinding.textureHolder.addOnLayoutChangeListener(
+                (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
+        cameraFragmentBinding.layoutViewfinder.viewfinderFrame.addOnLayoutChangeListener(
+                (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
+        edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
+        textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
+        mSwipe.setZoomGestureListener(lensZoomBarController::onPinchGesture);
+        cameraFragmentViewModel.getCameraFragmentModel().addOnPropertyChangedCallback(
+                new Observable.OnPropertyChangedCallback() {
+                    @Override
+                    public void onPropertyChanged(Observable sender, int propertyId) {
+                        if (lensZoomBarController == null) return;
+                        CameraFragmentModel model = (CameraFragmentModel) sender;
+                        if (propertyId == BR._all || propertyId == BR.zoomRatio) {
+                            lensZoomBarController.onZoomChanged(model.getZoomRatio());
+                        }
+                        if (propertyId == BR._all || propertyId == BR.settingsBarVisibility) {
+                            lensZoomBarController.setSettingsHidden(model.isSettingsBarVisibility());
+                            updateBackIntercept();
+                        }
+                    }
+                });
         var gyro = PhotonCamera.getGyro();
         if ((mHorizonIndicatorView != null) && (gyro != null)) {
             mHorizonIndicatorView.updateDisplayRotation(getCameraFragmentViewModel().getCameraFragmentModel().getOrientation());
@@ -298,7 +393,23 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         if (mHorizonIndicatorView != null) {
             mHorizonIndicatorView.setVisible(PreferenceKeys.isHorizonOn());
         }
+        manualPanelRoot = view.findViewById(R.id.manual_mode);
+        manualPanelBar = view.findViewById(R.id.buttons_container);
+        manualKnobContainer = view.findViewById(R.id.knobViewContainer);
+        manualKnobView = view.findViewById(R.id.knobView);
+        camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
+        camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
+        camPanelFilletPx = getResources().getDimension(R.dimen.cam_panel_scrim_fillet_radius);
+        if (manualKnobView != null) {
+            manualKnobView.setScrimColor(ContextCompat.getColor(requireContext(), R.color.cam_panel_scrim));
+            // A tangent fillet blends the disc's bottom corners into the bottom
+            // edge; the rest of the circular shape stays as drawn.
+            manualKnobView.setScrimFilletRadius(camPanelFilletPx);
+        }
+        textureView.postOnAnimation(panelBlurTracker);
+        view.getViewTreeObserver().addOnPreDrawListener(lensOffsetCorrection);
         initSettingsBar();
+        applySecureSessionUI();
     }
 
     private void initSettingsBar() {
@@ -346,8 +457,16 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     public void onResume() {
         super.onResume();
         updateSettingsBar();
+        lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
+        edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
+        textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
         mSwipe.init();
         this.mCameraUIView.refresh(CaptureController.isProcessing);
+        final boolean lockedAtResume = secureSession;
+        if (lockedAtResume) {
+            // Never expose pre-lock library content on the gallery button while locked.
+            cameraFragmentViewModel.clearGalleryThumb();
+        }
         AsyncTask.execute(() -> {
             PhotonCamera.getGyro().register();
             PhotonCamera.getGravity().register();
@@ -359,7 +478,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             if (endPlayer == null) {
                 endPlayer = MediaPlayer.create(activity, R.raw.sound_end);
             }
-            cameraFragmentViewModel.updateGalleryThumb(null);
+            if (!lockedAtResume) {
+                cameraFragmentViewModel.updateGalleryThumb(null);
+            }
         });
         cameraFragmentViewModel.onResume();
         auxButtonsViewModel.setAuxButtonListener(mCameraUIEventsListener);
@@ -377,8 +498,9 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         if (cameraFragmentBinding != null && captureController != null) {
             View focusCircle = cameraFragmentBinding.layoutViewfinder.touchFocus;
             View spotWbIndicator = cameraFragmentBinding.layoutViewfinder.spotWbIndicator;
+            View viewfinderFrame = cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
             textureView.post(() -> {
-                mTouchFocus = new TouchFocus(captureController, focusCircle, spotWbIndicator, textureView);
+                mTouchFocus = new TouchFocus(captureController, focusCircle, spotWbIndicator, viewfinderFrame);
                 captureController.mTouchFocus = mTouchFocus;
             });
         }
@@ -396,6 +518,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
         mCameraUIEventsListener.onPause();
+        if (lensZoomBarController != null) lensZoomBarController.onPause();
         auxButtonsViewModel.setAuxButtonListener(null);
         // The players are created asynchronously in onResume, so they may still
         // be null when the app is backgrounded again quickly.
@@ -414,18 +537,380 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         super.onPause();
     }
 
+    /** Corner radius of the rounded panels (settings bar, manual bar), cached. */
+    private float camPanelCornerPx;
+    /** Blur kernel radius shared by every panel, cached. */
+    private float camPanelBlurPx;
+    /** Fillet radius for the knob scrim's bottom corners, cached. */
+    private float camPanelFilletPx;
+    /** Manual-console hierarchy that carries a blurred backdrop while visible. */
+    private View manualPanelRoot;
+    private View manualPanelBar;
+    private View manualKnobContainer;
+    private KnobView manualKnobView;
+    /** Current translation applied to the lens cluster to offset layout jumps. */
+    private float lensClusterOffset = Float.NaN;
+
+    /**
+     * Re-asserts the lens cluster offset after layout, so the drawn frame can
+     * never show the offset from the pre-layout pass (which briefly dips the
+     * cluster when the selector's space is removed on close).
+     */
+    private final ViewTreeObserver.OnPreDrawListener lensOffsetCorrection =
+            new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    if (syncLensClusterOffset()) {
+                        updatePanelBlurSpecs();
+                    }
+                    return true;
+                }
+            };
+    /** Scratch/applied spec lists so the renderer only receives real changes. */
+    private final List<MainRenderer.PanelBlurSpec> scratchBlurSpecs = new ArrayList<>(8);
+    private List<MainRenderer.PanelBlurSpec> appliedBlurSpecs;
+    private boolean settingsBarScrimActive;
+
+    /**
+     * Keeps the preview's live blur regions aligned with every visible panel
+     * (settings bar, lens/zoom pills, manual bar, knob wheel). Panels are
+     * scaled/translated/rotated by their show-hide animations, the orientation
+     * listener and predictive-back progress, so geometry is recomputed per frame.
+     */
+    private final Runnable panelBlurTracker = new Runnable() {
+        @Override
+        public void run() {
+            if (getView() == null || textureView == null) {
+                return;
+            }
+            updatePanelBlurSpecs();
+            textureView.postOnAnimation(panelBlurTracker);
+        }
+    };
+
+    private void updatePanelBlurSpecs() {
+        if (camPanelCornerPx == 0f) {
+            camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
+            camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
+        }
+        scratchBlurSpecs.clear();
+        syncLensClusterOffset();
+        // Without a live preview there is nothing to blur: the opaque panels stay,
+        // and the next ticks keep polling so blur returns if the preview restarts.
+        if (textureView.isAvailable()) {
+            addRoundedBlurSpec(cameraFragmentBinding.settingsBar, camPanelCornerPx,
+                    cameraFragmentBinding.settingsBar.getAlpha());
+            addPillBlurSpec(cameraFragmentBinding.lensZoomBar);
+            addPillBlurSpec(cameraFragmentBinding.zoomSliderContainer);
+            addPillBlurSpec(cameraFragmentBinding.zoomIndicator);
+            addPillBlurSpec(cameraFragmentBinding.zoomLockPill);
+            // The manual hierarchy carries its own alpha/transform on the root
+            // (show/hide slides it down and fades it out, leaving children's
+            // visibility untouched), so both regions gate on the root too.
+            if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
+                float manualAlpha = manualPanelRoot.getAlpha();
+                boolean selectorOpen = manualKnobView != null
+                        && manualKnobView.getVisibility() == View.VISIBLE;
+                if (manualPanelBar != null && manualPanelBar.getVisibility() == View.VISIBLE) {
+                    addRoundedBlurSpec(manualPanelBar, camPanelCornerPx, manualAlpha);
+                }
+                if (selectorOpen) {
+                    addKnobBlurSpec(manualKnobView, manualAlpha);
+                }
+            }
+        }
+        boolean settingsScrim = textureView.isAvailable()
+                && cameraFragmentBinding.settingsBar.getVisibility() == View.VISIBLE;
+        if (settingsBarScrimActive != settingsScrim) {
+            cameraFragmentBinding.settingsBar.setBlurActive(settingsScrim);
+            settingsBarScrimActive = settingsScrim;
+        }
+        if (sameBlurSpecs(scratchBlurSpecs, appliedBlurSpecs)) {
+            return;
+        }
+        if (scratchBlurSpecs.isEmpty()) {
+            appliedBlurSpecs = null;
+            textureView.setPanelBlur(null);
+        } else {
+            appliedBlurSpecs = new ArrayList<>(scratchBlurSpecs);
+            textureView.setPanelBlur(appliedBlurSpecs);
+        }
+    }
+
+    /**
+     * Lifts the lens cluster clear of the manual panel. The cluster is anchored
+     * to the bottom bar (its layout never moves with the panel), so the whole
+     * motion is this explicit translation: it follows the panel's own reveal
+     * alpha — gliding on the same M3E curve as the panel — and the wheel's
+     * alpha once the panel is fully in. Keeping the layout still means the
+     * container's layout transition never animates the cluster, so there is no
+     * second movement to fight. The blur specs read the translation, so the
+     * pills' backdrops follow along.
+     */
+    private boolean syncLensClusterOffset() {
+        float offset = 0f;
+        if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
+            float panelHeight = manualPanelRoot.getHeight();
+            if (panelHeight > 0f) {
+                float knobArea = manualKnobContainer != null ? manualKnobContainer.getHeight() : 0f;
+                float knobAlpha = manualKnobView != null && manualKnobView.getVisibility() == View.VISIBLE
+                        ? clampAlpha(manualKnobView.getAlpha()) : 0f;
+                float barArea = Math.max(0f, panelHeight - knobArea);
+                offset = -(barArea + knobArea * knobAlpha) * clampAlpha(manualPanelRoot.getAlpha());
+            }
+        }
+        if (!Float.isNaN(lensClusterOffset) && Math.abs(offset - lensClusterOffset) < 0.25f) {
+            return false;
+        }
+        lensClusterOffset = offset;
+        cameraFragmentBinding.lensZoomBar.setTranslationY(offset);
+        cameraFragmentBinding.zoomLockPill.setTranslationY(offset);
+        cameraFragmentBinding.zoomSliderContainer.setTranslationY(offset);
+        cameraFragmentBinding.zoomIndicator.setTranslationY(offset);
+        return true;
+    }
+
+    private static float clampAlpha(float alpha) {
+        return Math.min(1f, Math.max(0f, alpha));
+    }
+
+    /** Adds a rounded-rect blur region for {@code view}, or nothing when hidden/empty. */
+    private void addRoundedBlurSpec(View view, float cornerRadiusPx, float alpha) {
+        if (view == null || view.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        addBlurSpec(view, alpha, cornerRadiusPx, false);
+    }
+
+    /** Pill-shaped region (corner radius = half its smaller extent). */
+    private void addPillBlurSpec(View view) {
+        if (view == null || view.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        addBlurSpec(view, view.getAlpha(),
+                Math.min(view.getWidth() * view.getScaleX(),
+                        view.getHeight() * view.getScaleY()) / 2f, true);
+    }
+
+    /**
+     * Computes the panel's on-screen geometry and stores one blur region.
+     * {@code cornerRadiusPx} is unscaled unless {@code radiusIsScaled} is set.
+     */
+    private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
+                             boolean radiusIsScaled) {
+        if (view.getWidth() <= 0 || view.getHeight() <= 0 || alpha <= 0.02f) {
+            return;
+        }
+        View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
+        if (parent == null) {
+            return;
+        }
+        int[] parentLocation = new int[2];
+        parent.getLocationOnScreen(parentLocation);
+        int[] previewLocation = new int[2];
+        textureView.getLocationOnScreen(previewLocation);
+        float scaleX = Math.max(0.0001f, view.getScaleX());
+        float scaleY = Math.max(0.0001f, view.getScaleY());
+        // The visible centre is the local centre transformed about the view's
+        // pivot (scale then rotation) plus its translation, so off-centre
+        // pivots (the lock pill scales about the lens pill) stay aligned.
+        float pivotX = view.getPivotX();
+        float pivotY = view.getPivotY();
+        float dx = (view.getWidth() / 2f - pivotX) * scaleX;
+        float dy = (view.getHeight() / 2f - pivotY) * scaleY;
+        double rotationRad = Math.toRadians(view.getRotation());
+        float cos = (float) Math.cos(rotationRad);
+        float sin = (float) Math.sin(rotationRad);
+        float centerX = parentLocation[0] + view.getLeft() + pivotX + dx * cos - dy * sin
+                + view.getTranslationX() - previewLocation[0];
+        float centerY = parentLocation[1] + view.getTop() + pivotY + dx * sin + dy * cos
+                + view.getTranslationY() - previewLocation[1];
+        float halfW = view.getWidth() * scaleX / 2f;
+        float halfH = view.getHeight() * scaleY / 2f;
+        scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
+                centerX, centerY, halfW, halfH, view.getRotation(),
+                radiusIsScaled ? cornerRadiusPx : cornerRadiusPx * scaleX,
+                camPanelBlurPx, alpha));
+    }
+
+    /** Circular region for the manual knob wheel (its disc center sits below the view). */
+    private void addKnobBlurSpec(KnobView knob, float parentAlpha) {
+        View parent = knob.getParent() instanceof View ? (View) knob.getParent() : null;
+        if (parent == null || knob.getWidth() <= 0 || knob.getHeight() <= 0) {
+            return;
+        }
+        float alpha = knob.getAlpha() * parentAlpha;
+        if (alpha <= 0.02f) {
+            return;
+        }
+        int[] parentLocation = new int[2];
+        parent.getLocationOnScreen(parentLocation);
+        int[] previewLocation = new int[2];
+        textureView.getLocationOnScreen(previewLocation);
+        float scaleX = Math.max(0.0001f, knob.getScaleX());
+        float scaleY = Math.max(0.0001f, knob.getScaleY());
+        float pivotX = knob.getWidth() / 2f;
+        float pivotY = knob.getHeight() / 2f;
+        float centerX = parentLocation[0] + knob.getLeft() + pivotX
+                + knob.getTranslationX() - previewLocation[0];
+        float centerY = parentLocation[1] + knob.getTop() + pivotY
+                + knob.getTranslationY() - previewLocation[1];
+        // The wheel disc is far larger than the view and its scrim is only the part
+        // inside the view bounds, so the mask is drawn in dome mode: the shader
+        // rebuilds that same arc from the view rectangle alone and fillets its
+        // bottom corners, matching what KnobView paints.
+        scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
+                centerX, centerY,
+                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
+                0f, camPanelFilletPx * Math.min(scaleX, scaleY), camPanelBlurPx, alpha,
+                centerX, centerY,
+                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
+                true));
+    }
+
+    private static boolean sameBlurSpecs(List<MainRenderer.PanelBlurSpec> a,
+                                         List<MainRenderer.PanelBlurSpec> b) {
+        if (b == null) {
+            return a.isEmpty();
+        }
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++) {
+            MainRenderer.PanelBlurSpec s = a.get(i);
+            MainRenderer.PanelBlurSpec t = b.get(i);
+            if (changed(s.centerX, t.centerX) || changed(s.centerY, t.centerY)
+                    || changed(s.halfW, t.halfW) || changed(s.halfH, t.halfH)
+                    || changed(s.angle, t.angle) || changed(s.cornerRadius, t.cornerRadius)
+                    || changedAlpha(s.alpha, t.alpha)
+                    || changed(s.clipCenterX, t.clipCenterX) || changed(s.clipCenterY, t.clipCenterY)
+                    || changed(s.clipHalfW, t.clipHalfW) || changed(s.clipHalfH, t.clipHalfH)
+                    || s.dome != t.dome) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean changed(float a, float b) {
+        return Math.abs(a - b) > 0.25f;
+    }
+
+    /** Alpha needs a finer threshold so the backdrop fades smoothly with the panel. */
+    private static boolean changedAlpha(float a, float b) {
+        return Math.abs(a - b) > 0.02f;
+    }
+
+    /**
+     * System-back handling. The callback is enabled only while an in-fragment
+     * surface (settings bar or manual panel) is open; otherwise the dispatcher
+     * falls through to the default activity behaviour.
+     */
+    private static final int BACK_TARGET_NONE = 0;
+    private static final int BACK_TARGET_SETTINGS_BAR = 1;
+    private static final int BACK_TARGET_MANUAL_PANEL = 2;
+
+    private int backProgressTarget = BACK_TARGET_NONE;
+
+    private final OnBackPressedCallback cameraBackCallback = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackStarted(@NonNull BackEventCompat backEvent) {
+            // API 34+: remember which surface the gesture started on.
+            backProgressTarget = BACK_TARGET_NONE;
+            if (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible()) {
+                backProgressTarget = BACK_TARGET_SETTINGS_BAR;
+            } else if (manualModeConsole != null && manualModeConsole.isPanelVisible()) {
+                backProgressTarget = BACK_TARGET_MANUAL_PANEL;
+            }
+        }
+
+        @Override
+        public void handleOnBackProgressed(@NonNull BackEventCompat backEvent) {
+            // API 34+: drive the dismiss transform without committing any state.
+            float progress = Math.min(1f, Math.max(0f, backEvent.getProgress()));
+            View target = backTargetView();
+            if (target == null) {
+                return;
+            }
+            if (backProgressTarget == BACK_TARGET_SETTINGS_BAR && target instanceof SettingsBarLayout) {
+                ((SettingsBarLayout) target).setBackProgress(progress);
+            } else if (backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+                // Map the gesture onto the same reveal/hide transform as the
+                // panel animation: fade + slide + option-bar collapse.
+                float slide = target.getResources().getDimension(R.dimen.manual_panel_slide);
+                target.setTranslationY(slide * progress);
+                target.setAlpha(1f - progress);
+                if (manualPanelBar != null) {
+                    manualPanelBar.setScaleX(1f - progress);
+                    manualPanelBar.setScaleY(1f - progress);
+                }
+            }
+        }
+
+        @Override
+        public void handleOnBackCancelled() {
+            // API 34+: restore the fully-open transform.
+            View target = backTargetView();
+            if (target instanceof SettingsBarLayout && backProgressTarget == BACK_TARGET_SETTINGS_BAR) {
+                ((SettingsBarLayout) target).cancelBackProgress();
+            } else if (target != null && backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+                target.animate().setDuration(Motion.durationMedium2(target.getContext()))
+                        .setInterpolator(Motion.emphasized(target.getContext()))
+                        .alpha(1f).translationY(0f).start();
+                if (manualPanelBar != null) {
+                    manualPanelBar.animate().scaleX(1f).scaleY(1f)
+                            .setDuration(Motion.durationMedium2(manualPanelBar.getContext()))
+                            .setInterpolator(Motion.emphasized(manualPanelBar.getContext()))
+                            .start();
+                }
+            }
+            backProgressTarget = BACK_TARGET_NONE;
+        }
+
+        @Override
+        public void handleOnBackPressed() {
+            backProgressTarget = BACK_TARGET_NONE;
+            if (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible()) {
+                cameraFragmentViewModel.setSettingsBarVisible(false);
+            }
+            if (manualModeConsole != null && mSwipe != null && manualModeConsole.isPanelVisible()) {
+                mSwipe.SwipeDown();
+            }
+        }
+    };
+
+    private View backTargetView() {
+        if (cameraFragmentBinding == null) {
+            return null;
+        }
+        if (backProgressTarget == BACK_TARGET_SETTINGS_BAR) {
+            return cameraFragmentBinding.settingsBar;
+        }
+        if (backProgressTarget == BACK_TARGET_MANUAL_PANEL) {
+            return cameraFragmentBinding.manualMode;
+        }
+        return null;
+    }
+
+    /** Enabled-state mirrors any open in-fragment surface, so back-to-home keeps the system animation when idle. */
+    private void updateBackIntercept() {
+        boolean intercept = (cameraFragmentViewModel != null && cameraFragmentViewModel.isSettingsBarVisible())
+                || (manualModeConsole != null && manualModeConsole.isPanelVisible());
+        cameraBackCallback.setEnabled(intercept);
+    }
+
+    private Observer manualPanelObserver;
+
     @Override
-    public boolean onBackPressed() {
-        boolean handleBack = false;
-        if (cameraFragmentViewModel.isSettingsBarVisible()) {
-            cameraFragmentViewModel.setSettingsBarVisible(false);
-            handleBack = true;
+    public void onDestroyView() {
+        if (textureView != null) {
+            textureView.removeCallbacks(panelBlurTracker);
+            textureView.setPanelBlur(null);
         }
-        if (manualModeConsole.isPanelVisible()) {
-            mSwipe.SwipeDown();
-            handleBack = true;
+        if (getView() != null) {
+            getView().getViewTreeObserver().removeOnPreDrawListener(lensOffsetCorrection);
         }
-        return handleBack;
+        super.onDestroyView();
     }
 
     @Override
@@ -444,6 +929,10 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
             }
         }
         settingsBarEntryProvider.removeObserver(mCameraUIEventsListener);
+        if (manualModeConsole != null && manualPanelObserver != null) {
+            ((ManualModeConsoleImpl) manualModeConsole).getManualModeModel().deleteObserver(manualPanelObserver);
+            manualPanelObserver = null;
+        }
         cameraFragmentBinding = null;
         mCameraUIView.destroy();
         mCameraUIView = null;
@@ -842,17 +1331,19 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         if (size == null) {
             size = new Size(captureController.mImageReaderPreview.getWidth(), captureController.mImageReaderPreview.getHeight());
         }
-        float left = (((float) meteringRectangle.getY() / size.getHeight()) * (textureView.getWidth()));
-        float top = (((float) meteringRectangle.getX() / size.getWidth()) * (textureView.getHeight()));
-        float width = (((float) meteringRectangle.getHeight() / size.getHeight()) * (textureView.getWidth()));
-        float height = (((float) meteringRectangle.getWidth() / size.getWidth()) * (textureView.getHeight()));
-        //left = textureView.getWidth() - left;
+        // The viewfinder frame is the visible preview rect regardless of whether
+        // the preview surface is frame-sized or full-bleed.
+        View frame = cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
+        int frameW = frame != null ? frame.getWidth() : textureView.getWidth();
+        int frameH = frame != null ? frame.getHeight() : textureView.getHeight();
+        float left = (((float) meteringRectangle.getY() / size.getHeight()) * (frameW));
+        float top = (((float) meteringRectangle.getX() / size.getWidth()) * (frameH));
+        float width = (((float) meteringRectangle.getHeight() / size.getHeight()) * (frameW));
+        float height = (((float) meteringRectangle.getWidth() / size.getWidth()) * (frameH));
         return new RectF(
-                //meteringRectangle.getY()-left, //Left
-                textureView.getWidth()-left-width,//Right
+                frameW - left - width,//Right
                 top,  //Top
-                //meteringRectangle.getY() - (left + width),//Right
-                textureView.getWidth()-left,
+                frameW - left,
                 top + height //Bottom
         );
     }
@@ -974,14 +1465,111 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
     }
 
     public void launchGallery() {
+        if (secureSession) {
+            promptUnlockForGallery();
+            return;
+        }
+        launchGalleryInternal(false);
+    }
+
+    private void launchGalleryInternal(boolean unlockedJustNow) {
         Intent galleryIntent = new Intent(activity, GalleryActivity.class);
         // Create gallery bundle
         galleryIntent.putExtra("CameraFragment", true);
-        
+        if (unlockedJustNow) {
+            galleryIntent.putExtra(SecureCameraHelper.EXTRA_UNLOCKED_JUST_NOW, true);
+        }
         startActivity(galleryIntent, null);
     }
 
+    /**
+     * Lockscreen behavior: the gallery button requires device credentials.
+     * Prefer {@code requestDismissKeyguard} (leaves the device genuinely unlocked
+     * on success); fall back to the confirm-credential activity on older APIs or
+     * dismiss errors.
+     */
+    private void promptUnlockForGallery() {
+        if (activity != null) {
+            boolean requested = SecureCameraHelper.requestDismissKeyguard(activity,
+                    new SecureCameraHelper.DismissCallback() {
+                        @Override
+                        public void onDismissSucceeded() {
+                            activity.runOnUiThread(() -> launchGalleryInternal(false));
+                        }
+
+                        @Override
+                        public void onDismissCancelled() {
+                            // Stay on the viewfinder; nothing to do.
+                        }
+
+                        @Override
+                        public void onDismissError() {
+                            activity.runOnUiThread(() -> fallbackToConfirmCredential());
+                        }
+                    });
+            if (requested) return;
+        }
+        fallbackToConfirmCredential();
+    }
+
+    private void fallbackToConfirmCredential() {
+        boolean launched = SecureCameraHelper.promptUnlock(this, REQUEST_UNLOCK_GALLERY,
+                getString(R.string.secure_camera_unlock_title),
+                getString(R.string.secure_camera_unlock_gallery_message));
+        if (!launched) {
+            // No secure lock enrolled: nothing to protect, open directly.
+            launchGalleryInternal(true);
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_UNLOCK_GALLERY && resultCode == Activity.RESULT_OK) {
+            launchGalleryInternal(true);
+        }
+    }
+
+    /**
+     * Called by {@link CameraActivity} when the secure session starts or ends
+     * (device unlocked). Updates gated UI and the gallery thumbnail without restart.
+     */
+    public void onSecureSessionChanged(boolean secure) {
+        secureSession = secure;
+        if (!isAdded()) return;
+        applySecureSessionUI();
+        if (cameraFragmentViewModel != null) {
+            if (secure) {
+                cameraFragmentViewModel.clearGalleryThumb();
+            } else {
+                cameraFragmentViewModel.updateGalleryThumb(null);
+            }
+        }
+    }
+
+    /**
+     * Hides/disables settings entry points while locked. The gallery button stays
+     * visible so users can authenticate from it.
+     */
+    private void applySecureSessionUI() {
+        if (cameraFragmentBinding == null) return;
+        View settingsButton = findViewById(R.id.settings_button);
+        if (settingsButton != null) {
+            settingsButton.setVisibility(secureSession ? View.GONE : View.VISIBLE);
+            settingsButton.setEnabled(!secureSession);
+        }
+        if (cameraFragmentBinding.settingsBar != null) {
+            cameraFragmentBinding.settingsBar.setChildVisibility(
+                    R.id.settings_bar_settings_button_container,
+                    secureSession ? View.GONE : View.VISIBLE);
+        }
+    }
+
     public void launchSettings() {
+        if (secureSession) {
+            showSnackBar(getString(R.string.secure_camera_settings_locked));
+            return;
+        }
         Intent settingsIntent = new Intent(activity, SettingsActivity.class);
         // Pass current camera mode to settings
         settingsIntent.putExtra("camera_mode", PreferenceKeys.getCameraModeOrdinal());
@@ -1053,7 +1641,7 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Activity activity = getActivity();
             assert getArguments() != null;
-            return new AlertDialog.Builder(activity)
+            AlertDialog dialog = new MaterialAlertDialogBuilder(activity)
                     .setMessage(getArguments().getString(ARG_MESSAGE))
                     .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
                         if (activity != null) {
@@ -1061,6 +1649,8 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                         }
                     })
                     .create();
+            BlurSupport.blurBehindOnShow(dialog);
+            return dialog;
         }
     }
 
@@ -1089,6 +1679,41 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
                 timerFrameCountViewModel.setFrameTimeCnt(
                         new TimerFrameCountViewModel.FrameCntTime(stats.pendingWrites, 0, 0));
                 mCameraUIView.updateVideoRecordingInfo(stats.elapsedMs, stats.estimatedBytes, stats.availableBytes);
+            }
+        }
+
+        @Override
+        public void onVideoRecordingStarted() {
+            if (mCameraUIView != null) {
+                mCameraUIView.setVideoRecordingInfoVisible(true);
+            }
+        }
+
+        @Override
+        public void onVideoRecordingTick(long elapsedMs, long estimatedBytes, long availableBytes) {
+            if (mCameraUIView != null) {
+                mCameraUIView.updateVideoRecordingInfo(elapsedMs, estimatedBytes, availableBytes);
+            }
+        }
+
+        @Override
+        public void onVideoRecordingStopped() {
+            if (mCameraUIView != null) {
+                mCameraUIView.setVideoRecordingInfoVisible(false);
+            }
+        }
+
+        @Override
+        public void onLogicalMemberChanged(String memberId) {
+            if (memberId != null) {
+                auxButtonsViewModel.setActiveId(memberId);
+            }
+        }
+
+        @Override
+        public void onLogicalZoomProgress(float ratio) {
+            if (cameraFragmentViewModel != null) {
+                cameraFragmentViewModel.setZoomRatio(ratio);
             }
         }
 
@@ -1208,22 +1833,83 @@ public class CameraFragment extends Fragment implements BaseActivity.BackPressed
         @Override
         public void onOpenCamera(CameraManager cameraManager) {
             initCameraIDLists(cameraManager);
-            auxButtonsViewModel.initCameraLists(mCameraLensDataMap);
+            refreshLensPillAndZoomModel();
+        }
+
+        /**
+         * Rebuilds the lens pill and the zoom-controller lens model for the
+         * current mode: logical members in video logical mode, physical
+         * lenses otherwise. Runs on cold open and on every restart-driven
+         * open (e.g. photo&lt;-&gt;video mode switches), so neither side
+         * keeps the other's stale pill. Idempotent while the target is
+         * unchanged.
+         */
+        private void refreshLensPillAndZoomModel() {
+            mVideoLogicalMembers = captureController != null
+                    ? captureController.getEffectiveLogicalMembers()
+                    : new ArrayList<>();
+            if (!mVideoLogicalMembers.isEmpty()) {
+                auxButtonsViewModel.showLogicalMembers(
+                        com.particlesdevs.photoncamera.api.LogicalCameraResolver
+                                .toCameraLensData(mVideoLogicalMembers));
+            } else {
+                auxButtonsViewModel.rebuildCameraLists(mCameraLensDataMap);
+            }
+            // Feed the lens model into the zoom controller so pinch can
+            // switch lenses and zoom below 1.0x (ultra-wide).
+            updateZoomLensModel();
+        }
+
+        private void updateZoomLensModel() {
+            if (captureController == null || mCameraLensDataMap == null) return;
+            if (!mVideoLogicalMembers.isEmpty()) {
+                String anchor = captureController.configureLogicalZoomLenses(mVideoLogicalMembers);
+                auxButtonsViewModel.setActiveId(anchor);
+                return;
+            }
+            CameraLensData active = mCameraLensDataMap.get(PreferenceKeys.getCameraID());
+            int facing = active != null
+                    ? active.getFacing()
+                    : CameraCharacteristics.LENS_FACING_BACK;
+            captureController.configureZoomLenses(mCameraLensDataMap, facing);
+            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
         }
 
         @Override
         public void onCameraRestarted() {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            // Same-sensor ISZ transitions keep the overlay (grid/HUD stay
+            // valid); everything else wipes it for a fresh lens.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
             mCameraUIView.refresh(CaptureController.isProcessing);
             mTouchFocus.resetFocusCircle();
         }
 
         @Override
         public void onCharacteristicsUpdated(CameraCharacteristics characteristics) {
-            surfaceView.clear();
-            if (mViewfinderHudView != null) mViewfinderHudView.clear();
-            auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
+            // See onCameraRestarted: the overlay survives same-sensor ISZ entry.
+            if (!CameraManager2.isIszVirtual(PhotonCamera.getSettings().mCameraID)) {
+                surfaceView.clear();
+                if (mViewfinderHudView != null) mViewfinderHudView.clear();
+            }
+            // Authoritative per-open refresh: mode-switch restarts bypass
+            // onOpenCamera, so the pill/zoom model is rebuilt here too.
+            refreshLensPillAndZoomModel();
+            if (captureController != null) {
+                if (captureController.isZoomDrivenLensSwitch()) {
+                    // The zoom target changed because a lens switch occurred. Preserve
+                    // the effective zoom so the new lens continues where the user left
+                    // off, re-expressing any crop on the new sensor.
+                    captureController.clearZoomDrivenLensSwitch();
+                } else {
+                    // A manual lens/camera switch invalidates the existing crop.
+                    captureController.resetZoom();
+                }
+                cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                if (lensZoomBarController != null) lensZoomBarController.refreshZoomRange();
+            }
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             mCameraUIView.showFlashButton(flashAvailable != null && flashAvailable);
             manualModeConsole.setPreserveManualWb(PreferenceKeys.isPreserveManualWbOn());

@@ -28,11 +28,11 @@ public class DemosaicCompute extends Node {
         glTexture = previousNode.WorkingTexture;
         //Gradients
         glProg.setLayout(tile,tile,1);
-        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.setDefine("OUTSET",basePipeline.getMain3().mSize);
         glProg.useAssetProgram("demosaicp0c",true);
         glProg.setTextureCompute("inTexture", glTexture,false);
-        glProg.setTextureCompute("outTexture", basePipeline.main3,true);
-        glProg.computeAuto(basePipeline.main3.mSize,1);
+        glProg.setTextureCompute("outTexture", basePipeline.getMain3(),true);
+        glProg.computeAuto(basePipeline.getMain3().mSize,1);
         GLTexture outp;
 
         //Green channel
@@ -45,10 +45,10 @@ public class DemosaicCompute extends Node {
         glProg.setDefine("NOISES",basePipeline.noiseS);
         glProg.setDefine("NOISEO",basePipeline.noiseO);
         glProg.setLayout(tile,tile,1);
-        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.setDefine("OUTSET",basePipeline.getMain3().mSize);
         glProg.useAssetProgram("demosaicp12c",true);
         glProg.setTextureCompute("inTexture",previousNode.WorkingTexture,false);
-        glProg.setTextureCompute("gradTexture",basePipeline.main3,false);
+        glProg.setTextureCompute("gradTexture",basePipeline.getMain3(),false);
 
         if(basePipeline.mSettings.cfaPattern == -2) glProg.setDefine("QUAD","1");
         GLTexture prev = previousNode.WorkingTexture;
@@ -61,11 +61,11 @@ public class DemosaicCompute extends Node {
 
         //Colour channels
         glProg.setLayout(tile,tile,1);
-        glProg.setDefine("OUTSET",basePipeline.main3.mSize);
+        glProg.setDefine("OUTSET",basePipeline.getMain3().mSize);
         glProg.useAssetProgram("demosaicp2c",true);
         glProg.setTextureCompute("inTexture", glTexture,false);
         glProg.setTextureCompute("greenTexture", outp,false);
-        WorkingTexture = basePipeline.main3;
+        WorkingTexture = basePipeline.getMain3();
         glProg.setTextureCompute("outTexture",WorkingTexture,true);
         glProg.computeAuto(WorkingTexture.mSize,1);
         glProg.closed = true;

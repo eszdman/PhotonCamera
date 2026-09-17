@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    Outline colors for the morphing shutter, mirroring the old roundbutton
+    selector's stroke. On-accent roles follow the activity theme (?attr/)
+    so accent overrides apply; the default stays a fixed neutral outline.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_hovered="true" android:color="?attr/colorOnPrimary"/>
+    <item android:state_activated="true" android:state_pressed="false"
+          android:color="?attr/colorOnPrimaryContainer"/>
+    <item android:state_pressed="true" android:color="?attr/colorOnPrimary"/>
+    <item android:color="@color/cam_outline"/>
+</selector>

@@ -74,6 +74,12 @@ public class GLHistogram implements AutoCloseable{
         return out;
     }
     public int[][] Compute(GLTexture input){
+        // Custom shaders (noisehist) run the full-grid dispatch; the standard
+        // shader covers a 2x2 lattice patch per invocation (bit-identical
+        // bins, proven by in-run A/B during development).
+        return computeWithSpt(input, Custom ? 1 : 4);
+    }
+    private int[][] computeWithSpt(GLTexture input, int spt){
         long time = System.currentTimeMillis();
         input.Bufferize();
         int tile = 8;
@@ -105,7 +111,13 @@ public class GLHistogram implements AutoCloseable{
         glProg.setBufferCompute("histogramGreen",buffers[1]);
         glProg.setBufferCompute("histogramBlue",buffers[2]);
         glProg.setBufferCompute("histogramAlpha",buffers[3]);
-        glProg.computeAuto(new Point(input.mSize.x/resize, input.mSize.y/resize), 1);
+        if (spt == 1) {
+            glProg.computeAuto(new Point(input.mSize.x/resize, input.mSize.y/resize), 1);
+        } else {
+            // Cover ceil(lattice/2) per dimension; out-of-lattice invocations
+            // sample nothing (bounds-checked), so overshoot is harmless.
+            glProg.computeAuto(new Point(input.mSize.x/resize/2 + 1, input.mSize.y/resize/2 + 1), 1);
+        }
         if (Rc)
             outputArr[0] = buffers[0].readBufferIntegers(true);
         if (Gc)

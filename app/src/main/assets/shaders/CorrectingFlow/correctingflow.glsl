@@ -1,6 +1,9 @@
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
+// Tiled rendering origin (output coords of this tile's row 0). (0,0) on the
+// legacy path: identical.
+uniform ivec2 u_tileOrigin;
 #define SIZE 0,0
 out vec3 Output;
 #define C 0.5,0.5
@@ -9,7 +12,7 @@ out vec3 Output;
 #define BC 0.0,0.0
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
-    vec2 uv = gl_FragCoord.xy/vec2(SIZE);
+    vec2 uv = (gl_FragCoord.xy + vec2(u_tileOrigin))/vec2(SIZE);
     vec2 center = (uv-vec2(C))*abs((uv-vec2(C)));
     vec2 dxyR = center*vec2(RC);
     vec2 dxyG = center*vec2(GC);

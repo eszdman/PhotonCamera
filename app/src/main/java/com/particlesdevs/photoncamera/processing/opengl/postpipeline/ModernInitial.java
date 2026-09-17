@@ -55,6 +55,10 @@ public class ModernInitial extends Node {
     }
 
     @Override
+    public int halo() {
+        return 0; // pointwise LUT render; curves frozen by pre-pass
+    }
+
     public void Run() {
         // Cheap-pass support: keep the linear buffer (Initial's input = post
         // demosaic/denoise/ABLC) so the Ultra HDR gain-map pass can measure
@@ -109,6 +113,9 @@ public class ModernInitial extends Node {
             LookupTexture = new GLTexture(new Point(basePipeline.mParameters.LookMapSize[2] * basePipeline.mParameters.LookMapSize[1], basePipeline.mParameters.LookMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.LookMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
             glProg.setTexture("LookMap", LookupTexture);
         }
-        WorkingTexture = basePipeline.getMain();
+        // No oracle: the Initial/modern asset is absent from this tree, so the
+        // "new" tone path cannot run to compare against. Branch kept so a
+        // future driver treats it uniformly (LUT render, halo 0).
+        WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
     }
 }

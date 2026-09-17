@@ -39,6 +39,7 @@ public final class FlowNetNcnnProcessor {
 
     private final Context appContext;
     private final CountDownLatch initLatch = new CountDownLatch(1);
+    private final Object inferenceLock = new Object();
     private volatile long nativeHandle;
     private volatile boolean ready = false;
 
@@ -137,9 +138,18 @@ public final class FlowNetNcnnProcessor {
     }
 
     private FlowResult runInferenceLocked(FloatBuffer baseRgba, FloatBuffer alterRgba,
-                                          int width, int height) {
+                                           int width, int height) {
         if (nativeHandle == 0 || baseRgba == null || alterRgba == null
                 || width <= 0 || height <= 0) return null;
+        // The native handle (and its reusable tile Mats) is process-wide
+        // shared: concurrent shots must not enter nativeRun together.
+        synchronized (inferenceLock) {
+            return runInferenceGuarded(baseRgba, alterRgba, width, height);
+        }
+    }
+
+    private FlowResult runInferenceGuarded(FloatBuffer baseRgba, FloatBuffer alterRgba,
+                                          int width, int height) {
         long start = System.nanoTime();
         ByteBuffer outBuf = ByteBuffer.allocateDirect(width * height * 2 * 4)
                 .order(ByteOrder.nativeOrder());

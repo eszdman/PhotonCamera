@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 40% dark scrim shown over the live blurred preview behind the settings bar. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle">
+    <solid android:color="#66111417" />
+    <corners android:radius="@dimen/cam_panel_corner_radius"/>
+</shape>

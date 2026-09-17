@@ -45,7 +45,7 @@
                     android:text=""
                     android:clickable="false"
                     android:background="@drawable/ic_baseline_arrow_back_24"
-                    app:backgroundTint="@android:color/white"
+                    app:backgroundTint="@color/cam_on_surface"
                     />
         </FrameLayout>
         <FrameLayout
@@ -73,7 +73,7 @@
                     android:text=""
                     android:clickable="false"
                     android:background="@drawable/ic_photo_library"
-                    app:backgroundTint="@android:color/white"
+                    app:backgroundTint="@color/cam_on_surface"
                     />
         </FrameLayout>
 
@@ -102,7 +102,7 @@
                     android:text=""
                     android:clickable="false"
                     android:background="@drawable/ic_compare"
-                    app:backgroundTint="@android:color/white"
+                    app:backgroundTint="@color/cam_on_surface"
                     />
         </FrameLayout>
 

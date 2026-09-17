@@ -15,7 +15,7 @@ import java.util.List;
 
 public class FileManager {
     private static final String TAG = "FileManager";
-    private static final List<String> ACCEPTED_FILES_EXTENSIONS = Arrays.asList("JPG", "JPEG", "DNG");
+    private static final List<String> ACCEPTED_FILES_EXTENSIONS = Arrays.asList("JPG", "JPEG", "DNG", "HEIC", "HEIF", "HIF");
     private static final FilenameFilter FILENAME_FILTER = (dir, name) -> {
         int index = name.lastIndexOf(46);
         return ACCEPTED_FILES_EXTENSIONS.contains(-1 == index ? "" : name.substring(index + 1).toUpperCase()) && new File(dir, name).length() > 0;

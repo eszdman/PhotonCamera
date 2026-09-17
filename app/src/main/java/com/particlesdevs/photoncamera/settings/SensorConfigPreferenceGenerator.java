@@ -120,7 +120,31 @@ public class SensorConfigPreferenceGenerator {
         return categories;
     }
 
+    /**
+     * Shows a read-only summary of the In-Sensor Zoom (ISZ) virtual lens for this
+     * sensor, if one is configured in SensorSpecifics. The source is the .txt config,
+     * so it is displayed but not editable here.
+     */
+    private static void addIszSummary(Context context, PreferenceCategory category, String physicalId) {
+        try {
+            int sensorId = Integer.parseInt(physicalId);
+            com.particlesdevs.photoncamera.processing.render.SpecificSettingSensor isz =
+                    com.particlesdevs.photoncamera.app.PhotonCamera.getSpecificSensor().getIszForSensor(sensorId);
+            if (isz == null || isz.iszKey == null) return;
+            androidx.preference.Preference info = new androidx.preference.Preference(context);
+            info.setKey("pref_sensorconfig_" + physicalId + "_isz_summary");
+            info.setTitle("In-Sensor Zoom (ISZ)");
+            info.setSummary("Key: " + isz.iszKey.name + " (" + isz.iszKey.valueType + ") = "
+                    + isz.iszKey.value + " \u00b7 ratio " + String.format(Locale.ROOT, "%.1fx", isz.iszZoomRatio));
+            info.setSelectable(false);
+            category.addPreference(info);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to add ISZ summary: " + Log.getStackTraceString(e));
+        }
+    }
+
     private static void addTunableKeySection(Context context, PreferenceCategory category, String physicalId) {
+        addIszSummary(context, category, physicalId);
         Runnable refresh = () -> refreshTunableKeys(context, category, physicalId);
 
         List<VendorTagUtils.TunableKey> keys = TunableKeyManager.loadKeys(context, physicalId);

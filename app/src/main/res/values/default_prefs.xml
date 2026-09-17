@@ -5,6 +5,7 @@
     <bool name="pref_camera_sounds_default">true</bool>
     <bool name="pref_energy_safe_default">false</bool>
     <string name="pref_show_grid_default" translatable="false">0</string>
+    <string name="pref_lens_bar_position_default" translatable="false">right</string>
     <bool name="pref_wide169_default">false</bool>
     <bool name="pref_binning_default">false</bool>
     <bool name="pref_show_watermark_default">true</bool>
@@ -14,11 +15,14 @@
     <bool name="pref_disable_align_default">false</bool>
     <bool name="pref_hdrx_nr_default">true</bool>
     <bool name="pref_save_raw_default">false</bool>
+    <bool name="pref_save_heic_default">false</bool>
 
     <bool name="pref_quad_bayer_default">false</bool>
     <bool name="pref_ultrahdr_default">false</bool>
     <bool name="pref_remosaic_default">false</bool>
     <bool name="pref_eis_photo_default">true</bool>
+    <bool name="pref_zoom_lock_default">false</bool>
+    <bool name="pref_auto_zoom_switch_default">false</bool>
     <bool name="pref_fps_preview_default">false</bool>
     <bool name="pref_hdrx_mode_default">true</bool>
     <string name="pref_ae_mode_default" translatable="false">1</string>
@@ -75,7 +79,7 @@
     <string name="pref_cfa_default_value" translatable="false">-1</string>
     <string name="pref_theme_default_value" translatable="false">-1</string>
     <string name="pref_theme_accent_default_value" translatable="false">default</string>
-    <bool name="pref_show_gradient_def_value">true</bool>
+    <string name="pref_viewfinder_background_default_value" translatable="false">none</string>
     <string name="pref_af_mode_default_value" translatable="false">4</string>
     <string name="pref_raw_mode_default_value" translatable="false">0</string>
     <bool name="pref_hide_gallery_icon_default">false</bool>

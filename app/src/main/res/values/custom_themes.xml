@@ -1,67 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="EszdmanTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorAccent">#9F39B9</item>
+    <!--
+      Shared accent role mapping. Accent overlays only define the primary color
+      family; secondary/tertiary roles follow the primary family so no baseline
+      purple leaks into widgets that use container roles.
+    -->
+    <style name="ThemeOverlay.Photon.Accent" parent="ThemeOverlay.Material3Expressive">
+        <item name="colorSecondary">?attr/colorPrimary</item>
+        <item name="colorOnSecondary">?attr/colorOnPrimary</item>
+        <item name="colorSecondaryContainer">?attr/colorPrimaryContainer</item>
+        <item name="colorOnSecondaryContainer">?attr/colorOnPrimaryContainer</item>
+        <item name="colorTertiary">?attr/colorPrimary</item>
+        <item name="colorOnTertiary">?attr/colorOnPrimary</item>
+        <item name="colorTertiaryContainer">?attr/colorPrimaryContainer</item>
+        <item name="colorOnTertiaryContainer">?attr/colorOnPrimaryContainer</item>
+    </style>
+
+    <!--
+      Material You: wallpaper-based dynamic palette on Android 12 (API 31)+.
+      On older platforms this overlay resolves to the static scheme below.
+    -->
+    <style name="ThemeOverlay.Photon.Dynamic" parent="ThemeOverlay.Material3Expressive.DynamicColors.DayNight" />
+
+    <!--
+      Pre-dynamic-color fallback (Android 11 and below). Keeps the legacy
+      PhotonCamera deep purple scheme.
+    -->
+    <style name="ThemeOverlay.Photon.Default" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_deep_purple_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_deep_purple_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_deep_purple_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Eszdman" parent="ThemeOverlay.Photon.Accent">
         <item name="colorPrimary">#9F39B9</item>
+        <item name="colorOnPrimary">@android:color/white</item>
         <item name="colorPrimaryContainer">#7B2D8F</item>
+        <item name="colorOnPrimaryContainer">@android:color/white</item>
         <item name="cameraFragmentBackground">@drawable/updatetheme</item>
     </style>
 
-
-
-    <style name="BlueTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_blue_600</item>
+    <style name="ThemeOverlay.Photon.Blue" parent="ThemeOverlay.Photon.Accent">
         <item name="colorPrimary">@color/md_blue_400</item>
-        <item name="colorAccent">@color/md_blue_400</item>
-    </style>
-
-    <style name="RedTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_red_400_dark</item>
-        <item name="colorPrimary">@color/md_red_400</item>
-        <item name="colorAccent">@color/md_red_400</item>
-    </style>
-
-    <style name="OrangeTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_orange_400_dark</item>
-        <item name="colorPrimary">@color/md_orange_400</item>
-        <item name="colorAccent">@color/md_orange_400</item>
-    </style>
-
-    <style name="GreenTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_light_green_500_dark</item>
-        <item name="colorPrimary">@color/md_light_green_500</item>
-        <item name="colorAccent">@color/md_light_green_500</item>
-    </style>
-
-    <style name="PinkTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_pink_400_dark</item>
-        <item name="colorPrimary">@color/md_pink_400</item>
-        <item name="colorAccent">@color/md_pink_400</item>
-    </style>
-
-    <style name="CyanTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_cyan_400_dark</item>
-        <item name="colorPrimary">@color/md_cyan_400</item>
-        <item name="colorAccent">@color/md_cyan_400</item>
-    </style>
-
-    <style name="TealTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/md_teal_400_dark</item>
-        <item name="colorPrimary">@color/md_teal_400</item>
-        <item name="colorAccent">@color/md_teal_400</item>
-    </style>
-
-    <style name="WhiteTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
-        <item name="colorPrimaryContainer">@color/white_theme_background</item>
-        <item name="colorPrimary">@color/white_theme_background</item>
-        <item name="colorAccent">@color/white_theme_background</item>
         <item name="colorOnPrimary">@android:color/black</item>
-        <item name="processingProgressColor">@android:color/black</item>
-        <item name="modeSelectedTextColor">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_blue_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_blue_900</item>
     </style>
 
-    <style name="GradientBackgroundTheme" parent="ThemeOverlay.Material3.DynamicColors.DayNight">
+    <style name="ThemeOverlay.Photon.Red" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_red_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_red_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_red_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Orange" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_orange_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_orange_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_orange_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Green" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_light_green_500</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_light_green_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_light_green_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Pink" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_pink_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_pink_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_pink_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Cyan" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_cyan_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_cyan_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_cyan_900</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.Teal" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/md_teal_400</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/md_teal_100</item>
+        <item name="colorOnPrimaryContainer">@color/md_teal_900</item>
+    </style>
+
+    <!-- Fixed light neutral accent. Intentionally not overridden in values-night. -->
+    <style name="ThemeOverlay.Photon.White" parent="ThemeOverlay.Photon.Accent">
+        <item name="colorPrimary">@color/white_theme_background</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorPrimaryContainer">@color/white_theme_background</item>
+        <item name="colorOnPrimaryContainer">@android:color/black</item>
+    </style>
+
+    <style name="ThemeOverlay.Photon.GradientBackground" parent="ThemeOverlay.Photon.Accent">
         <item name="cameraFragmentBackground">@drawable/gradient_vector</item>
     </style>
 </resources>

@@ -38,7 +38,8 @@
             <ImageButton
                     android:layout_gravity="center"
                     android:id="@+id/flip_camera_button"
-                    android:background="#00000000"
+                    android:background="@android:color/transparent"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:onClick="@{bottom_bar_click_listener}"
                     android:contentDescription="Lens Switch Button"
@@ -63,37 +64,36 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 >
 
+            <!-- Background is the morphing MorphShapeDrawable in photo modes
+                 (RecordButtonDrawable in video/unlimited/raw-video modes),
+                 set in CameraUIViewImpl. -->
             <ImageButton
                     android:id="@+id/shutter_button"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@drawable/roundbutton"
                     android:clickable="true"
                     android:contentDescription="Shutter Button"
                     android:onClick="@{bottom_bar_click_listener}"
-                    android:scaleX="0.75"
-                    android:scaleY="0.75"
                     android:textAppearance="@style/TextAppearance.AppCompat"
                     android:visibility="visible"
                     tools:ignore="HardcodedText"
                     tools:text="Shot"/>
 
-            <ProgressBar
+            <!-- Burst/processing ring: the M3E wavy expressive indicator, thick
+                 and bright enough to read against the shutter disc. -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/processing_progress_bar"
-                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:indeterminate="false"
                     android:max="100"
                     tools:progress="50"
-                    android:progressDrawable="@drawable/circular_progress_bar2"
-                    android:indeterminateBehavior="cycle"
-                    android:indeterminateDuration="2000"
-                    android:indeterminateDrawable="@drawable/circular_progress_bar2"
-                    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
-                    android:scaleX="1.35"
-                    android:scaleY="1.35"
-                    />
+                    app:indicatorSize="72dp"
+                    app:trackThickness="5dp"
+                    app:indicatorColor="?attr/colorOnPrimaryContainer"
+                    app:trackColor="?attr/colorOnSurfaceVariant" />
 
             <TextView
                     android:id="@+id/frameCount"
@@ -101,7 +101,7 @@
                     android:layout_height="wrap_content"
                     tools:text="25"
                     android:text="@{timermodel.frameCount}"
-                    android:textColor="@android:color/white"
+                    android:textColor="?attr/colorOnPrimaryContainer"
                     android:textSize="34sp"
                     android:textAlignment="center"
                     android:typeface="normal"

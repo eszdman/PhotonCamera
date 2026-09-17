@@ -69,7 +69,7 @@ public class BilateralSeparable extends Node {
         float adjustedSpatialSigma = spatialSigma / (float)Math.sqrt(2.0);
 
         // Allocate temporary texture for intermediate result
-        GLTexture tempTexture = basePipeline.main3;
+        GLTexture tempTexture = basePipeline.getMain3();
 
         // ========================================
         // PASS 1: Vertical filtering (Y direction)

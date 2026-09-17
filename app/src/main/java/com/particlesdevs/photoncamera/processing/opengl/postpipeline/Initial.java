@@ -21,6 +21,7 @@ import java.util.Arrays;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
+import static android.opengl.GLES20.GL_NEAREST;
 import static com.particlesdevs.photoncamera.util.Math2.mix;
 
     public class Initial extends Node {
@@ -116,6 +117,136 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     float[] intenseHardCurveY;
     
     @Override
+    public int halo() {
+        // FUSION path taps +-2; default path is pointwise.
+        return ((PostPipeline) basePipeline).FusionMap != null ? 2 : 0;
+    }
+
+    /**
+     * Shot defines for the Initial program, shared by production Run() and
+     * every harness band: re-issued before each program bind because useShader
+     * consumes the define list on every use. Pure reads of params/settings;
+     * no GL resources are created here (LUTs are built once in Run()).
+     */
+    private void renderInitialDefines() {
+        glProg.setDefine("GAMMAX1",  gammax1  );
+        glProg.setDefine("GAMMAX2",  gammax2  );
+        glProg.setDefine("GAMMAX3",  gammax3  );
+        glProg.setDefine("TONEMAPX1",tonemapx1);
+        glProg.setDefine("TONEMAPX2",tonemapx2);
+        glProg.setDefine("TONEMAPX3",tonemapx3);
+        glProg.setDefine("SATURATIONCONST",saturationConst);
+        glProg.setDefine("SATURATIONGAUSS",saturationGauss);
+        glProg.setDefine("SATURATIONRED",  saturationRed);
+        glProg.setDefine("NOISEO",  basePipeline.noiseO);
+        glProg.setDefine("NOISES",  basePipeline.noiseS);
+        glProg.setDefine("EPS", eps);
+        glProg.setDefine("SOFTKNEE", highlightSoftness);
+
+        if(postlut != null && postlut.exists()){
+            glProg.setDefine("POSTLUT",true);
+            int lutBase = (int)(0.1f+Math.pow(lutbm.size.x,1.0/3.0));
+            Log.d(Name,"LutBase:"+lutBase);
+            glProg.setDefine("POSTLUTSIZETILES", (float) lutBase);
+            glProg.setDefine("POSTLUTSIZE", (float) (lutBase*lutBase));
+        }
+
+        glProg.setDefine("FUSIONGAIN",((PostPipeline)(basePipeline)).fusionGain);
+
+        float sat =(float) basePipeline.mSettings.saturation;
+        if(basePipeline.mSettings.cfaPattern == 4) {
+            sat = 0.f;
+        }
+        glProg.setDefine("SATURATION2",sat);
+        glProg.setDefine("SATURATION",sat*highersatmpy);
+        float green = ((((PostPipeline)basePipeline).analyzedBL[0]+((PostPipeline)basePipeline).analyzedBL[2]+0.0002f)/2.f)/
+                        (((PostPipeline)basePipeline).analyzedBL[1]+0.0001f);
+        if(green > 0.0f && green < 1.7f) {
+            float tcor = (green+1.f)/2.f;
+            glProg.setDefine("TINT",tcor);
+            glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
+        }
+        float[] WP = basePipeline.mParameters.whitePoint;
+        float minP = (WP[0]+WP[1]+WP[2])/3.f;
+        if (basePipeline.mParameters.HSVMap != null)
+            glProg.setDefine("USE_HSV", 1);
+        if (basePipeline.mParameters.LookMap != null)
+            glProg.setDefine("LOOKUP", 1);
+        glProg.setDefine("MINP",minP);
+        glProg.setDefine("NEUTRALPOINT",WP);
+        glProg.setDefine("INSIZE",basePipeline.workSize);
+        glProg.setDefine("CONTRAST", (float) basePipeline.mSettings.contrastMpy);
+        glProg.setDefine("SHADOWS", (float) basePipeline.mSettings.shadows);
+        glProg.setDefine("VIGNETTE", vignetteCorrection);
+        glProg.setDefine("LTMMIX", ltmMix);
+        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+            glProg.setDefine("CCT", 1);
+        }
+        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
+        if(((PostPipeline)basePipeline).exposureCurve != null) glProg.setDefine("EXPOCURVE", 1);
+    }
+
+    /**
+     * Full texture/uniform re-issue for an input, shared by production Run()
+     * and every harness band (ABLC.renderLevels / Bayer2Float.drawMain
+     * pattern). The program itself is bound once in Run(), never per band:
+     * re-binding the already-bound program per band blacks a later draw on
+     * Adreno, while re-issuing every uniform/texture is sufficient for
+     * bit-exact bands. Selects the tile target while tileActive.
+     */
+    private void renderInitialBinds(GLTexture input) {
+        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
+        float[][] cube = null;
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+            if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
+            cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
+            else
+                cube = basePipeline.mParameters.CCT.cubes[0].cube;
+        }
+        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
+            glProg.setVar("CUBE0",cube[0]);
+            glProg.setVar("CUBE1",cube[1]);
+            glProg.setVar("CUBE2",cube[2]);
+        }
+        float[] cct = basePipeline.mParameters.CCT.matrix;
+        if(mode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
+            cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
+        }
+        if(lutLoaded) {
+            glProg.setTexture("LookupTable", lut);
+        }
+        if(postLut != null) glProg.setTexture("PostLut",postLut);
+        if (basePipeline.mParameters.HSVMap != null) {
+            glProg.setTexture("HSVMap", HSVTexture);
+        }
+        if (basePipeline.mParameters.LookMap != null) {
+            glProg.setTexture("LookMap", LookupTexture);
+        }
+        glProg.setTexture("GammaCurve",GammaTexture);
+        glProg.setTexture("InputBuffer",input);
+        glProg.setVar("u_tileOrigin", 0, tileActive() ? tileY0 : 0);
+        android.graphics.Point fullSize = basePipeline.workSize != null
+                ? basePipeline.workSize : super.previousNode.WorkingTexture.mSize;
+        glProg.setVar("u_fullSize", (float) fullSize.x, (float) fullSize.y);
+        glProg.setTexture("IntenseCurve",interpolatedCurve);
+        glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
+        glProg.setVar("toneMapCoeffs", -2.f+2.f*toneMix, 3.f-3.f*toneMix, toneMix, 0.f);
+        Log.d(Name,"sensorToIntermediate: "+ Arrays.toString(basePipeline.mParameters.sensorToProPhoto));
+        glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
+        Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
+        glProg.setVar("intermediateToSRGB",cct);
+        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
+        if(((PostPipeline)basePipeline).exposureCurve != null) {
+            glProg.setTexture("ExposureCurve",((PostPipeline)basePipeline).exposureCurve);
+            glProg.setVar("adaptiveWhitePoint", ((PostPipeline)basePipeline).adaptiveWhitePoint);
+        }
+        Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
+        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
+                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
+        WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
+    }
+
     public void Run() {
         // Cheap-pass support: keep the linear buffer (Initial's input = post
         // demosaic/denoise/ABLC) so the Ultra HDR gain-map pass can measure
@@ -204,88 +335,13 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
                 new GLFormat(GLFormat.DataType.FLOAT_16), BufferUtils.getFrom(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
 
-        glProg.setDefine("GAMMAX1",  gammax1  );
-        glProg.setDefine("GAMMAX2",  gammax2  );
-        glProg.setDefine("GAMMAX3",  gammax3  );
-        glProg.setDefine("TONEMAPX1",tonemapx1);
-        glProg.setDefine("TONEMAPX2",tonemapx2);
-        glProg.setDefine("TONEMAPX3",tonemapx3);
-        glProg.setDefine("SATURATIONCONST",saturationConst);
-        glProg.setDefine("SATURATIONGAUSS",saturationGauss);
-        glProg.setDefine("SATURATIONRED",  saturationRed);
-        glProg.setDefine("NOISEO",  basePipeline.noiseO);
-        glProg.setDefine("NOISES",  basePipeline.noiseS);
-        glProg.setDefine("EPS", eps);
-        glProg.setDefine("SOFTKNEE", highlightSoftness);
-
         if(postlut != null && postlut.exists()){
             lutbm = new GLImage(postlut);
             postLut = new GLTexture(lutbm,GL_LINEAR,GL_CLAMP_TO_EDGE,0);
-            glProg.setDefine("POSTLUT",true);
-            int lutBase = (int)(0.1f+Math.pow(lutbm.size.x,1.0/3.0));
-            Log.d(Name,"LutBase:"+lutBase);
-            glProg.setDefine("POSTLUTSIZETILES", (float) lutBase);
-            glProg.setDefine("POSTLUTSIZE", (float) (lutBase*lutBase));
         }
 
-        glProg.setDefine("FUSIONGAIN",((PostPipeline)(basePipeline)).fusionGain);
-
-        float sat =(float) basePipeline.mSettings.saturation;
-        if(basePipeline.mSettings.cfaPattern == 4) {
-            sat = 0.f;
-        }
-        glProg.setDefine("SATURATION2",sat);
-        glProg.setDefine("SATURATION",sat*highersatmpy);
-        //TonemapCoeffs = new GLTexture(new Point(256,1),new GLFormat(GLFormat.DataType.FLOAT_16,1),FloatBuffer.wrap(basePipeline.mSettings.toneMap),GL_LINEAR,GL_CLAMP_TO_EDGE);
-        /*GLTexture oldT = TonemapCoeffs;
-        TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
-        oldT.close();
-        oldT = TonemapCoeffs;
-        TonemapCoeffs = glUtils.interpolate(TonemapCoeffs,2);
-        oldT.close();*/
-        float green = ((((PostPipeline)basePipeline).analyzedBL[0]+((PostPipeline)basePipeline).analyzedBL[2]+0.0002f)/2.f)/
-                        (((PostPipeline)basePipeline).analyzedBL[1]+0.0001f);
-        if(green > 0.0f && green < 1.7f) {
-            float tcor = (green+1.f)/2.f;
-            glProg.setDefine("TINT",tcor);
-            glProg.setDefine("TINT2",((1.f/tcor+1.f)/2.f));
-        }
-        //float[] BL = ((PostPipeline)basePipeline).analyzedBL;
-        float[] WP = basePipeline.mParameters.whitePoint;
-        float minP = (WP[0]+WP[1]+WP[2])/3.f;
-        if (basePipeline.mParameters.HSVMap != null)
-            glProg.setDefine("USE_HSV", 1);
-        if (basePipeline.mParameters.LookMap != null)
-            glProg.setDefine("LOOKUP", 1);
-        glProg.setDefine("MINP",minP);
-        glProg.setDefine("NEUTRALPOINT",WP);
-        glProg.setDefine("INSIZE",basePipeline.workSize);
-        glProg.setDefine("CONTRAST", (float) basePipeline.mSettings.contrastMpy);
-        glProg.setDefine("SHADOWS", (float) basePipeline.mSettings.shadows);
-        glProg.setDefine("VIGNETTE", vignetteCorrection);
-        glProg.setDefine("LTMMIX", ltmMix);
-        float[][] cube = null;
-        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
-            glProg.setDefine("CCT", 1);
-            if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
-            cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
-            else
-                cube = basePipeline.mParameters.CCT.cubes[0].cube;
-        }
-        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
-        if(((PostPipeline)basePipeline).exposureCurve != null) glProg.setDefine("EXPOCURVE", 1);
-        glProg.useAssetProgram("Initial/initial");
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
-            glProg.setVar("CUBE0",cube[0]);
-            glProg.setVar("CUBE1",cube[1]);
-            glProg.setVar("CUBE2",cube[2]);
-        }
-        float[] cct = basePipeline.mParameters.CCT.matrix;
-        if(mode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
-            cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
-            Log.d(Name,"CCT:"+ Arrays.toString(cct));
-        }
+        // Shot defines live in renderInitialDefines() (re-issued per band).
+        // Program bind plus uniforms/textures live in renderInitialBinds().
         float[] gamma = new float[1024];
         for (int i = 0; i < gamma.length; i++) {
             double pos = ((float) i) / (gamma.length - 1.f);
@@ -297,7 +353,6 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         boolean loaded = false;
         if(customlut.exists()){
             lutbm = new GLImage(customlut);
-            glProg.setDefine("LUT",true);
             lutLoaded = true;
         } else {
             try {
@@ -309,41 +364,111 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         }
         if(lutLoaded) {
             lut = new GLTexture(lutbm, GL_LINEAR, GL_CLAMP_TO_EDGE, 0);
-            glProg.setTexture("LookupTable", lut);
         }
-        if(postLut != null) glProg.setTexture("PostLut",postLut);
         if (basePipeline.mParameters.HSVMap != null) {
             HSVTexture = new GLTexture(new Point(basePipeline.mParameters.HSVMapSize[1], basePipeline.mParameters.HSVMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.HSVMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
-            glProg.setTexture("HSVMap", HSVTexture);
         }
         if (basePipeline.mParameters.LookMap != null) {
             LookupTexture = new GLTexture(new Point(basePipeline.mParameters.LookMapSize[2] * basePipeline.mParameters.LookMapSize[1], basePipeline.mParameters.LookMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.LookMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
-            glProg.setTexture("LookMap", LookupTexture);
         }
         //glProg.setTexture("TonemapTex",TonemapCoeffs);
-        glProg.setTexture("GammaCurve",GammaTexture);
-        glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
-        glProg.setTexture("IntenseCurve",interpolatedCurve);
-        glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
-        glProg.setVar("toneMapCoeffs", -2.f+2.f*toneMix, 3.f-3.f*toneMix, toneMix, 0.f);
-        Log.d(Name,"sensorToIntermediate: "+ Arrays.toString(basePipeline.mParameters.sensorToProPhoto));
-        glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
-        Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
-        glProg.setVar("intermediateToSRGB",cct);
-        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setTexture("FusionMap",((PostPipeline)basePipeline).FusionMap);
-        if(((PostPipeline)basePipeline).exposureCurve != null) {
-            glProg.setTexture("ExposureCurve",((PostPipeline)basePipeline).exposureCurve);
-            glProg.setVar("adaptiveWhitePoint", ((PostPipeline)basePipeline).adaptiveWhitePoint);
-        }
-        Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
-        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
-                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
-        //glProg.setVar("neutralPoint",WP);
-        //Log.d(Name,"compressor:"+1.f/((float)basePipeline.mSettings.compressor));
-        //glProg.setVar("saturation0",sat);
-        //glProg.setVar("saturation",0.f);
-        //WorkingTexture = new GLTexture(super.previousNode.WorkingTexture.mSize,new GLFormat(GLFormat.DataType.FLOAT_16, GLConst.WorkDim),null);
-        WorkingTexture = basePipeline.getMain();
+        renderInitialDefines();
+        glProg.useAssetProgram("Initial/initial");
+        renderInitialBinds(super.previousNode.WorkingTexture);
+        // Historical position: set after the program bind, so it stays out of
+        // Initial's own compile key exactly as before (pending downstream).
+        if (customlut.exists()) glProg.setDefine("LUT", true);
         //((PostPipeline)basePipeline).GainMap.close();
+    }
+
+    @Override
+    public void postDrawOracle() {
+        // Deferred-draw node: the full output only exists after
+        // drawProgramTexture runs (an in-Run oracle would compare a stale
+        // unrendered texture).
+        if (((PostPipeline) basePipeline).debugTiledCompare) {
+            verifyRegions();
+        }
+    }
+
+    /**
+     * Harness oracle (debugTiledCompare): blits input bands into tile
+     * textures (exactly as the production driver will) and requires
+     * bit-exactness vs the full render. Skipped on the Fusion path (halo 2:
+     * bands would need skirts; covered by the halo contract instead).
+     */
+    private void verifyRegions() {
+        if (((PostPipeline) basePipeline).FusionMap != null) {
+            Log.d("TiledHarness", "initial strips skipped (fusion path)");
+            return;
+        }
+        GLTexture fullOut = WorkingTexture;
+        GLTexture fullIn = super.previousNode.WorkingTexture;
+        int imgW = fullOut.mSize.x;
+        int imgH = fullOut.mSize.y;
+        // 512-row bands (not 4-row): matches production tile scale and stays
+        // clear of any tiny-FBO driver quirks while diagnosing.
+        float worst = TileDriver.verifyNodeBands(fullOut, imgW, imgH, 512,
+                "TiledHarness", (b0, rows) -> {
+                    GLTexture inTile = new GLTexture(new android.graphics.Point(imgW, rows),
+                            new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                            null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    TileDriver.blitBand(fullIn, inTile, b0, rows);
+                    float inDiff = TileDriver.compareBand(fullIn, inTile, imgW, b0, rows,
+                            "TiledHarness-blit");
+                    if (inDiff != 0f) {
+                        Log.e("TiledHarness", "initial blit band [" + b0 + "," + (b0 + rows)
+                                + ") maxDiff=" + inDiff);
+                    }
+                    GLTexture reg = new GLTexture(new android.graphics.Point(imgW, rows),
+                            new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                            null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+                    tileY0 = b0;
+                    tileY1 = b0 + rows;
+                    tileOut = reg;
+                    // Full uniform/texture re-issue per band (no program rebind:
+                    // it blacks a later draw); renderInitialBinds selects reg
+                    // as WorkingTexture while tileActive.
+                    renderInitialBinds(inTile);
+                    logTileUniforms(b0);
+                    glProg.drawBlocks(reg);
+                    inTile.close();
+                    return reg;
+                });
+        Log.d("TiledHarness", "initial strips maxDiff=" + worst);
+        tileY0 = 0;
+        tileY1 = -1;
+        tileOut = null;
+        WorkingTexture = fullOut;
+        // Initial never sets closed=true, so runAllInternal redraws it after
+        // Run returns: restore the legacy origin or the final draw shifts.
+        glProg.setVar("u_tileOrigin", 0, 0);
+        glProg.setTexture("InputBuffer", fullIn);
+    }
+
+    /**
+     * Reads back the tile uniforms live from the bound program: proves the
+     * setVar path (location valid, value latched) vs a stale/missing shader
+     * declaration (location -1, stale values). Diagnostic only.
+     */
+    private void logTileUniforms(int b0) {
+        try {
+            int prog = glProg.mCurrentProgramActive;
+            int locO = android.opengl.GLES30.glGetUniformLocation(prog, "u_tileOrigin");
+            int[] o = new int[2];
+            if (locO >= 0) {
+                android.opengl.GLES30.glGetUniformiv(prog, locO, o, 0);
+            }
+            int locS = android.opengl.GLES30.glGetUniformLocation(prog, "u_fullSize");
+            float[] s = new float[2];
+            if (locS >= 0) {
+                android.opengl.GLES30.glGetUniformfv(prog, locS, s, 0);
+            }
+            Log.d("TiledHarness", "tile uniforms band=" + b0 + " originLoc=" + locO
+                    + " origin=(" + o[0] + "," + o[1] + ") sizeLoc=" + locS
+                    + " size=(" + s[0] + "," + s[1] + ")");
+        } catch (Throwable t) {
+            Log.e("TiledHarness", "tile uniform readback failed", t);
+        }
     }
 }

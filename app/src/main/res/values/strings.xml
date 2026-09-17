@@ -14,6 +14,11 @@
     <string name="chroma_nr_count">Chroma NR Count</string>
     <string name="enhanced_processing">Enhanced Processing</string>
     <string name="settings">Settings</string>
+    <string name="zoom_slider_desc">Zoom slider</string>
+    <string name="zoom_lock_desc">Lock zoom to current lens</string>
+    <string name="zoom_unlock_desc">Unlock zoom (auto lens switch)</string>
+    <string name="auto_zoom_lens_switch">Auto zoom lens switch</string>
+    <string name="auto_zoom_lens_switch_summary">Automatically switch lenses while zooming. Shows the lock pill.</string>
 
     <string name="comp">Compressor</string>
     <string name="gain">Gain</string>
@@ -26,9 +31,13 @@
     <string name="jpg" translatable="false">JPEG</string>
     <string name="hdrx" translatable="false">HDRX</string>
     <string name="ultrahdr">Ultra HDR</string>
-    <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass)</string>
+    <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
+    <string name="lens_bar_position">Lens Bar Position</string>
+    <string name="lens_bar_position_right">Right</string>
+    <string name="lens_bar_position_center">Center</string>
+    <string name="lens_bar_position_left">Left</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>
     <string name="noise_merge_str">Noise Merge Strength</string>
     <string name="raw">Save</string>
@@ -74,6 +83,8 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
+    <string name="record_video_desc">Record video</string>
+    <string name="stop_recording_desc">Stop recording</string>
     <string name="energy_saving">Battery Saver</string>
     <string name="hide_gallery_icon">Hide Gallery Icon</string>
     <string name="theme">Theme</string>
@@ -82,6 +93,7 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_accent">Theme Color</string>
     <string name="Default">Default</string>
+    <string name="theme_accent_default">Material You</string>
     <string name="theme_accent_blue">Blue</string>
     <string name="theme_accent_red">Red</string>
     <string name="theme_accent_orange">Orange</string>
@@ -90,7 +102,10 @@
     <string name="theme_accent_cyan">Cyan</string>
     <string name="theme_accent_teal">Teal</string>
     <string name="theme_accent_white">White</string>
-    <string name="show_gradient">Show Gradient Background</string>
+    <string name="viewfinder_background">Viewfinder background</string>
+    <string name="viewfinder_background_none">None</string>
+    <string name="viewfinder_background_gradient">Gradient</string>
+    <string name="viewfinder_background_blur">Blurred edges</string>
     <string name="unprocessed_raw">Unprocessed RAW</string>
     <string name="frame_count_summary">Number of image frames to be stacked</string>
     <string name="photon_camera_summary">An Open-Source Android Camera with Enhanced Image Processing</string>
@@ -141,7 +156,12 @@
     <string name="t_3s">3s</string>
     <string name="t_10s">10s</string>
     <string name="raw_string" translatable="false">RAW</string>
+    <string name="save_heic">Save HEIC</string>
+    <string name="save_heic_summary">Use HEIC instead of JPEG — smaller files at the same quality</string>
+    <string name="heic_failed_saved_jpeg">HEIC encoding failed — saved JPEG instead</string>
     <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
+    <string name="raw_plus_heic" translatable="false">RAW + HEIC</string>
+    <string name="heic_only" translatable="false">HEIC</string>
     <string name="jpg_only" translatable="false">JPEG</string>
     <string name="off">Off</string>
     <string name="golden_ratio">Golden Ratio</string>
@@ -173,6 +193,7 @@
 
     <!-- Video Settings -->
     <string name="video_settings">Video Settings</string>
+    <string name="video_settings_summary">Resolution, bitrate, codec, HDR and tuning</string>
     <string name="raw_video_settings">Raw Video Settings</string>
     <string name="rawvideo_downscale_4x">Downscale 4x</string>
     <string name="rawvideo_write_zip">Write ZIP</string>
@@ -184,6 +205,38 @@
     <string name="video_res_4k" translatable="false">3840x2160 (4K)</string>
     <string name="video_res_fhd" translatable="false">1920x1080 (Full HD)</string>
     <string name="video_res_hd" translatable="false">1280x720 (HD)</string>
+    <string name="video_bitrate">Bitrate (Mbit/s)</string>
+    <string name="video_bitrate_default" translatable="false">30</string>
+    <string name="video_save_storage">Save storage (HEVC/H.265)</string>
+    <string name="video_save_storage_summary">Uses HEVC/H.265 instead of AVC/H.264 for smaller files at the same quality. Must be enabled for HDR or 10-bit video.</string>
+    <string name="video_hdr">HDR video</string>
+    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video. Requires Save storage (HEVC).</string>
+    <string name="video_hdr_transfer">HDR Transfer</string>
+    <string name="video_hdr_transfer_default" translatable="false">hlg</string>
+    <string name="video_use_logical_id">Use logical camera id</string>
+    <string name="video_use_logical_id_summary">Open one logical camera in video mode and switch its lenses without reopening. Only applies in video mode.</string>
+    <string name="video_logical_id">Logical camera id</string>
+    <string name="video_logical_id_summary">Logical camera id used for video when the switch above is on</string>
+    <string name="video_logical_id_default" translatable="false">0</string>
+    <string name="video_logical_lenses">Logical lenses (manual)</string>
+    <string name="video_logical_lenses_summary">Comma-separated zoom factors, e.g. "0.6,1.0,3.1". Used instead of auto discovery whenever set; empty means auto.</string>
+    <string name="video_logical_lenses_default" translatable="false"></string>
+    <string name="video_logical_id_unsupported">That camera id is not a logical camera on this device.</string>
+    <string name="video_hevc_unsupported">No HEVC/H.265 video encoder on this device — AVC/H.264 will be used.</string>
+    <string name="video_hdr_unsupported">No 10-bit HEVC (Main10) encoder on this device — HDR video unavailable.</string>
+    <string name="video_tunable_keys_sdr">SDR video tunable keys</string>
+    <string name="video_tunable_summary_sdr">Custom vendor tags applied for SDR video only, on every sensor</string>
+    <string name="video_tunable_add_summary_sdr">Add a custom vendor tag applied for SDR video only (type, name, value)</string>
+    <string name="video_tunable_keys_hdr">HDR video tunable keys</string>
+    <string name="video_tunable_summary_hdr">Custom vendor tags applied for HDR video only, on every sensor</string>
+    <string name="video_tunable_add_summary_hdr">Add a custom vendor tag applied for HDR video only (type, name, value)</string>
+    <string name="audio_settings">Audio Settings</string>
+    <string name="audio_bitrate">Bitrate (kbit/s)</string>
+    <string name="audio_bitrate_default" translatable="false">128</string>
+    <string name="audio_stereo">Stereo channel</string>
+    <string name="audio_stereo_summary">Record in stereo. When off, audio is recorded in mono (single channel).</string>
+    <string name="audio_source">Audio source</string>
+    <string name="audio_source_default" translatable="false">camcorder</string>
 
     <!-- Storage Access Framework folder picker -->
     <string name="select_dcim_folder_hint">Select the DCIM folder for saving photos</string>
@@ -202,4 +255,10 @@
     <string name="perm_rationale_audio_message">Microphone access is required for video recording with audio.</string>
     <string name="perm_rationale_dcim_title">DCIM Folder Access</string>
     <string name="perm_rationale_dcim_message">Access to the DCIM folder is required for saving RAW video files and reading device custom configs.</string>
+
+    <!-- Lockscreen secure-camera session -->
+    <string name="secure_camera_unlock_title">Unlock device</string>
+    <string name="secure_camera_unlock_gallery_message">Unlock your device to view the gallery</string>
+    <string name="secure_camera_gallery_locked">Unlock your device to view the gallery</string>
+    <string name="secure_camera_settings_locked">Unlock your device to access settings</string>
 </resources>

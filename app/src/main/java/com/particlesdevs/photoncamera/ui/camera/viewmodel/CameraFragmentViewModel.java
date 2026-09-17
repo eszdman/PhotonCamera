@@ -109,8 +109,25 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Clears the gallery-button thumbnail so no pre-lock photo is visible while
+     * the device is locked. The next {@link #updateGalleryThumb} call repopulates it
+     * (history query after unlock, or explicit session-capture Uri while locked).
+     */
+    public void clearGalleryThumb() {
+        cameraFragmentModel.setBitmap(null);
+    }
+
     public void setScreenAspectRatio(float aspectRatio){
         cameraFragmentModel.setScreenAspectRatio(aspectRatio);
+    }
+
+    public void setZoomRatio(float zoomRatio) {
+        cameraFragmentModel.setZoomRatio(zoomRatio);
+    }
+
+    public float getZoomRatio() {
+        return cameraFragmentModel.getZoomRatio();
     }
 
     public boolean isSettingsBarVisible() {

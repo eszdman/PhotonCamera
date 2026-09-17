@@ -3,6 +3,7 @@
 //
 #include <jni.h>
 #include <android/log.h>
+#include <cstdlib>
 #include <string>
 #include <sstream>
 #include <cmath>
@@ -1219,5 +1220,19 @@ JNIEXPORT void JNICALL Java_com_particlesdevs_photoncamera_processing_DngCreator
         if (creator) {
             creator->closeArchive();
         }
+    }
+
+    // Frees a buffer returned by createDNG (malloc'd by WriteToMemory).
+    // NewDirectByteBuffer does not take ownership: without this the ~128 MB+
+    // per DNG leaks permanently (GC cannot free malloc'd memory).
+    JNIEXPORT void JNICALL Java_com_particlesdevs_photoncamera_processing_DngCreator_freeDNG(JNIEnv *env, jobject obj, jobject dngData) {
+        if (dngData == nullptr) {
+            return;
+        }
+        void* ptr = env->GetDirectBufferAddress(dngData);
+        if (ptr == nullptr) {
+            return;
+        }
+        free(ptr);
     }
 }

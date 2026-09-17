@@ -118,7 +118,6 @@ dependencies {
     implementation 'org.jetbrains:annotations:26.1.0'
     implementation 'androidx.exifinterface:exifinterface:1.4.2'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'com.github.mohammadatif:Animatoo:master'
     implementation 'com.github.bumptech.glide:glide:5.0.5'
     annotationProcessor 'com.github.bumptech.glide:compiler:5.0.5'
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
@@ -128,8 +127,13 @@ dependencies {
     implementation "androidx.navigation:navigation-ui-ktx:2.9.7"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
+    // Gallery modernization: ViewPager2 for bounded tiling/HDR (thumbnails via Glide - single loader to keep baseline low on 4GB)
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'com.google.android.material:material:1.14.0'
+    // M3E shape morphs and spring physics (declared explicitly; also provided by Material)
+    implementation 'androidx.graphics:graphics-shapes:1.0.1'
+    implementation 'androidx.dynamicanimation:dynamicanimation:1.1.0'
     implementation "androidx.core:core-ktx:1.18.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "com.anggrayudi:storage:2.2.0"

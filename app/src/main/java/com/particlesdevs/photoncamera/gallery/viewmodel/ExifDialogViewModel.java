@@ -74,13 +74,30 @@ public class ExifDialogViewModel extends AndroidViewModel {
         String attr_model = exifInterface.getAttribute(ExifInterface.TAG_MODEL);
         String attr_exp = exifInterface.getAttribute(ExifInterface.TAG_EXPOSURE_TIME);
         String attr_width = exifInterface.getAttribute(ExifInterface.TAG_IMAGE_WIDTH);
-        String attr_length = exifInterface.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);
-        String attr_iso = exifInterface.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
+        String attr_length = exifInterface.getAttribute(ExifInterface.TAG_IMAGE_LENGTH);        String attr_iso = exifInterface.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY);
         String attr_fnum = exifInterface.getAttribute(ExifInterface.TAG_F_NUMBER);
         String attr_focal = exifInterface.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
         String attr_date = exifInterface.getAttribute(ExifInterface.TAG_DATETIME);
 //        String attr_35mmfocal = exifInterface.getAttribute(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM);
 //        Log.d("attr_35mmfocal", "fetched attr_35mmfocal = " + attr_35mmfocal);
+
+        // Fallback for files without EXIF dimensions (HEIC with stripped
+        // EXIF, foreign files): decode bounds only, no pixel allocation.
+        if (attr_width == null || attr_length == null) {
+            try (InputStream boundsStream = contentResolver.openInputStream(imageFile.getFileUri())) {
+                if (boundsStream != null) {
+                    android.graphics.BitmapFactory.Options opts =
+                            new android.graphics.BitmapFactory.Options();
+                    opts.inJustDecodeBounds = true;
+                    android.graphics.BitmapFactory.decodeStream(boundsStream, null, opts);
+                    if (opts.outWidth > 0 && opts.outHeight > 0) {
+                        attr_width = String.valueOf(opts.outWidth);
+                        attr_length = String.valueOf(opts.outHeight);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
 
         String exposure = (Utilities.formatExposureTime(Double.parseDouble(attr_exp == null ? "NaN" : attr_exp)));
         String resolution_mp = (String.format(Locale.US, "%.1f",

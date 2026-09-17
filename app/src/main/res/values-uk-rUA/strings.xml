@@ -70,7 +70,6 @@
     <string name="theme_accent_cyan">Блакитний</string>
     <string name="theme_accent_teal">Чирково-зелений</string>
     <string name="theme_accent_white">Білий</string>
-    <string name="show_gradient">Показати градієнтний фон</string>
     <string name="unprocessed_raw">Необроблений RAW</string>
     <string name="frame_count_summary">Кількість кадрів зображень, які потрібно об\'єднати</string>
     <string name="photon_camera_summary">Камера Android з відкритим вихідним кодом із покращеною обробкою зображень</string>

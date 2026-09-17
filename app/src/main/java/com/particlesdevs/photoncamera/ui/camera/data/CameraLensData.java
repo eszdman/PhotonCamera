@@ -94,6 +94,10 @@ public class CameraLensData {
         this.cameraAperture = cameraAperture;
     }
 
+    public boolean getFlashSupported() {
+        return flashSupported;
+    }
+
     public void setFlashSupported(boolean flashSupported) {
         this.flashSupported = flashSupported;
     }

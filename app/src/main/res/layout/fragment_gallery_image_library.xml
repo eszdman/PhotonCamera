@@ -45,6 +45,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="?android:attr/colorBackground"
             android:animateLayoutChanges="true">
 
         <androidx.recyclerview.widget.RecyclerView
@@ -54,7 +55,7 @@
                 app:layout_constraintStart_toEndOf="@id/scrolling_gallery_folder_view"
                 app:layout_constraintEnd_toEndOf="parent"
                 android:layout_width="0dp"
-                android:padding="4dp"
+                android:padding="8dp"
                 android:layout_height="match_parent"
                 app:layoutManager="androidx.recyclerview.widget.StaggeredGridLayoutManager"
                 app:spanCount="@integer/grid_columns"
@@ -84,7 +85,8 @@
                 app:layout_constraintStart_toEndOf="@id/scrolling_gallery_folder_view">
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    app:backgroundTint="?colorControlActivated"
+                    app:backgroundTint="?attr/colorPrimaryContainer"
+                    app:tint="?attr/colorOnPrimaryContainer"
                     app:srcCompat="@drawable/ic_share"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -98,7 +100,8 @@
                     app:layout_constraintHorizontal_bias=".9" />
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    app:backgroundTint="?colorControlActivated"
+                    app:backgroundTint="?attr/colorErrorContainer"
+                    app:tint="?attr/colorOnErrorContainer"
                     app:srcCompat="@drawable/ic_delete"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -112,7 +115,8 @@
                     app:layout_constraintHorizontal_bias=".9" />
 
             <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-                    app:backgroundTint="?colorControlActivated"
+                    app:backgroundTint="?attr/colorPrimaryContainer"
+                    android:textColor="?attr/colorOnPrimaryContainer"
                     android:layout_width="60dp"
                     android:layout_height="60dp"
                     android:id="@+id/number_fab"
@@ -129,7 +133,8 @@
                     app:layout_constraintHorizontal_bias=".9" />
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    app:backgroundTint="?colorControlActivated"
+                    app:backgroundTint="?attr/colorSecondaryContainer"
+                    app:tint="?attr/colorOnSecondaryContainer"
                     app:srcCompat="@drawable/ic_compare"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -147,8 +152,8 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-                app:backgroundTint="?colorControlActivated"
-                app:tint="@android:color/black"
+                app:backgroundTint="?attr/colorPrimaryContainer"
+                app:tint="?attr/colorOnPrimaryContainer"
                 app:srcCompat="@drawable/ic_settings"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.pro;
 
 import android.content.Context;
 import android.os.Build;
+import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.processing.render.SpecificSettingSensor;
@@ -227,6 +228,24 @@ public class SensorSpecifics {
                     case "overrideRawColors":
                         current.overrideRawColors = Boolean.parseBoolean(valsIn[1]);
                         break;
+                    case "ISZ": {
+                        // In-Sensor Zoom virtual lens: { valueType ; keyName ; keyValue ; zoomRatio }
+                        // Fields are ';'-delimited so array keyValues (comma separated) stay intact.
+                        String iszBody = valsIn[1].replace("{", "").replace("}", "");
+                        String[] parts = iszBody.split(";");
+                        if (parts.length < 4) break;
+                        VendorTagUtils.TunableKey key = new VendorTagUtils.TunableKey();
+                        key.type = "CaptureRequest";
+                        key.valueType = parts[0].trim();
+                        key.name = parts[1].trim();
+                        key.value = parts[2].trim();
+                        current.iszKey = key;
+                        current.iszZoomRatio = Float.parseFloat(parts[3].trim());
+                        current.hasIsz = true;
+                        Log.d(TAG, "ISZ for sensor " + current.id + ": " + key.name
+                                + " (" + key.valueType + ") = " + key.value + " ratio " + current.iszZoomRatio);
+                        break;
+                    }
                 }
                 current.updateTransforms();
                 loaded[0] = true;
@@ -297,5 +316,22 @@ public class SensorSpecifics {
                 }
             }
         }
+    }
+
+    /**
+     * Returns the In-Sensor Zoom (ISZ) virtual-lens config for a physical sensor id,
+     * or {@code null} if that sensor does not expose an ISZ lens.
+     *
+     * @param sensorId the physical camera id (e.g. {@code 3})
+     * @return the specific setting sensor carrying an ISZ key, or {@code null}
+     */
+    public SpecificSettingSensor getIszForSensor(int sensorId) {
+        if (specificSettingSensor == null) return null;
+        for (SpecificSettingSensor specifics : specificSettingSensor) {
+            if (specifics != null && specifics.id == sensorId && specifics.hasIsz) {
+                return specifics;
+            }
+        }
+        return null;
     }
 }

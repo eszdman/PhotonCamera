@@ -4,5 +4,5 @@
     android:width="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path android:fillColor="#fff" android:pathData="M7.4,16l4.5-5h0.2l4.5,5l1.4-1.5L12.1,8h-0.2L6,14.5L7.4,16z" />
+    <path android:fillColor="@color/cam_on_surface" android:pathData="M7.4,16l4.5-5h0.2l4.5,5l1.4-1.5L12.1,8h-0.2L6,14.5L7.4,16z" />
 </vector>

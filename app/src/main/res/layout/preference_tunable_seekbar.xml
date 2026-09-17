@@ -3,68 +3,59 @@
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        android:gravity="top"
+        android:gravity="center_vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="?android:listPreferredItemHeight"
-        android:paddingEnd="?android:scrollbarSize"
-        android:paddingStart="16dp"
+        android:minHeight="@dimen/preference_row_min_height"
+        android:paddingTop="@dimen/preference_row_vertical_padding"
+        android:paddingBottom="@dimen/preference_row_vertical_padding"
+        android:paddingStart="@dimen/preference_row_horizontal_padding"
+        android:paddingEnd="@dimen/preference_row_horizontal_padding"
         android:orientation="vertical">
-    
-    <RelativeLayout
+
+    <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="@dimen/camera_settings_entry_margin"
-            android:layout_marginEnd="@dimen/camera_settings_entry_margin">
-        
-        <TextView
-                android:textSize="@dimen/camera_settings_preference_font_size"
-                android:ellipsize="marquee"
-                android:id="@android:id/title"
-                android:fadingEdge="horizontal"
-                tools:text="SeekBar Title"
-                android:gravity="start|center_vertical"
-                android:textColor="?android:textColorPrimary"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        
-        <TextView
-                android:textAppearance="?android:textAppearanceSmall"
-                android:textColor="?android:textColorSecondary"
-                android:id="@android:id/summary"
-                android:layout_width="wrap_content"
-                tools:text="SeekBar description"
-                android:layout_height="wrap_content"
-                android:layout_below="@android:id/title"
-                android:layout_alignStart="@android:id/title"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <SeekBar
-                android:id="@+id/seekbar"
-                android:paddingTop="@dimen/preference_seekbar_padding"
-                android:paddingBottom="@dimen/preference_seekbar_padding"
-                android:layout_width="match_parent"
+        <TextView
+                android:id="@android:id/title"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_below="@android:id/summary"
-                android:layout_toStartOf="@id/seekbar_value"
-                android:paddingStart="10dp"
-                android:paddingEnd="8dp"/>
-        
-        <TextView 
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="?attr/colorOnSurface"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:fadingEdge="horizontal"
+                tools:text="SeekBar Title"/>
+
+        <TextView
                 android:layout_width="@dimen/preference_seekbar_value_text_width"
                 android:layout_height="wrap_content"
-                android:textAppearance="?android:textAppearanceSmall"
-                android:textColor="?android:textColorSecondary"
                 android:id="@+id/seekbar_value"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:gravity="end|center_vertical"
                 android:paddingStart="@dimen/preference_seekbar_value_padding"
                 android:paddingEnd="@dimen/preference_seekbar_value_padding"
-                android:layout_alignParentEnd="true"
-                android:layout_alignBottom="@id/seekbar"
-                android:layout_alignTop="@id/seekbar"
-                android:gravity="center"
                 tools:text="10000"/>
-    </RelativeLayout>
+    </LinearLayout>
+
+    <TextView
+            android:id="@android:id/summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:maxLines="3"
+            tools:text="SeekBar description"/>
+
+    <com.google.android.material.slider.Slider
+            android:id="@+id/seekbar"
+            style="@style/Widget.Material3Expressive.Slider.Xsmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"/>
 </LinearLayout>
-
-
-

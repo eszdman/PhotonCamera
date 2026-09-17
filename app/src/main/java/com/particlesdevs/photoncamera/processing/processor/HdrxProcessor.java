@@ -18,16 +18,18 @@ import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.ImageFrameDeblur;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
+import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
+import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
+import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
-import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.util.Allocator;
 
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -107,6 +109,8 @@ public class HdrxProcessor extends ProcessorBase {
     private void ApplyHdrX() {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
+        Allocator.resetPeakMemory();
+        GLTexture.resetPeakVram();
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
@@ -119,6 +123,42 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Api BlackLevel:" + characteristics.get(CameraCharacteristics.SENSOR_BLACK_LEVEL_PATTERN));
         Parameters processingParameters = new Parameters();
         processingParameters.FillConstParameters(characteristics, new Point(width, height));
+        // Reflect any digital-zoom crop origin so sensor-relative metadata
+        // (active array, principal point) matches the cropped buffer.
+        ImageFrame first = mImageFramesToProcess.get(0);
+        processingParameters.setCropDetails(first.cropOriginX, first.cropOriginY);
+        if (first.fullWidth > 0 && first.fullHeight > 0) {
+            processingParameters.setFullRawSize(first.fullWidth, first.fullHeight);
+        }
+        // Packed burst staging: sensor samples never exceed whiteLevel, so
+        // each burst frame is repacked at ceil(log2(whiteLevel+1)) bits
+        // (2 B/px -> 1.25 B/px at the common 10-bit setting). Frames already
+        // packed at arrival (RAW16Saver) are skipped below and act as the
+        // fast path; this loop only handles leftovers. Uploads unpack
+        // on demand (ImageFrame.upload()); the merged output and the
+        // single-frame path stay 16-bit. Only tightly packed buffers are
+        // repacked; padded layouts keep their current form.
+        int packBits = processingParameters.whiteLevel > 0
+                ? 32 - Integer.numberOfLeadingZeros(processingParameters.whiteLevel) : 0;
+        if (mImageFramesToProcess.size() > 1 && packBits > 0 && packBits < 16) {
+            int packedCount = 0;
+            for (ImageFrame frame : mImageFramesToProcess) {
+                if (frame.buffer == null
+                        || frame.buffer.capacity() != frame.width * frame.height * 2) {
+                    continue;
+                }
+                ByteBuffer packed = Allocator.packBits(frame.buffer,
+                        frame.width * frame.height, packBits, PhotonCamera.DEBUG);
+                if (packed != null) {
+                    Allocator.free(frame.buffer);
+                    frame.buffer = packed;
+                    frame.packedBits = packBits;
+                    packedCount++;
+                }
+            }
+            Log.d(TAG, "Packed burst frames: " + packedCount + "/"
+                    + mImageFramesToProcess.size() + " at " + packBits + " bits");
+        }
         // sort by timestamp first
         mImageFramesToProcess.sort(Comparator.comparingLong(ImageFrame::getTimestamp));
         double minExpo = exposures.get(mImageFramesToProcess.get(0).getTimestamp());
@@ -151,11 +191,21 @@ public class HdrxProcessor extends ProcessorBase {
                 int ind = Math.max(0,mImageFramesToProcess.size()-2);
                 frame.frameGyro = BurstShakiness.get(ind);
             }*/
-            Log.d(TAG, "Mpy:" + frame.pair.layerMpy);
+            if (PhotonCamera.DEBUG)
+                Log.d(TAG, "Mpy:" + frame.pair.layerMpy);
             images.add(frame);
             ISO += frame.pair.iso;
         }
         ISO /= mImageFramesToProcess.size();
+        long inputBytes = 0;
+        int inputBits = images.isEmpty() ? 16 : images.get(0).packedBits;
+        for (ImageFrame frame : images) {
+            if (frame.buffer != null) inputBytes += frame.buffer.capacity();
+        }
+        Allocator.logStage(TAG, "burst-start frames=" + images.size() + " " + width + "x" + height
+                + " packed=" + (inputBits > 0 ? inputBits : 16)
+                + " actual=" + (inputBytes / 1048576) + "MB");
+        Allocator.logProc(TAG, "burst-start");
 
         processingParameters.FillDynamicParameters(captureResult, captureRequest,ISO);
         processingParameters.cameraRotation = cameraRotation;
@@ -272,21 +322,46 @@ public class HdrxProcessor extends ProcessorBase {
             for (int i = 0; i < images.size(); i++) {
                 images.get(i).close();
             }
+            Allocator.logStage(TAG, "post-merge");
+            Allocator.logProc(TAG, "post-merge");
             IncreaseWLBL(processingParameters);
+        } else if (images.get(0).packedBits > 0) {
+            // Rare: burst setting packed frames at arrival but only one frame
+            // survived filtering. Restore the single-frame path's 16-bit
+            // contract via the exact inverse (unpacks losslessly, no staging
+            // pool involvement).
+            ImageFrame single = images.get(0);
+            int pixels = single.width * single.height;
+            ByteBuffer restored = Allocator.allocate(pixels * 2);
+            if (restored == null) {
+                throw new IllegalStateException("Single-frame packed restore failed");
+            }
+            Allocator.unpack16(restored, single.buffer, pixels, single.packedBits);
+            single.close();
+            single.buffer = restored;
+            single.packedBits = 0;
+            output = single.buffer;
+            single.buffer = null;
         } else {
             output = images.get(0).buffer;
             images.get(0).buffer = null;
         }
         Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
-        if ((saveRAW >= 1) && alignAlgorithm != 2) {
+        int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
+        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
+        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
+            Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
+            useHeic = false;
+        }
+        if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, output,
                     processingParameters);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-            if (saveRAW == 2) {
+            if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
                 callback.onFinished();
                 Allocator.free(output);
-                Allocator.getMemoryCount();
+                Allocator.logStage(TAG, "raw-only-exit");
                 return;
             }
         }
@@ -296,48 +371,66 @@ public class HdrxProcessor extends ProcessorBase {
         PostPipeline pipeline = new PostPipeline();
         pipeline.kernelParams = esd4d != null ? esd4d.kernelsMapCPU : null;
         pipeline.kernelParamsSize = esd4d != null ? esd4d.kernelsMapCPUSize : null;
+        pipeline.kernelParamsBase = esd4d != null ? esd4d.kernelsMapBase : null;
+        if (esd4d != null) {
+            // CPU copy handed off; UpscaleCrop nulls the pipeline side after
+            // its GPU upload, freeing the result buffer for the render.
+            esd4d.kernelsMapCPU = null;
+            esd4d.kernelsMapCPUSize = null;
+            esd4d.kernelsMapBase = null;
+        }
 
         Bitmap img = pipeline.Run(output, processingParameters);
+        Allocator.logStage(TAG, "post-render");
+        Allocator.logProc(TAG, "post-render");
+        // The merged RAW frame is dead once it has been rendered - free it
+        // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
+        // PostPipeline frees it as soon as its last GL consumer has uploaded
+        // it (KernelNetPrep); only free here if that never ran.
+        if (!pipeline.isStackFrameReleased()) {
+            Allocator.free(output);
+        }
+        output = null;
+        Allocator.logStage(TAG, "post-raw-free");
+        Allocator.logProc(TAG, "post-raw-free");
+        // Deterministic collection of pipeline garbage (e.g. ~90 MB transient
+        // Java inside Amaze at 50 MP): survival was GC-timing-dependent before
+        // this (collected-an-encode-survived vs retained-and-LMK). A hint only;
+        // ART still decides, but it removes the flakiness in practice.
+        System.gc();
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
-            // Must run before the raw frame buffer is freed.
             try {
-                gm = pipeline.RunHDRGainMap(output, processingParameters, img,
-                        GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
+                gm = pipeline.RunHDRGainMap(processingParameters, img, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e(TAG, "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }
         }
-
-        Allocator.free(output);
+        Allocator.logStage(TAG, "post-gainmap");
 
         img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
+        // Total processing time: onProcessing start -> onProcessing finished,
+        // stopping before encode so the values can go into this shot's EXIF.
+        processingParameters.totalProcessingTimeMs = System.currentTimeMillis() - startTime;
+        processingParameters.peakVramMB = GLTexture.getPeakVramMB();
+        processingParameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        exifData.IMAGE_DESCRIPTION = processingParameters.toString();
+        Log.d(TAG, "TotalProcessingTime=" + processingParameters.totalProcessingTimeMs
+                + "ms PeakVram=" + processingParameters.peakVramMB
+                + "MB PeakMemory=" + processingParameters.peakMemoryMB + "MB");
         try {
             processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
         }
         catch (Exception e){
             Log.d(TAG,"Error in processingEventsListener.onProcessingFinished:"+Log.getStackTraceString(e));
         }
-        imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
-        boolean imageSaved;
-        if (PhotonCamera.getSettings().ultraHdr && gm != null) {
-            try {
-                GainMapComputer.Result res = GainMapComputer.compute(gm.bitmap, gm.down, gm.scale);
-                byte[] uhdr = UltraHdrEncoder.encode(img, res, exifData);
-                Files.write(imageFile, uhdr);
-                img.recycle();
-                imageSaved = true;
-            } catch (Exception e) {
-                Log.e(TAG, "Ultra HDR encode failed, falling back to SDR JPEG", e);
-                imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
-                        ImageSaver.JPG_QUALITY, exifData);
-            }
-        } else {
-            //Saves the final bitmap
-            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, img,
-                    ImageSaver.JPG_QUALITY, exifData);
-        }
+        imageFile = Paths.get(imageFile.toAbsolutePath()
+                + (useHeic ? ".heic" : ".jpg"));
+        StillEncoder.Result still = StillEncoder.encodeStill(
+                imageFile, img, gm, exifData, useHeic);
+        boolean imageSaved = still.saved;
+        imageFile = still.file;
 
         try {
             processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);
@@ -353,7 +446,7 @@ public class HdrxProcessor extends ProcessorBase {
         }
 
 
-        Allocator.getMemoryCount();
+        Allocator.logStage(TAG, "hdrx-end");
         callback.onFinished();
     }
 

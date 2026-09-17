@@ -73,7 +73,7 @@
         <item>2</item>
     </string-array>
     <string-array name="theme_accent_entries">
-        <item>@string/Default</item>
+        <item>@string/theme_accent_default</item>
         <item>Eszdman</item>
         <item>@string/theme_accent_blue</item>
         <item>@string/theme_accent_red</item>
@@ -111,6 +111,11 @@
         <item>RAW + JPEG</item>
         <item>RAW</item>
     </string-array>
+    <string-array name="raw_mode_entries_heic">
+        <item>HEIC</item>
+        <item>RAW + HEIC</item>
+        <item>RAW</item>
+    </string-array>
     <string-array name="raw_mode_entryvalues">
         <item>0</item>
         <item>1</item>
@@ -130,6 +135,16 @@
         <item>3</item>
         <item>4</item>
     </string-array>
+    <string-array name="lens_bar_position_entries">
+        <item>@string/lens_bar_position_right</item>
+        <item>@string/lens_bar_position_center</item>
+        <item>@string/lens_bar_position_left</item>
+    </string-array>
+    <string-array name="lens_bar_position_entryvalues">
+        <item>right</item>
+        <item>center</item>
+        <item>left</item>
+    </string-array>
     <integer-array name="countdowntimer_entryvalues">
         <item>0</item>
         <item>3</item>
@@ -145,6 +160,24 @@
         <item>1920x1080</item>
         <item>1280x720</item>
     </string-array>
+    <string-array name="video_hdr_transfer_entries">
+        <item>HLG</item>
+        <item>PQ</item>
+    </string-array>
+    <string-array name="video_hdr_transfer_entryvalues">
+        <item>hlg</item>
+        <item>pq</item>
+    </string-array>
+    <string-array name="audio_source_entries">
+        <item>Camcorder</item>
+        <item>MIC</item>
+        <item>Unprocessed</item>
+    </string-array>
+    <string-array name="audio_source_entryvalues">
+        <item>camcorder</item>
+        <item>mic</item>
+        <item>unprocessed</item>
+    </string-array>
     <string-array name="afdata_entries">
         <item>Off</item>
         <item>HUD</item>
@@ -156,5 +189,15 @@
         <item>1</item>
         <item>2</item>
         <item>3</item>
+    </string-array>
+    <string-array name="viewfinder_background_entries">
+        <item>@string/viewfinder_background_none</item>
+        <item>@string/viewfinder_background_gradient</item>
+        <item>@string/viewfinder_background_blur</item>
+    </string-array>
+    <string-array name="viewfinder_background_entryValues">
+        <item>none</item>
+        <item>gradient</item>
+        <item>blur</item>
     </string-array>
 </resources>

@@ -118,6 +118,10 @@ public class ImageSaver {
     public static class Util {
         public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, ParseExif.ExifData exifData) {
             exifData.COMPRESSION = String.valueOf(jpgQuality);
+            if (img != null && !img.isRecycled()) {
+                exifData.IMAGE_WIDTH = String.valueOf(img.getWidth());
+                exifData.IMAGE_LENGTH = String.valueOf(img.getHeight());
+            }
             try {
                 OutputStream outputStream = Files.newOutputStream(fileToSave);
                 img.compress(Bitmap.CompressFormat.JPEG, jpgQuality, outputStream);
@@ -182,6 +186,10 @@ public class ImageSaver {
             Parameters parameters = new Parameters();
 
             parameters.FillConstParameters(characteristics, new Point(image.width, image.height));
+            parameters.setCropDetails(image.cropOriginX, image.cropOriginY);
+            if (image.fullWidth > 0 && image.fullHeight > 0) {
+                parameters.setFullRawSize(image.fullWidth, image.fullHeight);
+            }
             int iso = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
             parameters.FillDynamicParameters(captureResult, null, iso);
             parameters.cameraRotation = cameraRotation;
@@ -204,6 +212,8 @@ public class ImageSaver {
             } catch (IOException e) {
                 e.printStackTrace();
                 return false;
+            } finally {
+                dngCreator.close();
             }
             return true;
         }

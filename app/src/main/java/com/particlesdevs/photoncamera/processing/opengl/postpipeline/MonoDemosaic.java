@@ -12,6 +12,10 @@ public class MonoDemosaic extends Node {
     }
 
     @Override
+    public int halo() {
+        return 2; // near-pointwise mono path; harness-proven
+    }
+
     public void Run() {
         PostPipeline postPipeline = (PostPipeline) (basePipeline);
         GLTexture glTexture;

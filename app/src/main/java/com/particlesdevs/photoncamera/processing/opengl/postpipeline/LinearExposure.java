@@ -42,6 +42,10 @@ public class LinearExposure extends Node {
     public void Compile() {}
 
     @Override
+    public int halo() {
+        return 0; // passthrough; histogram is a frozen full-frame pre-pass
+    }
+
     public void Run() {
         PostPipeline pipeline = (PostPipeline) basePipeline;
         // Keep the linear scene snapshot for the Ultra HDR gain-map pass

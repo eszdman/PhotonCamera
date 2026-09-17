@@ -5,6 +5,7 @@ import com.particlesdevs.photoncamera.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ScaleGestureDetector;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -12,6 +13,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.ui.camera.CameraFragment;
@@ -22,9 +24,20 @@ public class Swipe {
     private final CameraFragment cameraFragment;
     private final CaptureController captureController;
     private GestureDetector gestureDetector;
+    private ScaleGestureDetector scaleDetector;
     private ManualModeConsole manualModeConsole;
     private CameraFragmentViewModel cameraFragmentViewModel;
     private ImageView ocManual;
+    private ZoomGestureListener zoomGestureListener;
+
+    /** Notified on every handled pinch-to-zoom movement (used to reveal the zoom slider). */
+    public interface ZoomGestureListener {
+        void onZoomGesture();
+    }
+
+    public void setZoomGestureListener(ZoomGestureListener listener) {
+        this.zoomGestureListener = listener;
+    }
 
     public Swipe(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -36,8 +49,13 @@ public class Swipe {
         manualModeConsole = cameraFragment.getManualModeConsole();
         cameraFragmentViewModel = cameraFragment.getCameraFragmentViewModel();
         ocManual = cameraFragment.findViewById(R.id.open_close_manual);
+        // A knob left open when the panel was closed programmatically (e.g. by a
+        // previous resume) would stay visible under the hidden panel; retract it
+        // so the selector state matches what is actually on screen.
+        manualModeConsole.retractAllKnobs();
         manualModeConsole.setPanelVisibility(false);
-        ocManual.animate().rotation(0).setDuration(250).start();
+        ocManual.animate().rotation(0).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
         ocManual.setOnClickListener((v) -> {
             if (!manualModeConsole.isPanelVisible()) {
                 SwipeUp();
@@ -96,23 +114,57 @@ public class Swipe {
                 return false;
             }
         });
-        View.OnTouchListener touchListener = (view, motionEvent) -> gestureDetector.onTouchEvent(motionEvent);
+        scaleDetector = new ScaleGestureDetector(cameraFragment.getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                // Ignore pinch while a burst/processing is active or the manual
+                // panel is open, to avoid fighting the manual controls.
+                if (manualModeConsole.isPanelVisible() || CaptureController.isProcessing) {
+                    return true;
+                }
+                float current = captureController.getZoomRatio();
+                float newZoom = current * detector.getScaleFactor();
+                // The crop is always centered (the HAL's CONTROL_ZOOM_RATIO, and
+                // therefore the preview, zooms to sensor center), so pass the
+                // centered focal point to keep the saved JPEG/RAW matching the
+                // viewfinder exactly.
+                captureController.setZoom(newZoom, 0.5f, 0.5f);
+                cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                if (zoomGestureListener != null) zoomGestureListener.onZoomGesture();
+                return true;
+            }
+        });
+        View.OnTouchListener touchListener = (view, motionEvent) -> {
+            boolean handled = gestureDetector.onTouchEvent(motionEvent);
+            // Feed the same events to the scale detector so pinch-to-zoom works
+            // alongside tap-to-focus / swipe.
+            if (scaleDetector != null) {
+                scaleDetector.onTouchEvent(motionEvent);
+                handled |= scaleDetector.isInProgress();
+            }
+            return handled;
+        };
         View holder = cameraFragment.findViewById(R.id.textureHolder);
         Log.d(TAG, "input:" + holder);
         if (holder != null) holder.setOnTouchListener(touchListener);
     }
 
-    private void startTouchToFocus(MotionEvent event) {
+    private RectF getViewfinderRect() {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
         ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
         FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
-        RectF viewfinderRect = new RectF(
+        return new RectF(
                 layout_viewfinder.getLeft(),//left edge of viewfinder
                 camera_container.getY(), //y position of camera_container
                 layout_viewfinder.getRight(), //right edge of viewfinder
                 layout_viewfinder.getBottom() + camera_container.getY() //bottom edge of viewfinder + y position of camera_container
         );
+    }
+
+    private void startTouchToFocus(MotionEvent event) {
+        ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
+        RectF viewfinderRect = getViewfinderRect();
         // Interface.getCameraFragment().showToast(previewRect.toString()+"\nCurX"+event.getX()+"CurY"+event.getY());
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
@@ -146,7 +198,8 @@ public class Swipe {
         if (cameraFragmentViewModel.isSettingsBarVisible()) {
             cameraFragmentViewModel.setSettingsBarVisible(false);
         } else {
-            ocManual.animate().rotation(180).setDuration(250).start();
+            ocManual.animate().rotation(180).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                    .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
             manualModeConsole.setPanelVisibility(true);
 //        cameraFragment.getCaptureController().rebuildPreview();
             cameraFragment.getTouchFocus().resetFocusCircle();
@@ -156,11 +209,18 @@ public class Swipe {
 
     public void SwipeDown() {
         if (manualModeConsole.isPanelVisible()) {
-            ocManual.animate().rotation(0).setDuration(250).start();
+            ocManual.animate().rotation(0).setDuration(Motion.durationMedium1(ocManual.getContext()))
+                    .setInterpolator(Motion.emphasized(ocManual.getContext())).start();
             cameraFragment.getTouchFocus().resetFocusCircle();
-            captureController.reset3Aparams();
-            manualModeConsole.setPanelVisibility(false);
+            // Capture before the resets below clear the values: if no knob was
+            // touched, there is nothing to re-apply and the preview session can
+            // be left alone, making close as cheap as open.
+            boolean hadManualChanges = manualModeConsole.getManualParamModel().isManualMode();
             manualModeConsole.retractAllKnobs();
+            manualModeConsole.setPanelVisibility(false);
+            if (hadManualChanges) {
+                captureController.reset3Aparams();
+            }
         } else {
             cameraFragmentViewModel.setSettingsBarVisible(true);
         }

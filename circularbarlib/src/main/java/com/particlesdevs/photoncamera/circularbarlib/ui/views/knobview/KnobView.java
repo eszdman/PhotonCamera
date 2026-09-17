@@ -6,8 +6,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Range;
@@ -15,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +27,10 @@ public class KnobView extends View {
     private static final String TAG = KnobView.class.getSimpleName();
     private static final boolean dolog = false;
     private final Paint m_BackgroundPaint;
+    private final Path m_ScrimPath = new Path();
+    private final RectF m_ScrimOval = new RectF();
+    private final RectF m_FilletOval = new RectF();
+    private float m_ScrimFilletRadius;
     private final Rect m_DashBounds;
     private final int m_DashLength;
     private final int m_DashPadding;
@@ -88,7 +95,11 @@ public class KnobView extends View {
     public void draw(Canvas canvas) {
         super.draw(canvas);
         if (this.m_RotationCenter != null && this.m_KnobInfo != null) {
-            canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, this.m_BackgroundPaint);
+            if (m_ScrimFilletRadius > 0f && !m_ScrimPath.isEmpty()) {
+                canvas.drawPath(m_ScrimPath, m_BackgroundPaint);
+            } else {
+                canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, m_BackgroundPaint);
+            }
             //canvas.save();
             double drawRotation;
             if (this.m_KnobItems != null) {
@@ -129,6 +140,72 @@ public class KnobView extends View {
     private double evaluateRotation(float x, float y) {
         //log("evaluateRotation");
         return Math.atan2(x - this.m_RotationCenter.x, -(y - this.m_RotationCenter.y));
+    }
+
+    /** Replaces the translucent scrim colour of the wheel disc. */
+    public void setScrimColor(int color) {
+        this.m_BackgroundPaint.setColor(color);
+        invalidate();
+    }
+
+    /**
+     * Fillet radius blending the scrim's bottom corners into the bottom edge.
+     * A small arc is fitted tangent to both the disc and the bottom edge, so
+     * the corners read as rounded instead of ending in the disc's points.
+     */
+    public void setScrimFilletRadius(float radiusPx) {
+        if (m_ScrimFilletRadius != radiusPx) {
+            m_ScrimFilletRadius = radiusPx;
+            updateScrimPath();
+            invalidate();
+        }
+    }
+
+    /**
+     * Builds the scrim silhouette: bottom edge -> tangent fillet arc -> the
+     * wheel disc's arc over the top -> the mirrored fillet arc -> close.
+     */
+    private void updateScrimPath() {
+        m_ScrimPath.rewind();
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0 || m_ScrimFilletRadius <= 0f || m_RotationCenter == null) {
+            return;
+        }
+        float cx = m_RotationCenter.x;
+        float cy = m_RotationCenter.y;
+        float r = cy;                       // disc radius == the wheel centre height
+        float fr = m_ScrimFilletRadius;
+        if (fr >= r || fr * 2f >= h) {
+            return;
+        }
+        // Fillet centre: tangent to the bottom edge, internally tangent to the disc.
+        float side = (float) Math.sqrt(Math.max((r - fr) * (r - fr)
+                - (cy - h + fr) * (cy - h + fr), 0f));
+        float leftX = cx - side;
+        float rightX = cx + side;
+        // Tangent points on the disc (along the line joining the two centres).
+        float leftT1x = cx + (leftX - cx) * r / (r - fr);
+        float leftT1y = cy + (h - fr - cy) * r / (r - fr);
+        float rightT1x = cx + (rightX - cx) * r / (r - fr);
+        float rightT1y = leftT1y;
+        float angLeftT1 = (float) Math.toDegrees(Math.atan2(leftT1y - (h - fr), leftT1x - leftX));
+        float angRightT1 = (float) Math.toDegrees(Math.atan2(rightT1y - (h - fr), rightT1x - rightX));
+        float sweepFilletLeft = angLeftT1 - 90f;
+        while (sweepFilletLeft < 0f) sweepFilletLeft += 360f;
+        float sweepFilletRight = 90f - angRightT1;
+        while (sweepFilletRight < 0f) sweepFilletRight += 360f;
+        float sweepDome = angRightT1 - angLeftT1;
+        while (sweepDome < 0f) sweepDome += 360f;
+
+        m_ScrimPath.moveTo(leftX, h);
+        m_FilletOval.set(leftX - fr, h - fr - fr, leftX + fr, h);
+        m_ScrimPath.arcTo(m_FilletOval, 90f, sweepFilletLeft, false);
+        m_ScrimOval.set(cx - r, cy - r, cx + r, cy + r);
+        m_ScrimPath.arcTo(m_ScrimOval, angLeftT1, sweepDome, false);
+        m_FilletOval.set(rightX - fr, h - fr - fr, rightX + fr, h);
+        m_ScrimPath.arcTo(m_FilletOval, angRightT1, sweepFilletRight, false);
+        m_ScrimPath.close();
     }
 
     private PointF evaluateRotationCenter() {
@@ -340,6 +417,7 @@ public class KnobView extends View {
         log("insSizeChanged");
         super.onSizeChanged(w, h, oldw, oldh);
         this.m_RotationCenter = evaluateRotationCenter();
+        updateScrimPath();
         updateDashBounds();
         updateKnobItemsBounds();
         log("onSizeChangedTime:" + (System.nanoTime() - startTime) + "ns");
@@ -423,11 +501,6 @@ public class KnobView extends View {
         }
     }
 
-    public void setKnobViewBackgroundColor(int color) {
-        this.m_BackgroundPaint.setColor(color);
-        invalidate();
-    }
-
     public void setKnobViewChangedListener(KnobViewChangedListener listener) {
         this.m_KnobViewChangedListener = listener;
     }
@@ -442,7 +515,8 @@ public class KnobView extends View {
 
     private void setKnobViewRotationSmooth(double rotation) {
         ValueAnimator animation = ValueAnimator.ofFloat((float) this.m_DrawableCurrentDegree, (float) rotation);
-        animation.setDuration(100);
+        animation.setDuration(Motion.durationShort2(getContext()));
+        animation.setInterpolator(Motion.emphasized(getContext()));
         animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation((double) (Float) animation1.getAnimatedValue()));
         animation.start();
     }

@@ -10,18 +10,22 @@ import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
 import com.particlesdevs.photoncamera.processing.ProcessingEventsListener;
+import com.particlesdevs.photoncamera.processing.encoder.HeicSupport;
+import com.particlesdevs.photoncamera.processing.encoder.ImageFormatConfig;
+import com.particlesdevs.photoncamera.processing.encoder.StillEncoder;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.PostPipeline;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageParams;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.AverageRaw;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
-import com.particlesdevs.photoncamera.processing.ultrahdr.UltraHdrEncoder;
+import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
+import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -108,14 +112,24 @@ public class UnlimitedProcessor extends ProcessorBase {
         callback.onStarted();
 //        parameters.path = ImageSaver.jpgFilePathToSave.getAbsolutePath();
         processingEventsListener.onProcessingStarted("Unlimited");
+        Allocator.resetPeakMemory();
+        GLTexture.resetPeakVram();
+        long processStartMs = System.currentTimeMillis();
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
         averageRaw = null;
+        Allocator.logStage(TAG, "unlimited-start " + parameters.rawSize.x + "x" + parameters.rawSize.y);
 
         IncreaseWLBL(parameters);
 
-        if (saveRAW >= 1) {
+        int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
+        boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
+        if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
+            Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
+            useHeic = false;
+        }
+        if (ImageFormatConfig.savesRaw(saveMode)) {
 
             processingEventsListener.onProcessingFinished("Unlimited rawSaver Processing Finished");
             unlimitedBuffer.position(0);
@@ -123,8 +137,10 @@ public class UnlimitedProcessor extends ProcessorBase {
             boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, unlimitedBuffer, parameters);
 
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-            if (saveRAW == 2) {
+            if (ImageFormatConfig.isRawOnly(saveMode)) {
                 processingEventsListener.onProcessingFinished("Unlimited RAW Processing Finished");
+                Allocator.free(unlimitedBuffer);
+                Allocator.logStage(TAG, "raw-only-exit");
                 callback.onFinished();
                 return;
             }
@@ -134,40 +150,50 @@ public class UnlimitedProcessor extends ProcessorBase {
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(unlimitedBuffer, parameters);
 
+        // The stacked RAW frame is dead once it has been rendered - free it
+        // before the memory-heavy Ultra HDR gain-map pass (it previously
+        // leaked entirely). PostPipeline frees it inside the render once its
+        // last GL consumer has uploaded it; only free here if that never ran.
+        if (!pipeline.isStackFrameReleased()) {
+            Allocator.free(unlimitedBuffer);
+        }
+        unlimitedBuffer = null;
+        Allocator.logStage(TAG, "post-raw-free");
+        // Same deterministic collection as HdrxProcessor (pipeline garbage
+        // would otherwise ride into the gain-map/encode peak on GC timing).
+        System.gc();
+
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
             try {
-                gm = pipeline.RunHDRGainMap(unlimitedBuffer, parameters, bitmap,
-                        GainMapComputer.SCALE_DOWN, GainMapComputer.SCALE);
+                gm = pipeline.RunHDRGainMap(parameters, bitmap, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e("UnlimitedProcessor", "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
             }
         }
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
-        imageFile = Paths.get(imageFile.toAbsolutePath() + ".jpg");
-        boolean imageSaved;
-        if (PhotonCamera.getSettings().ultraHdr && gm != null) {
-            try {
-                GainMapComputer.Result res = GainMapComputer.compute(gm.bitmap, gm.down, gm.scale);
-                byte[] uhdr = UltraHdrEncoder.encode(bitmap, res, exifData);
-                Files.write(imageFile, uhdr);
-                bitmap.recycle();
-                imageSaved = true;
-            } catch (Exception e) {
-                Log.e("UnlimitedProcessor", "Ultra HDR encode failed, falling back to SDR JPEG", e);
-                imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
-                        ImageSaver.JPG_QUALITY, exifData);
-            }
-        } else {
-            imageSaved = ImageSaver.Util.saveBitmapAsJPG(imageFile, bitmap,
-                    ImageSaver.JPG_QUALITY, exifData);
-        }
+        Allocator.logStage(TAG, "post-gainmap");
+        // Total processing time: onProcessing start -> onProcessing finished,
+        // stopping before encode so the values can go into this shot's EXIF.
+        parameters.totalProcessingTimeMs = System.currentTimeMillis() - processStartMs;
+        parameters.peakVramMB = GLTexture.getPeakVramMB();
+        parameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        exifData.IMAGE_DESCRIPTION = parameters.toString();
+        Log.d(TAG, "TotalProcessingTime=" + parameters.totalProcessingTimeMs
+                + "ms PeakVram=" + parameters.peakVramMB
+                + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
+        imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
+        StillEncoder.Result still = StillEncoder.encodeStill(
+                imageFile, bitmap, gm, exifData, useHeic);
+        boolean imageSaved = still.saved;
+        imageFile = still.file;
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);
 
         pipeline.close();
 
+        Allocator.logStage(TAG, "unlimited-end");
         callback.onFinished();
 
     }

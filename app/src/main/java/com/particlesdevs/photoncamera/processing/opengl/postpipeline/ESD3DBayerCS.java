@@ -24,16 +24,16 @@ public class ESD3DBayerCS extends Node {
         startT();
         GLTexture grad;
         /*
-        if(previousNode.WorkingTexture != basePipeline.main3){
-            grad = basePipeline.main3;
+        if(previousNode.WorkingTexture != basePipeline.getMain3()){
+            grad = basePipeline.getMain3();
             WorkingTexture = basePipeline.getMain();
         }
         else {
             grad = basePipeline.getMain();
-            WorkingTexture = basePipeline.main3;
+            WorkingTexture = basePipeline.getMain3();
         }*/
         WorkingTexture = basePipeline.getMain();
-        grad = basePipeline.main3;
+        grad = basePipeline.getMain3();
         glProg.setLayout(16,16,1);
         glProg.setDefine("INSIZE",basePipeline.workSize);
         glProg.useAssetProgram("ESD3DBayerCS/diffbayercs",true);

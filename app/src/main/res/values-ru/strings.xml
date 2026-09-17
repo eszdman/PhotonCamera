@@ -64,7 +64,6 @@
     <string name="pref_save_per_lens_string">Настройки каждого объектива</string>
     <string name="energy_saving">Энергосбережение</string>
     <string name="theme_accent_green">Зелёный</string>
-    <string name="show_gradient">Показать градиентный фон</string>
     <string name="photon_camera_summary">Камера с открытым исходным кодом, с улучшенной обработкой фото</string>
     <string name="version_title">Версия</string>
     <string name="contributors_title">Разработчики</string>

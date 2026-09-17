@@ -83,6 +83,51 @@ public class Node {
     }
     public void Run() {}
     public void AfterRun(){}
+    /**
+     * Maximum stencil radius (image pixels) this node reads beyond each
+     * output pixel. The tile driver expands every tile by the chain maximum
+     * and mirror-fetches the skirt (Amaze {@code pad} pattern), so tiled output is
+     * bit-exact. Contract:
+     * <ul>
+     *   <li>overestimate = safe (slightly smaller effective tiles),</li>
+     *   <li>underestimate = seams (caught by the tiled-vs-full oracle),</li>
+     *   <li>passthrough / pointwise nodes return 0,</li>
+     *   <li>global nodes (pyramids, whole-frame statistics) return
+     *       {@link Integer#MAX_VALUE}: they must execute full-frame, with
+     *       frozen outputs consumed per tile,</li>
+     *   <li>tunable-dependent radii must read the live tunable field.</li>
+     * </ul>
+     * Any node added to a production pipeline MUST override this unless it
+     * is truly pointwise/passthrough (default 0 is only correct then).
+     */
+    public int halo() {
+        return 0;
+    }
+
+    /**
+     * Strip-region rendering for the tile driver / harness: when
+     * {@code tileOut} is set, the node renders only image rows
+     * [{@code tileY0}, {@code tileY1}) into it (row {@code y} stored at
+     * {@code y - tileY0}). Bounds should be multiples of the node's
+     * internal tile grid where one exists. Untouched on the legacy path.
+     */
+    public int tileY0 = 0;
+    public int tileY1 = -1;
+    public GLTexture tileOut = null;
+
+    /** True while rendering a strip region (see above). */
+    public boolean tileActive() {
+        return tileOut != null && tileY1 >= 0;
+    }
+
+    /**
+     * Harness oracle for nodes whose draw happens outside {@link #Run} (via
+     * {@code drawProgramTexture} after it returns): runs after that draw, so
+     * the full output is final. In-{@code Run} oracles would compare against
+     * a stale unrendered texture. Default no-op.
+     */
+    public void postDrawOracle() {
+    }
     public void BeforeCompile(){}
     public void Compile() {
         basePipeline.glint.glProgram.useAssetProgram(Rid);

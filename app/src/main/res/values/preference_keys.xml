@@ -7,10 +7,22 @@
     <string name="pref_category_hdrx_key" translatable="false">pref_category_hdrx_key</string>
     <string name="pref_category_photo_key" translatable="false">pref_category_photo_key</string>
     <string name="pref_category_video_key" translatable="false">pref_category_video_key</string>
+    <string name="pref_category_video_shortcut_key" translatable="false">pref_category_video_shortcut_key</string>
     <string name="pref_category_rawvideo_key" translatable="false">pref_category_rawvideo_key</string>
     <string name="pref_rawvideo_downscale_4x_key" translatable="false">pref_rawvideo_downscale_4x_key</string>
     <string name="pref_rawvideo_write_zip_key" translatable="false">pref_rawvideo_write_zip_key</string>
     <string name="pref_rawvideo_crop_169_key" translatable="false">pref_rawvideo_crop_169_key</string>
+    <string name="pref_video_bitrate_key" translatable="false">pref_video_bitrate_key</string>
+    <string name="pref_video_hevc_key" translatable="false">pref_video_hevc_key</string>
+    <string name="pref_video_hdr_key" translatable="false">pref_video_hdr_key</string>
+    <string name="pref_video_hdr_transfer_key" translatable="false">pref_video_hdr_transfer_key</string>
+    <string name="pref_video_use_logical_id_key" translatable="false">pref_video_use_logical_id_key</string>
+    <string name="pref_video_logical_id_key" translatable="false">pref_video_logical_id_key</string>
+    <string name="pref_video_logical_lenses_key" translatable="false">pref_video_logical_lenses_key</string>
+    <string name="pref_category_audio_key" translatable="false">pref_category_audio_key</string>
+    <string name="pref_audio_bitrate_key" translatable="false">pref_audio_bitrate_key</string>
+    <string name="pref_audio_stereo_key" translatable="false">pref_audio_stereo_key</string>
+    <string name="pref_audio_source_key" translatable="false">pref_audio_source_key</string>
     <string name="pref_theme_category_key" translatable="false">pref_theme_category_key</string>
     <string name="pref_category_about_key" translatable="false">pref_category_about_key</string>
     <string name="pref_category_advanced_key" translatable="false">pref_category_advanced_key</string>
@@ -27,8 +39,10 @@
     <string name="pref_enhanced_processing_key" translatable="false">pref_enhanced_processing_key</string>
     <string name="pref_hdrx_nr_key" translatable="false">pref_hdrx_nr_key</string>
     <string name="pref_save_raw_key" translatable="false">pref_save_raw_key</string>
+    <string name="pref_save_heic_key" translatable="false">pref_save_heic_key</string>
     <string name="pref_show_roundedge_key" translatable="false">pref_show_roundedge_key</string>
     <string name="pref_show_grid_key" translatable="false">pref_show_grid_key</string>
+    <string name="pref_lens_bar_position_key" translatable="false">pref_lens_bar_position_key</string>
     <string name="pref_camera_sounds_key" translatable="false">pref_camera_sounds_key</string>
     <string name="pref_chroma_nr_seekbar_key" translatable="false">pref_chroma_nr_seekbar_key</string>
     <string name="pref_luma_nr_seekbar_key" translatable="false">pref_luma_nr_seekbar_key</string>
@@ -53,10 +67,12 @@
     <string name="pref_contributors_key" translatable="false">pref_contributors_key</string>
     <string name="pref_theme_key" translatable="false">pref_theme_key</string>
     <string name="pref_theme_accent_key" translatable="false">pref_theme_accent_key</string>
-    <string name="pref_show_gradient_key" translatable="false">pref_show_gradient_key</string>
+    <string name="pref_viewfinder_background_key" translatable="false">pref_viewfinder_background_key</string>
     <string name="pref_af_mode_key" translatable="false">pref_af_mode_key</string>
     <string name="pref_hdrx_key" translatable="false">pref_hdrx_key</string>
     <string name="pref_eis_photo_key" translatable="false">pref_eis_photo_key</string>
+    <string name="pref_zoom_lock_key" translatable="false">pref_zoom_lock_key</string>
+    <string name="pref_auto_zoom_switch_key" translatable="false">pref_auto_zoom_switch_key</string>
     <string name="pref_quad_bayer_key" translatable="false">pref_quad_bayer_key</string>
     <string name="pref_fps_preview_key" translatable="false">pref_fps_preview_key</string>
     <string name="pref_ultrahdr_key" translatable="false">pref_ultrahdr_key</string>

@@ -63,9 +63,10 @@ public class GLContext implements AutoCloseable {
             throw new RuntimeException("OpenGL config is null");
         }
         mContext = eglCreateContext(mDisplay, configs[0], EGL_NO_CONTEXT, GLDrawParams.contextAttributeList, 0);
+        // Use 1x1 pbuffer; FBO holds full frame, avoids EGL max pbuffer limit
         mSurface = eglCreatePbufferSurface(mDisplay, configs[0], new int[]{
-                EGL_WIDTH, surfaceWidth,
-                EGL_HEIGHT, surfaceHeight,
+                EGL_WIDTH, 1,
+                EGL_HEIGHT, 1,
                 EGL_NONE
         }, 0);
         eglMakeCurrent(mDisplay, mSurface, mSurface, mContext);

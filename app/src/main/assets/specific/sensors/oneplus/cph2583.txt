@@ -36,6 +36,7 @@ referenceIlluminant2 = 17
 captureSharpeningS = 1.05
 captureSharpeningIntense = 1.0
 preferredResolution = {4096, 3072}
+ISZ = { Integer ; com.oplus.engineercamera.agingtest.mode.select ; 19 ; 2.0 }
 
 sensor_3
 NoiseModelA = { 5.742451019697843e-07,6.105980876415757e-07,3.146043228762669e-07,3.4805068152249336e-07 }
@@ -76,3 +77,4 @@ referenceIlluminant2 = 17
 captureSharpeningS = 1.0
 captureSharpeningIntense = 1.0
 preferredResolution = {4608, 3456}
+ISZ = { Integer ; com.oplus.engineercamera.agingtest.mode.select ; 20 ; 2.0 }

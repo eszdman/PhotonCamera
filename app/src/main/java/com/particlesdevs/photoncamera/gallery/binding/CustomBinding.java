@@ -57,9 +57,8 @@ public class CustomBinding {
 
     @BindingAdapter("loadImage")
     public static void loadImage(ImageView imageView, GalleryItem galleryItem) {
-        if (galleryItem != null) {
-            Glide
-                    .with(imageView)
+        if (galleryItem != null && galleryItem.getFile() != null && galleryItem.getFile().getFileUri() != null) {
+            Glide.with(imageView)
                     .asBitmap()
                     .load(galleryItem.getFile().getFileUri())
                     .apply(new RequestOptions()
@@ -69,6 +68,16 @@ public class CustomBinding {
                             .centerCrop()
                     )
                     .into(imageView);
+        } else {
+            Glide.with(imageView).clear(imageView);
+            imageView.setImageDrawable(null);
         }
+    }
+
+    public static void clearImage(ImageView imageView) {
+        try {
+            Glide.with(imageView).clear(imageView);
+        } catch (Exception ignored) {}
+        imageView.setImageDrawable(null);
     }
 }

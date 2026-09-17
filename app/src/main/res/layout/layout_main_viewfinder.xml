@@ -26,13 +26,28 @@
                 android:layout_gravity="center"
                 android:paddingTop="@dimen/viewfinder_top_padding">
 
-        <!--Viewfinder TextureView-->   <!--Aspect ratio of viewfinder = 3:4 -->
+        <!--Viewfinder frame: HUD anchor; the preview surface is full-bleed in camera_fragment.xml-->   <!--Aspect ratio of viewfinder = 3:4 -->
 
             <!--FocusCircleView-->
             <!--        putting focus circle here will make it
              not visible outside viewfinder container-->
-            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview
-                    android:id="@+id/texture"
+
+            <!--Grid/rounded-corner overlay: declared first so its window drawing
+                (and any canvas operation it makes) stays below the focus and
+                spot WB indicators. Its surface keeps ZOrderOnTop. -->
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:id="@+id/surfaceView"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
+                    android:background="#00000000"
+                    tools:visibility="visible" />
+
+            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView
+                    android:id="@+id/viewfinder_frame"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -48,10 +63,10 @@
                     android:visibility="invisible"
                     android:color="@color/focus_circle_color"
                     android:thickness="1.5dp"
-                    app:layout_constraintBottom_toBottomOf="@id/texture"
-                    app:layout_constraintEnd_toEndOf="@id/texture"
-                    app:layout_constraintStart_toStartOf="@id/texture"
-                    app:layout_constraintTop_toTopOf="@id/texture"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
                     tools:visibility="visible"/>
 
             <com.particlesdevs.photoncamera.ui.camera.views.SpotWbIndicatorView
@@ -61,55 +76,44 @@
                     android:visibility="invisible"
                     android:color="@color/focus_circle_color"
                     android:thickness="1.5dp"
-                    app:layout_constraintBottom_toBottomOf="@id/texture"
-                    app:layout_constraintEnd_toEndOf="@id/texture"
-                    app:layout_constraintStart_toStartOf="@id/texture"
-                    app:layout_constraintTop_toTopOf="@id/texture"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
                     tools:visibility="visible"/>
-
-            <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:id="@+id/surfaceView"
-                    app:layout_constraintBottom_toBottomOf="@id/texture"
-                    app:layout_constraintEnd_toEndOf="@id/texture"
-                    app:layout_constraintStart_toStartOf="@id/texture"
-                    app:layout_constraintTop_toTopOf="@id/texture"
-                    android:background="#00000000"
-                    tools:visibility="visible" />
 
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView
                 android:id="@+id/horizon_indicator_view"
                 android:layout_width="420dp"
                 android:layout_height="420dp"
-                app:layout_constraintTop_toTopOf="@+id/texture"
-                app:layout_constraintBottom_toBottomOf="@+id/texture"
-                app:layout_constraintStart_toStartOf="@+id/texture"
-                app:layout_constraintEnd_toEndOf="@+id/texture" />
+                app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
+                app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                app:layout_constraintEnd_toEndOf="@id/viewfinder_frame" />
 
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView
                 android:id="@+id/viewfinder_hud_view"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                app:layout_constraintBottom_toBottomOf="@id/texture"
-                app:layout_constraintEnd_toEndOf="@id/texture"
-                app:layout_constraintStart_toStartOf="@id/texture"
-                app:layout_constraintTop_toTopOf="@id/texture" />
+                app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                app:layout_constraintTop_toTopOf="@id/viewfinder_frame" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!--Capture Progress circle-->
-        <ProgressBar
+        <!--Capture Progress circle: thick M3E ring so it reads on the dark viewfinder -->
+        <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/capture_progress_bar"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                style="@style/Widget.Material3.CircularProgressIndicator"
                 android:layout_width="@dimen/capture_progress_circle_size"
                 android:layout_height="@dimen/capture_progress_circle_size"
                 tools:progress="75"
-                app:layout_constraintDimensionRatio="1:1"
                 android:indeterminate="false"
                 android:max="100"
-                android:progressDrawable="@drawable/circular_progress_bar"
                 android:layout_gravity="center"
-                />
+                app:trackThickness="6dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="@color/cam_outline" />
 
         <TextView
                 android:id="@+id/frameTimer"
