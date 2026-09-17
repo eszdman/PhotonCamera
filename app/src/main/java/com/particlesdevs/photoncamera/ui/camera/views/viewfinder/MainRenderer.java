@@ -297,16 +297,15 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             blurReady = runBlurPasses(blurRadius, sharpLeft, sharpBottom, sharpWidth, sharpHeight);
         }
 
-        // The sharp pass leaves the letterbox areas and the rounded corners
-        // unwritten, so those frames start from black (the backdrop covers this
-        // black again when the edge-blur option is on). The blur passes leave a
-        // blur FBO bound, so the window framebuffer is bound back first.
-        if (edgeBlur || mRoundCorners) {
-            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
-            GLES30.glViewport(0, 0, mViewW, mViewH);
-            GLES20.glClearColor(0f, 0f, 0f, 1f);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-        }
+        // Every frame starts from black: the sharp pass is the only
+        // fullscreen paint, so without this clear any skipped/degenerate
+        // sharp draw would leave recycled EGL garbage on screen. The blur
+        // passes leave a blur FBO bound, so the window framebuffer is bound
+        // back first.
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+        GLES30.glViewport(0, 0, mViewW, mViewH);
+        GLES20.glClearColor(0f, 0f, 0f, 1f);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
         // Full-bleed blurred backdrop under the sharp preview.
         if (blurReady && edgeBlur) {
