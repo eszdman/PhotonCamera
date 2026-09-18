@@ -68,18 +68,17 @@ public final class KernelNetPrep extends Node {
 
             ByteBuffer stack = pp.stackFrame;
             stack.position(0);
-            rawTex = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.UNSIGNED_16),
-                    stack, GL_NEAREST, GL_MIRRORED_REPEAT);
-
-            // Bayer2Float normalizes blackLevel by whiteLevel, so blMean is in
-            // [0,1] and the shader divides the raw values by whiteLevel only.
-            float[] bl = basePipeline.mParameters.blackLevel;
-            float blMean = (bl[0] + bl[1] + bl[2] + bl[3]) * 0.25f;
+            rawTex = new GLTexture(rawSize, new GLFormat(GLFormat.DataType.FLOAT_16),
+                    null, GL_NEAREST, GL_MIRRORED_REPEAT);
+            // stackFrame is white/black-level normalized fp16 (see
+            // HdrxProcessor / UnlimitedProcessor) - upload as raw halves; the
+            // shader then works in the normalized domain (black 0, white 1).
+            rawTex.loadRawHalf(stack);
 
             glProg.useAssetProgram("upscalecrop/singleluma");
             glProg.setTexture("InputBuffer", rawTex);
-            glProg.setVar("blMean", blMean);
-            glProg.setVar("whiteLevel", (float) basePipeline.mParameters.whiteLevel);
+            glProg.setVar("blMean", 0.f);
+            glProg.setVar("whiteLevel", 1.f);
             lumaTex = new GLTexture(lumaTexSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4));
             glProg.drawBlocks(lumaTex);
             glProg.closed = true;

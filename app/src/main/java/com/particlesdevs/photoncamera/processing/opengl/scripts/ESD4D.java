@@ -6,7 +6,6 @@ import android.util.Pair;
 import com.particlesdevs.photoncamera.processing.cpu.HalideAlignment;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
-import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLBuffer;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
@@ -30,6 +29,7 @@ import com.particlesdevs.photoncamera.util.Math2;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -275,10 +275,10 @@ public class ESD4D extends GLOneScript {
     public Point brightMapCPUSize;
     /** KernelNet half-res parameter texture (s1, s2, rho in RGBA16F) for the anisotropic filter. */
     public GLTexture kernelsMap;
-    /** CPU copy of the unpacked KernelNet params (RGBA floats: s1, s2, rho, 1 per
-     * texel, full fp32 — not the fp16 texture values) for reuse in the post
-     * pipeline. Set by {@link #createKernelsMap} alongside the texture upload. */
-    public FloatBuffer kernelsMapCPU;
+    /** CPU copy of the KernelNet params (RGBA16F halves: s1, s2, rho, 1 per
+     * texel) for reuse in the post pipeline. Set by {@link #createKernelsMap}
+     * alongside the texture upload; a view, never freed. */
+    public ShortBuffer kernelsMapCPU;
     /** Size of {@link #kernelsMapCPU}. */
     public Point kernelsMapCPUSize;
     /**
@@ -1204,36 +1204,37 @@ public class ESD4D extends GLOneScript {
     /**
      * Uploads the KernelNet parameter map as an RGBA16F texture for the
      * anisotropic Gaussian filter: texel = (s1, s2, rho, 1). The inference
-     * result already comes back RGBA-interleaved fp32 (see
-     * {@link KernelNetNcnnProcessor}), so the buffer is uploaded as-is — no
-     * CPU repack pass. Also publishes the same interleaved buffer as
-     * {@link #kernelsMapCPU} for the post pipeline. The texture is left open
-     * for downstream use; caller owns it.
+     * result already comes back as RGBA-interleaved fp16 halves in the exact
+     * GL_RGBA16F layout (see {@link KernelNetNcnnProcessor}), so it is
+     * uploaded with GL_HALF_FLOAT — no repack, no driver FLOAT->HALF
+     * conversion. Also publishes the same buffer as {@link #kernelsMapCPU}
+     * for the post pipeline. The texture is left open for downstream use;
+     * caller owns it.
      */
     public GLTexture createKernelsMap(KernelNetResult result) {
         if (result == null) return null;
         int w = result.width();
         int h = result.height();
         GLTexture map = new GLTexture(new Point(w, h), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null);
-        // The inference result already comes back RGBA-interleaved fp32 (see
-        // {@link KernelNetNcnnProcessor}), so the buffer is uploaded as-is — no
-        // CPU repack pass, the FloatBuffer is a view of the malloc'd result.
+        // The inference result already comes back RGBA-interleaved fp16 (see
+        // {@link KernelNetNcnnProcessor}), so the buffer is uploaded as-is.
         // Also publishes the same interleaved buffer as {@link #kernelsMapCPU}
         // for the post pipeline; the malloc'd base buffer rides along via
         // kernelsMapBase so the post pipeline can free it deterministically
         // once uploaded (views don't free). The texture is left open for
         // downstream use; caller owns it.
-        FloatBuffer rgba = result.asFloatBuffer();
+        ByteBuffer halves = result.params();
+        halves.position(0);
         try {
-            map.loadData(rgba);
+            map.loadRawHalf(halves);
         } catch (Throwable t) {
             // Upload failed: the malloc'd result has no other owner yet.
             com.particlesdevs.photoncamera.util.Allocator.free(result.params());
             throw t;
         }
-        kernelsMapCPU = rgba;
+        kernelsMapCPU = halves.asShortBuffer();
         kernelsMapCPUSize = new Point(w, h);
-        kernelsMapBase = result.params();
+        kernelsMapBase = halves;
         return map;
     }
 

@@ -225,7 +225,7 @@ public class GLTexture implements AutoCloseable {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), GL_HALF_FLOAT, pixels);
     }
 
-    /** Sub-rect upload for banded streaming (see KernelParams.BAND_ROWS). */
+    /** Sub-rect upload for banded streaming (e.g. gain map rows). */
     public void loadDataOffset(int x, int y, int w, int h, Buffer pixels){
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, mFormat.getGLFormatExternal(), mFormat.getGLType(), pixels);

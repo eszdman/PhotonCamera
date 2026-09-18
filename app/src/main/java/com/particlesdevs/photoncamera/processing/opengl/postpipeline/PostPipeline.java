@@ -425,13 +425,13 @@ public class PostPipeline extends GLBasePipeline {
         return stackFrameReleased;
     }
 
-    /** KernelNet parameter map (RGBA floats: s1, s2, rho, 1) exported by ESD4D during the merge pass; may be null (single frame / model unavailable). */
-    public java.nio.FloatBuffer kernelParams;
+    /** KernelNet parameter map (RGBA fp16 halves: s1, s2, rho, 1) exported by ESD4D during the merge pass; may be null (single frame / model unavailable). */
+    public java.nio.ShortBuffer kernelParams;
     /** Size of {@link #kernelParams}. */
     public android.graphics.Point kernelParamsSize;
     /**
      * Base direct buffer behind {@link #kernelParams}; freed explicitly
-     * after the GPU upload (GC timing can't be trusted for ~200 MB).
+     * after the GPU upload (GC timing can't be trusted for ~100 MB).
      */
     public java.nio.ByteBuffer kernelParamsBase;
     /** Worker thread running the single-frame KernelNet inference, started by KernelNetPrep and collected by UpscaleCrop; may be null. */
