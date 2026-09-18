@@ -228,6 +228,30 @@
                     app:useSimpleSummaryProvider="true"
                     android:icon="@drawable/ic_multi_lens"
                     android:defaultValue="@string/video_logical_lenses_default"/>
+            <EditTextPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_hdr_session_type_key"
+                    android:title="@string/video_hdr_session_type"
+                    android:summary="@string/video_session_type_summary"
+                    android:dialogTitle="@string/video_hdr_session_type"
+                    android:inputType="numberSigned"
+                    android:numeric="integer"
+                    android:singleLine="true"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_gradient_black_24dp"
+                    android:defaultValue="@string/video_session_type_default"/>
+            <EditTextPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_sdr_session_type_key"
+                    android:title="@string/video_sdr_session_type"
+                    android:summary="@string/video_session_type_summary"
+                    android:dialogTitle="@string/video_sdr_session_type"
+                    android:inputType="numberSigned"
+                    android:numeric="integer"
+                    android:singleLine="true"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_gradient_black_24dp"
+                    android:defaultValue="@string/video_session_type_default"/>
             <PreferenceScreen
                     android:layout="@layout/preference_with_margin"
                     android:key="pref_video_tunable_submenu"

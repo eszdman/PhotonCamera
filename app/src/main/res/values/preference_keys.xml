@@ -17,6 +17,8 @@
     <string name="pref_video_hevc_key" translatable="false">pref_video_hevc_key</string>
     <string name="pref_video_hdr_key" translatable="false">pref_video_hdr_key</string>
     <string name="pref_video_hdr_transfer_key" translatable="false">pref_video_hdr_transfer_key</string>
+    <string name="pref_video_hdr_session_type_key" translatable="false">pref_video_hdr_session_type_key</string>
+    <string name="pref_video_sdr_session_type_key" translatable="false">pref_video_sdr_session_type_key</string>
     <string name="pref_video_use_logical_id_key" translatable="false">pref_video_use_logical_id_key</string>
     <string name="pref_video_logical_id_key" translatable="false">pref_video_logical_id_key</string>
     <string name="pref_video_logical_lenses_key" translatable="false">pref_video_logical_lenses_key</string>

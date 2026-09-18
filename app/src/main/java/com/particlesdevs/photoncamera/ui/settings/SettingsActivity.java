@@ -481,6 +481,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
          *       a reason when no 10-bit Main10 encoder exists; forced off.</li>
          *   <li>HDR Transfer shown only when Save storage and HDR are on.</li>
          *   <li>HDR tunable keys entry shown only when HDR is on.</li>
+         *   <li>HDR session type entry shown only when HDR is on.</li>
          *   <li>Logical id entry shown only when the logical-id switch is on;
          *       the switch is forced off when the id is not logical.</li>
          * </ul>
@@ -527,6 +528,10 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 Preference hdrTunablePref = findPreference("pref_video_hdr_tunable_submenu");
                 if (hdrTunablePref != null) {
                     hdrTunablePref.setVisible(hdrOn);
+                }
+                Preference hdrSessionPref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+                if (hdrSessionPref != null) {
+                    hdrSessionPref.setVisible(hdrOn);
                 }
                 boolean useLogicalOn = PreferenceKeys.isVideoUseLogicalId();
                 if (useLogicalOn && !isLogicalCameraId(mContext, PreferenceKeys.getVideoLogicalId())) {

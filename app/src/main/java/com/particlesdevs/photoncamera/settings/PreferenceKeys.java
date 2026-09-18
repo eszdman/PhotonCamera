@@ -59,6 +59,8 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_VIDEO_HEVC.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR_TRANSFER.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_HDR_SESSION_TYPE.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_SDR_SESSION_TYPE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_LENSES.mValue);
@@ -100,6 +102,8 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, resources.getString(R.string.video_hdr_transfer_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_ID, resources.getString(R.string.video_logical_id_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_LOGICAL_LENSES, resources.getString(R.string.video_logical_lenses_default));
@@ -623,6 +627,24 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, value);
     }
 
+    public static String getVideoHdrSessionType() {
+        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, "");
+        return value != null ? value.trim() : "";
+    }
+
+    public static void setVideoHdrSessionType(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, value);
+    }
+
+    public static String getVideoSdrSessionType() {
+        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, "");
+        return value != null ? value.trim() : "";
+    }
+
+    public static void setVideoSdrSessionType(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, value);
+    }
+
     public static boolean isVideoUseLogicalId() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID);
     }
@@ -755,6 +777,8 @@ public class PreferenceKeys {
         KEY_VIDEO_HEVC(R.string.pref_video_hevc_key),
         KEY_VIDEO_HDR(R.string.pref_video_hdr_key),
         KEY_VIDEO_HDR_TRANSFER(R.string.pref_video_hdr_transfer_key),
+        KEY_VIDEO_HDR_SESSION_TYPE(R.string.pref_video_hdr_session_type_key),
+        KEY_VIDEO_SDR_SESSION_TYPE(R.string.pref_video_sdr_session_type_key),
         KEY_VIDEO_USE_LOGICAL_ID(R.string.pref_video_use_logical_id_key),
         KEY_VIDEO_LOGICAL_ID(R.string.pref_video_logical_id_key),
         KEY_VIDEO_LOGICAL_LENSES(R.string.pref_video_logical_lenses_key),

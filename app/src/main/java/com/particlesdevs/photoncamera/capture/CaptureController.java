@@ -2738,7 +2738,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             };
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 SessionConfiguration configuration = new SessionConfiguration(
-                        sessionType,
+                        resolveVideoSessionType(),
                         outputConfigurations,
                         processExecutor,
                         stateCallback
@@ -4122,6 +4122,38 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
         }
         return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
+    }
+
+    /**
+     * Effective capture-session type for a video recording session. Uses the
+     * video HDR entry when HDR is actually engaged, else the video SDR entry;
+     * an empty/unparsable entry falls back to the sensor-configured
+     * {@link #sessionType}, so untouched settings behave exactly as today.
+     * Only applies while recording in VIDEO mode.
+     */
+    private int resolveVideoSessionType() {
+        int fallback = sessionType;
+        try {
+            if (!isVideoMode() || !mIsRecordingVideo) return fallback;
+            String raw = mVideoHdrActive
+                    ? PreferenceKeys.getVideoHdrSessionType()
+                    : PreferenceKeys.getVideoSdrSessionType();
+            if (raw == null || raw.isEmpty()) return fallback;
+            int value = Integer.parseInt(raw);
+            if (value < 0 || value > 65535) {
+                Log.w(TAG, "video session type out of range: " + raw);
+                return fallback;
+            }
+            Log.d(TAG, "video session type override=" + value + " (sensor=" + fallback
+                    + ", hdr=" + mVideoHdrActive + ")");
+            return value;
+        } catch (NumberFormatException e) {
+            Log.w(TAG, "video session type unparsable, using sensor value " + fallback);
+            return fallback;
+        } catch (Exception e) {
+            Log.w(TAG, "resolveVideoSessionType failed", e);
+            return fallback;
+        }
     }
 
     /** Physical camera id as int for CamcorderProfile queries (logical "0-2" -> 0). */
