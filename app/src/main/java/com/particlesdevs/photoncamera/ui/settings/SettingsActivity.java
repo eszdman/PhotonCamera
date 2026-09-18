@@ -532,6 +532,10 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 if (transferPref != null) {
                     transferPref.setVisible(hdrOn);
                 }
+                Preference colorRangePref = findPreference(mContext.getString(R.string.pref_video_color_range_key));
+                if (colorRangePref != null) {
+                    colorRangePref.setVisible(hdrOn);
+                }
                 Preference hdrTunablePref = findPreference("pref_video_hdr_tunable_submenu");
                 if (hdrTunablePref != null) {
                     hdrTunablePref.setVisible(hdrOn);

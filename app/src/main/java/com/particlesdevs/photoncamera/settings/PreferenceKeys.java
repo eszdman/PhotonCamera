@@ -59,6 +59,8 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_VIDEO_HEVC.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR_TRANSFER.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_COLOR_RANGE.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_OIS.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR_SESSION_TYPE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_SDR_SESSION_TYPE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
@@ -102,6 +104,8 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, resources.getString(R.string.video_hdr_transfer_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_COLOR_RANGE, resources.getString(R.string.video_color_range_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, resources.getBoolean(R.bool.pref_video_ois_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID, false);
@@ -627,6 +631,28 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, value);
     }
 
+    /**
+     * HDR video color range: "limited" (default, spec-correct for HLG/PQ) or
+     * "full". Full rewrites the encoded stream's range metadata on stop.
+     */
+    public static String getVideoColorRange() {
+        return preferenceKeys.settingsManager.getString(
+                SCOPE_GLOBAL, Key.KEY_VIDEO_COLOR_RANGE, "limited");
+    }
+
+    public static void setVideoColorRange(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_COLOR_RANGE, value);
+    }
+
+    /** Video OIS master switch: keeps OIS on even when EIS is active. */
+    public static boolean isVideoOisOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, true);
+    }
+
+    public static void setVideoOisOn(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, value);
+    }
+
     public static String getVideoHdrSessionType() {
         String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, "");
         return value != null ? value.trim() : "";
@@ -777,6 +803,8 @@ public class PreferenceKeys {
         KEY_VIDEO_HEVC(R.string.pref_video_hevc_key),
         KEY_VIDEO_HDR(R.string.pref_video_hdr_key),
         KEY_VIDEO_HDR_TRANSFER(R.string.pref_video_hdr_transfer_key),
+        KEY_VIDEO_COLOR_RANGE(R.string.pref_video_color_range_key),
+        KEY_VIDEO_OIS(R.string.pref_video_ois_key),
         KEY_VIDEO_HDR_SESSION_TYPE(R.string.pref_video_hdr_session_type_key),
         KEY_VIDEO_SDR_SESSION_TYPE(R.string.pref_video_sdr_session_type_key),
         KEY_VIDEO_USE_LOGICAL_ID(R.string.pref_video_use_logical_id_key),

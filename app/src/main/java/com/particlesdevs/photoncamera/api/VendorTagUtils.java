@@ -294,9 +294,11 @@ public class VendorTagUtils {
                 } else {
                     Log.d(TAG, "Sensor " + physicalId + " OIS is not active (mode = " + oisMode + ")");
                 }
+                // Metadata was present: no need to re-inspect this sensor.
+                // A result without the key leaves the sensor unverified so a
+                // later frame can still confirm OIS instead of latching false.
+                verifiedOisSensors.add(physicalId);
             }
-            // Mark sensor verified once metadata is read (prevents repeat execution and log spam for all sensors)
-            verifiedOisSensors.add(physicalId);
         } catch (Exception e) {
             Log.w(TAG, "Error inspecting CaptureResult for sensor " + physicalId, e);
         }

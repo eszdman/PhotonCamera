@@ -362,11 +362,9 @@ public class SensorConfigPreferenceGenerator {
     }
 
     private static void addPreference(Context context, PreferenceCategory category, String sensorId, TunableFieldInfo info) {
-        // Skip OIS configuration for sensors that do not physically support hardware OIS
-        if ("oisMode".equalsIgnoreCase(info.fieldName) && !isOisSupported(context, sensorId)) {
-            return;
-        }
-
+        // OIS Mode is always shown: the key is attempted regardless of
+        // advertised characteristics (vendor HALs often hide them), so hiding
+        // the entry would make the setting unreachable on capable hardware.
         SensorConfig annotation = info.annotation;
         String prefKey = "pref_sensorconfig_" + sensorId + "_" + info.fieldName.toLowerCase();
 
@@ -497,19 +495,6 @@ public class SensorConfigPreferenceGenerator {
         listPref.setSummaryProvider(ListPreference.SimpleSummaryProvider.getInstance());
 
         category.addPreference(listPref);
-    }
-
-    /**
-     * Checks if the physical camera sensor supports hardware Optical Image Stabilization (OIS).
-     * Delegates to {@link VendorTagUtils#isOisSupported(Context, android.hardware.camera2.CameraCharacteristics, String)}.
-     */
-    private static boolean isOisSupported(Context context, String sensorId) {
-        if (VendorTagUtils.isOisSupported(context, null, sensorId)) {
-            Log.d(TAG, "Sensor " + sensorId + " OIS is supported");
-            return true;
-        }
-        Log.d(TAG, "Sensor " + sensorId + " OIS is NOT supported");
-        return false;
     }
 
     private static String formatDefault(float defaultValue, Class<?> fieldType) {

@@ -219,6 +219,10 @@
     <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video. Requires Save storage (HEVC).</string>
     <string name="video_hdr_transfer">HDR Transfer</string>
     <string name="video_hdr_transfer_default" translatable="false">hlg</string>
+    <string name="video_color_range">Color range</string>
+    <string name="video_color_range_default" translatable="false">limited</string>
+    <string name="video_ois">Optical stabilization (OIS)</string>
+    <string name="video_ois_summary">Keeps OIS enabled for video, including when EIS is active.</string>
     <string name="video_hdr_session_type">Session Type (HDR)</string>
     <string name="video_sdr_session_type">Session Type (SDR)</string>
     <string name="video_session_type_summary">Session type integer (0 = regular). Empty uses the Sensor Configurations value.</string>
