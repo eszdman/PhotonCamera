@@ -22,7 +22,8 @@ import java.nio.FloatBuffer;
  *   out  (W/2,H/2,3) channels: 0 = s1, 1 = s2, 2 = rho
  *
  * The returned buffer is RGBA-interleaved (s1, s2, rho, 1) per half-res texel
- * in row-major fp32 — exactly what the kernelsMap GL texture upload expects.
+ * in row-major fp16 halves — the exact GL_RGBA16F layout, so it uploads with
+ * GL_HALF_FLOAT and the GL driver performs no FLOAT->HALF conversion.
  */
 public final class KernelNetNcnnProcessor {
     private static final String TAG = "KernelNetNcnnProcessor";
@@ -126,10 +127,12 @@ public final class KernelNetNcnnProcessor {
         long start = System.nanoTime();
         int outW = (width - 1) / 2 + 1;
         int outH = (height - 1) / 2 + 1;
-        // Allocator-backed, NOT allocateDirect: the ~256 MB (50 MP) interleaved
+        // Allocator-backed, NOT allocateDirect: the ~128 MB (50 MP) interleaved
         // output is freed explicitly after the GPU upload (GC timing can't be
         // trusted), and Allocator.free must only ever see malloc'd memory.
-        ByteBuffer outBuf = Allocator.allocate(OUT_CHANNELS * outH * outW * 4);
+        // 2 bytes per half: the native side emits RGBA16F halves so the upload
+        // needs no driver FLOAT->HALF conversion.
+        ByteBuffer outBuf = Allocator.allocate(OUT_CHANNELS * outH * outW * 2);
         if (outBuf == null) {
             Log.e(TAG, "KernelNetNcnn: output allocation failed");
             return null;
@@ -166,12 +169,12 @@ public final class KernelNetNcnnProcessor {
     }
 
     /**
-     * Parameter map at half resolution, RGBA-interleaved: (s1, s2, rho, 1)
-     * per texel, row-major, width*height*4 floats, values in
+     * Parameter map at half resolution, RGBA-interleaved halves:
+     * (s1, s2, rho, 1) per texel, row-major, width*height*4 halves, values in
      * s1/s2 in [0, 2], rho in [-1, 1].
      */
     public static class Result implements KernelNetResult {
-        private final ByteBuffer params;   // direct, native order, OUT_CHANNELS*outH*outW floats
+        private final ByteBuffer params;   // direct, native order, OUT_CHANNELS*outH*outW halves
         public final int width;            // half-res
         public final int height;           // half-res
 
@@ -193,13 +196,6 @@ public final class KernelNetNcnnProcessor {
 
         public ByteBuffer params() {
             return params;
-        }
-
-        @Override
-        public FloatBuffer asFloatBuffer() {
-            FloatBuffer fb = params.asFloatBuffer();
-            fb.rewind();
-            return fb;
         }
     }
 

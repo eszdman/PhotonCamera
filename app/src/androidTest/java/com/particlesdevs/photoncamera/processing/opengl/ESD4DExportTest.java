@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Point;
+import android.util.Half;
 import android.util.Pair;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -111,9 +112,9 @@ public class ESD4DExportTest {
                 assertNotNull("inference must produce a result from exported brightMap", result);
                 assertEquals((outW - 1) / 2 + 1, result.width);
                 assertEquals((outH - 1) / 2 + 1, result.height);
-                FloatBuffer params = result.asFloatBuffer();
+                java.nio.ShortBuffer params = result.params().asShortBuffer();
                 while (params.hasRemaining()) {
-                    assertTrue("kernel params must be finite", Float.isFinite(params.get()));
+                    assertTrue("kernel params must be finite", Float.isFinite(Half.toFloat(params.get())));
                 }
             } finally {
                 processor.close();

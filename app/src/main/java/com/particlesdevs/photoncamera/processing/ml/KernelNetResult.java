@@ -1,7 +1,6 @@
 package com.particlesdevs.photoncamera.processing.ml;
 
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 
 /**
  * Common result type for the KernelNet parameter model, so the ONNX and ncnn
@@ -14,12 +13,10 @@ public interface KernelNetResult {
     /** Half-resolution height. */
     int height();
 
-    /** RGBA-interleaved (s1, s2, rho, 1) floats per texel, row-major, width*height*4 values. */
-    FloatBuffer asFloatBuffer();
-
     /**
-     * Base direct buffer behind {@link #asFloatBuffer} (single owner frees
-     * it once uploaded; views don't free).
+     * Direct native-order RGBA-interleaved (s1, s2, rho, 1) fp16 halves per
+     * texel, row-major, width*height*4 halves — the exact GL_RGBA16F layout.
+     * Single owner frees it once uploaded; views don't free.
      */
     ByteBuffer params();
 }

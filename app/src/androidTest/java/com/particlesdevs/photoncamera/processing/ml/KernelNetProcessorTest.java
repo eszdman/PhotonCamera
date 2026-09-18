@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.ml;
 
 import android.content.Context;
+import android.util.Half;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -12,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.util.Random;
 
 
@@ -49,13 +51,13 @@ public class KernelNetProcessorTest {
             assertEquals(outW, result.width);
             assertEquals(outH, result.height);
 
-            FloatBuffer params = result.asFloatBuffer();
+            ShortBuffer params = result.params().asShortBuffer();
             assertEquals(4 * outW * outH, params.remaining());
             for (int i = 0; i < params.remaining(); i += 4) {
-                assertTrue("kernel params must be finite", Float.isFinite(params.get(i)));
-                assertTrue(Float.isFinite(params.get(i + 1)));
-                assertTrue(Float.isFinite(params.get(i + 2)));
-                assertEquals("alpha lane must be 1", 1.0f, params.get(i + 3), 0.0f);
+                assertTrue("kernel params must be finite", Float.isFinite(Half.toFloat(params.get(i))));
+                assertTrue(Float.isFinite(Half.toFloat(params.get(i + 1))));
+                assertTrue(Float.isFinite(Half.toFloat(params.get(i + 2))));
+                assertEquals("alpha lane must be 1", 1.0f, Half.toFloat(params.get(i + 3)), 0.0f);
             }
         } finally {
             processor.close();
@@ -526,9 +528,11 @@ public class KernelNetProcessorTest {
 
     private static float[] paramsToArray(KernelNetNcnnProcessor.Result result) {
         assertNotNull("inference must produce a result", result);
-        FloatBuffer params = result.asFloatBuffer();
+        ShortBuffer params = result.params().asShortBuffer();
         float[] out = new float[params.remaining()];
-        params.get(out);
+        for (int i = 0; i < out.length; i++) {
+            out[i] = Half.toFloat(params.get(i));
+        }
         return out;
     }
 

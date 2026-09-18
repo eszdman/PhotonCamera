@@ -35,6 +35,7 @@
 
 #include "net.h"
 #include "mat.h"
+#include "halfConvert.h"
 #if NCNN_VULKAN
 #include "gpu.h"
 #endif
@@ -287,9 +288,9 @@ struct KernelNetCtx {
 };
 
 static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
-                                 int width, int height, float sigma, float* outPtr);
+                                 int width, int height, float sigma, uint16_t* outPtr);
 static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
-                                  int width, int height, float sigma, float* outPtr);
+                                  int width, int height, float sigma, uint16_t* outPtr);
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeCreate(
@@ -412,9 +413,9 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeC
 
 // gray: [w*h] luma floats in [0,1]. sigma is a scalar noise estimate, tiled to
 // a full-res plane (the graph takes two 1-channel inputs). Output at half res,
-// RGBA-interleaved: (s1, s2, rho, 1) floats per texel, row-major — ready for a
-// straight glTexSubImage2D upload into the kernelsMap texture (4 floats per
-// output texel).
+// RGBA-interleaved: (s1, s2, rho, 1) HALF floats per texel, row-major — the
+// exact GL_RGBA16F layout, so the buffer goes straight into glTexSubImage2D
+// with GL_HALF_FLOAT (no driver FLOAT->HALF conversion on the Java side).
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeRun(
     JNIEnv* env, jclass, jlong handle, jobject grayBuffer, jint width, jint height,
@@ -424,7 +425,7 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeR
     pinOpenMPThreads(ctx->net.opt.num_threads);
 
     const float* grayPtr = static_cast<const float*>(env->GetDirectBufferAddress(grayBuffer));
-    float* outPtr = static_cast<float*>(env->GetDirectBufferAddress(outBuffer));
+    uint16_t* outPtr = static_cast<uint16_t*>(env->GetDirectBufferAddress(outBuffer));
     if (grayPtr == nullptr || outPtr == nullptr) {
         LOGE("GetDirectBufferAddress failed");
         return JNI_FALSE;
@@ -437,7 +438,7 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeR
 
 // Old behavior: one full-res pass. Kept for A/B comparison via KN_NOTILE=1.
 static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
-                                 int width, int height, float sigma, float* outPtr) {
+                                 int width, int height, float sigma, uint16_t* outPtr) {
     const int plane = width * height;
 
     ncnn::Mat gray(width, height, 1);
@@ -472,12 +473,19 @@ static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
     const float* ch0 = (const float*)out.channel(0);
     const float* ch1 = (const float*)out.channel(1);
     const float* ch2 = (const float*)out.channel(2);
+#if PHOTON_F16_NEON
     for (int i = 0; i < outPlane; i++) {
-        outPtr[(size_t)i * 4 + 0] = ch0[i];
-        outPtr[(size_t)i * 4 + 1] = ch1[i];
-        outPtr[(size_t)i * 4 + 2] = ch2[i];
-        outPtr[(size_t)i * 4 + 3] = 1.0f;
+        float32x4_t v = {ch0[i], ch1[i], ch2[i], 1.0f};
+        vst1_u16(outPtr + (size_t)i * 4, f32x4ToF16x4(v));
     }
+#else
+    for (int i = 0; i < outPlane; i++) {
+        outPtr[(size_t)i * 4 + 0] = f32ToF16(ch0[i]);
+        outPtr[(size_t)i * 4 + 1] = f32ToF16(ch1[i]);
+        outPtr[(size_t)i * 4 + 2] = f32ToF16(ch2[i]);
+        outPtr[(size_t)i * 4 + 3] = 0x3C00u; // 1.0h
+    }
+#endif
 
     return JNI_TRUE;
 }
@@ -501,7 +509,7 @@ static void fillTileClamped(float* dst, const float* src, int W, int H,
 }
 
 static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
-                                  int width, int height, float sigma, float* outPtr) {
+                                  int width, int height, float sigma, uint16_t* outPtr) {
     const int B = ctx->tileBorder;      // overlap per side (even)
     const int STEP = ctx->tileCore;     // interior advance (even, /16)
     const int TILE = STEP + 2 * B;      // fixed net input size (even)
@@ -564,8 +572,8 @@ static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
             // Half-res core of this tile -> global output. Origins are even,
             // so output g of a tile maps exactly to full-res output index
             // g + origin/2 (stride-2 conv phase preserved). Written
-            // RGBA-interleaved (s1, s2, rho, 1) per texel so the buffer can
-            // be uploaded to the kernelsMap texture without a CPU repass.
+            // RGBA-interleaved (s1, s2, rho, 1) halves per texel so the buffer
+            // uploads to the kernelsMap texture with GL_HALF_FLOAT, no repass.
             const int gx0 = vx0 / 2, gx1 = (vx1 + 1) / 2;
             const int gy0 = vy0 / 2, gy1 = (vy1 + 1) / 2;
             const int lx0 = gx0 - tx0 / 2, ly0 = gy0 - ty0 / 2;
@@ -577,13 +585,20 @@ static jboolean kernelnetRunTiled(KernelNetCtx* ctx, const float* grayPtr,
                 const float* r0 = ch0 + (size_t)(ly0 + y) * tOut + lx0;
                 const float* r1 = ch1 + (size_t)(ly0 + y) * tOut + lx0;
                 const float* r2 = ch2 + (size_t)(ly0 + y) * tOut + lx0;
-                float* dst = outPtr + ((size_t)(gy0 + y) * outW + gx0) * 4;
+                uint16_t* dst = outPtr + ((size_t)(gy0 + y) * outW + gx0) * 4;
+#if PHOTON_F16_NEON
                 for (int x = 0; x < rowLen; x++) {
-                    dst[x * 4 + 0] = r0[x];
-                    dst[x * 4 + 1] = r1[x];
-                    dst[x * 4 + 2] = r2[x];
-                    dst[x * 4 + 3] = 1.0f;
+                    float32x4_t v = {r0[x], r1[x], r2[x], 1.0f};
+                    vst1_u16(dst + x * 4, f32x4ToF16x4(v));
                 }
+#else
+                for (int x = 0; x < rowLen; x++) {
+                    dst[x * 4 + 0] = f32ToF16(r0[x]);
+                    dst[x * 4 + 1] = f32ToF16(r1[x]);
+                    dst[x * 4 + 2] = f32ToF16(r2[x]);
+                    dst[x * 4 + 3] = 0x3C00u; // 1.0h
+                }
+#endif
             }
             int64_t s5 = nowUs();
 

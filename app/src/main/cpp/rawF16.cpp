@@ -3,6 +3,7 @@
 //
 
 #include "rawF16.h"
+#include "halfConvert.h"
 #include <jni.h>
 #include <math.h>
 #include <stdlib.h>
@@ -14,52 +15,6 @@
 // Tracks the malloc'd bytes handed out through this file; declared in
 // allocator.cpp so Allocator.getMemoryCount() stays a single total.
 extern long memoryCount;
-
-// NEON f16<->f32 conversions: always present on arm64; on armv7 they need the
-// FP16 extension. Everything else falls back to the portable scalar path.
-#if defined(__aarch64__)
-#define RAWF16_NEON 1
-#elif defined(__ARM_NEON) && defined(__ARM_NEON_FP) && (__ARM_NEON_FP & 2)
-#define RAWF16_NEON 1
-#endif
-
-#if RAWF16_NEON
-#include <arm_neon.h>
-#endif
-
-// Portable float -> half conversion with round-to-nearest-even. Values fed in
-// are already clamped to [0,1], so the subnormal/Inf branches are only safety
-// nets, but they keep the helper correct for arbitrary inputs.
-static inline uint16_t f32ToF16(float value) {
-    uint32_t x;
-    memcpy(&x, &value, sizeof(x));
-    uint32_t sign = (x >> 16) & 0x00008000u;
-    int32_t exp = (int32_t)((x >> 23) & 0x000000FFu) - 127 + 15;
-    uint32_t man = x & 0x007FFFFFu;
-    if (((x >> 23) & 0xFFu) == 0xFFu) {
-        // Inf / NaN
-        return (uint16_t)(sign | 0x7C00u | (man ? 0x0200u : 0u));
-    }
-    if (exp >= 0x1F) {
-        // overflow -> Inf
-        return (uint16_t)(sign | 0x7C00u);
-    }
-    if (exp <= 0) {
-        // subnormal or underflow to zero
-        if (exp < -10) return (uint16_t)sign;
-        man |= 0x00800000u;
-        uint32_t shift = (uint32_t)(14 - exp);
-        uint32_t half = man >> shift;
-        uint32_t rem = man & ((1u << shift) - 1u);
-        uint32_t halfway = 1u << (shift - 1u);
-        if (rem > halfway || (rem == halfway && (half & 1u))) half++;
-        return (uint16_t)(sign | half);
-    }
-    uint32_t half = ((uint32_t)exp << 10) | (man >> 13);
-    uint32_t rem = man & 0x1FFFu;
-    if (rem > 0x1000u || (rem == 0x1000u && (half & 1u))) half++;
-    return (uint16_t)(sign | half);
-}
 
 static inline uint16_t normalizeSample(uint16_t v, float bl, float invScale) {
     float f = ((float)v - bl) * invScale;
@@ -89,7 +44,7 @@ uint16_t *RawF16::normalize(const uint16_t *src, int width, int height,
         const int siteRow = (row & 1) * 2;
         const uint16_t *srcRow = src + (size_t)row * width;
         uint16_t *dstRow = dst + (size_t)row * width;
-#if RAWF16_NEON
+#if PHOTON_F16_NEON
         // Sites alternate (bl0, bl1) on even rows and (bl2, bl3) on odd rows;
         // a 4-lane {a,b,a,b} vector covers 4 consecutive pixels.
         const float blPat[4] = {blackLevel[siteRow], blackLevel[siteRow + 1],
@@ -168,7 +123,7 @@ uint16_t *RawF16::encodeU16(const uint16_t *src, int width, int height,
         const int siteRow = (row & 1) * 2;
         const uint16_t *srcRow = src + (size_t)row * width;
         uint16_t *dstRow = dst + (size_t)row * width;
-#if RAWF16_NEON
+#if PHOTON_F16_NEON
         const float blPat[4] = {blackLevel[siteRow], blackLevel[siteRow + 1],
                                 blackLevel[siteRow], blackLevel[siteRow + 1]};
         const float scPat[4] = {scale[siteRow], scale[siteRow + 1],
