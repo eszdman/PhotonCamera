@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
-import com.particlesdevs.photoncamera.processing.ml.KernelParams;
 import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
@@ -14,7 +13,6 @@ import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -154,12 +152,11 @@ public final class UpscaleCrop extends Node {
         PostPipeline pp = (PostPipeline) basePipeline;
         int[] pix = new int[paramsSize.x * paramsSize.y];
         params.position(0);
-        // Channel-major layout: s1/s2/rho planes, not interleaved.
-        int plane = paramsSize.x * paramsSize.y;
+        // RGBA-interleaved (s1, s2, rho, 1) per texel, row-major.
         for (int i = 0; i < pix.length; i++) {
-            float s1 = Math.min(params.get(i) * 0.5f, 1.0f);
-            float s2 = Math.min(params.get(plane + i) * 0.5f, 1.0f);
-            float rho = Math.min(Math.max((params.get(2 * plane + i) + 1.0f) * 0.5f, 0.0f), 1.0f);
+            float s1 = Math.min(params.get(i * 4) * 0.5f, 1.0f);
+            float s2 = Math.min(params.get(i * 4 + 1) * 0.5f, 1.0f);
+            float rho = Math.min(Math.max((params.get(i * 4 + 2) + 1.0f) * 0.5f, 0.0f), 1.0f);
             int r = (int) (s1 * 255.0f);
             int g = (int) (s2 * 255.0f);
             int b = (int) (rho * 255.0f);
@@ -252,7 +249,7 @@ public final class UpscaleCrop extends Node {
             pp.kernelNetSingleThread = null;
             KernelNetResult result = pp.kernelNetSingleResult.getAndSet(null);
             if (result != null) {
-                // Channel-major view, no interleave copy (see below).
+                // RGBA-interleaved view, no repack copy (see below).
                 params = result.asFloatBuffer();
                 paramsSize = new Point(result.width(), result.height());
                 singleBase = result.params();
@@ -261,18 +258,24 @@ public final class UpscaleCrop extends Node {
 
         boolean hasParams = params != null && paramsSize != null && paramsSize.x > 0 && paramsSize.y > 0;
         if (hasParams) {
-            // Map-health sanity check: if the first param texel is NaN or out
-            // of the model's range, the map is garbage and the reconstruction
-            // would mirror it - fall back to the bicubic path instead.
-            // Channel-major layout: s1/s2/rho planes, not interleaved.
-            int plane = paramsSize.x * paramsSize.y;
+            // Map-health sanity check: if the first/last param texel is NaN or
+            // out of the model's range, the map is garbage and the
+            // reconstruction would mirror it - fall back to the bicubic path
+            // instead. RGBA-interleaved (s1, s2, rho, 1) per texel.
             params.position(0);
+            int last = (paramsSize.x * paramsSize.y - 1) * 4;
             float s1 = params.get(0);
-            float s2 = params.get(plane);
-            float rho = params.get(2 * plane);
+            float s2 = params.get(1);
+            float rho = params.get(2);
+            float ls1 = params.get(last);
+            float ls2 = params.get(last + 1);
+            float lrho = params.get(last + 2);
             if (Float.isNaN(s1) || Float.isNaN(s2) || Float.isNaN(rho)
+                    || Float.isNaN(ls1) || Float.isNaN(ls2) || Float.isNaN(lrho)
                     || s1 < 0.0f || s1 > 4.0f || s2 < 0.0f || s2 > 4.0f
-                    || rho < -2.0f || rho > 2.0f) {
+                    || rho < -2.0f || rho > 2.0f
+                    || ls1 < 0.0f || ls1 > 4.0f || ls2 < 0.0f || ls2 > 4.0f
+                    || lrho < -2.0f || lrho > 2.0f) {
                 hasParams = false;
             }
         }
@@ -280,24 +283,16 @@ public final class UpscaleCrop extends Node {
         if (hasParams) {
             kernelsMapTex = new GLTexture(paramsSize,
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
-            // Band the interleave+upload like the merge path: sub-rect uploads
-            // convert identically, so no full float[4*w*h] is ever built.
+            // The inference result is already RGBA-interleaved (s1, s2, rho, 1)
+            // and the texture takes exactly that layout, so upload the malloc'd
+            // buffer as-is: one driver call, no CPU repack copy.
             // Exactly one base buffer is owned here (merge ferry or single
             // result); it is freed after a successful upload, or on any
             // failure below since no other owner exists yet.
             ByteBuffer ownedBase = pp.kernelParamsBase != null ? pp.kernelParamsBase : singleBase;
             try {
-                int w = paramsSize.x, h = paramsSize.y;
-                ByteBuffer bandBytes = ByteBuffer.allocateDirect(
-                        w * KernelParams.BAND_ROWS * 4 * 4).order(ByteOrder.nativeOrder());
-                FloatBuffer band = bandBytes.asFloatBuffer();
-                for (int y0 = 0; y0 < h; y0 += KernelParams.BAND_ROWS) {
-                    int rows = Math.min(KernelParams.BAND_ROWS, h - y0);
-                    KernelParams.interleaveBand(params, w, w * h, y0, rows, band);
-                    band.position(0);
-                    band.limit(w * rows * 4);
-                    kernelsMapTex.loadDataOffset(0, y0, w, rows, band);
-                }
+                params.position(0);
+                kernelsMapTex.loadData(params);
             } catch (Throwable t) {
                 freeBase(ownedBase);
                 pp.kernelParamsBase = null;
