@@ -78,6 +78,7 @@
     <string name="preserve_manual_wb">Preserve Manual WB</string>
     <string name="preserve_manual_wb_summary">Keep manual white balance color temperature when switching camera lenses</string>
     <string name="show_horizon_on_preview">Show horizon on preview</string>
+    <string name="seekbar_reset_desc">Reset to default</string>
     <string name="preview_format">Preview Format</string>
     <string name="pref_save_per_lens_string">Per Lens Settings</string>
     <string name="compressor">Compressor</string>

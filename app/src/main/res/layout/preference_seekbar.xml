@@ -47,6 +47,20 @@
                     android:fadingEdge="horizontal"
                     tools:text="SeekBar Title"/>
 
+            <ImageButton
+                    android:id="@+id/seekbar_reset"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_refresh"
+                    android:scaleType="centerInside"
+                    android:padding="4dp"
+                    android:tint="?attr/colorPrimary"
+                    android:contentDescription="@string/seekbar_reset_desc"
+                    android:visibility="gone"
+                    tools:visibility="visible"/>
+
             <TextView
                     android:layout_width="@dimen/preference_seekbar_value_text_width"
                     android:layout_height="wrap_content"

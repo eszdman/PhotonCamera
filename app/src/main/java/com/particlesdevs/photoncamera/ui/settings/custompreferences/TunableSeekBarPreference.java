@@ -41,6 +41,7 @@ public class TunableSeekBarPreference extends Preference {
     private int seekBarProgress;
     private TextView seekBarValue;
     private Slider seekBar;
+    private View seekBarReset;
     private boolean isUserInteraction = false;
 
     public TunableSeekBarPreference(Context context) {
@@ -79,6 +80,7 @@ public class TunableSeekBarPreference extends Preference {
         holder.setDividerAllowedAbove(false);
         seekBar = (Slider) holder.findViewById(R.id.seekbar);
         seekBarValue = (TextView) holder.findViewById(R.id.seekbar_value);
+        seekBarReset = holder.findViewById(R.id.seekbar_reset);
 
         if (seekBar != null) {
             seekBar.setValueFrom(0f);
@@ -110,7 +112,13 @@ public class TunableSeekBarPreference extends Preference {
         if (seekBarValue != null) {
             seekBarValue.setOnClickListener(v -> showPreciseValueDialog());
         }
-        
+
+        // Reset button restores the default; visible only when non-default.
+        if (seekBarReset != null) {
+            seekBarReset.setOnClickListener(v -> resetToDefault());
+        }
+        updateResetVisibility();
+
         // After binding is complete, any changes are user interactions
         isUserInteraction = true;
     }
@@ -194,6 +202,7 @@ public class TunableSeekBarPreference extends Preference {
                         updateSeekbar(seekBarProgress);
                     }
                     updateValueColor(mDefaultValue);
+                    updateResetVisibility();
 
                     // Restore user interaction flag
                     isUserInteraction = wasUserInteraction;
@@ -280,6 +289,7 @@ public class TunableSeekBarPreference extends Preference {
         
         // Update color based on value
         updateValueColor(value);
+        updateResetVisibility();
     }
 
     private void updateLabel(String displayValue) {
@@ -310,6 +320,36 @@ public class TunableSeekBarPreference extends Preference {
     private void updateSeekbar(int progress) {
         if (seekBar != null)
             seekBar.setValue(clampProgress(progress));
+    }
+
+    /** Restores the default value (same as Reset in the precise-input dialog). */
+    private void resetToDefault() {
+        boolean wasUserInteraction = isUserInteraction;
+        isUserInteraction = true;
+        try {
+            SharedPreferences prefs = getPreferenceManager() != null
+                    ? getPreferenceManager().getSharedPreferences() : null;
+            if (prefs != null) {
+                prefs.edit().remove(getKey()).apply();
+            }
+            seekBarProgress = valueToProgress(mDefaultValue);
+            String displayValue = formatValue(mDefaultValue);
+            updateLabel(displayValue);
+            updateSeekbar(seekBarProgress);
+            updateValueColor(mDefaultValue);
+            updateResetVisibility();
+        } finally {
+            isUserInteraction = wasUserInteraction;
+        }
+    }
+
+    /** Shows the reset button only when a non-default value is persisted. */
+    private void updateResetVisibility() {
+        if (seekBarReset == null) return;
+        SharedPreferences prefs = getPreferenceManager() != null
+                ? getPreferenceManager().getSharedPreferences() : null;
+        boolean isDefault = prefs == null || !prefs.contains(getKey());
+        seekBarReset.setVisibility(isDefault ? View.GONE : View.VISIBLE);
     }
 
     private int progressMax() {
