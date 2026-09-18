@@ -283,13 +283,15 @@
                     android:title="@string/rawvideo_downscale_4x"
                     android:summary=""
                     android:icon="@drawable/ic_burst_mode_black_24dp"/>
-            <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                    android:key="@string/pref_rawvideo_write_zip_key"
-                    android:defaultValue="true"
+            <ListPreference
+                    android:key="@string/pref_rawvideo_container_key"
+                    android:defaultValue="@string/pref_rawvideo_container_default"
                     android:layout="@layout/preference_with_margin"
-                    android:title="@string/rawvideo_write_zip"
-                    android:summary=""
-                    android:icon="@drawable/ic_save"/>
+                    android:title="@string/rawvideo_container"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_save"
+                    android:entries="@array/rawvideo_container_entries"
+                    android:entryValues="@array/rawvideo_container_entryvalues"/>
             <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                     android:key="@string/pref_rawvideo_crop_169_key"
                     android:defaultValue="true"
@@ -313,48 +315,6 @@
                 app:minValue="1"
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
-    </PreferenceCategory>
-    <PreferenceCategory
-            android:layout="@layout/preference_category_layout"
-            android:key="@string/pref_category_video_key"
-            android:title="@string/video_settings">
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_video_resolution_key"
-                android:title="@string/video_resolution"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_saturation"
-                android:entries="@array/video_resolution_entries"
-                android:entryValues="@array/video_resolution_entryvalues"
-                android:defaultValue="@string/pref_video_resolution_default"/>
-    </PreferenceCategory>
-    <PreferenceCategory
-            android:layout="@layout/preference_category_layout"
-            android:key="@string/pref_category_rawvideo_key"
-            android:title="@string/raw_video_settings">
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_rawvideo_downscale_4x_key"
-                android:defaultValue="false"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/rawvideo_downscale_4x"
-                android:summary=""
-                android:icon="@drawable/ic_burst_mode_black_24dp"/>
-        <ListPreference
-                android:key="@string/pref_rawvideo_container_key"
-                android:defaultValue="@string/pref_rawvideo_container_default"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/rawvideo_container"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_save"
-                android:entries="@array/rawvideo_container_entries"
-                android:entryValues="@array/rawvideo_container_entryvalues"/>
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_rawvideo_crop_169_key"
-                android:defaultValue="true"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/rawvideo_crop_169"
-                android:summary=""
-                android:icon="@drawable/ic_burst_mode_black_24dp"/>
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
