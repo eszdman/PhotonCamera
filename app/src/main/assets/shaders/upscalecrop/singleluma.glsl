@@ -1,6 +1,5 @@
 precision highp float;
-precision highp usampler2D;
-uniform highp usampler2D InputBuffer;
+uniform highp sampler2D InputBuffer;
 uniform float blMean;
 uniform float whiteLevel;
 out vec4 Output;
@@ -8,16 +7,17 @@ out vec4 Output;
 // One luma sample per 2x2 raw quad, four samples packed per rgba16f texel -
 // exactly the KernelNet input built by the merge path (merge00 + mergeGrayscale
 // in ESD4D), so the single-frame inference sees the same distribution as the
-// multi-frame one. Luma is the quad mean (CFA-agnostic), black/white
-// normalized and square-rooted, matching the model's training input.
+// multi-frame one. Luma is the quad mean (CFA-agnostic) of the normalized fp16
+// input (black already removed on the CPU, white at 1.0), square-rooted to
+// match the model's training input.
 float quadLuma(ivec2 packed) {
     ivec2 sz = textureSize(InputBuffer, 0);
     ivec2 b = packed * 2;
     vec4 c = vec4(
-        float(texelFetch(InputBuffer, clamp(b, ivec2(0), sz - ivec2(1)), 0).r),
-        float(texelFetch(InputBuffer, clamp(b + ivec2(1, 0), ivec2(0), sz - ivec2(1)), 0).r),
-        float(texelFetch(InputBuffer, clamp(b + ivec2(0, 1), ivec2(0), sz - ivec2(1)), 0).r),
-        float(texelFetch(InputBuffer, clamp(b + ivec2(1, 1), ivec2(0), sz - ivec2(1)), 0).r));
+        texelFetch(InputBuffer, clamp(b, ivec2(0), sz - ivec2(1)), 0).r,
+        texelFetch(InputBuffer, clamp(b + ivec2(1, 0), ivec2(0), sz - ivec2(1)), 0).r,
+        texelFetch(InputBuffer, clamp(b + ivec2(0, 1), ivec2(0), sz - ivec2(1)), 0).r,
+        texelFetch(InputBuffer, clamp(b + ivec2(1, 1), ivec2(0), sz - ivec2(1)), 0).r);
     float mean = dot(c, vec4(0.25)) / max(whiteLevel, 1.0);
     float l = clamp((mean - blMean) / max(1.0 - blMean, 1e-4), 0.0, 1.0);
     return sqrt(l);
