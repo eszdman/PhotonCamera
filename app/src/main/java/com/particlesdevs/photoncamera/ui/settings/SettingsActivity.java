@@ -112,23 +112,30 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     }
     
     private void setupWindowInsets() {
+        View toolbar = findViewById(R.id.settings_toolbar);
+        if (toolbar != null) {
+            com.particlesdevs.photoncamera.util.SystemBarsHelper.padTopForStatusBar(toolbar);
+            ViewCompat.requestApplyInsets(toolbar);
+        }
         View settingsContainer = findViewById(R.id.settings_container);
         if (settingsContainer != null) {
             ViewCompat.setOnApplyWindowInsetsListener(settingsContainer, (v, windowInsets) -> {
-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                Insets insets = windowInsets.getInsets(
+                        WindowInsetsCompat.Type.navigationBars()
+                                | WindowInsetsCompat.Type.displayCutout());
                 int navbarBottom = insets.bottom;
-                
+
                 // Apply margin bottom if navigation bar is present
                 MarginLayoutParams layoutParams = (MarginLayoutParams) v.getLayoutParams();
                 if (layoutParams != null) {
                     layoutParams.bottomMargin = navbarBottom;
                     v.setLayoutParams(layoutParams);
                 }
-                
+
                 // Return consumed insets to prevent default behavior
                 return windowInsets;
             });
-            
+
             // Request insets to be applied
             ViewCompat.requestApplyInsets(settingsContainer);
         }

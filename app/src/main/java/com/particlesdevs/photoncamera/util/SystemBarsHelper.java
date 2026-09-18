@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.os.Build;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 
 import androidx.core.graphics.Insets;
@@ -70,6 +71,38 @@ public final class SystemBarsHelper {
                             | WindowInsetsCompat.Type.displayCutout());
             v.setPadding(initialLeft + nav.left, initialTop,
                     initialRight + nav.right, initialBottom + nav.bottom);
+            return insets;
+        });
+    }
+
+    /**
+     * Adds the status-bar / display-cutout top inset as the view's top margin
+     * so headers (e.g. a settings toolbar) sit below notches and punch-hole
+     * cameras instead of behind them. Margin (not padding) is used so fixed
+     * heights like {@code ?attr/actionBarSize} keep their full content box.
+     * Sides are included for landscape cutouts. Full-bleed content views
+     * should <em>not</em> use this.
+     */
+    public static void padTopForStatusBar(View view) {
+        ViewGroup.MarginLayoutParams layoutParams =
+                view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams
+                        ? (ViewGroup.MarginLayoutParams) view.getLayoutParams()
+                        : null;
+        int initialTopMargin = layoutParams != null ? layoutParams.topMargin : 0;
+        int initialLeft = view.getPaddingLeft();
+        int initialRight = view.getPaddingRight();
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            Insets top = insets.getInsets(
+                    WindowInsetsCompat.Type.statusBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            if (lp instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) lp;
+                mlp.topMargin = initialTopMargin + top.top;
+                v.setLayoutParams(mlp);
+            }
+            v.setPadding(initialLeft + top.left, v.getPaddingTop(),
+                    initialRight + top.right, v.getPaddingBottom());
             return insets;
         });
     }
