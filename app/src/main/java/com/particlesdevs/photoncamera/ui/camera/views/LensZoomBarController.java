@@ -116,6 +116,8 @@ public class LensZoomBarController {
             // auto-switches lenses exactly at the native boundary.
             captureController.setZoom(zoom, 0.5f, 0.5f, false);
             viewModel.setZoomRatio(captureController.getZoomRatio());
+            viewModel.setZoomOffNative(
+                    !captureController.isZoomOnNative(captureController.getZoomRatio()));
             scheduleCollapse();
         });
         slider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {

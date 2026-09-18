@@ -1714,6 +1714,10 @@ public class CameraFragment extends Fragment {
         public void onLogicalZoomProgress(float ratio) {
             if (cameraFragmentViewModel != null) {
                 cameraFragmentViewModel.setZoomRatio(ratio);
+                if (captureController != null) {
+                    cameraFragmentViewModel.setZoomOffNative(
+                            !captureController.isZoomOnNative(ratio));
+                }
             }
         }
 
@@ -1908,6 +1912,8 @@ public class CameraFragment extends Fragment {
                     captureController.resetZoom();
                 }
                 cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                cameraFragmentViewModel.setZoomOffNative(
+                        !captureController.isZoomOnNative(captureController.getZoomRatio()));
                 if (lensZoomBarController != null) lensZoomBarController.refreshZoomRange();
             }
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);

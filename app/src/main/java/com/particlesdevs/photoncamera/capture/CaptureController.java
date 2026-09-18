@@ -1393,6 +1393,28 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         return zoomController.getZoomRatio();
     }
 
+    /**
+     * True when the ratio sits exactly on a lens native zoom (within epsilon)
+     * and the indicator should hide: any physical lens native, or any logical
+     * member native in video logical mode.
+     */
+    public boolean isZoomOnNative(float ratio) {
+        try {
+            if (isVideoLogicalActive()) {
+                List<LogicalCameraResolver.Member> members = getEffectiveLogicalMembers();
+                if (members != null && !members.isEmpty()) {
+                    for (LogicalCameraResolver.Member m : members) {
+                        if (m != null && Math.abs(m.zoomFactor - ratio) <= 1e-4f) return true;
+                    }
+                    return false;
+                }
+            }
+            return zoomController.isNativeZoom(ratio);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** Minimum effective zoom of the active facing's lens set. */
     public float getMinZoom() {
         return zoomController.getMinZoom();
@@ -3094,6 +3116,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     applyZoom(mPreviewRequestBuilder);
                     rebuildPreviewBuilder();
                 }
+                try {
+                    cameraEventsListener.onLogicalZoomProgress(zoomController.getZoomRatio());
+                } catch (Exception ignored) {
+                }
                 return;
             }
             startLogicalZoom(memberId, target.zoomFactor);
@@ -3119,6 +3145,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 } else if (mPreviewRequestBuilder != null) {
                     applyZoom(mPreviewRequestBuilder);
                     rebuildPreviewBuilder();
+                }
+                try {
+                    cameraEventsListener.onLogicalZoomProgress(to);
+                } catch (Exception ignored) {
                 }
                 return;
             }

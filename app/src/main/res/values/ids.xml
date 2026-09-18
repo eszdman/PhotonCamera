@@ -52,4 +52,5 @@
     <item name="zoom_ratio_tag" type="id"/>
     <item name="zoom_hidden_tag" type="id"/>
     <item name="zoom_alpha_anim_tag" type="id"/>
+    <item name="zoom_offnative_tag" type="id"/>
 </resources>
