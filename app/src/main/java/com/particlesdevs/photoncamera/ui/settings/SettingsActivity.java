@@ -909,15 +909,18 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             // Log which preference was clicked
             Log.d("SettingsFragment", "onPreferenceTreeClick: " + preference.getKey());
 
-            // Navigate to any sub-screen manually: default handling does not
-            // open PreferenceScreens in this setup, so every submenu entry
-            // (tunable, sensor config, video tunables, about, ...) is
-            // forwarded here instead of maintaining a key list.
+            // Navigate manually only for dynamically-generated (empty) sub-screens:
+            // non-empty screens are already opened once by default handling
+            // (PreferenceScreen.onClick -> onNavigateToScreen), so forwarding
+            // them here would stack the same screen twice (two backs to exit).
             if (preference instanceof PreferenceScreen) {
+                PreferenceScreen screen = (PreferenceScreen) preference;
+                if (screen.getPreferenceCount() != 0) {
+                    return super.onPreferenceTreeClick(preference);
+                }
                 Log.d("SettingsFragment", "Submenu clicked, navigating: " + preference.getKey());
 
                 // Navigate to the submenu (preferences will be generated in the new fragment's onCreate)
-                PreferenceScreen screen = (PreferenceScreen) preference;
                 if (activity instanceof SettingsActivity) {
                     ((SettingsActivity) activity).onPreferenceStartScreen(this, screen);
                     return true;
