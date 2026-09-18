@@ -70,6 +70,12 @@ public class VendorTagUtils {
         public boolean supported = false;
         /** Whether the key has been tested yet (only possible via VendorTagUtils at capture) */
         public boolean tested = false;
+        /**
+         * Where the key is applied: "Capture" (default, per request builder)
+         * or "Session" (session parameters at session creation). Missing in
+         * legacy stored JSON, which reads as Capture.
+         */
+        public String init = "Capture";
 
         public TunableKey() {}
 
@@ -82,6 +88,15 @@ public class VendorTagUtils {
 
         public Object parseValue() {
             return parseValue(valueType, value);
+        }
+
+        /**
+         * True when this key is applied at session init (session parameters)
+         * rather than per capture request. Null-safe: legacy stored JSON
+         * without the field reads as capture-init.
+         */
+        public static boolean isSessionInit(TunableKey key) {
+            return key != null && "Session".equals(key.init);
         }
 
         public CaptureRequest.Key<?> toCaptureRequestKey() {
@@ -184,12 +199,15 @@ public class VendorTagUtils {
      * Apply a list of user-defined tunable keys to a request builder.
      * Tests each key for support (via {@code builder.get}) and only sets it when
      * supported. Updates the {@code tested}/{@code supported} flags in place so the
-     * settings UI can show green/red feedback afterwards.
+     * settings UI can show green/red feedback afterwards. Only capture-init
+     * keys are applied here; session-init keys belong in the session
+     * parameters (see CaptureController session setup).
      */
     public static void applyTunableKeys(CaptureRequest.Builder builder, List<TunableKey> keys, String physicalId) {
         if (builder == null || keys == null) return;
         for (TunableKey tunableKey : keys) {
             if (tunableKey == null) continue;
+            if (TunableKey.isSessionInit(tunableKey)) continue;
             tunableKey.tested = true;
             if (!"CaptureRequest".equals(tunableKey.type)) {
                 Log.w(TAG, "Tunable key " + tunableKey.name + " is a " + tunableKey.type + " key, cannot be applied to the request builder");

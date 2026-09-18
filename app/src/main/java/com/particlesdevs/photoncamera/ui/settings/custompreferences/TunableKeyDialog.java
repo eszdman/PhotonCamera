@@ -22,6 +22,7 @@ import java.util.List;
  */
 public class TunableKeyDialog {
     private static final String[] VALUE_TYPES = {"Integer", "Long", "Float", "Double", "Byte", "Short", "int[]", "byte[]", "long[]", "float[]", "String"};
+    private static final String[] INIT_PHASES = {"Capture", "Session"};
 
     private TunableKeyDialog() {}
 
@@ -68,6 +69,22 @@ public class TunableKeyDialog {
         valueParams.topMargin = dp(context, 8);
         container.addView(valueLayout, valueParams);
 
+        TextInputLayout initLayout = new TextInputLayout(context);
+        initLayout.setHint("Key init");
+        initLayout.setEndIconMode(TextInputLayout.END_ICON_DROPDOWN_MENU);
+        MaterialAutoCompleteTextView initView = new MaterialAutoCompleteTextView(initLayout.getContext());
+        initView.setInputType(InputType.TYPE_NULL);
+        initView.setAdapter(new ArrayAdapter<>(context,
+                com.google.android.material.R.layout.mtrl_auto_complete_simple_item, INIT_PHASES));
+        String existingInit = existing != null && existing.init != null ? existing.init : INIT_PHASES[0];
+        if (!INIT_PHASES[1].equals(existingInit)) existingInit = INIT_PHASES[0];
+        initView.setText(existingInit, false);
+        initView.setOnClickListener(v -> initView.showDropDown());
+        initLayout.addView(initView);
+        LinearLayout.LayoutParams initParams = matchWrap();
+        initParams.topMargin = dp(context, 8);
+        container.addView(initLayout, initParams);
+
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)
                 .setTitle(isNew ? "Add Tunable Key" : "Edit Tunable Key")
                 .setView(container)
@@ -82,6 +99,8 @@ public class TunableKeyDialog {
                     key.name = name;
                     key.valueType = typeView.getText().toString();
                     key.value = valueEdit.getText().toString().trim();
+                    key.init = initView.getText().toString();
+                    if (!INIT_PHASES[1].equals(key.init)) key.init = INIT_PHASES[0];
                     key.tested = existing != null && existing.tested;
                     key.supported = existing != null && existing.supported;
 

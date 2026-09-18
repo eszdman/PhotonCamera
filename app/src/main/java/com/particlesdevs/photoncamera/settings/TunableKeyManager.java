@@ -125,6 +125,21 @@ public class TunableKeyManager {
     }
 
     /**
+     * Session-init subset of a key list. Returns live references into the
+     * passed list (not copies), so support flags set on the subset persist
+     * when the caller saves the full list back.
+     */
+    public static List<VendorTagUtils.TunableKey> sessionSubset(
+            List<VendorTagUtils.TunableKey> keys) {
+        List<VendorTagUtils.TunableKey> out = new ArrayList<>();
+        if (keys == null) return out;
+        for (VendorTagUtils.TunableKey key : keys) {
+            if (VendorTagUtils.TunableKey.isSessionInit(key)) out.add(key);
+        }
+        return out;
+    }
+
+    /**
      * Universal check whether a tunable key is supported or holds an expected value
      * in SharedPreferences for the given sensor.
      *

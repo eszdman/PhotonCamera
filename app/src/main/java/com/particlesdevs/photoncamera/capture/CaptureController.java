@@ -2632,6 +2632,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 }
             }
 
+            CaptureRequest sessionParams = buildSessionParams();
+
             CameraCaptureSession.StateCallback stateCallback =
                     new CameraCaptureSession.StateCallback() {
                 @Override
@@ -2743,6 +2745,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         processExecutor,
                         stateCallback
                 );
+                if (sessionParams != null) {
+                    try {
+                        configuration.setSessionParameters(sessionParams);
+                    } catch (Exception e) {
+                        Log.w(TAG, "setSessionParameters failed, continuing without", e);
+                    }
+                }
                 mCameraDevice.createCaptureSession(configuration);
             } else {
                 mCameraDevice.createCaptureSession(surfaces, stateCallback, mBackgroundHandler);
@@ -2751,6 +2760,134 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.e(TAG, Log.getStackTraceString(e));
             onPreviewSessionFailed(sessionToken);
         }
+    }
+
+    /**
+     * Builds session parameters from session-init tunable keys (sensor list
+     * for the current physical id, plus the active video SDR/HDR list in
+     * VIDEO mode). Only keys the HAL advertises via available-session-keys
+     * are included; anything else would fail session creation. Returns null
+     * when there is nothing to apply. Support flags are persisted back so
+     * the settings rows show honest green/red status.
+     */
+    private CaptureRequest buildSessionParams() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null;
+        if (mCameraDevice == null || mCameraCharacteristics == null) return null;
+        List<CaptureRequest.Key<?>> available;
+        try {
+            available = mCameraCharacteristics.getAvailableSessionKeys();
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: no available session keys", e);
+            return null;
+        }
+        if (available == null || available.isEmpty()) return null;
+        android.content.Context context = PhotonCamera.getSettingsManagerStatic() != null
+                ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
+        if (context == null) return null;
+        String tunablePhysicalId = getTunablePhysicalId();
+        List<VendorTagUtils.TunableKey> sensorFull =
+                com.particlesdevs.photoncamera.settings.TunableKeyManager.loadKeys(
+                        context, tunablePhysicalId);
+        List<VendorTagUtils.TunableKey> sensorKeys =
+                com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(sensorFull);
+        List<VendorTagUtils.TunableKey> videoFull = null;
+        boolean videoListIsHdr = false;
+        List<VendorTagUtils.TunableKey> videoKeys = new java.util.ArrayList<>();
+        try {
+            if (PhotonCamera.getSettings() != null
+                    && PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
+                videoListIsHdr = mVideoHdrActive && mIsRecordingVideo;
+                videoFull = videoListIsHdr
+                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoHdrKeys(context)
+                        : com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoKeys(context);
+                videoKeys = com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(videoFull);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: video list load failed", e);
+        }
+        if (sensorKeys.isEmpty() && videoKeys.isEmpty()) return null;
+        CaptureRequest.Builder builder;
+        try {
+            builder = mCameraDevice.createCaptureRequest(
+                    (mIsRecordingVideo || isVideoMode())
+                            ? CameraDevice.TEMPLATE_RECORD
+                            : CameraDevice.TEMPLATE_PREVIEW);
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: request creation failed", e);
+            return null;
+        }
+        int applied = 0;
+        applied += setSessionKeys(builder, sensorKeys, available);
+        applied += setSessionKeys(builder, videoKeys, available);
+        if (applied == 0) return null;
+        try {
+            com.particlesdevs.photoncamera.settings.TunableKeyManager.saveKeys(
+                    context, tunablePhysicalId, sensorFull);
+            if (videoFull != null) {
+                if (videoListIsHdr) {
+                    com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoHdrKeys(
+                            context, videoFull);
+                } else {
+                    com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoKeys(
+                            context, videoFull);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: status persist failed", e);
+        }
+        try {
+            Log.d(TAG, "buildSessionParams: applied " + applied + " session keys");
+            return builder.build();
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: build failed", e);
+            return null;
+        }
+    }
+
+    /**
+     * Sets session-init keys advertised by the HAL on a session-params
+     * builder (plain set only, never physical duplication). Key matching is
+     * by name: {@code CaptureRequest.Key} does not implement value equality.
+     * Marks tested/supported in place. Returns the number applied.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private int setSessionKeys(CaptureRequest.Builder builder,
+            List<VendorTagUtils.TunableKey> keys, List<CaptureRequest.Key<?>> available) {
+        int applied = 0;
+        if (builder == null || keys == null || available == null) return 0;
+        for (VendorTagUtils.TunableKey tunableKey : keys) {
+            if (tunableKey == null) continue;
+            tunableKey.tested = true;
+            if (!"CaptureRequest".equals(tunableKey.type)
+                    || tunableKey.name == null || tunableKey.name.isEmpty()) {
+                tunableKey.supported = false;
+                continue;
+            }
+            try {
+                boolean advertised = false;
+                for (CaptureRequest.Key<?> availableKey : available) {
+                    if (availableKey != null && tunableKey.name.equals(availableKey.getName())) {
+                        advertised = true;
+                        break;
+                    }
+                }
+                if (!advertised) {
+                    tunableKey.supported = false;
+                    Log.d(TAG, "session key not advertised, skipping: " + tunableKey.name);
+                    continue;
+                }
+                CaptureRequest.Key<?> key = tunableKey.toCaptureRequestKey();
+                Object parsedValue = tunableKey.parseValue();
+                ((CaptureRequest.Builder) builder).set((CaptureRequest.Key) key, parsedValue);
+                tunableKey.supported = true;
+                applied++;
+                Log.d(TAG, "Applied session key " + tunableKey.name + " = " + tunableKey.value);
+            } catch (Exception e) {
+                tunableKey.supported = false;
+                Log.w(TAG, "Error applying session key " + tunableKey.name, e);
+            }
+        }
+        return applied;
     }
 
     @NotNull
