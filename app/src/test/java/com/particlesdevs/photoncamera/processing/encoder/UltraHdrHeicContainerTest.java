@@ -780,7 +780,12 @@ public class UltraHdrHeicContainerTest {
                             && prop.payload[5] == 8 && prop.payload[6] == 8
                             && prop.payload[7] == 8;
                 } else if (prop.type.equals("colr")) {
-                    colrOk = prop.payload.length == 15;
+                    // Plain box: 'nclx' + primaries/transfer/matrix + flag.
+                    colrOk = prop.payload.length == 11
+                            && IsoBmff.fourcc(prop.payload, 0).equals("nclx")
+                            && IsoBmff.u16(prop.payload, 4) == 1
+                            && IsoBmff.u16(prop.payload, 6) == 8
+                            && IsoBmff.u16(prop.payload, 8) == 1;
                 }
             }
             tmapPropsOk = ispeOk && pixiOk && colrOk;
@@ -1066,6 +1071,57 @@ public class UltraHdrHeicContainerTest {
         assertBaseProps(injected, 1, 8);
     }
 
+    @Test
+    public void colrPropertiesArePlainBoxes() {
+        // colr is a plain Box per ISO/IEC 14496-12: colour_type is the first
+        // payload field. Prefixing it with a FullBox header makes strict
+        // readers (libheif, AOSP ItemTable) see colour_type 0 and reject the
+        // whole file, losing both previews and EXIF.
+        assertPlainColrProps(UltraHdrHeicContainer.merge(inputs(null)));
+        byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
+        assertPlainColrProps(UltraHdrHeicContainer.injectExif(base,
+                exifPayloadOf(minimalTiff())));
+    }
+
+    /**
+     * Every {@code colr} in ipco must be a plain {@code nclx}/{@code prof}/
+     * {@code rICC} box, while the other properties the muxer adds stay
+     * FullBoxes.
+     */
+    private static void assertPlainColrProps(byte[] heic) {
+        List<IsoBmff.Box> top = IsoBmff.parse(heic);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
+                top.get(1).payload.length - 4);
+        List<IsoBmff.Box> ipco = null;
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iprp")) {
+                continue;
+            }
+            for (IsoBmff.Box k : IsoBmff.parse(b.payload)) {
+                if (k.type.equals("ipco")) {
+                    ipco = IsoBmff.parse(k.payload);
+                }
+            }
+        }
+        assertTrue(ipco != null);
+        int colrCount = 0;
+        for (IsoBmff.Box prop : ipco) {
+            if (prop.type.equals("colr")) {
+                colrCount++;
+                String colourType = IsoBmff.fourcc(prop.payload, 0);
+                assertTrue("colr colour_type " + colourType,
+                        colourType.equals("nclx") || colourType.equals("prof")
+                                || colourType.equals("rICC"));
+            } else if (prop.type.equals("pixi") || prop.type.equals("auxC")) {
+                assertEquals(0, prop.payload[0]);
+                assertEquals(0, prop.payload[1]);
+                assertEquals(0, prop.payload[2]);
+                assertEquals(0, prop.payload[3]);
+            }
+        }
+        assertTrue("expected at least one colr property", colrCount > 0);
+    }
+
     /**
      * Verifies the primary item of {@code heic} carries a {@code pixi} with
      * {@code bits} per channel and a full-range BT.709 SDR {@code colr}.
@@ -1103,11 +1159,14 @@ public class UltraHdrHeicContainerTest {
                         && prop.payload[5] == bits && prop.payload[6] == bits
                         && prop.payload[7] == bits;
             } else if (prop.type.equals("colr")) {
-                colrOk = prop.payload.length == 15
+                // colr is a plain Box (no FullBox version/flags): colour_type
+                // 'nclx' is the first payload field.
+                colrOk = prop.payload.length == 11
+                        && IsoBmff.fourcc(prop.payload, 0).equals("nclx")
+                        && IsoBmff.u16(prop.payload, 4) == 1
+                        && IsoBmff.u16(prop.payload, 6) == 1
                         && IsoBmff.u16(prop.payload, 8) == 1
-                        && IsoBmff.u16(prop.payload, 10) == 1
-                        && IsoBmff.u16(prop.payload, 12) == 1
-                        && (prop.payload[14] & 0x80) != 0;
+                        && (prop.payload[10] & 0x80) != 0;
             }
         }
         assertTrue("primary pixi " + bits + "/" + bits + "/" + bits, pixiOk);
