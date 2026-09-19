@@ -187,12 +187,16 @@ public class UnlimitedProcessor extends ProcessorBase {
         // Total processing time: onProcessing start -> onProcessing finished,
         // stopping before encode so the values can go into this shot's EXIF.
         parameters.totalProcessingTimeMs = System.currentTimeMillis() - processStartMs;
-        parameters.peakVramMB = GLTexture.getPeakVramMB();
-        parameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        if (PhotonCamera.DEBUG) {
+            parameters.peakVramMB = GLTexture.getPeakVramMB();
+            parameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        }
         exifData.IMAGE_DESCRIPTION = parameters.toString();
-        Log.d(TAG, "TotalProcessingTime=" + parameters.totalProcessingTimeMs
-                + "ms PeakVram=" + parameters.peakVramMB
-                + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
+        if (PhotonCamera.DEBUG) {
+            Log.d(TAG, "TotalProcessingTime=" + parameters.totalProcessingTimeMs
+                    + "ms PeakVram=" + parameters.peakVramMB
+                    + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
+        }
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
                 imageFile, bitmap, gm, exifData, useHeic);

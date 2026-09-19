@@ -126,6 +126,10 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         cameraFragmentModel.setZoomRatio(zoomRatio);
     }
 
+    public void setZoomOffNative(boolean offNative) {
+        cameraFragmentModel.setZoomOffNative(offNative);
+    }
+
     public float getZoomRatio() {
         return cameraFragmentModel.getZoomRatio();
     }

@@ -32,6 +32,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraConstrainedHighSpeedCaptureSession;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
@@ -338,6 +339,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private static final long DISCONNECT_RETRY_BASE_MS = 500L;
     /** Automatic recoveries after unexpected disconnects before giving up. */
     private static final int MAX_DISCONNECT_RECOVERIES = 2;
+    /**
+     * Base backoff for reopening after the camera device/service died. The
+     * HAL usually needs seconds to come back (the camera id disappears from
+     * the manager meanwhile), so this budget is longer than a disconnect's.
+     */
+    private static final long DEVICE_RECOVERY_BASE_MS = 1000L;
+    /** Device-error recoveries before giving up. */
+    private static final int MAX_DEVICE_RECOVERIES = 6;
     /** Timestamp ({@link SystemClock#elapsedRealtime()}) of the last device close. */
     private volatile long lastCameraCloseMs = 0L;
     /** Invalidation token for in-flight {@link CameraDevice.StateCallback}s. */
@@ -528,6 +537,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private int mVideoFrameRate = 30;
     /** Actual size passed to setVideoSize() for the current recording setup. */
     private android.util.Size mVideoSize;
+    /** True while recording through a constrained high-speed session (60fps). */
+    private boolean mHighSpeedRecording;
+    /** Fixed high-speed AE range (e.g. [60,60]) for the current HS recording. */
+    private Range<Integer> mHighSpeedFpsRange;
     /** Recording start (elapsedRealtime) + UI ticker for the REC badge. */
     private long mVideoRecordStartMs = 0;
     private android.os.Handler mVideoRecTickHandler;
@@ -788,12 +801,43 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (mCameraDevice == cameraDevice) mCameraDevice = null;
         Log.e(TAG, "onError(): cameraDevice = [" + cameraDevice + "], error = [" + error + "]");
         if (!isCameraResumed) return;
+        // A device error while recording must not leave the UI stuck in a
+        // recording state; unwind the recorder before recovering.
+        unwindVideoRecording("camera error " + error);
         if (lensSwitchScheduler.isActive()) {
             // The failure belongs to an in-flight lens-switch open: retry it.
             handleOpenFailure(token);
         } else {
             // The active preview device failed; reopen it with backoff.
-            scheduleCameraRecovery();
+            scheduleCameraRecovery(error);
+        }
+    }
+
+    /**
+     * Resets recorder state after the camera or session died mid-recording:
+     * stops the UI ticker, drops the partial file and returns to a
+     * non-recording state so recovery can rebuild an idle preview.
+     */
+    private void unwindVideoRecording(String reason) {
+        if (!mIsRecordingVideo) return;
+        Log.w(TAG, "unwinding video recording: " + reason);
+        mIsRecordingVideo = false;
+        mHighSpeedRecording = false;
+        mHighSpeedFpsRange = null;
+        stopVideoRecTicker();
+        try {
+            cameraEventsListener.onVideoRecordingStopped();
+        } catch (Exception ignored) {
+        }
+        try {
+            if (mMediaRecorder != null) mMediaRecorder.reset();
+        } catch (Exception ignored) {
+        }
+        try {
+            if (vid != null && vid.exists()) {
+                vid.delete();
+            }
+        } catch (Exception ignored) {
         }
     }
     /**
@@ -1212,6 +1256,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 //    }
 
     private Range<Integer> getSelectedFpsRange() {
+        if (mHighSpeedRecording && mIsRecordingVideo && mHighSpeedFpsRange != null) {
+            return mHighSpeedFpsRange;
+        }
         Range<Integer> wanted;
         switch (PhotonCamera.getSettings().fpsMode) {
             case 1: wanted = new Range<>(24, 24); break;
@@ -1222,8 +1269,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (wanted == null) {
             return FpsRangeAuto != null ? FpsRangeAuto : new Range<>(14, 30);
         }
-        // Fixed singletons must exist on the HAL; otherwise fall back instead
-        // of failing session configuration.
+        if (isVideoMode()) {
+            // Video mode requests the selected rate verbatim, like stock
+            // camcorders: the advertised table on logical cameras is not
+            // authoritative for vendor high-fps modes, and the range is also
+            // passed as a session parameter at configure time so the HAL
+            // selects the sensor mode before streaming starts.
+            return wanted;
+        }
+        // Photo mode: fixed singletons must exist on the HAL; otherwise fall
+        // back instead of failing session configuration.
         try {
             if (mAvailableFpsRanges != null) {
                 for (Range<Integer> r : mAvailableFpsRanges) {
@@ -1233,6 +1288,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 for (Range<Integer> r : mAvailableFpsRanges) {
                     if (r != null && wanted.getUpper().equals(r.getUpper())) return r;
                 }
+                Log.w(TAG, "fps range " + wanted + " unsupported, available="
+                        + Arrays.toString(mAvailableFpsRanges) + ", falling back to auto");
+            } else {
+                Log.w(TAG, "fps range " + wanted + " unchecked (no ranges loaded), falling back to auto");
             }
         } catch (Exception e) {
             Log.w(TAG, "fps range validation failed", e);
@@ -1240,7 +1299,97 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Log.w(TAG, "fps range " + wanted + " unsupported, falling back to auto");
         return FpsRangeAuto != null ? FpsRangeAuto : new Range<>(14, 30);
     }
-    
+
+    /**
+     * Finds a fixed high-speed AE range for the given recording size and frame
+     * rate (e.g. [60,60] for 1080p60), or null when the HAL does not advertise
+     * constrained high-speed video for it. Constrained high-speed sessions are
+     * built through SessionConfiguration, so API 28+ only.
+     */
+    private Range<Integer> findHighSpeedRange(android.util.Size videoSize, int fps) {
+        Range<Integer>[] ranges = queryHighSpeedRanges(videoSize);
+        if (ranges == null) return null;
+        StringBuilder rangesLog = new StringBuilder();
+        for (Range<Integer> r : ranges) {
+            if (r == null) continue;
+            if (rangesLog.length() > 0) rangesLog.append(",");
+            rangesLog.append("[").append(r.getLower()).append(",").append(r.getUpper()).append("]");
+            if (r.getLower() == fps && r.getUpper() == fps) {
+                Log.d(TAG, "findHighSpeedRange: fixed " + r + " for "
+                        + videoSize.getWidth() + "x" + videoSize.getHeight());
+                return r;
+            }
+        }
+        Log.w(TAG, "findHighSpeedRange: no fixed [" + fps + "," + fps + "] in [" + rangesLog
+                + "] for " + videoSize.getWidth() + "x" + videoSize.getHeight());
+        return null;
+    }
+
+    /**
+     * High-speed fps ranges advertised for a recording size, or null. All
+     * lookup failures are logged with the requested size and, on mismatch,
+     * the advertised size list.
+     */
+    private Range<Integer>[] queryHighSpeedRanges(android.util.Size videoSize) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            Log.w(TAG, "queryHighSpeedRanges: high-speed sessions need API 28+");
+            return null;
+        }
+        if (videoSize == null) {
+            Log.w(TAG, "queryHighSpeedRanges: null request size");
+            return null;
+        }
+        CameraCharacteristics chars = getOpenDeviceCharacteristics();
+        if (chars == null) {
+            Log.w(TAG, "queryHighSpeedRanges: no characteristics for " + videoSize.getWidth()
+                    + "x" + videoSize.getHeight() + ", cannot probe high-speed support");
+            return null;
+        }
+        try {
+            StreamConfigurationMap map = chars.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (map == null) {
+                Log.w(TAG, "queryHighSpeedRanges: no stream configuration map");
+                return null;
+            }
+            boolean sizeOk = false;
+            StringBuilder hsSizesLog = new StringBuilder();
+            try {
+                android.util.Size[] hsSizes = map.getHighSpeedVideoSizes();
+                if (hsSizes != null) {
+                    for (android.util.Size s : hsSizes) {
+                        if (s == null) continue;
+                        if (hsSizesLog.length() > 0) hsSizesLog.append(",");
+                        hsSizesLog.append(s.getWidth()).append("x").append(s.getHeight());
+                        if (s.getWidth() == videoSize.getWidth()
+                                && s.getHeight() == videoSize.getHeight()) {
+                            sizeOk = true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "high-speed sizes query failed", e);
+                return null;
+            }
+            if (!sizeOk) {
+                Log.w(TAG, "queryHighSpeedRanges: " + videoSize.getWidth() + "x" + videoSize.getHeight()
+                        + " not in high-speed sizes [" + hsSizesLog + "]");
+                return null;
+            }
+            try {
+                return map.getHighSpeedVideoFpsRangesFor(
+                        new android.util.Size(videoSize.getWidth(), videoSize.getHeight()));
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "queryHighSpeedRanges: HAL rejected fps-ranges query for "
+                        + videoSize.getWidth() + "x" + videoSize.getHeight(), e);
+                return null;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "queryHighSpeedRanges failed", e);
+            return null;
+        }
+    }
+
     public void rebuildPreviewBuilder() {
         if(burst) return;
         if (mPreviewRequestBuilder == null || mCaptureSession == null) {
@@ -1248,7 +1397,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
         try {
 //            mCaptureSession.stopRepeating();
-            mCaptureSession.setRepeatingRequest(mPreviewInputRequest = mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+            mPreviewInputRequest = mPreviewRequestBuilder.build();
+            submitVideoRepeating();
         } catch (IllegalStateException | IllegalArgumentException | NullPointerException e) {
             Logger.warnShort(TAG, "Cannot rebuildPreviewBuilder()!", e);
         } catch (CameraAccessException e) {
@@ -1256,9 +1406,33 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
+    /**
+     * Submits the repeating preview/request stream. Inside a constrained
+     * high-speed recording session, plain setRepeatingRequest is illegal:
+     * the request list must be generated from the builder and burst instead.
+     */
+    private void submitVideoRepeating() throws CameraAccessException {
+        if (mHighSpeedRecording && mIsRecordingVideo
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                && mCaptureSession instanceof CameraConstrainedHighSpeedCaptureSession) {
+            List<CaptureRequest> hsList =
+                    ((CameraConstrainedHighSpeedCaptureSession) mCaptureSession)
+                            .createHighSpeedRequestList(mPreviewInputRequest);
+            mCaptureSession.setRepeatingBurst(hsList, mCaptureCallback, mBackgroundHandler);
+            return;
+        }
+        mCaptureSession.setRepeatingRequest(mPreviewInputRequest, mCaptureCallback, mBackgroundHandler);
+    }
+
      public void rebuildPreviewBuilderOneShot() {
         if(burst) return;
         if (mPreviewRequestBuilder == null || mCaptureSession == null) {
+            return;
+        }
+        if (mHighSpeedRecording && mIsRecordingVideo) {
+            // Single-shot captures are illegal in constrained high-speed
+            // sessions; the repeating stream already carries any builder edits.
+            Log.w(TAG, "rebuildPreviewBuilderOneShot: skipped during high-speed recording");
             return;
         }
         try {
@@ -1391,6 +1565,28 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /** Effective zoom (what the indicator and pinch gesture operate on). */
     public float getZoomRatio() {
         return zoomController.getZoomRatio();
+    }
+
+    /**
+     * True when the ratio sits exactly on a lens native zoom (within epsilon)
+     * and the indicator should hide: any physical lens native, or any logical
+     * member native in video logical mode.
+     */
+    public boolean isZoomOnNative(float ratio) {
+        try {
+            if (isVideoLogicalActive()) {
+                List<LogicalCameraResolver.Member> members = getEffectiveLogicalMembers();
+                if (members != null && !members.isEmpty()) {
+                    for (LogicalCameraResolver.Member m : members) {
+                        if (m != null && Math.abs(m.zoomFactor - ratio) <= 1e-4f) return true;
+                    }
+                    return false;
+                }
+            }
+            return zoomController.isNativeZoom(ratio);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /** Minimum effective zoom of the active facing's lens set. */
@@ -1956,6 +2152,61 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         return physicalID;
     }
 
+    /**
+     * Id of the actually-open device: the logical id in video logical mode,
+     * else the session physical id. Used for capability queries (FPS ranges,
+     * high-speed sizes, stream maps) so they never run against the wrong
+     * camera. Logs which id backs the result.
+     */
+    private String getOpenDeviceId() {
+        try {
+            if (isVideoLogicalActive() && logicalID != null && !logicalID.isEmpty()) {
+                return logicalID;
+            }
+        } catch (Exception ignored) {
+        }
+        return physicalID;
+    }
+
+    /**
+     * Characteristics of the actually-open device, with the same fallback
+     * chain everywhere (open-device map entry, then cached field, then
+     * physical map entry). Never throws; returns null when unavailable.
+     */
+    private CameraCharacteristics getOpenDeviceCharacteristics() {
+        String openId = null;
+        try {
+            openId = getOpenDeviceId();
+            if (openId != null && !openId.isEmpty() && mCameraCharacteristicsMap != null) {
+                CameraCharacteristics chars = mCameraCharacteristicsMap.get(openId);
+                if (chars != null) {
+                    Log.d(TAG, "open-device characteristics: camera " + openId);
+                    return chars;
+                }
+                Log.w(TAG, "open-device characteristics: camera " + openId + " not in map");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "open-device characteristics lookup failed for " + openId, e);
+        }
+        if (mCameraCharacteristics != null) {
+            Log.d(TAG, "open-device characteristics: falling back to cached field");
+            return mCameraCharacteristics;
+        }
+        try {
+            if (mCameraCharacteristicsMap != null && physicalID != null) {
+                CameraCharacteristics chars = mCameraCharacteristicsMap.get(physicalID);
+                if (chars != null) {
+                    Log.d(TAG, "open-device characteristics: falling back to physical " + physicalID);
+                    return chars;
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "open-device characteristics physical fallback failed", e);
+        }
+        Log.w(TAG, "open-device characteristics unavailable");
+        return null;
+    }
+
     /** Post-open characteristic/output setup (mirrors the old restart tail). */
     private void setUpOutputsAfterOpen() {
         try {
@@ -1995,20 +2246,35 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
      * service restarted). Bounded so a persistently failing HAL cannot loop.
      */
     private void scheduleCameraRecovery() {
+        scheduleCameraRecovery(0);
+    }
+
+    /**
+     * Reopens the camera after an error. Device/service deaths get a longer
+     * backoff budget because the camera id disappears from the manager while
+     * the HAL restarts; a plain disconnect retries quickly like before.
+     */
+    private void scheduleCameraRecovery(int error) {
         if (!isCameraResumed) return;
+        boolean deviceVanished = error == CameraDevice.StateCallback.ERROR_CAMERA_DEVICE
+                || error == CameraDevice.StateCallback.ERROR_CAMERA_SERVICE;
         final int attempt = disconnectRecoveries.incrementAndGet();
-        if (attempt > MAX_DISCONNECT_RECOVERIES) {
+        int maxAttempts = deviceVanished ? MAX_DEVICE_RECOVERIES : MAX_DISCONNECT_RECOVERIES;
+        if (attempt > maxAttempts) {
             Log.e(TAG, "scheduleCameraRecovery(): recovery attempts exhausted");
             showToast(activity.getString(R.string.camera_error));
             return;
         }
         final String target = PhotonCamera.getSettings().mCameraID;
         final int token = openToken.get();
-        Log.d(TAG, "scheduleCameraRecovery(): attempt " + attempt + " for " + target);
+        long delay = (deviceVanished ? DEVICE_RECOVERY_BASE_MS
+                : DISCONNECT_RETRY_BASE_MS) * attempt;
+        Log.d(TAG, "scheduleCameraRecovery(): attempt " + attempt + " for " + target
+                + " in " + delay + "ms (error=" + error + ")");
         mMainHandler.postDelayed(() -> {
             if (token != openToken.get() || !isCameraResumed) return;
             enqueueLensSwitch(target, true);
-        }, DISCONNECT_RETRY_BASE_MS * attempt);
+        }, delay);
     }
 
     /** Called when the preview session configured for the current open. */
@@ -2024,6 +2290,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /** Called when the preview session failed to configure. */
     public void onPreviewConfigureFailed(int token) {
         if (token != openToken.get()) return;
+        if (mIsRecordingVideo) {
+            // The record session could not be built; do not leave the UI
+            // stuck in a recording state. Unwind and rebuild an idle preview.
+            Log.w(TAG, "record session configure failed, returning to preview");
+            unwindVideoRecording("session configure failed");
+            showToast("Video recording failed");
+            createCameraPreviewSession(false);
+            return;
+        }
         LensSwitchScheduler.Request retry = lensSwitchScheduler.onFailure();
         if (retry == null) {
             showToast(activity.getString(R.string.session_on_configure_failed));
@@ -2149,11 +2424,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * Max preview-buffer area for video recording. The finder keeps the
+     * recording's 16:9 field of view but never needs recording resolution:
+     * capping at 1080p removes roughly 3/4 of the preview pixel load on 4K
+     * recordings (encoder + HAL + GPU), which is where frame drops come from.
+     */
+    private static final long VIDEO_PREVIEW_MAX_AREA = 1920L * 1080L;
+
+    /**
      * Picks the SurfaceTexture preview size closest in area to the currently
-     * selected video recording size (exact 16:9 only). Bandwidth-capped at
-     * {@code max(previewRes, recording area)} so a 4K recording may use a
-     * larger finder while smaller recordings keep the historic 5MP ceiling.
-     * Returns null when nothing suitable exists (caller falls back).
+     * selected video recording size (exact 16:9 only), capped at
+     * {@link #VIDEO_PREVIEW_MAX_AREA}. Returns null when nothing suitable
+     * exists (caller falls back).
      */
     private Size matchVideoPreviewSize(Size[] allSizes, Size aspectRatio) {
         try {
@@ -2162,7 +2444,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             android.util.Size videoSize = resolveVideoSize(PreferenceKeys.getVideoResolution(), profile, false);
             long targetArea = (long) videoSize.getWidth() * (long) videoSize.getHeight();
             if (targetArea <= 0) return null;
-            long cap = Math.max((long) ResolutionSolution.previewRes, targetArea);
+            long cap = Math.min(VIDEO_PREVIEW_MAX_AREA,
+                    Math.max((long) ResolutionSolution.previewRes, targetArea));
             Size best = null;
             long bestScore = Long.MAX_VALUE;
             for (Size size : allSizes) {
@@ -2407,34 +2690,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         // coordinate.
         int displayRotation = PhotonCamera.getGravity().getRotation();
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-        Range<Integer>[] ranges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-        if (ranges == null) {
-            ranges = new Range[1];
-            ranges[0] = new Range<>(14, 30);
-        }
-        int minLower = Integer.MAX_VALUE;
-        for (Range<Integer> range : ranges) {
-            if (range.getLower() < minLower) {
-                minLower = range.getLower();
-            }
-        }
-        if (minLower == Integer.MAX_VALUE) minLower = 14;
-        // Clamp the auto upper bound to what the HAL actually offers.
-        int maxUpper = 30;
-        try {
-            int supportedMax = Integer.MIN_VALUE;
-            for (Range<Integer> range : ranges) {
-                if (range != null && range.getUpper() > supportedMax) supportedMax = range.getUpper();
-            }
-            if (supportedMax != Integer.MIN_VALUE) maxUpper = Math.min(30, supportedMax);
-        } catch (Exception ignored) {
-        }
-        FpsRangeAuto = new Range<>(minLower, maxUpper);
-        try {
-            mAvailableFpsRanges = ranges.clone();
-        } catch (Exception ignored) {
-            mAvailableFpsRanges = ranges;
-        }
+        populateFpsRanges(characteristics);
 
         /*boolean swappedDimensions = false;
         switch (displayRotation) {
@@ -2531,7 +2787,52 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     Surface surface;
+
+    /** True when the characteristics advertise the given stream use case (API 33+). */
+    private static boolean isUseCaseSupported(CameraCharacteristics chars, long useCase) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || chars == null) return false;
+        try {
+            long[] available = chars.get(CameraCharacteristics.SCALER_AVAILABLE_STREAM_USE_CASES);
+            if (available == null) return false;
+            for (long c : available) {
+                if (c == useCase) return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    /**
+     * Tags video output surfaces with their stream use case while recording
+     * (recorder = VIDEO_RECORD, viewfinder = PREVIEW) when the HAL advertises
+     * them, helping vendor HALs pick the right sensor mode for high-fps/HDR
+     * recording. Unsupported HALs are unaffected.
+     */
+    private void applyVideoStreamUseCases(OutputConfiguration config, Surface outputSurface) {
+        if (!mIsRecordingVideo || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        try {
+            if (mVideoRecorderSurface != null && outputSurface == mVideoRecorderSurface
+                    && isUseCaseSupported(mCameraCharacteristics,
+                            CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_VIDEO_RECORD)) {
+                config.setStreamUseCase(
+                        CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_VIDEO_RECORD);
+            } else if (outputSurface == surface
+                    && isUseCaseSupported(mCameraCharacteristics,
+                            CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_PREVIEW)) {
+                config.setStreamUseCase(CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_PREVIEW);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "stream use case not applied", e);
+        }
+    }
+
     public void createCameraPreviewSession(boolean isBurstSession) {
+        if (mCameraDevice == null) {
+            // The device is gone (error or disconnect). Recovery reopens it and
+            // rebuilds the session; continuing here would only NPE.
+            Log.w(TAG, "createCameraPreviewSession: no camera device, skipping");
+            return;
+        }
         final int sessionToken = openToken.get();
         cancelLogicalZoom();
         try {
@@ -2599,6 +2900,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         hdrApplyFailed = true;
                     }
                 }
+                applyVideoStreamUseCases(config, surfacei);
                 outputConfigurations.add(config);
             }
             if (hdrApplyFailed && mVideoHdrActive && mIsRecordingVideo) {
@@ -2625,12 +2927,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             config.setPhysicalCameraId(retryStreamPhysicalId);
                         }
+                        applyVideoStreamUseCases(config, surfacei);
                         outputConfigurations.add(config);
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "SDR fallback re-prepare failed: " + Log.getStackTraceString(e));
                 }
             }
+
+            CaptureRequest sessionParams = buildSessionParams();
 
             CameraCaptureSession.StateCallback stateCallback =
                     new CameraCaptureSession.StateCallback() {
@@ -2668,12 +2973,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             Log.w(TAG, "video tunable keys failed", e);
                         }
                         applyIszIfActive(mPreviewRequestBuilder, physicalID);
+                        // Lens-shading stats cost DMA/CPU per frame and nothing
+                        // consumes the map on the repeating video path: keep it
+                        // for still/photo sessions, skip it while recording.
                         //if(isZslMode()){
+                        if (!mIsRecordingVideo) {
                             try {
                                 mPreviewRequestBuilder.set(CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE, CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE_ON);
                             } catch (Exception e) {
                                 Log.d(TAG, "Failed to set LENS_SHADING_MAP_MODE_ON for ZSL mode:" + Log.getStackTraceString(e));
                             }
+                        }
                         //}
 
                         // Apply dynamic OIS for preview stream
@@ -2692,8 +3002,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     break;
                                 case VIDEO:
                                     // VIDEO never bursts: fall through to repeating preview.
-                                    mCaptureSession.setRepeatingRequest(mPreviewInputRequest,
-                                            mCaptureCallback, mBackgroundHandler);
+                                    submitVideoRepeating();
                                     break;
                                 case UNLIMITED:
                                 case RAWVIDEO:
@@ -2702,8 +3011,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                             }
                         } else {
                             //if(mSelectedMode != CameraMode.VIDEO)
-                            mCaptureSession.setRepeatingRequest(mPreviewInputRequest,
-                                    mCaptureCallback, mBackgroundHandler);
+                            submitVideoRepeating();
                             if (!isVideoMode()) {
                                 // Photo-mode AF trigger dance; in VIDEO it would
                                 // clobber CONTINUOUS_VIDEO back to the photo pref.
@@ -2738,11 +3046,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             };
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 SessionConfiguration configuration = new SessionConfiguration(
-                        sessionType,
+                        resolveVideoSessionType(),
                         outputConfigurations,
                         processExecutor,
                         stateCallback
                 );
+                if (sessionParams != null) {
+                    try {
+                        configuration.setSessionParameters(sessionParams);
+                    } catch (Exception e) {
+                        Log.w(TAG, "setSessionParameters failed, continuing without", e);
+                    }
+                }
                 mCameraDevice.createCaptureSession(configuration);
             } else {
                 mCameraDevice.createCaptureSession(surfaces, stateCallback, mBackgroundHandler);
@@ -2751,6 +3066,130 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.e(TAG, Log.getStackTraceString(e));
             onPreviewSessionFailed(sessionToken);
         }
+    }
+
+    /**
+     * Builds session parameters from session-init tunable keys (sensor list
+     * for the current physical id, plus the active video SDR/HDR list in
+     * VIDEO mode). Only keys the HAL advertises via available-session-keys
+     * are included; anything else would fail session creation. Returns null
+     * when there is nothing to apply. Support flags are persisted back so
+     * the settings rows show honest green/red status.
+     */
+    private CaptureRequest buildSessionParams() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null;
+        if (mCameraDevice == null) return null;
+        android.content.Context context = PhotonCamera.getSettingsManagerStatic() != null
+                ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
+        if (context == null) return null;
+        String tunablePhysicalId = getTunablePhysicalId();
+        List<VendorTagUtils.TunableKey> sensorFull =
+                com.particlesdevs.photoncamera.settings.TunableKeyManager.loadKeys(
+                        context, tunablePhysicalId);
+        List<VendorTagUtils.TunableKey> sensorKeys =
+                com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(sensorFull);
+        boolean videoMode = PhotonCamera.getSettings() != null
+                && PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO;
+        // Video session parameters carry the requested frame rate so the HAL
+        // selects the sensor mode during configure, before streaming starts.
+        Range<Integer> videoFpsRange = videoMode ? getSelectedFpsRange() : null;
+        List<VendorTagUtils.TunableKey> videoFull = null;
+        boolean videoListIsHdr = false;
+        List<VendorTagUtils.TunableKey> videoKeys = new java.util.ArrayList<>();
+        try {
+            if (videoMode) {
+                videoListIsHdr = mVideoHdrActive && mIsRecordingVideo;
+                videoFull = videoListIsHdr
+                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoHdrKeys(context)
+                        : com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoKeys(context);
+                videoKeys = com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(videoFull);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: video list load failed", e);
+        }
+        if (sensorKeys.isEmpty() && videoKeys.isEmpty() && videoFpsRange == null) return null;
+        CaptureRequest.Builder builder;
+        try {
+            builder = mCameraDevice.createCaptureRequest(
+                    (mIsRecordingVideo || videoMode)
+                            ? CameraDevice.TEMPLATE_RECORD
+                            : CameraDevice.TEMPLATE_PREVIEW);
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: request creation failed", e);
+            return null;
+        }
+        int applied = 0;
+        applied += setSessionKeys(builder, sensorKeys);
+        applied += setSessionKeys(builder, videoKeys);
+        if (videoFpsRange != null) {
+            try {
+                builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, videoFpsRange);
+                applied++;
+                Log.d(TAG, "buildSessionParams: fps range=" + videoFpsRange);
+            } catch (Exception e) {
+                Log.w(TAG, "buildSessionParams: fps range rejected", e);
+            }
+        }
+        if (applied == 0) return null;
+        try {
+            com.particlesdevs.photoncamera.settings.TunableKeyManager.saveKeys(
+                    context, tunablePhysicalId, sensorFull);
+            if (videoFull != null) {
+                if (videoListIsHdr) {
+                    com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoHdrKeys(
+                            context, videoFull);
+                } else {
+                    com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoKeys(
+                            context, videoFull);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: status persist failed", e);
+        }
+        try {
+            Log.d(TAG, "buildSessionParams: applied " + applied + " session params");
+            return builder.build();
+        } catch (Exception e) {
+            Log.w(TAG, "buildSessionParams: build failed", e);
+            return null;
+        }
+    }
+
+    /**
+     * Sets session-init keys on a session-params builder (plain set only,
+     * never physical duplication). Keys are attempted unconditionally:
+     * vendor HALs commonly accept tags that
+     * {@code getAvailableSessionKeys()} does not advertise (e.g. OPlus EIS
+     * controls), so advertisement must not gate them. Support is recorded
+     * from the actual set result, so the settings UI shows real red/green
+     * feedback. Returns the number applied.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private int setSessionKeys(CaptureRequest.Builder builder,
+            List<VendorTagUtils.TunableKey> keys) {
+        int applied = 0;
+        if (builder == null || keys == null) return 0;
+        for (VendorTagUtils.TunableKey tunableKey : keys) {
+            if (tunableKey == null) continue;
+            tunableKey.tested = true;
+            if (!"CaptureRequest".equals(tunableKey.type)
+                    || tunableKey.name == null || tunableKey.name.isEmpty()) {
+                tunableKey.supported = false;
+                continue;
+            }
+            try {
+                CaptureRequest.Key<?> key = tunableKey.toCaptureRequestKey();
+                Object parsedValue = tunableKey.parseValue();
+                ((CaptureRequest.Builder) builder).set((CaptureRequest.Key) key, parsedValue);
+                tunableKey.supported = true;
+                applied++;
+                Log.d(TAG, "Applied session key " + tunableKey.name + " = " + tunableKey.value);
+            } catch (Exception e) {
+                tunableKey.supported = false;
+                Log.w(TAG, "session key rejected, not applied: " + tunableKey.name, e);
+            }
+        }
+        return applied;
     }
 
     @NotNull
@@ -2957,6 +3396,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     applyZoom(mPreviewRequestBuilder);
                     rebuildPreviewBuilder();
                 }
+                try {
+                    cameraEventsListener.onLogicalZoomProgress(zoomController.getZoomRatio());
+                } catch (Exception ignored) {
+                }
                 return;
             }
             startLogicalZoom(memberId, target.zoomFactor);
@@ -2982,6 +3425,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 } else if (mPreviewRequestBuilder != null) {
                     applyZoom(mPreviewRequestBuilder);
                     rebuildPreviewBuilder();
+                }
+                try {
+                    cameraEventsListener.onLogicalZoomProgress(to);
+                } catch (Exception ignored) {
                 }
                 return;
             }
@@ -3059,8 +3506,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (target == null) return;
             mActiveLogicalMemberId = memberId;
             mLogicalMemberPhysical = target.synthetic ? null : target.physicalId;
+            // Per-sensor settings (including the OIS mode) follow the newly
+            // active member instead of staying on the previous lens.
+            try {
+                SensorConfigInjector.applyToSensor(getTunablePhysicalId(), this);
+            } catch (Exception e) {
+                Log.w(TAG, "member sensor config refresh failed", e);
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 if (mPreviewRequestBuilder != null) {
+                    applyOisMode(mPreviewRequestBuilder, false);
                     applyZoom(mPreviewRequestBuilder);
                     rebuildPreviewBuilder();
                 }
@@ -3078,6 +3533,61 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         } catch (Exception e) {
             Log.w(TAG, "applyLogicalMemberSwitch failed", e);
         }
+    }
+
+    /**
+     * Populates the validated FPS-range table and the auto fallback from the
+     * given characteristics. Extracted so record start can refresh it when
+     * the open-time population was skipped or went stale.
+     */
+    private void populateFpsRanges(CameraCharacteristics characteristics) {
+        try {
+            if (characteristics == null) {
+                Log.w(TAG, "populateFpsRanges: no characteristics, keeping previous ranges");
+                return;
+            }
+            Range<Integer>[] ranges = characteristics.get(
+                    CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+            if (ranges == null) {
+                ranges = new Range[1];
+                ranges[0] = new Range<>(14, 30);
+            }
+            int minLower = Integer.MAX_VALUE;
+            for (Range<Integer> range : ranges) {
+                if (range != null && range.getLower() < minLower) {
+                    minLower = range.getLower();
+                }
+            }
+            if (minLower == Integer.MAX_VALUE) minLower = 14;
+            // Clamp the auto upper bound to what the HAL actually offers.
+            int maxUpper = 30;
+            try {
+                int supportedMax = Integer.MIN_VALUE;
+                for (Range<Integer> range : ranges) {
+                    if (range != null && range.getUpper() > supportedMax) {
+                        supportedMax = range.getUpper();
+                    }
+                }
+                if (supportedMax != Integer.MIN_VALUE) maxUpper = Math.min(30, supportedMax);
+            } catch (Exception ignored) {
+            }
+            FpsRangeAuto = new Range<>(minLower, maxUpper);
+            try {
+                mAvailableFpsRanges = ranges.clone();
+            } catch (Exception ignored) {
+                mAvailableFpsRanges = ranges;
+            }
+            Log.d(TAG, "fps ranges loaded: " + Arrays.toString(mAvailableFpsRanges));
+        } catch (Exception e) {
+            Log.w(TAG, "populateFpsRanges failed", e);
+        }
+    }
+
+    /** Refreshes the FPS-range table from the open device when it is missing. */
+    private void ensureFpsRanges() {
+        if (mAvailableFpsRanges != null) return;
+        Log.w(TAG, "ensureFpsRanges: table missing at record start, repopulating");
+        populateFpsRanges(getOpenDeviceCharacteristics());
     }
 
     private void setCaptureRequestBuilder() throws CameraAccessException {
@@ -3564,10 +4074,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.d(TAG, "Focus:" + focus);
             captureBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL);
 
-            if (VendorTagUtils.isOisSupported(activity, mCameraCharacteristics, getTunablePhysicalId())) {
-                Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
-                applyOisMode(captureBuilder, true);//Fix ois bugs for preview and burst
-            }
+            applyOisMode(captureBuilder, true);
 
             if (paramController != null && paramController.WB != 0) {
                 int wbVal = paramController.WB;
@@ -4124,6 +4631,50 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         return CamcorderProfile.get(cameraId, CamcorderProfile.QUALITY_HIGH);
     }
 
+    /**
+     * Effective capture-session type for a video session. Uses the video HDR
+     * entry when HDR is engaged (or requested, for the pre-record preview),
+     * else the video SDR entry; an empty/unparsable entry falls back to the
+     * sensor-configured {@link #sessionType}, so untouched settings behave
+     * exactly as today. Applies to every VIDEO-mode session (preview and
+     * record), matching stock camcorders.
+     */
+    private int resolveVideoSessionType() {
+        int fallback = sessionType;
+        try {
+            if (mIsRecordingVideo && mHighSpeedRecording
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                Log.d(TAG, "video session type=HIGH_SPEED for 60fps recording");
+                return SessionConfiguration.SESSION_HIGH_SPEED;
+            }
+            if (!isVideoMode()) return fallback;
+            // While recording, HDR is only engaged if the 10-bit session
+            // actually resolved; before recording, go by the preference so the
+            // preview session already uses the HDR vendor type like the
+            // record session will.
+            boolean hdr = mIsRecordingVideo ? mVideoHdrActive : isVideoHdrRequested();
+            String raw = hdr
+                    ? PreferenceKeys.getVideoHdrSessionType()
+                    : PreferenceKeys.getVideoSdrSessionType();
+            if (raw == null || raw.isEmpty()) return fallback;
+            int value = Integer.parseInt(raw);
+            if (value < 0 || value > 65535) {
+                Log.w(TAG, "video session type out of range: " + raw);
+                return fallback;
+            }
+            Log.d(TAG, "video session type override=" + value + " (per-sensor fallback=" + fallback
+                    + ", hdr=" + hdr + ", recording=" + mIsRecordingVideo
+                    + ", device=" + getOpenDeviceId() + ")");
+            return value;
+        } catch (NumberFormatException e) {
+            Log.w(TAG, "video session type unparsable, using sensor value " + fallback);
+            return fallback;
+        } catch (Exception e) {
+            Log.w(TAG, "resolveVideoSessionType failed", e);
+            return fallback;
+        }
+    }
+
     /** Physical camera id as int for CamcorderProfile queries (logical "0-2" -> 0). */
     private int parseVideoCameraId() {
         try {
@@ -4162,13 +4713,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             return new android.util.Size(profile.videoFrameWidth, profile.videoFrameHeight);
         }
         try {
-            CameraCharacteristics chars = mCameraCharacteristics;
-            if (chars == null) {
-                try {
-                    chars = mCameraCharacteristicsMap.get(physicalID);
-                } catch (Exception ignored) {
-                }
-            }
+            CameraCharacteristics chars = getOpenDeviceCharacteristics();
             if (chars != null) {
                 StreamConfigurationMap map = chars.get(
                         CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -4358,18 +4903,44 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Log.d(TAG, "video record " + resolution + " -> " + videoSize.getWidth()
                 + "x" + videoSize.getHeight() + " (camera " + cameraIdInt + ")");
         int videoFrameRate = profile.videoFrameRate;
+        mHighSpeedRecording = false;
+        mHighSpeedFpsRange = null;
+        // The open-time FPS table can be missing when the open short-circuited;
+        // refresh it from the open device so the HS probe below is real.
+        ensureFpsRanges();
         try {
-            // Align the container frame rate with the AE range actually
-            // configured on the session (validated against the HAL).
-            Range<Integer> fpsRange = getSelectedFpsRange();
-            if (fpsRange != null && fpsRange.getUpper() != null && fpsRange.getUpper() > 0) {
-                videoFrameRate = fpsRange.getUpper();
+            // Align the container frame rate with the AE range configured on
+            // the session.
+            int fpsModeWanted = PhotonCamera.getSettings().fpsMode;
+            if (fpsModeWanted == 3) {
+                // A fixed [60,60] high-speed entry is the sanctioned route when
+                // the HAL advertises one. Otherwise record 60 on a regular
+                // session with the range requested verbatim (carried in the
+                // session parameters), like stock camcorders.
+                Range<Integer> hsRange = findHighSpeedRange(videoSize, 60);
+                if (hsRange != null) {
+                    mHighSpeedRecording = true;
+                    mHighSpeedFpsRange = hsRange;
+                    videoFrameRate = hsRange.getUpper();
+                    Log.d(TAG, "high-speed 60fps recording at "
+                            + videoSize.getWidth() + "x" + videoSize.getHeight());
+                } else {
+                    videoFrameRate = 60;
+                    Log.d(TAG, "60fps recording on regular session at "
+                            + videoSize.getWidth() + "x" + videoSize.getHeight());
+                }
+            } else {
+                Range<Integer> fpsRange = getSelectedFpsRange();
+                if (fpsRange != null && fpsRange.getUpper() != null && fpsRange.getUpper() > 0) {
+                    videoFrameRate = fpsRange.getUpper();
+                }
             }
         } catch (Exception e) {
             Log.w(TAG, "video frame rate align failed, using profile rate", e);
         }
         mVideoFrameRate = videoFrameRate;
         mMediaRecorder.setVideoFrameRate(videoFrameRate);
+        mMediaRecorder.setCaptureRate(videoFrameRate);
         mMediaRecorder.setVideoSize(videoSize.getWidth(), videoSize.getHeight());
         mVideoSize = videoSize;
         boolean useHevc = false;
@@ -4527,6 +5098,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     private void stopRecordingVideo() {
         mIsRecordingVideo = false;
+        mHighSpeedRecording = false;
+        mHighSpeedFpsRange = null;
         stopVideoRecTicker();
         try {
             cameraEventsListener.onVideoRecordingStopped();
@@ -4540,6 +5113,22 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Toast.makeText(activity.getApplicationContext(), "Failed to stop recording", Toast.LENGTH_SHORT).show();
             if (vid.delete()) {
                 Toast.makeText(activity.getApplicationContext(), "Video file has been removed", Toast.LENGTH_SHORT).show();
+            }
+        }
+        if (mVideoHdrActive
+                && "full".equalsIgnoreCase(PreferenceKeys.getVideoColorRange())
+                && vid != null && vid.exists() && vid.length() > 0) {
+            // MediaRecorder cannot tag color range, so the finished HDR file is
+            // corrected to full range (colr box + HEVC VUI) after the muxer
+            // closed it.
+            try {
+                com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange.Result colorRange =
+                        com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange
+                                .applyFullRange(vid,
+                                        "pq".equalsIgnoreCase(PreferenceKeys.getVideoHdrTransfer()));
+                Log.d(TAG, "video color range: " + colorRange);
+            } catch (Exception e) {
+                Log.w(TAG, "video color range patch failed", e);
             }
         }
         mMediaRecorder.reset();
@@ -4593,16 +5182,28 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             long totalBps = (long) Math.max(0, mVideoBitrateBps)
                     + (long) Math.max(0, mAudioBitrateBps);
             long estimatedBytes = totalBps / 8 * (elapsedMs / 1000);
-            long availableBytes = 0;
-            try {
-                availableBytes = new File(Environment.getExternalStorageDirectory()
-                        + "//DCIM//Camera//").getUsableSpace();
-            } catch (Exception ignored) {
-            }
+            long availableBytes = cachedUsableSpace();
             cameraEventsListener.onVideoRecordingTick(elapsedMs, estimatedBytes, availableBytes);
         } catch (Exception e) {
             Log.w(TAG, "video rec tick failed", e);
         }
+    }
+
+    private long mUsableSpaceCachedBytes;
+    private long mUsableSpaceCachedAtMs;
+
+    /** statfs is main-thread I/O: refresh the free-space readout at most every few seconds. */
+    private long cachedUsableSpace() {
+        long now = SystemClock.elapsedRealtime();
+        if (now - mUsableSpaceCachedAtMs > 5000 || mUsableSpaceCachedAtMs == 0) {
+            try {
+                mUsableSpaceCachedBytes = new File(Environment.getExternalStorageDirectory()
+                        + "//DCIM//Camera//").getUsableSpace();
+            } catch (Exception ignored) {
+            }
+            mUsableSpaceCachedAtMs = now;
+        }
+        return mUsableSpaceCachedBytes;
     }
 
     private void stopVideoRecTicker() {
@@ -4694,38 +5295,84 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
-     * Dynamically applies Optical Image Stabilization (OIS) configuration to a CaptureRequest.
-     * Respects user preference (Default/Smart/Off) and physical hardware limitations.
+     * Applies Optical Image Stabilization (OIS) to a request. Video mode uses
+     * the global Video OIS toggle (default on) and keeps OIS enabled alongside
+     * EIS; photo modes keep the per-sensor OIS Mode. This is the single
+     * authority for OIS: support detection no longer gates the key, so a HAL
+     * that hides its OIS characteristics still gets the setting attempted,
+     * and unsupported devices simply reject it.
      *
      * @param builder        the builder for which to configure OIS
-     * @param isStillCapture true if configuring a still capture request, false for preview stream
+     * @param isStillCapture true for still capture requests, false for preview/record
      */
     private void applyOisMode(CaptureRequest.Builder builder, boolean isStillCapture) {
-        if (VendorTagUtils.isOisSupported(activity, mCameraCharacteristics, getTunablePhysicalId())) {
-            int oisMode = this.oisMode;
-            if (oisMode == 2) {
-                // Always Off
-                builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
-            } else if (oisMode == 1) {
-                // Smart Auto
-                boolean isTripod = PhotonCamera.getGyro() != null && PhotonCamera.getGyro().getTripod();
-                CameraMode mode = PhotonCamera.getSettings().selectedMode;
-                boolean isContinuousCapture = (mode == CameraMode.UNLIMITED);
-
-                if (isTripod || isContinuousCapture) {
-                    builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF);
-                } else {
-                    builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
-                }
+        if (builder == null) return;
+        try {
+            int mode;
+            String source;
+            if (isVideoMode()) {
+                boolean on = PreferenceKeys.isVideoOisOn();
+                mode = on ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON
+                        : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF;
+                source = "video-toggle";
             } else {
-                // Default: Maintain 100% identical behavior with the original code.
-                // For still captures, we explicitly force OIS ON.
-                // For preview/video streams, we do NOT set the OIS key, letting the HAL default handle it.
-                if (isStillCapture) {
-                    builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
+                int sensorMode = this.oisMode;
+                if (sensorMode == 2) {
+                    // Always Off
+                    mode = CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF;
+                    source = "sensor=off";
+                } else if (sensorMode == 1) {
+                    // Smart Auto: off on a tripod / continuous capture, else on.
+                    boolean isTripod = PhotonCamera.getGyro() != null
+                            && PhotonCamera.getGyro().getTripod();
+                    boolean isContinuousCapture =
+                            PhotonCamera.getSettings().selectedMode == CameraMode.UNLIMITED;
+                    mode = (isTripod || isContinuousCapture)
+                            ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
+                            : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON;
+                    source = "sensor=auto";
+                } else {
+                    // "On" (legacy default): explicitly ON now that
+                    // applyPrev no longer forces OIS for the preview stream.
+                    mode = CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON;
+                    source = "sensor=on";
                 }
             }
+            String memberId = getTunablePhysicalId();
+            if (setOisMode(builder, mode, memberId) && !isStillCapture) {
+                Log.d(TAG, "OIS mode="
+                        + (mode == CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON ? "ON" : "OFF")
+                        + " source=" + source + " member=" + memberId);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "applyOisMode failed", e);
         }
+    }
+
+    /**
+     * Sets LENS_OPTICAL_STABILIZATION_MODE on a request, duplicating it to the
+     * active physical member on logical sessions so the right lens is
+     * targeted. Returns true when the plain set succeeded.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean setOisMode(CaptureRequest.Builder builder, int mode, String memberId) {
+        try {
+            builder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, mode);
+        } catch (Exception e) {
+            Log.w(TAG, "OIS key not accepted by this device: " + e.getMessage());
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                && memberId != null && !memberId.isEmpty()
+                && !Objects.equals(memberId, getOpenDeviceId())) {
+            try {
+                builder.setPhysicalCameraKey(
+                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE, mode, memberId);
+            } catch (Exception e) {
+                Log.w(TAG, "OIS physical key not applied for member " + memberId, e);
+            }
+        }
+        return true;
     }
 
     /**

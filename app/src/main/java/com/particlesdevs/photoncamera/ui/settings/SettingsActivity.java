@@ -112,23 +112,30 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     }
     
     private void setupWindowInsets() {
+        View toolbar = findViewById(R.id.settings_toolbar);
+        if (toolbar != null) {
+            com.particlesdevs.photoncamera.util.SystemBarsHelper.padTopForStatusBar(toolbar);
+            ViewCompat.requestApplyInsets(toolbar);
+        }
         View settingsContainer = findViewById(R.id.settings_container);
         if (settingsContainer != null) {
             ViewCompat.setOnApplyWindowInsetsListener(settingsContainer, (v, windowInsets) -> {
-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                Insets insets = windowInsets.getInsets(
+                        WindowInsetsCompat.Type.navigationBars()
+                                | WindowInsetsCompat.Type.displayCutout());
                 int navbarBottom = insets.bottom;
-                
+
                 // Apply margin bottom if navigation bar is present
                 MarginLayoutParams layoutParams = (MarginLayoutParams) v.getLayoutParams();
                 if (layoutParams != null) {
                     layoutParams.bottomMargin = navbarBottom;
                     v.setLayoutParams(layoutParams);
                 }
-                
+
                 // Return consumed insets to prevent default behavior
                 return windowInsets;
             });
-            
+
             // Request insets to be applied
             ViewCompat.requestApplyInsets(settingsContainer);
         }
@@ -481,6 +488,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
          *       a reason when no 10-bit Main10 encoder exists; forced off.</li>
          *   <li>HDR Transfer shown only when Save storage and HDR are on.</li>
          *   <li>HDR tunable keys entry shown only when HDR is on.</li>
+         *   <li>HDR session type entry shown only when HDR is on.</li>
          *   <li>Logical id entry shown only when the logical-id switch is on;
          *       the switch is forced off when the id is not logical.</li>
          * </ul>
@@ -524,9 +532,17 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 if (transferPref != null) {
                     transferPref.setVisible(hdrOn);
                 }
+                Preference colorRangePref = findPreference(mContext.getString(R.string.pref_video_color_range_key));
+                if (colorRangePref != null) {
+                    colorRangePref.setVisible(hdrOn);
+                }
                 Preference hdrTunablePref = findPreference("pref_video_hdr_tunable_submenu");
                 if (hdrTunablePref != null) {
                     hdrTunablePref.setVisible(hdrOn);
+                }
+                Preference hdrSessionPref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+                if (hdrSessionPref != null) {
+                    hdrSessionPref.setVisible(hdrOn);
                 }
                 boolean useLogicalOn = PreferenceKeys.isVideoUseLogicalId();
                 if (useLogicalOn && !isLogicalCameraId(mContext, PreferenceKeys.getVideoLogicalId())) {
@@ -897,15 +913,18 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             // Log which preference was clicked
             Log.d("SettingsFragment", "onPreferenceTreeClick: " + preference.getKey());
 
-            // Navigate to any sub-screen manually: default handling does not
-            // open PreferenceScreens in this setup, so every submenu entry
-            // (tunable, sensor config, video tunables, about, ...) is
-            // forwarded here instead of maintaining a key list.
+            // Navigate manually only for dynamically-generated (empty) sub-screens:
+            // non-empty screens are already opened once by default handling
+            // (PreferenceScreen.onClick -> onNavigateToScreen), so forwarding
+            // them here would stack the same screen twice (two backs to exit).
             if (preference instanceof PreferenceScreen) {
+                PreferenceScreen screen = (PreferenceScreen) preference;
+                if (screen.getPreferenceCount() != 0) {
+                    return super.onPreferenceTreeClick(preference);
+                }
                 Log.d("SettingsFragment", "Submenu clicked, navigating: " + preference.getKey());
 
                 // Navigate to the submenu (preferences will be generated in the new fragment's onCreate)
-                PreferenceScreen screen = (PreferenceScreen) preference;
                 if (activity instanceof SettingsActivity) {
                     ((SettingsActivity) activity).onPreferenceStartScreen(this, screen);
                     return true;

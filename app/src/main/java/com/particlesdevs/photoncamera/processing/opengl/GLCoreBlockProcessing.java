@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
+
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
@@ -42,6 +44,8 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     /**
      * Live sink-renderbuffer bytes across instances: sink FBOs are invisible
      * to the GLTexture gauge otherwise (~400 MB hidden at 50 MP before P3-E1).
+     * DEBUG-only gauge (feeds VramStage logging): release builds skip the
+     * bookkeeping entirely.
      */
     private static long sLiveRenderBytes = 0;
 
@@ -51,6 +55,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
 
     private static synchronized void addRenderBytes(long b) {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         sLiveRenderBytes += b;
     }
 

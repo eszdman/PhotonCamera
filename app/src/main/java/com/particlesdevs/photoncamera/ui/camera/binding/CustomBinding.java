@@ -166,12 +166,15 @@ public class CustomBinding {
 
     /**
      * Updates the on-screen zoom indicator (a {@link android.widget.TextView})
-     * from the live zoom ratio, and hides it entirely at 1.0x.
+     * from the live zoom ratio. Shown only while zoomed off a lens native
+     * value (any physical lens or logical member); hidden when sitting
+     * exactly on one, and while the settings bar is open.
      */
-    @BindingAdapter("zoomIndicator")
-    public static void setZoomIndicator(android.widget.TextView view, float zoomRatio) {
+    @BindingAdapter({"zoomIndicator", "zoomOffNative"})
+    public static void setZoomIndicator(android.widget.TextView view, float zoomRatio, boolean offNative) {
         if (view == null) return;
         view.setTag(R.id.zoom_ratio_tag, zoomRatio);
+        view.setTag(R.id.zoom_offnative_tag, offNative);
         if (Math.abs(zoomRatio - 1.0f) > 0.0001f) {
             view.setText(String.format(java.util.Locale.US, "%.1fx", zoomRatio));
         }
@@ -195,9 +198,9 @@ public class CustomBinding {
     }
 
     private static boolean shouldShowZoom(android.widget.TextView view) {
-        Object ratioTag = view.getTag(R.id.zoom_ratio_tag);
-        float ratio = ratioTag instanceof Float ? (Float) ratioTag : 1.0f;
-        return Math.abs(ratio - 1.0f) > 0.0001f && !isHiddenBySettings(view);
+        Object offNativeTag = view.getTag(R.id.zoom_offnative_tag);
+        boolean offNative = offNativeTag instanceof Boolean && (Boolean) offNativeTag;
+        return offNative && !isHiddenBySettings(view);
     }
 
     /**

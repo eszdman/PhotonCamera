@@ -97,6 +97,7 @@
                     tools:visibility="visible"
                     bindRotate="@{uimodel}"
                     zoomIndicator="@{uimodel.zoomRatio}"
+                    zoomOffNative="@{uimodel.zoomOffNative}"
                     hideZoomIndicator="@{uimodel.settingsBarVisibility}"
                     app:layout_constraintBottom_toTopOf="@+id/zoom_slider_container"
                     app:layout_constraintStart_toStartOf="@+id/lens_zoom_bar"

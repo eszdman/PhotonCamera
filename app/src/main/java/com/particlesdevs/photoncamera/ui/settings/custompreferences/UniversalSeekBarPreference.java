@@ -50,6 +50,7 @@ public class UniversalSeekBarPreference extends Preference {
     private int seekBarProgress;
     private TextView seekBarValue;
     private Slider seekBar;
+    private android.view.View seekBarReset;
     private String fallback_value;
 
     public UniversalSeekBarPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
@@ -93,6 +94,7 @@ public class UniversalSeekBarPreference extends Preference {
         holder.setDividerAllowedAbove(false);
         seekBar = (Slider) holder.findViewById(R.id.seekbar);
         seekBarValue = (TextView) holder.findViewById(R.id.seekbar_value);
+        seekBarReset = holder.findViewById(R.id.seekbar_reset);
         if (seekBar != null) {
             seekBar.setValueFrom(0f);
             seekBar.setValueTo(mSeekBarMax);
@@ -115,6 +117,11 @@ public class UniversalSeekBarPreference extends Preference {
         // Add click listener for precise value input on the value text
         if (seekBarValue != null) {
             seekBarValue.setOnClickListener(v -> showPreciseValueDialog());
+        }
+
+        // Reset button restores the default; visible only when non-default.
+        if (seekBarReset != null) {
+            seekBarReset.setOnClickListener(v -> resetToDefault());
         }
     }
 
@@ -165,6 +172,7 @@ public class UniversalSeekBarPreference extends Preference {
             updateLabel(stored);
             log("showStoredValue : " + stored);
         }
+        updateResetVisibility();
     }
 
     /** User dragged the bar: the value snaps to the step grid and is persisted. */
@@ -174,6 +182,7 @@ public class UniversalSeekBarPreference extends Preference {
         updateLabel(valueToPersist);
         updateSeekbar(seekBarProgress);
         persistString(valueToPersist);
+        updateResetVisibility();
         log("set : " + valueToPersist);
     }
 
@@ -186,7 +195,23 @@ public class UniversalSeekBarPreference extends Preference {
         updateLabel(valueToPersist);
         updateSeekbar(seekBarProgress);
         persistString(valueToPersist);
+        updateResetVisibility();
         log("setDirectValue : " + valueToPersist);
+    }
+
+    /** Restores the default value (same as Reset in the precise-input dialog). */
+    private void resetToDefault() {
+        setDirectValue(clamp(parseValue(fallback_value, mMin)));
+    }
+
+    /** Shows the reset button only when the stored value differs from default. */
+    private void updateResetVisibility() {
+        if (seekBarReset == null) return;
+        float def = clamp(parseValue(fallback_value, mMin));
+        String stored = getPersistedString(fallback_value == null ? "0" : fallback_value);
+        float cur = clamp(parseValue(stored, parseValue(fallback_value, mMin)));
+        boolean isDefault = Math.abs(cur - def) < 0.0005f;
+        seekBarReset.setVisibility(isDefault ? android.view.View.GONE : android.view.View.VISIBLE);
     }
 
     private void updateLabel(String valueToPersist) {

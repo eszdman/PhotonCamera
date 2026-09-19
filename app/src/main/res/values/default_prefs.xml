@@ -21,6 +21,7 @@
     <bool name="pref_ultrahdr_default">false</bool>
     <bool name="pref_remosaic_default">false</bool>
     <bool name="pref_eis_photo_default">true</bool>
+    <bool name="pref_video_ois_default">true</bool>
     <bool name="pref_zoom_lock_default">false</bool>
     <bool name="pref_auto_zoom_switch_default">false</bool>
     <bool name="pref_fps_preview_default">false</bool>

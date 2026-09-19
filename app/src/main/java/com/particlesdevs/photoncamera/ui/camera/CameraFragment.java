@@ -1052,6 +1052,7 @@ public class CameraFragment extends Fragment {
 
     private long lastHudUpdateTime = 0;
     private static final long HUD_UPDATE_INTERVAL_MS = 150; // Smooth 6.6 Hz update rate to eliminate jitter
+    private long lastScreenLogMs = 0;
 
     private void updateViewfinderHud(CaptureResult result, int afDataMode) {
         long now = android.os.SystemClock.uptimeMillis();
@@ -1714,6 +1715,25 @@ public class CameraFragment extends Fragment {
         public void onLogicalZoomProgress(float ratio) {
             if (cameraFragmentViewModel != null) {
                 cameraFragmentViewModel.setZoomRatio(ratio);
+                if (captureController != null) {
+                    cameraFragmentViewModel.setZoomOffNative(
+                            !captureController.isZoomOnNative(ratio));
+                }
+            }
+        }
+
+        @Override
+        public void onFpsModeCorrected() {
+            // The fps pref was corrected (e.g. 60 -> 30): refresh the top-bar
+            // icon and quick-settings entries to the actual mode.
+            try {
+                if (activity != null) {
+                    activity.runOnUiThread(() -> updateSettingsBar());
+                } else {
+                    updateSettingsBar();
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "onFpsModeCorrected sync failed", e);
             }
         }
 
@@ -1823,6 +1843,14 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onPreviewCaptureCompleted(CaptureResult captureResult) {
+            // While recording, the per-frame UI post (orientation, AF state,
+            // HUD) runs at sensor rate for no visible benefit and pressures
+            // the UI queue/GC at 30/60fps: throttle to the HUD interval.
+            if (captureController != null && captureController.mIsRecordingVideo) {
+                long now = android.os.SystemClock.uptimeMillis();
+                if (now - lastScreenLogMs < HUD_UPDATE_INTERVAL_MS) return;
+                lastScreenLogMs = now;
+            }
             updateScreenLog(captureResult);
         }
 
@@ -1908,6 +1936,8 @@ public class CameraFragment extends Fragment {
                     captureController.resetZoom();
                 }
                 cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                cameraFragmentViewModel.setZoomOffNative(
+                        !captureController.isZoomOnNative(captureController.getZoomRatio()));
                 if (lensZoomBarController != null) lensZoomBarController.refreshZoomRange();
             }
             Boolean flashAvailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
