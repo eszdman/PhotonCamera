@@ -3,6 +3,8 @@ package com.particlesdevs.photoncamera.util;
 import android.graphics.Bitmap;
 import android.os.Debug;
 
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+
 import java.nio.ByteBuffer;
 public class Allocator{
     static {
@@ -91,16 +93,23 @@ public class Allocator{
      * Per-shot peak of any MemStage entry (max MB value seen across
      * tracked/nativeHeap/dalvikHeap samples). Reset at processing start,
      * read before encode for EXIF. No new stages; fed by logStage() only.
+     * DEBUG-only: release builds neither sample nor track.
      */
     private static long sPeakMemoryBytes = 0;
 
     public static void resetPeakMemory() {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         synchronized (Allocator.class) {
             sPeakMemoryBytes = 0;
         }
     }
 
     public static long getPeakMemoryMB() {
+        if (!PhotonCamera.DEBUG) {
+            return 0;
+        }
         synchronized (Allocator.class) {
             return sPeakMemoryBytes / 1048576;
         }
@@ -118,8 +127,14 @@ public class Allocator{
      *
      * <p>Also feeds the per-shot PeakMemory tracker (see sPeakMemoryBytes):
      * the highest MB value of this entry becomes the new peak if larger.
+     *
+     * <p>DEBUG-only: no-op in release builds (sampling walks native/debug
+     * memory APIs and every line is flushed to the PhotonLog file).
      */
     public static void logStage(String logTag, String stage) {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         long tracked = getMemoryCount();
         long heap = Debug.getNativeHeapAllocatedSize();
         long dalvik = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -145,10 +160,15 @@ public class Allocator{
      *
      * <p>Deliberately not /proc/self/status: modern SELinux policies deny
      * procfs reads to apps, so those fields would log garbage forever.
+     *
+     * <p>DEBUG-only: no-op in release builds.
      */
     private static long sHwmProxy = 0;
 
     public static void logProc(String logTag, String stage) {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         long devFree = -1;
         boolean devLow = false;
         try {

@@ -18,6 +18,7 @@ public class CameraFragmentModel extends BaseObservable {
     private float screenAspectRatio = 9f / 16;
     private String dummyAspectRatio = "16:9";
     private float zoomRatio = 1.0f;
+    private boolean zoomOffNative = false;
 
     @Bindable
     public float getZoomRatio() {
@@ -28,6 +29,17 @@ public class CameraFragmentModel extends BaseObservable {
         if (this.zoomRatio == zoomRatio) return;
         this.zoomRatio = zoomRatio;
         notifyPropertyChanged(BR.zoomRatio);
+    }
+
+    @Bindable
+    public boolean isZoomOffNative() {
+        return zoomOffNative;
+    }
+
+    public void setZoomOffNative(boolean zoomOffNative) {
+        if (this.zoomOffNative == zoomOffNative) return;
+        this.zoomOffNative = zoomOffNative;
+        notifyPropertyChanged(BR.zoomOffNative);
     }
 
     @Bindable

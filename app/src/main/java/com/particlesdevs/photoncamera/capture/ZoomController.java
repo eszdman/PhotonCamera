@@ -347,7 +347,7 @@ public class ZoomController {
     }
 
     /** True when the target is exactly (within epsilon) a lens's native zoom. */
-    private boolean isNativeZoom(float target) {
+    public boolean isNativeZoom(float target) {
         for (LensEntry lens : lensesAsc) {
             if (Math.abs(target - lens.nativeZoom) <= 1e-4f) return true;
         }

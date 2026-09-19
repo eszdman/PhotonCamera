@@ -198,6 +198,22 @@
                     android:entries="@array/video_hdr_transfer_entries"
                     android:entryValues="@array/video_hdr_transfer_entryvalues"
                     android:defaultValue="@string/video_hdr_transfer_default"/>
+            <ListPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_color_range_key"
+                    android:title="@string/video_color_range"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_gradient_black_24dp"
+                    android:entries="@array/video_color_range_entries"
+                    android:entryValues="@array/video_color_range_entryvalues"
+                    android:defaultValue="@string/video_color_range_default"/>
+            <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                    android:key="@string/pref_video_ois_key"
+                    android:defaultValue="true"
+                    android:layout="@layout/preference_with_margin"
+                    android:title="@string/video_ois"
+                    android:summary="@string/video_ois_summary"
+                    android:icon="@drawable/ic_ois"/>
             <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                     android:key="@string/pref_video_use_logical_id_key"
                     android:defaultValue="false"
@@ -228,6 +244,30 @@
                     app:useSimpleSummaryProvider="true"
                     android:icon="@drawable/ic_multi_lens"
                     android:defaultValue="@string/video_logical_lenses_default"/>
+            <EditTextPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_hdr_session_type_key"
+                    android:title="@string/video_hdr_session_type"
+                    android:summary="@string/video_session_type_summary"
+                    android:dialogTitle="@string/video_hdr_session_type"
+                    android:inputType="numberSigned"
+                    android:numeric="integer"
+                    android:singleLine="true"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_gradient_black_24dp"
+                    android:defaultValue="@string/video_session_type_default"/>
+            <EditTextPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_sdr_session_type_key"
+                    android:title="@string/video_sdr_session_type"
+                    android:summary="@string/video_session_type_summary"
+                    android:dialogTitle="@string/video_sdr_session_type"
+                    android:inputType="numberSigned"
+                    android:numeric="integer"
+                    android:singleLine="true"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_gradient_black_24dp"
+                    android:defaultValue="@string/video_session_type_default"/>
             <PreferenceScreen
                     android:layout="@layout/preference_with_margin"
                     android:key="pref_video_tunable_submenu"

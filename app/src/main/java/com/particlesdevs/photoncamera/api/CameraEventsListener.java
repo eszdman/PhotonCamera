@@ -49,4 +49,7 @@ public abstract class CameraEventsListener implements CaptureEventsListener, Pro
 
     /** Fired per tick while a smooth logical zoom animates (ratio rendered). */
     public void onLogicalZoomProgress(float ratio) {}
+
+    /** Fired when the fps mode was corrected (e.g. unsupported 60fps -> 30). */
+    public void onFpsModeCorrected() {}
 }

@@ -19,7 +19,6 @@ import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import java.lang.reflect.Field;
 
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE;
-import static android.hardware.camera2.CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION;
 import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE;
 import static android.hardware.camera2.CameraCharacteristics.TONEMAP_AVAILABLE_TONE_MAP_MODES;
@@ -28,7 +27,6 @@ import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_DISABLE
 import static android.hardware.camera2.CameraMetadata.CONTROL_SCENE_MODE_HDR;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_FAST;
 import static android.hardware.camera2.CameraMetadata.HOT_PIXEL_MODE_HIGH_QUALITY;
-import static android.hardware.camera2.CameraMetadata.LENS_OPTICAL_STABILIZATION_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.SHADING_MODE_FAST;
 import static android.hardware.camera2.CameraMetadata.STATISTICS_LENS_SHADING_MAP_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_GAMMA_VALUE;
@@ -36,7 +34,6 @@ import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_HIGH_QUALITY;
 import static android.hardware.camera2.CameraMetadata.TONEMAP_MODE_PRESET_CURVE;
 import static android.hardware.camera2.CaptureRequest.CONTROL_SCENE_MODE;
 import static android.hardware.camera2.CaptureRequest.HOT_PIXEL_MODE;
-import static android.hardware.camera2.CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_HOT_PIXEL_MAP_MODE;
 import static android.hardware.camera2.CaptureRequest.STATISTICS_LENS_SHADING_MAP_MODE;
 import static android.hardware.camera2.CaptureRequest.TONEMAP_MODE;
@@ -330,12 +327,8 @@ public class Camera2ApiAutoFix {
         Camera2ApiAutoFix.Apply();
 //        captureBuilder.set(CONTROL_AE_MODE, CONTROL_AE_MODE_ON);
         //captureBuilder.set(COLOR_CORRECTION_MODE,COLOR_CORRECTION_MODE_HIGH_QUALITY);
-        int[] stabilizationModes = CaptureController.mCameraCharacteristics.get(LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-        if (stabilizationModes != null && stabilizationModes.length > 1) {
-            Log.d(TAG, "LENS_OPTICAL_STABILIZATION_MODE");
-//            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_OFF);//Fix ois bugs for preview and burst
-            captureBuilder.set(LENS_OPTICAL_STABILIZATION_MODE, LENS_OPTICAL_STABILIZATION_MODE_ON);//Fix ois bugs for preview and burst
-        }
+        // OIS is owned solely by CaptureController.applyOisMode(), which
+        // honours the video OIS toggle / per-sensor mode. Do not force it here.
         //captureBuilder.set(CONTROL_AE_EXPOSURE_COMPENSATION,-1);
         Range<Integer> range = CaptureController.mCameraCharacteristics.get(CONTROL_AE_COMPENSATION_RANGE);
     }

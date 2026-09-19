@@ -60,24 +60,38 @@ public class GLTexture implements AutoCloseable {
     /**
      * Per-shot peak of any VramStage entry (max live+renderbuffer bytes seen).
      * Reset at processing start, read before encode for EXIF. No new stages;
-     * fed by logLive() only.
+     * fed by logLive() only. DEBUG-only: release builds neither sample nor
+     * track.
      */
     private static long sPeakVramBytes = 0;
 
     public static void resetPeakVram() {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         synchronized (GLTexture.class) {
             sPeakVramBytes = 0;
         }
     }
 
     public static long getPeakVramMB() {
+        if (!PhotonCamera.DEBUG) {
+            return 0;
+        }
         synchronized (GLTexture.class) {
             return sPeakVramBytes / 1048576;
         }
     }
 
-    /** Logs live GPU texture bytes with a stage label; logging only. */
+    /**
+     * Logs live GPU texture bytes with a stage label; logging only.
+     * DEBUG-only: no-op in release builds (walks the live registry, sorts it
+     * and flushes a line to the PhotonLog file per call).
+     */
     public static void logLive(String tag, String stage) {
+        if (!PhotonCamera.DEBUG) {
+            return;
+        }
         long total = liveBytes();
         long rb = GLCoreBlockProcessing.liveRenderBytes();
         synchronized (GLTexture.class) {
@@ -179,7 +193,9 @@ public class GLTexture implements AutoCloseable {
         checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
-        sLive.put(this, getByteCount());
+        if (PhotonCamera.DEBUG) {
+            sLive.put(this, getByteCount());
+        }
     }
     public GLTexture(Point size, GLFormat glFormat, Buffer pixels, int textureFilter, int textureWrapper,int level) {
         mFormat = glFormat;
@@ -208,7 +224,9 @@ public class GLTexture implements AutoCloseable {
         checkEglError("glTexSubImage2D");
         reSetParameters();
         checkEglError("Tex glTexParameter");
-        sLive.put(this, getByteCount());
+        if (PhotonCamera.DEBUG) {
+            sLive.put(this, getByteCount());
+        }
     }
 
     public void loadData(Buffer pixels){
@@ -544,7 +562,9 @@ public class GLTexture implements AutoCloseable {
 
     @Override
     public void close() {
-        sLive.remove(this);
+        if (PhotonCamera.DEBUG) {
+            sLive.remove(this);
+        }
         // Delete only if still registered: close() runs on stale registry
         // entries too, and deleting an already-deleted name would (after
         // driver name recycling) kill an unrelated live texture.

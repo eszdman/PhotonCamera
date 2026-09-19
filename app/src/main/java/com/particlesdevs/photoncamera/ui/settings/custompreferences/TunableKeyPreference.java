@@ -47,7 +47,8 @@ public class TunableKeyPreference extends Preference {
         VendorTagUtils.TunableKey key = keys.get(index);
         setTitle(key.name);
         String status = key.tested ? (key.supported ? "\u2714 supported" : "\u2718 not supported") : "untested";
-        setSummary(key.valueType + " = " + key.value + "  (" + status + ")");
+        String init = VendorTagUtils.TunableKey.isSessionInit(key) ? "Session" : "Capture";
+        setSummary(key.valueType + " = " + key.value + " \u00B7 " + init + "  (" + status + ")");
         setIcon(createCircleDrawable(getContext(), getStatusColor(getContext(), key)));
     }
 

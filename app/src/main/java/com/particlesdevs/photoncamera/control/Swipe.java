@@ -134,6 +134,8 @@ public class Swipe {
                 // viewfinder exactly.
                 captureController.setZoom(newZoom, 0.5f, 0.5f);
                 cameraFragmentViewModel.setZoomRatio(captureController.getZoomRatio());
+                cameraFragmentViewModel.setZoomOffNative(
+                        !captureController.isZoomOnNative(captureController.getZoomRatio()));
                 if (zoomGestureListener != null) zoomGestureListener.onZoomGesture();
                 return true;
             }

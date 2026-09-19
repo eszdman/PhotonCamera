@@ -16,18 +16,42 @@ public final class AudioCodecSupport {
     /** MIME used by {@link android.media.MediaRecorder.AudioEncoder#AAC}. */
     public static final String MIME_AAC = MediaFormat.MIMETYPE_AUDIO_AAC;
 
+    private static final Object sClampLock = new Object();
+    private static int sUpper = Integer.MIN_VALUE;
+    private static int sLower = -1;
+
     private AudioCodecSupport() {}
 
     /**
      * Clamp a requested audio bitrate to what the device's AAC encoder
      * advertises. Returns {@code requested} unchanged when no encoder or no
-     * bitrate range is available.
+     * bitrate range is available. The codec-list walk runs once per process;
+     * results are cached because this sits on the video start path.
      */
     public static int clampAudioBitrate(int requested) {
+        int upper;
+        int lower;
+        synchronized (sClampLock) {
+            if (sUpper == Integer.MIN_VALUE) {
+                int[] range = queryBitrateRange();
+                sUpper = range[0];
+                sLower = range[1];
+            }
+            upper = sUpper;
+            lower = sLower;
+        }
+        if (upper <= 0) return requested;
+        int clamped = Math.min(requested, upper);
+        if (lower > 0) clamped = Math.max(clamped, lower);
+        return clamped;
+    }
+
+    /** Walks the codec list once; returns {upper, lower}, -1s when unknown. */
+    private static int[] queryBitrateRange() {
+        int upper = -1;
+        int lower = -1;
         try {
             MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
-            int upper = -1;
-            int lower = -1;
             for (MediaCodecInfo info : list.getCodecInfos()) {
                 if (!info.isEncoder()) continue;
                 boolean matches = false;
@@ -50,13 +74,9 @@ public final class AudioCodecSupport {
                     Log.w(TAG, "clampAudioBitrate: skip " + info.getName(), e);
                 }
             }
-            if (upper <= 0) return requested;
-            int clamped = Math.min(requested, upper);
-            if (lower > 0) clamped = Math.max(clamped, lower);
-            return clamped;
         } catch (Exception e) {
             Log.w(TAG, "clampAudioBitrate failed", e);
-            return requested;
         }
+        return new int[]{upper, lower};
     }
 }

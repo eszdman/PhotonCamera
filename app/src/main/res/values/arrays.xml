@@ -178,6 +178,14 @@
         <item>hlg</item>
         <item>pq</item>
     </string-array>
+    <string-array name="video_color_range_entries">
+        <item>Limited</item>
+        <item>Full</item>
+    </string-array>
+    <string-array name="video_color_range_entryvalues">
+        <item>limited</item>
+        <item>full</item>
+    </string-array>
     <string-array name="audio_source_entries">
         <item>Camcorder</item>
         <item>MIC</item>

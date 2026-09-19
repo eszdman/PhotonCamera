@@ -7,6 +7,9 @@ import android.os.Build;
 
 import com.particlesdevs.photoncamera.util.Log;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Capability probes for the video recording path ({@code video/avc} and
  * {@code video/hevc}).
@@ -61,16 +64,41 @@ public final class VideoCodecSupport {
         return hasHevcEncoder() && hasHevcMain10();
     }
 
+    private static final Object sClampLock = new Object();
+    private static final Map<String, int[]> sClampRanges = new HashMap<>();
+
     /**
      * Clamp a requested bitrate to what the device's encoder for {@code mime}
      * advertises. Returns {@code requested} unchanged when no encoder or no
-     * bitrate range is available.
+     * bitrate range is available. The codec-list walk runs once per mime and
+     * process lifetime; results are cached because this sits on the video
+     * start path (UI thread).
      */
     public static int clampVideoBitrate(String mime, int requested) {
+        int[] range = null;
+        synchronized (sClampLock) {
+            range = sClampRanges.get(mime);
+        }
+        if (range == null) {
+            range = queryBitrateRange(mime);
+            synchronized (sClampLock) {
+                sClampRanges.put(mime, range);
+            }
+        }
+        int upper = range[0];
+        int lower = range[1];
+        if (upper <= 0) return requested;
+        int clamped = Math.min(requested, upper);
+        if (lower > 0) clamped = Math.max(clamped, lower);
+        return clamped;
+    }
+
+    /** Walks the codec list once; returns {upper, lower}, -1s when unknown. */
+    private static int[] queryBitrateRange(String mime) {
+        int upper = -1;
+        int lower = -1;
         try {
             MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
-            int upper = -1;
-            int lower = -1;
             for (MediaCodecInfo info : list.getCodecInfos()) {
                 if (!info.isEncoder()) continue;
                 boolean matches = false;
@@ -93,14 +121,10 @@ public final class VideoCodecSupport {
                     Log.w(TAG, "clampVideoBitrate: skip " + info.getName(), e);
                 }
             }
-            if (upper <= 0) return requested;
-            int clamped = Math.min(requested, upper);
-            if (lower > 0) clamped = Math.max(clamped, lower);
-            return clamped;
         } catch (Exception e) {
             Log.w(TAG, "clampVideoBitrate failed", e);
-            return requested;
         }
+        return new int[]{upper, lower};
     }
 
     private static boolean hasEncoderFor(String mime) {

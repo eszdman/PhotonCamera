@@ -228,7 +228,7 @@ public final class UltraHdrHeicContainer {
         byte[] tmapPixi = IsoBmff.fullBoxPayload(0, 0,
                 buildPixiBody(8, 8, 8));
         int tmapPixiIndex = propCursor + 2;
-        byte[] tmapColr = IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 8, 1, true));
+        byte[] tmapColr = buildNclxBody(1, 8, 1, true);
         int tmapColrIndex = propCursor + 3;
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
@@ -240,8 +240,7 @@ public final class UltraHdrHeicContainer {
         int baseColrIndex = tmapColrIndex + 2;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
                 IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
-        ipcoBoxes.add(IsoBmff.buildBox("colr",
-                IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+        ipcoBoxes.add(IsoBmff.buildBox("colr", buildNclxBody(1, 1, 1, true)));
         primaryExtras.add(new PropRef(false, basePixiIndex));
         primaryExtras.add(new PropRef(false, baseColrIndex));
         byte[] newIpco = IsoBmff.buildBox("ipco", ipcoBoxes);
@@ -603,8 +602,7 @@ public final class UltraHdrHeicContainer {
         int colrIndex = ipcoBoxes.size() + 2;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
                 IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
-        ipcoBoxes.add(IsoBmff.buildBox("colr",
-                IsoBmff.fullBoxPayload(0, 0, buildNclxBody(1, 1, 1, true))));
+        ipcoBoxes.add(IsoBmff.buildBox("colr", buildNclxBody(1, 1, 1, true)));
         primaryExtras.add(new PropRef(false, pixiIndex));
         primaryExtras.add(new PropRef(false, colrIndex));
         byte[] iprpBox = IsoBmff.buildBox("iprp",
@@ -890,8 +888,11 @@ public final class UltraHdrHeicContainer {
     }
 
     /**
-     * nclx colr property body (callers wrap in FullBox): colour_type 'nclx'
-     * + primaries/transfer/matrix u16 + full_range flag byte.
+     * nclx colr property body: colour_type 'nclx' + primaries/transfer/matrix
+     * u16 + full_range flag byte. {@code colr} is a plain Box per ISO/IEC
+     * 14496-12 (no version/flags), so this body is used as the box payload
+     * directly — prefixing it with a FullBox header makes readers see
+     * colour_type 0 and reject the file.
      */
     static byte[] buildNclxBody(int primaries, int transfer, int matrix, boolean fullRange) {
         ByteBuffer bb = ByteBuffer.allocate(4 + 2 + 2 + 2 + 1).order(ByteOrder.BIG_ENDIAN);
