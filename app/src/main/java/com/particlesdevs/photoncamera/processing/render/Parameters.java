@@ -705,8 +705,10 @@ public class Parameters {
                 "\n PreviewFormat=" + PhotonCamera.getSettings().previewFormat +
                 "\n FocalL=" + FltFormat(focalLength) +
                 "\n TotalProcessingTime=" + totalProcessingTimeMs + "ms" +
-                "\n PeakVram=" + peakVramMB + "MB" +
-                "\n PeakMemory=" + peakMemoryMB + "MB" +
+                (PhotonCamera.DEBUG
+                        ? "\n PeakVram=" + peakVramMB + "MB"
+                        + "\n PeakMemory=" + peakMemoryMB + "MB"
+                        : "") +
                 "\n Version=" + PhotonCamera.getVersion();
     }
 

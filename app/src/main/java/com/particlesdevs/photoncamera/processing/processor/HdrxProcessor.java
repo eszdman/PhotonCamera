@@ -446,12 +446,16 @@ public class HdrxProcessor extends ProcessorBase {
         // Total processing time: onProcessing start -> onProcessing finished,
         // stopping before encode so the values can go into this shot's EXIF.
         processingParameters.totalProcessingTimeMs = System.currentTimeMillis() - startTime;
-        processingParameters.peakVramMB = GLTexture.getPeakVramMB();
-        processingParameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        if (PhotonCamera.DEBUG) {
+            processingParameters.peakVramMB = GLTexture.getPeakVramMB();
+            processingParameters.peakMemoryMB = Allocator.getPeakMemoryMB();
+        }
         exifData.IMAGE_DESCRIPTION = processingParameters.toString();
-        Log.d(TAG, "TotalProcessingTime=" + processingParameters.totalProcessingTimeMs
-                + "ms PeakVram=" + processingParameters.peakVramMB
-                + "MB PeakMemory=" + processingParameters.peakMemoryMB + "MB");
+        if (PhotonCamera.DEBUG) {
+            Log.d(TAG, "TotalProcessingTime=" + processingParameters.totalProcessingTimeMs
+                    + "ms PeakVram=" + processingParameters.peakVramMB
+                    + "MB PeakMemory=" + processingParameters.peakMemoryMB + "MB");
+        }
         try {
             processingEventsListener.onProcessingFinished("HdrX JPG Processing Finished");
         }
