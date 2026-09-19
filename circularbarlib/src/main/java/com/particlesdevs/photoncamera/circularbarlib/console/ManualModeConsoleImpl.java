@@ -48,6 +48,15 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         this.knobModel = new KnobModel();
     }
 
+    /**
+     * The previously selected control while the wheel is open; shown as the
+     * smaller inner ruler so both stay adjustable. Selecting it again swaps
+     * the two wheels; closing the wheel forgets it.
+     */
+    private ManualModel<?> previousModel;
+    /** Bar cell of the current primary control; the old one becomes the ring. */
+    private int selectedViewId = -1;
+
     public static ManualModeConsole getInstance() {
         if (sInstance == null) {
             sInstance = newInstance();
@@ -155,6 +164,10 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         }
 
         knobModel.setKnobVisible(false);
+        knobModel.setSecondaryManualModel(null);
+        selectedModel = null;
+        previousModel = null;
+        selectedViewId = -1;
         manualModeModel.setCheckedTextViewId(-1);
     }
 
@@ -194,8 +207,15 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         view.setOnLongClickListener(v -> {
             if (selectedModel == model) {
                 knobModel.setKnobResetCalled(true);
+                model.resetModel();
+            } else if (previousModel == model) {
+                // Reset the inner ruler too, then re-notify so its wheel
+                // snaps back to the auto position.
+                model.resetModel();
+                knobModel.setSecondaryManualModel(previousModel);
+            } else {
+                model.resetModel();
             }
-            model.resetModel();
             return true;
         });
     }
@@ -219,10 +239,13 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     @Override
     public void retractAllKnobs() {
         knobModel.setKnobVisible(false);
-        if (!this.preserveManualWb || manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO || !(selectedModel instanceof WbModel)) {
+        knobModel.setSecondaryManualModel(null);
+        if (!this.preserveManualWb || this.manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO || !(selectedModel instanceof WbModel)) {
             knobModel.setKnobResetCalled(true);
         }
         selectedModel = null;
+        previousModel = null;
+        selectedViewId = -1;
         // Silent resets: the panel close already implies the action, and four
         // simultaneous ticks stack into a multi-buzz.
         if (mfModel != null)
@@ -279,6 +302,8 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
             manualModeModel.setWbText(matchedItem.text);
             if (selectedModel == wbModel) {
                 knobModel.setManualModel(wbModel);
+            } else if (previousModel == wbModel) {
+                knobModel.setSecondaryManualModel(wbModel);
             }
         } else {
             manualParamModel.setCurrentWbValue(kelvinValue);
@@ -287,16 +312,36 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
 
     private void setModelToKnob(int viewId, ManualModel<?> modelToKnob) {
         if (modelToKnob == selectedModel) {
+            // Toggle off: close the wheel and forget the remembered control.
             knobModel.setManualModel(null);
+            knobModel.setSecondaryManualModel(null);
             knobModel.setKnobVisible(false);
             manualModeModel.setCheckedTextViewId(-1);
             selectedModel = null;
+            previousModel = null;
+            selectedViewId = -1;
+        } else if (modelToKnob == previousModel && previousModel != null) {
+            // Selecting the remembered (inner) control swaps the two wheels.
+            ManualModel<?> outgoing = selectedModel;
+            selectedModel = previousModel;
+            previousModel = outgoing;
+            knobModel.setManualModel(selectedModel);
+            knobModel.setSecondaryManualModel(previousModel);
+            // The outgoing primary becomes the secondary-filled remembered cell.
+            manualModeModel.setCheckedTextViewIds(viewId, selectedViewId);
+            selectedViewId = viewId;
         } else {
             if (modelToKnob.getKnobInfoList().size() > 1) {
-                knobModel.setManualModel(modelToKnob);
-                knobModel.setKnobVisible(true);
-                manualModeModel.setCheckedTextViewId(viewId);
+                // The outgoing control becomes the inner ruler; an older inner
+                // one is dropped.
+                previousModel = selectedModel;
                 selectedModel = modelToKnob;
+                knobModel.setManualModel(modelToKnob);
+                knobModel.setSecondaryManualModel(previousModel);
+                knobModel.setKnobVisible(true);
+                manualModeModel.setCheckedTextViewIds(viewId,
+                        previousModel != null ? selectedViewId : -1);
+                selectedViewId = viewId;
             }
         }
     }

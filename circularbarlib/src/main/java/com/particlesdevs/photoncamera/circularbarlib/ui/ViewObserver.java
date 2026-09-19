@@ -111,6 +111,17 @@ public class ViewObserver implements Observer {
         }
     }
 
+    /**
+     * The remembered control (inner ruler) mirrors its label's activated state
+     * onto the cell, where the same pill draws as a thin ring.
+     */
+    private void setOptionRemembered(TextView textView, boolean remembered) {
+        textView.setActivated(remembered);
+        if (textView.getParent() instanceof View) {
+            ((View) textView.getParent()).setActivated(remembered);
+        }
+    }
+
 
     @Override
     public void update(Observable o, Object arg) {
@@ -122,10 +133,11 @@ public class ViewObserver implements Observer {
                         Binding.resetKnob(knobView, knobModel.isKnobResetCalled());
                         break;
                     case VISIBILITY:
-                        Binding.setKnobVisibility(knobView, knobModel.isKnobVisible());
+                        Binding.setKnobVisibility(manualMode, knobView, knobModel.isKnobVisible());
                         break;
                     case MANUAL_MODEL:
-                        Binding.setModelToKnob(knobView, knobModel.getManualModel());
+                    case SECONDARY_MODEL:
+                        Binding.setModelToKnob(knobView, knobModel.getManualModel(), knobModel.getSecondaryManualModel());
                         break;
                 }
             }
@@ -164,14 +176,10 @@ public class ViewObserver implements Observer {
                         break;
                     case SELECTED_TV:
                         View v = findViewById(manualModeModel.getSelectedTextViewId());
-                        if (v != null) {
-                            for (TextView textView : textViews) {
-                                setOptionSelected(textView, v.equals(textView));
-                            }
-                        } else {
-                            for (TextView textView : textViews) {
-                                setOptionSelected(textView, false);
-                            }
+                        View remembered = findViewById(manualModeModel.getSecondaryTextViewId());
+                        for (TextView textView : textViews) {
+                            setOptionSelected(textView, v != null && v.equals(textView));
+                            setOptionRemembered(textView, remembered != null && remembered.equals(textView));
                         }
                         break;
                     case PANEL_VISIBILITY:

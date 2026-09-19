@@ -11,14 +11,15 @@ uniform vec2 uHalfSize;
 uniform float uAngle;
 uniform float uRadius;
 uniform float uAlpha;
-// Optional clip rectangle in the panel's local frame (zero size disables it):
-// shapes larger than their view (the knob wheel disc) are cut to what is drawn.
-uniform vec2 uClipCenter;
-uniform vec2 uClipHalfSize;
-// 1 = knob wheel scrim: the circle through the clip rect's bottom corners and
-// top-centre (the same arc KnobView draws), cut to the clip rect and rounded
-// on its bottom corners like the manual bar pill.
-uniform float uDome;
+// Manual-palette blob mode (uPillTop > 0): the bubble's rounded rect with the
+// wheel dome grown out of its top, blended in through shoulder arcs of
+// uShoulderRadius. uPillTop is the FIXED height of the reserved dome zone
+// above the bubble (the bubble's top line never moves); uDomeHeight is the
+// CURRENTLY inflated cap (0 = collapsed, bubble only). Mirrors
+// ManualPaletteBackground exactly — keep the two constructions in sync.
+uniform float uPillTop;
+uniform float uDomeHeight;
+uniform float uShoulderRadius;
 out vec4 Output;
 void main() {
     vec2 d = gl_FragCoord.xy - uCenter;
@@ -26,44 +27,58 @@ void main() {
     float s = sin(uAngle);
     // Rotate into the panel's local frame (rotation follows the on-screen panel).
     vec2 lp = vec2(c * d.x + s * d.y, -s * d.x + c * d.y);
-    // Clip rect centre in the panel's local frame.
-    vec2 cd = uClipCenter - uCenter;
-    vec2 lc = vec2(c * cd.x + s * cd.y, -s * cd.x + c * cd.y);
     float dist;
-    if (uDome > 0.5) {
-        float hw = uClipHalfSize.x;
-        float hh = uClipHalfSize.y;
-        // hh * (1 + (hw / 2hh)^2) == (hw*hw + 4*hh*hh) / (4*hh), but it never
-        // squares the (large) rect half-width, so it cannot overflow mediump
-        // range on GPUs that evaluate mediump in fp16.
-        float domeAspect = hw / (2.0 * hh);
-        float domeRadius = hh * (1.0 + domeAspect * domeAspect);
-        vec2 domeCenter = lc + vec2(0.0, hh - domeRadius);
-        dist = length(lp - domeCenter) - domeRadius;
-        vec2 cq = abs(lp - lc) - uClipHalfSize;
-        dist = max(dist, length(max(cq, vec2(0.0))) + min(max(cq.x, cq.y), 0.0));
-        // Fillet the bottom corners: a small arc is fitted tangent to both the
-        // disc and the bottom edge, so the scrim reads as rounded instead of
-        // ending in the disc's points (mirrored via abs for both corners).
-        if (uRadius > 0.0) {
-            float fillet = uRadius;
-            float denom = max(domeRadius - fillet, 0.001);
-            float base = domeRadius - 2.0 * hh + fillet;
-            float xf = sqrt(max(denom * denom - base * base, 0.0));
-            float yc = (hh - domeRadius) + domeRadius * base / denom;
-            vec2 p = vec2(abs(lp.x - lc.x), lp.y - lc.y);
-            vec2 fc = vec2(xf, -hh + fillet);
-            float bite = max(max(xf - p.x, p.y - yc), fillet - length(p - fc));
-            dist = max(dist, -bite);
+    if (uPillTop > 0.5) {
+        if (uDomeHeight > 0.5) {
+            // Switch to the drawable's frame: x from the centre, y down from
+            // the panel's top edge, so the maths reads like the Java path walk.
+            vec2 p = vec2(lp.x, uHalfSize.y - lp.y);
+            float a = uHalfSize.x;
+            float h = 2.0 * uHalfSize.y;
+            float pillTop = uPillTop;
+            // Shoulder circle tangent to the side line x = ±a and internally
+            // tangent to the dome circle; (domeR - rb) ≥ (a - rb) always holds.
+            float rb = uShoulderRadius;
+            float aspect = a / uDomeHeight;
+            float domeR = (uDomeHeight / 2.0) * (1.0 + aspect * aspect);
+            float domeCy = pillTop - uDomeHeight + domeR;
+            float sq = sqrt(max((domeR - rb) * (domeR - rb) - (a - rb) * (a - rb), 0.0));
+            float sy = domeCy - sq;
+            // Dome/shoulder tangency height; the pocket between the shoulder
+            // arcs and the side lines exists only between tRy and sy.
+            float tRy = domeCy - domeR * sq / max(domeR - rb, 0.001);
+            float sdUncut = length(vec2(abs(p.x) - (a - rb), p.y - sy)) - rb;
+            // Pill with sharp top corners (the sides continue into the
+            // shoulders) and rounded bottom corners: an exact union of the
+            // upper box, the inner rectangle and the two bottom corner discs.
+            // In the shoulder band (tRy..sy) the upper box is bounded by the
+            // shoulder arcs, not the side lines — cut that pocket out.
+            float upperBox = max(max(max(abs(p.x) - a, pillTop - p.y), p.y - (h - uRadius)),
+                    min(min(abs(p.x) - (a - rb), sdUncut), min(p.y - tRy, sy - p.y)));
+            float innerRect = max(max(max(abs(p.x) - (a - uRadius), pillTop - p.y), p.y - h),
+                    min(min(abs(p.x) - (a - rb), sdUncut), min(p.y - tRy, sy - p.y)));
+            vec2 cq = vec2(abs(p.x) - (a - uRadius), p.y - (h - uRadius));
+            float cornerDiscs = length(cq) - uRadius;
+            dist = min(upperBox, min(innerRect, cornerDiscs));
+            // Dome disc, cut below the shoulder tangent line and inside the
+            // sides, and cut again by the shoulder arcs in their band.
+            vec2 dq = p - vec2(0.0, domeCy);
+            float dd = max(length(dq) - domeR, max(p.y - sy, abs(p.x) - a));
+            float sd = max(sdUncut, p.y - sy);
+            dd = max(dd, min(min(abs(p.x) - (a - rb), sd), p.y - tRy));
+            dist = min(dist, min(dd, sd));
+        } else {
+            // Collapsed: plain rounded bubble over the bar's rect only —
+            // NOT the full panel rect, whose dome zone stays unblurred.
+            vec2 pillCentre = vec2(0.0, -uPillTop / 2.0);
+            vec2 pillHalf = max(vec2(uHalfSize.x - uRadius,
+                    uHalfSize.y - uPillTop / 2.0 - uRadius), vec2(0.0));
+            vec2 q = abs(lp - pillCentre) - pillHalf;
+            dist = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - uRadius;
         }
     } else {
         vec2 q = abs(lp) - max(uHalfSize - vec2(uRadius), vec2(0.0));
         dist = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - uRadius;
-        if (uClipHalfSize.x > 0.0 && uClipHalfSize.y > 0.0) {
-            vec2 cq = abs(lp - lc) - uClipHalfSize;
-            float clipDist = length(max(cq, vec2(0.0))) + min(max(cq.x, cq.y), 0.0);
-            dist = max(dist, clipDist);
-        }
     }
     float mask = 1.0 - smoothstep(-1.0, 1.0, dist);
     // The blur passes place the camera image exactly like the sharp pass, so

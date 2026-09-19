@@ -62,41 +62,29 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         /** Panel alpha, so the backdrop fades with the panel. */
         public final float alpha;
         /**
-         * Optional clip rectangle in view pixels (Android convention), applied
-         * in the panel's local frame so a shape larger than the view (the knob
-         * wheel disc) only covers the part that is actually drawn. Zero half
-         * extents disable the clip.
+         * Manual-palette blob mode: when {@code pillTop} is non-zero the region
+         * is the palette bubble (its rect starts {@code pillTop} below the
+         * panel's top — the reserved, usually empty dome zone above it is never
+         * blurred), optionally with the wheel dome of {@code domeHeight} grown
+         * out of its top, blended in through shoulder arcs of
+         * {@code shoulderRadius} (mirrors ManualPaletteBackground). Zero
+         * pillTop draws the plain rounded rect over the whole panel rect.
          */
-        public final float clipCenterX;
-        public final float clipCenterY;
-        public final float clipHalfW;
-        public final float clipHalfH;
-        /** Draws the knob's dome scrim (arc through the clip rect) instead of a box. */
-        public final boolean dome;
+        public final float pillTop;
+        public final float domeHeight;
+        public final float shoulderRadius;
 
         public PanelBlurSpec(boolean enabled, float centerX, float centerY,
                              float halfW, float halfH, float angle,
                              float cornerRadius, float blurRadius, float alpha) {
             this(enabled, centerX, centerY, halfW, halfH, angle, cornerRadius,
-                    blurRadius, alpha, 0f, 0f, 0f, 0f, false);
+                    blurRadius, alpha, 0f, 0f, 0f);
         }
 
         public PanelBlurSpec(boolean enabled, float centerX, float centerY,
                              float halfW, float halfH, float angle,
                              float cornerRadius, float blurRadius, float alpha,
-                             float clipCenterX, float clipCenterY,
-                             float clipHalfW, float clipHalfH) {
-            this(enabled, centerX, centerY, halfW, halfH, angle, cornerRadius,
-                    blurRadius, alpha, clipCenterX, clipCenterY, clipHalfW, clipHalfH,
-                    false);
-        }
-
-        public PanelBlurSpec(boolean enabled, float centerX, float centerY,
-                             float halfW, float halfH, float angle,
-                             float cornerRadius, float blurRadius, float alpha,
-                             float clipCenterX, float clipCenterY,
-                             float clipHalfW, float clipHalfH,
-                             boolean dome) {
+                             float pillTop, float domeHeight, float shoulderRadius) {
             this.enabled = enabled;
             this.centerX = centerX;
             this.centerY = centerY;
@@ -106,11 +94,9 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             this.cornerRadius = cornerRadius;
             this.blurRadius = blurRadius;
             this.alpha = alpha;
-            this.clipCenterX = clipCenterX;
-            this.clipCenterY = clipCenterY;
-            this.clipHalfW = clipHalfW;
-            this.clipHalfH = clipHalfH;
-            this.dome = dome;
+            this.pillTop = pillTop;
+            this.domeHeight = domeHeight;
+            this.shoulderRadius = shoulderRadius;
         }
     }
 
@@ -446,9 +432,9 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         int angleLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAngle");
         int radiusLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uRadius");
         int alphaLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAlpha");
-        int clipCenterLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uClipCenter");
-        int clipHalfSizeLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uClipHalfSize");
-        int domeLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDome");
+        int pillTopLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uPillTop");
+        int domeHeightLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDomeHeight");
+        int shoulderLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uShoulderRadius");
         bindQuadAttributes(mPanelBlurProgram);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mBlurTexB);
@@ -462,10 +448,9 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             GLES20.glUniform1f(angleLoc, (float) Math.toRadians(-spec.angle));
             GLES20.glUniform1f(radiusLoc, spec.cornerRadius);
             GLES20.glUniform1f(alphaLoc, spec.alpha);
-            // Clip is expressed in the same Android convention as the centre.
-            GLES20.glUniform2f(clipCenterLoc, spec.clipCenterX, mViewH - spec.clipCenterY);
-            GLES20.glUniform2f(clipHalfSizeLoc, spec.clipHalfW, spec.clipHalfH);
-            GLES20.glUniform1f(domeLoc, spec.dome ? 1f : 0f);
+            GLES20.glUniform1f(pillTopLoc, spec.pillTop);
+            GLES20.glUniform1f(domeHeightLoc, spec.domeHeight);
+            GLES20.glUniform1f(shoulderLoc, spec.shoulderRadius);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
         GLES20.glDisable(GLES20.GL_BLEND);

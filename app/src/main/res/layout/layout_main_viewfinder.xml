@@ -101,7 +101,11 @@
                 app:layout_constraintTop_toTopOf="@id/viewfinder_frame" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!--Capture Progress circle: thick M3E ring so it reads on the dark viewfinder -->
+        <!--Capture Progress circle: M3E indicator sized like the old ring.
+            indicatorSize/trackThickness reproduce the previous drawable's
+            geometry (150dp box: 50dp inner radius + 3.75dp stroke = 107.5dp
+            outer ring). indicatorSize must stay explicit — the widget ignores
+            layout_width/height and would collapse to its 40dp default.-->
         <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/capture_progress_bar"
                 style="@style/Widget.Material3.CircularProgressIndicator"
@@ -111,7 +115,9 @@
                 android:indeterminate="false"
                 android:max="100"
                 android:layout_gravity="center"
-                app:trackThickness="6dp"
+                app:indicatorSize="107.5dp"
+                app:trackThickness="3.75dp"
+                app:indicatorTrackGapSize="0dp"
                 app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="@color/cam_outline" />
 

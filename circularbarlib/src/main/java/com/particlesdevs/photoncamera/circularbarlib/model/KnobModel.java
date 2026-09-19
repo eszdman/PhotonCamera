@@ -18,6 +18,7 @@ public class KnobModel extends Observable {
     boolean knobResetCalled;
     private boolean knobVisible;
     private ManualModel<?> manualModel;
+    private ManualModel<?> secondaryManualModel;
 
     public ManualModel<?> getManualModel() {
         return manualModel;
@@ -26,6 +27,20 @@ public class KnobModel extends Observable {
     public void setManualModel(ManualModel<?> manualModel) {
         this.manualModel = manualModel;
         notifyObservers(KnobModelFields.MANUAL_MODEL);
+
+    }
+
+    /**
+     * The remembered previous control, shown as the smaller inner ruler
+     * inside the current wheel. Null when only one control is active.
+     */
+    public ManualModel<?> getSecondaryManualModel() {
+        return secondaryManualModel;
+    }
+
+    public void setSecondaryManualModel(ManualModel<?> secondaryManualModel) {
+        this.secondaryManualModel = secondaryManualModel;
+        notifyObservers(KnobModelFields.SECONDARY_MODEL);
 
     }
 
@@ -58,6 +73,6 @@ public class KnobModel extends Observable {
     }
 
     public enum KnobModelFields {
-        MANUAL_MODEL, VISIBILITY, RESET
+        MANUAL_MODEL, SECONDARY_MODEL, VISIBILITY, RESET
     }
 }

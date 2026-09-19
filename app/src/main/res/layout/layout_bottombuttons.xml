@@ -79,11 +79,14 @@
                     tools:ignore="HardcodedText"
                     tools:text="Shot"/>
 
-            <!-- Burst/processing ring: the M3E wavy expressive indicator, thick
-                 and bright enough to read against the shutter disc. -->
+            <!-- Burst/processing ring: plain (non-expressive) M3 indicator —
+                 a simple smooth arc instead of the Wavy morph animation. The
+                 track is transparent: the bar only ever spins indeterminately
+                 while processing, and at rest (determinate 0) nothing is
+                 drawn — no idle ring over the shutter disc. -->
             <com.google.android.material.progressindicator.CircularProgressIndicator
                     android:id="@+id/processing_progress_bar"
-                    style="@style/Widget.Material3Expressive.CircularProgressIndicator.Wavy"
+                    style="@style/Widget.Material3.CircularProgressIndicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
@@ -92,16 +95,21 @@
                     tools:progress="50"
                     app:indicatorSize="72dp"
                     app:trackThickness="5dp"
+                    app:indicatorTrackGapSize="0dp"
                     app:indicatorColor="?attr/colorOnPrimaryContainer"
-                    app:trackColor="?attr/colorOnSurfaceVariant" />
+                    app:trackColor="@android:color/transparent" />
 
+            <!-- The counter only shows mid-capture, when the shutter is
+                 deactivated to the fixed dark-grey fill in every theme, so it
+                 stays white instead of following the theme's
+                 on-primary-container (black in the white theme). -->
             <TextView
                     android:id="@+id/frameCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="25"
                     android:text="@{timermodel.frameCount}"
-                    android:textColor="?attr/colorOnPrimaryContainer"
+                    android:textColor="@android:color/white"
                     android:textSize="34sp"
                     android:textAlignment="center"
                     android:typeface="normal"

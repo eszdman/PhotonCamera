@@ -27,13 +27,28 @@ public class ManualModeModel extends Observable {
     private View.OnClickListener wbTextClicked;
     private boolean manualPanelVisible;
     private int selectedTextViewId;
+    private int secondaryTextViewId = -1;
 
     public int getSelectedTextViewId() {
         return selectedTextViewId;
     }
 
+    /** View id of the remembered control shown as the inner ruler, or -1. */
+    public int getSecondaryTextViewId() {
+        return secondaryTextViewId;
+    }
+
     public void setCheckedTextViewId(int selectedTextViewId) {
+        setCheckedTextViewIds(selectedTextViewId, -1);
+    }
+
+    /**
+     * Selected renders the filled selection pill; secondary (the remembered
+     * control riding the inner ruler) renders the same pill as a thin ring.
+     */
+    public void setCheckedTextViewIds(int selectedTextViewId, int secondaryTextViewId) {
         this.selectedTextViewId = selectedTextViewId;
+        this.secondaryTextViewId = secondaryTextViewId;
         notifyObservers(ManualModelFields.SELECTED_TV);
     }
 

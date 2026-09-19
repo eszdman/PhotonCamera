@@ -38,3 +38,13 @@
 -keep class com.particlesdevs.photoncamera.circularbarlib.util.** {
     *;
 }
+
+# The app drives the palette bubble's dome grow/collapse animation and reads
+# the drawable's live geometry for the preview blur mask, so these UI classes
+# are also referenced from the app module and must keep their names.
+-keep class com.particlesdevs.photoncamera.circularbarlib.ui.Binding {
+    public *;
+}
+-keep class com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualPaletteBackground {
+    public *;
+}

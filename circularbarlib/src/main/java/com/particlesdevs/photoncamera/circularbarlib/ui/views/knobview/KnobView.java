@@ -3,13 +3,10 @@ package com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
-import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Range;
@@ -23,33 +20,46 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * The manual value wheel. Besides the ruler of the currently selected control
+ * (drawn on the dome's arc, full size), it can also show the previously
+ * selected control as a smaller ruler INSIDE it — same dome, same rotation
+ * centre, scaled by {@link #INNER_WHEEL_SCALE} — so both controls stay
+ * adjustable at once. Touches are routed to a wheel by their radial distance
+ * from the shared centre.
+ */
 public class KnobView extends View {
     private static final String TAG = KnobView.class.getSimpleName();
     private static final boolean dolog = false;
-    private final Paint m_BackgroundPaint;
-    private final Path m_ScrimPath = new Path();
-    private final RectF m_ScrimOval = new RectF();
-    private final RectF m_FilletOval = new RectF();
-    private float m_ScrimFilletRadius;
+    /** Radius of the remembered (inner) ruler relative to the current one's. */
+    private static final float INNER_WHEEL_SCALE = 0.75f;
     private final Rect m_DashBounds;
     private final int m_DashLength;
     private final int m_DashPadding;
     private final Paint m_Paint;
     public Range range;
     private boolean m_DashAroundAutoEnabled;
-    private double m_DrawableCurrentDegree;
-    private double m_DrawableLastDegree;
     private int m_IconPadding;
     private double m_InitRadius;
     private boolean m_IsTouching;
-    private KnobInfo m_KnobInfo;
-    private List<KnobItemInfo> m_KnobItems;
     private float m_KnobItemsSelfRotation;
-    private KnobViewChangedListener m_KnobViewChangedListener;
     private PointF m_RotationCenter;
     private RotationState m_RotationState;
-    private int m_Tick;
-    private KnobItemInfo m_Value;
+    private final Wheel m_Primary = new Wheel();
+    private Wheel m_Secondary;
+    private Wheel m_TouchWheel;
+    private float m_DomeProgress = 1f;
+
+    /** State of one ruler: geometry, rotation, tick and the model listening to it. */
+    private class Wheel {
+        KnobInfo info;
+        List<KnobItemInfo> items;
+        KnobViewChangedListener listener;
+        double currentDegree;
+        double lastDegree;
+        int tick;
+        KnobItemInfo value;
+    }
 
     public KnobView(Context context) {
         this(context, null);
@@ -59,14 +69,8 @@ public class KnobView extends View {
         super(context, attrs);
         this.m_DashAroundAutoEnabled = true;
         this.m_DashBounds = new Rect();
-        this.m_KnobItems = new ArrayList();
         this.m_RotationCenter = new PointF();
         this.m_RotationState = RotationState.IDLE;
-        this.m_Tick = 0;
-        this.m_BackgroundPaint = new Paint();
-        this.m_BackgroundPaint.setStyle(Style.FILL);
-        this.m_BackgroundPaint.setColor(Color.argb(64, 0, 0, 0));
-        this.m_BackgroundPaint.setAntiAlias(true);
         this.m_Paint = new Paint();
         this.m_Paint.setStyle(Style.STROKE);
         this.m_Paint.setStrokeWidth(2.0f);
@@ -91,121 +95,112 @@ public class KnobView extends View {
         invalidate();
     }
 
+    /**
+     * Inflation of the wheel dome the scrim background draws: the items are
+     * squashed toward the bar's top edge so they ride the dome as it grows.
+     */
+    public void setDomeProgress(float progress) {
+        float clamped = Math.min(1f, Math.max(0f, progress));
+        if (m_DomeProgress != clamped) {
+            m_DomeProgress = clamped;
+            invalidate();
+        }
+    }
+
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
-        if (this.m_RotationCenter != null && this.m_KnobInfo != null) {
-            if (m_ScrimFilletRadius > 0f && !m_ScrimPath.isEmpty()) {
-                canvas.drawPath(m_ScrimPath, m_BackgroundPaint);
-            } else {
-                canvas.drawCircle(this.m_RotationCenter.x, this.m_RotationCenter.y, this.m_RotationCenter.y, m_BackgroundPaint);
-            }
-            //canvas.save();
-            double drawRotation;
-            if (this.m_KnobItems != null) {
-                double startAngle = Double.NaN;
-                double endAngle = Double.NaN;
-                for (int i = 0; i < this.m_KnobItems.size(); i++) {
-                    KnobItemInfo item = this.m_KnobItems.get(i);
-                    KnobItemInfo nextItem = i + 1 < this.m_KnobItems.size() ? this.m_KnobItems.get(i + 1) : null;
-                    drawRotation = (-this.m_DrawableCurrentDegree) + item.rotationCenter;
-                    canvas.rotate((float) drawRotation, this.m_RotationCenter.x, this.m_RotationCenter.y);
-                    canvas.rotate(-this.m_KnobItemsSelfRotation, item.drawable.getBounds().exactCenterX(), item.drawable.getBounds().exactCenterY());
-                    item.drawable.draw(canvas);
-                    canvas.rotate(this.m_KnobItemsSelfRotation, item.drawable.getBounds().exactCenterX(), item.drawable.getBounds().exactCenterY());
-                    canvas.rotate((float) (-drawRotation), this.m_RotationCenter.x, this.m_RotationCenter.y);
-                    if (!(this.m_DashBounds == null || nextItem == null || (!this.m_DashAroundAutoEnabled && (item.tick == 0 || nextItem.tick == 0)))) {
-                        if (item.rotationRight - item.rotationLeft > 0.001d) {
-                            startAngle = (-this.m_DrawableCurrentDegree) + item.rotationRight + 2.0d;
-                        }
-                        if (nextItem.rotationRight - nextItem.rotationLeft > 0.001d) {
-                            endAngle = ((-this.m_DrawableCurrentDegree) + nextItem.rotationLeft) - 2.0d;
-                        }
-                        if (!Double.isNaN(startAngle) && !Double.isNaN(endAngle)) {
-                            for (double currentAngle = startAngle; currentAngle < endAngle; currentAngle += 1.0d) {
-                                canvas.rotate((float) currentAngle, this.m_RotationCenter.x, this.m_RotationCenter.y);
-                                canvas.drawLine((float) this.m_DashBounds.centerX(), (float) this.m_DashBounds.top, (float) this.m_DashBounds.centerX(), (float) this.m_DashBounds.bottom, this.m_Paint);
-                                canvas.rotate((float) (-currentAngle), this.m_RotationCenter.x, this.m_RotationCenter.y);
-                            }
-                            startAngle = Double.NaN;
-                            endAngle = Double.NaN;
-                        }
+        if (this.m_RotationCenter == null || this.m_Primary.info == null || m_DomeProgress <= 0f) {
+            return;
+        }
+        boolean squashed = m_DomeProgress < 1f;
+        if (squashed) {
+            canvas.save();
+            canvas.translate(0f, getHeight());
+            canvas.scale(1f, m_DomeProgress);
+            canvas.translate(0f, -getHeight());
+        }
+        if (this.m_Secondary != null && this.m_Secondary.info != null) {
+            canvas.save();
+            canvas.scale(INNER_WHEEL_SCALE, INNER_WHEEL_SCALE, this.m_RotationCenter.x, this.m_RotationCenter.y);
+            drawWheel(canvas, this.m_Secondary);
+            canvas.restore();
+        }
+        drawWheel(canvas, this.m_Primary);
+        if (squashed) {
+            canvas.restore();
+        }
+    }
+
+    private void drawWheel(Canvas canvas, Wheel wheel) {
+        double drawRotation;
+        if (wheel.items == null) {
+            return;
+        }
+        double startAngle = Double.NaN;
+        double endAngle = Double.NaN;
+        for (int i = 0; i < wheel.items.size(); i++) {
+            KnobItemInfo item = wheel.items.get(i);
+            KnobItemInfo nextItem = i + 1 < wheel.items.size() ? wheel.items.get(i + 1) : null;
+            drawRotation = (-wheel.currentDegree) + item.rotationCenter;
+            canvas.rotate((float) drawRotation, this.m_RotationCenter.x, this.m_RotationCenter.y);
+            canvas.rotate(-this.m_KnobItemsSelfRotation, item.drawable.getBounds().exactCenterX(), item.drawable.getBounds().exactCenterY());
+            item.drawable.draw(canvas);
+            canvas.rotate(this.m_KnobItemsSelfRotation, item.drawable.getBounds().exactCenterX(), item.drawable.getBounds().exactCenterY());
+            canvas.rotate((float) (-drawRotation), this.m_RotationCenter.x, this.m_RotationCenter.y);
+            if (!(this.m_DashBounds == null || nextItem == null || (!this.m_DashAroundAutoEnabled && (item.tick == 0 || nextItem.tick == 0)))) {
+                if (item.rotationRight - item.rotationLeft > 0.001d) {
+                    startAngle = (-wheel.currentDegree) + item.rotationRight + 2.0d;
+                }
+                if (nextItem.rotationRight - nextItem.rotationLeft > 0.001d) {
+                    endAngle = ((-wheel.currentDegree) + nextItem.rotationLeft) - 2.0d;
+                }
+                if (!Double.isNaN(startAngle) && !Double.isNaN(endAngle)) {
+                    for (double currentAngle = startAngle; currentAngle < endAngle; currentAngle += 1.0d) {
+                        canvas.rotate((float) currentAngle, this.m_RotationCenter.x, this.m_RotationCenter.y);
+                        canvas.drawLine((float) this.m_DashBounds.centerX(), (float) this.m_DashBounds.top, (float) this.m_DashBounds.centerX(), (float) this.m_DashBounds.bottom, m_Paint);
+                        canvas.rotate((float) (-currentAngle), this.m_RotationCenter.x, this.m_RotationCenter.y);
                     }
+                    startAngle = Double.NaN;
+                    endAngle = Double.NaN;
                 }
             }
-            //canvas.restore();
+        }
+    }
+
+    /**
+     * Wires the ruler of the currently selected control (the outer, full-size
+     * wheel) and snaps it to the model's current value.
+     */
+    public void setPrimaryWheel(KnobInfo info, List<KnobItemInfo> items, double value, KnobViewChangedListener listener) {
+        this.m_Primary.info = info;
+        this.m_Primary.listener = listener;
+        setKnobItems(this.m_Primary, items);
+        setTickByValue(this.m_Primary, value);
+    }
+
+    /**
+     * Shows the remembered previous control as the smaller inner ruler,
+     * snapped to its current value.
+     */
+    public void setSecondaryWheel(KnobInfo info, List<KnobItemInfo> items, double value, KnobViewChangedListener listener) {
+        this.m_Secondary = new Wheel();
+        this.m_Secondary.info = info;
+        this.m_Secondary.listener = listener;
+        setKnobItems(this.m_Secondary, items);
+        setTickByValue(this.m_Secondary, value);
+    }
+
+    public void clearSecondaryWheel() {
+        if (this.m_Secondary != null) {
+            this.m_Secondary = null;
+            invalidate();
         }
     }
 
     private double evaluateRotation(float x, float y) {
         //log("evaluateRotation");
         return Math.atan2(x - this.m_RotationCenter.x, -(y - this.m_RotationCenter.y));
-    }
-
-    /** Replaces the translucent scrim colour of the wheel disc. */
-    public void setScrimColor(int color) {
-        this.m_BackgroundPaint.setColor(color);
-        invalidate();
-    }
-
-    /**
-     * Fillet radius blending the scrim's bottom corners into the bottom edge.
-     * A small arc is fitted tangent to both the disc and the bottom edge, so
-     * the corners read as rounded instead of ending in the disc's points.
-     */
-    public void setScrimFilletRadius(float radiusPx) {
-        if (m_ScrimFilletRadius != radiusPx) {
-            m_ScrimFilletRadius = radiusPx;
-            updateScrimPath();
-            invalidate();
-        }
-    }
-
-    /**
-     * Builds the scrim silhouette: bottom edge -> tangent fillet arc -> the
-     * wheel disc's arc over the top -> the mirrored fillet arc -> close.
-     */
-    private void updateScrimPath() {
-        m_ScrimPath.rewind();
-        int w = getWidth();
-        int h = getHeight();
-        if (w <= 0 || h <= 0 || m_ScrimFilletRadius <= 0f || m_RotationCenter == null) {
-            return;
-        }
-        float cx = m_RotationCenter.x;
-        float cy = m_RotationCenter.y;
-        float r = cy;                       // disc radius == the wheel centre height
-        float fr = m_ScrimFilletRadius;
-        if (fr >= r || fr * 2f >= h) {
-            return;
-        }
-        // Fillet centre: tangent to the bottom edge, internally tangent to the disc.
-        float side = (float) Math.sqrt(Math.max((r - fr) * (r - fr)
-                - (cy - h + fr) * (cy - h + fr), 0f));
-        float leftX = cx - side;
-        float rightX = cx + side;
-        // Tangent points on the disc (along the line joining the two centres).
-        float leftT1x = cx + (leftX - cx) * r / (r - fr);
-        float leftT1y = cy + (h - fr - cy) * r / (r - fr);
-        float rightT1x = cx + (rightX - cx) * r / (r - fr);
-        float rightT1y = leftT1y;
-        float angLeftT1 = (float) Math.toDegrees(Math.atan2(leftT1y - (h - fr), leftT1x - leftX));
-        float angRightT1 = (float) Math.toDegrees(Math.atan2(rightT1y - (h - fr), rightT1x - rightX));
-        float sweepFilletLeft = angLeftT1 - 90f;
-        while (sweepFilletLeft < 0f) sweepFilletLeft += 360f;
-        float sweepFilletRight = 90f - angRightT1;
-        while (sweepFilletRight < 0f) sweepFilletRight += 360f;
-        float sweepDome = angRightT1 - angLeftT1;
-        while (sweepDome < 0f) sweepDome += 360f;
-
-        m_ScrimPath.moveTo(leftX, h);
-        m_FilletOval.set(leftX - fr, h - fr - fr, leftX + fr, h);
-        m_ScrimPath.arcTo(m_FilletOval, 90f, sweepFilletLeft, false);
-        m_ScrimOval.set(cx - r, cy - r, cx + r, cy + r);
-        m_ScrimPath.arcTo(m_ScrimOval, angLeftT1, sweepDome, false);
-        m_FilletOval.set(rightX - fr, h - fr - fr, rightX + fr, h);
-        m_ScrimPath.arcTo(m_FilletOval, angRightT1, sweepFilletRight, false);
-        m_ScrimPath.close();
     }
 
     private PointF evaluateRotationCenter() {
@@ -217,14 +212,18 @@ public class KnobView extends View {
     }
 
     public KnobItemInfo getCurrentKnobItem() {
-        return this.m_Value;
+        return this.m_Primary.value;
     }
 
-    private KnobItemInfo getKnobItemFromTick(int tick) {
-        if (this.m_KnobItems == null) {
+    public int getTick() {
+        return this.m_Primary.tick;
+    }
+
+    private KnobItemInfo getKnobItemFromTick(Wheel wheel, int tick) {
+        if (wheel.items == null) {
             return null;
         }
-        for (KnobItemInfo item : this.m_KnobItems) {
+        for (KnobItemInfo item : wheel.items) {
             if (item.tick == tick) {
                 return item;
             }
@@ -232,58 +231,40 @@ public class KnobView extends View {
         return null;
     }
 
-    private KnobItemInfo getKnobItemFromValue(double value) {
-        if (this.m_KnobItems == null) {
+    private KnobItemInfo getKnobItemFromValue(Wheel wheel, double value) {
+        if (wheel.items == null) {
             log("getKnobItemFromValue() - knobItems is null");
             return null;
         }
-        for (KnobItemInfo item : this.m_KnobItems) {
+        for (KnobItemInfo item : wheel.items) {
             if (Math.abs(item.value - value) < 1.0E-4d) {
                 return item;
             }
         }
-        log("getKnobItemFromValue() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log("getKnobItemFromValue() - no match value. or no knobItems, size: " + wheel.items.size());
         return null;
     }
 
-    public double getKnobValueFromTick(int tick) {
-        if (this.m_KnobItems == null) {
+    public double getKnobValueFromTick(Wheel wheel, int tick) {
+        if (wheel.items == null) {
             log("getKnobValueFromTick() - knobItems is null");
             return 0.0d;
         }
-        for (KnobItemInfo item : this.m_KnobItems) {
+        for (KnobItemInfo item : wheel.items) {
             if (item.tick == tick) {
                 return item.value;
             }
         }
-        log("getKnobValueFromTick() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
+        log("getKnobValueFromTick() - no match value. or no knobItems, size: " + wheel.items.size());
         return 0.0d;
     }
 
-    public double getKnobValueFromText(String text) {
-        if (this.m_KnobItems == null) {
-            log("getKnobValueFromText() - knobItems is null");
-            return 0.0d;
-        }
-        for (KnobItemInfo item : this.m_KnobItems) {
-            if (item.text.equalsIgnoreCase(text)) {
-                return item.value;
-            }
-        }
-        log("getKnobValueFromText() - no match value. or no knobItems, size: " + this.m_KnobItems.size());
-        return 0.0d;
-    }
-
-    public int getTick() {
-        return this.m_Tick;
-    }
-
-    private void setTick(int tick) {
+    private void setTick(Wheel wheel, int tick) {
         //log("setTick " + tick);
-        if (this.m_Tick != tick) {
-            int oldTick = this.m_Tick;
-            this.m_Tick = tick;
-            onSelectedKnobItemChanged(getKnobItemFromTick(oldTick), getKnobItemFromTick(tick));
+        if (wheel.tick != tick) {
+            int oldTick = wheel.tick;
+            wheel.tick = tick;
+            onSelectedKnobItemChanged(wheel, getKnobItemFromTick(wheel, oldTick), getKnobItemFromTick(wheel, tick));
         }
     }
 
@@ -291,44 +272,63 @@ public class KnobView extends View {
         return Math.sqrt(Math.pow(x - this.m_RotationCenter.x, 2.0d) + Math.pow(y - this.m_RotationCenter.y, 2.0d)) < 50.0d;
     }
 
-    private int mapRotationToTick(double rotation) {
-        if (this.m_KnobInfo == null) {
+    /**
+     * Routes a touch to a wheel by radial distance from the shared rotation
+     * centre: closer than the midpoint between the two rulers' ITEM bands
+     * goes to the inner ruler, farther goes to the outer one. The items sit
+     * well inside the arc radius (icon padding + half their height), so the
+     * band midpoint — not the arc midpoint — keeps taps on the outer ruler's
+     * lower half from reaching the inner wheel.
+     */
+    private Wheel wheelForTouch(float x, float y) {
+        if (this.m_Secondary == null || this.m_Secondary.info == null) {
+            return this.m_Primary;
+        }
+        double d = Math.sqrt(Math.pow(x - this.m_RotationCenter.x, 2.0d) + Math.pow(y - this.m_RotationCenter.y, 2.0d));
+        double outerR = effectiveItemRadius(this.m_Primary);
+        double innerR = INNER_WHEEL_SCALE * effectiveItemRadius(this.m_Secondary);
+        double boundary = (outerR + innerR) / 2.0;
+        return d < boundary ? this.m_Secondary : this.m_Primary;
+    }
+
+    /** Mean distance of a ruler's items from the rotation centre. */
+    private double effectiveItemRadius(Wheel wheel) {
+        if (wheel.items == null || wheel.items.isEmpty()) {
+            return this.m_RotationCenter.y;
+        }
+        double sum = 0;
+        for (KnobItemInfo item : wheel.items) {
+            sum += this.m_RotationCenter.y - (this.m_IconPadding + item.drawable.getBounds().height() / 2.0);
+        }
+        return sum / wheel.items.size();
+    }
+
+    private int mapRotationToTick(double rotation, KnobInfo info) {
+        if (info == null) {
             return 0;
         }
-        double includedAngle = ((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin));
+        double includedAngle = ((double) ((info.angleMax - info.angleMin) - info.autoAngle)) / ((double) (info.tickMax - info.tickMin));
         double preDiffAngle = Double.MAX_VALUE;
-        for (int i = this.m_KnobInfo.tickMin; i <= this.m_KnobInfo.tickMax; i++) {
-            double diff = Math.abs(((((double) ((float) i)) * includedAngle) + ((double) ((Integer.signum(i) * this.m_KnobInfo.autoAngle) / 2))) - rotation);
+        for (int i = info.tickMin; i <= info.tickMax; i++) {
+            double diff = Math.abs(((((double) ((float) i)) * includedAngle) + ((double) ((Integer.signum(i) * info.autoAngle) / 2))) - rotation);
             if (diff < preDiffAngle) {
                 preDiffAngle = diff;
             } else if (diff >= preDiffAngle) {
-                return validateTick(i - 1);
+                return validateTick(i - 1, info);
             }
         }
-        return this.m_KnobInfo.tickMax;
-    }
-
-    private double mapTickToValue(int tick) {
-        if (this.m_KnobItems == null) {
-            return 0.0d;
-        }
-        for (KnobItemInfo item : this.m_KnobItems) {
-            if (item.tick == tick) {
-                return item.value;
-            }
-        }
-        return 0.0d;
+        return info.tickMax;
     }
 
     private double mapToKnobRotationDegree(double rotation) {
         return -Math.toDegrees(rotation);
     }
 
-    private double mapTickToRotation(int tick) {
-        if (this.m_KnobInfo == null) {
+    private double mapTickToRotation(int tick, KnobInfo info) {
+        if (info == null) {
             return 0.0d;
         }
-        return validateRotation((((double) tick) * (((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin)))) + ((double) ((Integer.signum(tick) * this.m_KnobInfo.autoAngle) / 2)));
+        return validateRotation((((double) tick) * (((double) ((info.angleMax - info.angleMin) - info.autoAngle)) / ((double) (info.tickMax - info.tickMin)))) + ((double) ((Integer.signum(tick) * info.autoAngle) / 2)), info);
     }
 
     private void onActionDown(MotionEvent event) {
@@ -338,9 +338,10 @@ public class KnobView extends View {
             log("onActionDown() - Too close to center");
             return;
         }
+        this.m_TouchWheel = wheelForTouch(x, y);
         this.m_InitRadius = evaluateRotation(x, y);
         this.m_IsTouching = true;
-        onRotationStartFromTouch();
+        onRotationStartFromTouch(this.m_TouchWheel);
     }
 
     private void onActionMove(MotionEvent event) {
@@ -350,17 +351,17 @@ public class KnobView extends View {
             if (isTooCloseToCenter(x, y)) {
                 log("onActionMove() - Too close to center, stop running");
                 this.m_IsTouching = false;
-                onRotationEndFromTouch();
+                onRotationEndFromTouch(this.m_TouchWheel);
                 return;
             }
-            onRotationUpdateFromTouch(evaluateRotation(x, y) - this.m_InitRadius);
+            onRotationUpdateFromTouch(this.m_TouchWheel, evaluateRotation(x, y) - this.m_InitRadius);
         }
     }
 
     private void onActionUp(MotionEvent event) {
         if (this.m_IsTouching) {
             this.m_IsTouching = false;
-            onRotationEndFromTouch();
+            onRotationEndFromTouch(this.m_TouchWheel);
         }
     }
 
@@ -370,43 +371,43 @@ public class KnobView extends View {
         onActionUp(null);
     }
 
-    public void onRotationEndFromTouch() {
-        setRotationState(RotationState.STOPPING);
-        this.m_DrawableLastDegree = this.m_DrawableCurrentDegree;
-        setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
-        setKnobViewRotation(mapTickToRotation(this.m_Tick));
-        if (getKnobItemFromTick(this.m_Tick) != null) {
-            getKnobItemFromTick(this.m_Tick).drawable.setState(SELECTED_STATE_SET);
+    public void onRotationEndFromTouch(Wheel wheel) {
+        setRotationState(RotationState.STOPPING, wheel);
+        wheel.lastDegree = wheel.currentDegree;
+        setTick(wheel, mapRotationToTick(wheel.currentDegree, wheel.info));
+        setKnobViewRotation(wheel, mapTickToRotation(wheel.tick, wheel.info));
+        if (getKnobItemFromTick(wheel, wheel.tick) != null) {
+            getKnobItemFromTick(wheel, wheel.tick).drawable.setState(SELECTED_STATE_SET);
         }
-        setRotationState(RotationState.IDLE);
+        setRotationState(RotationState.IDLE, wheel);
     }
 
-    public void onRotationStartFromTouch() {
-        setRotationState(RotationState.STARTING);
-        this.m_DrawableCurrentDegree = this.m_DrawableLastDegree;
+    public void onRotationStartFromTouch(Wheel wheel) {
+        setRotationState(RotationState.STARTING, wheel);
+        wheel.lastDegree = wheel.currentDegree;
     }
 
-    public void onRotationUpdateFromTouch(double radiusDiff) {
-        if (this.m_KnobInfo != null) {
-            setRotationState(RotationState.ROTATING);
-            this.m_DrawableCurrentDegree = this.m_DrawableLastDegree + mapToKnobRotationDegree(radiusDiff);
-            if (this.m_DrawableCurrentDegree >= 360.0d) {
-                this.m_DrawableCurrentDegree -= 360.0d;
-            } else if (this.m_DrawableCurrentDegree <= -360.0d) {
-                this.m_DrawableCurrentDegree += 360.0d;
+    public void onRotationUpdateFromTouch(Wheel wheel, double radiusDiff) {
+        if (wheel.info != null) {
+            setRotationState(RotationState.ROTATING, wheel);
+            wheel.currentDegree = wheel.lastDegree + mapToKnobRotationDegree(radiusDiff);
+            if (wheel.currentDegree >= 360.0d) {
+                wheel.currentDegree -= 360.0d;
+            } else if (wheel.currentDegree <= -360.0d) {
+                wheel.currentDegree += 360.0d;
             }
-            this.m_DrawableCurrentDegree = validateRotation(this.m_DrawableCurrentDegree);
-            setTick(mapRotationToTick(this.m_DrawableCurrentDegree));
+            wheel.currentDegree = validateRotation(wheel.currentDegree, wheel.info);
+            setTick(wheel, mapRotationToTick(wheel.currentDegree, wheel.info));
             //log("invalidate onRotationUpdateFromTouch");
             invalidate();
         }
     }
 
-    private void onSelectedKnobItemChanged(KnobItemInfo oldItem, KnobItemInfo newItem) {
+    private void onSelectedKnobItemChanged(Wheel wheel, KnobItemInfo oldItem, KnobItemInfo newItem) {
         if (newItem != null && oldItem != newItem) {
-            this.m_Value = newItem;
-            if (this.m_KnobViewChangedListener != null) {
-                this.m_KnobViewChangedListener.onSelectedKnobItemChanged(this, oldItem, newItem);
+            wheel.value = newItem;
+            if (wheel.listener != null) {
+                wheel.listener.onSelectedKnobItemChanged(this, oldItem, newItem);
             }
         }
     }
@@ -417,21 +418,16 @@ public class KnobView extends View {
         log("insSizeChanged");
         super.onSizeChanged(w, h, oldw, oldh);
         this.m_RotationCenter = evaluateRotationCenter();
-        updateScrimPath();
         updateDashBounds();
-        updateKnobItemsBounds();
+        updateKnobItemsBounds(this.m_Primary);
+        if (this.m_Secondary != null) {
+            updateKnobItemsBounds(this.m_Secondary);
+        }
         log("onSizeChangedTime:" + (System.nanoTime() - startTime) + "ns");
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        /*if (!isEnabled() || getVisibility() != 0) {
-            if (this.m_IsTouching) {
-                onActionUp(event);
-            }
-        } else if (event.getPointerCount() > 1) {
-            onActionUp(event);
-        } else {*/
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 onActionDown(event);
@@ -444,8 +440,6 @@ public class KnobView extends View {
                 onActionMove(event);
                 return true;
         }
-        //super.onTouchEvent(event);
-        //}
         return true;
     }
 
@@ -455,26 +449,10 @@ public class KnobView extends View {
 
     public void setIconPadding(int padding) {
         this.m_IconPadding = padding;
-        updateKnobItemsBounds();
-        invalidate();
-    }
-
-    public void setKnobInfo(KnobInfo info) {
-        this.m_KnobInfo = info;
-        updateKnobItemsBounds();
-        log("invalidate setKnobInfo");
-        invalidate();
-    }
-
-    public void setKnobItems(List<KnobItemInfo> items) {
-        log("setKnobItems " + items.size());
-        this.m_KnobItems = items;
-        updateKnobItemsBounds();
-        updateKnobItemSelection();
-        /*KnobItemInfo info = getKnobItemFromTick(this.m_Tick);
-        if (info != null && info.drawable != null)
-            info.drawable.setState(SELECTED_STATE_SET);*/
-        log("invalidate setKnobItems");
+        updateKnobItemsBounds(this.m_Primary);
+        if (this.m_Secondary != null) {
+            updateKnobItemsBounds(this.m_Secondary);
+        }
         invalidate();
     }
 
@@ -495,59 +473,51 @@ public class KnobView extends View {
                 break;
         }
         if (oldSelfRotation != this.m_KnobItemsSelfRotation) {
-            updateKnobItemsBounds();
+            updateKnobItemsBounds(this.m_Primary);
+            if (this.m_Secondary != null) {
+                updateKnobItemsBounds(this.m_Secondary);
+            }
             log("invalidate setKnobItemsRotation");
             invalidate();
         }
     }
 
-    public void setKnobViewChangedListener(KnobViewChangedListener listener) {
-        this.m_KnobViewChangedListener = listener;
-    }
-
-
-    private void setKnobViewRotation(double rotation) {
-        this.m_DrawableCurrentDegree = rotation;
-        this.m_DrawableLastDegree = rotation;
+    private void setKnobViewRotation(Wheel wheel, double rotation) {
+        wheel.currentDegree = rotation;
+        wheel.lastDegree = rotation;
         //log("invalidate setKnobViewRotation");
         invalidate();
     }
 
-    private void setKnobViewRotationSmooth(double rotation) {
-        ValueAnimator animation = ValueAnimator.ofFloat((float) this.m_DrawableCurrentDegree, (float) rotation);
+    private void setKnobViewRotationSmooth(Wheel wheel, double rotation) {
+        ValueAnimator animation = ValueAnimator.ofFloat((float) wheel.currentDegree, (float) rotation);
         animation.setDuration(Motion.durationShort2(getContext()));
         animation.setInterpolator(Motion.emphasized(getContext()));
-        animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation((double) (Float) animation1.getAnimatedValue()));
+        animation.addUpdateListener(animation1 -> KnobView.this.setKnobViewRotation(wheel, (double) (Float) animation1.getAnimatedValue()));
         animation.start();
     }
 
-    private void setRotationState(RotationState state) {
+    private void setRotationState(RotationState state, Wheel wheel) {
         if (this.m_RotationState != state) {
             this.m_RotationState = state;
-            if (this.m_KnobViewChangedListener != null) {
-                this.m_KnobViewChangedListener.onRotationStateChanged(this, state);
+            if (wheel != null && wheel.listener != null) {
+                wheel.listener.onRotationStateChanged(this, state);
             }
         }
     }
 
     public void resetKnob() {
-        setTickByValue(getKnobValueFromTick(0));
+        setTickByValue(this.m_Primary, getKnobValueFromTick(this.m_Primary, 0));
     }
 
-    public void setTickByValue(double value) {
-        KnobItemInfo item = getKnobItemFromValue(value);
+    public void setTickByValue(Wheel wheel, double value) {
+        KnobItemInfo item = getKnobItemFromValue(wheel, value);
         if (item != null) {
-            setTick(item.tick);
-            setKnobViewRotationSmooth(mapTickToRotation(item.tick));
+            setTick(wheel, item.tick);
+            setKnobViewRotationSmooth(wheel, mapTickToRotation(item.tick, wheel.info));
             return;
         }
         log("setTickByValue() - item is null, " + this);
-    }
-
-
-    public void setValueByTick(int tick) {
-        setTick(tick);
-        setKnobViewRotationSmooth(mapTickToRotation(tick));
     }
 
     private void updateDashBounds() {
@@ -555,18 +525,27 @@ public class KnobView extends View {
         this.m_DashBounds.set((getWidth() / 2) - 1, this.m_DashPadding, (getWidth() / 2) + 1, this.m_DashPadding + this.m_DashLength);
     }
 
-    private void updateKnobItemsBounds() {
+    private void setKnobItems(Wheel wheel, List<KnobItemInfo> items) {
+        log("setKnobItems " + items.size());
+        wheel.items = items;
+        updateKnobItemsBounds(wheel);
+        updateKnobItemSelection(wheel);
+        log("invalidate setKnobItems");
+        invalidate();
+    }
+
+    private void updateKnobItemsBounds(Wheel wheel) {
         log("updateKnobItemsBounds");
-        if (this.m_KnobItems != null) {
-            for (KnobItemInfo item : this.m_KnobItems) {
+        if (wheel.items != null) {
+            for (KnobItemInfo item : wheel.items) {
                 int left = (getWidth() / 2) - (item.drawable.getIntrinsicWidth() / 2);
                 int top = this.m_IconPadding;
                 if (this.m_KnobItemsSelfRotation % 180.0f != 0.0f) {
                     top = (this.m_IconPadding + (item.drawable.getIntrinsicWidth() / 2)) - (item.drawable.getIntrinsicHeight() / 2);
                 }
                 item.drawable.setBounds(left, top, left + item.drawable.getIntrinsicWidth(), top + item.drawable.getIntrinsicHeight());
-                if (this.m_KnobInfo != null) {
-                    double includedAngle = ((double) ((this.m_KnobInfo.angleMax - this.m_KnobInfo.angleMin) - this.m_KnobInfo.autoAngle)) / ((double) (this.m_KnobInfo.tickMax - this.m_KnobInfo.tickMin));
+                if (wheel.info != null) {
+                    double includedAngle = ((double) ((wheel.info.angleMax - wheel.info.angleMin) - wheel.info.autoAngle)) / ((double) (wheel.info.tickMax - wheel.info.tickMin));
                     double radius = this.m_RotationCenter.y;
                     double edgeY = item.drawable.getIntrinsicWidth() / 2.0;
                     double edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicHeight() / 2));
@@ -575,23 +554,23 @@ public class KnobView extends View {
                         edgeX = (radius - ((double) this.m_IconPadding)) - ((double) (item.drawable.getIntrinsicWidth() / 2));
                     }
                     double drawableAngleHalf = Math.toDegrees(Math.atan(edgeY / edgeX));
-                    item.rotationCenter = (((double) item.tick) * includedAngle) + ((double) ((Integer.signum(item.tick) * this.m_KnobInfo.autoAngle) / 2));
+                    item.rotationCenter = (((double) item.tick) * includedAngle) + ((double) ((Integer.signum(item.tick) * wheel.info.autoAngle) / 2));
                     item.rotationLeft = item.rotationCenter - drawableAngleHalf;
                     item.rotationRight = item.rotationCenter + drawableAngleHalf;
                 } else {
                     return;
                 }
             }
-            Collections.sort(this.m_KnobItems);
+            Collections.sort(wheel.items);
         }
     }
 
-    private void updateKnobItemSelection() {
-        if (this.m_KnobItems != null) {
-            for (KnobItemInfo item : this.m_KnobItems) {
-                if (item.tick == this.m_Tick) {
+    private void updateKnobItemSelection(Wheel wheel) {
+        if (wheel.items != null) {
+            for (KnobItemInfo item : wheel.items) {
+                if (item.tick == wheel.tick) {
                     item.isSelected = true;
-                    this.m_Value = item;
+                    wheel.value = item;
                 } else {
                     item.isSelected = false;
                 }
@@ -599,27 +578,27 @@ public class KnobView extends View {
         }
     }
 
-    private double validateRotation(double rotation) {
-        if (this.m_KnobInfo == null) {
+    private double validateRotation(double rotation, KnobInfo info) {
+        if (info == null) {
             return rotation;
         }
-        if (rotation > ((double) this.m_KnobInfo.angleMax)) {
-            rotation = this.m_KnobInfo.angleMax;
-        } else if (rotation < ((double) this.m_KnobInfo.angleMin)) {
-            rotation = this.m_KnobInfo.angleMin;
+        if (rotation > ((double) info.angleMax)) {
+            rotation = info.angleMax;
+        } else if (rotation < ((double) info.angleMin)) {
+            rotation = info.angleMin;
         }
         return rotation;
     }
 
-    private int validateTick(int tick) {
+    private int validateTick(int tick, KnobInfo info) {
         //log("validateTick " + tick);
-        if (this.m_KnobInfo == null) {
+        if (info == null) {
             return tick;
         }
-        if (tick > this.m_KnobInfo.tickMax) {
-            tick = this.m_KnobInfo.tickMax;
-        } else if (tick < this.m_KnobInfo.tickMin) {
-            tick = this.m_KnobInfo.tickMin;
+        if (tick > info.tickMax) {
+            tick = info.tickMax;
+        } else if (tick < info.tickMin) {
+            tick = info.tickMin;
         }
         return tick;
     }

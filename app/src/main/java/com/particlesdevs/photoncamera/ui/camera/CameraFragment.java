@@ -50,6 +50,7 @@ import android.util.Size;
 import android.util.SizeF;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.animation.LayoutTransition;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Toast;
@@ -86,6 +87,8 @@ import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleImpl;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
+import com.particlesdevs.photoncamera.circularbarlib.ui.Binding;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualPaletteBackground;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Swipe;
@@ -397,14 +400,34 @@ public class CameraFragment extends Fragment {
         manualPanelBar = view.findViewById(R.id.buttons_container);
         manualKnobContainer = view.findViewById(R.id.knobViewContainer);
         manualKnobView = view.findViewById(R.id.knobView);
+        // The burst ring and the frame timer hide through their alpha, which
+        // capture callbacks manage. The viewfinder root's layout transition
+        // would fade a reappearing child (returning from a video/raw-video
+        // mode, where the mode state sets it GONE) up to alpha 1 and leave
+        // the idle ring stuck visible; photo-to-photo switches change
+        // nothing, so it then "heals". Disable only the appearing leg — the
+        // disappearing fade the container was given stays intact.
+        if (cameraFragmentBinding.layoutViewfinder.getRoot() instanceof ViewGroup) {
+            LayoutTransition viewfinderTransitions =
+                    ((ViewGroup) cameraFragmentBinding.layoutViewfinder.getRoot()).getLayoutTransition();
+            if (viewfinderTransitions != null) {
+                viewfinderTransitions.disableTransitionType(LayoutTransition.APPEARING);
+            }
+        }
         camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
         camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
-        camPanelFilletPx = getResources().getDimension(R.dimen.cam_panel_scrim_fillet_radius);
-        if (manualKnobView != null) {
-            manualKnobView.setScrimColor(ContextCompat.getColor(requireContext(), R.color.cam_panel_scrim));
-            // A tangent fillet blends the disc's bottom corners into the bottom
-            // edge; the rest of the circular shape stays as drawn.
-            manualKnobView.setScrimFilletRadius(camPanelFilletPx);
+        if (manualPanelBar != null) {
+            // One drawable owns the palette silhouette — the bubble with the
+            // wheel's dome grown out of it — so the wheel inflates from the
+            // bubble as a single shape. Geometry is mirrored in
+            // shaders/preview/panel_blur_fs.glsl for the frosted blur.
+            manualPanelBar.setBackground(new ManualPaletteBackground(
+                    ContextCompat.getColor(requireContext(), R.color.cam_panel_scrim),
+                    camPanelCornerPx,
+                    getResources().getDimension(com.particlesdevs.photoncamera.circularbarlib.R.dimen.manual_knob_height)));
+            // The bar's bounds include the dome zone; keep the reveal/predictive
+            // back scale pivoted on the visible bubble.
+            manualPanelBar.post(() -> Binding.pinOptionBarPivot(manualPanelBar));
         }
         textureView.postOnAnimation(panelBlurTracker);
         view.getViewTreeObserver().addOnPreDrawListener(lensOffsetCorrection);
@@ -541,8 +564,6 @@ public class CameraFragment extends Fragment {
     private float camPanelCornerPx;
     /** Blur kernel radius shared by every panel, cached. */
     private float camPanelBlurPx;
-    /** Fillet radius for the knob scrim's bottom corners, cached. */
-    private float camPanelFilletPx;
     /** Manual-console hierarchy that carries a blurred backdrop while visible. */
     private View manualPanelRoot;
     private View manualPanelBar;
@@ -606,17 +627,12 @@ public class CameraFragment extends Fragment {
             addPillBlurSpec(cameraFragmentBinding.zoomLockPill);
             // The manual hierarchy carries its own alpha/transform on the root
             // (show/hide slides it down and fades it out, leaving children's
-            // visibility untouched), so both regions gate on the root too.
+            // visibility untouched), so the region gates on the root too. One
+            // region covers the merged bubble+dome the palette background
+            // draws, dome included whenever it is grown.
             if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
                 float manualAlpha = manualPanelRoot.getAlpha();
-                boolean selectorOpen = manualKnobView != null
-                        && manualKnobView.getVisibility() == View.VISIBLE;
-                if (manualPanelBar != null && manualPanelBar.getVisibility() == View.VISIBLE) {
-                    addRoundedBlurSpec(manualPanelBar, camPanelCornerPx, manualAlpha);
-                }
-                if (selectorOpen) {
-                    addKnobBlurSpec(manualKnobView, manualAlpha);
-                }
+                addPaletteBlurSpec(manualPanelBar, manualAlpha);
             }
         }
         boolean settingsScrim = textureView.isAvailable()
@@ -693,11 +709,41 @@ public class CameraFragment extends Fragment {
     }
 
     /**
+     * One region for the manual palette's merged bubble+dome silhouette. The
+     * pill top line is the reserved dome zone (it never moves), and the dome
+     * height follows the palette background's inflation so the frosted region
+     * grows with the shape; zero collapses it to the plain bubble — never the
+     * empty dome zone above it.
+     */
+    private void addPaletteBlurSpec(View bar, float parentAlpha) {
+        if (bar == null || bar.getVisibility() != View.VISIBLE
+                || !(bar.getBackground() instanceof ManualPaletteBackground)) {
+            return;
+        }
+        ManualPaletteBackground palette = (ManualPaletteBackground) bar.getBackground();
+        addBlurSpec(bar, parentAlpha, palette.getCornerRadiusPx(), false,
+                palette.getDomeHeightPx(), palette.getEffectiveDomeHeightPx(),
+                palette.getEffectiveShoulderRadiusPx());
+    }
+
+    /**
      * Computes the panel's on-screen geometry and stores one blur region.
      * {@code cornerRadiusPx} is unscaled unless {@code radiusIsScaled} is set.
      */
     private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
                              boolean radiusIsScaled) {
+        addBlurSpec(view, alpha, cornerRadiusPx, radiusIsScaled, 0f, 0f, 0f);
+    }
+
+    /**
+     * As above, optionally shaping the region like the palette background's
+     * bubble whose top line sits {@code pillTopPx} below the panel's top, with
+     * a dome of {@code domeHeightPx} blended in through shoulder arcs of
+     * {@code shoulderRadiusPx} (all unscaled; zero pillTop disables the mode).
+     */
+    private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
+                             boolean radiusIsScaled, float pillTopPx,
+                             float domeHeightPx, float shoulderRadiusPx) {
         if (view.getWidth() <= 0 || view.getHeight() <= 0 || alpha <= 0.02f) {
             return;
         }
@@ -730,42 +776,9 @@ public class CameraFragment extends Fragment {
         scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
                 centerX, centerY, halfW, halfH, view.getRotation(),
                 radiusIsScaled ? cornerRadiusPx : cornerRadiusPx * scaleX,
-                camPanelBlurPx, alpha));
-    }
-
-    /** Circular region for the manual knob wheel (its disc center sits below the view). */
-    private void addKnobBlurSpec(KnobView knob, float parentAlpha) {
-        View parent = knob.getParent() instanceof View ? (View) knob.getParent() : null;
-        if (parent == null || knob.getWidth() <= 0 || knob.getHeight() <= 0) {
-            return;
-        }
-        float alpha = knob.getAlpha() * parentAlpha;
-        if (alpha <= 0.02f) {
-            return;
-        }
-        int[] parentLocation = new int[2];
-        parent.getLocationOnScreen(parentLocation);
-        int[] previewLocation = new int[2];
-        textureView.getLocationOnScreen(previewLocation);
-        float scaleX = Math.max(0.0001f, knob.getScaleX());
-        float scaleY = Math.max(0.0001f, knob.getScaleY());
-        float pivotX = knob.getWidth() / 2f;
-        float pivotY = knob.getHeight() / 2f;
-        float centerX = parentLocation[0] + knob.getLeft() + pivotX
-                + knob.getTranslationX() - previewLocation[0];
-        float centerY = parentLocation[1] + knob.getTop() + pivotY
-                + knob.getTranslationY() - previewLocation[1];
-        // The wheel disc is far larger than the view and its scrim is only the part
-        // inside the view bounds, so the mask is drawn in dome mode: the shader
-        // rebuilds that same arc from the view rectangle alone and fillets its
-        // bottom corners, matching what KnobView paints.
-        scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
-                centerX, centerY,
-                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
-                0f, camPanelFilletPx * Math.min(scaleX, scaleY), camPanelBlurPx, alpha,
-                centerX, centerY,
-                knob.getWidth() * scaleX / 2f, knob.getHeight() * scaleY / 2f,
-                true));
+                camPanelBlurPx, alpha,
+                pillTopPx * scaleY, domeHeightPx * scaleY,
+                shoulderRadiusPx * Math.min(scaleX, scaleY)));
     }
 
     private static boolean sameBlurSpecs(List<MainRenderer.PanelBlurSpec> a,
@@ -783,9 +796,9 @@ public class CameraFragment extends Fragment {
                     || changed(s.halfW, t.halfW) || changed(s.halfH, t.halfH)
                     || changed(s.angle, t.angle) || changed(s.cornerRadius, t.cornerRadius)
                     || changedAlpha(s.alpha, t.alpha)
-                    || changed(s.clipCenterX, t.clipCenterX) || changed(s.clipCenterY, t.clipCenterY)
-                    || changed(s.clipHalfW, t.clipHalfW) || changed(s.clipHalfH, t.clipHalfH)
-                    || s.dome != t.dome) {
+                    || changed(s.pillTop, t.pillTop)
+                    || changed(s.domeHeight, t.domeHeight)
+                    || changed(s.shoulderRadius, t.shoulderRadius)) {
                 return false;
             }
         }

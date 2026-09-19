@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 40% scrim for the floating manual settings bar (blurred preview shows through). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-       android:shape="rectangle">
-    <solid android:color="#66121417" />
-    <corners android:radius="@dimen/m3_sys_shape_corner_value_extra_large"/>
-</shape>

@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Selected option segment: container-toned rounded rectangle behind the label
-     and icon, matching the lens pill's selected lens and the shutter's tonal
-     fill. Unselected is fully transparent. -->
+<!-- Selected option segment: rounded rectangle behind the label and icon,
+     colored like the settings sliders' track — the primary selection fills
+     with the active-track color (colorPrimary), the remembered control (inner
+     ruler) with the inactive-track color (colorSecondaryContainer).
+     Extra-large (28dp) equals the palette pill's corner radius
+     (cam_panel_corner_radius in the app module), so the segment's rounding
+     reads as part of the same pill. Unselected is fully transparent. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="?attr/colorPrimaryContainer" />
-            <corners android:radius="@dimen/m3_sys_shape_corner_value_large" />
+            <solid android:color="?attr/colorPrimary" />
+            <corners android:radius="@dimen/m3_sys_shape_corner_value_extra_large" />
+        </shape>
+    </item>
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSecondaryContainer" />
+            <corners android:radius="@dimen/m3_sys_shape_corner_value_extra_large" />
         </shape>
     </item>
     <item>
