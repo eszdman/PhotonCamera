@@ -1,6 +1,11 @@
 package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.app.Activity;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.TimeInterpolator;
+import android.animation.ValueAnimator;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -18,6 +23,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,10 +38,13 @@ import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.transition.ChangeBounds;
+import androidx.transition.TransitionManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageAdapter;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
@@ -69,6 +78,13 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
+    /** Whether the scrollable EXIF description inside the panel is expanded. */
+    private boolean isDescriptionExpanded;
+    /**
+     * Clock animating alongside the panel's bounds toggle so the backdrop
+     * snapshot can be recaptured while the panel grows or shrinks.
+     */
+    private ValueAnimator descriptionBlurClock;
     /** Blur radius applied to the EXIF panel backdrop, in dp. */
     private static final float EXIF_BLUR_RADIUS_DP = 32f;
     /** 40% dark scrim blended into the backdrop for text legibility. */
@@ -193,6 +209,11 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null) {
             viewPager.removeCallbacks(exifUpdateRunnable);
         }
+        if (descriptionBlurClock != null) {
+            ValueAnimator clock = descriptionBlurClock;
+            descriptionBlurClock = null;
+            clock.cancel();
+        }
         exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
         exifBlurHandler.removeCallbacks(exifBlurSettleRunnable);
         clearExifBlur();
@@ -290,6 +311,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnBack(this::onBack);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnQuickCompare(this::onQuickCompare);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
+        fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle.setOnClickListener(this::onDescriptionToggleClicked);
         fragmentGalleryImageViewerBinding.setOnclickempty(this::onEmptyViewClicked);
     }
 
@@ -561,6 +583,81 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         updateExif();
     }
 
+    private void onDescriptionToggleClicked(View view) {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+        View scroll = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionScroll;
+        if (panel == null || scroll == null) return;
+        Context context = view.getContext();
+        isDescriptionExpanded = !isDescriptionExpanded;
+        int duration = Motion.durationMedium1(context);
+        TimeInterpolator interpolator = Motion.emphasized(context);
+        // Animate the panel's bounds so the description is revealed downwards;
+        // ChangeBounds interpolates the panel and every child below the toggle.
+        ViewGroup parent = panel.getParent() instanceof ViewGroup ? (ViewGroup) panel.getParent() : null;
+        TransitionManager.beginDelayedTransition(parent != null ? parent : (ViewGroup) panel,
+                new ChangeBounds().setDuration(duration).setInterpolator(interpolator));
+        scroll.setVisibility(isDescriptionExpanded ? View.VISIBLE : View.GONE);
+        startDescriptionBlurClock(panel, duration, interpolator);
+        updateDescriptionToggleUi();
+    }
+
+    /**
+     * The backdrop is a snapshot of the image behind the panel, so it has to be
+     * recaptured at the panel's current, animated size every frame -- otherwise
+     * the stale capture only stretches over the new area and the blur visibly
+     * lands after the text. A clock with the transition's duration/interpolator
+     * keeps the captures aligned with the bounds animation, then posts one last
+     * capture a frame after the panel settles.
+     */
+    private void startDescriptionBlurClock(View panel, int duration, TimeInterpolator interpolator) {
+        if (descriptionBlurClock != null) {
+            descriptionBlurClock.cancel();
+        }
+        ValueAnimator clock = ValueAnimator.ofFloat(0f, 1f).setDuration(duration);
+        clock.setInterpolator(interpolator);
+        clock.addUpdateListener(animation -> showExifBackdrop());
+        clock.addListener(new AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) {
+                boolean finished = descriptionBlurClock == clock;
+                if (finished) descriptionBlurClock = null;
+                if (finished && getView() != null) {
+                    panel.post(ImageViewerFragment.this::showExifBackdrop);
+                }
+            }
+        });
+        descriptionBlurClock = clock;
+        clock.start();
+    }
+
+    /** Mirrors the model's description availability and the expanded state onto the panel. */
+    private void syncDescriptionToggle() {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        View scroll = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionScroll;
+        ImageView toggle = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle;
+        if (scroll == null || toggle == null) return;
+        String description = exifDialogViewModel.getExifDataModel().getDescription();
+        boolean available = description != null && !description.isEmpty();
+        if (!available) isDescriptionExpanded = false;
+        scroll.setVisibility(available && isDescriptionExpanded ? View.VISIBLE : View.GONE);
+        toggle.setVisibility(available ? View.VISIBLE : View.GONE);
+        updateDescriptionToggleUi();
+    }
+
+    private void updateDescriptionToggleUi() {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        ImageView toggle = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle;
+        if (toggle == null) return;
+        Context context = toggle.getContext();
+        toggle.animate()
+                .rotation(isDescriptionExpanded ? 0f : 180f)
+                .setDuration(Motion.durationShort4(context))
+                .setInterpolator(Motion.emphasized(context))
+                .start();
+        toggle.setContentDescription(context.getString(isDescriptionExpanded
+                ? R.string.exif_hide_description : R.string.exif_show_description));
+    }
+
     private void onImageViewClicked(View view) {
         if (isCompareMode()) {
             onExifButtonClick(null);
@@ -603,6 +700,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
             }
         }
+        syncDescriptionToggle();
         syncExifBlur();
     }
 

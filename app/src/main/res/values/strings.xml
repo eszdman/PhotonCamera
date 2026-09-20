@@ -275,4 +275,8 @@
     <string name="secure_camera_unlock_gallery_message">Unlock your device to view the gallery</string>
     <string name="secure_camera_gallery_locked">Unlock your device to view the gallery</string>
     <string name="secure_camera_settings_locked">Unlock your device to access settings</string>
+
+    <!-- Gallery EXIF dialog description -->
+    <string name="exif_show_description">Show EXIF description</string>
+    <string name="exif_hide_description">Hide EXIF description</string>
 </resources>

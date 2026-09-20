@@ -25,6 +25,7 @@ import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.files.MediaFile;
+import com.particlesdevs.photoncamera.gallery.helper.ExifDescriptionDecoder;
 import com.particlesdevs.photoncamera.gallery.model.ExifDialogModel;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 import com.particlesdevs.photoncamera.util.Utilities;
@@ -86,6 +87,10 @@ public class ExifDialogViewModel extends AndroidViewModel {
         String attr_fnum = exifInterface.getAttribute(ExifInterface.TAG_F_NUMBER);
         String attr_focal = exifInterface.getAttribute(ExifInterface.TAG_FOCAL_LENGTH);
         String attr_date = exifInterface.getAttribute(ExifInterface.TAG_DATETIME);
+        // getAttribute() sanitizes ASCII control characters (newlines -> '?'),
+        // so decode the raw bytes to keep the parameter dump's line breaks.
+        String disp_description = ExifDescriptionDecoder.decode(
+                exifInterface.getAttributeBytes(ExifInterface.TAG_IMAGE_DESCRIPTION));
 //        String attr_35mmfocal = exifInterface.getAttribute(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM);
 //        Log.d("attr_35mmfocal", "fetched attr_35mmfocal = " + attr_35mmfocal);
 
@@ -126,6 +131,7 @@ public class ExifDialogViewModel extends AndroidViewModel {
         exifDialogModel.setFocal(disp_focal);
         exifDialogModel.setFile_size((FileUtils.byteCountToDisplaySize((int) imageFile.getSize())));
         exifDialogModel.setRes_mp(resolution_mp);
+        exifDialogModel.setDescription(disp_description);
         exifDialogModel.setMiniText(
                 imageFile.getDisplayName() + "\n" +
                         disp_exp + " | " +
