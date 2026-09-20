@@ -20,7 +20,9 @@ public class FpsButton extends AppCompatButton {
         super(context, attrs);
         // In the layout editor PreferenceKeys is not initialised yet.
         if (!isInEditMode()) {
-            setFpsModeState(PreferenceKeys.getFpsMode());
+            // The top-bar button only exists in video mode: it shows the
+            // video/RAW-video rate, not the photo/motion one.
+            setFpsModeState(PreferenceKeys.getVideoFpsMode());
         }
     }
 

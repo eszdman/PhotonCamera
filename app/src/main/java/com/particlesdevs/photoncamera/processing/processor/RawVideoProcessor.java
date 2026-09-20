@@ -797,7 +797,7 @@ public class RawVideoProcessor extends ProcessorBase {
     }
 
     private double resolveFrameRate() {
-        switch (PreferenceKeys.getFpsMode()) {
+        switch (PreferenceKeys.getVideoFpsMode()) {
             case 1: return 24.0;
             case 2: return 30.0;
             case 3: return 60.0;

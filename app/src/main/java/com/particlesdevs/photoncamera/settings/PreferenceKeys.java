@@ -11,6 +11,7 @@ import androidx.annotation.StringRes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
 import java.util.Arrays;
@@ -66,6 +67,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_LENSES.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_FPS.mValue);
         // Audio settings are global like video.
         COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_STEREO.mValue);
@@ -94,6 +96,9 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ULTRAHDR, resources.getBoolean(R.bool.pref_ultrahdr_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, 0);
+        // The video/raw-video rate starts out inheriting the shared value; it
+        // diverges only once the user changes it in a video mode.
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS, getFpsMode());
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, 0);
@@ -504,6 +509,32 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, value);
     }
 
+    /** Frame-rate selection for video and RAW video. */
+    public static int getVideoFpsMode() {
+        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS);
+    }
+
+    public static void setVideoFpsMode(int value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS, value);
+    }
+
+    /**
+     * Frame-rate selection for the mode's group: video and RAW video share the
+     * video setting, photo and motion share the photo setting.
+     */
+    public static int getFpsModeForMode(CameraMode mode) {
+        return (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO)
+                ? getVideoFpsMode() : getFpsMode();
+    }
+
+    public static void setFpsModeForMode(CameraMode mode, int value) {
+        if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
+            setVideoFpsMode(value);
+        } else {
+            setFpsMode(value);
+        }
+    }
+
     public static boolean isQuadBayerOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER);
     }
@@ -833,6 +864,7 @@ public class PreferenceKeys {
         KEY_AUTO_ZOOM_SWITCH(R.string.pref_auto_zoom_switch_key),
         KEY_QUAD_BAYER(R.string.pref_quad_bayer_key),
         KEY_FPS_PREVIEW(R.string.pref_fps_preview_key),
+        KEY_VIDEO_FPS(R.string.pref_video_fps_key),
         KEY_ULTRAHDR(R.string.pref_ultrahdr_key),
         CAMERA_ID(R.string.camera_id),
         TONEMAP(R.string.tonemap_key),

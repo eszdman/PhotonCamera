@@ -1264,7 +1264,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (mHighSpeedRecording && mIsRecordingVideo && mHighSpeedFpsRange != null) {
             return mHighSpeedFpsRange;
         }
-        switch (PhotonCamera.getSettings().fpsMode) {
+        switch (PhotonCamera.getSettings().getActiveFpsMode()) {
             case 1: return new Range<>(24, 24);
             case 2: return new Range<>(30, 30);
             case 3: return new Range<>(60, 60);
@@ -4406,7 +4406,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void applyFpsRange() {
         if (mPreviewRequestBuilder == null) return;
-        PhotonCamera.getSettings().fpsMode = PreferenceKeys.getFpsMode();
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        int fps = PreferenceKeys.getFpsModeForMode(mode);
+        if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
+            PhotonCamera.getSettings().videoFpsMode = fps;
+        } else {
+            PhotonCamera.getSettings().fpsMode = fps;
+        }
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getSelectedFpsRange());
         rebuildPreviewBuilder();
     }
@@ -4881,7 +4887,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         try {
             // Align the container frame rate with the AE range configured on
             // the session.
-            int fpsModeWanted = PhotonCamera.getSettings().fpsMode;
+            int fpsModeWanted = PhotonCamera.getSettings().getActiveFpsMode();
             if (fpsModeWanted == 3) {
                 // A fixed [60,60] high-speed entry is the sanctioned route when
                 // the HAL advertises one. Otherwise record 60 on a regular

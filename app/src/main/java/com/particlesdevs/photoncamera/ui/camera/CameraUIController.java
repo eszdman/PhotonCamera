@@ -105,10 +105,12 @@ final class CameraUIController implements CameraUIEventsListener,
                 break;
 
             case R.id.fps_toggle_button:
-                PreferenceKeys.setFpsMode((PreferenceKeys.getFpsMode() + 1) % 4);
+                // The top-bar button only exists in video mode and edits the
+                // video/RAW-video rate.
+                PreferenceKeys.setVideoFpsMode((PreferenceKeys.getVideoFpsMode() + 1) % 4);
                 cameraFragment.captureController.applyFpsRange();
                 cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
-                        .setFpsModeState(PreferenceKeys.getFpsMode());
+                        .setFpsModeState(PreferenceKeys.getVideoFpsMode());
                 cameraFragment.updateSettingsBar();
                 break;
 
@@ -206,6 +208,10 @@ final class CameraUIController implements CameraUIEventsListener,
                 break;
         }
         this.restartCamera();
+        // The frame-rate entry belongs to the mode group (video/RAW video vs
+        // photo/motion), so refresh its selected state and visibility right
+        // after the switch.
+        cameraFragment.updateSettingsBar();
     }
 
     @Override
@@ -264,10 +270,14 @@ final class CameraUIController implements CameraUIEventsListener,
                         cameraFragment.invalidateSurfaceView();
                         break;
                     case FPS_60:
-                        PreferenceKeys.setFpsMode((Integer) value);
+                        // The entry is shared by the pulldowns of every mode,
+                        // so store into the setting of the mode's group (video
+                        // + RAW video vs photo + motion).
+                        CameraMode fpsMode = PhotonCamera.getSettings().selectedMode;
+                        PreferenceKeys.setFpsModeForMode(fpsMode, (Integer) value);
                         cameraFragment.captureController.applyFpsRange();
                         cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
-                                .setFpsModeState((Integer) value);
+                                .setFpsModeState(PreferenceKeys.getFpsModeForMode(fpsMode));
                         break;
                     case TIMER:
                         PreferenceKeys.setCountdownTimerIndex((Integer) value);

@@ -39,7 +39,10 @@ public class Settings {
     public int theme;
     public boolean remosaic;//TODO
     public boolean eisPhoto;
+    /** Frame-rate selection for photo and motion modes. */
     public int fpsMode;
+    /** Frame-rate selection for video and RAW video. */
+    public int videoFpsMode;
     public int alignAlgorithm;
 
     public int colorMethod;
@@ -86,6 +89,7 @@ public class Settings {
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
         fpsMode = PreferenceKeys.getFpsMode();
+        videoFpsMode = PreferenceKeys.getVideoFpsMode();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         ultraHdr = PreferenceKeys.isUltraHdrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
@@ -101,6 +105,15 @@ public class Settings {
 
     public void saveID() {
         PreferenceKeys.setCameraID(mCameraID);
+    }
+
+    /**
+     * Frame-rate selection for the currently selected mode: video and RAW
+     * video use {@link #videoFpsMode}, everything else {@link #fpsMode}.
+     */
+    public int getActiveFpsMode() {
+        return (selectedMode == CameraMode.VIDEO || selectedMode == CameraMode.RAWVIDEO)
+                ? videoFpsMode : fpsMode;
     }
 
     /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */

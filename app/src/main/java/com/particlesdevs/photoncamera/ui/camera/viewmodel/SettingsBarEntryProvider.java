@@ -24,6 +24,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
@@ -85,7 +86,8 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(timerEntry, PreferenceKeys.getCountdownTimerIndex());
         updateEntry(hdrxEntry, PreferenceKeys.isHdrXOn());
         updateEntry(eisEntry, PreferenceKeys.isEisPhotoOn());
-        updateEntry(fpsEntry, PreferenceKeys.getFpsMode());
+        updateEntry(fpsEntry, PreferenceKeys.getFpsModeForMode(
+                PhotonCamera.getSettings().selectedMode));
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
         if (PreferenceKeys.isHeicSave() != saveLabelsHeic) {
             // Toggle flipped since the buttons were built (e.g. changed in
