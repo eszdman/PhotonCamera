@@ -415,6 +415,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -450,6 +451,7 @@ public class CameraUIViewImpl implements CameraUIView {
                 cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -493,6 +495,7 @@ public class CameraUIViewImpl implements CameraUIView {
             }
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -531,6 +534,7 @@ public class CameraUIViewImpl implements CameraUIView {
             }
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 

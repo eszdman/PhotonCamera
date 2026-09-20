@@ -704,8 +704,11 @@ public class CameraFragment extends Fragment {
     }
 
     /**
-     * Sizes the manual palette's wheel dome to ~1/3 of the preview area, so
-     * the disc is proportionally the same on every device and mode. The
+     * Sizes the manual palette's wheel dome. The reference is always the 4:3
+     * preview — the dummy view's width at the "3:4" ratio — so the disc is
+     * identical in 4:3, 16:9 video and RAW video, where the mode's dummy
+     * aspect differs. The result is clamped to the space above the bottom bar
+     * so the palette (dome + option bar) can never be measured short. The
      * palette's reserved dome zone, the wheel's container and the bubble
      * background all take the same height; the blur region and the
      * lens-cluster lift read them back.
@@ -714,22 +717,33 @@ public class CameraFragment extends Fragment {
         if (manualPanelBar == null || manualKnobContainer == null) {
             return;
         }
-        int previewHeight = cameraFragmentBinding.dummyReferenceView.getHeight();
-        if (previewHeight <= 0) {
+        int previewWidth = cameraFragmentBinding.dummyReferenceView.getWidth();
+        if (previewWidth <= 0) {
             return;
         }
+        // 4:3 preview height: the dummy's "3:4" ratio gives height = 4/3 width.
+        float reference = previewWidth * 4f / 3f;
         // The quick settings bar overlays the preview from the bottom; while it
-        // is open the disc must fit the viewfinder that stays visible above it,
-        // otherwise it reads ~1/4 taller than a third of what is on screen.
+        // is open the disc must fit the viewfinder that stays visible above it.
         if (cameraFragmentBinding.getUimodel() != null
                 && cameraFragmentBinding.getUimodel().isSettingsBarVisibility()) {
             int visibleTop = cameraFragmentBinding.settingsBar.getTop();
-            if (visibleTop > 0 && visibleTop < previewHeight) {
-                previewHeight = visibleTop;
+            if (visibleTop > 0 && visibleTop < reference) {
+                reference = visibleTop;
             }
         }
-        float domePx = Math.max(previewHeight / 5.75f,
-                getResources().getDimension(R.dimen.manual_dome_min_height));
+        float minDome = getResources().getDimension(R.dimen.manual_dome_min_height);
+        float domePx = Math.max(reference / 5.75f, minDome);
+        // The palette is anchored at the bottom bar's top and grows upward; cap
+        // the dome so dome + option bar always fits the container above it.
+        int bottomBarTop = cameraFragmentBinding.layoutBottombar.getRoot().getTop();
+        if (bottomBarTop > 0) {
+            int optionBarHeight = manualPanelBar.getHeight() - manualKnobContainer.getHeight();
+            float maxDome = bottomBarTop - Math.max(optionBarHeight, 0);
+            if (maxDome > minDome) {
+                domePx = Math.min(domePx, maxDome);
+            }
+        }
         if (Math.abs(domePx - manualDomeHeightPx) < 1f) {
             return;
         }
@@ -745,6 +759,40 @@ public class CameraFragment extends Fragment {
             ((ManualPaletteBackground) manualPanelBar.getBackground()).setDomeHeightPx(domePx);
         }
         manualPanelBar.post(() -> Binding.pinOptionBarPivot(manualPanelBar));
+    }
+
+    /**
+     * Snaps the manual palette's reveal to its shown end state. A mode switch
+     * while the palette is open can leave the option-bar scale or the dome
+     * inflation mid-flight, which reads as a squashed bar/wheel and drops the
+     * blur behind it.
+     */
+    void reassertManualPanelState() {
+        if (manualPanelRoot == null || manualPanelBar == null) {
+            return;
+        }
+        manualPanelRoot.post(() -> {
+            if (manualPanelRoot.getVisibility() != View.VISIBLE) {
+                return;
+            }
+            manualPanelRoot.setAlpha(1f);
+            manualPanelRoot.setTranslationY(0f);
+            manualPanelBar.setScaleX(1f);
+            manualPanelBar.setScaleY(1f);
+            Binding.pinOptionBarPivot(manualPanelBar);
+            boolean wheelVisible = manualKnobView != null
+                    && manualKnobView.getVisibility() == View.VISIBLE;
+            if (manualPanelBar.getBackground() instanceof ManualPaletteBackground) {
+                ((ManualPaletteBackground) manualPanelBar.getBackground())
+                        .setDomeProgress(wheelVisible ? 1f : 0f);
+            }
+            if (wheelVisible) {
+                manualKnobView.setAlpha(1f);
+                manualKnobView.setDomeProgress(1f);
+            }
+            applyManualDomeHeight();
+            updatePanelBlurSpecs();
+        });
     }
 
     /** Adds a rounded-rect blur region for {@code view}, or nothing when hidden/empty. */
